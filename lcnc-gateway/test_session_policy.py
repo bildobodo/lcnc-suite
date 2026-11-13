@@ -14,14 +14,16 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()  # MUST precede `import gateway`
 
 import gateway  # noqa: E402
+from link_fixture import is_connected, restore_after, swap_connection  # noqa: E402
 import session_bind  # noqa: E402
 
 
 class _Policy(unittest.TestCase):
     def setUp(self):
+        restore_after(self)   # the connection the tests make through try_connect_lcnc
         self.saved = {k: getattr(gateway, k) for k in (
-            "_bound_instance", "_instance_ended", "_shutdown_requested", "lcnc_connected",
-            "_lcnc_pid", "STAT", "CMD", "ERR", "_get_lcnc_pid", "_nml_connectable",
+            "_bound_instance", "_instance_ended", "_shutdown_requested",
+            "_lcnc_pid", "_get_lcnc_pid", "_nml_connectable",
             "_bind_once_enabled", "_request_process_shutdown", "_gw_start_mono")}
         self.saved_ifp = session_bind.instance_for_pid
         self.shutdowns = []
@@ -34,7 +36,7 @@ class _Policy(unittest.TestCase):
         gateway._bound_instance = None
         gateway._instance_ended = False
         gateway._shutdown_requested = False
-        gateway.lcnc_connected = False
+        swap_connection(None)   # the tests start without a connection (restore_after puts it back)
         gateway._hal_bridge._wd_reject_reason = None
         gateway._hal_bridge._reader_reject_reason = None
 
@@ -72,7 +74,7 @@ class TestBindOnce(_Policy):
         session_bind.instance_for_pid = lambda pid, proc_root="/proc": None
         self.assertFalse(gateway.check_lcnc_instance())
         self.assertTrue(gateway._instance_ended)
-        self.assertFalse(gateway.lcnc_connected)
+        self.assertFalse(is_connected())
         self.assertEqual(self.shutdowns, ["linuxcnc instance ended"])
         self.assertIn("session.instance_ended", self._tags())
         # A new instance appearing must NOT be adopted.
@@ -86,7 +88,7 @@ class TestBindOnce(_Policy):
         self.assertTrue(gateway.try_connect_lcnc())
         session_bind.instance_for_pid = lambda pid, proc_root="/proc": (pid, 999)  # different start
         self.assertFalse(gateway.try_connect_lcnc())
-        self.assertIsNone(gateway.STAT)
+        self.assertFalse(is_connected())
         self.assertIn("session.instance_changed", self._tags())
         self.assertEqual(self.shutdowns, ["linuxcnc instance ended"])
 

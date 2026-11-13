@@ -13,6 +13,7 @@ import fake_linuxcnc  # noqa: E402
 
 linuxcnc = fake_linuxcnc.install()  # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current, use  # noqa: E402
 
 
 class _Stat:
@@ -38,7 +39,6 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
         self.mdi_calls = []
         self.auto_run_calls = []
         self._orig = {
-            "STAT": gateway.STAT, "CMD": gateway.CMD,
             "_rfl_mdi_step": gateway._rfl_mdi_step,
             "set_mode": gateway.set_mode,
             "_cmd_blocking": gateway._cmd_blocking,
@@ -53,10 +53,9 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
         gateway._rfl_task = gateway._rfl_flag_task = None
         gateway._rfl_status = None
         gateway._skip_flag_unknown = False   # known clear unless a test says otherwise
-        gateway.STAT = _Stat()
-        gateway.CMD = type("C", (), {"auto": lambda *a: None,
-                                     "spindle": lambda *a: None,
-                                     "mode": lambda *a: None})()
+        connect_fake(self, stat=_Stat(), cmd=type("C", (), {"auto": lambda *a: None,
+                                                            "spindle": lambda *a: None,
+                                                            "mode": lambda *a: None})())
 
         test = self
 
@@ -92,8 +91,8 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
 
 class TestRflSequence(_SeqHarness):
     async def test_happy_path_measures_flags_and_runs(self):
-        gateway.STAT.tool_in_spindle = 5
-        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        current().stat.tool_in_spindle = 5
+        current().stat.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
         await gateway._rfl_sequence(120, pre_tool=5, safe_z=False,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5"])
@@ -103,8 +102,8 @@ class TestRflSequence(_SeqHarness):
         self.assertFalse(gateway._rfl_busy())
 
     async def test_tool_verification_failure_blocks_start(self):
-        gateway.STAT.tool_in_spindle = 3      # wrong tool stayed in spindle
-        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        current().stat.tool_in_spindle = 3      # wrong tool stayed in spindle
+        current().stat.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
         await gateway._rfl_sequence(120, pre_tool=5, safe_z=False,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, ["T5 M600"])   # no flag armed
@@ -113,16 +112,16 @@ class TestRflSequence(_SeqHarness):
         self.assertFalse(gateway._rfl_busy())
 
     async def test_zero_applied_offset_blocks_start(self):
-        gateway.STAT.tool_in_spindle = 5
-        gateway.STAT.tool_offset = (0.0,) * 9   # G43 never applied
+        current().stat.tool_in_spindle = 5
+        current().stat.tool_offset = (0.0,) * 9   # G43 never applied
         await gateway._rfl_sequence(120, pre_tool=5, safe_z=False,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.auto_run_calls, [])
         self.assertEqual(gateway._rfl_status["phase"], "measure_failed")
 
     async def test_errors_during_measurement_block_start(self):
-        gateway.STAT.tool_in_spindle = 5
-        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        current().stat.tool_in_spindle = 5
+        current().stat.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
         test = self
 
         async def _mdi_with_error(text, timeout_s):
@@ -139,8 +138,8 @@ class TestRflSequence(_SeqHarness):
         self.assertEqual(gateway._rfl_status["phase"], "measure_failed")
 
     async def test_failure_after_flag_clears_it(self):
-        gateway.STAT.tool_in_spindle = 5
-        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        current().stat.tool_in_spindle = 5
+        current().stat.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
 
         async def _cmd_blocking_boom(fn, *args, wait=None):
             if args and args[0] == linuxcnc.AUTO_RUN:
@@ -158,7 +157,7 @@ class TestRflSequence(_SeqHarness):
         self.assertFalse(gateway._rfl_busy())
 
     async def test_safe_z_position_verified(self):
-        gateway.STAT.position = (0.0, 0.0, -42.0)   # abort left Z down
+        current().stat.position = (0.0, 0.0, -42.0)   # abort left Z down
         await gateway._rfl_sequence(120, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, ["G53 G0 Z0"])
@@ -166,10 +165,10 @@ class TestRflSequence(_SeqHarness):
         self.assertEqual(gateway._rfl_status["phase"], "safe_z_failed")
 
     async def test_safe_z_reached_from_below_starts(self):
-        gateway.STAT.position = (0.0, 0.0, -42.0)
+        current().stat.position = (0.0, 0.0, -42.0)
         # poll 1 (decide) leaves Z at -42 → the retract is sent; poll 2 (verify)
         # sees the move landed at machine zero.
-        gateway.STAT._script = [{}, {"position": (0.0, 0.0, 0.0)}]
+        current().stat._script = [{}, {"position": (0.0, 0.0, 0.0)}]
         await gateway._rfl_sequence(7, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, ["G53 G0 Z0"])
@@ -177,7 +176,7 @@ class TestRflSequence(_SeqHarness):
         self.assertEqual(gateway._rfl_status["phase"], "running")
 
     async def test_safe_z_at_zero_skips_mdi_and_starts(self):
-        gateway.STAT.position = (0.0, 0.0, 0.0)
+        current().stat.position = (0.0, 0.0, 0.0)
         await gateway._rfl_sequence(7, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, [])          # already at safe height
@@ -187,7 +186,7 @@ class TestRflSequence(_SeqHarness):
     async def test_safe_z_above_zero_skips_mdi(self):
         # A config whose Z window extends above machine zero: "retract" must
         # never LOWER Z to reach Z0.
-        gateway.STAT.position = (0.0, 0.0, 50.0)
+        current().stat.position = (0.0, 0.0, 50.0)
         await gateway._rfl_sequence(7, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, [])
@@ -196,34 +195,28 @@ class TestRflSequence(_SeqHarness):
 
 
 class TestWaitInterpIdle(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        self._orig_stat = gateway.STAT
-
-    def tearDown(self):
-        gateway.STAT = self._orig_stat
-
     async def test_started_then_idle_completes(self):
         st = _Stat(interp_state=linuxcnc.INTERP_READING)
         st._script = [{}, {}, {"interp_state": linuxcnc.INTERP_IDLE}]
-        gateway.STAT = st
+        use(self, stat=st)
         ok, why = await gateway._rfl_wait_interp_idle(5.0, grace_s=0.05)
         self.assertTrue(ok, why)
 
     async def test_instant_command_completes_after_grace(self):
-        gateway.STAT = _Stat()   # never leaves idle (assignment finished between polls)
+        use(self, stat=_Stat())   # never leaves idle (assignment finished between polls)
         ok, why = await gateway._rfl_wait_interp_idle(5.0, grace_s=0.15)
         self.assertTrue(ok, why)
 
     async def test_estop_fails(self):
         st = _Stat(interp_state=linuxcnc.INTERP_READING)
         st._script = [{}, {"task_state": linuxcnc.STATE_ESTOP}]
-        gateway.STAT = st
+        use(self, stat=st)
         ok, why = await gateway._rfl_wait_interp_idle(5.0, grace_s=0.05)
         self.assertFalse(ok)
         self.assertIn("estop", why)
 
     async def test_timeout_while_busy(self):
-        gateway.STAT = _Stat(interp_state=linuxcnc.INTERP_READING)
+        use(self, stat=_Stat(interp_state=linuxcnc.INTERP_READING))
         ok, why = await gateway._rfl_wait_interp_idle(0.3, grace_s=0.05)
         self.assertFalse(ok)
         self.assertIn("timeout", why)
@@ -245,29 +238,25 @@ class TestRflEntry(unittest.TestCase):
         self.assertEqual(gateway._rfl_entry_mdi({"x": None, "y": 2.0}), "G90 G0 Y2.0000")
 
     def test_reached_with_g5x_offset(self):
-        orig = gateway.STAT
-        try:
-            gateway.STAT = _Stat()
-            gateway.STAT.g5x_offset = (100.0, 50.0) + (0.0,) * 7
-            gateway.STAT.g92_offset = (0.0,) * 9
-            gateway.STAT.position = (112.5, 47.0, 0.0)
-            ok, why = gateway._rfl_entry_reached({"x": 12.5, "y": -3.0})
-            self.assertTrue(ok, why)
-            # off by 5mm in Y → refused
-            gateway.STAT.position = (112.5, 42.0, 0.0)
-            ok, why = gateway._rfl_entry_reached({"x": 12.5, "y": -3.0})
-            self.assertFalse(ok)
-            self.assertIn("Y", why)
-        finally:
-            gateway.STAT = orig
+        use(self, stat=_Stat())
+        current().stat.g5x_offset = (100.0, 50.0) + (0.0,) * 7
+        current().stat.g92_offset = (0.0,) * 9
+        current().stat.position = (112.5, 47.0, 0.0)
+        ok, why = gateway._rfl_entry_reached({"x": 12.5, "y": -3.0})
+        self.assertTrue(ok, why)
+        # off by 5mm in Y → refused
+        current().stat.position = (112.5, 42.0, 0.0)
+        ok, why = gateway._rfl_entry_reached({"x": 12.5, "y": -3.0})
+        self.assertFalse(ok)
+        self.assertIn("Y", why)
 
 
 class TestRflSequenceEntry(_SeqHarness):
     async def test_entry_positions_then_runs(self):
-        gateway.STAT.position = (12.5, -3.0, -100.0)   # below safe height → retract sent
-        gateway.STAT._script = [{}, {"position": (12.5, -3.0, 0.0)}]
-        gateway.STAT.g5x_offset = (0.0,) * 9
-        gateway.STAT.g92_offset = (0.0,) * 9
+        current().stat.position = (12.5, -3.0, -100.0)   # below safe height → retract sent
+        current().stat._script = [{}, {"position": (12.5, -3.0, 0.0)}]
+        current().stat.g5x_offset = (0.0,) * 9
+        current().stat.g92_offset = (0.0,) * 9
         await gateway._rfl_sequence(50, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0,
                                     entry={"x": 12.5, "y": -3.0, "wcs": None, "units": None})
@@ -276,9 +265,9 @@ class TestRflSequenceEntry(_SeqHarness):
         self.assertEqual(gateway._rfl_status["phase"], "running")
 
     async def test_entry_position_mismatch_blocks_start(self):
-        gateway.STAT.position = (99.0, -3.0, 0.0)   # abort left X short
-        gateway.STAT.g5x_offset = (0.0,) * 9
-        gateway.STAT.g92_offset = (0.0,) * 9
+        current().stat.position = (99.0, -3.0, 0.0)   # abort left X short
+        current().stat.g5x_offset = (0.0,) * 9
+        current().stat.g92_offset = (0.0,) * 9
         await gateway._rfl_sequence(50, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0,
                                     entry={"x": 12.5, "y": -3.0, "wcs": None, "units": None})
@@ -311,9 +300,9 @@ class TestRflSequenceBinding(_SeqHarness):
         self.program.update(None, True, _time.monotonic())
         self.program.request_load(self.prog, _time.monotonic())
         self.program.update(self.prog, True, _time.monotonic())
-        gateway.STAT.tool_in_spindle = 5
-        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
-        gateway.STAT.position = (0.0, 0.0, -100.0)
+        current().stat.tool_in_spindle = 5
+        current().stat.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        current().stat.position = (0.0, 0.0, -100.0)
 
     def tearDown(self):
         gateway._status_runtime.program = self._orig_program
@@ -374,7 +363,7 @@ class TestRflSequenceBinding(_SeqHarness):
                 gateway._bulk.preview_version += 1
             return True, ""
         gateway._rfl_mdi_step = step
-        gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
+        current().stat._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
         await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
                                     spindle_speed=0, program=self.bound())
         self.assertEqual(len(self.auto_run_calls), 1)
@@ -382,7 +371,7 @@ class TestRflSequenceBinding(_SeqHarness):
 
     async def test_the_unchanged_program_runs(self):
         identity = self.bound()
-        gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
+        current().stat._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
         await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
                                     spindle_speed=0, program=identity)
         self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5", "G53 G0 Z0"])
@@ -420,9 +409,9 @@ class TestRflLifecycle(_SeqHarness):
 
     def setUp(self):
         super().setUp()
-        gateway.STAT.tool_in_spindle = 5
-        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
-        gateway.STAT.position = (0.0, 0.0, -100.0)
+        current().stat.tool_in_spindle = 5
+        current().stat.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        current().stat.position = (0.0, 0.0, -100.0)
         self.cleared = []
 
     def start(self):
@@ -503,7 +492,7 @@ class TestRflLifecycle(_SeqHarness):
     async def test_the_flag_stays_unknown_after_the_sequences_own_start(self):
         # o<450> consumes it in the run-from-line skim, which an abort can
         # cut short: the next start clears it first.
-        gateway.STAT.position = (0.0, 0.0, 0.0)   # already at safe height
+        current().stat.position = (0.0, 0.0, 0.0)   # already at safe height
         await self.start()
         self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5"])
         self.assertEqual(self.auto_run_calls, [(linuxcnc.AUTO_RUN, 4)])
@@ -552,16 +541,16 @@ class TestRflLifecycle(_SeqHarness):
         seen = []
 
         async def clear():
-            seen.append(gateway.STAT.interp_state)
-            if gateway.STAT.interp_state != linuxcnc.INTERP_IDLE:
+            seen.append(current().stat.interp_state)
+            if current().stat.interp_state != linuxcnc.INTERP_IDLE:
                 raise AssertionError("MDI command in progress — command rejected")
         self.blocking_steps(clear=clear)
         self.start()
         await asyncio.wait_for(self.retracting.wait(), 2)
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING    # the aborted move still runs
+        current().stat.interp_state = linuxcnc.INTERP_READING    # the aborted move still runs
         gateway._preempt_inflight(by="abort", from_client=1)
         await asyncio.sleep(0.4)
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE       # the abort took effect
+        current().stat.interp_state = linuxcnc.INTERP_IDLE       # the abort took effect
         await self.settle()
         self.assertEqual(seen, [linuxcnc.INTERP_IDLE], "cleared only once the interpreter was idle")
         self.assertEqual(self.cleared, ["#3116=0"])
@@ -579,13 +568,13 @@ class TestRflLifecycle(_SeqHarness):
         self.blocking_steps(clear=clear)
         self.start()
         await asyncio.wait_for(self.retracting.wait(), 2)
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         gateway._preempt_inflight(by="abort", from_client=1)
         await asyncio.sleep(0.1)
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING     # it was still running
+        current().stat.interp_state = linuxcnc.INTERP_READING     # it was still running
         await asyncio.sleep(0.4)
         self.stage = "late"
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         await self.settle()
         self.assertEqual(stages, ["late"])
 
@@ -593,7 +582,7 @@ class TestRflLifecycle(_SeqHarness):
         self.blocking_steps()
         self.start()
         await asyncio.wait_for(self.retracting.wait(), 2)
-        gateway.STAT.task_state = linuxcnc.STATE_ESTOP
+        current().stat.task_state = linuxcnc.STATE_ESTOP
         gateway._preempt_inflight(by="estop", from_client=1)
         await self.settle()
         self.assertEqual(self.cleared, [], "no MDI with the machine off")

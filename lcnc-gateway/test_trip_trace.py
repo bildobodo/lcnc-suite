@@ -22,6 +22,7 @@ linuxcnc = fake_linuxcnc.install()  # MUST precede `import gateway`
 from fastapi.testclient import TestClient  # noqa: E402
 
 import gateway  # noqa: E402
+from link_fixture import restore_after  # noqa: E402
 from test_ws_smoke import STATUS_FAMILY, _decode  # noqa: E402
 
 FAR = 3600.0      # the snapshot stays fresh for the whole session
@@ -36,6 +37,7 @@ class TestTheTripAndItsAcknowledgementAreTraced(unittest.TestCase):
         self.addCleanup(setattr, gateway, "_nml_connectable", gateway._nml_connectable)
         gateway._get_lcnc_pid = lambda: 424242
         gateway._nml_connectable = lambda: True
+        restore_after(self)
         self.assertTrue(gateway.try_connect_lcnc(), "fake linuxcnc must connect")
         for name in ("_unacked_trip", "_last_fault_latched", "_trip_baseline_seen"):
             self.addCleanup(setattr, gateway, name, getattr(gateway, name))

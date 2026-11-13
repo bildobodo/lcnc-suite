@@ -21,7 +21,7 @@ fake_linuxcnc.install()
 
 import gateway  # noqa: E402
 import linuxcnc  # noqa: E402
-from link_fixture import FakeConnection, connect_fake, swap_connection  # noqa: E402
+from link_fixture import FakeConnection, connect_fake, current, disconnect, swap_connection  # noqa: E402
 
 
 class _Chan:
@@ -68,7 +68,7 @@ class LinkOwnership(unittest.TestCase):
         connect_fake(self, stat=self.old.stat, cmd=self.old.cmd)
 
     def _admit(self):
-        gateway.STAT.poll()   # the admission reads the controller in the write's thread
+        current().stat.poll()   # the admission reads the controller in the write's thread
         return None
 
     def _write(self, claim, wait=1.0):
@@ -120,14 +120,12 @@ class EntryPathsWithoutConnection(unittest.TestCase):
     Link changes how "no connection" is represented (package 2b step 2)."""
 
     def test_a_dispatched_command_and_a_stop_answer_not_connected(self):
-        from link_fixture import disconnect
         disconnect(self)
         for msg in ({"cmd": "mdi", "command": "G0 X1"}, {"cmd": "abort"}, {"cmd": "jog_stop", "axis": 0}):
             r = asyncio.run(gateway.handle_command(msg, True))
             self.assertEqual(r, {"ok": False, "error": "LinuxCNC not connected"}, msg)
 
     def test_the_disconnect_jog_stop_does_nothing_without_a_connection(self):
-        from link_fixture import disconnect
         disconnect(self)
         saved = dict(gateway._active_jogs)
         gateway._active_jogs[0] = (0, 0)

@@ -21,6 +21,7 @@ from unittest import mock
 import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
 
 
@@ -171,8 +172,8 @@ class TestUploadRoute(unittest.TestCase):
     def setUp(self):
         from writer_fixture import armed_writer   # button gates BG-14
         self.conn_key = armed_writer(self)
-        gateway.STAT = linuxcnc.stat()
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        connect_fake(self)
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         self.tmp = tempfile.mkdtemp()
         self._patch = mock.patch.object(gateway, "get_nc_files_dir", return_value=self.tmp)
         self._patch.start()

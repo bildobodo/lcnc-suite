@@ -19,6 +19,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current  # noqa: E402
 from command_policy import COMMAND_GATES  # noqa: E402
 from test_button_gates import _Handlers, _payload, _run, controller_reads  # noqa: E402
 from command_policy import (  # noqa: E402
@@ -203,7 +204,7 @@ class _Writer(_Handlers):
 
     def controller(self, **now):
         """What STAT reads NOW (see controller_reads)."""
-        controller_reads(gateway.STAT, **now)
+        controller_reads(current().stat, **now)
 
     _MIRRORED = ("estop", "enabled", "interp_state", "paused", "task_mode", "inpos", "current_vel", "homed")
 
@@ -225,9 +226,9 @@ class _Writer(_Handlers):
         `then` changes the controller during the switch."""
         def mode(target):
             self.cmd.calls.append(("mode", (target,), {}))
-            gateway.STAT.task_mode = target
+            current().stat.task_mode = target
             for k, v in (then or {}).items():
-                setattr(gateway.STAT, k, v)
+                setattr(current().stat, k, v)
             return 0
         self.cmd.mode = mode
 
@@ -286,7 +287,7 @@ class TestLoadWithoutAuto(_Writer):
         for over in ({"estop": True, "enabled": False}, {"enabled": False}, {"homed": False}):
             with self.subTest(**over):
                 self.cmd.calls.clear()
-                gateway.STAT.enabled = over.get("enabled", True)
+                current().stat.enabled = over.get("enabled", True)
                 r = self.send({"cmd": "load_file", "path": self.prog}, **over)
                 self.assertTrue(r["ok"], r)
                 self.assertEqual(self.cmd.args_of("program_open"), (self.prog,))
@@ -310,7 +311,7 @@ class TestModePerTargetHandler(_Writer):
     """BG-04 at the handler: the payload picks the target's class."""
 
     def test_manual_in_estop_and_unhomed(self):
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        current().stat.task_mode = linuxcnc.MODE_MDI
         for over in ({"estop": True, "enabled": False}, {"homed": False}):
             with self.subTest(**over):
                 self.cmd.calls.clear()
@@ -418,7 +419,7 @@ class TestModeOnTheCurrentRead(_Writer):
             with self.subTest(attr=attr):
                 self.cmd.calls.clear()
                 self.controller()
-                delattr(gateway.STAT, attr)
+                delattr(current().stat, attr)
                 gateway._shared_status = _payload(inpos=True, current_vel=0.0)   # published: all known
                 gateway._cmd_lock = None
                 r = _run(gateway.handle_command({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI},
@@ -477,7 +478,7 @@ class TestManualSpindleOnTheCurrentRead(_Writer):
 
     def test_no_read_no_command(self):
         self.controller()
-        gateway.STAT.poll = mock.Mock(side_effect=OSError("nml"))
+        current().stat.poll = mock.Mock(side_effect=OSError("nml"))
         gateway._shared_status = _payload()
         gateway._cmd_lock = None
         r = _run(gateway.handle_command(self.CMDS[0], True, self.writer.conn_key))
@@ -586,11 +587,11 @@ class TestAtTheWrite(_Writer):
 
     def running(self):
         for k, v in self.RUNNING_MDI.items():
-            setattr(gateway.STAT, k, v)
+            setattr(current().stat, k, v)
 
     def test_the_mode_choice(self):
         def homing():
-            gateway.STAT.joint = tuple({"homing": 1} for _ in range(16))
+            current().stat.joint = tuple({"homing": 1} for _ in range(16))
         r = self.at_the_write({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI}, homing)
         self.assertEqual(r, {"ok": False, "error": "Homing in progress — wait until it ends"})
         self.assertEqual(self.names(), [])
@@ -665,7 +666,7 @@ class TestTheFlagClearIsPartOfTheStart(_Writer):
         p = mock.patch.object(gateway, "_var_file_thread", mock.AsyncMock(return_value=None))
         p.start()
         self.addCleanup(p.stop)
-        gateway.STAT.ini_filename = None   # the var-file half is not this test's
+        current().stat.ini_filename = None   # the var-file half is not this test's
 
     def test_running_by_the_current_read(self):
         for cmd in ("cycle_start", "auto_step", "mdi"):
@@ -683,7 +684,7 @@ class TestTheFlagClearIsPartOfTheStart(_Writer):
 
     def test_a_start_while_the_switch_is_queued(self):
         def running():
-            gateway.STAT.task_mode, gateway.STAT.interp_state = linuxcnc.MODE_AUTO, linuxcnc.INTERP_READING
+            current().stat.task_mode, current().stat.interp_state = linuxcnc.MODE_AUTO, linuxcnc.INTERP_READING
         self.controller()
         r = self.at_the_write({"cmd": "cycle_start"}, running, at=1)   # the switch to MDI
         self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
@@ -692,7 +693,7 @@ class TestTheFlagClearIsPartOfTheStart(_Writer):
 
     def test_a_start_while_the_clear_is_queued(self):
         def running():
-            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+            current().stat.interp_state = linuxcnc.INTERP_READING
         self.controller()
         r = self.at_the_write({"cmd": "cycle_start"}, running, at=2)   # the #3116=0 MDI line
         self.assertEqual(r, {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"})
@@ -722,12 +723,11 @@ class TestIniFacts(unittest.TestCase):
     """The two INI facts: exactly "1" switches on; anything else is off."""
 
     def setUp(self):
-        saved = (gateway.STAT, gateway._spindle_before_homing_cache, gateway._coord_without_homing_cache)
-        self.addCleanup(lambda: (setattr(gateway, "STAT", saved[0]),
-                                 setattr(gateway, "_spindle_before_homing_cache", saved[1]),
-                                 setattr(gateway, "_coord_without_homing_cache", saved[2])))
-        gateway.STAT = linuxcnc.stat()
-        gateway.STAT.ini_filename = "/x/machine.ini"
+        saved = (gateway._spindle_before_homing_cache, gateway._coord_without_homing_cache)
+        self.addCleanup(lambda: (setattr(gateway, "_spindle_before_homing_cache", saved[0]),
+                                 setattr(gateway, "_coord_without_homing_cache", saved[1])))
+        connect_fake(self)
+        current().stat.ini_filename = "/x/machine.ini"
         p = mock.patch.object(gateway.linuxcnc, "ini", _Ini)
         p.start()
         self.addCleanup(p.stop)
@@ -751,7 +751,7 @@ class TestIniFacts(unittest.TestCase):
 
     def _coord(self, kins_type, nfh):
         _Ini.values = {} if nfh is None else {("TRAJ", "NO_FORCE_HOMING"): nfh}
-        gateway.STAT.kinematics_type = kins_type
+        current().stat.kinematics_type = kins_type
         gateway._coord_without_homing_cache = None
         return gateway._coord_without_homing()
 

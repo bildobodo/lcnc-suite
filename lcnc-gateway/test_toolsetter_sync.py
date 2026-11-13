@@ -10,6 +10,7 @@ import unittest.mock
 
 import test_command_dispatch as td   # the fake binding first, then gateway
 import gateway  # noqa: E402
+from link_fixture import current, use  # noqa: E402
 from linuxcnc import AUTO_RUN, AUTO_STEP, INTERP_IDLE, INTERP_PAUSED, MODE_AUTO  # noqa: E402
 
 SECTION = {"touchX": 10, "touchY": 10, "touchZ": -179, "fastFeed": 2000, "slowFeed": 20, "traverseFeed": 500,
@@ -48,8 +49,8 @@ class TestProgramStartSync(unittest.TestCase):
     def setUp(self):
         self.setUp_handler()
         self.cmd = _Cmd()
-        gateway.CMD = self.cmd
-        gateway.STAT.enabled = True
+        use(self, cmd=self.cmd)
+        current().stat.enabled = True
         saved = (dict(gateway._ts_basis), gateway._ts_basis_version)
         self.addCleanup(lambda: (setattr(gateway, "_ts_basis", saved[0]), setattr(gateway, "_ts_basis_version", saved[1])))
         gateway._ts_basis, gateway._ts_basis_version = {}, 0
@@ -89,7 +90,7 @@ class TestProgramStartSync(unittest.TestCase):
         self.assertTrue(r["toolsetter"]["digest"])
 
     def test_the_first_step_from_idle_syncs(self):
-        gateway.STAT.interp_state = INTERP_IDLE
+        current().stat.interp_state = INTERP_IDLE
         r = self._send({"cmd": "auto_step"})
         self.assertTrue(r["ok"], r)
         self.assertTrue(self.toolsetter_mdis())
@@ -102,8 +103,8 @@ class TestProgramStartSync(unittest.TestCase):
         self.assertTrue(self.toolsetter_mdis())
 
     def test_a_paused_step_and_a_resume_never_sync(self):
-        gateway.STAT.interp_state = INTERP_PAUSED
-        gateway.STAT.task_mode = MODE_AUTO
+        current().stat.interp_state = INTERP_PAUSED
+        current().stat.task_mode = MODE_AUTO
         payload = td._payload(interp_state=INTERP_PAUSED, is_paused=True, is_running=True, task_mode=MODE_AUTO)
         for cmd in ("auto_step", "cycle_resume"):
             gateway._shared_status = payload
@@ -191,7 +192,7 @@ class TestProgramStartSync(unittest.TestCase):
         # Codex R311 FI-I38: the background sequence binds its basis to the
         # AUTO mode switch too, not only to the start after it — a section
         # saved after the early check leaves the task mode and nothing runs
-        gateway.STAT.task_mode = linuxcnc_mode_mdi = gateway.linuxcnc.MODE_MDI
+        current().stat.task_mode = linuxcnc_mode_mdi = gateway.linuxcnc.MODE_MDI
         basis = gateway._toolsetter_basis()
         saved = gateway._program_start_refusal
 
@@ -205,7 +206,7 @@ class TestProgramStartSync(unittest.TestCase):
         td._run(gateway._rfl_sequence(7, pre_tool=0, safe_z=False, spindle_dir=None, spindle_speed=0, basis=basis))
         self.assertNotIn((MODE_AUTO,), [a for n, a, _k in self.cmd.calls if n == "mode"], self.cmd.calls)
         self.assertIsNone(self.cmd.args_of("auto"))
-        self.assertEqual(gateway.STAT.task_mode, linuxcnc_mode_mdi)
+        self.assertEqual(current().stat.task_mode, linuxcnc_mode_mdi)
         self.assertIn("changed meanwhile", gateway._rfl_status.get("error") or str(gateway._rfl_status))
 
     def test_run_from_line_measures_with_the_chosen_basis_and_binds_it(self):
@@ -245,9 +246,9 @@ class TestGetProbeVarsRemoved(unittest.TestCase):
 
             def find(self, section, var):
                 return "m.var" if (section, var) == ("RS274NGC", "PARAMETER_FILE") else None
-        saved = getattr(gateway.STAT, "ini_filename", None)
-        self.addCleanup(lambda: setattr(gateway.STAT, "ini_filename", saved))
-        gateway.STAT.ini_filename = ini
+        saved = getattr(current().stat, "ini_filename", None)
+        self.addCleanup(lambda: setattr(current().stat, "ini_filename", saved))
+        current().stat.ini_filename = ini
         gateway._shared_status = td._payload()
         with unittest.mock.patch.object(gateway.linuxcnc, "ini", _Ini, create=True):
             r = td._run(gateway.handle_command({"cmd": "get_probe_vars", "vars": [3102]}, True))

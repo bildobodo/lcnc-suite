@@ -20,6 +20,7 @@ import httpx
 import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current, use  # noqa: E402
 import macro_files  # noqa: E402
 
 FACE = """(MACRO Face top)
@@ -72,7 +73,7 @@ class _Cmd:
     def mode(self, m):
         self.serial += 1
         self.calls.append(("mode", m))
-        gateway.STAT.task_mode = m
+        current().stat.task_mode = m
         if self.on_mode:
             self.on_mode()
 
@@ -82,15 +83,13 @@ class _Cmd:
 
 class _Base(unittest.TestCase):
     def setUp(self):
-        gateway.lcnc_connected = True
-        gateway.STAT = linuxcnc.stat()
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.enabled = True
-        gateway.STAT.state = 1
-        gateway.STAT.echo_serial_number = 0
         self.cmd = _Cmd()
-        gateway.CMD = self.cmd
+        connect_fake(self, cmd=self.cmd)
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.enabled = True
+        current().stat.state = 1
+        current().stat.echo_serial_number = 0
         gateway._source_claims.clear()
         self.addCleanup(gateway._source_claims.clear)
         # every macro write names an armed writer (button gates BG-14)
@@ -102,7 +101,7 @@ class StartClaims(_Base):
     def test_a_start_is_claimed_until_the_controller_is_through(self):
         _run(gateway._cmd_blocking(self.cmd.mdi, "G0 X1", wait=None))
         self.assertEqual([(c.what, c.state, c.serial) for c in gateway._source_claims], [("mdi", "sent", 1)])
-        S = gateway.STAT
+        S = current().stat
         for echo, state, interp in [(0, 1, linuxcnc.INTERP_IDLE),          # task has not seen it
                                     (1, RCS_EXEC, linuxcnc.INTERP_IDLE),   # still executing
                                     (1, 1, linuxcnc.INTERP_READING)]:      # done, interpreter busy
@@ -139,7 +138,8 @@ class StartClaims(_Base):
             def wait_complete(self, *_a):
                 release.wait(2)
                 return -1
-        gateway.CMD = cmd = _Slow()
+        cmd = _Slow()
+        use(self, cmd=cmd)
 
         async def go():
             t = asyncio.ensure_future(gateway._cmd_blocking(cmd.mdi, "G0 X1", wait=5))
@@ -153,7 +153,7 @@ class StartClaims(_Base):
 
     def _poll(self, at=None, **values):
         for k, v in values.items():
-            setattr(gateway.STAT, k, v)
+            setattr(current().stat, k, v)
         gateway._release_start_claims(at)
         return len(gateway._source_claims)
 
@@ -213,7 +213,7 @@ class StartClaims(_Base):
         gateway._source_claims.append(gateway._StartClaim("mdi"))
         self.assertIn("starting or running", gateway._write_admission_refusal(self.conn_key))
         gateway._source_claims.clear()
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        current().stat.interp_state = linuxcnc.INTERP_READING
         self.assertIn("runs", gateway._write_admission_refusal(self.conn_key))
 
     def test_no_command_reaches_the_controller_around_the_start_hook(self):
@@ -640,9 +640,9 @@ class RefusalShape(Routes):
         gateway._source_claims.append(gateway._StartClaim("mdi"))
         self.detail(self.call("PUT", f"/macro?name=face_top&base={rev(FACE)}", content=b"x"), "busy")
         gateway._source_claims.clear()
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        current().stat.interp_state = linuxcnc.INTERP_READING
         self.detail(self.call("PUT", f"/macro?name=face_top&base={rev(FACE)}", content=b"x"), "busy")
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         (self.mdir / "park.ngc").unlink()
         d = self.detail(self.call("PUT", f"/macro?name=park&base={rev(PARK)}", content=b"x"), "deleted")
         self.assertIsNone(d["revision"])
@@ -750,7 +750,7 @@ class RunMacro(_Folder):
         return [c[1] for c in self.cmd.calls if c[0] == "mdi"]
 
     def test_the_built_line_runs_after_a_forced_mode_switch(self):
-        self.assertEqual(gateway.STAT.task_mode, linuxcnc.MODE_MDI, "already in MDI")
+        self.assertEqual(current().stat.task_mode, linuxcnc.MODE_MDI, "already in MDI")
         r = self.send()
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.calls, [("mode", linuxcnc.MODE_MDI), ("mdi", "o<face_top> call [1.5] [400]")],

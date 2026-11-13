@@ -22,6 +22,7 @@ import fake_linuxcnc
 
 linuxcnc = fake_linuxcnc.install()
 import gateway  # noqa: E402
+from link_fixture import current, using  # noqa: E402
 from test_button_gates import _payload  # noqa: E402
 from test_button_gates_b import _Admission  # noqa: E402
 from tool_store import ToolLibraryStore  # noqa: E402
@@ -83,14 +84,14 @@ class _ToolEdit(_Admission):
     def send(self, msg):
         gateway._shared_status = _payload()
         gateway._cmd_lock = None
-        gateway.STAT.tool_in_spindle = 0
+        current().stat.tool_in_spindle = 0
         replies, cmd = [], _Reloads(self.table)
 
         async def reply(ws, m):
             replies.append(m)
         with patch.object(gateway, "get_tool_tbl_path", lambda: str(self.table)), \
                 patch.object(gateway, "_tool_lib_store", self.store), \
-                patch.object(gateway, "CMD", cmd), \
+                using(cmd=cmd), \
                 patch.object(gateway, "ws_send_json", reply):
             asyncio.run(gateway._execute_client_command(901, self.writer, None, dict(msg)))
         return replies[-1], cmd.seen

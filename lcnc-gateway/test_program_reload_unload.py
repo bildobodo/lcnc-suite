@@ -27,6 +27,7 @@ import fake_linuxcnc
 
 linuxcnc = fake_linuxcnc.install()
 import gateway  # noqa: E402
+from link_fixture import current, restore_after, using  # noqa: E402
 import gateway_util  # noqa: E402
 from bulk_pipeline import BulkPipeline  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
@@ -122,6 +123,7 @@ class TestThePollerPublishesTheReload(unittest.TestCase):
         self.addCleanup(setattr, gateway, "_nml_connectable", gateway._nml_connectable)
         gateway._get_lcnc_pid = lambda: 424242
         gateway._nml_connectable = lambda: True
+        restore_after(self)
         self.assertTrue(gateway.try_connect_lcnc(), "fake linuxcnc must connect")
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -135,7 +137,7 @@ class TestThePollerPublishesTheReload(unittest.TestCase):
         b = _pipeline(self.ini)
         b._run_gcode_worker_blocking = lambda ctx_bytes, timeout: (0, b"x" * 8, b"__SCHEMA__\t8\n")
         cmd = _Opens()
-        stat = gateway.STAT
+        stat = current().stat
         for k, v in (("interp_state", linuxcnc.INTERP_IDLE), ("task_mode", linuxcnc.MODE_MANUAL),
                      ("file", ""), ("ini_filename", self.ini)):
             self.addCleanup(lambda k=k, had=hasattr(stat, k), old=getattr(stat, k, None):
@@ -143,7 +145,7 @@ class TestThePollerPublishesTheReload(unittest.TestCase):
             setattr(stat, k, v)
         gateway._status_runtime.program = gateway._status_runtime_mod.LoadedProgram()
         sha = lambda text: hashlib.sha256(text.encode()).hexdigest()   # noqa: E731
-        with patch.object(gateway, "_bulk", b), patch.object(gateway, "CMD", cmd), \
+        with patch.object(gateway, "_bulk", b), using(cmd=cmd), \
                 patch.object(gateway, "get_nc_files_dir", return_value=self.nc), \
                 TestClient(gateway.app) as client, client.websocket_connect("/ws") as ws:
             last_beat = [0.0]
@@ -199,8 +201,8 @@ class TestAnUnloadEmptiesProgramAndPreview(_Admission):
             b = _pipeline(ini)
             _publish(b, str(prog))
             self.assertTrue(b.preview_available())
-            gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-            gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+            current().stat.task_mode = linuxcnc.MODE_AUTO
+            current().stat.interp_state = linuxcnc.INTERP_IDLE
             program = gateway._status_runtime.program = gateway._status_runtime_mod.LoadedProgram()
             program.update(None, True, time.monotonic())
             replies = []

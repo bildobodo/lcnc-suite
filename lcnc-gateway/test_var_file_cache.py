@@ -11,6 +11,7 @@ import fake_linuxcnc  # noqa: E402
 
 linuxcnc = fake_linuxcnc.install()  # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import use  # noqa: E402
 
 
 class _Stat:
@@ -44,7 +45,7 @@ class TestVarFilePathCache(unittest.TestCase):
         gateway._var_file_path_cache_val = None
 
     def test_parses_ini_once_for_same_filename(self):
-        gateway.STAT = _Stat("/cfg/machine.ini")
+        use(self, stat=_Stat("/cfg/machine.ini"))
         p1 = gateway._resolve_var_file_path()
         p2 = gateway._resolve_var_file_path()
         p3 = gateway._resolve_var_file_path()
@@ -54,15 +55,15 @@ class TestVarFilePathCache(unittest.TestCase):
         self.assertEqual(self.calls["n"], 1)  # parsed ONCE despite 3 resolves
 
     def test_reresolves_when_ini_filename_changes(self):
-        gateway.STAT = _Stat("/cfg/a.ini")
+        use(self, stat=_Stat("/cfg/a.ini"))
         gateway._resolve_var_file_path()
-        gateway.STAT = _Stat("/cfg/b.ini")
+        use(self, stat=_Stat("/cfg/b.ini"))
         r = gateway._resolve_var_file_path()
         self.assertEqual(r, os.path.join("/cfg", "sim.var"))
         self.assertEqual(self.calls["n"], 2)  # cache miss on filename change
 
     def test_transient_failure_is_not_cached(self):
-        gateway.STAT = _Stat("/cfg/m.ini")
+        use(self, stat=_Stat("/cfg/m.ini"))
 
         def _raise(_path):
             raise RuntimeError("NML hiccup")

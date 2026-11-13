@@ -20,6 +20,7 @@ import unittest
 
 from test_g30 import _G30Case, _run
 import gateway  # noqa: E402  (test_g30 installed the fake binding first)
+from link_fixture import current  # noqa: E402
 from gateway_util import TOOLSETTER_BASIS_KEYS, RemapEnv, toolsetter_basis_view  # noqa: E402
 
 FILE = {k: float(i) for i, k in enumerate(TOOLSETTER_BASIS_KEYS)}
@@ -38,7 +39,7 @@ class _BasisCase(_G30Case):
         gateway._ts_basis = {}
         gateway._ts_basis_version = 0
         gateway._ts_readback_task = gateway._ts_readback_tried = gateway._ts_reparse_for = None
-        gateway.STAT.enabled = True
+        current().stat.enabled = True
         # a configuration without remaps (the double has no INI: unknown —
         # every line may write anything; TestRemapBodies covers both)
         remap_env = gateway._remap_env
@@ -187,7 +188,7 @@ class TestReadBack(_BasisCase):
         from test_g30 import linuxcnc
         gateway._ts_ensure()
         self.task.params[3009] = 9.0
-        gateway.STAT.task_state, gateway.STAT.task_mode = linuxcnc.STATE_ON, linuxcnc.MODE_AUTO
+        current().stat.task_state, current().stat.task_mode = linuxcnc.STATE_ON, linuxcnc.MODE_AUTO
         _run(gateway._ts_read_back("/p.ngc"))
         self.assertEqual(self.origin(3009), "assumed")
         self.assertEqual(self.task.calls, [], "nothing sent")
@@ -381,7 +382,7 @@ class TestRemapBodies(_BasisCase):
 
             def findall(self, section, key):
                 return ["M200 modalgroup=10 ngc=setter_write"] if (section, key) == ("RS274NGC", "REMAP") else []
-        stat = gateway.STAT
+        stat = current().stat
         with unittest.mock.patch.object(gateway.linuxcnc, "ini", _Ini):
             # the INI LinuxCNC runs with: its remaps, its folder on the path
             with unittest.mock.patch.object(stat, "ini_filename", ini_path, create=True):
@@ -419,7 +420,7 @@ class TestTakeOverThenFile(_BasisCase):
         return None
 
     def test_a_set_survives_the_synch_of_its_own_mode_switch(self):
-        gateway.STAT.task_mode = gateway.linuxcnc.MODE_MANUAL
+        current().stat.task_mode = gateway.linuxcnc.MODE_MANUAL
         persisted, mdi_ok = _run(gateway._apply_probe_vars({"3102": -179.0}, True))
         self.assertTrue(mdi_ok and persisted)
         self.assertIn(("mode", gateway.linuxcnc.MODE_MDI), self.task.calls, "the switch synched")

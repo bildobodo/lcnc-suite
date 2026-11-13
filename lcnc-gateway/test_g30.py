@@ -22,6 +22,7 @@ import unittest.mock
 import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current, use  # noqa: E402
 from gateway_util import read_var_snapshot, g30_window_refusal  # noqa: E402
 
 XYZAC = 0b101111          # X Y Z A C (canonical bits 0 1 2 3 5)
@@ -68,7 +69,7 @@ class _Task:
         AUTO — AUTO again too — runs emcTaskAbort (a program in AUTO is
         aborted: recorded) and emcTaskPlanSynch (save_parameters)."""
         self.calls.append(("mode", m))
-        st = gateway.STAT
+        st = current().stat
         busy = getattr(st, "interp_state", linuxcnc.INTERP_IDLE) != linuxcnc.INTERP_IDLE
         if getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO and busy and m != linuxcnc.MODE_AUTO:
             self._last = 1          # an operator error; the command itself is done
@@ -95,7 +96,7 @@ class _Task:
     def task_plan_synch(self):
         self.calls.append(("synch",))
         self._maybe_block("synch")
-        st = gateway.STAT
+        st = current().stat
         if (getattr(st, "task_state", None) == linuxcnc.STATE_ON
                 and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO):
             # "can't do that (EMC_TASK_PLAN_SYNCH) in auto mode with the
@@ -123,19 +124,14 @@ class _G30Case(unittest.TestCase):
             for k in sorted(PARAMS):
                 f.write(f"{k}\t{PARAMS[k]:f}\n")
         self.task.save()                          # a .bak exists, like after any synch
-        saved = (gateway.STAT, gateway.CMD, gateway.lcnc_connected, gateway._cmd_lock, gateway._var_file_lock)
-        self.addCleanup(lambda: (setattr(gateway, "STAT", saved[0]), setattr(gateway, "CMD", saved[1]),
-                                 setattr(gateway, "lcnc_connected", saved[2]), setattr(gateway, "_cmd_lock", None),
-                                 setattr(gateway, "_var_file_lock", None)))
-        gateway.lcnc_connected = True
+        self.addCleanup(lambda: (setattr(gateway, "_cmd_lock", None), setattr(gateway, "_var_file_lock", None)))
         gateway._cmd_lock = gateway._var_file_lock = None
-        gateway.STAT = linuxcnc.stat()
-        gateway.STAT.axis_mask = XYZAC
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        gateway.STAT.position = (10.0, 20.0, -5.0, 725.0, 0.0, -370.0, 0.0, 0.0, 0.0)
-        gateway.STAT.inpos, gateway.STAT.current_vel = True, 0.0     # the machine stands
-        gateway.CMD = self.task
+        connect_fake(self, cmd=self.task)
+        current().stat.axis_mask = XYZAC
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.position = (10.0, 20.0, -5.0, 725.0, 0.0, -370.0, 0.0, 0.0, 0.0)
+        current().stat.inpos, current().stat.current_vel = True, 0.0     # the machine stands
         for name, value in (("_resolve_var_file_path", lambda: self.path),
                             ("_g30_limits", lambda: {"X": (-250.0, 250.0), "Y": (-70.0, 70.0),
                                                      "Z": (-400.0, 0.0), "A": (-100.0, 50.0)}),
@@ -201,7 +197,7 @@ class TestG30Write(_G30Case):
                                    ("synch_rc", -1, "G30 not confirmed — LinuxCNC did not synch")):
             with self.subTest(attr=attr, rc=value):
                 self.task = _Task(self.path, self.task.params)
-                gateway.CMD = self.task
+                use(self, cmd=self.task)
                 setattr(self.task, attr, value)
                 r = self.send({"cmd": "set_g30", "values": {"x": 121.0}, "based_on":
                                {**self.stored(), "X": self.file(5181)}})
@@ -265,13 +261,13 @@ class TestG30Read(_G30Case):
         # the position is taken: a fresh STAT that moves, or a status that
         # lost the admission meanwhile, refuses — nothing is taken over.
         for change, error in (
-                (lambda: setattr(gateway.STAT, "current_vel", 12.0), "Machine moving — capture once it stands"),
-                (lambda: setattr(gateway.STAT, "inpos", False), "Machine moving — capture once it stands"),
-                (lambda: setattr(gateway.STAT, "current_vel", None), "Motion state unknown — wait for status"),
+                (lambda: setattr(current().stat, "current_vel", 12.0), "Machine moving — capture once it stands"),
+                (lambda: setattr(current().stat, "inpos", False), "Machine moving — capture once it stands"),
+                (lambda: setattr(current().stat, "current_vel", None), "Motion state unknown — wait for status"),
                 (lambda: setattr(gateway, "_shared_status", __import__("test_command_dispatch")._payload(
                     inpos=True, current_vel=0.0, homed=False)), "Not homed — press Home All")):
             with self.subTest(error=error):
-                gateway.STAT.inpos, gateway.STAT.current_vel = True, 0.0
+                current().stat.inpos, current().stat.current_vel = True, 0.0
                 self.task.calls.clear()
                 synch = self.task.task_plan_synch
 
@@ -319,13 +315,13 @@ class TestG30Read(_G30Case):
         cases = (
             (lambda: pin.pop("kins_type"), "Kinematics mode unknown — HAL reader stale"),
             (lambda: stale.update(now=True), "Kinematics mode unknown — HAL reader stale"),
-            (lambda: setattr(gateway.STAT, "poll", poll_fails), "Machine status not read — capture again"),
+            (lambda: setattr(current().stat, "poll", poll_fails), "Machine status not read — capture again"),
             (lambda: setattr(gateway, "_shared_status", None), "Machine status not read — capture again"),
         )
         for change, error in cases:
             with self.subTest(error=error), self.switchable(pin, stale=lambda: stale["now"]):
                 pin["kins_type"], stale["now"] = 0, False
-                gateway.STAT.__dict__.pop("poll", None)
+                current().stat.__dict__.pop("poll", None)
                 synch = self.task.task_plan_synch
 
                 def changing_synch(synch=synch, change=change):
@@ -336,7 +332,7 @@ class TestG30Read(_G30Case):
                     r = self.send({"cmd": "capture_g30"}, kins_type=0)
                 finally:
                     self.task.task_plan_synch = synch
-                    gateway.STAT.__dict__.pop("poll", None)
+                    current().stat.__dict__.pop("poll", None)
                 self.assertEqual((r["ok"], r.get("error")), (False, error), r)
                 self.assertNotIn("current", r, "nothing taken over")
                 self.assertEqual(r["values"], self.stored(), "the confirmed stored values stay reported")
@@ -381,14 +377,14 @@ class TestSynchInAuto(_G30Case):
 
     def setUp(self):
         super().setUp()
-        gateway.STAT.task_state = linuxcnc.STATE_ON
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        current().stat.task_state = linuxcnc.STATE_ON
+        current().stat.task_mode = linuxcnc.MODE_AUTO
 
     def test_nothing_is_sent_in_auto_whatever_the_interpreter_does(self):
         for interp in (linuxcnc.INTERP_IDLE, linuxcnc.INTERP_PAUSED, linuxcnc.INTERP_READING):
             with self.subTest(interp=interp):
                 self.task.calls.clear()
-                gateway.STAT.interp_state = interp
+                current().stat.interp_state = interp
                 self.assertEqual(_run(gateway._synch_interp_params()), (None, "auto"))
                 self.assertEqual(self.task.calls, [])
 
@@ -401,11 +397,11 @@ class TestSynchInAuto(_G30Case):
         # Codex R118's interleaving: the poll sees AUTO/IDLE; a start lands
         # by the time task takes a command (the double's mode() then aborts
         # it, as emcTaskSetMode AUTO does) — so no command may go out
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         mode = self.task.mode
 
         def start_lands_first(m):
-            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+            current().stat.interp_state = linuxcnc.INTERP_READING
             return mode(m)
         self.task.mode = start_lands_first
         r = self.send({"cmd": "read_g30"})
@@ -414,12 +410,12 @@ class TestSynchInAuto(_G30Case):
         self.assertEqual(self.task.calls, [])
 
     def test_a_start_landing_before_the_synch_in_mdi_is_refused_not_aborted(self):
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        current().stat.task_mode = linuxcnc.MODE_MDI
         synch = self.task.task_plan_synch
 
         def start_lands_first():
-            gateway.STAT.task_mode = linuxcnc.MODE_AUTO          # another GUI started a run
-            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+            current().stat.task_mode = linuxcnc.MODE_AUTO          # another GUI started a run
+            current().stat.interp_state = linuxcnc.INTERP_READING
             synch()
         self.task.task_plan_synch = start_lands_first
         r = self.send({"cmd": "read_g30"})
@@ -437,7 +433,7 @@ class TestSynchInAuto(_G30Case):
         for state in (linuxcnc.STATE_OFF, linuxcnc.STATE_ESTOP):
             with self.subTest(state=state):
                 self.task.calls.clear()
-                gateway.STAT.task_state = state
+                current().stat.task_state = state
                 rc, how = _run(gateway._synch_interp_params())
                 self.assertEqual((rc, how, self.task.names()), (1, "task_plan_synch", ["synch"]))
 
@@ -445,8 +441,8 @@ class TestSynchInAuto(_G30Case):
         for mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_MANUAL):
             with self.subTest(mode=mode):
                 self.task.calls.clear()
-                gateway.STAT.task_mode = mode
-                gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+                current().stat.task_mode = mode
+                current().stat.interp_state = linuxcnc.INTERP_IDLE
                 rc, how = _run(gateway._synch_interp_params())
                 self.assertEqual((rc, how, self.task.names()), (1, "task_plan_synch", ["synch"]))
         r = self.send({"cmd": "read_g30"})
@@ -459,7 +455,7 @@ class TestG30Exclusive(_G30Case):
     def test_the_provenance_seed_waits_for_the_whole_g30_sequence(self):
         entered, release = threading.Event(), threading.Event()
         self.task.block = ("synch", entered, release)
-        gateway.STAT.axis_mask = XYZAC      # A present: the seed runs
+        current().stat.axis_mask = XYZAC      # A present: the seed runs
         gateway._prov_rows_ensured.discard(self.path)
 
         async def scenario():
@@ -536,9 +532,9 @@ class TestG30Exclusive(_G30Case):
 
         # the file is written once the interpreter took the values (P2, Codex
         # R308–R309 FI308-03): the machine on, so the MDI goes first
-        gateway.STAT.enabled = True
-        gateway.STAT.ini_filename = os.path.join(self.tmp.name, "sim.ini")
-        with open(gateway.STAT.ini_filename, "w") as f:
+        current().stat.enabled = True
+        current().stat.ini_filename = os.path.join(self.tmp.name, "sim.ini")
+        with open(current().stat.ini_filename, "w") as f:
             f.write("[RS274NGC]\nPARAMETER_FILE = sim.var\n")
 
         class _Ini:

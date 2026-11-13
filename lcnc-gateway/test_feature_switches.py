@@ -17,6 +17,7 @@ from pathlib import Path
 
 import test_command_dispatch as td   # the fake binding first, then gateway
 import gateway  # noqa: E402
+from link_fixture import current  # noqa: E402
 import features  # noqa: E402
 from linuxcnc import INTERP_READING  # noqa: E402
 from settings_store import SettingsStore  # noqa: E402
@@ -77,7 +78,7 @@ class TestTheChangeIsAdmitted(_Store, unittest.TestCase):
     def setUp(self):
         td.TestHandlerExecution.setUp(self)
         self.make_store()
-        gateway.STAT.enabled = True
+        current().stat.enabled = True
         fresh = {"z_eoffset_enable": False, "tool_change": False}
         self.reader = fresh
         p = unittest.mock.patch.object(gateway, "_reader_fresh_get", lambda k: self.reader.get(k))
@@ -111,15 +112,15 @@ class TestTheChangeIsAdmitted(_Store, unittest.TestCase):
         self.assertEqual(self.store.features(), ALL_ON)
 
     def test_a_running_interpreter_refused(self):
-        gateway.STAT.interp_state = INTERP_READING
+        current().stat.interp_state = INTERP_READING
         self.assertIn("runs", self.refused("features", off("macros")))
 
     def test_a_moving_machine_refused(self):
-        gateway.STAT.inpos = False
+        current().stat.inpos = False
         self.assertIn("Machine moving", self.refused("features", off("gamepad")))
-        gateway.STAT.inpos, gateway.STAT.current_vel = True, 12.0
+        current().stat.inpos, current().stat.current_vel = True, 12.0
         self.assertIn("Machine moving", self.refused("features", off("gamepad")))
-        gateway.STAT.current_vel = None
+        current().stat.current_vel = None
         self.assertIn("Motion state unknown", self.refused("features", off("gamepad")))
 
     def test_a_booked_jog_refused(self):

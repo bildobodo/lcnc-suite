@@ -33,6 +33,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from starlette.testclient import WebSocketDenialResponse  # noqa: F401,E402  (import guards starlette API drift)
 
 import gateway  # noqa: E402
+import link_fixture  # noqa: E402
 
 
 def _decode(message) -> dict:
@@ -66,6 +67,7 @@ class TestViewerInitSingleSend(unittest.TestCase):
         # there the legacy error-frame stream exercises the drain instead.
         is_fake = getattr(gateway.linuxcnc, "__lcnc_fake__", False)
         orig_pid, orig_nml = gateway._get_lcnc_pid, gateway._nml_connectable
+        conn = link_fixture.snapshot()   # the connection try_connect_lcnc makes below
         try:
             if is_fake:
                 gateway._get_lcnc_pid = lambda: 424242
@@ -92,6 +94,7 @@ class TestViewerInitSingleSend(unittest.TestCase):
         finally:
             gateway._get_lcnc_pid = orig_pid
             gateway._nml_connectable = orig_nml
+            link_fixture.restore(conn)
         self.assertEqual(counts, 1, f"viewer_init must be sent exactly once per connect, saw {counts}")
 
 

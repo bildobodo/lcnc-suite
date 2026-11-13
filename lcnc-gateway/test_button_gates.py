@@ -20,6 +20,7 @@ from types import SimpleNamespace
 import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current  # noqa: E402
 from command_policy import (  # noqa: E402
     SPINDLE_OWNED,
     COMMAND_GATES,
@@ -273,11 +274,9 @@ class _RecordingCmd:
 
 class _Handlers(unittest.TestCase):
     def setUp(self):
-        gateway.lcnc_connected = True
-        gateway.STAT = linuxcnc.stat()
-        controller_reads(gateway.STAT)   # on, idle, MANUAL, standing, homed — as _payload()
         self.cmd = _RecordingCmd()
-        gateway.CMD = self.cmd
+        connect_fake(self, cmd=self.cmd)
+        controller_reads(current().stat)   # on, idle, MANUAL, standing, homed — as _payload()
         saved = dict(shared=gateway._shared_status, reader_get=gateway._reader_get,
                      stale=gateway._reader_is_stale, switchable=gateway._kins_is_switchable,
                      capable=gateway._twp_capable, jogs=dict(gateway._active_jogs),
@@ -310,8 +309,8 @@ class TestStopHandlersWithoutArm(_Handlers):
         self.assertIn("abort", self.cmd.names())
 
     def test_pause_disarmed_pauses_a_running_program(self):
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.interp_state = linuxcnc.INTERP_READING
         r = self._send({"cmd": "cycle_pause"}, armed=False, interp_state=linuxcnc.INTERP_READING)
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.args_of("auto"), (linuxcnc.AUTO_PAUSE,))
@@ -323,7 +322,7 @@ class TestStopHandlersWithoutArm(_Handlers):
         self.assertNotIn("auto", self.cmd.names())
 
     def test_spindle_stop_disarmed_and_unhomed_stops_without_a_mode_switch(self):
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        current().stat.task_mode = linuxcnc.MODE_MDI
         r = self._send({"cmd": "spindle_stop"}, armed=False, homed=False)
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.args_of("spindle"), (linuxcnc.SPINDLE_OFF,))
@@ -332,8 +331,8 @@ class TestStopHandlersWithoutArm(_Handlers):
     def test_spindle_stop_refused_when_a_fresh_poll_shows_a_run(self):
         # The snapshot said idle (gate open); the handler's own poll sees the
         # program that started meanwhile — the program owns the spindle.
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.interp_state = linuxcnc.INTERP_READING
         r = self._send({"cmd": "spindle_stop"}, armed=False)
         self.assertFalse(r["ok"])
         self.assertNotIn("spindle", self.cmd.names())
@@ -476,7 +475,7 @@ class TestStartChecksTheControllerNow(_Handlers):
             if admit is not None and admit():   # the real one's write admission (R217)
                 raise gateway._WriteRefused(admit())
             self.cmd.calls.append(("mode", (value,), {}))
-            gateway.STAT.task_mode = value
+            current().stat.task_mode = value
         old = dict(kins_type=0.0, twp_active=False, g5x_index=1, reader_fresh=True)
         old.update(snapshot)
         import unittest.mock
@@ -521,8 +520,8 @@ class TestDisarmJogStopUnhomed(_Handlers):
     """BG-07 (part): the disarm jog-stop stops a jog on an unhomed machine."""
 
     def test_an_unhomed_machine_s_jog_is_stopped(self):
-        gateway.STAT.homed = [0, 0, 0]
-        gateway.STAT.joints = 3
+        current().stat.homed = [0, 0, 0]
+        current().stat.joints = 3
         gateway._active_jogs.clear()
         gateway._active_jogs[1] = (1, 1)   # a joint jog of joint 1, as started
 
@@ -557,7 +556,7 @@ class TestStartAfterPreparation(_Handlers):
         gateway._twp_capable = lambda: True
         gateway._reader_is_stale = lambda: False
         gateway._reader_get = self.now.get
-        gateway.STAT.g5x_index = 1
+        current().stat.g5x_index = 1
 
     def run_after_mode(self, command, mutate):
         # Keep the real set_mode and _cmd_blocking. Simulate controller state
@@ -565,7 +564,7 @@ class TestStartAfterPreparation(_Handlers):
         original_mode = self.cmd.mode
         def mode(value):
             original_mode(value)
-            gateway.STAT.task_mode = value
+            current().stat.task_mode = value
             if mutate:
                 self.now.update(kins_type=2.0, twp_active=False)
         self.cmd.mode = mode
@@ -594,7 +593,7 @@ class TestStartAfterPreparation(_Handlers):
         original_mode=self.cmd.mode
         def mode(value):
             original_mode(value)
-            gateway.STAT.task_mode=value
+            current().stat.task_mode=value
             self.now.update(kins_type=2.0,twp_active=False)
         self.cmd.mode=mode
         phases=[]
@@ -610,7 +609,7 @@ class TestStartAfterPreparation(_Handlers):
     def test_cycle_rechecks_after_run_basis_await(self):
         # _cmd_blocking itself awaits capture/file IO before calling CMD.auto.
         # A check moved only below set_mode would still precede this boundary.
-        gateway.STAT.task_mode=linuxcnc.MODE_AUTO
+        current().stat.task_mode=linuxcnc.MODE_AUTO
         original_auto=self.cmd.auto
         def auto(*args):
             return original_auto(*args)
@@ -630,8 +629,8 @@ class TestStartAfterPreparation(_Handlers):
 
     def test_unknown_current_fixture_cannot_reuse_old_g59(self):
         self.now.update(kins_type=2.0, twp_active=True)
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.g5x_index = None
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.g5x_index = None
         r = self._send({'cmd':'cycle_start'}, kins_type=2.0, twp_active=True,
                        g5x_index=6, reader_fresh=True)
         _trace_probe({'case':self.id().split('.')[-1], 'current_fixture':None,
@@ -641,14 +640,14 @@ class TestStartAfterPreparation(_Handlers):
 
     def test_control_current_wrong_fixture_refuses(self):
         self.now.update(kins_type=2.0, twp_active=True)
-        gateway.STAT.g5x_index = 1
+        current().stat.g5x_index = 1
         r = self._send({'cmd':'cycle_start'}, kins_type=2.0, twp_active=True,
                        g5x_index=6, reader_fresh=True)
         self.assertFalse(r['ok'])
         self.assertNotIn('auto',self.cmd.names())
 
     def test_control_failed_poll_refuses(self):
-        with patch.object(gateway.STAT,'poll',side_effect=RuntimeError('test poll failure')):
+        with patch.object(current().stat,'poll',side_effect=RuntimeError('test poll failure')):
             r = self._send({'cmd':'cycle_start'},kins_type=0.0,twp_active=False,
                            g5x_index=1,reader_fresh=True)
         self.assertFalse(r['ok'])
@@ -724,8 +723,8 @@ from pathlib import Path  # noqa: E402
 class TestStartWriteQueue(_Handlers):
     def setUp(self):
         super().setUp()
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.g5x_index = 1
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.g5x_index = 1
         gateway._shared_status = _payload(kins_type=0.0, twp_active=False,
                                                g5x_index=1, reader_fresh=True)
         self.now = {'kins_type': 0.0, 'twp_active': False}

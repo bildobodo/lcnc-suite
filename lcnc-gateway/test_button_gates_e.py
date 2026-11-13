@@ -16,6 +16,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 
 import gateway  # noqa: E402
+from link_fixture import connect_fake, current  # noqa: E402
 from command_policy import evaluate_permissions, permission_reasons  # noqa: E402
 from gateway_util import (GANTRY_AXIS, JOINT_ORDER_UNDECLARED, NO_JOINT_FOR_AXIS,  # noqa: E402
                           NO_JOINT_MAX_VEL, joint_jog_map, parse_joint_letters, trivkins_coordinates)
@@ -96,12 +97,12 @@ class TestAStopAddressesTheJogAsStarted(_Stops):
         limits = gateway._machine_limits      # the payload bounds per axis count
         gateway._machine_limits = None
         self.addCleanup(lambda: setattr(gateway, "_machine_limits", limits))
-        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
-        gateway.STAT.axis_mask = 0b101111                 # XYZAC: C is wire 4, canonical 5
+        current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        current().stat.axis_mask = 0b101111                 # XYZAC: C is wire 4, canonical 5
         r = self.send({"cmd": "jog_cont", "axis": 4, "vel": 1.0})
         self.assertTrue(r["ok"], r)
         self.assertEqual(gateway._active_jogs, {4: (0, 5)})
-        gateway.STAT.motion_mode = None   # read later: not teleop → joint flag 1
+        current().stat.motion_mode = None   # read later: not teleop → joint flag 1
         self.cmd.calls.clear()
         self.send({"cmd": "jog_stop", "axis": 4}, controller={})
         self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 0, 5)])
@@ -156,7 +157,7 @@ class TestNoSwitchOntoARunningInterpreter(_Writer):
 
     def running(self):
         for k, v in MDI_RUNNING.items():
-            setattr(gateway.STAT, k, v)
+            setattr(current().stat, k, v)
 
     def test_handlers(self):
         cases = ((dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_cont", "axis": 0, "vel": 1.0}),
@@ -274,13 +275,12 @@ class TestTheJointJogFacts(unittest.TestCase):
     """The switch, the cap and the joint order from the INI (operator E1/E2)."""
 
     def setUp(self):
-        saved = (gateway.STAT, gateway._joint_jog_cache)
-        self.addCleanup(lambda: (setattr(gateway, "STAT", saved[0]),
-                                 setattr(gateway, "_joint_jog_cache", saved[1])))
-        gateway.STAT = linuxcnc.stat()
-        gateway.STAT.ini_filename = "/x/machine.ini"
-        gateway.STAT.joints = 3
-        gateway.STAT.axis_mask = 0b111
+        saved = gateway._joint_jog_cache
+        self.addCleanup(lambda: setattr(gateway, "_joint_jog_cache", saved))
+        connect_fake(self)
+        current().stat.ini_filename = "/x/machine.ini"
+        current().stat.joints = 3
+        current().stat.axis_mask = 0b111
         p = mock.patch.object(gateway.linuxcnc, "ini", _Ini)
         p.start()
         self.addCleanup(p.stop)
@@ -293,7 +293,7 @@ class TestTheJointJogFacts(unittest.TestCase):
             if val is not None:
                 v[("DISPLAY", key)] = val
         _Ini.values = v
-        gateway.STAT.joints = joints
+        current().stat.joints = joints
         gateway._joint_jog_cache = None
         return gateway._joint_jog_facts()
 
@@ -330,7 +330,7 @@ class TestTheJointJogFacts(unittest.TestCase):
         self.assertEqual([(r["letter"], r["joint"]) for r in f["axes"]], [("X", 0), ("Y", None), ("Z", 3)])
 
     def test_unread_before_the_connect(self):
-        gateway.STAT.ini_filename = None
+        current().stat.ini_filename = None
         gateway._joint_jog_cache = None
         self.assertFalse(gateway._joint_jog_facts()["enabled"])
         self.assertIsNone(gateway._joint_jog_cache, "not cached")
@@ -391,7 +391,7 @@ class TestJoggingBeforeHoming(_Writer):
                                                        {"axis": 1, "vel": 1.0, "distance": 1.0}]}):
             with self.subTest(cmd=msg["cmd"]):
                 self.cmd.calls.clear()
-                gateway.STAT.joints = 4
+                current().stat.joints = 4
                 r = self.send(msg, controller={"homed": False, "joints": 4}, homed=False)
                 self.assertEqual(r, {"ok": False, "error": "Gantry axis — jog it after Home All"})
                 self.assertEqual([n for n in self.cmd.names() if n in ("mode", "jog")], [])
@@ -410,7 +410,7 @@ class TestJoggingBeforeHoming(_Writer):
                 self.assertEqual([n for n in self.cmd.names() if n in ("mode", "jog")], [])
 
     def test_a_diagonal_homed_is_unchanged(self):
-        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
         r = self.send({"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]})
         self.assertTrue(r["ok"], r)
         self.assertEqual([a[2] for a in self.jogs()], [0, 1])
@@ -419,7 +419,7 @@ class TestJoggingBeforeHoming(_Writer):
         # joints 0 and 1 homed, 2 not: joint mode, the cap on every joint
         # (over-strict for the homed ones, which their soft limits protect)
         self.controller()
-        gateway.STAT.homed = (1, 1, 0) + (0,) * 13
+        current().stat.homed = (1, 1, 0) + (0,) * 13
         gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
         gateway._cmd_lock = None
         r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 0, "vel": 9.0}, True, self.writer.conn_key))
@@ -433,16 +433,16 @@ class TestJoggingBeforeHoming(_Writer):
         self.assertEqual(self.jogs(), [])
 
     def test_homed_is_unchanged(self):
-        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
         r = self.send({"cmd": "jog_cont", "axis": 1, "vel": 9.0})
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 0, 1, 9.0)])   # teleop, no cap
 
     def test_the_jog_is_admitted_at_its_write(self):
         def running():
-            gateway.STAT.task_mode, gateway.STAT.interp_state = linuxcnc.MODE_MDI, linuxcnc.INTERP_READING
+            current().stat.task_mode, current().stat.interp_state = linuxcnc.MODE_MDI, linuxcnc.INTERP_READING
         self.controller(homed=False)                 # MANUAL already: the first write is the jog
-        gateway.STAT.homed = (0,) * 16
+        current().stat.homed = (0,) * 16
         r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, running)
         self.assertFalse(r["ok"], r)
         self.assertEqual(self.jogs(), [])
@@ -477,13 +477,13 @@ class TestTheJogHoldsAtItsWrite(_Writer):
         return [a for n, a, _k in self.cmd.calls if n == "jog"]
 
     def lose_homing(self):
-        gateway.STAT.homed = (0,) * 16
+        current().stat.homed = (0,) * 16
 
     def beyond_limit(self, axis_letter, joints=3):
         # homed, one joint past its soft limit: the supported joint-mode jog
         self.controller(joints=joints)
-        gateway.STAT.homed = (1,) * joints + (0,) * (16 - joints)
-        gateway.STAT.motion_mode = None          # joint (free) mode
+        current().stat.homed = (1,) * joints + (0,) * (16 - joints)
+        current().stat.motion_mode = None          # joint (free) mode
         gateway._shared_status = _payload(homed=True, inpos=True, current_vel=0.0,
                                           joints_beyond_limit=[axis_letter])
 
@@ -521,10 +521,10 @@ class TestTheJogHoldsAtItsWrite(_Writer):
 
     def test_no_jog_when_homing_starts_in_the_queue(self):
         self.controller(homed=False)
-        gateway.STAT.homed = (0,) * 16
+        current().stat.homed = (0,) * 16
 
         def homing():
-            gateway.STAT.joint = tuple({"homing": 1} for _ in range(16))
+            current().stat.joint = tuple({"homing": 1} for _ in range(16))
         r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, homing,
                               snapshot=_payload(homed=False, inpos=True, current_vel=0.0))
         self.assertEqual(r, {"ok": False, "error": "Homing in progress — wait until it ends"})
@@ -532,7 +532,7 @@ class TestTheJogHoldsAtItsWrite(_Writer):
 
     def test_unchanged_unhomed_is_capped_and_stops(self):
         self.controller(homed=False)
-        gateway.STAT.homed = (0,) * 16
+        current().stat.homed = (0,) * 16
         r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 9.0}, lambda: None,
                               snapshot=_payload(homed=False, inpos=True, current_vel=0.0))
         self.assertTrue(r["ok"], r)
@@ -540,7 +540,7 @@ class TestTheJogHoldsAtItsWrite(_Writer):
 
     def test_a_written_jog_survives_a_cancel(self):
         self.controller(homed=False)
-        gateway.STAT.homed = (0,) * 16
+        current().stat.homed = (0,) * 16
         gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
 
         async def go():
@@ -599,7 +599,7 @@ class TestAWriteOutlastsEveryCancel(_Writer):
         p.start()
         self.addCleanup(p.stop)
         self.controller(homed=False)
-        gateway.STAT.homed = (0,) * 16
+        current().stat.homed = (0,) * 16
         gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
 
     def jogs(self):

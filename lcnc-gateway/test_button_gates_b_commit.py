@@ -27,6 +27,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 
 import gateway  # noqa: E402
+from link_fixture import without_connection  # noqa: E402
 from command_policy import NOT_ARMED, STATE_UNKNOWN  # noqa: E402
 from settings_store import SettingsStore  # noqa: E402
 from test_button_gates import _payload  # noqa: E402
@@ -97,7 +98,7 @@ class TestMacroWritesRunTheSourceWriteRule(_Folder):
         self.assert_untouched(self.delete())
 
     def test_no_controller_status_refuses_a_macro_save(self):
-        with patch.object(gateway, "STAT", None):
+        with without_connection():
             self.assert_untouched(self.put())
 
     def test_control_an_idle_machine_saves(self):
@@ -109,14 +110,13 @@ class TestNoControllerStatusIsNoKnownIdle(_Admission):
     """BG-26: STAT None closes sourceWrite and toolTableWrite, named."""
 
     def test_the_rule_names_the_unknown_state(self):
-        with patch.object(gateway, "STAT", None):
+        with without_connection():
             self.assertEqual(gateway._write_admission_refusal(self.writer.conn_key), STATE_UNKNOWN)
             self.assertEqual(gateway._write_admission_refusal(self.writer.conn_key, tool_table=True),
                              STATE_UNKNOWN)
 
     def test_a_program_upload_publishes_nothing(self):
-        with tempfile.TemporaryDirectory() as d, patch.object(gateway, "STAT", None), \
-                patch.object(gateway, "lcnc_connected", False), \
+        with tempfile.TemporaryDirectory() as d, without_connection(), \
                 patch.object(gateway, "get_nc_files_dir", lambda: d), \
                 patch.object(gateway, "_program_name_refusal", lambda _: None):
             gateway._source_lock = None

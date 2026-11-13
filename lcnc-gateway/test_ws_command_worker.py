@@ -30,6 +30,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 import lcnc_trace  # noqa: E402
 import gateway  # noqa: E402
+import link_fixture  # noqa: E402
+from link_fixture import using  # noqa: E402
 
 STATUS_FAMILY = {"status", "status_delta", "status_error"}
 
@@ -48,6 +50,7 @@ class _Harness:
         self.events = []
         self._orig = (gateway._get_lcnc_pid, gateway._nml_connectable,
                       gateway.handle_command, lcnc_trace.emit, gateway._HB_STALL_SEC)
+        self._conn = link_fixture.snapshot()   # the connection try_connect_lcnc makes below
         if getattr(gateway.linuxcnc, "__lcnc_fake__", False):
             gateway._get_lcnc_pid = lambda: 424242
             gateway._nml_connectable = lambda: True
@@ -61,6 +64,7 @@ class _Harness:
         return self
 
     def __exit__(self, *_a):
+        link_fixture.restore(self._conn)
         (gateway._get_lcnc_pid, gateway._nml_connectable,
          gateway.handle_command, lcnc_trace.emit, gateway._HB_STALL_SEC) = self._orig
         return False
@@ -441,14 +445,14 @@ class TestCmdBlockingSlicedWait(unittest.TestCase):
             return -1
 
     def _run(self, body):
-        orig_lock, orig_cmd = gateway._cmd_lock, gateway.CMD
+        orig_lock = gateway._cmd_lock
         gateway._cmd_lock = None
         cmd = self._Cmd()
-        gateway.CMD = cmd
         try:
-            asyncio.run(body(cmd))
+            with using(cmd=cmd):
+                asyncio.run(body(cmd))
         finally:
-            gateway._cmd_lock, gateway.CMD = orig_lock, orig_cmd
+            gateway._cmd_lock = orig_lock
 
     def test_wait_is_sliced_and_cancel_returns_within_a_slice(self):
         async def body(cmd):

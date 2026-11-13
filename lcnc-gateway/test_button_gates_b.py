@@ -19,6 +19,7 @@ from unittest import mock
 import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
+from link_fixture import current  # noqa: E402
 import settings_store  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
 from command_policy import COMMAND_GATES, NOT_ARMED, evaluate_permissions, permission_reasons  # noqa: E402
@@ -144,8 +145,8 @@ class TestWriteAdmission(_Admission):
         self.assertIsNone(self.admit(tool_table=True))
 
     def test_e_stop_admits(self):
-        gateway.STAT.task_state = linuxcnc.STATE_ESTOP
-        gateway.STAT.estop = 1
+        current().stat.task_state = linuxcnc.STATE_ESTOP
+        current().stat.estop = 1
         self.assertIsNone(self.admit())
 
     def test_a_disarmed_writer_is_refused(self):
@@ -165,7 +166,7 @@ class TestWriteAdmission(_Admission):
         self.assertIsNotNone(self.admit())
 
     def test_a_running_interpreter_is_refused(self):
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        current().stat.interp_state = linuxcnc.INTERP_READING
         self.assertIsNotNone(self.admit())
 
     def test_a_pending_tool_change_refuses_the_table(self):

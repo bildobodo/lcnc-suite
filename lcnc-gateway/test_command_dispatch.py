@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402  (import after the fake is installed)
+from link_fixture import connect_fake, current, use  # noqa: E402
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
 from gateway_util import kins_mode_commands, read_load_record  # noqa: E402
@@ -151,7 +152,7 @@ class TestDispatchEnforcement(unittest.TestCase):
     """handle_command rejects forbidden commands BEFORE they reach a handler."""
 
     def setUp(self):
-        gateway.lcnc_connected = True
+        connect_fake(self)
 
     def _send(self, msg, armed=True, **state):
         gateway._shared_status = _payload(**state)
@@ -196,9 +197,8 @@ class TestDispatchEnforcement(unittest.TestCase):
             paused = False
             def poll(self):
                 pass
-        gateway.STAT = _RunningStat()
         spy = _RecordingCmd()
-        gateway.CMD = spy
+        use(self, stat=_RunningStat(), cmd=spy)
         r = _run(gateway.handle_command({"cmd": "auto_step"}, True))
         self.assertFalse(r["ok"])
         self.assertIn("running", r["error"].lower())
@@ -236,20 +236,18 @@ class TestHandlerExecution(unittest.TestCase):
     so a recording CMD spy + fake STAT suffice; no stateful linkage needed."""
 
     def setUp(self):
-        gateway.lcnc_connected = True
-        gateway.STAT = linuxcnc.stat()
+        self.cmd = _RecordingCmd()
+        connect_fake(self, cmd=self.cmd)
         # The current read agrees with _payload() (Codex R216 re-check); the
         # task mode stays UNREAD as before — set_mode then sends every switch
         # and cannot verify it, which the tests below count on.
-        controller_reads(gateway.STAT, task_mode=None)
+        controller_reads(current().stat, task_mode=None)
         # Payload bounds are cached per session (get_machine_limits); a test
         # that widens axis_mask must not meet an earlier test's XYZ counts
         # (the jog tests failed whenever another test of this class ran first).
         limits = gateway._machine_limits
         gateway._machine_limits = None
         self.addCleanup(lambda: setattr(gateway, "_machine_limits", limits))
-        self.cmd = _RecordingCmd()
-        gateway.CMD = self.cmd
         saved = (getattr(gateway, "_skip_flag_unknown", None), gateway._rfl_task, gateway._rfl_flag_task)
         self.addCleanup(lambda: setattr(gateway, "_skip_flag_unknown", saved[0]))
         self.addCleanup(lambda: setattr(gateway, "_rfl_task", saved[1]))
@@ -279,8 +277,8 @@ class TestHandlerExecution(unittest.TestCase):
         # M6's end-of-block synchronization waits for tool-changed; G43 in
         # that SAME block would update the offset before the confirmation.
         # A blocking wait here would prevent confirm/abort from taking the lock.
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         r = self._send({"cmd": "tool_change", "tool_number": 1002})
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.calls, [
@@ -289,8 +287,8 @@ class TestHandlerExecution(unittest.TestCase):
         ])
 
     def test_unload_queues_g49_after_m6_confirmation(self):
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         r = self._send({"cmd": "tool_change", "tool_number": 0})
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.calls, [
@@ -313,8 +311,8 @@ class TestHandlerExecution(unittest.TestCase):
         # axis number. C = list index 4 but canonical 5 — untranslated, the
         # gateway jogged nonexistent B and the machine silently sat still
         # (WS-D 5-axis user smoke).
-        gateway.STAT.axis_mask = 0b101111
-        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        current().stat.axis_mask = 0b101111
+        current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
         r = self._send({"cmd": "jog_cont", "axis": 4, "vel": 2.0})
         self.assertTrue(r["ok"])
         args = self.cmd.args_of("jog")
@@ -333,8 +331,8 @@ class TestHandlerExecution(unittest.TestCase):
         # A joint outside its own window (TWP sim after a +Z jog under TOOL
         # kins ran joint Z to +0.057 past a 0.01 ceiling): motion refuses
         # every world-mode move; the jog must go to FREE and jog the JOINT.
-        gateway.STAT.axis_mask = 0b111111
-        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        current().stat.axis_mask = 0b111111
+        current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
         gateway._shared_status = _payload(joints_beyond_limit=["Z"])
         r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 2, "vel": -5.0}, True))
         self.assertTrue(r["ok"])
@@ -344,15 +342,15 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(args[2], 2)      # joint 2 = Z
         # jog_stop follows the RUNNING jog's mode, never switches
         self.cmd.calls.clear()
-        gateway.STAT.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)
+        current().stat.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)
         r = _run(gateway.handle_command({"cmd": "jog_stop", "axis": 2}, True))
         self.assertTrue(r["ok"])
         self.assertIsNone(self.cmd.args_of("teleop_enable"))
         self.assertEqual(self.cmd.args_of("jog")[1], 1)
 
     def test_jog_back_inside_restores_teleop(self):
-        gateway.STAT.axis_mask = 0b111111
-        gateway.STAT.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)   # left there by the recovery jog (fake binding lacks the constant)
+        current().stat.axis_mask = 0b111111
+        current().stat.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)   # left there by the recovery jog (fake binding lacks the constant)
         gateway._shared_status = _payload(joints_beyond_limit=[], homed=True)
         r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 2, "vel": -5.0}, True))
         self.assertTrue(r["ok"])
@@ -361,9 +359,9 @@ class TestHandlerExecution(unittest.TestCase):
     def test_joint_mode_jog_passes_list_index_through(self):
         # No motion_mode attr -> _jog_joint_flag defaults to joint jog (1):
         # the list index IS the joint number (trivkins follows COORDINATES).
-        gateway.STAT.axis_mask = 0b101111
-        if hasattr(gateway.STAT, "motion_mode"):
-            del gateway.STAT.motion_mode
+        current().stat.axis_mask = 0b101111
+        if hasattr(current().stat, "motion_mode"):
+            del current().stat.motion_mode
         r = self._send({"cmd": "jog_cont", "axis": 4, "vel": 2.0})
         self.assertTrue(r["ok"])
         args = self.cmd.args_of("jog")
@@ -378,10 +376,11 @@ class TestHandlerExecution(unittest.TestCase):
         class _RcsDoneCmd(_RecordingCmd):
             def wait_complete(self, *_a):
                 return 1
-        gateway.CMD = cmd = _RcsDoneCmd()
-        gateway.STAT.enabled = True   # the MDI half runs on a machine that is on
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        cmd = _RcsDoneCmd()
+        use(self, cmd=cmd)
+        current().stat.enabled = True   # the MDI half runs on a machine that is on
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         r = self._send({"cmd": "set_params", "sets": {"toolsetter": {"3100": 150, "3102": -300}}})
         self.assertTrue(r["ok"], r)
         self.assertEqual(cmd.args_of("mdi"), ("#3100=150.000000 #3102=-300.000000",))
@@ -398,12 +397,13 @@ class TestHandlerExecution(unittest.TestCase):
 
             def mode(self, m):   # task follows the switch, as set_mode verifies
                 self.calls.append(("mode", (m,), {}))
-                gateway.STAT.task_mode = m
+                current().stat.task_mode = m
                 return 0
-        gateway.CMD = cmd = _Cmd()
-        gateway.STAT.enabled = True
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        cmd = _Cmd()
+        use(self, cmd=cmd)
+        current().stat.enabled = True
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         return cmd
 
     def _mdis(self, cmd):
@@ -427,7 +427,7 @@ class TestHandlerExecution(unittest.TestCase):
 
     def test_mdi_with_vars_on_a_machine_that_is_off_sends_nothing_of_the_line(self):
         cmd = self._rcs()
-        gateway.STAT.enabled = False
+        current().stat.enabled = False
         r = self._send({"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150}})
         self.assertFalse(r["ok"], r)
         self.assertNotIn("T5 M600", self._mdis(cmd))
@@ -554,7 +554,7 @@ class TestHandlerExecution(unittest.TestCase):
         # A paused program is the one a start already cleared for — or the
         # run from line's own, whose skim owns the flag. No MDI while paused.
         cmd = self._rcs()
-        gateway.STAT.paused = True
+        current().stat.paused = True
         gateway._skip_flag_unknown = True
         r = self._send({"cmd": "auto_step"})
         self.assertTrue(r["ok"], r)
@@ -661,10 +661,10 @@ class TestHandlerExecution(unittest.TestCase):
                 if kind == "auto_run":
                     r = self._auto_run(line=2)[0]
                 elif kind == "mdi":
-                    gateway.STAT.task_mode = linuxcnc.MODE_MDI
+                    current().stat.task_mode = linuxcnc.MODE_MDI
                     r = self._send({"cmd": "mdi", "text": "#3 0 0 9=4"})
                 else:
-                    gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+                    current().stat.task_mode = linuxcnc.MODE_AUTO
                     r = self._send({"cmd": kind})
                 self.assertTrue(r["ok"], r)
                 self.assertEqual(at_send, ["assumed"], "booked before the send")
@@ -674,12 +674,12 @@ class TestHandlerExecution(unittest.TestCase):
     def _run_basis_setup(self):
         import time as _time
         saved = (gateway._run_basis, gateway._run_seq, gateway._bulk.last_file,
-                 gateway._status_runtime.program, getattr(gateway.STAT, "paused", None))
+                 gateway._status_runtime.program, getattr(current().stat, "paused", None))
         self.addCleanup(lambda: [setattr(gateway, "_run_basis", saved[0]),
                                  setattr(gateway, "_run_seq", saved[1]),
                                  setattr(gateway._bulk, "last_file", saved[2]),
                                  setattr(gateway._status_runtime, "program", saved[3]),
-                                 setattr(gateway.STAT, "paused", saved[4])])
+                                 setattr(current().stat, "paused", saved[4])])
         self._with_program()
         gateway._bulk.last_file = self.prog
         gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
@@ -701,14 +701,14 @@ class TestHandlerExecution(unittest.TestCase):
         return cmd, seen
 
     def _idle_auto(self):
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        gateway.STAT.paused = False
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.paused = False
         # standing in position: the start's joints are taken (parity-ef E5)
-        gateway.STAT.inpos = True
-        gateway.STAT.current_vel = 0.0
-        gateway.STAT.joints = 3
-        gateway.STAT.joint_actual_position = (1.5, -2.0, 30.0) + (0.0,) * 13
+        current().stat.inpos = True
+        current().stat.current_vel = 0.0
+        current().stat.joints = 3
+        current().stat.joint_actual_position = (1.5, -2.0, 30.0) + (0.0,) * 13
 
     def test_a_run_basis_is_taken_before_the_start_is_written(self):
         # a client never reconstructs a run's start from the first frame it
@@ -760,7 +760,7 @@ class TestHandlerExecution(unittest.TestCase):
             lock = gateway._get_source_lock()
             await lock.acquire()
             try:
-                t = asyncio.ensure_future(gateway._cmd_blocking(gateway.CMD.auto, linuxcnc.AUTO_RUN, 0,
+                t = asyncio.ensure_future(gateway._cmd_blocking(current().cmd.auto, linuxcnc.AUTO_RUN, 0,
                                                                 wait=None))
                 for _ in range(400):
                     await asyncio.sleep(0.005)
@@ -793,14 +793,14 @@ class TestHandlerExecution(unittest.TestCase):
         run_a = gateway._run_basis
         self.assertTrue(run_a["verified"])
         self.assertIs(gateway._run_for_pin(self.prog), run_a)
-        poll = gateway.STAT.poll
-        self.addCleanup(lambda: setattr(gateway.STAT, "poll", poll))
+        poll = current().stat.poll
+        self.addCleanup(lambda: setattr(current().stat, "poll", poll))
 
         def failing_poll():
             if inspect.stack()[1].function == "_begin_run_basis":
                 raise RuntimeError("status channel gone")
         for name, patch in (
-                ("the poll", lambda: setattr(gateway.STAT, "poll", failing_poll)),
+                ("the poll", lambda: setattr(current().stat, "poll", failing_poll)),
                 ("a step after it", lambda: setattr(gateway._bulk, "start_ctx", lambda f: 1 / 0))):
             with self.subTest(name):
                 self._idle_auto()
@@ -811,7 +811,7 @@ class TestHandlerExecution(unittest.TestCase):
                     patch()
                     r = self._send({"cmd": "cycle_start"})
                 finally:
-                    gateway.STAT.poll = poll
+                    current().stat.poll = poll
                     gateway._bulk.start_ctx = saved_ctx
                 self.assertTrue(r["ok"], r)
                 self.assertEqual([s[0] for s in seen], [linuxcnc.AUTO_RUN], "the start went out")
@@ -830,8 +830,8 @@ class TestHandlerExecution(unittest.TestCase):
         self._idle_auto()
         self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
         first = gateway._run_basis
-        gateway.STAT.interp_state = linuxcnc.INTERP_PAUSED
-        gateway.STAT.paused = True
+        current().stat.interp_state = linuxcnc.INTERP_PAUSED
+        current().stat.paused = True
         for kind in ("auto_step", "cycle_resume"):
             with self.subTest(kind):
                 seen.clear()
@@ -847,12 +847,12 @@ class TestHandlerExecution(unittest.TestCase):
         _cmd, _seen = self._run_basis_setup()
         self._idle_auto()
         before = (gateway._run_basis, gateway._run_seq)
-        poll = gateway.STAT.poll
-        self.addCleanup(lambda: setattr(gateway.STAT, "poll", poll))
+        poll = current().stat.poll
+        self.addCleanup(lambda: setattr(current().stat, "poll", poll))
 
         def busy():
-            gateway.STAT.interp_state = linuxcnc.INTERP_READING
-        gateway.STAT.poll = busy
+            current().stat.interp_state = linuxcnc.INTERP_READING
+        current().stat.poll = busy
         r = asyncio.run(gateway._begin_run_basis())
         self.assertIsNone(r)
         self.assertEqual((gateway._run_basis, gateway._run_seq), before)
@@ -907,7 +907,7 @@ class TestHandlerExecution(unittest.TestCase):
         real = gateway.program_source
 
         def moved_meanwhile(f):
-            gateway.STAT.joint_actual_position = (99.0, 99.0, 99.0) + (0.0,) * 13
+            current().stat.joint_actual_position = (99.0, 99.0, 99.0) + (0.0,) * 13
             return real(f)
         with unittest.mock.patch.object(gateway, "program_source", moved_meanwhile):
             self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
@@ -926,7 +926,7 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertEqual(gateway._start_joints_now(NS(**{**ok, **change})), (None, why), change)
         # not standing at the start: the basis names why, never a position
         self._idle_auto()
-        gateway.STAT.current_vel = 5.0
+        current().stat.current_vel = 5.0
         self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
         self.assertEqual(gateway._run_basis["start"].get("joints_why"), "moving")
         self.assertNotIn("joints", gateway._run_basis["start"])
@@ -1031,7 +1031,7 @@ class TestHandlerExecution(unittest.TestCase):
         def blocking(*args):
             inner(*args)
             if blocking_call == "program_open":
-                gateway.STAT.file = args[0]    # task opened it
+                current().stat.file = args[0]    # task opened it
             entered.set()
             release.wait(3)
         setattr(cmd, blocking_call, blocking)
@@ -1069,9 +1069,9 @@ class TestHandlerExecution(unittest.TestCase):
             Path(a).write_text("G0 X10\nM2\n")
             Path(b).write_text("G0 X80\nM2\n")
             rt, path = self._record_runtime(tmp, a)
-            gateway.STAT.file = a
+            current().stat.file = a
             self._cancelled_on_its_way({"cmd": "load_file", "path": b}, "program_open", tmp, rt)
-            rt.program_tick(gateway.STAT.file, True, time.monotonic())
+            rt.program_tick(current().stat.file, True, time.monotonic())
             self.assertEqual(rt.program.loaded, b, "observed in its window: the gateway's own load")
             self.assertEqual(read_load_record(path, (10, 20)), (b,))
 
@@ -1109,7 +1109,7 @@ class TestHandlerExecution(unittest.TestCase):
             a = os.path.join(tmp, "A.ngc")
             Path(a).write_text("G0 X10\nM2\n")
             rt, path = self._record_runtime(tmp, a)
-            gateway.STAT.file = a
+            current().stat.file = a
             r, cmd = self._load_with_rc(tmp, rt, a, rc=3)       # RCS_ERROR
             self.assertIn(("program_open", (a,), {}), cmd.calls)
             self.assertEqual(r, {"ok": False, "error": "LinuxCNC did not open the program"})
@@ -1141,7 +1141,7 @@ class TestHandlerExecution(unittest.TestCase):
             a = os.path.join(tmp, "A.ngc")
             Path(a).write_text("G0 X10\nM2\n")
             rt, path = self._record_runtime(tmp, a)
-            gateway.STAT.file = a
+            current().stat.file = a
             cmd = self._rcs()
             self._answer(cmd, "program_open", 3)          # task refuses it
             entered, release = threading.Event(), threading.Event()
@@ -1182,7 +1182,7 @@ class TestHandlerExecution(unittest.TestCase):
             a = os.path.join(tmp, "A.ngc")
             Path(a).write_text("G0 X10\nM2\n")
             rt, path = self._record_runtime(tmp, a)
-            gateway.STAT.file = a
+            current().stat.file = a
             self._answer(self._rcs(), "reset_interpreter", 3)
             import unittest.mock
             gateway._cmd_lock = None
@@ -1201,7 +1201,7 @@ class TestHandlerExecution(unittest.TestCase):
             a = os.path.join(tmp, "A.ngc")
             Path(a).write_text("G0 X10\nM2\n")
             rt, path = self._record_runtime(tmp, a)
-            gateway.STAT.file = a
+            current().stat.file = a
             cmd = self._cancelled_on_its_way({"cmd": "unload_file"}, "abort", tmp, rt)
             self.assertNotIn("reset_interpreter", [n for n, _a, _k in cmd.calls])
             self.assertIsNone(rt.program_tick(a, True, time.monotonic()), "A is no longer proven")
@@ -1301,8 +1301,8 @@ class TestHandlerExecution(unittest.TestCase):
     def test_no_program_is_loaded_while_a_run_from_line_sequence_runs(self):
         import unittest.mock
         self._with_program()
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         running = SimpleNamespace(done=lambda: False)   # a sequence task still running
         for slot, says in (("_rfl_task", "starting"), ("_rfl_flag_task", "ending")):
             with self.subTest(slot=slot), unittest.mock.patch.object(gateway, slot, running), \
@@ -1318,8 +1318,8 @@ class TestHandlerExecution(unittest.TestCase):
         # BEFORE the interpreter changes — if it cannot, nothing changes.
         import unittest.mock
         self._with_program()
-        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.task_mode = linuxcnc.MODE_AUTO
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         with unittest.mock.patch.object(gateway._status_runtime, "begin_program_change", return_value=False), \
                 unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
             for msg in ({"cmd": "load_file", "path": self.prog}, {"cmd": "unload_file"}):
@@ -1336,8 +1336,8 @@ class TestHandlerExecution(unittest.TestCase):
         with tempfile.TemporaryDirectory() as nc:
             prog = Path(nc) / "part.ngc"; prog.write_text("G0 X1\nM2\n")
             sub = Path(nc) / "sub.ngc"; sub.write_text("o<sub> sub\no<sub> endsub\nM2\n")
-            gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-            gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+            current().stat.task_mode = linuxcnc.MODE_AUTO
+            current().stat.interp_state = linuxcnc.INTERP_IDLE
             program = gateway._status_runtime.program = gateway._status_runtime_mod.LoadedProgram()
             program.update(None, True, _time.monotonic())          # first sight: nothing open
             with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=nc):
@@ -1379,10 +1379,9 @@ class TestPayloadValidation(unittest.TestCase):
     handler reaches its casts; rejection happens before any CMD.* call."""
 
     def setUp(self):
-        gateway.lcnc_connected = True
         # Some handlers call STAT.poll() directly (e.g. reject_if_auto_running),
         # not the None-safe safe_get — give them a fake stat with a no-op poll().
-        gateway.STAT = linuxcnc.stat()
+        connect_fake(self)
 
     def _send(self, msg):
         gateway._shared_status = _payload()   # ready -> passes policy
@@ -1442,8 +1441,8 @@ class TestToolPersistenceLock(unittest.TestCase):
         gateway.save_tool_library = lambda lib: seen.__setitem__("lib", gateway._cmd_lock.locked())
         from writer_fixture import armed_writer   # the import's writer (button gates BG-14)
         key = armed_writer(self)
-        gateway.STAT = linuxcnc.stat()
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        use(self, stat=linuxcnc.stat())
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         try:
             _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key))
         finally:
@@ -1773,14 +1772,12 @@ class TestPayloadBoundsReachCmd(unittest.TestCase):
     )
 
     def setUp(self):
-        gateway.lcnc_connected = True
-        gateway.STAT = linuxcnc.stat()
+        self.cmd = _RecordingCmd()
+        connect_fake(self, cmd=self.cmd)
         # The current read agrees with _payload() (Codex R216 re-check); the
         # task mode stays UNREAD as before — set_mode then sends every switch
         # and cannot verify it, which the tests below count on.
-        controller_reads(gateway.STAT, task_mode=None)
-        self.cmd = _RecordingCmd()
-        gateway.CMD = self.cmd
+        controller_reads(current().stat, task_mode=None)
         self._saved_limits = gateway._machine_limits
         gateway._machine_limits = self.LIMITS
 
@@ -1861,26 +1858,25 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
     jog-stop / mode-switch holes that made it 'sometimes work'."""
 
     def setUp(self):
-        gateway.lcnc_connected = True
-        gateway.STAT = linuxcnc.stat()
+        connect_fake(self)
         # XYZAC (wire indices 0..4): these tests jog A, index 3 — the fake's
         # default XYZ made them pass only after an earlier test had widened
         # it (Codex R63: five failed when the class ran alone)
-        gateway.STAT.axis_mask = 0b101111
+        current().stat.axis_mask = 0b101111
         # The interpreter idle: every mode switch is admitted at its write
         # only onto a KNOWN idle interpreter; a jog reads power and homing
         # now (button gates package E).
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        gateway.STAT.estop, gateway.STAT.enabled = False, True
-        gateway.STAT.joints, gateway.STAT.homed = 5, (1,) * 5 + (0,) * 4
-        gateway.STAT.joint = tuple({"homing": 0} for _ in range(9))   # no homing runs (R219 BG-35)
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.estop, current().stat.enabled = False, True
+        current().stat.joints, current().stat.homed = 5, (1,) * 5 + (0,) * 4
+        current().stat.joint = tuple({"homing": 0} for _ in range(9))   # no homing runs (R219 BG-35)
         # the payload bounds are cached per session (get_machine_limits): a
         # previous test's XYZ counts would refuse axis 3/4 ("above maximum 2")
         self._limits = gateway._machine_limits
         gateway._machine_limits = None
         self.addCleanup(lambda: setattr(gateway, "_machine_limits", self._limits))
         self.cmd = _RecordingCmd()
-        gateway.CMD = self.cmd
+        use(self, cmd=self.cmd)
         self._switchable = gateway._kins_is_switchable
         self._capable = gateway._twp_capable
         self._reader_get = gateway._reader_get
@@ -2100,7 +2096,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # machine is Machine · G54 — the value must not land there.
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
-        gateway.STAT.g5x_index = 1
+        current().stat.g5x_index = 1
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 2, "g5x_index": 6}},
                        kins_type=0, g5x_index=1)
         self.assertFalse(r["ok"], r)
@@ -2119,7 +2115,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
     def test_touchoff_without_expect_is_unchanged(self):
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
-        gateway.STAT.g5x_index = 1
+        current().stat.g5x_index = 1
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, kins_type=0, g5x_index=1)
         self.assertTrue(r["ok"], r)
 
@@ -2129,7 +2125,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         the snapshot alone accepted it and the P0 write landed on G55."""
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway.STAT.g5x_index = 2                      # controller: G55
+        current().stat.g5x_index = 2                      # controller: G55
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
                         "expect": {"kins_type": 0, "g5x_index": 1}},
                        kins_type=0, g5x_index=1)        # snapshot: G54
@@ -2143,7 +2139,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         the write boundary, not as published."""
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway.STAT.g5x_index = 1
+        current().stat.g5x_index = 1
         self._reader(kins_type=1.0)                     # controller: TCP
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
                         "expect": {"kins_type": 0, "g5x_index": 1}},
@@ -2159,7 +2155,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         machine needs."""
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway.STAT.g5x_index = 6
+        current().stat.g5x_index = 6
         self._reader(kins_type=2.0)                     # controller: Plane
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}},
                        kins_type=0, g5x_index=1, twp_active=True)
@@ -2172,7 +2168,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         for the NAMED system — interp_convert.cc convert_setup)."""
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway.STAT.g5x_index = 3
+        current().stat.g5x_index = 3
         self._reader(z_eoffset=0.0)   # a Z touch-off adds the comp offset back
         r = self._send({"cmd": "touchoff", "axes": {"Z": -4.25},
                         "expect": {"kins_type": 0, "g5x_index": 3}},
@@ -2186,7 +2182,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         describes a different row — the cache must not take it."""
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
-        gateway.STAT.g5x_index = 1
+        current().stat.g5x_index = 1
         before = [row.copy() for row in gateway._wcs_cache]
 
         class _FlippingStat:
@@ -2201,7 +2197,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
             def __getattr__(self, name):
                 return getattr(self._stat, name)
 
-        gateway.STAT = _FlippingStat(gateway.STAT, self.cmd)
+        use(self, stat=_FlippingStat(current().stat, self.cmd))
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
                         "expect": {"kins_type": 0, "g5x_index": 1}},
                        kins_type=0, g5x_index=1)
@@ -2214,7 +2210,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # TWP-08a: a trivkins mill sitting in G59 touches off with a plain
         # G10 L20 — the reserved-row refusal is a TWP-machine rule only.
         gateway._kins_is_switchable = lambda: False
-        gateway.STAT.g5x_index = 6
+        current().stat.g5x_index = 6
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, g5x_index=6)
         self.assertTrue(r["ok"], r)
         self.assertEqual(r["route"], "mdi")
@@ -2223,8 +2219,8 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
     def test_jog_stop_during_an_executing_mdi_never_switches_mode(self):
         # Releasing the A jog while → Zero moves used to force MANUAL and
         # abort the MDI wherever it was.
-        gateway.STAT.task_mode = linuxcnc.MODE_MDI
-        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        current().stat.task_mode = linuxcnc.MODE_MDI
+        current().stat.interp_state = linuxcnc.INTERP_READING
         r = self._send({"cmd": "jog_stop", "axis": 3})
         self.assertTrue(r["ok"])
         self.assertIsNone(self.cmd.args_of("mode"), "mode switch would abort the MDI")
@@ -2242,7 +2238,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         r = self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})   # a jog the gateway started
         self.assertTrue(r["ok"], r)
         self.assertIn(3, gateway._active_jogs)
-        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL   # the fake never changes it
+        current().stat.task_mode = linuxcnc.MODE_MANUAL   # the fake never changes it
         r = self._send({"cmd": "mdi", "text": "G0 X1"})
         self.assertFalse(r["ok"])
         self.assertIn("a jog is active — release it", r["error"])
@@ -2253,9 +2249,9 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # switch to AUTO said "a jog is still active — release the jog". The
         # reply names what is seen: here the unhomed joints, no jog.
         gateway._active_jogs.clear()
-        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
-        gateway.STAT.joints = 5                      # setUp's STAT is this test's own
-        gateway.STAT.homed = (1, 1, 0, 1, 1) + (0,) * 4
+        current().stat.task_mode = linuxcnc.MODE_MANUAL
+        current().stat.joints = 5                      # setUp's STAT is this test's own
+        current().stat.homed = (1, 1, 0, 1, 1) + (0,) * 4
         r = self._send({"cmd": "mdi", "text": "G0 X1"})
         self.assertFalse(r["ok"])
         self.assertNotIn("jog", r["error"].lower())
@@ -2267,7 +2263,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # A late release with nothing the gateway started still moving: no
         # mode switch (that aborted a fresh MDI), no CMD.jog.
         gateway._active_jogs.clear()
-        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        current().stat.task_mode = linuxcnc.MODE_MANUAL
         r = self._send({"cmd": "jog_stop", "axis": 3})
         self.assertTrue(r["ok"])
         self.assertIsNone(self.cmd.args_of("jog"))
@@ -2292,8 +2288,8 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway._active_jogs.clear()
         self._send({"cmd": "jog_cont", "axis": 3, "vel": 1.0})
         self.cmd.calls.clear()
-        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        current().stat.task_mode = linuxcnc.MODE_MANUAL
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         r = self._send({"cmd": "jog_stop", "axis": 3})
         self.assertTrue(r["ok"])
         self.assertIsNotNone(self.cmd.args_of("jog"))
@@ -2308,9 +2304,10 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
                 if name == "wait_complete":
                     return lambda *a, **k: getattr(linuxcnc, "RCS_ERROR", 3)
                 return super().__getattr__(name)
-        gateway.CMD = self.cmd = _RefusingCmd()
-        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        self.cmd = _RefusingCmd()
+        use(self, cmd=self.cmd)
+        current().stat.task_mode = linuxcnc.MODE_MANUAL
+        current().stat.interp_state = linuxcnc.INTERP_IDLE
         r = self._send({"cmd": "mdi", "text": "G0 X0"})
         self.assertFalse(r["ok"])
         self.assertIn("refused the mode switch", r["error"])
