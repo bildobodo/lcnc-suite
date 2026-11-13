@@ -1479,3 +1479,26 @@ Fable hat dreimal geprüft. Was nicht schon oben steht:
 - Gegenfälle: [pyright](vor-maschine.p2b.r360.mutations.txt), [Testsitzung](vor-maschine.p2b.mutations-iso.txt) ([Skript](vor-maschine.p2b.mut_2b_iso.py)), [rot vor dem Fix](vor-maschine.p2b.red-pin.txt) ([Skript](vor-maschine.p2b.red_2b_pin.sh))
 - Live: [Läufe](vor-maschine.p2b.live-runs.txt) (Lauf 4), [live-twp](vor-maschine.p2b.r360.live-twp.txt), [Toolsetter](vor-maschine.p2b.r360.toolsetter-readback.txt), [Macro](vor-maschine.p2b.r360.macro-live.txt), [perf](vor-maschine.p2b.r360.perf.txt), [native Haupt](vor-maschine.p2b.r360.native-main.json), [native Latch](vor-maschine.p2b.r360.native-latch.json)
 - CI: `harden/link`, Lauf 43372280114 an `3e3ec6ed`: Backend und Frontend grün
+
+### Nachtrag zu R360 · Kopf jetzt `3aae6337` (ein Commit nach `3e3ec6ed`)
+
+Fable hat auf `3e3ec6ed` eine Lücke gefunden, die meine Neuprüfung der Heilung geöffnet hatte, und dahinter einen älteren Fehler.
+
+- **Die Lücke:**
+  - `_reserved_heal_check` schob die Heilung auf, solange der Pin `twp_active` ungelesen war.
+  - Dieser Pin wird aber nur auf einer TWP-fähigen Maschine registriert, während der Tick die Heilung auf jeder **umschaltbaren** Maschine vormerkte.
+  - Auf einer TCP-Trunnion (umschaltbar, ohne TWP-Stack) hätte sie sich deshalb endlos aufgeschoben, und das Banner wäre stehen geblieben.
+- **Der ältere Fehler:**
+  - Der Tick entschied seit seiner Entstehung (`5f40f84c`, vor TWP-08a) nach dem falschen Prädikat.
+  - G59–G59.3 sind nur dort reserviert, wo TWP-Regeln gelten (`_twp_capable`, das eine Prädikat der Policy). Auf einer TCP-Trunnion sind sie gewöhnliche Nullpunkte, und die Heilung setzte das G59 des Bedieners nach dem Referenzieren auf G54 zurück.
+- **Jetzt:**
+  - Der Tick merkt die Heilung nur auf einer TWP-fähigen Maschine vor.
+  - `_reserved_heal_check` antwortet ohne TWP-Stack „superseded“.
+  - Auf einer TWP-Maschine schiebt ein ungelesener Ebenenzustand weiterhin auf.
+- **Benannt, nicht geändert:** `clear_wcs "all"` lässt G59–G59.3 auf jeder umschaltbaren Maschine aus. Das ist die vorsichtige Richtung: Es wird nichts gelöscht.
+- **Wächter** (`ReservedRowsOnlyOnATwpMachine`):
+  - G59.1 einer TCP-Trunnion beim Boot ergibt keine Heilung und kein Banner, und die Heilung schreibt ohne TWP nichts. Beide sind an `3e3ec6ed` rot ([Protokoll](vor-maschine.p2b.red-pin.txt), vierter Lauf).
+  - Als Kontrollen wird die Scratch-Zeile einer TWP-Maschine geheilt, und ein ungelesener Ebenenzustand schiebt auf.
+- **Ergebnis:** Backend 2045 bestanden / 1 übersprungen; jede Testdatei besteht allein, gemessen am Kopf.
+- **Verhaltensänderung für die Liste:** Auf einer umschaltbaren Maschine ohne TWP bleibt ein beim Boot aktives G59–G59.3 stehen. Auf der 3-Achs-Maschine des Operators ändert sich nichts, sie ist nicht umschaltbar.
+- **Belege** am neuen Kopf (Round-Gate, Gegenfälle, Live, CI) folgen in diesem Abschnitt.
