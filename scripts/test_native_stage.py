@@ -4127,7 +4127,7 @@ class LatchClient(FrameClient):
     def frame(self, **st):
         t = time.monotonic()
         self.frames.append((t, {**self.status, **st}))
-        trip = None if self.acked else {"ts": 1}
+        trip = None if self.acked else {"ts": 1, "id": "e1-1"}    # the trip carries its id (package 3a)
         self.trip_history.append((t, trip))
         self.safety_trip = trip
 
@@ -4139,6 +4139,9 @@ class LatchClient(FrameClient):
                 raise SessionRefused("Safety trip not acknowledged — press Acknowledge")
             self.frame(is_estop=False)
         elif cmd == "safety_trip_ack":
+            # only the current trip's id acknowledges it (package 3a, Q363-2)
+            if kw.get("id") != (self.safety_trip or {}).get("id"):
+                raise SessionRefused("Trip changed — acknowledge again")
             self.acked = True
             self.frame()
         elif cmd == "machine_on":

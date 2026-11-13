@@ -229,6 +229,7 @@ class Viewer:
         self.bytes = 0
         self.merged = {}
         self.armed_seen = None
+        self.safety_trip = None       # the current trip from the status envelope (its id acknowledges it)
         self.gcode_ready = False      # viewer_gcode / viewer_gcode_ready seen
         self.gcode_version = None     # latest viewer_gcode_ready version seen
         self.last_reply_error = None  # most recent reply ok=False error text
@@ -266,6 +267,8 @@ class Viewer:
                 if msg.get("type") in ("status", "status_delta"):
                     self.status_frames += 1
                     self.merged.update(msg.get("data") or {})
+                    if "safety_trip" in msg or msg.get("type") == "status":
+                        self.safety_trip = msg.get("safety_trip")   # the envelope's trip (its id, package 3a)
                     if "armed" in msg:
                         self.armed_seen = msg["armed"]
                 elif msg.get("type") in ("viewer_gcode", "viewer_gcode_ready"):
@@ -619,7 +622,13 @@ async def sc_trip(args):
     v = Viewer("trip-recovery")
     await v.connect()
     try:
-        await v.send({"cmd": "safety_trip_ack"})
+        # the acknowledgement names ITS trip (package 3a, Codex R363 Q363-2)
+        for _ in range(40):
+            if isinstance(v.safety_trip, dict) and v.safety_trip.get("id"):
+                break
+            await asyncio.sleep(0.05)
+        res["trip_id"] = (v.safety_trip or {}).get("id") if isinstance(v.safety_trip, dict) else None
+        await v.send({"cmd": "safety_trip_ack", "id": res["trip_id"]})
         await asyncio.sleep(0.5)
         await v.send({"cmd": "arm", "armed": True})
         await asyncio.sleep(0.5)
