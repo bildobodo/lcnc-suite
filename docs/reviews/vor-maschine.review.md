@@ -2127,7 +2127,7 @@ Jede der vier Stellen bekommt ihren eigenen Test, der vor dem Fix rot ist; gepr�
 1. **Tabellengetriebener Dispatch-Test** über den echten `handle_command`.
    - Je Pflichtfeld drei Fälle: fehlend, `null`, falscher Typ (Boolean, Zeichenkette, gekürzte Ganzzahl).
    - Jeder Fall wird abgelehnt mit **null aufgezeichneten Controller-Aufrufen**, `mode` eingeschlossen; dazu gehören auch MDI, `#`-Schreiben und HAL-Sendungen.
-   - **Und nichts bleibt zurück:** kein Start-Claim, kein Eintrag in `_active_jogs`, keine Buchung des Toolsetters oder des Werkzeugwechsels, keine Änderung der `#3116`-Verfolgung. Bei `run_macro` und `auto_run` liegen Claim und `_start_guard` heute vor der Feldprüfung (Teil 4); nach der Umstellung belegt der Test die neue Reihenfolge.
+   - **Und nichts bleibt zurück:** kein Start-Claim, kein Eintrag in `_active_jogs`, keine Buchung des Toolsetters oder des Werkzeugwechsels, keine Änderung der `#3116`-Verfolgung. Bei `run_macro.args` und `auto_run.spindle_dir` liegt `_start_guard` heute vor der Feldprüfung (Teil 4); jedes andere Feld beider Befehle wird schon vorher gelesen; nach der Umstellung belegt der Test die neue Reihenfolge.
    - Daneben je Feld ein gültiger Zwilling und, wo erlaubt, ein 0/`false`-Zwilling; beide kommen an.
    - Die Tabelle ist **Daten** im Test und wird gegen `COMMAND_SCHEMA` gehalten: Jedes Pflichtfeld im Schema hat seine Zeile, jede Zeile ihr Schemafeld.
 2. **Stopp-Wächter (N5):** Fehlerhafte `jog_stop`, `jog_stop_multi`, ein ungültiges `via` an `estop`/`abort`/`cycle_pause`/`spindle_stop` und `arm` mit Nicht-`true` erreichen ihren Stopp (aufgezeichnet), nie eine Ablehnung.
