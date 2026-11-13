@@ -126,11 +126,13 @@ def conformance(path, old, new, name):
 
 
 mutate = conformance  # noqa: F811 — the five below use the conformance criterion
-mutate(F, "    def mdi(self, command: str, /) -> None: self._sent()\n", "", "fake: mdi missing")
-mutate(F, "    def home(self, joint: int, /) -> None: self._sent()\n",
-       "    def home(self, joint: str, /) -> None: self._sent()\n", "fake: home takes a str")
-mutate(F, "    def wait_complete(self, timeout: float = 5.0, /) -> int:\n        return self.wait_result\n",
-       "    def wait_complete(self, timeout: float = 5.0, /) -> None:\n        return None\n",
+mutate(F, "    def mdi(self, command: str, /) -> None:\n        _str_arg(command)\n        self._sent()\n", "",
+       "fake: mdi missing")
+mutate(F, "    def home(self, joint: int, /) -> None:\n", "    def home(self, joint: str, /) -> None:\n",
+       "fake: home takes a str")
+mutate(F, "    def wait_complete(self, timeout: float = 5.0, /) -> int:\n        _float_arg(timeout)\n"
+       "        return self.wait_result\n",
+       "    def wait_complete(self, timeout: float = 5.0, /) -> None:\n        _float_arg(timeout)\n        return None\n",
        "fake: wait_complete returns None")
 mutate(F, "    tool_in_spindle: int\n", "    tool_in_spindle: str\n", "fake: tool_in_spindle a str")
 mutate(S, "    def mdi(self, command: str, /) -> None: ...\n", "", "stub: mdi missing")

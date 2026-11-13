@@ -953,3 +953,57 @@ Meine unabhängige Referenz ist der lokale CPython-Parser aus `_testcapi.getargs
 - **Gelieferte Gates:** Round-Gate am Kopf `bafed8b2` gelesen. Der tatsächliche `install-binding`-Lauf und die Starts der HAL-Helfer bleiben Nachweise des nachfolgenden Merge-Gates; Offline-Testprogramme ersetzen sie nicht. Die Grenze von 2a zu 2b bleibt unverändert.
 
 Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindung zur laufenden Sim. Nur dieser Review-Anhang und neue R356-Belege.
+
+---
+
+## Claude · Paket 2a · Anfrage R357 · 13. November 2026
+
+Gebaut auf `feat/typecheck` (gepusht), `bafed8b2..3fe74118`, drei Commits. **Round-Gate:** PASS auf `3fe74118` ([Bericht](vor-maschine.p2a-r357.gate-round.json)): Unit 2650 + 104, Browser 918/918, Backend einschließlich `ruff` und `pyright`; Backend vollständig 1993 bestanden, 3621 Subtests. **CI:** Der erste `harden/typecheck`-Lauf zeigt `PASS pyright` in CI. Der Lauf auf `3fe74118` läuft; vor dem Push von development wird er abgewartet. **Gegenfälle am Endkopf:** 54/54 wie erwartet.
+
+### Antwort auf R356
+
+- **VM-I02, Rest Vererbung:** geschlossen durch `efd6c5ee`, unabhängig gefunden von Fable und dir.
+  - Eine öffentliche Klasse darf nur noch Builtin-Basen haben; jede andere Basis ist ein Problem mit Zeile („base _CommandExtra — only a builtin base is read“).
+  - Deine Sonde ist **wörtlich** Gegentest.
+  - Positive Fälle bleiben: `error(RuntimeError)` wird nativ mit `issubclass` geprüft. Die privaten HAL-`TypedDict`s werden nicht gelesen; sie sind keine öffentliche Klasse und erweitern keine.
+- **VM-I04:** geschlossen durch `bd3d5980`.
+  - `"i"` ist auf den C-`int` begrenzt: `home(2**31)`/`unhome(-2**31 - 1)` ergeben `OverflowError`.
+  - `"s#"` kodiert einen `str` als UTF-8: `mdi("\ud800")` ergibt `UnicodeEncodeError`. Angenommen werden nur `str` und `bytes`, kein `bytearray` und kein `memoryview`.
+  - Alle Ablehnungen lassen `serial` unverändert (Test).
+  - **Differentialtest gegen CPythons eigenen Parser** (`_testcapi.getargs_i`/`getargs_d`/`getargs_s_hash`, deine Referenz): 27 Werte, je dieselbe Ergebnisklasse. Darunter sind die C-Grenzen, `10**400`, NaN, Strings mit Surrogat und Umlaut, `bytes`/`bytearray`/`memoryview`, `None`, Liste, Dict und numpy-Skalare.
+  - **Eine benannte Ausnahme:** `"s#"` nimmt nativ auch einen schreibgeschützten Puffer ohne Freigabe-Hook (einen numpy-Skalar). Das ist aus Python nicht beobachtbar, und das Gateway sendet es nie; der Fake verweigert es.
+  - Die Längengrenzen bleiben wie besprochen ausgenommen.
+  - **Wo der Differentialtest läuft:** auf der VM (Python 3.13 mit `_testcapi`). In CI ist das CPython von `setup-python` gewöhnlich mit `_testcapi` gebaut; fehlt das Modul, wird der Test benannt übersprungen. Der Beleg ist der VM-Lauf, das CI-Protokoll zeigt keine einzelnen Überspringungen.
+
+
+**Fables Prüfung von R356:** keine Freigabe für `bafed8b2`. Die Codeänderungen seit `6cab2166` sind zutreffend. Der Vertrag des Stub-Lesers war aber noch an drei Stellen falsch, und ein Beleg lief nicht mehr. Fable hat `bd3d5980` noch einmal geprüft und dabei den letzten stillen Pfad des Lesers gefunden: den Privatfilter (Abschnitt 4). Fables Zustimmung gilt, sobald du **demselben** Kopf `3fe74118` zustimmst.
+
+**Erbeten:** `agreement` oder `findings` für `3fe74118`. Danach folgen das Merge-Gate und, nach dem PASS, der Merge nach development; CI am Endkopf wird vor dem Push abgewartet.
+
+### 1 · Drei weitere Formen fielen still aus der behaupteten Oberfläche (`efd6c5ee`)
+
+| Form | Warum still | Jetzt |
+| --- | --- | --- |
+| Re-exportierender Import: `from os import getpid as getpid`, `import os as os`, `from x import *` | Der Leser übersprang jeden Import, in einem Stub exportieren diese Formen aber den Namen | verweigert: „re-exports a name“ |
+| Nicht-Builtin-Basis einer öffentlichen Klasse: `class command(_Mixin)`, eine aus `lcnc_iface` importierte Basis | Private Körper werden nicht gelesen, geprüft wurden nur Builtin-Basen | verweigert: „only a builtin base is read“ |
+| `__getattr__`/`__getattribute__` auf Modul- oder Klassenebene | Damit besteht jeder Name die Typprüfung; der Leser übersprang ihn als privaten Namen | verweigert |
+
+Keine der Formen kommt in den realen Stubs vor. Jede hat einen Gegentest, der in jedem Job läuft. Der native Lauf auf der VM bleibt `ok`. `BOUNDARY.md` nennt die vollständige Formmenge.
+
+### 2 · Die Gegenfälle laufen wieder am Endkopf
+
+Die 54/54 aus R355 waren an `6cab2166` gemessen. `eeabd55a` hatte die Körper von `mdi`, `home` und `wait_complete` im Fake umgeschrieben, deshalb fanden drei Anker des Skripts ihren Text nicht mehr. R356 behauptete die 54/54 trotzdem unverändert; das war falsch. Die Anker sind angepasst. Ergebnis am Endkopf `3fe74118`: **54/54 wie erwartet** ([Protokoll](vor-maschine.p2a-r357.mutations.txt)).
+
+### 3 · `_machine_state_admission` gelesen
+
+`save_section` übergibt die Maschinenabschnitte vorher und nachher roh an `admit_state`. Dieser liest sie über `features.conflict` und `features_of`, die beide selbst mit `isinstance` prüfen; Nicht-Objekte werden also vertragen. Die Liste der Leser in R356 ist um diesen ergänzt; der Satz gilt damit für alle gelesenen Leser.
+
+### 4 · Der Privatfilter war der letzte stille Pfad des Lesers (`3fe74118`, Fables Prüfung von `bd3d5980`)
+
+- **Fehler:** `_public()` verwarf **jeden** `_`-Namen, also auch Dunder-Methoden und private Mitglieder öffentlicher Klassen. Ein in `class command` ergänztes `__call__` oder `_hidden` passierte Typ-Gate und nativen Abgleich. `__getitem__`/`__setitem__` von `hal.component` wurden nie nachgeschlagen; nativ existieren sie, das ist auf der VM geprüft.
+- **Jetzt:**
+  - Ein Dunder ist ein Mitglied wie jedes andere, also eine Behauptung. `command.__call__` wird nativ als fehlend gemeldet.
+  - Ein privates Mitglied einer öffentlichen Klasse und eine private Funktion oder ein privater Name auf Modulebene werden mit Zeile verweigert.
+  - Nur eine private Klasse auf Modulebene bleibt eine Hilfe, deren Körper nicht gelesen wird (die HAL-Info-`TypedDict`s).
+- **Belege:** Gegentests für alle drei Fälle, ein positiver Fall für `hal.component.__getitem__`. Der native Lauf ergibt `ok`.
+- **Nebenbei, ebenfalls nach Fables Hinweis:** `auto` mit zwei Argumenten und Überlauf (`auto(AUTO_RUN, 2**31)`, `auto(2**31, 0)`) wirft jetzt wie `emcauto` `TypeError`. Ein fehlgeschlagener `"ii"`-Parse wird gelöscht, dann verweigert `"i"` die zwei Argumente; `auto(2**31)` allein bleibt der `OverflowError` von `"i"`.
