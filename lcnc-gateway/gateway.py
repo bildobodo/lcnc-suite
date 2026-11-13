@@ -455,6 +455,11 @@ class Link:
 
 
 _link: Optional[Link] = None
+#: the viewer-init cache (build_viewer_init) — declared HERE, above the boot
+#: connect: _clear_session_caches clears it on every publish, the boot
+#: publish included (58010ecb declared it 6000 lines further down, and the
+#: import-time connect failed with a NameError after publishing)
+_viewer_init_cache: Dict[Tuple, Dict[str, Any]] = {}
 _link_lock = threading.Lock()
 _link_seq = 0
 _lcnc_pid: Optional[int] = None  # tracks linuxcncsvr PID
@@ -2223,7 +2228,7 @@ async def _status_poller():
             # mode. The var file persisted #5220=6, so the DRO reads the
             # plane frame's TOOL-frame numbers on a machine that is not in
             # that frame. Banner now, restore G54 once the machine is ready.
-            _reserved_fixture_heal_tick(st)
+            _reserved_fixture_heal_tick(st, polled_link)
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and
@@ -7406,10 +7411,20 @@ _reserved_heal_task: Optional[asyncio.Task] = None
 _reserved_heal_decl_tried = 0.0
 
 
-def _reserved_fixture_heal_tick(st) -> None:
-    """Status-loop hook: detect once, heal when the machine can take an MDI."""
+def _reserved_fixture_heal_tick(st, polled_link: Optional["Link"] = None) -> None:
+    """Status-loop hook: detect once, heal when the machine can take an MDI.
+    `st` is the status of `polled_link` (None: the current Link): every
+    decision taken on it — the one-shot boot check, a supersede — takes
+    effect only while that Link is still the published one (Fable's check
+    of fd1153fc, the VM-I10 class: a replaced Link's snapshot clears nothing)."""
     global _reserved_fixture_warning, _reserved_heal_checked, _reserved_heal_pending, _reserved_heal_task
     global _reserved_heal_decl_tried
+    owner = polled_link if polled_link is not None else current_link()
+
+    def owned() -> bool:
+        return owner is not None and current_link() is owner
+    if not owned():
+        return
     if not _reserved_heal_checked:
         if st.g5x_index is None:
             return
@@ -7423,9 +7438,8 @@ def _reserved_fixture_heal_tick(st) -> None:
         # ONE read decides, and only while the Link it was read through is
         # still the published one — never a second look that may read
         # "unknown" as "not TWP" (Codex R361 VM-I10)
-        owner = current_link()
         decl = _parse_kins_decl()
-        if decl is None or owner is None or current_link() is not owner:
+        if decl is None or not owned():
             _reserved_heal_decl_tried = now
             return
         twp = _twp_of(decl)
@@ -7449,6 +7463,8 @@ def _reserved_fixture_heal_tick(st) -> None:
         return
     if st.twp_active:
         # An orient happened first — the row is the live plane's now.
+        if not owned():
+            return
         _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
                     index=_reserved_heal_pending)
         _reserved_heal_pending = None
@@ -7456,6 +7472,8 @@ def _reserved_fixture_heal_tick(st) -> None:
         return
     if st.g5x_index is not None and int(st.g5x_index) not in (6, 7, 8, 9):
         # The operator (or a program) selected a fixture already.
+        if not owned():
+            return
         _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
                     index=_reserved_heal_pending, now=int(st.g5x_index))
         _reserved_heal_pending = None
@@ -7523,6 +7541,10 @@ async def _reserved_fixture_heal() -> None:
             with _pinned_link():
                 verdict, why = _reserved_heal_check()
                 if verdict == "superseded":
+                    # a lost owner defers and keeps the job (Codex R361 VM-I10,
+                    # Fable's check of fd1153fc): the clear is admitted on the
+                    # heal's own Link, as "healed" is
+                    link()
                     _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
                                 index=_reserved_heal_pending, why=why)
                     _reserved_heal_pending = None
@@ -8486,8 +8508,8 @@ def _live_policy_state(armed: bool):
 # in a storm, the second client onward gets a sub-µs cache hit instead
 # of paying the file-I/O cost of re-parsing the INI per connect — the
 # cost we measured at ~21 ms in [VINIT-T] worst-case. Bounded at 16
-# entries so distinct host headers can't grow it without limit.
-_viewer_init_cache: Dict[Tuple, Dict[str, Any]] = {}
+# entries so distinct host headers can't grow it without limit. (Declared
+# with the Link, above the boot connect: every publish clears it.)
 
 
 def _viewer_init_cache_key(stl_base_url: str, cfg: Dict[str, Any], cfg_mtime: float) -> Tuple:

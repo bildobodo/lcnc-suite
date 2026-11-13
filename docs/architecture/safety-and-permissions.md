@@ -32,7 +32,11 @@ decided on ONE read of the kins declaration whose Link is still published
 every 5 s; a second look would read "unknown" as "not TWP"). The queued
 heal reads the TWP capability in three states (`_twp_capability`): unknown
 — no Link, an unreadable INI — defers and keeps the job and its banner,
-only a READ "no TWP" supersedes it (Codex R361 VM-I10). The viewer draws ONE work-system
+only a READ "no TWP" supersedes it (Codex R361 VM-I10), and its clear is
+admitted on the heal's own Link like "healed". The tick decides on the
+POLLED Link's snapshot (`_reserved_fixture_heal_tick(st, polled_link)`):
+the one-shot and every supersede take effect only while that Link is
+published. The viewer draws ONE work-system
 marker, the active fixture, where the PART's zero physically is in every
 kins mode (`viewer/programZero.ts`: identity = the chain at the fixture's
 W1 stamp A, riding the table; TCP = the numbers; Plane = the plane compose

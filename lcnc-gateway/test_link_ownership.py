@@ -1063,6 +1063,46 @@ class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
         self.assertEqual(gateway._reserved_heal_pending, 7)
         self.assertIn("TWP scratch row", gateway._reserved_fixture_warning)
 
+    def test_a_pinned_out_heal_keeps_its_job_and_banner(self):
+        # Fable's check of fd1153fc: the heal's "superseded" was cleared with
+        # no owner check — read through the NEW Link's declaration, a heal
+        # whose own Link was replaced dropped the job
+        gateway._reserved_heal_pending = 7
+        gateway._reserved_fixture_warning = "G59.1 active at the last shutdown"
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+
+        def replaced_then_read_tcp():
+            swap_connection(FakeConnection(stat=stat))
+            return False                       # the new Link's declaration: a TCP trunnion
+        with mock.patch.object(gateway, "_twp_capability", replaced_then_read_tcp, create=True):
+            asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [])
+        self.assertEqual(gateway._reserved_heal_pending, 7, "a pinned-out heal dropped its job")
+        self.assertEqual(gateway._reserved_fixture_warning, "G59.1 active at the last shutdown")
+
+    def test_a_replaced_links_snapshot_spends_no_boot_check(self):
+        connect_fake(self)
+        polled = gateway._link
+        swap_connection(FakeConnection())      # replaced after the poll that made `st`
+        st = types.SimpleNamespace(g5x_index=7, twp_active=False, permissions={})
+        with mock.patch.object(gateway, "_parse_kins_decl", lambda: self.TWP):
+            gateway._reserved_fixture_heal_tick(st, polled)
+        self.assertFalse(gateway._reserved_heal_checked, "a replaced Link's snapshot spent the one-shot")
+        self.assertIsNone(gateway._reserved_heal_pending)
+
+    def test_a_replaced_links_snapshot_clears_no_job(self):
+        connect_fake(self)
+        polled = gateway._link
+        gateway._reserved_heal_checked = True
+        gateway._reserved_heal_pending = 7
+        gateway._reserved_fixture_warning = "G59.1 active at the last shutdown"
+        swap_connection(FakeConnection())      # replaced after the poll
+        st = types.SimpleNamespace(g5x_index=1, twp_active=False, permissions={})   # "G54 selected"
+        gateway._reserved_fixture_heal_tick(st, polled)
+        self.assertEqual(gateway._reserved_heal_pending, 7, "a replaced Link's snapshot cleared the job")
+        self.assertEqual(gateway._reserved_fixture_warning, "G59.1 active at the last shutdown")
+
     def test_a_queued_heal_with_an_unknown_declaration_keeps_its_job_and_banner(self):
         # Codex R361 VM-I10: no Link / an unreadable INI is "unknown", never
         # "no TWP" — the heal waits and keeps the job and its banner
@@ -1179,7 +1219,10 @@ class AnAbortDuringTheHeal(unittest.TestCase):
 
         async def go():
             gateway._reserved_heal_task = asyncio.ensure_future(gateway._reserved_fixture_heal())
+            deadline = time.monotonic() + 10.0
             while not cmd.g54_written.is_set():
+                self.assertLess(time.monotonic(), deadline, "the heal never wrote its G54")
+                self.assertFalse(gateway._reserved_heal_task.done(), "the heal ended without its G54")
                 await asyncio.sleep(0.01)
             t0 = time.monotonic()
             gateway._preempt_inflight("abort", 0)
@@ -1347,6 +1390,46 @@ class CachesFilledOnTheirOwnLink(unittest.TestCase):
             facts = gateway._joint_jog_facts()
         self.assertTrue(facts["enabled"], facts)
         self.assertEqual([(r["letter"], r["joint"]) for r in facts["axes"]], [("X", 0), ("Y", 1), ("Z", 2)])
+
+
+class TheBootConnectAtImport(unittest.TestCase):
+    """The gateway connects AT IMPORT when it finds an instance; the publish
+    clears the session caches — every name it touches must exist by then
+    (58010ecb declared _viewer_init_cache below the boot connect: the import-
+    time connect failed with a NameError after publishing, Fable's check of
+    fd1153fc). No test saw it: conftest hides the host's instance. This one
+    imports the gateway in a fresh process with an instance of its own (the
+    process itself) and a stub binding for the NML check's subprocess."""
+
+    def test_the_boot_connect_publishes_and_succeeds(self):
+        import os
+        import subprocess
+        import sys
+        import tempfile
+        here = os.path.dirname(os.path.abspath(gateway.__file__))
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = os.path.join(tmp, "stub")
+            os.makedirs(stub)
+            with open(os.path.join(stub, "linuxcnc.py"), "w") as f:
+                # what _nml_connectable's subprocess imports: a status that polls
+                f.write("class stat:\n    def poll(self):\n        pass\n")
+            code = (
+                "import os\n"
+                "import fake_linuxcnc\n"
+                "fake_linuxcnc.install()\n"
+                "import session_bind\n"
+                "inst = session_bind.instance_for_pid(os.getpid())\n"
+                "session_bind.discover_instance = lambda *a, **k: (inst, [inst])\n"
+                "import gateway\n"
+                "print('BOOT', gateway._link is not None, gateway._lcnc_pid == os.getpid(), gateway._ever_connected)\n")
+            env = dict(os.environ, PYTHONPATH=os.pathsep.join([stub, here]),
+                       LCNC_LOG_DIR=os.path.join(tmp, "logs"), LCNC_NO_BINDING="1")
+            r = subprocess.run([sys.executable, "-c", code], cwd=here, env=env,
+                               capture_output=True, text=True, timeout=120)
+        out = r.stdout + r.stderr
+        self.assertNotIn("try_connect_lcnc FAILED", out, out[-2000:])
+        self.assertIn("try_connect_lcnc OK", out, out[-2000:])
+        self.assertIn("BOOT True True True", out, out[-2000:])
 
 
 class ConnectLifecycle(unittest.TestCase):
