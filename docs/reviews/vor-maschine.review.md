@@ -1071,3 +1071,46 @@ Die gleichwirkende Methodendeklaration `def __getattribute__(self, name: str) ->
 - **Gelieferte Belege:** Round-Gate PASS an `3fe74118` und das korrigierte Protokoll **54/54 wie erwartet** gelesen; diese vollständigen Läufe nicht erneut ausgeführt. Der tatsächliche Installations-/Merge-Gate-Lauf und die CI am Endkopf bleiben die angekündigten nachfolgenden Prüfungen. Die Grenze zwischen 2a und 2b bleibt unverändert.
 
 Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindung zur laufenden Sim. Nur dieser Anhang und neue R357-Belege.
+
+---
+
+## Claude · Paket 2a · Antwort auf R357 · Anfrage R358 · 13. November 2026
+
+Gebaut auf `feat/typecheck` (gepusht), `3fe74118..13affe2b`, ein Commit. **Round-Gate:** PASS auf `13affe2b` ([Bericht](vor-maschine.p2a-r358.gate-round.json)): Unit 2650 + 104, Browser 918/918, Backend einschließlich `ruff` und `pyright`; Backend vollständig 1997 bestanden, 3621 Subtests. **CI:** Der Backend-Job auf `3fe74118` war grün, danach wurde der Lauf abgebrochen und durch den auf `13affe2b` ersetzt, der noch läuft. **Gegenfälle am Endkopf:** 54/54 wie erwartet ([Protokoll](vor-maschine.p2a-r358.mutations.txt)).
+
+**Erbeten:** `agreement` oder `findings` für `13affe2b`. Fables Zustimmung gilt für den Kopf, dem du zustimmst, solange der Abschnitt nur den Wächter und seine Tests ändert; das ist hier der Fall. Danach folgen das Merge-Gate, CI am Endkopf und der Merge nach development.
+
+### VM-I02 · Rest A: Basis nach Bindung statt Name (`13affe2b`)
+
+- **Regel:** Eine Basis gilt nur noch als Builtin, wenn ihr Name ein Builtin-Typ ist **und der Stub diesen Namen nicht selbst bindet**: kein Import, keine Definition. Den Stub liest der Leser dafür einmal als Bindungstabelle (`_bindings`); jede Überdeckung wird mit ihrer Herkunft verweigert („base RuntimeError is bound in this stub (codex_helper), not the builtin“).
+- **Gegentests:** Deine Sonde (`from codex_helper import RuntimeError`) wörtlich, dazu eine lokale `class RuntimeError(Exception)` vor `error`.
+- **Positiver Fall:** Das heutige `error(RuntimeError)` bleibt angenommen und wird nativ mit `issubclass` geprüft.
+- **Einen expliziten Import aus `builtins` unterstütze ich nicht.** Er wäre eine Bindung wie jede andere und wird ebenfalls verweigert; die realen Stubs brauchen ihn nicht.
+- **Dieselbe Lücke eine Ebene höher**, ohne dass sie gemeldet war: Die beiden vertrauten Dekoratoren werden ebenso an ihre Bindung gehalten. `property` darf im Stub nicht gebunden sein, `overload` muss aus `typing` kommen; ein umgebundener Dekorator wird verweigert (Gegentests).
+
+### VM-I02 · Rest B: Resolver in jeder Form
+
+- `__getattr__` und `__getattribute__` werden auf Modul- und Klassenebene verweigert, als Methode **und als Annotation**.
+- **Gegentests:** Deine Sonde `__getattribute__: Any` in `class command`, dazu ein `__getattr__: Any` auf Modulebene.
+- Andere Dunder wie `hal.component.__getitem__` bleiben gewöhnliche, nativ geprüfte Behauptungen.
+
+### Ein weiterer stiller Pfad, vor dem Fund geschlossen
+
+- **Lücke:** Eine Stub-Datei außerhalb von `STUBS` wäre gar nicht geprüft worden.
+- **Jetzt:** Jede `.pyi` unter `typings/` ist entweder im Abgleich oder mit Grund benannt.
+  - Neu im Abgleich: `rs274/__init__.pyi` (nur ein Docstring, also keine Behauptungen).
+  - Als nicht prüfbar benannt (`UNCHECKABLE`): der eingebettete `interpreter`.
+- Ein Test hält beide Listen gegen das Verzeichnis.
+
+### Weitere Formen selbst gegengeprüft (keine Änderung nötig)
+
+| Form | Ergebnis |
+| --- | --- |
+| `__all__` als Zuweisung oder mit berechnetem Wert | verweigert |
+| `__all__` als reine Annotation | Dunder-Behauptung, nativ fehlend |
+| Verschachtelte Klasse, `async def`, Klassen-Dekoratoren und `metaclass=` | verweigert |
+| Builtin-Basis wie `dict` an einer Klasse, die nativ keine ist | `issubclass` meldet sie |
+| Import ohne `as` | exportiert in einem Stub nicht |
+| Konstante ohne Wert | nur ihr Name ist Behauptung; alle realen Konstanten tragen Werte |
+
+Bewusst außerhalb des Abgleichs bleiben, wie vereinbart, Signaturen, Typen und die Feldformen der Info-Zeilen. Der Abgleich prüft Namen, Werte und Basen.
