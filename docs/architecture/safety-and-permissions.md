@@ -606,8 +606,14 @@ named exception, an older page's `mdi` with `vars` included (R336).
   of several steps: the reserved-fixture heal (MDI, then `G54` — under
   `_cmd_lock` too, which `set_mode` requires and it did not hold; an abort
   or E-Stop cancels it like a client's handler, `_preempt_inflight`, and goes
-  out after the current wait slice) and the toolsetter read-back (the
-  synch's mode check, the synch, the file). The
+  out after the current wait slice; once it holds the lock it applies the
+  tick's rules again on a current read — a plane oriented or a fixture
+  selected meanwhile supersedes it, a machine no longer ready defers it —
+  and at each of its writes) and the toolsetter read-back (the
+  synch's mode check, the synch, the file). A session cache a reconnect
+  clears is filled only from a status that was read (`get_machine_limits`;
+  `_joint_jog_facts` reads ONE status): a caller whose pinned Link was
+  replaced computes its fallback for itself, never for the new Link. The
   REST tool import's reload is one write after the file write and goes to
   the published Link: it must reach the LinuxCNC that reads the written
   file — refused, the controller would keep the old table.

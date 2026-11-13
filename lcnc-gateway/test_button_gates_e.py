@@ -173,6 +173,16 @@ class TestNoSwitchOntoARunningInterpreter(_Writer):
 
     def test_the_background_fixture_heal(self):
         self.controller()
+        # the heal's own check on a current read passes (package 2b): G59.1
+        # active, no plane (fresh reader), the snapshot ready — the MDI then
+        # starts at the write, which its thread refuses
+        current().stat.g5x_index = 7
+        self.addCleanup(setattr, gateway, "_shared_status", gateway._shared_status)
+        gateway._shared_status = _payload(inpos=True, current_vel=0.0)
+        p = mock.patch.object(gateway, "_reader_fresh_get", lambda f: 0 if f == "twp_active" else None)
+        p.start()
+        self.addCleanup(p.stop)
+        self.assertEqual(gateway._reserved_heal_check(), (None, ""), "the check before the write must pass")
         traced = []
         with mock.patch.object(gateway._trace, "emit", lambda tag, **kw: traced.append((tag, kw))):
             async def go():

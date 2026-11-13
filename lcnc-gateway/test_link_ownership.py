@@ -395,6 +395,7 @@ class _ModeStat:
     def __init__(self, task_mode):
         self.task_mode = task_mode
         self.interp_state = linuxcnc.INTERP_IDLE
+        self.g5x_index = 7          # G59.1 — the TWP scratch row the heal leaves
         self.on_poll = None
 
     def poll(self):
@@ -562,6 +563,14 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         # its first contention — an earlier test's)
         self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
         gateway._cmd_lock = None
+        # the heal's current read: no plane active (fresh reader), ready
+        self.plane = {"twp_active": 0}
+        self.not_ready = None
+        for name, value in (("_reader_fresh_get", lambda f: self.plane.get(f)),
+                            ("_controller_gate_refusal", lambda gate, armed: self.not_ready)):
+            p = mock.patch.object(gateway, name, value)
+            p.start()
+            self.addCleanup(p.stop)
 
     def test_the_heal_refuses_its_g54_after_a_reconnect(self):
         stat = _ModeStat(linuxcnc.MODE_MANUAL)
@@ -583,6 +592,50 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         asyncio.run(gateway._reserved_fixture_heal())
         self.assertEqual(self.events, [("old", ("mode", linuxcnc.MODE_MDI), 41), ("old", ("mdi", "G54"), 42)])
         self.assertIsNone(gateway._reserved_heal_pending)
+
+    def run_behind_a_command(self, stat, during):
+        """The heal queued behind a command holding _cmd_lock; `during` is
+        what that command does to the machine before it releases."""
+        async def go():
+            lock = gateway._get_cmd_lock()
+            await lock.acquire()
+            heal = asyncio.ensure_future(gateway._reserved_fixture_heal())
+            for _ in range(20):
+                await asyncio.sleep(0)
+            during()
+            lock.release()
+            await heal
+        asyncio.run(go())
+
+    def test_a_fixture_selected_ahead_of_the_heal_supersedes_it(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        self.run_behind_a_command(stat, lambda: setattr(stat, "g5x_index", 1))   # G54 selected
+        self.assertEqual(self.events, [], "the heal wrote over the fixture the command selected")
+        self.assertIsNone(gateway._reserved_heal_pending)
+
+    def test_a_plane_oriented_ahead_of_the_heal_supersedes_it(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        self.run_behind_a_command(stat, lambda: self.plane.update(twp_active=1))
+        self.assertEqual(self.events, [], "the heal wrote G54 over the oriented plane")
+        self.assertIsNone(gateway._reserved_heal_pending)
+
+    def test_a_machine_no_longer_ready_defers_it(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        self.run_behind_a_command(stat, lambda: setattr(self, "not_ready", "Machine busy"))
+        self.assertEqual(self.events, [])
+        self.assertEqual(gateway._reserved_heal_pending, 7, "a deferred heal stays pending")
+
+    def test_a_fixture_selected_at_the_write_is_refused_there(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        cmd = _ModeCmd(stat, "old", self.events)
+        connect_fake(self, stat=stat, cmd=cmd)
+        cmd.after_write = lambda: setattr(stat, "g5x_index", 1)   # another GUI, after the switch
+        asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [("old", ("mode", linuxcnc.MODE_MDI), 41)], "G54 written over G54's selection")
+        self.assertEqual(gateway._reserved_heal_pending, 7, "refused at the write: tried again, then superseded")
 
     def test_the_heal_waits_for_a_command_in_flight(self):
         stat = _ModeStat(linuxcnc.MODE_MANUAL)
@@ -672,6 +725,14 @@ class AnAbortDuringTheHeal(unittest.TestCase):
         # its first contention — an earlier test's)
         self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
         gateway._cmd_lock = None
+        # the heal's current read: no plane active (fresh reader), ready
+        self.plane = {"twp_active": 0}
+        self.not_ready = None
+        for name, value in (("_reader_fresh_get", lambda f: self.plane.get(f)),
+                            ("_controller_gate_refusal", lambda gate, armed: self.not_ready)):
+            p = mock.patch.object(gateway, name, value)
+            p.start()
+            self.addCleanup(p.stop)
 
     def test_the_abort_goes_out_within_a_slice(self):
         import time
@@ -727,6 +788,49 @@ class TheReadBackOnAChangedLinkAtItsWrite(unittest.TestCase):
         self.assertEqual(events, [])
         failed = [kw for name, kw in traced if name == "toolsetter.read_back_failed"]
         self.assertEqual([(kw["why"], kw["msg"]) for kw in failed], [("link", gateway.LINK_CHANGED)])
+
+
+class CachesFilledOnTheirOwnLink(unittest.TestCase):
+    """A reconnect clears the session caches; a caller whose pinned Link it
+    replaced reads no status afterwards (Fable's check of 211ecc45). What it
+    computes then is its own fallback — never cached for the new Link."""
+
+    def setUp(self):
+        for name in ("_machine_limits", "_ini_config", "_joint_jog_cache"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway._machine_limits = None
+        gateway._joint_jog_cache = None
+        gateway._ini_config = {"linear_units": "mm"}    # the INI read; the status is the question
+
+    def test_the_payload_bounds_are_not_cached_by_a_pinned_out_caller(self):
+        conn = connect_fake(self)
+        conn.stat.axis_mask, conn.stat.joints = 7, 3
+        with gateway._pinned_link():
+            swap_connection(FakeConnection(stat=conn.stat))   # the reconnect ...
+            gateway._machine_limits = None                    # ... cleared the cache
+            mine = gateway.get_machine_limits()
+        self.assertIsNone(mine.n_axes)
+        self.assertIsNone(gateway._machine_limits, "fallback bounds cached for the new Link")
+        self.assertEqual(gateway.get_machine_limits().n_axes, 3)   # read on the new Link: cached
+        self.assertIsNotNone(gateway._machine_limits)
+
+    def test_the_joint_jog_facts_read_one_status(self):
+        conn = connect_fake(self)
+        conn.stat.ini_filename, conn.stat.joints, conn.stat.axis_mask = "/m.ini", 3, 7
+        values = {("DISPLAY", "WEBUI_JOINT_JOG_BEFORE_HOMING"): "1", ("DISPLAY", "WEBUI_JOINT_AXES"): "X Y Z",
+                  ("JOINT_0", "MAX_VELOCITY"): "10", ("JOINT_1", "MAX_VELOCITY"): "10",
+                  ("JOINT_2", "MAX_VELOCITY"): "10"}
+
+        class _Ini:
+            def __init__(self, path):
+                swap_connection(FakeConnection(stat=conn.stat))   # a reconnect while the INI is read
+
+            def find(self, section, key):
+                return values.get((section, key))
+        with gateway._pinned_link(), mock.patch.object(gateway.linuxcnc, "ini", _Ini, create=True):
+            facts = gateway._joint_jog_facts()
+        self.assertTrue(facts["enabled"], facts)
+        self.assertEqual([(r["letter"], r["joint"]) for r in facts["axes"]], [("X", 0), ("Y", 1), ("Z", 2)])
 
 
 class ConnectLifecycle(unittest.TestCase):

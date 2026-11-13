@@ -2812,23 +2812,29 @@ def get_machine_limits() -> MachineLimits:
 
     Built ONCE — axis/joint counts and INI ceilings do not change during a
     session — so the per-command validate_payload() pass costs a dict lookup,
-    not a poll or a file read."""
+    not a poll or a file read. Cached only from a status AND an INI that were
+    read (package 2b): a caller without a connection — or one whose pinned
+    Link a reconnect replaced, after that reconnect cleared the cache — gets
+    the fallback bounds for itself; they never stick to the new Link."""
     global _machine_limits
     if _machine_limits is not None:
         return _machine_limits
     cfg = get_ini_config()
     n_axes = n_joints = None
+    read = False
     try:
-        link().stat.poll()
-        n_axes = len(_axes_from_mask(getattr(_stat_now(), "axis_mask", 0) or 0)) or None
-        n_joints = getattr(_stat_now(), "joints", None) or None
+        stat = link().stat           # ONE status for both counts
+        stat.poll()
+        n_axes = len(_axes_from_mask(getattr(stat, "axis_mask", 0) or 0)) or None
+        n_joints = getattr(stat, "joints", None) or None
+        read = True
     except Exception as e:  # STAT absent / not connected yet
         _trace.emit("limits.stat_unavailable", level="warn", err=str(e))
     missing = [k for k, v in _OVERRIDE_FALLBACKS.items() if cfg.get(k) is None]
     if missing:
         _trace.emit("limits.ini_fallback", level="warn", fields=missing,
                     msg="INI declares no override ceiling — using documented default")
-    _machine_limits = MachineLimits(
+    limits = MachineLimits(
         n_axes=n_axes,
         n_joints=n_joints,
         max_jog_velocity=cfg.get("max_jog_velocity"),
@@ -2842,7 +2848,9 @@ def get_machine_limits() -> MachineLimits:
         max_linear_velocity=cfg.get("max_velocity") or cfg.get("max_linear_velocity"),
         declared_vars=_declared_var_numbers(),
     )
-    return _machine_limits
+    if read and _ini_config is not None:
+        _machine_limits = limits
+    return limits
 
 
 def get_ini_config() -> dict:
@@ -7304,6 +7312,36 @@ def _reserved_fixture_heal_tick(st) -> None:
         _trace.emit("twp.reserved_fixture_heal_failed", level="warn", error=repr(exc))
 
 
+def _reserved_heal_check() -> Tuple[Optional[str], str]:
+    """The tick's rules on a read taken NOW (package 2b): the heal waits for
+    _cmd_lock, and the command it waited behind may have oriented a plane or
+    selected a fixture — the tick's snapshot is no answer any more.
+    ("superseded", why): nothing to heal; ("defer", why): not now (unknown,
+    or not ready — the next tick tries again); (None, ""): heal."""
+    try:
+        link().stat.poll()
+    except NotConnected:
+        raise
+    except Exception as e:  # noqa: BLE001 - no poll, no heal
+        return "defer", f"status not read ({type(e).__name__})"
+    active = _reader_fresh_get("twp_active")
+    g5x = safe_get("g5x_index", None)
+    if active:
+        return "superseded", "a plane is active"
+    if g5x is not None and int(g5x) not in (6, 7, 8, 9):
+        return "superseded", f"G5x index {int(g5x)} selected"
+    if active is None or g5x is None:
+        return "defer", "plane or fixture unknown"
+    why = _controller_gate_refusal("ready", True)
+    return ("defer", why) if why else (None, "")
+
+
+def _reserved_heal_admit() -> Optional[str]:
+    """The same check as a write's last-moment admission (inside its thread)."""
+    verdict, why = _reserved_heal_check()
+    return why if verdict is not None else None
+
+
 async def _reserved_fixture_heal() -> None:
     global _reserved_fixture_warning, _reserved_heal_pending, _reserved_heal_inflight
     global _reserved_heal_last_try
@@ -7312,13 +7350,26 @@ async def _reserved_fixture_heal() -> None:
     try:
         # under _cmd_lock (set_mode's contract; it ran without — package 2b)
         # and on ONE Link: the switch to MDI and the G54 that relies on it
-        # (Codex R359 VM-I06, the same rule outside a command)
+        # (Codex R359 VM-I06, the same rule outside a command); the tick's
+        # rules again once the lock is held, and at each write
         async with _get_cmd_lock():
             with _pinned_link():
+                verdict, why = _reserved_heal_check()
+                if verdict == "superseded":
+                    _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
+                                index=_reserved_heal_pending, why=why)
+                    _reserved_heal_pending = None
+                    _reserved_fixture_warning = ""
+                    return
+                if verdict == "defer":
+                    _trace.emit("twp.reserved_fixture_heal_deferred", level="info",
+                                index=_reserved_heal_pending, why=why)
+                    return
                 if reject_if_auto_running():
                     return
-                await set_mode(linuxcnc.MODE_MDI)
-                rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "G54"), wait=5)
+                await set_mode(linuxcnc.MODE_MDI, admit=_reserved_heal_admit)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "G54"), wait=5,
+                                         admit=_reserved_heal_admit)
         if _cmd_rc_failed(rc):
             _trace.emit("twp.reserved_fixture_heal_failed", level="warn",
                         index=_reserved_heal_pending, rc=rc)
@@ -7900,7 +7951,8 @@ def _joint_jog_facts() -> dict:
     global _joint_jog_cache
     if _joint_jog_cache is not None:
         return _joint_jog_cache
-    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
+    stat = _stat_now()      # ONE status for the INI path, the joints and the axes (package 2b)
+    ini_filename = getattr(stat, "ini_filename", None) if stat else None
     if not ini_filename:
         return _JOINT_JOG_OFF
     try:
@@ -7930,7 +7982,7 @@ def _joint_jog_facts() -> dict:
             return _joint_jog_cache
         if letters is None:
             letters = trivkins_coordinates(ini.find("KINS", "KINEMATICS"))
-        joints = getattr(_stat_now(), "joints", None)
+        joints = getattr(stat, "joints", None)
         max_vels = []
         for j in range(joints if isinstance(joints, int) else 0):
             try:
@@ -7939,7 +7991,7 @@ def _joint_jog_facts() -> dict:
                 max_vels.append(None)
             if max_vels[-1] is not None and not max_vels[-1] > 0:
                 max_vels[-1] = None
-        axes = _axes_from_mask(int(getattr(_stat_now(), "axis_mask", 0) or 0))
+        axes = _axes_from_mask(int(getattr(stat, "axis_mask", 0) or 0))
     except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
         _trace.emit_exc("policy.joint_jog_unreadable", e)
         return _JOINT_JOG_OFF
@@ -8281,7 +8333,8 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         _bvi_steps[step] = (time.monotonic() - t0) * 1000
 
     _t = time.monotonic()
-    limits = read_machine_limits_from_ini(_stat_now()) if _stat_now() else None
+    vi_stat = _stat_now()   # ONE status for the limits and the INI path below (package 2b)
+    limits = read_machine_limits_from_ini(vi_stat) if vi_stat else None
     _mark("read_machine_limits", _t)
     if limits:
         bounds_origin, bounds_size = limits
@@ -8332,7 +8385,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     _t = time.monotonic()
     ini_cfg = get_ini_config()
     _mark("get_ini_config", _t)
-    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
+    ini_filename = getattr(vi_stat, "ini_filename", None) if vi_stat else None
 
     # Kins declaration (TCP+TWP plan phase 1d): module/type/identity_first/
     # pivot params, parsed from the INI — the single source that also
