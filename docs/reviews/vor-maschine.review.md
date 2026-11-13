@@ -1949,3 +1949,209 @@ Befehle, Anpassungen der Sonden, Ergebnisse und Hashvergleich im [Prüfprotokoll
 - **Weiter offen:**
   - #36 bleibt offen; der Operator entscheidet darüber jetzt, nach 2b.
   - Als Nächstes folgt Paket 3.
+
+---
+
+## Claude · Paket 3a · Nutzlastvertrag (SYS-CONN.S5 + #27) · Anfrage R363 (Dokument-Runde) · 13. November 2026
+
+Paket 2b ist gemergt (development `45727d61`, CI grün). Paket 3 beginnt mit dem Nutzlastvertrag, so wie in VM349-02 vereinbart: zuerst die Tabelle je Befehl, dann der Bau. **Diese Runde ändert keinen Code.** Ich bitte um `agreement` oder `findings` zur Tabelle und zu den Wächtern, bevor ich baue.
+
+**Prüfstand:** `45727d61` (= development). Grundlage ist eine Bestandsaufnahme jedes Feldes, das ein Handler aus der Nachricht liest, mit Zeilen ([Inventur](vor-maschine.p3.payload-inventory.md)). Die Fälle der Kandidatenliste A habe ich selbst im Quelltext nachgelesen.
+
+**Zählung berichtigt:** Die „24 `finite_*` / 9 `bool`“ aus R349 stimmen nicht mehr.
+- In `gateway.py` stehen 69 `finite_*`-Aufrufe; 36 davon direkt auf einem Nachrichtenfeld, 22 davon mit einem Standardwert für „fehlt“.
+- Es gibt 8 wörtliche `bool(msg.get(…))`.
+- Der Kommentar `command_policy.py:950` („41 sites“) ist ebenfalls veraltet und wird mit dem Bau berichtigt.
+
+### Teil 1 · Regeln vor den Zeilen
+
+- **N1 · Durchsetzung an einer Stelle.**
+  - `validate_payload` kennt je Feld `required` und den Umgang mit `null`. Die Überspring-Zeile `command_policy.py:1280` („fehlt oder `null` → weiter“) entfällt als Regel.
+  - Die Handler-Standards für Pflichtfelder (`msg.get("joint", -1)`, `msg.get("scale", 1.0)`, `msg.get("target", "active")` …) werden gelöscht. Der Handler liest das geprüfte Feld mit `msg[k]`, damit kein Standard zurückkehren kann.
+  - Jeder Befehl in `COMMAND_GATES` bekommt einen Schemaeintrag, auch einen leeren `{}` für „keine Felder“. Heute läuft ein Befehl ohne Eintrag ungeprüft durch (`command_policy.py:1275`).
+- **N2 · Fehlend, `null` und falscher Typ sind drei Fälle.**
+  - **Pflichtfeld:** Fehlend, `null` und falscher Typ werden abgelehnt.
+  - **Optionales Feld:** Fehlend heißt „nicht gesetzt“ und behält seine benannte Regel (Teil 3). `null` ist **nie** „fehlend“ und wird abgelehnt. Ein `NaN` der Seite kommt als `null` an (`JSON.stringify`), also ist `null` immer ein Rechenfehler des Senders, kein „aus“.
+- **N3 · Werteformen.**
+  - Eine Zahl ist eine JSON-Zahl: kein Boolean, keine Zeichenkette. Heute nehmen `to_float`/`to_int`/`finite_*` `true` als 1 und `"3"` als 3.
+  - Eine Ganzzahl wird nicht gekürzt: `2.9` wird abgelehnt. Heute macht `finite_int` aus `2.9` den Wert 2 = AUTO, und `Enum` über `to_int` macht aus `1.9` den Wert 1 = TCP.
+  - Ein Schalter ist ein JSON-Boolean: `"false"`, `0` und `1` werden abgelehnt. Heute ist `bool("false")` gleich True.
+  - Eine Zeichenkette ist eine Zeichenkette; `str(None)` = `"None"` wird nicht mehr geschrieben.
+- **N4 · Gültige 0 und `false` bleiben, wie sie sind.**
+  - Das gilt für Jog-Geschwindigkeit 0, Spindel ein mit 0 U/min und `maxvel(0)`. Die Seite sendet bei leerem Drehzahlfeld ausdrücklich `speed: 0` (`SpindleStrip.vue:64`).
+  - Was LinuxCNC mit diesen drei Werten tut, habe ich **nicht geprüft**. Die Zeilen heißen deshalb „ungeprüft, unverändert“; der Vertrag entscheidet sie nicht aus der Erinnerung.
+- **N5 · Die Stopprichtung wird nie wegen der Nutzlast abgelehnt.**
+  - Betroffen sind `_WS_STOP_CMDS`, `jog_stop`, `jog_stop_multi` und `arm` mit dem Ziel Entwaffnen.
+  - Eine fehlerhafte Stoppnachricht wird auf den **weitesten** Stopp aufgelöst und protokolliert (`ws.payload_stop_widened`).
+  - **Heute verletzt:**
+    - `jog_stop` ohne `axis` und `jog_stop_multi` mit einem schlechten Eintrag werden abgelehnt, der Jog läuft weiter (`gateway.py:6409`, `6435`).
+    - Ein ungültiges `via` lehnt **E-Stop, Abort, Pause, Spindel-Stopp und die Jog-Stopps** ab, denn `Choice(VIA_VALUES)` hängt an jedem Befehl in `GAMEPAD_COMMANDS` (`command_policy.py:1210`) und `validate_payload` läuft vor dem Handler.
+  - **Künftig:** Ein ungültiges `via` an einem Stopp wird ignoriert und protokolliert, der Stopp läuft. An jedem anderen Befehl bleibt es abgelehnt. `req_id` lehnt nie ab, es wird nur zurückgegeben.
+- **N6 · Kein Controller-Schreiben vor der Prüfung des entscheidenden Feldes.** Das gilt einschließlich einer vorbereitenden Modusumschaltung, eines `#3116`-Schreibens und der Toolsetter-Synchronisierung. Die vier heutigen Ausnahmen behandelt Teil 4.
+- **N7 · Ein abgelehnter Rahmen behält den Socket.** Der Reader antwortet `ok: false` und liest weiter; er beendet die Verbindung nicht (das ist #27, die Absturzhälfte, Teil 5).
+- **N8 · Unbekannte zusätzliche Felder** bleiben unbeachtet, wie heute. Ausnahme ist das alte `home.joint`: Es wird abgelehnt, siehe Teil 2.2.
+
+### Teil 2 · Befehle
+
+Spalten:
+- **Pflicht:** Die Werteform gilt nach N3.
+- **Optional:** Fehlend gilt nach der genannten Regel, `null` und falscher Typ werden immer abgelehnt (N2).
+- **Heute → künftig:** nur das, was sich ändert.
+- **Sender:** was die Seite heute sendet (`lcnc.ts` `WsCommand`, die Sendestellen in der Inventur §5). Keine Zeile bricht einen Sender in `lcnc-webui/src`. Die Skripte unter `scripts/` und die Python-Tests prüfe ich im Bau und nenne jede angepasste Stelle.
+
+#### 2.1 Maschinenzustand und Modus
+
+| Befehl · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| `arm.armed` | Nur das wörtliche `true` bewaffnet. Alles andere entwaffnet: fehlend, `null`, `"false"`, `1`. Das ist die sichere Richtung (N5), es gibt also keine Ablehnung. | `"false"`, `"0"` und `[0]` bewaffnen heute (`gateway.py:10804`) → entwaffnen |
+| `set_mode.mode` | Pflicht, Ganzzahl ∈ {1, 2, 3} | `true` → MANUAL, `2.9` → AUTO → abgelehnt |
+| `set_kins_mode.mode` | Pflicht, Ganzzahl ∈ {0, 1, 2} | `true` → TCP, `1.9` → TCP → abgelehnt |
+
+#### 2.2 Jog und Referenzieren
+
+| Befehl · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| `jog_cont.axis`, `jog_incr.axis` | Pflicht, Ganzzahl im Achsbereich | `true` → Achse 1 → abgelehnt |
+| `jog_cont.vel`, `jog_incr.vel` | Pflicht, Zahl, Klemmung wie heute; 0 „ungeprüft, unverändert“ (N4) | fehlend/`null` → 0 mit MANUAL-Umschaltung und gebuchtem Jog → abgelehnt vor der Umschaltung |
+| `jog_incr.distance` | Pflicht, endliche Zahl, **neu im Schema** | fehlend/`null` → 0, `true` → +1 → abgelehnt. **Q363-1** zur Obergrenze |
+| `jog_*_multi.axes` | Pflicht, nicht leere Liste; jeder Eintrag ein Objekt mit `axis` (Ganzzahl im Bereich), `vel` und bei `jog_incr_multi` `distance`, **alles vor der Umschaltung geprüft** | `[]` oder fehlend → MANUAL-Umschaltung, Antwort ok; eine Achse außerhalb → Umschaltung, dann lehnt `CMD.jog` ab (A2) → abgelehnt vor der Umschaltung |
+| `jog_stop.axis` | Gültig: stoppt diese Achse wie heute. Fehlend, `null`, falscher Typ oder außerhalb des Bereichs: **stoppt jeden vom Gateway gebuchten Jog** (N5), protokolliert | heute abgelehnt, der Jog läuft weiter |
+| `jog_stop_multi.axes` | Gültige Liste: wie heute; `[]` bleibt „nichts genannt“, also kein Stopp. Fehlend, `null`, keine Liste oder ein schlechter Eintrag: **stoppt jeden gebuchten Jog** | ein schlechter Eintrag lehnt heute den ganzen Stopp ab |
+| `home.axis`, `unhome.axis` | **Neue Drahtform**, Pflicht, Ganzzahl im Achsbereich (die Achse der Leiste, `a.index`). Das Gateway löst sie über die deklarierte Zuordnung in **den** Joint auf. Ist die Zuordnung unklar (nicht deklariert, mehrere Joints, Fehler), wird mit dem Grund abgelehnt, **vor** der MANUAL-Umschaltung. | `home {joint}` sendet heute die Achsposition als Joint; fehlend → −1 = **Home All** bzw. Unhome All. `joint` entfällt; „alle“ ist nur noch `home_all`/`unhome_all`. |
+
+**Zu `home`/`unhome` (F-HOME.S2b, Q349-1).** Fable hat mich gebeten, die Drahtform einmal für S5 und F-HOME festzulegen. Darum steht sie hier.
+- **Zuordnung:** dieselbe Quelle wie beim Jog vor dem Referenzieren: `WEBUI_JOINT_AXES`, sonst trivkins' `coordinates=`, über `gateway_util.joint_jog_map`.
+- **Getrennt von der Jog-Zulassung:** Die Zuordnung wird aus `_joint_jog_facts` herausgelöst (`_axis_joint_map`), also ohne den Schalter `WEBUI_JOINT_JOG_BEFORE_HOMING` und ohne Bruchteil und Geschwindigkeit. `_joint_jog_facts` liest danach aus ihr.
+- **viewer_init:** Es trägt die Zuordnung je Achse (`letter`, `joint`, `reason`).
+- **Leiste:** Die Leiste sperrt den Achsknopf mit dem Grund. Der Zustand Home/Unhome liest `homed_joints[joint]` statt `homed_joints[a.index]`.
+- **Ausgelieferte Profile:**
+  - 3 Achsen: `trivkins coordinates=XYZ` ist deklariert.
+  - **5 Achsen** (`xyzac-trt-kins`) und **6 Achsen TWP** (`xyzacb_trsrn`) deklarieren nichts. Ohne Nachtrag wäre Home je Achse dort gesperrt. Ich trage `WEBUI_JOINT_AXES = X Y Z A C` bzw. `X Y Z A B C` ein; das ist die Reihenfolge ihrer `[JOINT_n]`-Abschnitte. Damit sendet jedes ausgelieferte Profil denselben Joint wie heute.
+- **Maschine des Operators:** Laut ihrem Repository (gelesen am 13. November) ist `trivkins kinstype=both coordinates=xyz` deklariert; die Zuordnung ist die Identität.
+- **Nebenbefund, ungeprüft:** Dort hat jeder Joint `HOME_SEQUENCE = -1`. Ob LinuxCNC ein `home(j)` bei negativer Sequenz einzeln annimmt, habe ich nicht am Quelltext geprüft. Das gehört auf die Checkliste für den Maschinentag, nicht in diesen Vertrag.
+- **Abnahme** wie in Q349-1: vertauschte Joint-Reihenfolge, unvollständige oder unbekannte Deklaration, Gantry, unveränderte ausgelieferte Profile, je Zustand und gesendetem Ziel; dazu `twp_buttons_check.py` live.
+
+#### 2.3 Overrides, Spindel, Programmschalter
+
+| Befehl · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| `set_feed_override.scale`, `set_spindle_override.scale`, `set_rapid_override.scale` | Pflicht, Zahl, Klemmung wie heute | fehlend/`null` → **100 %** → abgelehnt |
+| `set_max_velocity.velocity` | Pflicht, Zahl; 0 „ungeprüft, unverändert“ | fehlend/`null` → `maxvel(0)` → abgelehnt. Die Seite sendet den Befehl nie. |
+| `set_optional_stop.value`, `set_block_delete.value` | Pflicht, Boolean | `"false"` → **an**; fehlend/`null` → aus → beides abgelehnt |
+| `spindle_forward.speed`, `spindle_reverse.speed` | Pflicht, Zahl ≥ 0, Klemmung wie heute; **0 bleibt gültig** (die Seite sendet sie) | fehlend/`null` → 0 mit MANUAL-Umschaltung → abgelehnt |
+
+#### 2.4 Programmlauf, MDI, Makros, Antasten
+
+| Befehl · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| `auto_run.line` | Pflicht, Ganzzahl ≥ 0 (die Seite sendet sie immer) | fehlend → ab Zeile 0 → abgelehnt |
+| `auto_run.version` | Pflicht, Ganzzahl (streng) | `"3"`/`true` umgewandelt → abgelehnt |
+| `auto_run.spindle_dir` | Optional; wenn gesetzt, `"forward"` oder `"reverse"`, **geprüft vor `_start_guard`** | Ein unbekannter Wert schaltet heute auf MANUAL, und das Programm startet ohne Spindel (A2). Künftig wird er abgelehnt. |
+| `auto_run.spindle_speed` | Optional, Zahl ≥ 0 | `null` heute schon abgelehnt; Kürzung entfällt (N3) |
+| `auto_run.pre_tool` | Optional, Ganzzahl ≥ 0 | `true` → T1-Vormessung → abgelehnt |
+| `auto_run.probe_vars` | Optional; Werte Zahlen | Wert `null` → 0 im Vergleich → abgelehnt |
+| `auto_run.safe_z` | Optional, Boolean | `"false"` → Rückzug → abgelehnt |
+| `auto_run.entry_x`, `entry_y` | Optional, Zahl | `null` gilt heute als fehlend, die Einfahrt fällt still weg → abgelehnt (N2) |
+| `auto_run.entry_wcs`, `entry_units` | Optional; wenn gesetzt, ein gültiger Wert | Ein ungültiger Wert wird heute **still** durch den modalen Wert ersetzt; der Eilgang fährt dann im falschen System oder mit Faktor 25,4 → abgelehnt |
+| `mdi.vars`, `probe_run.vars`, `surface_scan_run.vars` | Werte sind Zahlen | Wert `null` → `#n=0` geschrieben, dann läuft die Zeile bzw. Routine → abgelehnt, **vor** jedem Schreiben |
+| `set_params.sets.<Zweck>` | Werte sind Zahlen (streng) | `true`/`"1"` → 1.0 → abgelehnt |
+| `run_macro.args` | Elemente geprüft **vor `_start_guard`** | `_start_guard` schaltet heute auf MDI und schreibt `#3116=0` vor der Prüfung (A2) |
+| `set_compensation_method.method` | Pflicht, Ganzzahl ∈ {0, 1, 2} | `true` → linear, `1.9` → 1 → abgelehnt |
+
+#### 2.5 Werkzeuge
+
+| Befehl · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| `tool_change.tool_number` | Pflicht, Ganzzahl ≥ 0; **0 = Entladen bleibt** | `true` → T1 M6, **`false` → T0 M6 + G49** → abgelehnt |
+| `tool_measure.tool` | Pflicht, Ganzzahl ≥ 1 | `true` → T1 M600 → abgelehnt |
+| `save_tool` und `renumber_tool`: `pocket`, `z_offset`, `diameter` | Optional, **fehlend = unverändert** (bleibt, R321 FI321-02); Zahl | `null` → **Länge oder Durchmesser 0** in `tool.tbl`, neu geladen → abgelehnt |
+| `save_tool` und `renumber_tool`: `remark` | Optional, fehlend = unverändert; Zeichenkette | `null` → der Text `"None"` → abgelehnt |
+| `add_tool`: `z_offset`, `diameter`, `remark` | Optional, **fehlend = 0 bzw. leer** (ein neues Werkzeug ist ungemessen, bleibt); `pocket` fehlend = Werkzeugnummer (bleibt) | `null` → 0 bzw. `"None"` → abgelehnt |
+| `delete_tool.tool_number`, `save_tool.tool_number`, `add_tool.tool_number`, `renumber_tool.(old_)tool_number` | Pflicht, Ganzzahl | `true` → T1 → abgelehnt |
+| Metadaten (`_TOOL_META_FIELDS`) | **Nicht Teil dieses Vertrags**: reine Bibliotheksdaten ohne Maschinenwirkung; die 3D-Werkzeugansicht liest sie. Grenze benannt. | unverändert |
+
+#### 2.6 Nullpunkte, G30, Dateien
+
+| Befehl · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| `clear_wcs.target` | Pflicht, `"all"` oder ein Nullpunktname, **neu im Schema**; der Wert `"active"` entfällt (kein Sender) | fehlend → **der aktive Nullpunkt wird gelöscht** → abgelehnt |
+| `set_wcs.<Achse>`, `touchoff.axes.<Achse>` | Zahl | `true` → schreibt 1.0 → abgelehnt |
+| `touchoff` U/V/W unter Plane | Abgelehnt **vor** der MDI-Umschaltung (`touchoff_route` lehnt sie ab) | heute Umschaltung, dann Ablehnung (A2) |
+| `set_g30.values`, `based_on` | Pflicht, Achsabbildung | `null` → `AttributeError` als Text → benannte Ablehnung |
+
+**Bleibt wie heute** (bereits streng bei fehlend und `null`): `mdi.text`, `run_macro.name`/`revision`, `probe_run.routine`, die `vars` von `probe_run`/`surface_scan_run` fehlend (außer `probe_cal_reset`), `set_compensation.enable`, `confirm_tool_change.request`, `load_file.path`, `set_wcs.target`, `touchoff.axes`, `auto_run.file`/`source`, `save_settings`.
+
+### Teil 3 · Erlaubte Standards (bleiben, mit Grund)
+
+- **`arm` fehlend = entwaffnen:** sichere Richtung.
+- **Optionale Felder von `auto_run` fehlend = einfacher Lauf ab Zeile:** Die Seite lässt sie absichtlich weg (`App.vue:1833–1844`).
+- **`mdi.vars` fehlend = kein Parameterschreiben;** `run_macro.args` fehlend = `[]`, danach prüft die Stelligkeit.
+- **`touchoff.expect` fehlend = keine Erwartungsprüfung:** Die Seite sendet den Wert nur, wenn sie ihn kennt (`useTouchoffMath.ts:58`). Die Controllerprüfung der Route läuft trotzdem.
+- **Werkzeugfelder fehlend = unverändert** (`save`/`renumber`), bzw. 0 und Werkzeugnummer bei `add`.
+- **`set_wcs`: eine fehlende Achse wird nicht geschrieben.**
+- **`via` fehlend = kein Gamepad-Befehl:** nur eine Markierung; Leiste und Tastatur senden dieselben Befehle ohne sie.
+- **`device` fehlend = das eigene Profil:** keine Maschinenwirkung.
+
+### Teil 4 · Reihenfolge (A2): Schreiben vor Prüfen
+
+Jede der vier Stellen bekommt ihren eigenen Test, der vor dem Fix rot ist; geprüft wird die aufgezeichnete Controller-Folge, nicht die Antwort.
+1. **`run_macro`:** `build_call` prüft vor `_start_guard`.
+2. **`jog_*_multi`:** Achsbereich und Einträge werden vor `set_mode(MANUAL)` geprüft.
+3. **`touchoff` U/V/W unter Plane:** Ablehnung vor `set_mode(MDI)`.
+4. **`auto_run.spindle_dir`:** Prüfung vor `_start_guard` und `_toolsetter_sync`.
+
+### Teil 5 · Reader-Rahmen (nie durch `validate_payload`)
+
+| Rahmen · Feld | Vertrag | Heute → künftig |
+| --- | --- | --- |
+| Rahmen ist kein Objekt; `cmd` unhashbar | `ok: false` „Malformed frame“, der Socket bleibt (N7) | `AttributeError`/`TypeError` beenden die Verbindung (Disconnect-Pfad: Jog-Stopp, Arm-Hold) |
+| `client_diag.data` mit den Schlüsseln `client_id`/`tag` | Diese Schlüssel werden umbenannt oder verworfen, protokolliert; der Socket bleibt | `TypeError` im Trace-Aufruf beendet die Verbindung |
+| `heartbeat.seq` | Jeder `heartbeat` zählt als Lebenszeichen; ein schlechtes `seq` wird `None` (bleibt). Der Rahmen kommt vom verbundenen Client, also ist die Lebendigkeit echt. | unverändert |
+| `hello.resume_armed` | Nur `true` setzt fort | `"false"` → Wieder-Bewaffnung, wenn ein Hold besteht → nur `true` |
+| `safety_trip_ack` | **Q363-2:** die Trip-ID verlangen und gegen den aktuellen Trip prüfen | quittiert heute den gerade aktuellen Trip ohne ID; ein spätes Quittieren des vorigen Banners kann einen neuen Trip ungesehen quittieren |
+| `tab_visibility.hidden`, `timing_log.enable`, `halshow_live.on` | Boolean; sonst abgelehnt, Zustand unverändert | `"false"` → verborgen; der Status an diesen Client stoppt |
+| `device_rename.name` | Zeichenkette; sonst abgelehnt | Nicht-Zeichenkette → Name gelöscht |
+
+### Teil 6 · Wächter
+
+1. **Tabellengetriebener Dispatch-Test** über den echten `handle_command`.
+   - Je Pflichtfeld drei Fälle: fehlend, `null`, falscher Typ (Boolean, Zeichenkette, gekürzte Ganzzahl).
+   - Jeder Fall wird abgelehnt mit **null aufgezeichneten Controller-Aufrufen**, `mode` eingeschlossen; dazu gehören auch MDI, `#`-Schreiben und HAL-Sendungen.
+   - Daneben je Feld ein gültiger Zwilling und, wo erlaubt, ein 0/`false`-Zwilling; beide kommen an.
+   - Die Tabelle ist **Daten** im Test und wird gegen `COMMAND_SCHEMA` gehalten: Jedes Pflichtfeld im Schema hat seine Zeile, jede Zeile ihr Schemafeld.
+2. **Stopp-Wächter (N5):** Fehlerhafte `jog_stop`, `jog_stop_multi`, ein ungültiges `via` an `estop`/`abort`/`cycle_pause`/`spindle_stop` und `arm` mit Nicht-`true` erreichen ihren Stopp (aufgezeichnet), nie eine Ablehnung.
+3. **Vollständigkeits-Scan im Gateway (AST):**
+   - Jedes Feld, das ein Handlerzweig aus `msg` liest (`msg.get`, `msg[…]`, `in msg`), steht im Schemaeintrag seines Befehls.
+   - Kein Pflichtfeld wird mit `msg.get(k, default)` gelesen.
+   - **Was der Scan nicht sieht, benenne ich:** `msg` an Helfer übergeben (`purpose_refusal(msg)`, `sets_refusal`, `touchoff_expect_check`, die RFL-Einfahrt). Diese Helfer stehen in einer geschlossenen Liste, die der Scan gegen jeden Aufruf mit `msg` als Argument hält; ein neuer Helfer macht ihn rot. Ebenso `msg` unter anderem Namen und `**msg`.
+   - Gegenfälle im Scan selbst: ein eingefügtes `msg.get("x", 0)` und ein neues ungeschemtes Feld machen ihn rot.
+4. **Reihenfolge (Teil 4):** vier Rot-vor-dem-Fix-Tests.
+5. **Reader (Teil 5):** Jeder schlechte Rahmen bekommt eine Antwort, und **derselbe Socket** beantwortet danach einen `heartbeat`.
+6. **Clientrichtung:**
+   - `commandShapes.test.ts` zieht mit: Pflichtfelder werden gesendet, `home.axis` statt `joint`.
+   - Die falsche Begründung in Zeile 84 („`jog_incr.distance` bounded by the handler against the axis window“) wird berichtigt; eine solche Prüfung gibt es nicht.
+   - Der Mock prüft keine Nutzlast und ändert sich nur, wo ein Spec die Ablehnung skriptet; das Inventar wird regeneriert und beansprucht.
+7. **Dokumente im selben Commit:** CLAUDE.md (Kurzform), `docs/architecture/safety-and-permissions.md` (vollständig), `docs/decisions.md`.
+
+### Bau und Merge
+
+- **Zweig:** `feat/payload-contract` von development `45727d61`.
+- **Zwei Commits:** der Vertrag (Teile 1–6 ohne `home`) und F-HOME.S2b (Drahtform, Zuordnung, Leiste, INI-Nachträge).
+- **Prüfungen:** Round-Gate, Gegenfälle, Live-Abnahme `twp_buttons_check.py` und ein Home-je-Achse-Lauf auf jedem ausgelieferten Profil.
+- **Parallel**, ohne Gateway-Änderung, auf eigenem Zweig:
+  - die TWP-Belegeinträge F-TWP.S3 / F-TOUCHOFF.S3b; vorher geprüft, dass die drei Prüfungen unter den neun des live-twp-Laufs an `45727d61` waren;
+  - die Reste von 3c (#28: vier `watch(lastReply)`-Abgleiche auf `awaitReply`; #31: Glob und Variablenformen im Wächter, `fire` in `useDialogState` verpflichtend);
+  - die drei nativen Fälle.
+- **Reviews und Merge:** Beide Teile bekomme ich als A/B in einer Implementierungsrunde vor dich. Gemergt wird über einen Integrationskopf.
+- **3b** (Replay → Antast-Live → Firefox) folgt nach dem Merge des Vertrags, weil die Datenmaps des Replays gegen das Schema gehalten werden.
+
+### Fragen
+
+- **Q363-1 · Obergrenze von `jog_incr.distance`:** Vorschlag: |distance| ≤ Verfahrweg der Achse (`MAX_LIMIT − MIN_LIMIT`), sonst abgelehnt. Vor dem Referenzieren schützen nur die Endschalter, und ein Schritt über den ganzen Weg ist kein Schritt. Alternative: nur endlich, und die Grenze wird als offen benannt.
+- **Q363-2 · `safety_trip_ack` mit Trip-ID:**
+  - Der Client kennt die ID (`status_msg.safety_trip.id`). Ein Ack ohne passende ID würde abgelehnt mit „Trip changed — acknowledge again“.
+  - Das ist die strengere Richtung eines Wiederherstellungsschritts, kein Stopp.
+  - Dafür ändert sich der Client: Der Worker-Rahmen bekommt die ID.
+- **Q363-3 · Weitester Jog-Stopp:** Ist er gatewayweit, also jeder gebuchte Jog, auch der eines anderen Clients, oder nur die Jogs dieses Clients? Ich schlage gatewayweit vor: Jeder Client darf jederzeit E-Stop drücken, also ist ein breiterer Jog-Stopp kein neues Recht. `_jog_stop_for_client` macht es heute schon so.
+
+**Erbeten:** `agreement` oder `findings` zur Tabelle, den Regeln N1–N8, den Wächtern und Q363-1 bis Q363-3.
