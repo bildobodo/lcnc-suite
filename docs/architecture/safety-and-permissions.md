@@ -625,11 +625,14 @@ named exception, an older page's `mdi` with `vars` included (R336).
   wait; a confirmation counts only while the pinned Link is still the
   published one (`_own_link_current`): the toolsetter values done by an
   MDI chunk are booked "applied" — else "unknown" (the next start writes
-  them again) — and a #3116=0 vouches the skip flag only so (else it stays
-  unknown and the next start clears it first). The table is in the review
-  (R361). The session caches read through a Link (INI config, payload
-  bounds, kins declaration, kins-mode commands, the homing / jog switches,
-  the parameter file's path) belong to it (Codex R360 VM-I08): every publish,
+  them again) —, a #3116=0 vouches the skip flag only so (else it stays
+  unknown and the next start clears it first), the G30 reads confirm only so
+  (`_g30_synch_read` — read_g30, set_g30's second read, capture_g30), and a
+  program open's own status settles the load only so (else the window and
+  the observation decide). The table is in the review (R361). The session
+  caches read through a Link (INI config, payload bounds, kins declaration,
+  kins-mode commands, the homing / jog switches, the viewer init, the
+  parameter file's path) belong to it (Codex R360 VM-I08): every publish,
   revoke and the instance end clears them in the same step, under
   `_link_lock` (`_clear_session_caches`), and a filler stores only through
   `_owned_store` — while the Link it read through is the published one,

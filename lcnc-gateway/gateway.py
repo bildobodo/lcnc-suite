@@ -577,7 +577,7 @@ def _revoke_link(reason: str) -> None:
 def _clear_session_caches() -> None:
     """The session caches read through a Link (INI config, payload bounds,
     kins declaration, kins-mode commands, the homing / jog switches, the
-    parameter file's path)
+    viewer init, the parameter file's path)
     belong to it: cleared in the SAME step as every Link change — the caller
     holds _link_lock — and filled only through _owned_store (Codex R360
     VM-I08: an old reader published its result into the new Link's caches).
@@ -586,6 +586,7 @@ def _clear_session_caches() -> None:
     global _coord_without_homing_cache, _spindle_before_homing_cache, _joint_jog_cache
     _nc_files_dir = None
     _kins_mode_cmd_cache = None
+    _viewer_init_cache.clear()
     _ini_config = None
     _machine_limits = None
     _kins_decl_cache = None
@@ -5277,11 +5278,12 @@ async def _ts_read_back(file: str) -> None:
                         return
                     link()     # the owner, admitted again for the booking (no await between)
                     _ts_book({int(k): v for k, v in vals.items()}, "read")
-    except (NotConnected, PermissionError) as e:
-        # no connection, or its Link changed: the mode check (set_mode) or
-        # the synch's own write refused (_WriteRefused) — nothing synched
-        # and nothing booked; due again on the next idle poll (the latch
-        # that keeps it to once per version and program is released)
+    except (NotConnected, _WriteRefused) as e:
+        # no connection, or its Link changed: the synch's own write refused
+        # (_WriteRefused) — nothing synched and nothing booked; due again on
+        # the next idle poll (the latch that keeps it to once per version and
+        # program is released). Only for THESE: a file PermissionError is the
+        # file's (below) and keeps the latch (Fable's check of f4ba0f31).
         _ts_readback_tried = None
         _trace.emit("toolsetter.read_back_failed", level="warn", why="link", exc=type(e).__name__, msg=str(e))
         return
@@ -6687,9 +6689,11 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
         if rc == getattr(linuxcnc, "RCS_ERROR", 3):
             _status_runtime.program.confirm_open(False)
             return {"ok": False, "error": "LinuxCNC did not open the program"}
-        if not _cmd_rc_failed(rc):
+        if not _cmd_rc_failed(rc) and _own_link_current():
             _status_runtime.program.confirm_open(True)
-        # else no answer in time: the window and the observation decide
+        # else no answer in time — or the answer came through a Link replaced
+        # meanwhile (no confirmation for this one, Fable's check of f4ba0f31):
+        # the window and the observation decide
         return {"ok": True, "path": abs_path}
 
     if cmd == "unload_file":
@@ -8484,7 +8488,10 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     once and then hits cache; cache invalidates automatically if the
     operator edits the INI, swaps a machine STL, or changes max_velocity
     via the UI."""
-    # Cache lookup. Misses fall through to the existing build below.
+    # Cache lookup. Misses fall through to the existing build below. The
+    # entries are read through a Link (axis mask, limits, the INI): owner-
+    # bound like every session cache (Fable's check of f4ba0f31, VM-I08).
+    vi_owner = current_link()
     cfg = get_machine_cfg()
     _cache_key = _viewer_init_cache_key(stl_base_url, cfg, _machine_cfg_mtime or 0.0)
     _cached = _viewer_init_cache.get(_cache_key)
@@ -8620,12 +8627,15 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         total_ms=round(_bvi_total, 1),
         steps={k: round(v, 1) for k, v in _bvi_steps.items()},
     )
-    # Store under the same key we looked up with at the top.
-    _viewer_init_cache[_cache_key] = out
-    # Bounded cache — if a fleet of clients with distinct host headers
-    # connects, evict oldest (insertion-order) so we don't grow forever.
-    if len(_viewer_init_cache) > 16:
-        _viewer_init_cache.pop(next(iter(_viewer_init_cache)))
+    # Store under the same key we looked up with at the top — only while
+    # the Link it was read through is the published one.
+    def put() -> None:
+        _viewer_init_cache[_cache_key] = out
+        # Bounded cache — if a fleet of clients with distinct host headers
+        # connects, evict oldest (insertion-order) so we don't grow forever.
+        if len(_viewer_init_cache) > 16:
+            _viewer_init_cache.pop(next(iter(_viewer_init_cache)))
+    _owned_store("viewer_init", vi_owner, put)
     return out
 
 
@@ -10544,6 +10554,11 @@ async def _g30_synch_read(path: str, keys: List[str]) -> Dict[str, float]:
         raise _G30Unconfirmed("G30 not confirmed — parameters not saved")
     if any(v is None for v in values.values()):
         raise _G30Unconfirmed("G30 not confirmed — values missing in the file")
+    if not _own_link_current():
+        # synched and read through a Link replaced meanwhile: no
+        # confirmation for this one (Fable's check of f4ba0f31 — the read-
+        # back's shape; read_g30 / set_g30 / capture_g30 confirm from here)
+        raise _G30Unconfirmed("G30 not confirmed — the connection changed, read again")
     return values
 
 

@@ -1129,6 +1129,56 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertIsNone(rt.program.unconfirmed)
             self.assertEqual(read_load_record(path, (10, 20)), (a,))
 
+    def test_an_open_done_on_a_replaced_link_proves_nothing(self):
+        # Fable's check of f4ba0f31 (the VM-I06 class): the open's own
+        # status confirms it — but not through a Link replaced during its
+        # wait; STAT.file already named A, so nothing else proves this open
+        import tempfile
+        import time
+        import unittest.mock
+        from link_fixture import FakeConnection, swap_connection
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, _path = self._record_runtime(tmp, a)
+            current().stat.file = a
+            cmd = self._rcs()
+            stat = current().stat
+            inner, swapped = cmd.program_open, []
+
+            def program_open(p):
+                inner(p)
+                swapped.append(1)
+                swap_connection(FakeConnection(stat=stat))      # replaced while the open is waited for
+            cmd.program_open = program_open
+            gateway._cmd_lock = None
+            with unittest.mock.patch.object(gateway, "_status_runtime", rt), \
+                    unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=tmp):
+                r = self._send({"cmd": "load_file", "path": a})
+            gateway._cmd_lock = None
+            self.assertEqual(r, {"ok": True, "path": a})        # the open went out
+            self.assertEqual(swapped, [1])
+            rt.program_tick(a, True, time.monotonic() + 0.1)
+            self.assertTrue(rt.program.change_pending,
+                            "an open answered through a replaced Link settled the reload")
+            self.assertIsNone(rt.program_tick(a, True, time.monotonic() + 6.0))   # the window ran out
+            self.assertEqual(rt.program.unconfirmed, a)
+
+    def test_an_open_done_on_its_own_link_settles_the_reload(self):
+        # the control: the same reload confirmed by its own Link's status
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, _path = self._record_runtime(tmp, a)
+            current().stat.file = a
+            r, _cmd = self._load_with_rc(tmp, rt, a, rc=1)
+            self.assertEqual(r, {"ok": True, "path": a})
+            rt.program_tick(a, True, time.monotonic() + 0.1)
+            self.assertFalse(rt.program.change_pending)
+            self.assertEqual(rt.program_tick(a, True, time.monotonic() + 6.0), a)
+
     def test_a_tick_while_the_reload_is_sent_settles_nothing(self):
         # The status loop ticks while program_open is in NML: STAT.file
         # already named A before the request — no proof of this open.

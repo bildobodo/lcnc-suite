@@ -736,8 +736,9 @@ class _Synch:
     """The interpreter at a synch: writes the parameter file afresh (a new
     inode) with `value`; its wait runs `on_wait` once."""
 
-    def __init__(self, path, value, events):
+    def __init__(self, path, value, events, keys=None):
         self.path, self.value, self.events, self.serial = path, value, events, 40
+        self.keys = list(keys) if keys is not None else list(gateway.TOOLSETTER_BASIS_KEYS)
         self.on_wait = None
 
     def task_plan_synch(self):
@@ -746,7 +747,7 @@ class _Synch:
         self.events.append(("task_plan_synch", self.serial))
         tmp = self.path + ".new"
         with open(tmp, "w") as f:
-            f.write("".join(f"{k}\t{self.value:.6f}\n" for k in gateway.TOOLSETTER_BASIS_KEYS))
+            f.write("".join(f"{k}\t{self.value:.6f}\n" for k in self.keys))
         os.replace(tmp, self.path)
 
     def wait_complete(self, timeout=5.0, /):
@@ -794,6 +795,22 @@ class CompletionsKeepTheirLink(unittest.TestCase):
         self.assertEqual(len(self.events), 1)            # the synch went out, on its Link
         self.assertEqual(self.booked, [], "a completion of a replaced Link was booked")
         self.assertIsNone(gateway._ts_readback_tried, "not tried again on the new Link")
+
+    def test_a_file_permission_error_is_the_files_and_keeps_the_latch(self):
+        # Fable's check of f4ba0f31: `except PermissionError` took a real file
+        # refusal for a Link refusal and released the latch (due on every poll)
+        self.addCleanup(setattr, gateway, "_ts_readback_tried", gateway._ts_readback_tried)
+        gateway._ts_readback_tried = (1, "prog.ngc")
+        traced = []
+
+        def denied(*a, **k):
+            raise PermissionError(13, "Permission denied", self.var)
+        with mock.patch.object(gateway, "read_var_snapshot", denied), \
+                mock.patch.object(gateway._trace, "emit", lambda name, **kw: traced.append((name, kw))):
+            asyncio.run(gateway._ts_read_back("prog.ngc"))
+        whys = [kw.get("why") for n, kw in traced if n == "toolsetter.read_back_failed"]
+        self.assertEqual(whys, ["file"])
+        self.assertEqual(gateway._ts_readback_tried, (1, "prog.ngc"), "a file refusal released the latch")
 
     def test_a_link_replaced_at_the_last_file_read_books_nothing(self):
         real = gateway.read_var_snapshot
@@ -844,6 +861,88 @@ class TheSkipFlagClearOnAReplacedLink(unittest.TestCase):
     def test_cleared_on_a_replaced_link_the_flag_stays_unknown(self):
         self.run_clear(replace=True)
         self.assertTrue(gateway._skip_flag_unknown, "a replaced Link's #3116=0 vouched the flag")
+
+
+class TheG30ConfirmedReadKeepsItsLink(unittest.TestCase):
+    """read_g30 / set_g30 / capture_g30 confirm from _g30_synch_read — the
+    read-back's shape (synch, wait, file read): a confirmation through a
+    Link replaced meanwhile is none (Fable's check of f4ba0f31)."""
+
+    KEYS = ["5181", "5182", "5183"]
+
+    def setUp(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.var = f"{tmp.name}/m.var"
+        with open(self.var, "w") as f:
+            f.write("".join(f"{k}\t1.000000\n" for k in self.KEYS))
+        self.events = []
+        for name in ("_cmd_lock", "_var_file_lock"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway._cmd_lock = gateway._var_file_lock = None
+        self.cmd = _Synch(self.var, 2.0, self.events, keys=self.KEYS)
+        connect_fake(self, stat=_ModeStat(linuxcnc.MODE_MDI), cmd=self.cmd)
+
+    def read(self):
+        async def go():
+            with gateway._pinned_link():
+                return await gateway._g30_synch_read(self.var, self.KEYS)
+        return asyncio.run(go())
+
+    def replaced(self):
+        swap_connection(FakeConnection(stat=_ModeStat(linuxcnc.MODE_MDI)))
+
+    def test_unchanged_the_synched_values_are_confirmed(self):
+        self.assertEqual(set(self.read().values()), {2.0})
+
+    def test_a_link_replaced_in_the_synchs_wait_confirms_nothing(self):
+        self.cmd.on_wait = self.replaced
+        with self.assertRaises(gateway._G30Unconfirmed):
+            self.read()
+
+    def test_a_link_replaced_at_the_last_file_read_confirms_nothing(self):
+        real, reads = gateway.read_var_snapshot, []
+
+        def second_read_replaces(*a, **k):
+            out = real(*a, **k)
+            reads.append(1)
+            if len(reads) == 2:
+                self.replaced()
+            return out
+        with mock.patch.object(gateway, "read_var_snapshot", second_read_replaces):
+            with self.assertRaises(gateway._G30Unconfirmed):
+                self.read()
+
+
+class TheViewerInitCacheIsTheLinks(unittest.TestCase):
+    """build_viewer_init reads the status (axis mask, limits) and the INI:
+    its cache entries belong to the Link read through (VM-I08)."""
+
+    def setUp(self):
+        saved = dict(gateway._viewer_init_cache)
+        self.addCleanup(lambda: (gateway._viewer_init_cache.clear(), gateway._viewer_init_cache.update(saved)))
+        gateway._viewer_init_cache.clear()
+
+    def test_an_old_build_never_publishes_for_the_new_link(self):
+        connect_fake(self)
+        real_cfg = gateway.get_machine_cfg
+
+        def cfg_then_reconnect():
+            out = real_cfg()
+            gateway._publish_link(linuxcnc.stat(), linuxcnc.command(), linuxcnc.error_channel(), None)
+            return out
+        with mock.patch.object(gateway, "get_machine_cfg", cfg_then_reconnect):
+            mine = gateway.build_viewer_init("/assets/")
+        self.assertIsInstance(mine, dict)                  # its own answer
+        self.assertEqual(gateway._viewer_init_cache, {}, "an old build published for the new Link")
+
+    def test_a_link_change_clears_it_and_a_current_build_stores(self):
+        connect_fake(self)
+        gateway.build_viewer_init("/assets/")
+        self.assertEqual(len(gateway._viewer_init_cache), 1)
+        gateway._publish_link(linuxcnc.stat(), linuxcnc.command(), linuxcnc.error_channel(), None)
+        self.assertEqual(gateway._viewer_init_cache, {}, "a Link change left the old Link's entries")
 
 
 class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
