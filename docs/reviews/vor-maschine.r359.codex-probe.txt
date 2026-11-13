@@ -1,0 +1,322 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+[SAFETY] bound LinuxCNC instance pid=111 ended (review: terminal event after identity snapshot) — this gateway will not re-bind; shutting down
+[VINIT] try_connect_lcnc OK, pid=111
+{
+  "target": "999a8ca9",
+  "mode_refused_without_swap": {
+    "ok": false,
+    "exception": "ValueError",
+    "error": "LinuxCNC kept MANUAL (asked for MDI)",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "old_mode": 1,
+    "new_mode": 3,
+    "published": "old"
+  },
+  "mode_refused_old_but_new_mode_matches": {
+    "ok": true,
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "old_mode": 1,
+    "new_mode": 3,
+    "published": "new"
+  },
+  "mode_success_without_swap": {
+    "ok": true,
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ]
+    ],
+    "old_mode": 3,
+    "new_mode": 3,
+    "published": "old"
+  },
+  "mdi_without_swap": {
+    "reply": {
+      "ok": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "G4 P0",
+        42
+      ]
+    ],
+    "published": "old"
+  },
+  "mdi_swap_during_mode_wait": {
+    "reply": {
+      "ok": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "new",
+        "G4 P0",
+        81
+      ]
+    ],
+    "published": "new"
+  },
+  "two_write_without_swap": {
+    "reply": {
+      "ok": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "T7 M6",
+        41
+      ],
+      [
+        "mdi",
+        "old",
+        "G43 H7",
+        42
+      ]
+    ],
+    "published": "old"
+  },
+  "two_write_swap_after_first": {
+    "reply": {
+      "ok": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "T7 M6",
+        41
+      ],
+      [
+        "mdi",
+        "new",
+        "G43 H7",
+        81
+      ]
+    ],
+    "published": "new"
+  },
+  "admission_swaps": {
+    "ok": false,
+    "exception": "_WriteRefused",
+    "error": "Connection to LinuxCNC changed \u2014 try again",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "claim": {
+      "state": "unsent",
+      "serial": null,
+      "sent_t": null
+    }
+  },
+  "admission_swaps_then_raises": {
+    "ok": false,
+    "exception": "RuntimeError",
+    "error": "admit failed",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "claim": {
+      "state": "unsent",
+      "serial": null,
+      "sent_t": null
+    }
+  },
+  "failed_nml_precheck": {
+    "connect_return": false,
+    "old_still_current": true,
+    "write_result": 0,
+    "events": [
+      [
+        "abort",
+        "old",
+        41
+      ]
+    ]
+  },
+  "terminal_event_during_connect": {
+    "connect_return": true,
+    "instance_ended": true,
+    "published": true,
+    "shutdown_requests": [
+      "linuxcnc instance ended"
+    ],
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ]
+  }
+}
+[GC] +136ms gen=2 duration=23.3ms collected=537 uncollectable=0

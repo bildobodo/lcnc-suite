@@ -1,0 +1,19 @@
+{
+  "base": "90047025",
+  "head": "999a8ca9",
+  "old_blocks": 67,
+  "new_blocks": 67,
+  "changed_blocks": [
+    "go_to_zero",
+    "save_tool",
+    "add_tool",
+    "delete_tool",
+    "renumber_tool",
+    "auto_run",
+    "set_params",
+    "confirm_tool_change",
+    "clear_wcs"
+  ],
+  "removed_blocks": [],
+  "added_blocks": []
+}

@@ -1,0 +1,232 @@
+{
+  "base": "13affe2b",
+  "head": "999a8ca94b350f353b556d3eb69865b016493bb7",
+  "copy": "/tmp/codex-r359",
+  "product_and_tests_restored": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "a58eb1a0d32cd084f196e8a7a116357220a7c3375007a9f836403ff09e3245b1",
+      "matches_target": true
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "8ac363f86899ac56622dd6c445e4204eedf652121f32d81ec85de1480bdcd0a3",
+      "matches_target": true
+    },
+    {
+      "path": "docs/architecture/safety-and-permissions.md",
+      "sha256": "8d3ef1df3dc71ff5ca60702898c6b101f3f67cd7e3280c8aecec72a9e4211dd8",
+      "matches_target": true
+    },
+    {
+      "path": "docs/testing.md",
+      "sha256": "bc156f90717acbd2bb51e50884979832e1e22de11e88ed7dc79f3d6a19c18352",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "fa4ff21429e0ed5423e56d93c3af4999f502ae8c71c75fb741363d084bc1da69",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/hal_bridge.py",
+      "sha256": "7ae90b1fcf459743e3b1aa68e1f8486b642310a98aa5369a17f5cbf0aec3fec0",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/link_fixture.py",
+      "sha256": "783b60b6fcc9cdc625b016cf31cae50fb95a1b37c60ab1c4f1b89bf802147866",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/session_bind.py",
+      "sha256": "10402e3fb6398cc48bee61523a6ddc89767fd5e14fa0b5864c6c76e1dbff034f",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_button_gates.py",
+      "sha256": "1ec3d667235ed12935d2c039f8216eb0d165e79549d0e1ff3e55e3ae0dc67d9b",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_button_gates_b.py",
+      "sha256": "ac26c7f8f3581e6a0232d481a869192e9dcd0eb5059dc5c461013794e3b3d173",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_button_gates_b_commit.py",
+      "sha256": "87d8c6562371fea4edb8b9ef6aa0fad17b3e3f52da94e5c00ea4ce50bda6ca49",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_button_gates_d.py",
+      "sha256": "77d233906675f5c73629cc9c0ca5e8918b3b1961630f177471342c9f3110f012",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_button_gates_e.py",
+      "sha256": "a2222b0a0a29bee0c84b9be324e354e6e215de4073ede0a7c1dba431b53c2b04",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_button_gates_r208.py",
+      "sha256": "04eb3f2e18bb4bc758c8a3700c07f4c0dbe43fa9d1d64503bf42626db75e9cf8",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_command_dispatch.py",
+      "sha256": "deef1c115153ba1fa778989b861655024aeeb1e891bca7b98ac667693f5635a8",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_command_policy.py",
+      "sha256": "6952231985374830852e17dbb8d54f7353b3b656677e59dbd80d2c37cb337c42",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_feature_switches.py",
+      "sha256": "dfa103fda36bac531cd678e2b6f9b669e6cf56aa5d60b5f7e5afe7f68d889963",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_g30.py",
+      "sha256": "1bae928e89923720643bc03cc8834e74cbc7b72c1638e9f84ad11a0fff485269",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_hb_budget.py",
+      "sha256": "f6a8f13d42ab0cdfe405e099baa4451f94e6ded39ec2267c0467e073cf1b866f",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_link_ownership.py",
+      "sha256": "64be11f874acbaa2830d8a01d71a1dde40755d01ba63845bc9b38678562446aa",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_macros_gateway.py",
+      "sha256": "b59eb07f1e89e65712eb6f0ec3f1fc71a942364acc9e2a2a0c830e58cbd80813",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_preview_poll_chain.py",
+      "sha256": "7b9f30a5d15211df937ccb01fbc2d201a813bad575b2fa7aa29cec67ff30469e",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_program_reload_unload.py",
+      "sha256": "600df606f0adaa19877f324a893690089a334d1d33fc26c028552cc8aa97ecbb",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_rfl_guard.py",
+      "sha256": "b1ab5e1252daaf5e8011f51ad25e8cd0ed90b2254ed884053ac9391c13931b41",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_session_policy.py",
+      "sha256": "bdd7d0fdf2139418d8dda74fe56d0d8e3116be4bc949513f341c7eda22c69d28",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_tool_edit_contract.py",
+      "sha256": "0f2d2dbdee6a07039281c87487f8ddc5a881c082f81a643f3bdb904b50650e52",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_toolsetter_basis.py",
+      "sha256": "02fe2fc90e7e922186a01360c73a1054c6bb0c07cfc83d1b46b010e40979859c",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_toolsetter_sync.py",
+      "sha256": "75ec0529dc5d2cafff03f32ece3042c82de3dbd43c01e81754df6d76238150f1",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_trip_trace.py",
+      "sha256": "ea20f62850625de825095999e2f1c01f876700fd9867d89a20da893249726233",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_upload_conflict.py",
+      "sha256": "f15db151e21410964647134be73273fe1bb27ca0f43c42d701a682d973290bd3",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_var_file_cache.py",
+      "sha256": "fc318f29198bccef3a7b898466d0d6b745a917d79e7609c82afdd4553d40a8fc",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_ws_command_worker.py",
+      "sha256": "e1f2852b9b46f2f6ea1849a65acb66d3479d98f3b1bcb129d888336185b5b0cb",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_ws_lifecycle.py",
+      "sha256": "07c5c59b6841269c018fe2837722b34cebb2e7a36020af7af805ba74a642af85",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/writer_fixture.py",
+      "sha256": "1073641b1abaeec288878fb29a2c452247c3de201d244e5e43250b1cb8b99953",
+      "matches_target": true
+    },
+    {
+      "path": "pyrightconfig.json",
+      "sha256": "f71efc045e59e236d3527f4af26d0f83fabc0b28483f38c34926556f034fd1fb",
+      "matches_target": true
+    },
+    {
+      "path": "scripts/install_probe.py",
+      "sha256": "1edb963e20dc343c0b3f3c38a77ef18d4d1c6b661d58a579486835abfc6f2734",
+      "matches_target": true
+    },
+    {
+      "path": "typings/BOUNDARY.md",
+      "sha256": "2d27564152d7a5ffbe6139511a0fb5a31aac7ea9c4341ac0157d9f8ca3e5f65c",
+      "matches_target": true
+    }
+  ],
+  "python": "Python 3.13.5",
+  "own_runs": {
+    "targeted_tests": {
+      "passed": 266,
+      "skipped": 0,
+      "warnings": [
+        "PytestAssertRewriteWarning: anyio imported before pytest for safe fake binding setup"
+      ]
+    },
+    "type_gate": {
+      "files": 44,
+      "errors": 0,
+      "warnings": 0
+    },
+    "type_mutations": {
+      "count": 3,
+      "errors": 3,
+      "restored_errors": 0
+    },
+    "runtime_probe": {
+      "cases": 11,
+      "method": "Deterministic fake channel switches in actual gateway helper/group bodies; not a live-race frequency measurement"
+    }
+  },
+  "boundaries": {
+    "live_ports_used": false,
+    "live_machine_commands": false,
+    "native_bindings_connected": false,
+    "tests_in_live_tree": false,
+    "full_gate_repeated": false
+  },
+  "commands": {
+    "tests": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 timeout 150s /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r359/probes/run_tests.py -v -p no:cacheprovider test_link_ownership.py test_command_dispatch.py test_button_gates_d.py test_button_gates_e.py test_session_policy.py test_ws_command_worker.py test_ws_lifecycle.py --junitxml=/tmp/codex-r359/probes/tests.xml (cwd: /tmp/codex-r359/lcnc-gateway)",
+    "runtime": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r359/probes/probe.py",
+    "types": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r359/probes/type_probe.py"
+  },
+  "notes": [
+    "An initial sandboxed test run was interrupted after its async/TestClient work stalled; the isolated fake-binding rerun outside the sandbox completed. This is not counted as a product failure.",
+    "The submitted gate and live reports were read, not independently rerun on the live simulator."
+  ]
+}

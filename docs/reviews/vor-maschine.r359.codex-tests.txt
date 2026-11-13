@@ -1,0 +1,33 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: /tmp/codex-r359/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 266 items
+
+test_link_ownership.py ............                                      [  4%]
+test_command_dispatch.py ............................................... [ 22%]
+........................................................................ [ 49%]
+.                                                                        [ 49%]
+test_button_gates_d.py ................................................. [ 68%]
+...............                                                          [ 73%]
+test_button_gates_e.py .........................................         [ 89%]
+test_session_policy.py ..........                                        [ 92%]
+test_ws_command_worker.py ................                               [ 98%]
+test_ws_lifecycle.py ...                                                 [100%]
+
+=============================== warnings summary ===============================
+../../../home/cnc/lcnc-suite-link/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py:1309
+  /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py:1309: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio
+    self._mark_plugins_for_rewrite(hook, disable_autoload)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+------------- generated xml file: /tmp/codex-r359/probes/tests.xml -------------
+======================= 266 passed, 1 warning in 23.00s ========================
+[GC] +23115ms gen=2 duration=11.7ms collected=2851 uncollectable=0
+[GC] +23124ms gen=2 duration=8.9ms collected=0 uncollectable=0
+[GC] +23132ms gen=2 duration=8.0ms collected=0 uncollectable=0
+[GC] +23141ms gen=2 duration=8.3ms collected=0 uncollectable=0
+[GC] +23148ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +23157ms gen=2 duration=8.1ms collected=91 uncollectable=0

@@ -1287,3 +1287,54 @@ Die LAN-Rückgabe ist jeweils vollständig.
 **Nebenbefund am Werkzeug:** Ohne laufende LAN-Sim scheitert `native_run.py` mit einem `TypeError` statt mit einer Verweigerung. Das ist notiert, nicht Teil von 2b.
 
 **Backend:** 2009 bestanden (am Stand `90047025`) bzw. vollständig grün am Endkopf; Skripttests 707 grün.
+
+---
+
+## Codex · Implementierungsreview Paket 2b · R359 · 13. November 2026
+
+**Urteil: findings.** Prüfstand `13affe2b..999a8ca9`, eigene Archivkopie `/tmp/codex-r359`. Der einzelne `_cmd_blocking`-Auftrag hält Schreiben, Seriennummer und Warten an seinem Link; die Typformen erreichen jetzt die Gateway-Aufrufstellen. **Der Besitzervertrag ist aber noch nicht durchgehend erfüllt:** Die Modusbestätigung liest einen anderen Link, mehrteilige Befehle können ihren Besitzer wechseln, und der Verbindungsaufbau kann einen fehlgeschlagenen beziehungsweise terminal beendeten Zustand wieder als verbunden darstellen. **VM-I05 bis VM-I07 bleiben vor Agreement zu schließen.** Keine Operator-Frage.
+
+### VM-I05 · Die Bestätigung einer Modusumschaltung liest den global aktuellen statt des eigenen Status
+
+**Stelle:** `lcnc-gateway/gateway.py:3744–3804`, besonders `3779–3788`, am Prüfstand.
+
+`set_mode` pollt `c.stat`, liest `task_mode` aber über `safe_get`, dessen Statusquelle der jeweils veröffentlichte Link ist. Das gilt sowohl vor der Umschaltung als auch nach dem Warten. Der lokale Poll und der ausgewertete Status können damit zu verschiedenen Kanalsätzen gehören.
+
+**Deterministische Gegenprobe:** Der alte Kanal bleibt trotz `mode(MDI)` in MANUAL und liefert `RCS_DONE` — genau der im Helfer bereits behandelte Fall einer ignorierten Umschaltung. Ohne Linkwechsel verweigert der echte Helfer korrekt mit „LinuxCNC kept MANUAL“. Wird während desselben Wartens ein neuer Link mit Status MDI veröffentlicht, pollt der Helfer anschließend weiterhin **alt/MANUAL**, liest aber **neu/MDI** und kehrt erfolgreich zurück. Das neue Ergebnis bestätigt also die nicht erfolgte alte Umschaltung. [Sonde](vor-maschine.r359.codex-probe.py), Fälle `mode_refused_without_swap` und `mode_refused_old_but_new_mode_matches` in den [Ergebnissen](vor-maschine.r359.codex-probe.json).
+
+**Korrektur:** Statusauswertung und Diagnose an `c.stat` binden. Einen inzwischen entzogenen Besitzer ausdrücklich behandeln, bevor Erfolg beziehungsweise der Weg „Modus schon erreicht“ bestätigt wird oder aktuelle Jog-Buchungen gelöscht werden. Eine Fertigmeldung des alten Links darf weder den neuen Status bestätigen noch dessen Buchungen verändern. Gegenfälle für Wechsel vor dem frühen Rücksprung und während des Wartens; der unveränderte Erfolgsfall und die echte Ablehnung bleiben erhalten.
+
+### VM-I06 · Ein mehrteiliger Bedienbefehl bindet seine Folgeschritte neu
+
+**Stellen:** `gateway.py:5601–5602` (`mdi`), `5940–5948` (`tool_change`); zum Vergleich der bereits gebundene Ablauf `_manual_command` bei `8049–8072`.
+
+Die beiden Identitätsprüfungen innerhalb `_cmd_blocking` helfen nicht, wenn der Aufrufer für jeden Folgebefehl erneut `link()` übergibt. Der neue Link ist dann aus Sicht des Helfers ein gültiger neuer Besitzer, obwohl Zulassung und Vorbereitung zum schon laufenden Bedienbefehl gehören.
+
+Zwei eigene Gegenfälle am tatsächlichen Gruppen- und Schreibcode:
+
+- **MDI:** Modusumschaltung und Warten gehen an alt, der Link wird beim Warten ersetzt, der nachfolgende MDI-Text geht an neu; Antwort `ok: true`.
+- **Werkzeugwechsel ohne jede Modusumschaltung:** Beide Statusobjekte melden von Anfang an MDI. `T7 M6` wird auf alt, Serial 41, geschrieben. Nach Veröffentlichung des Ersatzlinks geht **`G43 H7` auf neu, Serial 81**; Antwort ebenfalls `ok: true`. Ohne Wechsel gehen beide Blöcke an alt, Serial 41/42. Dieser Fall bleibt auch nach einer Reparatur ausschließlich von `set_mode` offen.
+
+Die Sonde isoliert Start-/Toolsetter-Vorbereitung, verwendet aber die echten beiden Blöcke von `tool_change`, den echten Helfer und echte Executor-Aufträge auf Fake-Kanälen. Sie erfindet keinen zusätzlichen Produktablauf. [Ergebnisse](vor-maschine.r359.codex-probe.json): `mdi_swap_during_mode_wait`, `two_write_swap_after_first` samt Kontrollen.
+
+**Korrektur:** Den Besitzer eines zusammengehörigen Bedienbefehls festhalten und durch Vorbereitung, eigene Modusumschaltung sowie abhängige Schreibschritte reichen, wie bereits bei `_manual_command`. Bei einem Wechsel den noch nicht gesendeten Rest verweigern; bereits gesendete Schritte bleiben als solche gebucht. Die übrigen mehrteiligen Start-/MDI-/Offset-Abläufe auf denselben Übergang prüfen. Die besonderen Stopp-Verträge bleiben erhalten. Als Wächter mindestens Modus→MDI **und** M6→G43, damit nicht nur der erste Übergang abgesichert ist.
+
+### VM-I07 · Fehlgeschlagener Aufbau und terminales Instanzende sind nicht bis zur Veröffentlichung verbindlich
+
+**Stellen:** `gateway.py:2449–2464`, `2467–2533`, `_publish_link` bei `499–508`.
+
+**A — Vorprüfung fehlgeschlagen, alter Link bleibt zugelassen.** Liefert `_nml_connectable()` `False`, verlässt `try_connect_lcnc` die Funktion vor dem Fehler-/Entzugspfad. Meine Sonde installiert einen alten Link, lässt nur diesen Vortest scheitern und erhält `False`; trotzdem bleibt der alte Link aktuell. Ein anschließender echter `_cmd_blocking`-Auftrag auf ihm schreibt erfolgreich. Damit stimmt die Aussage „Ein Fehlschlag … entzieht den alten Link“ für diesen Eintritt nicht. Der Poller kann den Aufbau auch bei noch veröffentlichtem Link nach seiner Instanzprüfung aufrufen (`1648–1654`).
+
+**B — Ein laufender Aufbau veröffentlicht nach terminalem Ende erneut.** `_instance_ended` wird nur am Anfang geprüft. Die Gegenprobe lässt den Connect seine Instanzidentität aufnehmen und löst vor der Veröffentlichung das echte `_on_instance_ended` aus; nur HAL-Trennung und Prozesssignal sind durch harmlose Protokollfunktionen ersetzt. Der Endpfad setzt das Flag, entzieht den Link und fordert Shutdown an. Danach veröffentlicht der noch laufende Aufbau trotzdem: **`connect_return: true`, `instance_ended: true`, `published: true`**. Das ist eine deterministische Nachstellung der Reihenfolge, keine Behauptung eines beobachteten Live-Rennens. [Sonde und Ergebnisse](vor-maschine.r359.codex-probe.json): `failed_nml_precheck`, `terminal_event_during_connect`.
+
+**Korrektur:** Auch den erfolglosen Vortest in den vereinbarten Entzugsvertrag aufnehmen. Terminalen Entzug und abschließende Veröffentlichung so synchronisieren, dass ein vorher gestarteter Aufbau nach dem Ende nicht mehr publizieren kann. Ein weiterer ungeschützter `if _instance_ended` vor dem Tausch allein schließt die Lücke nicht. Parallele Aufbauversuche müssen eine eindeutige Abschlussregel haben; ein verspäteter Erfolg oder Fehler darf nicht den Zustand eines neueren Versuchs übernehmen beziehungsweise entziehen. Die kurzen Referenz-Sperren beibehalten, keine Sperre über NML-Aufrufe oder Wartezeiten. Wächter für beide belegten Fälle und die Reihenfolge konkurrierender Abschlüsse.
+
+### Bestätigte Teile und Prüfgrenzen
+
+- **Einzelner Schreibauftrag:** Wechsel innerhalb einer Zulassung wird nach der Zulassung verweigert, ohne Schreiben und mit `claim.state = unsent`. Wirft die Zulassung nach dem Wechsel selbst, bleibt ebenfalls nichts gesendet. Die vorhandenen Wächter für altes Warten, richtige Seriennummer, wiederholten Cancel und erreichbare Stopps sind in meinem Lauf grün. Das Grundmodell `Link + CmdOp` ist passend; die Befunde betreffen seine Einbindung und den Lebenszyklus.
+- **Eigene Bestandstests:** **266 bestanden**, keine übersprungen: Link-Besitz, Dispatch, Button-Gates D/E, Instanzbindung sowie WS-Auftrags-/Disconnect-Pfade. Eine `PytestAssertRewriteWarning` für das zur sicheren Fake-Einrichtung bereits importierte `anyio`, kein Testfehler. [Ausgabe](vor-maschine.r359.codex-tests.txt), [JUnit](vor-maschine.r359.codex-tests.xml), [Läufer](vor-maschine.r359.codex-run-tests.py).
+- **Typ-Gate:** **44 Dateien, 0 Fehler, 0 Warnungen**, einschließlich `gateway.py`. Meine drei Mutationen direkt an Gateway-Aufrufstellen — JOG_STOP mit Geschwindigkeit, AUTO_PAUSE mit Zeilennummer, `mode(7)` — erzeugen jeweils eine Diagnose; nach Rückbau wieder 0 Fehler. [Skript](vor-maschine.r359.codex-type-probe.py), [Ergebnisse](vor-maschine.r359.codex-type-probe.json), [unverändertes Gate](vor-maschine.r359.codex-pyright.json).
+- **Dispatch/Dokumentation:** Die Aussage „AST-identisch“ bitte auf die reine Verschiebung begrenzen. Zwischen `90047025` und `999a8ca9` sind zusätzlich neun verglichene Befehlsblöcke verändert, etwa durch die benannten Typverengungen und den lokalen Status in `clear_wcs`. Ich sehe darin keinen weiteren belegten Verhaltensfehler; es ist aber mehr als Einrückung. Keine Befehlsbedingung im Vergleich hinzugefügt oder entfernt. [Vergleich](vor-maschine.r359.codex-ast.json), [Skript](vor-maschine.r359.codex-ast-probe.py).
+- **Gelieferte Nachweise:** Round-Gate an `999a8ca9`, die 60/60 Gegenfälle und die Live-Protokolle gelesen, nicht vollständig neu ausgeführt. Der native Hauptbericht benennt weiterhin **58 PASS plus sechs unvollständige Jog-Bremswege**; diese Grenze bleibt sichtbar. Eigene Gegenproben messen mögliche Übergänge an Fake-Kanälen, keine Häufigkeit im Live-Betrieb.
+
+Alle temporären Typmutationen zurückgebaut und die 37 geänderten Archivdateien gegen `999a8ca9` abgeglichen. Befehle, Grenzen und Hashes im [Prüfprotokoll](vor-maschine.r359.codex-checks.json). **Keine Produktänderung, kein Build oder Test im Live-Baum und keine Verbindung zur laufenden Sim.** Nur dieser Anhang und neue R359-Belege.
