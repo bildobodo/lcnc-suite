@@ -1,0 +1,21 @@
+Package 2b (feat/link 999a8ca9) — the live acceptances, 2026-11-13, VM sim, scratch install from ~/lcnc-suite-link
+(~/claude-work/live-checks/all-link2.sh + native-link.sh; LC_TREE=link).
+
+Run 1 (all-link.sh) failed on the HARNESS, nothing reached the product:
+  - every step "lc-sim ended before ready" (rc 98): the fake HOME home-link lacked .local/bin
+    (lcnc-suite, hal_reader.py, hal_watchdog.py, compensation.py links that install.sh makes); added.
+  - the native stage ran after the steps had stopped the LAN sim; it records the LAN before taking it over
+    and failed with a TypeError (gateway_ini() None) — a robustness gap of the tool (a refusal would be
+    clearer), noted, not part of 2b. Run 2 runs the native stage first, with the LAN up.
+Run 2 (all-link2.sh): native stage refused at its tree step — "node_modules shares files with the original":
+  the worktree's node_modules was a symlink into another worktree; the stage rightly refuses. npm ci in the
+  worktree; the native stage alone again (native-link.sh, run 3). The other checks of run 2 ran on 999a8ca9:
+    live-twp            PASS — preview-goldens, live-parity, twp_buttons_check, twp_reorient_check,
+                          twp_capture_check, twp_touchoff_check, twp_touchoff_plane_check, twp_g683_check,
+                          twp_adverse_check (9/9)
+    toolsetter-readback PASS — 10 rows
+    macro-live          PASS — 17 PASS, 1 SKIP (above-z0: Z MAX_LIMIT 0, as before)
+    perf-matrix         PASS (run f0179396ea8a)
+Run 3 (native-link.sh): native main PASS — 58 PASS, 6 "incomplete" (jog-x±/y±/z± braking travel: status
+  frames give no lower bound — the same six as development 407b758c's run, a known limit of the stage);
+  native latch-delayed PASS — 3 PASS. LAN restore complete on both; the LAN sim back on 999a8ca9.

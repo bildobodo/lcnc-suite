@@ -1156,3 +1156,134 @@ Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindu
   4. Ein `Choice`-Feld lehnt Nicht-Wörter als Feldablehnung ab.
   5. Eine Geräteliste mit `simulation: null` liest diese als AUS.
 - **Weiter offen:** #36 bleibt offen bis zur Entscheidung über 2b. Als Nächstes folgt 2b, der `Link` in `gateway.py`.
+
+---
+
+## Claude · Paket 2b: der Link · Anfrage R359 · 13. November 2026
+
+Gebaut auf `feat/link` (Worktree `~/lcnc-suite-link`, gepusht), `13affe2b..999a8ca9`, fünf Commits, Basis ist development `13affe2b`.
+
+**Ergebnisse:**
+- **Round-Gate:** PASS auf `999a8ca9` ([Bericht](vor-maschine.p2b.gate-round.json)): Unit 2650, Backend einschließlich `ruff`/`pyright`, die ausgewählten Browser-Specs 7/7. Offen meldet es genau `perf-matrix` und `twp-buttons`; das sind die Live-Abnahmen unten.
+- **Gegenfälle:** **60/60 wie erwartet** ([Protokoll](vor-maschine.p2b.mutations.txt)). Darin: `gateway.py` als geprüftes Modul, drei verweigerte Formen **an Gateway-Aufrufstellen** (Jog-Stopp mit Geschwindigkeit, Pause mit Zeile, Modus 7) und ein toleranter Lesezugriff dort, wo die Verbindung gebraucht wird — alle rot.
+- **Live-Abnahmen** (`twp_buttons_check` mit dem TWP-Satz, Toolsetter-Rücklesen, Macro-Live, `perf_matrix`, die native Stufe Haupt- und Latch-Lauf): **alle PASS** auf `999a8ca9` ([Übersicht](vor-maschine.p2b.live-runs.txt)).
+
+**Erbeten:** `agreement` oder `findings`. Danach folgen Fable, das Merge-Gate und der Merge nach development.
+
+Der Plan ist R352/R353 (VM352-02). Ich habe in fünf Schritten gebaut, jeder für sich grün und einzeln lesbar.
+
+### Schritt 1 · Die Testnaht und deine Sonde als Abnahme (`d82b9534`)
+
+- **`lcnc-gateway/link_fixture.py`** ist die eine Naht, über die ein Test dem Gateway seine LinuxCNC-Verbindung gibt:
+  - `connect_fake`, `use`/`using`, `disconnect`/`without_connection`, `swap_connection`, `restore_after`, `current()`, `is_connected()`;
+  - sie stellt den **ganzen** Verbindungszustand nach jedem Test wieder her (viele Tests ließen ihre Fakes bisher stehen);
+  - sie steht im Typ-Gate wie `writer_fixture`.
+- **`test_link_ownership.py`** ist deine R352-Sonde gegen das echte `_cmd_blocking`, zunächst als `expectedFailure`:
+  - **Ersatz vor dem Thread:** Der Schreibauftrag muss verweigert werden; nichts erreicht einen der beiden Kanäle, der Claim bleibt `unsent`.
+  - **Ersatz während des Wartens:** Jede Scheibe bleibt beim alten Link, der Claim bucht die geschriebene Serial.
+  - Beide schlugen genau am Befund fehl: Der Schreibauftrag ging durch, und die dritte Warte-Scheibe ging an den neuen Kanal.
+
+### Schritt 2 · Das Verhalten ohne Verbindung festgehalten (`6eeafcab`)
+
+- **Festgehalten** (grün davor und danach):
+  - Ein Befehl und die Stopps (`abort`, `jog_stop`) antworten ohne Verbindung „LinuxCNC not connected“.
+  - Der Disconnect-Jog-Stopp sendet nichts.
+- **Weitere Abnahme:** Ein Schreibauftrag, dessen Verbindung vor dem Thread verschwindet, wird verweigert. Vorher schrieb die gebundene Methode auf den alten Kanal, und das Warten scheiterte mit `'NoneType' object has no attribute 'wait_complete'`.
+
+### Schritt 3 · Alle 312 Teststellen über die Naht, Produkt unverändert (`540c9cc2`)
+
+- **Lesezugriffe:** jetzt `current().stat`/`.cmd`.
+- **Einrichtungen:** jetzt `connect_fake`/`use`/`using`.
+- **Selbst gebaute Sicherungen** und Wiederherstellungen sind entfernt.
+- **Ergebnis:** 2000 bestanden, die drei Abnahmen weiter `expectedFailure`.
+
+### Schritt 4 · Der Link (`90047025`)
+
+- **`Link`:**
+  - `Link(stat, cmd, err, pid, seq)` ersetzt die nullbaren Globals `STAT`/`CMD`/`ERR` **und** das getrennte `lcnc_connected`. Beide liefen vorher auseinander: Ein beendetes Instanz-Ende löschte nur das Flag.
+  - `try_connect_lcnc` baut den Kanalsatz in lokalen Variablen, pollt, identifiziert, entscheidet die Bindung und **veröffentlicht erst dann in einem Schritt**.
+  - Ein Fehlschlag veröffentlicht nichts und entzieht den alten Link.
+  - Jedes frühere `STAT = CMD = ERR = None` bzw. `lcnc_connected = False` ist **ein** `_revoke_link(reason)` (Poller, Instanzprüfung, Instanz-Ende, verweigertes Rebind), getract.
+  - Der Restore-Pfad des WS-Endpunkts ist ein gewöhnlicher Connect.
+- **`_cmd_blocking(conn, op(...))`:**
+  - Im Schreib-Thread muss `conn` vor **und** nach der Zulassung der veröffentlichte Link sein. Ein Link wird genau einmal veröffentlicht; eine Zulassung, die den Controller über den veröffentlichten Link las, hat also diesen gelesen. Damit muss ich `conn` nicht durch jede `safe_get` reichen.
+  - Schreiben, die gebuchte Serial und jede Warte-Scheibe gehen an `conn`.
+  - Sonst `LINK_CHANGED` („Connection to LinuxCNC changed — try again“): Claim und Laufbasis werden `unsent`, auch wenn die Zulassung selbst wirft (Fables Hinweis: Vorher markierte nur eine **zurückgegebene** Verweigerung).
+  - Es wird nie umgeleitet.
+- **`op(linuxcnc.command.x, …)`:**
+  - nimmt die Methode der Binding-**Klasse**; ihr Laufzeitname ist der Befehl;
+  - die überladenen Methoden des `Protocol` heißen zur Laufzeit `_overload_dummy`, das hat Fable gefunden;
+  - nur Namen aus `COMMAND_METHODS`, keine Schlüsselwörter;
+  - `_start_kind` liest den Namen der Operation (dein Bauhinweis 1); Tests für RUN, STEP und RESUME über `op()`.
+- **`_link_lock`** (dein Bauhinweis 2):
+  - ein `threading.Lock`, gehalten **nur** für einen Referenzvergleich oder -tausch, nie über einen Poll, einen NML-Aufruf oder ein `await`;
+  - Reihenfolge `_cmd_lock` → `_link_lock`;
+  - ein Test belegt, dass er während des Schreibens und des Wartens frei ist;
+  - ein Entzug während des Wartens: Das Warten bleibt auf seinem Link (Abnahme).
+- **Lesezugriffe:**
+  - `link()`, das `NotConnected` wirft, wo die Verbindung gebraucht wird;
+  - `current_link()`/`_stat_now()` dort, wo „keine“ vertragen wird, mit genau der Semantik der alten Globals;
+  - welcher von beiden, hat die Typprüfung entschieden: Ein optionaler Mitgliedszugriff war ohne Verbindung ein `AttributeError` und ist jetzt `link()`.
+- **`NotConnected` je Eintrittsweg** (keine `RuntimeError`, denn der Reader nimmt die als Client-Trennung):
+
+  | Eintrittsweg | Antwort |
+  | --- | --- |
+  | WS | „LinuxCNC not connected“ (`ws.command_not_connected`), auch wenn der Link während des Befehls entzogen wird |
+  | HTTP | 503 (`rest.not_connected`) |
+  | Disconnect- und hb-stall-Jog-Stopp | traceen ihn wie bisher mit Namen |
+  | Poller | verbindet neu |
+
+- **Ein Testbefund, kein Produktbefund:**
+  - Zwei Test-Doubles benannten jede Methode `record`. Deshalb sah `_start_kind` deren Programmstarts nie (Claim, Laufbasis und Toolsetter-Buchung wurden im Test still übersprungen).
+  - Mit `op()` sieht er sie. Ein Toolsetter-Test startete dabei ein Programm, das er nie geladen hatte („unbekannt“ → alle Schlüssel → Schreiben bei jedem Start, korrekt); er lädt es jetzt.
+
+### Schritt 5 · `gateway.py` im Typ-Gate (`999a8ca9`)
+
+- **74 Befunde → 0**, ohne Unterdrückung:
+  - jede Änderung ist eine Annotation oder eine Verengung, die nennt, worauf der Code schon baut (die Invariante eines Helfers an der Verwendungsstelle, etwa `_fe is not None and st.active_file`);
+  - zwei pauschale `# type: ignore` sind entfernt; eins war unnötig, eins ist jetzt eine echte Prüfung (gz-Vorschau zwischenzeitlich verworfen → dasselbe 404 statt `TypeError`).
+- **`_handle_command_impl`:**
+  - Für pyright war die Funktion „too complex to analyze“; ihr Rumpf von 1600 Zeilen blieb **ungeprüft**.
+  - Die 66 `if cmd == …`-Blöcke laufen jetzt als sieben Befehlsgruppen.
+  - Sie sind **AST-identisch** verschoben, nur die Einrückung ändert sich.
+  - Die Hauptfunktion behält Prolog, `try` und Handler.
+  - Die Tests, die die Befehlsmenge aus dem Quelltext lesen, lesen jetzt `_COMMAND_GROUPS`.
+- **Weitere Typen:**
+  - `bind_to_launcher` liefert jetzt ein `TypedDict` (es wird in `emit` gesplattet);
+  - `hal_bridge`: `on_reader_connect` gibt irgendetwas zurück.
+- **CI:** installiert `opencv-python-headless==4.11.0.86`, also das, was `install.sh` aus `requirements.txt` installiert, damit pyright den optionalen Import auflöst.
+  - **Hinweis an den Operator:** Das Dev-venv hat 4.13.0.92, außerhalb von `<4.12`.
+- **Doku:**
+  - `CLAUDE.md`: „The connection is ONE Link“;
+  - `safety-and-permissions.md`: „The connection: one Link“;
+  - `BOUNDARY.md`, `testing.md`;
+  - die Zeile `install-binding` nennt jetzt, was sie prüft.
+
+### Grenzen, ausdrücklich
+
+- **Die Formen aus 2a erreichen jetzt die Aufrufstellen des Gateways** (`op` + ParamSpec). Die Gegenfälle zeigen das: Eine verweigerte Form an einer Gateway-Aufrufstelle ist rot.
+- **Ein Admit, der mehrere Lesezugriffe macht, liest über den veröffentlichten Link.** Die Vor-/Nach-Prüfung belegt, dass es während der Zulassung derselbe war. Sie belegt nicht, welcher Link zwischen zwei `safe_get` gelesen wurde, wenn ein Wechsel innerhalb der Zulassung wieder zurück ginge. Ein Link wird aber nie wieder veröffentlicht (`seq`), ein Zurück gibt es also nicht.
+- **Lesepfade außerhalb von Schreibaufträgen**, etwa Statusschleife und Snapshots, lesen den jeweils veröffentlichten Link, wie bisher die Globals.
+
+### Belege
+
+**Live, auf `999a8ca9`, VM-Sim mit einer Scratch-Installation aus dem Worktree:**
+
+| Abnahme | Ergebnis | Beleg |
+| --- | --- | --- |
+| live-twp | 9/9, darunter `twp_buttons_check` | [Log](vor-maschine.p2b.live-twp.txt), [Bericht](vor-maschine.p2b.live-twp.report.json) |
+| Toolsetter-Rücklesen | 10 PASS | [Log](vor-maschine.p2b.toolsetter-readback.txt) |
+| Macro-Live | 17 PASS, 1 SKIP (wie zuvor) | [Log](vor-maschine.p2b.macro-live.txt) |
+| `perf_matrix` | PASS | [Log](vor-maschine.p2b.perf.txt), [Artefakt](vor-maschine.p2b.perf-matrix.json) |
+| Native Stufe, Hauptlauf | PASS: 58 PASS und dieselben 6 `incomplete` Jog-Bremswege wie der development-Lauf `407b758c` (eine bekannte Grenze der Stufe) | [Bericht](vor-maschine.p2b.native-main.json) |
+| Native Stufe, Latch-Lauf | PASS: 3 PASS | [Bericht](vor-maschine.p2b.native-latch.json) |
+
+Die LAN-Rückgabe ist jeweils vollständig.
+
+**Zwei Fehlläufe vor dem gültigen Lauf** lagen am Harness, nicht am Produkt; beide sind im [Protokoll](vor-maschine.p2b.live-runs.txt) offengelegt:
+1. Im falschen HOME fehlten die Launcher-Links.
+2. Die native Stufe lief ohne laufende LAN-Sim und dann mit verlinktem `node_modules`; Letzteres verweigert die Stufe zu Recht.
+
+**Nebenbefund am Werkzeug:** Ohne laufende LAN-Sim scheitert `native_run.py` mit einem `TypeError` statt mit einer Verweigerung. Das ist notiert, nicht Teil von 2b.
+
+**Backend:** 2009 bestanden (am Stand `90047025`) bzw. vollständig grün am Endkopf; Skripttests 707 grün.

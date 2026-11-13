@@ -1,0 +1,11 @@
+# toolsetter read-back check 2026-11-13 04:59:51 on lcnc_suite_sim_5axis_xyzac.ini
+PASS  target: the running, shipped simulator  lcnc_suite_sim_5axis_xyzac.ini
+PASS  setup: machine on and homed  
+PASS  load the scratch program (T1 M600, never run)  
+PASS  switch the task to MDI (the read-back is due outside AUTO)  
+PASS  1 start: the read-back confirms the file's values  trace {'version': 2, 'state': 'confirmed'}; file #3009 = 3.0
+PASS  2 MDI #3009 = 4.25: booked assumed, the file still the old value  mdi ok=True; trace assumed keys=[3009]; file #3009 = 3.0 (inode new)
+PASS  3 read-back: a new inode, the file holds the interpreter's value, booked read  file #3009 = 4.25 (inode new); trace read keys=[3009]
+PASS  3b the published parse reads the confirmed value  payload toolsetter #3009 = 4.25
+PASS  4 the old value back (MDI #3009 = 3.0) and read back  file #3009 = 3.0
+PASS  teardown: the sim stopped with the client connected  
