@@ -243,7 +243,10 @@ class ChoiceRefusesNonWords(unittest.TestCase):
 
     def test_a_list_or_object_is_the_fields_refusal(self):
         import command_policy as cp
-        cmd = next(c for c, s in cp.COMMAND_SCHEMA.items() if isinstance(s.get("via"), cp.Choice))
+        # a gamepad command without other fields (package 3a: a required
+        # field missing would be the refusal first)
+        cmd = next(c for c, s in cp.COMMAND_SCHEMA.items()
+                   if isinstance(s.get("via"), cp.Choice) and len(s) == 1 and c not in cp.STOP_COMMANDS)
         for raw in ([1], {"a": 1}, 5, "keyboard"):
             with self.assertRaises(ValueError) as cm:
                 cp.validate_payload(cmd, {"via": raw}, cp.MachineLimits(n_axes=3))

@@ -22,7 +22,7 @@ const GATEWAY = fileURLToPath(new URL("../../lcnc-gateway", import.meta.url));
 
 interface ClientCommand { fields: Record<string, { optional: boolean; type: string }>; index: boolean }
 type ClientCommands = Record<string, ClientCommand>;
-interface Gateway { schema: Record<string, Record<string, string>>; gated: string[] }
+interface Gateway { schema: Record<string, Record<string, string>>; gated: string[]; forbidden?: Record<string, string[]> }
 
 /** `WsCommand`'s members through the checker: intersections and named
  *  interfaces resolved, an index signature reported. */
@@ -52,7 +52,9 @@ function readClient(path: string): ClientCommands {
 
 function readGateway(): Gateway {
   const py = `import sys, json; sys.path.insert(0, ${JSON.stringify(GATEWAY)}); import command_policy as cp
-print(json.dumps({"schema": {c: {f: type(s).__name__ for f, s in fs.items()} for c, fs in cp.COMMAND_SCHEMA.items()},
+print(json.dumps({"schema": {c: {f: type(s).__name__ for f, s in fs.items() if not isinstance(s, cp.Forbidden)}
+                             for c, fs in cp.COMMAND_SCHEMA.items()},
+                  "forbidden": {c: [f for f, s in fs.items() if isinstance(s, cp.Forbidden)] for c, fs in cp.COMMAND_SCHEMA.items()},
                   "gated": sorted(cp.COMMAND_GATES)}))`;
   return JSON.parse(execFileSync("python3", ["-I", "-c", py]).toString()) as Gateway;
 }
@@ -129,6 +131,8 @@ export function commandShapeFindings(client: ClientCommands, gw: Gateway, lists 
     if (cc.index) out.push(`${c}: an open index signature — the command must be closed`);
     if (!gw.gated.includes(c) && !lists.UNGATED[c]) out.push(`${c}: sent without a gate entry and no reason is named`);
     for (const f of Object.keys(gw.schema[c] ?? {})) if (!(f in cc.fields)) out.push(`${c}.${f}: the schema bounds a field the UI never sends`);
+    // a retired wire form (Forbidden, package 3a): the gateway refuses it — the UI must not send it
+    for (const f of gw.forbidden?.[c] ?? []) if (f in cc.fields) out.push(`${c}.${f}: the UI sends a field the gateway refuses (retired)`);
     for (const [f, d] of Object.entries(cc.fields)) {
       const path = `${c}.${f}`;
       if (isMapType(d.type) && !lists.DATA_MAPS[path] && !lists.OPAQUE[path]) out.push(`${path}: a map or opaque value (${d.type}) without a named contract`);

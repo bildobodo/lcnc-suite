@@ -35,7 +35,7 @@ import {
 import {
   handleStatusError, handleStatusMessage, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  rebaseStatusDelta, resetOnClose,
+  rebaseStatusDelta, resetOnClose, safetyTrip,
 } from "./ws/statusStore";
 
 // ---------- Connection-level state (owned here) ----------

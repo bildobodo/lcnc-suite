@@ -30,6 +30,11 @@ const props = defineProps<{
   axes: string[];
   workPos: number[];
   homedJoints: boolean[];
+  /** Home / Unhome per axis (package 3a F-HOME.S2b; status `home_axes`): the
+   *  joint each axis' button addresses and why Home / Unhome is closed (null =
+   *  open) — the gateway names it from the declared mapping and the home
+   *  group. Null: not reported — both closed. */
+  homeAxes: { letter: string; joint: number | null; home: string | null; unhome: string | null }[] | null;
   isHomed: boolean;
   g5xLabel: string;
   // Live switchkins mode (null = machine has no switchable kins — chip
@@ -69,8 +74,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
-  (e: "homeAxis", joint: number): void;
-  (e: "unhomeAxis", joint: number): void;
+  (e: "homeAxis", axis: number): void;
+  (e: "unhomeAxis", axis: number): void;
   (e: "setAxis", axis: number, value: number, expect: TouchoffExpect): void;
   (e: "setAll", letters: string[], expect: TouchoffExpect): void;
   (e: "goToG30"): void;
@@ -80,6 +85,18 @@ const emit = defineEmits<{
   (e: "twpCapture"): void;
   (e: "twpClear"): void;
 }>();
+
+/** The axis' joint homed? (its declared joint — never the axis index) */
+function axisHomed(i: number): boolean {
+  const j = props.homeAxes?.[i]?.joint;
+  return j != null && !!props.homedJoints[j];
+}
+/** Why the axis' Home / Unhome is closed now, or null. */
+function axisHomeReason(i: number): string | null {
+  const row = props.homeAxes?.[i];
+  if (!row) return "Home per axis not reported — Home All";
+  return axisHomed(i) ? row.unhome : row.home;
+}
 
 const { entries } = useAxes(computed(() => props.axes));
 const can = usePermissions();
@@ -214,10 +231,14 @@ const actionEvents = {
               <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'"
                           :aria-label="`Zero ${a.letter}`" :title="`Hold to zero ${a.letter}`"
                           @click="emit('setAxis', a.index, 0, expectNow())"><SetupIcon kind="zero" />{{ a.letter }}</MachineBtn>
-              <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'"
-                          :aria-label="`${homedJoints[a.index] ? 'Unhome' : 'Home'} ${a.letter}`"
-                          :title="`Hold to ${homedJoints[a.index] ? 'unhome' : 'home'} ${a.letter}`"
-                          @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><SetupIcon :kind="homedJoints[a.index] ? 'unhome' : 'home'" />{{ a.letter }}</MachineBtn>
+              <!-- Home / Unhome per AXIS: the state read at the axis' joint,
+                   the press sends the axis; closed with the gateway's reason
+                   where the joint is unclear or Home homes a group. -->
+              <MachineBtn :type="axisHomed(a.index) ? 'unhome' : 'home'"
+                          :aria-label="`${axisHomed(a.index) ? 'Unhome' : 'Home'} ${a.letter}`"
+                          :title="`Hold to ${axisHomed(a.index) ? 'unhome' : 'home'} ${a.letter}`"
+                          :disabled="axisHomeReason(a.index) !== null" :reason="axisHomeReason(a.index) ?? undefined"
+                          @click="axisHomed(a.index) ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><SetupIcon :kind="axisHomed(a.index) ? 'unhome' : 'home'" />{{ a.letter }}</MachineBtn>
             </template>
             <!-- The actions in the free rows under the last axis column. -->
             <SetupActions v-if="layout.form === 'under' && ci === axisChunks.length - 1" class="actionsUnder foldOnEntry"

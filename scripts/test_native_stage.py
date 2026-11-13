@@ -3026,7 +3026,8 @@ class HomingClient(MotionClient):
             if cmd == "unhome_all":
                 self.homed = [False] * 3
             self.homes += cmd != "unhome_all"
-            for j in ([kw["joint"]] if cmd == "home" else range(3) if cmd == "home_all" else ()):
+            # per axis since package 3a: on the 3-axis profile axis i = joint i
+            for j in ([kw["axis"]] if cmd == "home" else range(3) if cmd == "home_all" else ()):
                 if self.closed(j) or (self.refuse_from is not None and self.homes >= self.refuse_from):
                     self.refusals.append(j)
                     continue

@@ -179,3 +179,38 @@ test("Home All sends home_all on a hold — a tap sends nothing", async ({ page 
   await press(page, home, HOLD_MS);
   await expect.poll(sent).toEqual([{ cmd: "home_all" }]);
 });
+
+// Home / Unhome per AXIS (package 3a F-HOME.S2b; operator Q349-1, Q363-4): the
+// press sends the AXIS, the gateway names the joint; the state is read at the
+// axis' joint (status home_axes), never at the axis index; a closed axis says
+// the gateway's reason at the button.
+test("Home per axis sends the axis and reads its homed state at the joint the gateway names", async ({ page }) => {
+  // joint order Y X Z: axis X is joint 1, axis Y joint 0 — joint 1 homed only
+  await open(page, {
+    homed: false, homed_joints: [false, true, false],
+    home_axes: [{ letter: "X", joint: 1, home: null, unhome: null }, { letter: "Y", joint: 0, home: null, unhome: null },
+                { letter: "Z", joint: 2, home: null, unhome: null }],
+  });
+  const setup = strip(page, "setup");
+  await expect(setup.getByRole("button", { name: "Unhome X", exact: true }), "X's joint (1) is homed").toBeVisible();
+  await expect(setup.getByRole("button", { name: "Home Y", exact: true }), "Y's joint (0) is not").toBeVisible();
+  await press(page, setup.getByRole("button", { name: "Home Y", exact: true }), HOLD_MS);
+  await expect.poll(sent).toEqual([{ cmd: "home", axis: 1 }]);
+  await ctl({ op: "clearCmds" });
+  await press(page, setup.getByRole("button", { name: "Unhome X", exact: true }), HOLD_MS);
+  await expect.poll(sent).toEqual([{ cmd: "unhome", axis: 0 }]);
+});
+
+test("a home group closes Home per axis with its reason; Unhome and Home All stay open", async ({ page }) => {
+  const GROUP = "Homes X Y Z together (HOME_SEQUENCE -1) — Home All";
+  await open(page, {
+    homed: false, homed_joints: [false, false, true],
+    home_axes: ["X", "Y", "Z"].map((letter, joint) => ({ letter, joint, home: GROUP, unhome: null })),
+  });
+  const setup = strip(page, "setup");
+  const homeX = setup.getByRole("button", { name: "Home X", exact: true });
+  await expect(homeX).toBeDisabled();
+  await expect(setup.locator(".btnTip", { has: homeX })).toHaveAttribute("title", GROUP);
+  await expect(setup.getByRole("button", { name: "Unhome Z", exact: true }), "Unhome has no group rule").toBeEnabled();
+  await expect(setup.getByRole("button", { name: "Home All", exact: true })).toBeEnabled();
+});

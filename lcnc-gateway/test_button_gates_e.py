@@ -154,6 +154,13 @@ class TestNoSwitchOntoARunningInterpreter(_Writer):
         super().setUp()
         self.takes_the_mode()
         self.cmd.wait_complete = lambda *a: linuxcnc.RCS_DONE
+        # the step's target and travel known (package 3a, Q363-1): the refusal
+        # here must be the interpreter's, not "travel unknown"
+        rows = [{"letter": L, "joint": j, "reason": None, "max_vel": 20.0, "joint_span": 1000.0,
+                 "axis_span": 1000.0} for j, L in enumerate("XYZ")]
+        p = mock.patch.object(gateway, "_axis_joint_map", lambda: {"axes": rows, "reason": None})
+        p.start()
+        self.addCleanup(p.stop)
 
     def running(self):
         for k, v in MDI_RUNNING.items():
@@ -287,8 +294,9 @@ class TestTheJointJogFacts(unittest.TestCase):
     """The switch, the cap and the joint order from the INI (operator E1/E2)."""
 
     def setUp(self):
-        saved = gateway._joint_jog_cache
-        self.addCleanup(lambda: setattr(gateway, "_joint_jog_cache", saved))
+        saved = (gateway._joint_jog_cache, gateway._axis_joint_cache)
+        self.addCleanup(lambda: (setattr(gateway, "_joint_jog_cache", saved[0]),
+                                 setattr(gateway, "_axis_joint_cache", saved[1])))
         connect_fake(self)
         current().stat.ini_filename = "/x/machine.ini"
         current().stat.joints = 3
@@ -307,6 +315,7 @@ class TestTheJointJogFacts(unittest.TestCase):
         _Ini.values = v
         current().stat.joints = joints
         gateway._joint_jog_cache = None
+        gateway._axis_joint_cache = None      # the pure mapping (package 3a) is read from the same INI
         return gateway._joint_jog_facts()
 
     def test_the_switch(self):
@@ -344,6 +353,7 @@ class TestTheJointJogFacts(unittest.TestCase):
     def test_unread_before_the_connect(self):
         current().stat.ini_filename = None
         gateway._joint_jog_cache = None
+        gateway._axis_joint_cache = None
         self.assertFalse(gateway._joint_jog_facts()["enabled"])
         self.assertIsNone(gateway._joint_jog_cache, "not cached")
 
@@ -362,13 +372,18 @@ class TestJoggingBeforeHoming(_Writer):
 
     def order(self, letters, axes="XYZ", fraction=0.1, max_vel=20.0, enabled=True):
         rows, why = joint_jog_map(letters, len(letters), list(axes), [max_vel] * len(letters))
+        # every joint and axis 1000 long: a step's travel (package 3a, Q363-1)
+        rows = [dict(r, joint_span=1000.0, axis_span=1000.0) for r in rows]
         facts = {"enabled": enabled and why is None, "fraction": fraction, "axes": rows, "reason": why}
         p = mock.patch.object(gateway, "_joint_jog_facts", lambda: facts)
         p.start()
         self.addCleanup(p.stop)
 
     def unhomed(self, msg, **controller):
-        return self.send(msg, controller={"homed": False, **controller}, homed=False)
+        # unhomed, motion is in joint (free) mode — the mode a step before
+        # homing is judged under and confirmed against (package 3a, R365)
+        return self.send(msg, controller={"homed": False, "motion_mode": linuxcnc.TRAJ_MODE_FREE, **controller},
+                         homed=False)
 
     def jogs(self):
         return [a for n, a, _k in self.cmd.calls if n == "jog"]

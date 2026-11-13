@@ -11430,3 +11430,10 @@ rounds before any code (R363 findings, R364 findings, R365 agreement).
 **Operator.** Q363-1 (2026-11-13): bound the step jog, closed where the
 travel is unknown. Q363-4: lock Home per axis where LinuxCNC homes a group
 (F-HOME.S2b, the second commit of this package).
+
+**F-HOME.S2b (second commit).** Home / Unhome per axis send the axis; the
+gateway names the declared joint (pure mapping) and closes an unclear one,
+and Home where LinuxCNC homes a group (effective `ini.N.home_sequence`, held
+to the home write). The 5- and 6-axis profiles declare `WEBUI_JOINT_AXES`;
+an installed copy gets it from `install_examples`.
+

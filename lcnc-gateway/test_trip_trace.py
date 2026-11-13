@@ -98,7 +98,7 @@ class TestTheTripAndItsAcknowledgementAreTraced(unittest.TestCase):
                              "traced once")
             self.assertEqual(len(self.bundles), 1, "one forensic bundle")
 
-            ws.send_json({"cmd": "safety_trip_ack"})
+            ws.send_json({"cmd": "safety_trip_ack", "id": trip["id"]})   # names ITS trip (package 3a, Q363-2)
             reply = frames(lambda m: m.get("type") == "reply" and "cmd" not in m, "the ack's reply")
             self.assertTrue(reply.get("ok"), reply)
             acked = [kw for e, kw in self.events if e == "safety.trip_acknowledged"]

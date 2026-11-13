@@ -809,3 +809,53 @@ named exception, an older page's `mdi` with `vars` included (R336).
   reader's and the worker's fields are in their tables; every use of `msg`
   the scan cannot read fails it (another name, `**msg`, iteration, an
   unresolved callee) — with counter-cases for each form.
+
+### Home and Unhome per axis (package 3a F-HOME.S2b; operator Q349-1, Q363-4; Codex R363–R365)
+
+- **What it replaced.** The strip sent `home {joint: a.index}` — the axis'
+  POSITION in the axis list as the joint — and read `homed_joints[a.index]`:
+  right where the joint order is the axis order (every shipped profile),
+  wrong on a swapped order, a gantry, an own kinematics. `home` without a
+  joint homed every joint.
+- **The wire form.** `home {axis}` / `unhome {axis}` (the strip's index);
+  `joint` is refused even beside a valid axis (`Forbidden`), a missing axis is
+  never "all" (home_all / unhome_all are). The gateway names the joint from
+  the PURE mapping (`_axis_joint_map`: `[DISPLAY] WEBUI_JOINT_AXES`, else
+  trivkins' `coordinates=`; independent of the jog-before-homing switch, its
+  cap and speed); an axis without one declared joint (undeclared, a gantry,
+  an incomplete declaration) is refused with its reason.
+- **The home group** (Q363-4: lock). LinuxCNC's `home(j)` with a NEGATIVE
+  sequence homes every joint whose sequence has the same magnitude
+  (homing.c 2.9.4 `do_home_one_joint`; positive ones too: `[-1, 0, 1]` →
+  home(0) starts 0 and 2). Home per axis is open only where the target set is
+  the joint itself (`gateway_util.home_targets` / `home_admission`); a group
+  closes its axes' buttons naming them ("Homes X Y Z together
+  (HOME_SEQUENCE -1) — Home All"). The sequences are the EFFECTIVE ones —
+  `ini.N.home_sequence` as reader extra pins (`home_seq_N`), changeable at
+  run time; unread or a stale reader closes Home per axis
+  ("Home sequence not read — Home All"). The admission is `_manual_command`'s
+  `extra`: checked before the queue AND inside the mode switch's and the home
+  write's threads on the current read — a group or an unread pin appearing
+  during the wait sends no home; no atomicity against a HAL change after the
+  home write.
+- **Unhome** has no sequence rule (`base_set_unhomed` unhomes one joint) —
+  only the mapping closes it.
+- **The strip.** Status `home_axes`: per wire axis `{letter, joint, home,
+  unhome}`; SetupStrip reads the homed state at the axis' JOINT and shows a
+  closed button with the gateway's reason (`MachineBtn` disabled + reason).
+- **Profiles.** The 3-axis profile declares its order through trivkins
+  (`coordinates=XYZ`, sequences 1/1/0); the 5-axis (`xyzac-trt-kins`) and the
+  6-axis TWP (`xyzacb_trsrn`) now declare `WEBUI_JOINT_AXES` (X Y Z A C /
+  X Y Z A B C — from `machine.json`'s joint indices and the component's
+  identity branch); `install_examples` adds it to an installed copy that
+  lacks it (DISPLAY_SUITE_KEYS), never replacing one. The operator's machine
+  (repository, 2026-11-13: `trivkins coordinates=xyz`, all three
+  HOME_SEQUENCE −1) keeps Home All; its per-axis Home buttons are closed with
+  the group's name (each already homed all three).
+- **Guards.** `test_home_axis.py`: the 15 target sets of R365, the mapping
+  (swapped, gantry, undeclared, incomplete, the shipped profiles unchanged),
+  the dispatch (single sequence homes, a group refused before any write,
+  Unhome open, the retired joint refused), a group or an unread pin appearing
+  during the mode switch → no home write; `strip-actions.spec.ts`: the axis
+  on the wire, the state at the joint, a group closing the button with its
+  reason. Live: `twp_buttons_check.py`.

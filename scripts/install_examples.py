@@ -34,7 +34,10 @@ def values(text):
 RS274_SUITE_KEYS = ("OWORD_NARGS", "NO_DOWNCASE_OWORD", "ON_ABORT_COMMAND")
 # Suite-owned [DISPLAY] entries added when missing, never replaced: the macro
 # folder (package 5) is the operator's to move.
-DISPLAY_SUITE_KEYS = ("WEBUI_MACRO_DIR",)
+# WEBUI_JOINT_AXES (package 3a F-HOME.S2b): an installed 5- or 6-axis copy
+# without it keeps Home per axis closed until a reinstall adds it — added
+# where missing, never replacing the operator's own
+DISPLAY_SUITE_KEYS = ("WEBUI_MACRO_DIR", "WEBUI_JOINT_AXES")
 # LinuxCNC's INI reader keeps 255 bytes of a line — the rest is silently
 # cut (measured 2026-10-02 with linuxcnc.ini: a 255-byte line reads whole, a
 # 256-byte one loses its last byte; the installed TWP SUBROUTINE_PATH of 246

@@ -127,6 +127,10 @@ const state = {
     is_estop: false, is_enabled: true,  // backend-merged truth (review #5)
     interp_state: 1, paused: false, eoffset_enabled: false,
     work_pos: [12.345, 1.0, -5.5],      // frames.spec asserts the rendered DRO
+    // Home / Unhome per axis (package 3a F-HOME.S2b): the gateway names each
+    // axis' joint and why Home / Unhome is closed — open here, joint = index
+    home_axes: [{ letter: "X", joint: 0, home: null, unhome: null }, { letter: "Y", joint: 1, home: null, unhome: null },
+                { letter: "Z", joint: 2, home: null, unhome: null }],
     permissions: {
       // every class the gateway ships (button gates BG-15: a missing class
       // is closed — the client no longer reads run / machineFrame / goZero
@@ -404,6 +408,7 @@ ctlWss.on("connection", (ws) => {
       const axes = Array.isArray(m.axes) && m.axes.length ? m.axes : ["X", "Y", "Z"];
       _axes = axes;
       state.data.work_pos = axes.map((_, i) => (i + 1) * 1.111);
+      state.data.home_axes = axes.map((letter, i) => ({ letter, joint: i, home: null, unhome: null }));
       // The offset vectors are CANONICAL 9-wide on the real wire (STAT's
       // tuples, X..W at fixed slots) — never per axis (operator P5/P6: the
       // Offsets panel reads them by the letter's canonical slot).

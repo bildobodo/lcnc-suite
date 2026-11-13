@@ -6411,3 +6411,60 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
                     rec[0] = val
             _limit_hit(hits, key, seq)
     return _limit_records(worst, hits, max_report)
+
+
+# ── Home and Unhome per axis (package 3a F-HOME.S2b; operator Q349-1, Q363-4;
+#    Codex R363–R365) ───────────────────────────────────────────────────────
+#: the effective home sequences are not all read (the reader stale, a pin
+#: missing): Home per axis is closed
+HOME_SEQUENCE_UNKNOWN = "Home sequence not read — Home All"
+
+
+def home_targets(seqs, joint):
+    """The joints LinuxCNC starts for `home(joint)` — homing.c 2.9.4
+    do_home_one_joint: a NEGATIVE sequence homes every joint whose sequence
+    has the same magnitude (positive ones too — [-1, 0, 1]: home(0) starts
+    0 and 2), synchronised; a sequence ≥ 0 homes that joint alone. `seqs`:
+    the effective sequence per joint (ini.N.home_sequence), None unread.
+    Returns a frozenset, or None when a sequence it needs is unread. Pure."""
+    if not (isinstance(joint, int) and 0 <= joint < len(seqs)) or seqs[joint] is None:
+        return None
+    s = seqs[joint]
+    if s >= 0:
+        return frozenset({joint})
+    if any(v is None for v in seqs):
+        return None
+    return frozenset(i for i, v in enumerate(seqs) if abs(v) == abs(s))
+
+
+def home_admission(rows, seqs, axis):
+    """Home per axis (Q349-1 + Q363-4): (joint, None) when the axis has ONE
+    declared joint (axis_joint_rows) AND home(joint) homes that joint alone;
+    else (None, the reason) — a group names its axes and sends to Home All.
+    `rows`: the mapping per wire axis {letter, joint, reason}. Pure."""
+    row = rows[axis] if isinstance(axis, int) and 0 <= axis < len(rows) else None
+    if row is None:
+        return None, f"No axis {axis}"
+    j = row.get("joint")
+    if j is None:
+        return None, row.get("reason") or NO_JOINT_FOR_AXIS
+    targets = home_targets(seqs, j)
+    if targets is None:
+        return None, HOME_SEQUENCE_UNKNOWN
+    if targets != {j}:
+        by_joint = {r["joint"]: r["letter"] for r in rows if r.get("joint") is not None}
+        names = " ".join(by_joint.get(t, f"J{t}") for t in sorted(targets))
+        return None, f"Homes {names} together (HOME_SEQUENCE {seqs[j]}) — Home All"
+    return j, None
+
+
+def unhome_admission(rows, axis):
+    """Unhome per axis: (joint, None) when the axis has ONE declared joint —
+    unhoming one joint has no sequence rule (homing.c 2.9.4
+    base_set_unhomed); else (None, the reason). Pure."""
+    row = rows[axis] if isinstance(axis, int) and 0 <= axis < len(rows) else None
+    if row is None:
+        return None, f"No axis {axis}"
+    if row.get("joint") is None:
+        return None, row.get("reason") or NO_JOINT_FOR_AXIS
+    return row["joint"], None

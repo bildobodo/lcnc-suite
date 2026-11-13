@@ -1296,7 +1296,7 @@
      "id": "control:SetupStrip.vue|ChoiceGroup:Work offset| :act=v => wcsAct(String(v))"
     },
     {
-     "id": "control:SetupStrip.vue|MachineBtn:{homedJoints[a.index] ? 'unhome' : 'home'}|@click=homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)",
+     "id": "control:SetupStrip.vue|MachineBtn:{axisHomed(a.index) ? 'unhome' : 'home'}|@click=axisHomed(a.index) ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)",
      "family": [
       "(chunk, ci) in axisChunks",
       "a in chunk"
@@ -2738,7 +2738,7 @@
     {
      "id": "cmd:home",
      "members": [
-      "joint"
+      "axis"
      ]
     },
     {
@@ -2876,7 +2876,9 @@
     },
     {
      "id": "cmd:safety_trip_ack",
-     "members": []
+     "members": [
+      "id"
+     ]
     },
     {
      "id": "cmd:save_settings",
@@ -3075,7 +3077,7 @@
     {
      "id": "cmd:unhome",
      "members": [
-      "joint"
+      "axis"
      ]
     },
     {

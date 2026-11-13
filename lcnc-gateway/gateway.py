@@ -65,9 +65,10 @@ elif _launcher_bind.get("needs_poll"):
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     mode_switch_ignored_message,
-    joint_jog_map,
     axis_joint_rows,
     step_span_refusal,
+    home_admission,
+    unhome_admission,
     limit_span,
     NO_JOINT_MAX_VEL,
     parse_joint_letters,
@@ -886,6 +887,14 @@ async def _reader_configure_extra_pins() -> None:
     # creates its pins under "<module>_kins.", the same quirk
     # parse_kins_config special-cases.
     # (_twp_capable reads the same declaration: capable ⟹ declared)
+    # Home per axis (package 3a F-HOME.S2b): the EFFECTIVE home sequence of
+    # every joint — ini.N.home_sequence, changeable at run time (Codex R364),
+    # never the INI's — so a home group closes its axes' buttons. Unread (the
+    # reader stale, a LinuxCNC without the pin): Home per axis closed.
+    _owner = current_link()
+    _njoints = getattr(_owner.stat, "joints", None) if _owner is not None else None
+    for _j in range(_njoints if isinstance(_njoints, int) else 0):
+        pins[f"home_seq_{_j}"] = f"ini.{_j}.home_sequence"
     if _twp_capable() and _kins_decl is not None:   # the policy's twp_capable — ONE predicate (TWP-08)
         _kp = f"{_kins_decl['module']}_kins."
         pins["kins_pre_rot"] = f"{_kp}pre-rot"
@@ -2714,6 +2723,8 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_joint_jog_before_homing=lambda: _joint_jog_facts()["enabled"],
     # The reader-derived policy inputs count only while it is fresh (BG-12).
     get_reader_fresh=lambda: not _hal_bridge.reader_is_stale(),
+    # Home / Unhome per axis (package 3a F-HOME.S2b; late-bound: defined below)
+    get_home_axes=lambda: _home_axes(),
     # Raw W1 stamps (late-bound: _prov_cache is defined below). No
     # falsification pass — a hand-typed G10 under a reserved fixture is the
     # documented operator-caused escape.
@@ -5617,8 +5628,9 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
         return blocked
     feature = _features.COMMAND_FEATURES[cmd]
     basis = None
+    routine = None
     if cmd == "probe_run":
-        routine = msg.get("routine")
+        routine = msg["routine"]   # required (validate_payload)
         if not isinstance(routine, str) or routine not in await asyncio.to_thread(get_probe_macros):
             return {"ok": False, "error": "Not a probe routine — reload the page"}
         purpose, vars_to_set, line = "probe", msg.get("vars"), f"O<{routine}> CALL"
@@ -5634,13 +5646,16 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
         basis = _toolsetter_basis()
         if not basis["ok"]:
             return {"ok": False, "error": basis["reason"]}
-        tool = 0 if cmd == "tool_unload_measure" else finite_int(msg["tool"], lo=0)   # required (validate_payload)
+        if cmd == "tool_unload_measure":
+            tool = 0
+        else:
+            tool = finite_int(msg["tool"], lo=0)   # required (validate_payload)
         if tool < 1 and cmd == "tool_measure":
             return {"ok": False, "error": "No tool to measure"}
         purpose, line = "toolsetter", f"T{tool} M600"
         vars_to_set = {str(k): v for k, v in basis["values"].items()}
     if not isinstance(vars_to_set, dict) or (not vars_to_set and not (
-            cmd == "probe_run" and msg.get("routine") in _features.PARAMLESS_PROBE_ROUTINES)):
+            routine in _features.PARAMLESS_PROBE_ROUTINES)):
         return {"ok": False, "error": "Missing vars dict"}
     why = _features.purpose_refusal(purpose, vars_to_set)
     if why:
@@ -6488,7 +6503,7 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
         # Stopping motion is always allowed — see jog_stop above for the
         # same audit rationale (Phase 2 / Issue E1). In AUTO+running we
         # have no jog in flight; no mode switch (package E).
-        axes = [finite_int(a, lo=0) for a in msg.get("axes", [])]
+        axes = [finite_int(a, lo=0) for a in msg["axes"]]   # required: widen_stop made every other form "all booked"
         active = [a for a in axes if a in _active_jogs]
         if not active:
             _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop_multi", axes=axes)
@@ -6540,13 +6555,30 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
                                      (op(linuxcnc.command.unhome, -1), None))  # -1 unhomes all axes
 
     if cmd == "home":
+        # Per AXIS (package 3a F-HOME.S2b; operator Q349-1, Q363-4; Codex
+        # R363–R365): the axis' ONE declared joint, and only where home(j)
+        # homes that joint alone — a negative HOME_SEQUENCE shared with
+        # another joint homes the group, so the button is closed with the
+        # group's name. Held from the mode switch to the home write on the
+        # CURRENT sequence read (a group or an unread pin since: no home).
+        # "All" is home_all alone.
         require_armed(armed)
-        joint = finite_int(msg["joint"], lo=0)   # required, one joint — "all" is home_all (validate_payload)
-        return await _manual_command("zero", armed, (op(linuxcnc.command.home, joint), None))
+        axis = finite_int(msg["axis"], lo=0)
+
+        def home_admit() -> Optional[str]:
+            return home_admission(_axis_joint_map()["axes"], _home_sequences(), axis)[1]
+        joint, why = home_admission(_axis_joint_map()["axes"], _home_sequences(), axis)
+        if why or joint is None:
+            return {"ok": False, "error": why or f"No joint for axis {axis}"}
+        return await _manual_command("zero", armed, (op(linuxcnc.command.home, joint), None), extra=home_admit)
 
     if cmd == "unhome":
+        # Per axis: the declared joint — unhoming one joint has no sequence
+        # rule (homing.c 2.9.4 base_set_unhomed), so no group closes it.
         require_armed(armed)
-        joint = finite_int(msg["joint"], lo=0)   # required, one joint — "all" is unhome_all (validate_payload)
+        joint, why = unhome_admission(_axis_joint_map()["axes"], finite_int(msg["axis"], lo=0))
+        if why or joint is None:
+            return {"ok": False, "error": why or "No joint for this axis"}
         return await _manual_command("zero", armed,
                                      (op(linuxcnc.command.teleop_enable, 0), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
                                      (op(linuxcnc.command.unhome, joint), None))
@@ -8243,7 +8275,7 @@ _axis_joint_cache: Optional[dict] = None
 _AXIS_JOINT_UNREAD = {"axes": [], "reason": "Machine configuration not read — wait"}
 
 
-def _axis_joint_map() -> dict:
+def _axis_joint_map(owner: Optional["Link"] = None) -> dict:
     """The declared axis→joint mapping ALONE (package 3a, Codex R363–R365),
     fixed for the session: `[DISPLAY] WEBUI_JOINT_AXES` (each joint's letter
     in joint order), else trivkins' `coordinates=` (gateway_util.
@@ -8253,11 +8285,15 @@ def _axis_joint_map() -> dict:
     Independent of the jog-before-homing switch, its cap and speed: the
     jog before homing, Home/Unhome per axis and the step jog's target read
     it. {axes: [{letter, joint, reason, max_vel, joint_span, axis_span}],
-    reason}. Unreadable before the first NML connect: closed, not cached."""
+    reason}. Unreadable before the first NML connect: closed, not cached.
+    `owner`: a caller's Link — _joint_jog_facts reads the switch and this
+    mapping through ONE status (package 2b VM-I08); stored only while it is
+    the published Link."""
     cached = _axis_joint_cache
-    if cached is not None:
+    if cached is not None and (owner is None or owner is current_link()):
         return cached
-    owner = current_link()   # ONE status for the INI path, the joints and the axes (package 2b)
+    if owner is None:
+        owner = current_link()   # ONE status for the INI path, the joints and the axes (package 2b)
     stat = owner.stat if owner else None
 
     def keep(amap: dict) -> dict:
@@ -8274,16 +8310,19 @@ def _axis_joint_map() -> dict:
         joints = getattr(stat, "joints", None)
         axes = list(_axes_from_mask(int(getattr(stat, "axis_mask", 0) or 0)))
 
-        def num(section: str, key: str) -> Optional[float]:
+        def num(raw: Optional[str]) -> Optional[float]:
+            """An INI value as a finite number, or None."""
             try:
-                v = float(ini.find(section, key) or "nan")
+                v = float(raw or "nan")
             except ValueError:
                 return None
             return v if math.isfinite(v) else None
         n = joints if isinstance(joints, int) else 0
-        max_vels = [num(f"JOINT_{j}", "MAX_VELOCITY") for j in range(n)]
-        joint_spans = [limit_span(num(f"JOINT_{j}", "MIN_LIMIT"), num(f"JOINT_{j}", "MAX_LIMIT")) for j in range(n)]
-        axis_spans = {L: limit_span(num(f"AXIS_{L}", "MIN_LIMIT"), num(f"AXIS_{L}", "MAX_LIMIT")) for L in axes}
+        max_vels = [num(ini.find(f"JOINT_{j}", "MAX_VELOCITY")) for j in range(n)]
+        joint_spans = [limit_span(num(ini.find(f"JOINT_{j}", "MIN_LIMIT")), num(ini.find(f"JOINT_{j}", "MAX_LIMIT")))
+                       for j in range(n)]
+        axis_spans = {L: limit_span(num(ini.find(f"AXIS_{L}", "MIN_LIMIT")), num(ini.find(f"AXIS_{L}", "MAX_LIMIT")))
+                      for L in axes}
         try:
             letters = parse_joint_letters(ini.find("DISPLAY", "WEBUI_JOINT_AXES"))
         except ValueError as e:
@@ -8358,7 +8397,7 @@ def _joint_jog_facts() -> dict:
     except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
         _trace.emit_exc("policy.joint_jog_unreadable", e)
         return _JOINT_JOG_OFF
-    amap = _axis_joint_map()
+    amap = _axis_joint_map(owner)      # the same status the switch was read through
     if not amap["axes"] and amap["reason"]:
         return _JOINT_JOG_OFF            # the mapping unread: off, not cached
     rows = []
@@ -8606,7 +8645,38 @@ def _interp_idle_refusal() -> Optional[str]:
     return None if t["is_idle"] else MACHINE_BUSY
 
 
-async def _manual_command(gate: str, armed: bool, *writes: Tuple[CmdOp, Optional[float]]) -> Dict[str, Any]:
+def _home_sequences() -> list:
+    """The effective home sequence per joint (ini.N.home_sequence) from the
+    reader's snapshot NOW — None for each one unread; all None while the
+    reader is stale. home_targets decides with what it needs."""
+    owner = current_link()
+    n = getattr(owner.stat, "joints", None) if owner is not None else None
+    if not isinstance(n, int) or n <= 0:
+        return []
+    if _reader_is_stale():
+        return [None] * n
+    out: list = []
+    for j in range(n):
+        v = _reader_get(f"home_seq_{j}")
+        out.append(int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None)
+    return out
+
+
+def _home_axes() -> list:
+    """Per wire axis what the strip shows (status `home_axes`): the joint it
+    homes / unhomes and why Home or Unhome is closed (None = open)."""
+    rows = _axis_joint_map()["axes"]
+    seqs = _home_sequences()
+    out = []
+    for i, r in enumerate(rows):
+        _j, home_why = home_admission(rows, seqs, i)
+        _u, unhome_why = unhome_admission(rows, i)
+        out.append({"letter": r["letter"], "joint": r["joint"], "home": home_why, "unhome": unhome_why})
+    return out
+
+
+async def _manual_command(gate: str, armed: bool, *writes: Tuple[CmdOp, Optional[float]],
+                          extra: Optional[Callable[[], Optional[str]]] = None) -> Dict[str, Any]:
     """A manual command behind its own switch to MANUAL — the spindle's Fwd /
     Rev / ± (button gates BG-31), Home and Unhome — each write `(op(...),
     wait)`, all on the ONE Link the command started on. The command's class on a current read first (the early
@@ -8614,9 +8684,15 @@ async def _manual_command(gate: str, armed: bool, *writes: Tuple[CmdOp, Optional
     (it would abort an MDI started since the snapshot: emcTaskSetMode →
     emcTaskAbort; and the unhomed spindle exception, Q1, must FIND MANUAL,
     never make it) and each write after it — for Unhome the teleop step and
-    the unhome (Codex R216 / R217). A refusal at a write leaves it and the
-    rest unsent; the reply says why. Caller holds `_cmd_lock`."""
-    admit = _gate_admit(gate, armed)
+    the unhome (Codex R216 / R217). `extra`: a command's own admission held
+    the same way to its last write — Home per axis: the mapping and the home
+    group on the current sequence read (package 3a, Codex R364/R365). A
+    refusal at a write leaves it and the rest unsent; the reply says why.
+    Caller holds `_cmd_lock`."""
+    gate_admit = _gate_admit(gate, armed)
+
+    def admit() -> Optional[str]:
+        return gate_admit() or (extra() if extra is not None else None)
     why = admit()
     if why:
         return {"ok": False, "error": why}

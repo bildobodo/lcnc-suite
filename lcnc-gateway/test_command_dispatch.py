@@ -990,7 +990,9 @@ class TestHandlerExecution(unittest.TestCase):
                 cmd.calls.clear()
                 r, spawned = self._auto_run(**over)
                 self.assertFalse(r["ok"], r)
-                self.assertIn("confirm", r["error"])
+                # a null identity is the payload contract's refusal (package 3a,
+                # R363 N2: null is never "missing"); another one the binding's
+                self.assertIn("must not be null" if why == "no identity" else "confirm", r["error"])
                 self.assertEqual((cmd.args_of("auto"), spawned), (None, []), "nothing started")
         r, _ = self._auto_run()
         self.assertTrue(r["ok"], r)
@@ -1408,8 +1410,12 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(self.cmd.args_of("mdi"), ("G0 X1",))
 
     def test_home_reaches_cmd_home_with_joint(self):
-        r = self._send({"cmd": "home", "joint": 2})
-        self.assertTrue(r["ok"])
+        # per AXIS since package 3a (F-HOME.S2b): the gateway names the joint
+        rows = [{"letter": L, "joint": j, "reason": None} for j, L in enumerate("XYZ")]
+        with unittest.mock.patch.object(gateway, "_axis_joint_map", lambda: {"axes": rows, "reason": None}), \
+                unittest.mock.patch.object(gateway, "_home_sequences", lambda: [1, 1, 0]):
+            r = self._send({"cmd": "home", "axis": 2})
+        self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.args_of("home"), (2,))
 
     def test_mode_switched_before_motion(self):
@@ -1464,8 +1470,11 @@ class TestPayloadValidation(unittest.TestCase):
 
     def test_jog_non_finite_velocity_rejected(self):
         # The motion-value guard: Infinity must not reach CMD.jog.
-        r = self._send({"cmd": "jog_cont", "axis": 0, "vel": "Infinity"})
+        r = self._send({"cmd": "jog_cont", "axis": 0, "vel": float("inf")})
         self._assert_validation_rejection(r, "finite")
+        # a string is never a number (package 3a N3), "Infinity" neither
+        r = self._send({"cmd": "jog_cont", "axis": 0, "vel": "Infinity"})
+        self._assert_validation_rejection(r, "must be a number")
 
     def test_add_tool_garbage_number_rejected(self):
         r = self._send({"cmd": "add_tool", "tool_number": "abc"})
@@ -1846,7 +1855,7 @@ class TestPayloadBoundsReachCmd(unittest.TestCase):
         return r["error"]
 
     def test_infinite_wcs_word_never_reaches_the_mdi(self):
-        err = self._refused({"cmd": "set_wcs", "target": "active", "x": float("inf")}, "mdi")
+        err = self._refused({"cmd": "set_wcs", "target": "G54", "x": float("inf")}, "mdi")
         self.assertIn("finite", err.lower())
 
     def test_out_of_range_joint_never_reaches_cmd_home(self):

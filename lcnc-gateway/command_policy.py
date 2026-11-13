@@ -1227,11 +1227,15 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "jog_incr_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(True), min_len=1)},
     "jog_stop_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True,
                                     item=Num(lo=0, hi=_axis_index, integer=True))},
-    # --- homing: one joint, required — "all" is home_all / unhome_all alone
-    "home":   {"joint": Num(lo=0, hi=lambda l: (l.n_joints - 1) if l.n_joints else None,
-                            integer=True, required=True)},
-    "unhome": {"joint": Num(lo=0, hi=lambda l: (l.n_joints - 1) if l.n_joints else None,
-                            integer=True, required=True)},
+    # --- homing per AXIS (package 3a F-HOME.S2b; operator Q349-1): the strip's
+    #     wire index; the gateway names the joint from the declared mapping
+    #     and refuses an unclear one (and, for Home, a home group). The joint
+    #     on the wire is retired — refused even beside a valid axis (R363 N8).
+    #     "All" is home_all / unhome_all alone.
+    "home":   {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True),
+               "joint": Forbidden("is retired — send the axis, the gateway names the joint")},
+    "unhome": {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True),
+               "joint": Forbidden("is retired — send the axis, the gateway names the joint")},
     # --- spindle: a speed is continuous, but NEGATIVE is a direction error, not
     #     a slider overshoot — lo=0 clamps a stray sign rather than reversing.
     #     0 stays valid: the page sends it for an empty field (N4).
@@ -1272,7 +1276,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {"target": Choice(frozenset(FIXTURE_NAMES), required=True),
                 **{ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")}},
-    "clear_wcs": {"target": Choice(frozenset(FIXTURE_NAMES) | {"all"}, required=True)},
+    "clear_wcs": {"target": Choice(frozenset(FIXTURE_NAMES) | {"all", "reserved"}, required=True)},
     "touchoff": {"axes": AxisMap(required=True), "expect": ExpectMap()},
     "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}), required=True)},
     # --- tool table: a field left out stays as it is (save / renumber, R321
@@ -1450,7 +1454,7 @@ def _check_field(cmd: str, field: str, raw: JsonValue, spec: object, limits: Mac
     if isinstance(spec, ExpectMap):
         if not isinstance(raw, dict):
             raise ValueError(f"{cmd}: {field} must be a mapping")
-        if set(raw) != EXPECT_KEYS:
+        if frozenset(raw) != EXPECT_KEYS:
             raise ValueError(f"{cmd}: {field} must name exactly {sorted(EXPECT_KEYS)}")
         leaves = {"kins_type": Enum(frozenset({0, 1, 2})), "g5x_index": Num(lo=1, hi=9, integer=True)}
         for key, val in raw.items():

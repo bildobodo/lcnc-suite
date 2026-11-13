@@ -603,6 +603,9 @@
      "id": "status:data.gcodes"
     },
     {
+     "id": "status:data.home_axes"
+    },
+    {
      "id": "status:data.homed"
     },
     {

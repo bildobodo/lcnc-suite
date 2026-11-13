@@ -551,7 +551,9 @@ def home_cases(joints: int):
                 c.request("unhome_all")
                 _wait(c, lambda s: s.get("homed_joints") is not None and not any(s["homed_joints"]), 15, "unhomed")
                 expected = [True] * joints if joint is None else [j == joint for j in range(joints)]
-                c.request("home_all") if joint is None else c.request("home", joint=joint)
+                # per AXIS since package 3a (F-HOME.S2b): on the 3-axis profile
+                # (trivkins coordinates=XYZ, sequences 1/1/0) axis i IS joint i
+                c.request("home_all") if joint is None else c.request("home", axis=joint)
                 try:
                     st = _wait(c, lambda s: (s.get("homed_joints") or []) == expected and s.get("inpos"), 60, case)
                     observed, completed = st.get("homed_joints"), True
@@ -574,7 +576,7 @@ def _home_joints(c, joints: int):
     All would re-home the homed ones, which may rest on their switch."""
     for j in range(joints):
         if not (c.status.get("homed_joints") or [False] * joints)[j]:
-            c.request("home", joint=j)
+            c.request("home", axis=j)      # axis i = joint i on the 3-axis profile (package 3a)
             _wait(c, lambda s, j=j: (s.get("homed_joints") or [False] * joints)[j] and s.get("inpos"), 60,
                   f"joint {j} homed")
 

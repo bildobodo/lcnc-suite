@@ -60,8 +60,8 @@ export type WsCommand =
   | { cmd: "set_mode"; mode: number }
   // Homing
   | ({ cmd: "home_all" } & Via)
-  | { cmd: "home"; joint: number }
-  | { cmd: "unhome"; joint: number }
+  | { cmd: "home"; axis: number }
+  | { cmd: "unhome"; axis: number }
   | { cmd: "unhome_all" }
   // Program execution
   | ({ cmd: "cycle_start" } & Via)

@@ -12,6 +12,7 @@ import os
 import re
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 from unittest import mock
 
@@ -493,14 +494,28 @@ class TestManualSpindleOnTheCurrentRead(_Writer):
                                        ("spindle", (linuxcnc.SPINDLE_FORWARD, 1000.0))])
 
 
+def _identity_home_axes(case):
+    """Home / Unhome per axis (package 3a F-HOME.S2b): axis i = joint i,
+    every joint its own home sequence — the shipped 3-axis profile."""
+    rows = [{"letter": L, "joint": j, "reason": None} for j, L in enumerate("XYZ")]
+    for patch in (unittest.mock.patch.object(gateway, "_axis_joint_map", lambda: {"axes": rows, "reason": None}),
+                  unittest.mock.patch.object(gateway, "_home_sequences", lambda: [1, 1, 0])):
+        patch.start()
+        case.addCleanup(patch.stop)
+
+
 class TestHomeOnTheCurrentRead(_Writer):
     """The same class as BG-31 (Codex R216's rule, answer 4): Home, Home All,
     Unhome and Unhome All switch to MANUAL first — an MDI started since the
     snapshot meets neither the switch (it would abort it) nor the homing."""
 
-    CMDS = ({"cmd": "home_all"}, {"cmd": "home", "joint": 0},
-            {"cmd": "unhome_all"}, {"cmd": "unhome", "joint": 0})
+    CMDS = ({"cmd": "home_all"}, {"cmd": "home", "axis": 0},
+            {"cmd": "unhome_all"}, {"cmd": "unhome", "axis": 0})
     ISSUED = ("mode", "home", "unhome", "teleop_enable")
+
+    def setUp(self):
+        super().setUp()
+        _identity_home_axes(self)
 
     def issued(self):
         return [n for n, _a, _k in self.cmd.calls if n in self.ISSUED]
@@ -612,7 +627,8 @@ class TestAtTheWrite(_Writer):
             self.running()
             return 0
         self.cmd.teleop_enable = teleop
-        for msg in ({"cmd": "unhome_all"}, {"cmd": "unhome", "joint": 0}):
+        _identity_home_axes(self)
+        for msg in ({"cmd": "unhome_all"}, {"cmd": "unhome", "axis": 0}):
             with self.subTest(cmd=msg["cmd"]):
                 self.cmd.calls.clear()
                 self.controller()

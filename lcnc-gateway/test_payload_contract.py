@@ -11,7 +11,6 @@ on.
 
     .venv/bin/python3 -m pytest -q test_payload_contract.py
 """
-import asyncio
 import json
 import time
 import unittest
@@ -40,8 +39,8 @@ VALID = {
     "jog_cont_multi": {"axes": [{"axis": 0, "vel": 10.0}]},
     "jog_incr_multi": {"axes": [{"axis": 0, "vel": 10.0, "distance": 1.0}]},
     "jog_stop_multi": {"axes": [0]},
-    "home": {"joint": 1},
-    "unhome": {"joint": 1},
+    "home": {"axis": 1},
+    "unhome": {"axis": 1},
     "spindle_forward": {"speed": 1000.0},
     "spindle_reverse": {"speed": 1000.0},
     "set_feed_override": {"scale": 1.0},
@@ -128,7 +127,7 @@ class TestTheSchemaTable(unittest.TestCase):
         cases = [("auto_run", "line", 0, cp.INT_MAX), ("auto_run", "version", 0, cp.SAFE_INT_MAX),
                  ("tool_change", "tool_number", 0, cp.TOOL_NUMBER_MAX),
                  ("tool_measure", "tool", 1, cp.TOOL_NUMBER_MAX), ("save_tool", "pocket", 0, cp.TOOL_NUMBER_MAX),
-                 ("home", "joint", 0, LIMITS.n_joints - 1), ("jog_cont", "axis", 0, LIMITS.n_axes - 1)]
+                 ("home", "axis", 0, LIMITS.n_axes - 1), ("jog_cont", "axis", 0, LIMITS.n_axes - 1)]
         for cmd, field, lo, hi in cases:
             with self.subTest(cmd=cmd, field=field):
                 for ok in (lo, hi):
@@ -236,7 +235,9 @@ class _Dispatch(unittest.TestCase):
         gateway._source_claims.clear()
 
     def send(self, msg, armed=True):
-        gateway._shared_status = _payload()
+        # a machine every gate admits — standing, its fixture read — so a
+        # refusal here is the PAYLOAD's (the gate runs first in the dispatch)
+        gateway._shared_status = _payload(inpos=True, current_vel=0.0, g5x_index=1)
         return _run(gateway.handle_command(msg, armed))
 
     def booked(self):
@@ -480,3 +481,76 @@ class TestArmOnlyByTheLiteralTrue(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheStepJogThroughTheDispatch(_Dispatch):
+    """VM364-01 / R365: the step's travel by the target it ADDRESSES — the
+    mapped joint in joint mode (a homed machine backing off its soft limit),
+    the axis in teleop — and the mode confirmed at the controller in the
+    jog's own last admission. The probe ties the CMD.jog target to the span."""
+
+    ROWS = [{"letter": L, "joint": j, "reason": None, "max_vel": 20.0, "joint_span": 100.0, "axis_span": 1000.0}
+            for j, L in enumerate("XYZ")]
+
+    def setUp(self):
+        super().setUp()
+        st = current().stat
+        st.joints, st.axis_mask, st.homed = 3, 0b111, (1, 1, 1, 0, 0, 0, 0, 0, 0)
+        self.flag = 0
+        for patch in (unittest.mock.patch.object(gateway, "_axis_joint_map", lambda: {"axes": self.ROWS, "reason": None}),
+                      unittest.mock.patch.object(gateway, "_jog_mode_flag", self._flag)):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    async def _flag(self):
+        return self.flag
+
+    def step(self, distance, beyond=(), mode=None):
+        current().stat.motion_mode = mode
+        gateway._shared_status = _payload(inpos=True, current_vel=0.0, g5x_index=1, joints_beyond_limit=list(beyond))
+        self.cmd.calls.clear()
+        return _run(gateway.handle_command({"cmd": "jog_incr", "axis": 0, "vel": 5.0, "distance": distance}, True))
+
+    def jogs(self):
+        return [a for n, a, _k in self.cmd.calls if n == "jog"]
+
+    def test_backing_off_a_soft_limit_takes_the_joint_span(self):
+        self.flag = 1
+        r = self.step(200.0, beyond=["X"], mode=linuxcnc.TRAJ_MODE_FREE)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("joint 0", r["error"])
+        self.assertEqual(self.cmd.calls, [], "refused before any write")
+        r = self.step(50.0, beyond=["X"], mode=linuxcnc.TRAJ_MODE_FREE)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_INCREMENT, 1, 0, 5.0, 50.0)], "the joint, under its span")
+
+    def test_in_teleop_the_axis_span_and_the_canonical_axis(self):
+        self.flag = 0
+        r = self.step(200.0, mode=linuxcnc.TRAJ_MODE_TELEOP)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_INCREMENT, 0, 0, 5.0, 200.0)])
+        r = self.step(1200.0, mode=linuxcnc.TRAJ_MODE_TELEOP)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("axis X", r["error"])
+
+    def test_teleop_not_reached_writes_no_jog(self):
+        self.flag = 1                            # expected teleop, the helper ends in joint mode
+        r = self.step(200.0, mode=linuxcnc.TRAJ_MODE_FREE)
+        self.assertEqual(r, {"ok": False, "error": gateway.JOG_MODE_CHANGED})
+        self.assertEqual(self.jogs(), [])
+
+    def test_a_mode_change_after_the_match_is_caught_at_the_write(self):
+        self.flag = 0                            # the helper says teleop ...
+        r = self.step(200.0, mode=linuxcnc.TRAJ_MODE_FREE)   # ... the controller reads free at the write
+        self.assertFalse(r["ok"], r)
+        self.assertIn("Jog mode changed", r["error"])
+        self.assertEqual(self.jogs(), [])
+
+    def test_an_unknown_travel_closes_the_step_but_not_the_continuous_jog(self):
+        self.ROWS = [dict(r, axis_span=None) for r in self.ROWS]
+        self.flag = 0
+        r = self.step(1.0, mode=linuxcnc.TRAJ_MODE_TELEOP)
+        self.assertEqual(r, {"ok": False, "error": STEP_TRAVEL_UNKNOWN})
+        current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 0, "vel": 5.0}, True))
+        self.assertTrue(r["ok"], r)
