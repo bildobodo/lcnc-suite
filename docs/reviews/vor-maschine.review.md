@@ -1997,7 +1997,10 @@ Spalten:
 - **Pflicht:** Die Werteform gilt nach N3.
 - **Optional:** Fehlend gilt nach der genannten Regel, `null` und falscher Typ werden immer abgelehnt (N2).
 - **Heute → künftig:** nur das, was sich ändert.
-- **Sender:** was die Seite heute sendet (`lcnc.ts` `WsCommand`, die Sendestellen in der Inventur §5). Keine Zeile bricht einen Sender in `lcnc-webui/src`. Die Skripte unter `scripts/` und die Python-Tests prüfe ich im Bau und nenne jede angepasste Stelle.
+- **Sender:** was die Seite heute sendet (`lcnc.ts` `WsCommand`, die Sendestellen in der Inventur §5).
+  - **Pflichtfelder:** Kein Sender in `lcnc-webui/src` lässt eines weg.
+  - **N2/N3 an optionalen Feldern:** Die Werkzeugmaske sendet ihre Zahlen über die Zahlentastatur (`v-model.number`, `ToolTablePanel.vue:282`) und `null` nur in den Metadaten, die außerhalb des Vertrags liegen. Kein `fire`/`send`/`request` in `src` trägt ein wörtliches `null`.
+  - **Nicht geprüft:** Ein `NaN` aus einer Rechnung der Seite ist so nicht ausgeschlossen; es wird künftig abgelehnt statt still als „fehlt“ gelesen. Die Skripte unter `scripts/` und die Python-Tests prüfe ich erst im Bau und nenne jede angepasste Stelle.
 
 #### 2.1 Maschinenzustand und Modus
 
@@ -2026,7 +2029,14 @@ Spalten:
 - **Leiste:** Die Leiste sperrt den Achsknopf mit dem Grund. Der Zustand Home/Unhome liest `homed_joints[joint]` statt `homed_joints[a.index]`.
 - **Ausgelieferte Profile:**
   - 3 Achsen: `trivkins coordinates=XYZ` ist deklariert.
-  - **5 Achsen** (`xyzac-trt-kins`) und **6 Achsen TWP** (`xyzacb_trsrn`) deklarieren nichts. Ohne Nachtrag wäre Home je Achse dort gesperrt. Ich trage `WEBUI_JOINT_AXES = X Y Z A C` bzw. `X Y Z A B C` ein; das ist die Reihenfolge ihrer `[JOINT_n]`-Abschnitte. Damit sendet jedes ausgelieferte Profil denselben Joint wie heute.
+  - **5 Achsen** (`xyzac-trt-kins`) und **6 Achsen TWP** (`xyzacb_trsrn`) deklarieren nichts. Ohne Nachtrag wäre Home je Achse dort gesperrt. Ich trage `WEBUI_JOINT_AXES = X Y Z A C` bzw. `X Y Z A B C` ein. Damit sendet jedes ausgelieferte Profil denselben Joint wie heute.
+  - **Beleg der Reihenfolge:**
+    - TWP: der Identitätszweig in `examples/sim_config/twp/xyzacb_trsrn.comp:233–239`, `j[0..5]` = x y z a b c.
+    - XYZAC: Die `kinematics` in `machine-5axis-xyzac/machine.json` nennen die Joints 0–4 für X, Y, Z, A und C (C = Joint 4, wie es auch der Viewer liest). Den Quelltext von `xyzac-trt-kins` habe ich nicht hier; das benenne ich.
+  - **Installierte Kopien:** `~/linuxcnc/configs/` sind Kopien, eine schon installierte 5- oder 6-Achs-Kopie hat die Zeile also nicht.
+    - `WEBUI_JOINT_AXES` kommt in `DISPLAY_SUITE_KEYS` (`install_examples.py:37`). Ein erneutes `install_examples` ergänzt die Zeile, wo sie fehlt, und ersetzt nie eine vorhandene; so kam schon `WEBUI_MACRO_DIR` in bestehende Installationen. `config_sync_check.py` meldet die fehlende Zeile.
+    - Bis zur Neuinstallation ist Home je Achse dort gesperrt, mit dem Grund am Knopf. Das ist eine **Verhaltensänderung für den Operator**.
+    - Die LAN-Sim und die Kopie für `twp_buttons_check.py` installiere ich im Bau neu, bevor ich live abnehme.
 - **Maschine des Operators:** Laut ihrem Repository (gelesen am 13. November) ist `trivkins kinstype=both coordinates=xyz` deklariert; die Zuordnung ist die Identität.
 - **Nebenbefund, ungeprüft:** Dort hat jeder Joint `HOME_SEQUENCE = -1`. Ob LinuxCNC ein `home(j)` bei negativer Sequenz einzeln annimmt, habe ich nicht am Quelltext geprüft. Das gehört auf die Checkliste für den Maschinentag, nicht in diesen Vertrag.
 - **Abnahme** wie in Q349-1: vertauschte Joint-Reihenfolge, unvollständige oder unbekannte Deklaration, Gantry, unveränderte ausgelieferte Profile, je Zustand und gesendetem Ziel; dazu `twp_buttons_check.py` live.
@@ -2117,6 +2127,7 @@ Jede der vier Stellen bekommt ihren eigenen Test, der vor dem Fix rot ist; gepr�
 1. **Tabellengetriebener Dispatch-Test** über den echten `handle_command`.
    - Je Pflichtfeld drei Fälle: fehlend, `null`, falscher Typ (Boolean, Zeichenkette, gekürzte Ganzzahl).
    - Jeder Fall wird abgelehnt mit **null aufgezeichneten Controller-Aufrufen**, `mode` eingeschlossen; dazu gehören auch MDI, `#`-Schreiben und HAL-Sendungen.
+   - **Und nichts bleibt zurück:** kein Start-Claim, kein Eintrag in `_active_jogs`, keine Buchung des Toolsetters oder des Werkzeugwechsels, keine Änderung der `#3116`-Verfolgung. Bei `run_macro` und `auto_run` liegen Claim und `_start_guard` heute vor der Feldprüfung (Teil 4); nach der Umstellung belegt der Test die neue Reihenfolge.
    - Daneben je Feld ein gültiger Zwilling und, wo erlaubt, ein 0/`false`-Zwilling; beide kommen an.
    - Die Tabelle ist **Daten** im Test und wird gegen `COMMAND_SCHEMA` gehalten: Jedes Pflichtfeld im Schema hat seine Zeile, jede Zeile ihr Schemafeld.
 2. **Stopp-Wächter (N5):** Fehlerhafte `jog_stop`, `jog_stop_multi`, ein ungültiges `via` an `estop`/`abort`/`cycle_pause`/`spindle_stop` und `arm` mit Nicht-`true` erreichen ihren Stopp (aufgezeichnet), nie eine Ablehnung.
@@ -2124,6 +2135,8 @@ Jede der vier Stellen bekommt ihren eigenen Test, der vor dem Fix rot ist; gepr�
    - Jedes Feld, das ein Handlerzweig aus `msg` liest (`msg.get`, `msg[…]`, `in msg`), steht im Schemaeintrag seines Befehls.
    - Kein Pflichtfeld wird mit `msg.get(k, default)` gelesen.
    - **Was der Scan nicht sieht, benenne ich:** `msg` an Helfer übergeben (`purpose_refusal(msg)`, `sets_refusal`, `touchoff_expect_check`, die RFL-Einfahrt). Diese Helfer stehen in einer geschlossenen Liste, die der Scan gegen jeden Aufruf mit `msg` als Argument hält; ein neuer Helfer macht ihn rot. Ebenso `msg` unter anderem Namen und `**msg`.
+   - **Geteilte Zweige** (`if cmd in (…)`, `cmd == a or cmd == b`): Ein gelesenes Feld zählt für jeden Befehl des Zweigs.
+   - **Außerhalb von `validate_payload`:** `arm` im Worker und die Reader-Rahmen. Der Scan liest auch diese beiden Funktionen und hält ihre Felder gegen die Tabelle in Teil 5 bzw. die `arm`-Zeile; ihre Wirkung prüfen die Wächter 2 und 5.
    - Gegenfälle im Scan selbst: ein eingefügtes `msg.get("x", 0)` und ein neues ungeschemtes Feld machen ihn rot.
 4. **Reihenfolge (Teil 4):** vier Rot-vor-dem-Fix-Tests.
 5. **Reader (Teil 5):** Jeder schlechte Rahmen bekommt eine Antwort, und **derselbe Socket** beantwortet danach einen `heartbeat`.
@@ -2144,6 +2157,10 @@ Jede der vier Stellen bekommt ihren eigenen Test, der vor dem Fix rot ist; gepr�
   - die drei nativen Fälle.
 - **Reviews und Merge:** Beide Teile bekomme ich als A/B in einer Implementierungsrunde vor dich. Gemergt wird über einen Integrationskopf.
 - **3b** (Replay → Antast-Live → Firefox) folgt nach dem Merge des Vertrags, weil die Datenmaps des Replays gegen das Schema gehalten werden.
+- **Verhaltensänderungen für den Operator:**
+  - Im normalen Bedienen ändert sich nichts, denn die Seite sendet heute schon jedes Pflichtfeld.
+  - Neu: Ein Achsknopf für Home/Unhome ist gesperrt, wo die Zuordnung Achse→Joint unklar ist, mit dem Grund am Knopf.
+  - Neu: Eine schon installierte 5- oder 6-Achs-Kopie braucht dafür eine Neuinstallation (siehe 2.2).
 
 ### Fragen
 
