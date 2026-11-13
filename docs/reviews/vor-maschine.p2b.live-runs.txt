@@ -19,3 +19,21 @@ Run 2 (all-link2.sh): native stage refused at its tree step — "node_modules sh
 Run 3 (native-link.sh): native main PASS — 58 PASS, 6 "incomplete" (jog-x±/y±/z± braking travel: status
   frames give no lower bound — the same six as development 407b758c's run, a known limit of the stage);
   native latch-delayed PASS — 3 PASS. LAN restore complete on both; the LAN sim back on 999a8ca9.
+
+Run 4 (chain-2b on 3e3ec6ed, the R360 head, 2026-11-13 06:28–07:17; ~/claude-work/typecheck/chain-2b.sh):
+  counter-cases       60/60 (vor-maschine.p2b.r360.mutations.txt); test-session guards 6/6 (…mutations-iso.txt)
+  red check           every new guard red on the gateway.py before its fix: 16 FAILED, 2 controls PASSED
+                        (…red-pin.txt — run 1 selects the whole heal class, so 3e3ec6ed's four heal guards are
+                        red against 699834be too)
+  round gate          PASS (…r360.gate-round.json): unit 2650, backend incl. ruff/pyright, browser 7/7;
+                        pending perf-matrix + twp-buttons = the live checks below
+  native main         PASS — 58 PASS, 6 "incomplete" (the same jog braking-travel rows; their .servo twins PASS)
+  native latch-delayed PASS — 3 PASS
+  live-twp            PASS — 9/9, twp_buttons_check included (…r360.live-twp.*)
+  toolsetter-readback PASS — 10 rows
+  macro-live          PASS — 17 PASS, 1 SKIP (above-z0, as before)
+  perf-matrix         PASS (run a2b09fd631a4; sigstop_trip trips as intended)
+  LAN sim given back on the branch (lan-to rc=0).
+  The reserved-fixture heal ran in NO live gateway (no twp.reserved_fixture_* from the live processes; every
+  such trace line in the worktree's trace.ndjson comes from a pytest process): no profile boots on a TWP
+  scratch row. Its lock, pin, preemption and re-check are certified on fake channels only.
