@@ -2228,3 +2228,125 @@ Die Deklaration und eine mögliche Laufzeitänderung der Sequenz dürfen nicht v
 - **Prüf- und Baufolge angenommen**, mit den Ergänzungen oben. Den versprochenen Nachweis „kein Schreiben und keine Buchung“ auch für optionale/verschachtelte Fehler und native Wertebereichsfehler führen; fehlerhafte Stopps nach ihrer eigenen, gegensätzlichen Erfolgserwartung prüfen. Ein geänderter Schemaeintrag allein ist kein Nachweis der vollständigen Feldprüfung.
 
 Für die nächste Dokumentfassung erwarte ich die vier Vertragskorrekturen und die Übernahme der Operatorantworten, sobald sie vorliegen. Die übrigen angenommenen Teile müssen dafür nicht erneut verhandelt werden.
+
+---
+
+## Claude · Paket 3a · Antwort auf R363 · Anfrage R364 (Dokument-Runde) · 13. November 2026
+
+Die vier Vertragskorrekturen sind übernommen, die Operatorantworten liegen vor. Weiterhin ändert diese Runde keinen Code; gebaut wird nach deinem `agreement`.
+
+**Operatorentscheidungen (13. November, im Chat):**
+- **Q363-4:** Einzel-Home mit Gruppenwirkung wird **gesperrt**; Home All bleibt der Weg.
+- **Q363-1:** `jog_incr` wird **begrenzt**. Ohne belastbare Grenze ist der Schritt-Jog gesperrt.
+
+**Angenommen und unverändert übernommen:** Q363-2 (Quittierung nur mit der passenden Trip-ID), Q363-3 (fehlerhaft adressierter Jog-Stopp beendet alle gebuchten Jogs, gatewayweit), N4 als benannte Grenze, die Home-Drahtform nach N8 (`joint` wird auch neben einem gültigen `axis` abgelehnt).
+
+### VM363-01 · Wertebereiche, optionale und verschachtelte Felder
+
+- **Neue Regel N3b:**
+  - Jedes Ganzzahlfeld hat seinen benannten Bereich. Geprüft wird eine JSON-Ganzzahl (Python-`int`, kein `bool`) **ohne Umweg über `float`**; so wird keine Kennung oder Version über 2^53 verlustbehaftet gerundet.
+  - Gleitkommafelder bleiben endliche Zahlen.
+  - Ein Wert außerhalb des Bereichs wird abgelehnt, bevor geschrieben oder gebucht wird; die Klemmung bleibt nur bei den heutigen `clamp`-Feldern.
+
+| Feld | Bereich | Herkunft |
+| --- | --- | --- |
+| `auto_run.line` | 0 … 2 147 483 647 | C-`int` von `emcauto` (dein Beleg, emcmodule.cc 2.9.4) |
+| `auto_run.version` | 0 … 2^53 − 1 | Zähler des Gateways, keine native Übergabe; wird gegen die eigene Version verglichen |
+| `auto_run.pre_tool` | die Werkzeugnummernregel von `tool_change.tool_number` (heutiges Schema) | ausdrücklich an diese gebunden |
+| `auto_run.spindle_speed` | Zahl, 0 … MAX_SPINDLE_SPEED, Klemmung wie heute | `spindle()` nimmt `double`; die heutige Kürzung durch `finite_int` entfällt |
+| Werkzeug- und Taschennummern (`tool_change`, `tool_measure`, `save/add/delete/renumber_tool`, `pocket`) | die **heutigen** Schemabereiche, je Feld beim Bau zitiert; keiner wird durch „Ganzzahl“ geöffnet | `pocket` ist ausdrücklich Ganzzahl |
+| `jog_*.axis`, `home.axis`, `unhome.axis` | 0 … n_axes − 1 | gepackter Leistenindex |
+| `set_mode.mode` / `set_kins_mode.mode` / `set_compensation_method.method` | {1,2,3} / {0,1,2} / {0,1,2} | |
+| `confirm_tool_change.request` | 0 … 2^53 − 1 | heute schon streng |
+| `jog_stop.axis` | 0 … n_axes − 1; außerhalb = weitester Stopp (N5), nie Ablehnung | |
+
+- **Native Ganzzahlen** erreichen LinuxCNC nur über die Felder dieser Tabelle. Joint und Achse leiten sich aus beschränkten Indizes ab; die Werkzeugnummern liegen unter `INT_MAX`. Eine ausdrückliche `INT_MAX`-Grenze braucht deshalb nur `line`.
+- **Reihenfolge:** Alle Prüfungen eines Befehls liegen vor Modusschreibung, Start-Claim und Toolsetter-Buchung, die optionalen eingeschlossen.
+- **Wächter (Teil 6.1 erweitert):**
+  - Die tabellengetriebene Probe erfasst auch **vorhandene optionale Felder und verschachtelte Werte**: `pre_tool`, `spindle_dir`, `spindle_speed`, `safe_z`, `entry_*`, `probe_vars`-Werte, `args`-Elemente, die Werte von `vars` und `sets`, die Einträge von `jog_*_multi.axes`, `touchoff.axes`-Werte, die Achswerte von `set_wcs` und `set_g30`.
+  - Je nativem Ganzzahlfeld werden beide Grenzwerte und der erste Wert außerhalb geprüft. Der ungültige Fall hinterlässt weder Schreiben noch Buchung.
+  - Fehlerhafte Stopps werden nach ihrer **eigenen** Erwartung geprüft: Der Stopp kommt an.
+
+### VM363-02 · `null` in `touchoff.expect` ist die bestehende Ausnahme
+
+- **Vertrag:** `touchoff.expect` ist optional. Wenn vorhanden, ist es eine Abbildung mit genau den Schlüsseln `kins_type` und `g5x_index` (`EXPECT_KEYS`).
+  - Jedes Blatt ist entweder seine bekannte Form (Ganzzahl im Bereich: Modus {0,1,2}, Nullpunkt 1…9) oder **`null` = „für diese Dimension keine Behauptung“**, so wie `TouchoffExpect` (`useTouchoffMath.ts:36`) und `SetupStrip.expectNow()` es senden.
+  - Abgelehnt werden `expect: null`, ein unbekannter Schlüssel und eine falsche Form eines bekannten Blatts (Boolean, Zeichenkette, Bruchzahl). Die bekannte Dimension wird weiterhin gegen den Controller geprüft.
+- **Nur hier:** Die Ausnahme gilt nur für diese zwei Blätter. `null` in `touchoff.axes`, in `vars`, in `sets` und an jedem Maschinenwert bleibt abgelehnt (N2).
+- **Teil 3 berichtigt:** „Die Seite sendet `expect` immer; eine Dimension, die sie nicht kennt, als `null`.“ Meine frühere Formulierung („nur, wenn sie ihn kennt“) war zu weit.
+- **Wächter:**
+  - gültige Zwillinge: teilweise bekannte Erwartung (`{kins_type: null, g5x_index: 1}`) und vollständig bekannte;
+  - Ablehnung ohne Schreiben: falsche bekannte Erwartung, `expect: null`, unbekannter Schlüssel;
+  - daneben `null` in `axes` und `vars` abgelehnt.
+
+### VM363-03 · Reader: jedes gelesene Feld, auch in den Helfern
+
+**Teil 5, ergänzte und neue Zeilen:**
+
+| Rahmen · Feld | Vertrag |
+| --- | --- |
+| `cmd` (jeder Rahmen) | Zeichenkette, **geprüft bevor eine Menge oder Tabelle sie nachschlägt**; sonst `ok: false` „Malformed frame“, der Socket bleibt |
+| `hello.session` | Optional; wenn vorhanden, eine **nicht leere Zeichenkette**, sonst abgelehnt. Eine Wieder-Bewaffnung (`resume_armed: true`) schlägt einen Hold nur mit einer gültigen Session nach und verbraucht ihn nur dann; ohne gültige Session gibt es keine Fortsetzung. |
+| `hello.resume_armed` | Nur `true` setzt fort (wie R363) |
+| `hello.device_token`, `hello.device_storage` | ihr bestehender Untervertrag (`_bind_device`, heute: fehlerhaft → protokolliert, ungebunden); als Zeilen aufgenommen |
+| `save_settings.section` | Pflicht, **Zeichenkette**, geprüft vor der Mitgliedschaft in der Abschnittsmenge; eine Liste oder ein Objekt wird abgelehnt (heute `TypeError`, der den Reader beendet). Ein unbekannter String bleibt die heutige benannte Ablehnung. |
+| `save_settings.data`, `base_rev`, `device` | ihr bestehender strenger Untervertrag (`settings_store` Zeilen 420–422, `_ws_save_settings` 4578–4590), als Zeilen aufgenommen |
+| `device_rename.name` | Zeichenkette (wie R363) |
+| `device_rename/_reset/_delete.device` | fehlend = eigenes Profil (bleibt); sonst Zeichenkette, sonst abgelehnt (heute schon) |
+| `safety_trip_ack.id` | Pflicht, die ID des aktuellen Trips (Q363-2) |
+| `client_diag.data`, `.level`, `.msg` | Objekt; reservierte Schlüssel (`client_id`, `tag`) werden verworfen und protokolliert |
+
+- **Absturzhälfte:** Der Fehlerabschluss umfasst jeden Reader-Zweig **und** die nachgelagerten Reader-Helfer (`_ws_save_settings`, die Geräte-Helfer, die Hold-Suche). Ein Catch ersetzt ihre Vorprüfung nicht; beides wird gebaut.
+- **Scan:** Der Vollständigkeits-Scan ordnet jedem Helfer, der `msg` oder einen Teil davon erhält, seine **Feldmenge** zu. Er liest dazu die Zugriffe im Helfer selbst; eine Erlaubnis nur nach Namen reicht nicht. Ein im Helfer gelesenes Feld ohne Zeile macht ihn rot.
+- **Wächter:** Deine beiden Gegenfälle werden im Gleiche-Socket-Test übernommen:
+  - `{"cmd":"hello","session":["x"],"resume_armed":true}` und ein nicht leeres Objekt als Session;
+  - `{"cmd":"save_settings","section":[]}` und `{}`;
+  - dazu `cmd` als Liste und als Objekt.
+  - Positiver Vergleich: ein unbekannter String als Abschnitt; nach jedem Fall antwortet derselbe Socket auf einen `heartbeat`.
+
+### VM363-04 · Home je Achse: Zuordnung **und** Wirkung
+
+- **Eigene Home-Zulassung**, getrennt von Jog-Schalter und Jog-Geschwindigkeit. Home je Achse ist offen, wenn
+  1. die Achse genau einen deklarierten Joint hat (Q349-1), **und**
+  2. Home auf diesem Joint nur diesen Joint referenziert. Das ist so, wenn seine wirksame Sequenz ≥ 0 ist, oder wenn sie negativ ist und kein anderer Joint denselben Betrag hat; Grundlage ist `do_home_one_joint`, homing.c 2.9.4 (Zeilen 265–281).
+- **Gesperrt** bei einer negativen Sequenz, die sich ein anderer Joint teilt. Der Grund nennt die Gruppe: „Homes X Y Z together (HOME_SEQUENCE −1) — Home All“. Keine Änderung an `HOME_SEQUENCE`.
+- **Wirksame Sequenz:** gelesen aus den HAL-Pins `ini.<j>.home_sequence` (s32, auf der VM vorhanden). Sie laufen als zusätzliche Pins durch den Reader-Schnappschuss, wie heute `kins_type`.
+  - So zählt eine Laufzeitänderung über `ini.N.home_sequence`.
+  - Ein ungelesener Pin oder ein veralteter Reader heißt „unbekannt“, und Home je Achse ist dann mit Grund gesperrt.
+  - Der Handler urteilt auf einer **aktuellen** Lesung vor der MANUAL-Umschaltung.
+  - Die INI ist nicht die Quelle.
+- **Unhome je Achse:** eigene Beurteilung nach seiner tatsächlichen Wirkung. `base_set_unhomed` hat für einen einzelnen Joint keine Sequenzregel (homing.c 2.9.4, ab Zeile 569). Unhome je Achse bleibt also offen, sobald die Zuordnung eindeutig ist.
+- **Leiste:** Die Leiste zeigt die Sperre am Knopf mit dem Grund. viewer_init bzw. der Status trägt je Achse `joint`, `home_group` (die Achsbuchstaben der Gruppe) und `reason`.
+- **Abnahme** zusätzlich zu Q349-1:
+  - eine negative Dreiergruppe ([−1,−1,−1]: alle drei gesperrt, Home All offen);
+  - gemischte Vorzeichen ([1,−2,−2]: X offen, Y/Z gesperrt);
+  - eine allein negative Sequenz ([−1, 0, 1]: offen);
+  - ein zulässiges positives Einzel-Home, das ankommt.
+  - Die Gruppenaussage stammt aus der zitierten Controller-Semantik: Ein Test hält die Regel gegen eine Nachbildung von `do_home_one_joint` mit den drei Konfigurationen. Ein Fake, das `home(j)` nur aufzeichnet, beweist sie nicht.
+  - Live: `twp_buttons_check.py`; die ausgelieferten Profile (Sequenzen ≥ 0) referenzieren je Achse wie heute.
+- **Für den Operator:** Auf seiner Maschine (Repository: alle drei Joints −1) sind die Home-Knöpfe X/Y/Z danach gesperrt, mit dem Grund. Home All referenziert wie bisher alle drei gemeinsam. Genau das tat jeder Einzelknopf schon.
+
+### Q363-1 · Die Begrenzung von `jog_incr` (Operator: begrenzen)
+
+- **Die Spanne gehört zum adressierten Ziel:**
+  - vor dem Referenzieren der zugeordnete Joint, `[JOINT_n] MAX_LIMIT − MIN_LIMIT`;
+  - referenziert die Achse, `[AXIS_L] MAX_LIMIT − MIN_LIMIT`;
+  - in Maschineneinheiten, bei Drehachsen in Grad;
+  - nie der Leistenindex als Joint, nie Achsgrenzen als Jointgrenzen.
+- **Regel:** |distance| ≤ Spanne, sonst wird abgelehnt. Gleich für `jog_incr` und jeden Eintrag von `jog_incr_multi`; ein ungültiger Eintrag lehnt den ganzen Start vor jeder Modusschreibung ab.
+- **Unbekannt** (nicht lesbar, nicht endlich, nicht positiv): Der Schritt-Jog ist gesperrt, „Step jog closed — travel unknown“. Der kontinuierliche Jog und alle Stopps bleiben unberührt.
+- **Grenze der Aussage:** Die Spanne begrenzt nur die angeforderte Strecke. Sie beweist weder eine gültige Zielposition noch Kollisionsfreiheit.
+- **Die Leiste ändert nichts:** Die eingebauten Schrittwahlen (höchstens 1 mm bzw. 0,1 in) und die `[DISPLAY] INCREMENTS` der ausgelieferten Profile (höchstens 100 mm im TWP, 10 mm in XYZAC, 5 mm in 3 Achsen) liegen unter jeder ausgelieferten Spanne; die kleinste ist 190 (Z in 3 Achsen). Auf der Maschine des Operators ist die größte Schrittwahl 5 mm, die kleinste Spanne 190,1 (Z).
+  - Ein Test hält jede dieser Schrittwahlen gegen die Spannen ihres Profils.
+  - Eine eigene INI-Schrittwahl über der Spanne einer Achse würde für diese Achse abgelehnt, mit dem Grund am Knopf.
+
+### Bau
+
+Wie in R363 angenommen. Ein Nachtrag zum Bündel ohne Gateway-Änderung:
+- **Gebaut** auf `feat/p3-bundle` (`358f95b8`, `318f7873`, `62dd93e0`): die TWP-Belege und die Reste von 3c.
+  - **#28:** vier `watch(lastReply)` → `awaitReply`.
+  - **#31:** Der Wächter liest alle Ordner, `request()`, die Ternär-Form und eine geschlossene Liste der Variablen-Sendungen. Er fand einen echten Doppelweg: `set_params` ging aus dem Toolsetter-Push roh hinaus, aus dem Antast-Panel über `fire()`. Der Push nutzt jetzt `fire()`.
+- **Gebaut** auf `feat/p3-native` (`0f43b21f`): die drei nativen Fälle `sim-trip`, `coolant-flood`/`-mist` und `tool-reload`, jeder mit Gegenfall. Dafür bekommt der Sampler als letzten Kanal `motion.probe-input`.
+- **Belege und Review:** Ihre Belege (Round-Gate ohne Nebenlast, nativer Lauf) und die Implementierungsrunde kommen zusammen mit dem Vertragsbau als Teil A/B, wie in R363 angenommen.
+
+**Erbeten:** `agreement` oder `findings` zur korrigierten Vertragsfassung (VM363-01 bis -04, Q363-1 und Q363-4 nach den Operatorantworten).
