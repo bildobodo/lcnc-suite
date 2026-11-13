@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1181 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1182 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -13,12 +13,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-2 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+0 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
-| Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
-| Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
 **Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
 
@@ -103,7 +101,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 4 | 3 | 1 |
+| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 12 | 4 | 4 | 0 |
 | **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 6 | 6 | 0 |
 | **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 5 | 5 | 0 |
 
@@ -113,8 +111,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `touch-hold.spec.ts` — a short tap sends nothing and says why; a complete hold sends exactly one command
 - **S2 (Daten):** Home All sendet home_all auf ein Halten; ein Tippen sendet nichts. — gilt für: alle
   - Beleg: browser: `strip-actions.spec.ts` — Home All sends home_all on a hold — a tap sends nothing
-- **S2b (Daten):** Home je Achse sendet den Joint seiner Achse. — gilt für: 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc
-  - Beleg: **offen** — Lücke: Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway
+- **S2b (Daten):** Home je Achse sendet die Achse; das Gateway nennt den deklarierten Joint und sperrt eine unklare Zuordnung und — für Home — eine Home-Gruppe (negative HOME_SEQUENCE), mit Grund am Knopf; der Zustand wird am Joint gelesen. — gilt für: alle
+  - Beleg: gateway: `test_home_axis.py` — test_the_target_sets; gateway: `test_home_axis.py` — test_a_swapped_joint_order_sends_the_declared_joint; gateway: `test_home_axis.py` — test_a_group_appearing_during_the_wait_sends_no_home; browser: `strip-actions.spec.ts` — Home per axis sends the axis and reads its homed state at the joint the gateway names; browser: `strip-actions.spec.ts` — a home group closes Home per axis with its reason; Unhome and Home All stay open
 - **S2c (Wirkung):** Auf echtem LinuxCNC (3 Achsen, Modus Machine) referenziert Home All alle drei Joints; Home je Achse referenziert nach Unhome All genau seinen Joint (0, 1, 2), erst nach bestätigtem Abschluss. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — home-all; native: `native_run.py` — home-joint-0; native: `native_run.py` — home-joint-1; native: `native_run.py` — home-joint-2
 
@@ -528,7 +526,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe** `SYS-CONTROLS` | Auswahlgruppen, Detailkarte, Menü „More“, jeder Dialog, jedes Bedienelement, „?“-Hilfe | 194 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung** `SYS-CONN` | — | 26 | 5 | 4 | 1 |
+| **Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung** `SYS-CONN` | — | 26 | 5 | 5 | 0 |
 | **Statusübertragung (Rahmen und gemeinsame Felder)** `SYS-STATUS` | — | 9 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile** `SYS-CONFIG` | — | 19 | 0 | 0 | Aussagen noch nicht formuliert |
 
@@ -542,8 +540,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_button_gates_e.py` — test_the_disarm_stop; gateway: `test_button_gates_e.py` — test_auto_running_sends_nothing
 - **S4 (Abbruch):** Trennt sich ein gearmter Client oder läuft sein Herzschlag ab, läuft ein AUTO-Programm weiter, und ein zweiter Client bleibt verbunden — ab dem Ereignis des Gateways für genau diesen Client mindestens 2 s, ohne Trip. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4). — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — disconnect-close; native: `native_run.py` — disconnect-heartbeat
-- **S5 (Ablehnung):** Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. — gilt für: alle
-  - Beleg: **offen** — Lücke: Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts)
+- **S5 (Ablehnung):** Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt — fehlend, null, falscher Typ oder außerhalb des Bereichs —, vor jedem Schreiben und jeder Buchung; ein Stopp wird nie wegen seiner Nutzlast abgelehnt, sondern erweitert; ein Rahmen, den der Reader nicht lesen kann, wird beantwortet und der Socket liest weiter. — gilt für: alle
+  - Beleg: gateway: `test_payload_contract.py` — test_every_required_field_fault_writes_nothing_and_books_nothing; gateway: `test_payload_contract.py` — test_the_old_defaults_act_no_more; gateway: `test_payload_contract.py` — test_a_malformed_jog_stop_stops_every_booked_jog_gatewayweit; gateway: `test_payload_contract.py` — test_each_malformed_frame_keeps_the_socket; gateway: `test_payload_scan.py` — test_the_gateway_holds_the_contract
 
 ## Abschaltbare Funktionen
 

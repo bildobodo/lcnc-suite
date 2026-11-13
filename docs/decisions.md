@@ -11407,3 +11407,33 @@ grace stop then ended the new producer): `unsubscribe(epoch)` changes nothing
 of a newer epoch; a features save cancelled after its commit runs the camera
 hook (shielded) before the cancel goes on.
 
+
+## 2026-11-13 — The payload contract (package 3a, SYS-CONN.S5 + #27; Codex R363–R365, operator Q363-1 / Q363-4)
+
+**Decision.** One check of every command's fields (`validate_payload`
+against `COMMAND_SCHEMA`): required fields refused when missing, null never
+"missing" (one exception: touchoff.expect's leaves), strict JSON types,
+named ranges, nested values judged — before any write and any booking. The
+stops are widened, never refused for their payload; `arm` arms only on
+`true`. The step jog is bounded by its addressed target's travel (operator:
+bound; unknown closes it). The reader answers what it cannot handle and
+reads on; the trip acknowledgement names its trip.
+
+**Why.** The inventory (R349/R363) found handler defaults that acted: Home
+All from a missing joint, the active offset zeroed from a missing target,
+100 % from a missing scale, block delete ON from "false", tool lengths and
+parameters written as 0 from null — and a bad `via` that refused E-Stop.
+None of it reachable from the shipped page in normal use, all of it from a
+NaN or a foreign client. The contract table was settled in three document
+rounds before any code (R363 findings, R364 findings, R365 agreement).
+
+**Operator.** Q363-1 (2026-11-13): bound the step jog, closed where the
+travel is unknown. Q363-4: lock Home per axis where LinuxCNC homes a group
+(F-HOME.S2b, the second commit of this package).
+
+**F-HOME.S2b (second commit).** Home / Unhome per axis send the axis; the
+gateway names the declared joint (pure mapping) and closes an unclear one,
+and Home where LinuxCNC homes a group (effective `ini.N.home_sequence`, held
+to the home write). The 5- and 6-axis profiles declare `WEBUI_JOINT_AXES`;
+an installed copy gets it from `install_examples`.
+

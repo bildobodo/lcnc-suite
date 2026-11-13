@@ -22,7 +22,7 @@ const GATEWAY = fileURLToPath(new URL("../../lcnc-gateway", import.meta.url));
 
 interface ClientCommand { fields: Record<string, { optional: boolean; type: string }>; index: boolean }
 type ClientCommands = Record<string, ClientCommand>;
-interface Gateway { schema: Record<string, Record<string, string>>; gated: string[] }
+interface Gateway { schema: Record<string, Record<string, string>>; gated: string[]; forbidden?: Record<string, string[]> }
 
 /** `WsCommand`'s members through the checker: intersections and named
  *  interfaces resolved, an index signature reported. */
@@ -52,7 +52,9 @@ function readClient(path: string): ClientCommands {
 
 function readGateway(): Gateway {
   const py = `import sys, json; sys.path.insert(0, ${JSON.stringify(GATEWAY)}); import command_policy as cp
-print(json.dumps({"schema": {c: {f: type(s).__name__ for f, s in fs.items()} for c, fs in cp.COMMAND_SCHEMA.items()},
+print(json.dumps({"schema": {c: {f: type(s).__name__ for f, s in fs.items() if not isinstance(s, cp.Forbidden)}
+                             for c, fs in cp.COMMAND_SCHEMA.items()},
+                  "forbidden": {c: [f for f, s in fs.items() if isinstance(s, cp.Forbidden)] for c, fs in cp.COMMAND_SCHEMA.items()},
                   "gated": sorted(cp.COMMAND_GATES)}))`;
   return JSON.parse(execFileSync("python3", ["-I", "-c", py]).toString()) as Gateway;
 }
@@ -75,27 +77,21 @@ const UNGATED: Record<string, string> = {
 };
 /** Fields the UI sends that the schema does not bound — each with its reason. */
 const UNBOUNDED: Record<string, string> = {
-  "arm.armed": "a boolean",
-  "set_mode.mode": "checked by the handler against the task modes",
-  "auto_run.file": "the handler binds it to the loaded program", "auto_run.spindle_dir": "an enum the handler checks",
-  "auto_run.safe_z": "a boolean", "auto_run.entry_x": "the program's own coordinate", "auto_run.entry_y": "the program's own coordinate",
-  "auto_run.entry_wcs": "an enum the handler checks", "auto_run.entry_units": "an enum the handler checks",
-  "load_file.path": "the handler admits only paths inside PROGRAM_PREFIX",
-  "jog_incr.distance": "bounded by the handler against the axis window",
-  "set_optional_stop.value": "a boolean", "set_block_delete.value": "a boolean", "set_compensation.enable": "a boolean",
-  "confirm_tool_change.request": "matched against the pending request (BG-17)",
-  "clear_wcs.target": "an enum the handler checks", "set_wcs.target": "an enum the handler checks",
-  "save_settings.section": "checked against _VALID_SETTINGS_SECTIONS",
+  // the worker answers `arm` itself: anything but the literal true disarms (package 3a N5) — never refused
+  "arm.armed": "the worker's rule: only the literal true arms, anything else disarms",
+  "save_settings.section": "the reader's: a string, then checked against _VALID_SETTINGS_SECTIONS (package 3a Teil 5)",
   "save_settings.base_rev": "the store refuses anything but a non-negative integer",
   "save_settings.device": "a public profile id the store looks up (unknown = refused)",
-  "device_rename.name": "trimmed and bounded (40 characters) by the store",
+  "device_rename.name": "the reader's: a string, trimmed and bounded (40 characters) by the store",
   "device_rename.device": "a public profile id the store looks up", "device_reset.device": "a public profile id the store looks up",
   "device_delete.device": "a public profile id the store looks up",
-  "timing_log.enable": "a boolean", "halshow_live.on": "a boolean", "tab_visibility.hidden": "a boolean",
+  "timing_log.enable": "the reader's: a JSON boolean, else refused", "halshow_live.on": "the reader's: a JSON boolean, else refused",
+  "tab_visibility.hidden": "the reader's: a JSON boolean, else the state stays (no reply by design)",
+  "safety_trip_ack.id": "the reader's: the CURRENT trip's id, else refused (package 3a Q363-2)",
 };
 /** The tool editor's fields beyond the bounded ones (ToolFields): the
  *  metadata the handler writes to the tool library. */
-const TOOL_METADATA = ["z_offset", "remark", "description", "type", "flutes", "oal", "flute_length", "corner_radius",
+const TOOL_METADATA = ["description", "type", "flutes", "oal", "flute_length", "corner_radius",
   "body_length", "shaft_diameter", "taper_angle", "point_angle", "tip_diameter", "material", "holder"];
 for (const c of ["save_tool", "add_tool", "renumber_tool"]) for (const f of TOOL_METADATA) UNBOUNDED[`${c}.${f}`] = "tool metadata, written as given";
 /** Maps: a path, its keys and values — the contract the replay checks. */
@@ -107,14 +103,13 @@ const DATA_MAPS: Record<string, string> = {
   "auto_run.probe_vars": "keys ^\\d+$, finite numbers, each declared in the var file (VarNumbers)",
   "touchoff.axes": "keys TOUCHOFF_LETTERS, finite numbers (AxisMap)",
   "set_g30.values": "keys axis letters, finite numbers", "set_g30.based_on": "keys axis letters, finite numbers",
-  "touchoff.expect": "kins_type, g5x_index: integers or null (ExpectMap)",
-  // OPEN (test strategy step 2, raised in its review): the schema bounds only
-  // the count (Seq ≤ n_axes); the homed handler passes each entry's axis and
-  // vel on without the single jog's bounds (axis index, ±max_jog_velocity —
-  // LinuxCNC caps the velocity itself). Per-entry bounds are owed, with the
-  // motion buttons' live check (twp_buttons_check.py).
-  "jog_cont_multi.axes": "entries {axis, vel}: count ≤ n_axes; per-entry bounds OPEN",
-  "jog_incr_multi.axes": "entries {axis, vel, distance}: count ≤ n_axes; per-entry bounds OPEN",
+  "touchoff.expect": "exactly kins_type and g5x_index: an integer of its range or null = no claim (ExpectMap, R363 VM363-02)",
+  // package 3a (R363): each entry is checked like the single jog (Entry) —
+  // the axis index, ±max_jog_velocity (clamped), the step's distance (its
+  // travel bound is the handler's, by the addressed target) — before the
+  // switch to MANUAL; an empty list is refused
+  "jog_cont_multi.axes": "entries {axis, vel}: 1 ≤ count ≤ n_axes, each entry like jog_cont (Entry)",
+  "jog_incr_multi.axes": "entries {axis, vel, distance}: 1 ≤ count ≤ n_axes, each entry like jog_incr (Entry)",
 };
 /** Opaque values: the exact path and why this check stops there. */
 const OPAQUE: Record<string, string> = {
@@ -136,6 +131,8 @@ export function commandShapeFindings(client: ClientCommands, gw: Gateway, lists 
     if (cc.index) out.push(`${c}: an open index signature — the command must be closed`);
     if (!gw.gated.includes(c) && !lists.UNGATED[c]) out.push(`${c}: sent without a gate entry and no reason is named`);
     for (const f of Object.keys(gw.schema[c] ?? {})) if (!(f in cc.fields)) out.push(`${c}.${f}: the schema bounds a field the UI never sends`);
+    // a retired wire form (Forbidden, package 3a): the gateway refuses it — the UI must not send it
+    for (const f of gw.forbidden?.[c] ?? []) if (f in cc.fields) out.push(`${c}.${f}: the UI sends a field the gateway refuses (retired)`);
     for (const [f, d] of Object.entries(cc.fields)) {
       const path = `${c}.${f}`;
       if (isMapType(d.type) && !lists.DATA_MAPS[path] && !lists.OPAQUE[path]) out.push(`${path}: a map or opaque value (${d.type}) without a named contract`);
@@ -146,6 +143,12 @@ export function commandShapeFindings(client: ClientCommands, gw: Gateway, lists 
   for (const p of [...Object.keys(lists.UNBOUNDED), ...Object.keys(lists.DATA_MAPS), ...Object.keys(lists.OPAQUE)]) {
     const [c, f] = p.split(".");
     if (!client[c!]?.fields[f!]) out.push(`${p}: listed, but the UI sends no such field`);
+  }
+  // a reason that is no longer true (package 3a: jog_incr.distance was named
+  // "bounded by the handler against the axis window" — no such check existed)
+  for (const p of Object.keys(lists.UNBOUNDED)) {
+    const [c, f] = p.split(".");
+    if (f! in (gw.schema[c!] ?? {})) out.push(`${p}: listed as unbounded, but the schema bounds it — drop the reason`);
   }
   return out;
 }

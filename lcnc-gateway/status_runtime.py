@@ -402,6 +402,11 @@ class StatusPayload:
     # (review #5). None until the first poll.
     is_estop: Optional[bool] = None
     is_enabled: Optional[bool] = None
+    # Home / Unhome per axis (package 3a F-HOME.S2b): per wire axis
+    # {letter, joint, home, unhome} — the joint the button addresses and why
+    # Home / Unhome is closed (None = open; a home group names its axes).
+    # The strip reads the joint for its homed state, never the axis index.
+    home_axes: Optional[List[Dict[str, Any]]] = None
     # The HAL reader's snapshot was fresh when this payload was built. The
     # reader-derived POLICY inputs (kins mode, the plane, the eoffset, the
     # tool-change request) count only then; the displayed values keep their
@@ -622,6 +627,7 @@ class StatusRuntime:
         get_spindle_before_homing: Callable[[], bool] = lambda: False,
         get_joint_jog_before_homing: Callable[[], bool] = lambda: False,
         get_reader_fresh: Callable[[], bool] = lambda: False,
+        get_home_axes: Callable[[], Optional[List[Dict[str, Any]]]] = lambda: None,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
         get_instance: Callable[[], Optional[tuple]] = lambda: None,
         load_record_path: Optional[str] = None,
@@ -642,6 +648,7 @@ class StatusRuntime:
         # The reader's freshness at build time — the policy inputs it feeds
         # count only while it is fresh (BG-12). Default stale = closed.
         self._get_reader_fresh = get_reader_fresh
+        self._get_home_axes = get_home_axes
         self._get_prov_a = get_prov_a
         self._get_err = get_err
         self._reader_get = reader_get
@@ -1391,6 +1398,7 @@ class StatusRuntime:
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)
         payload.permission_reasons = permission_reasons(_pstate)
+        payload.home_axes = self._get_home_axes()
         return payload
 
     def track_tool_change(self, requested: Optional[bool], tool: Optional[int]) -> Optional[int]:

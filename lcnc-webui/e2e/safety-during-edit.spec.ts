@@ -163,7 +163,7 @@ for (const orient of [{ name: "landscape", width: 1920, height: 1080 }, { name: 
     await page.mouse.down();
     await page.waitForTimeout(700);
     await page.mouse.up();
-    await expect.poll(async () => (await sent()).some(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0), { timeout: 3000 }).toBe(true);
+    await expect.poll(async () => (await sent()).some(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0), { timeout: 3000 }).toBe(true);
   });
 }
 
@@ -266,7 +266,7 @@ test.describe("each pointer ends its own press (touch, landscape, two fingers)",
     expect(ev.filter(e => e.type === "pointercancel")).toHaveLength(0);
     expect(await box(homeX), "Home X under finger 1, still held").toEqual(before);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0).length, { timeout: 3000 }).toBe(1);
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0).length, { timeout: 3000 }).toBe(1);
     await expect.poll(() => jogShown(page), { timeout: 2000, message: "both presses over: the strip follows" }).toBe(true);
   });
 
@@ -291,7 +291,7 @@ test.describe("each pointer ends its own press (touch, landscape, two fingers)",
     expect(ups.map(e => e.pointerId), `only finger 1 was released ${JSON.stringify(ev)}`).toEqual([downs[0].pointerId]);
     expect(await box(homeY), "Home Y under finger 2, still held").toEqual(yBefore);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 1).length, { timeout: 3000 }).toBe(1);
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 1).length, { timeout: 3000 }).toBe(1);
     await expect.poll(() => jogShown(page), { timeout: 2000 }).toBe(true);
   });
 
@@ -446,7 +446,7 @@ test.describe("the first touch: the switch to touch sizes waits for its press", 
     await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
-    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0).length, { timeout: 3000 }).toBe(1);
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0).length, { timeout: 3000 }).toBe(1);
   });
 });
 

@@ -246,6 +246,7 @@ STATE_ON: Final = 4
 STATE_OFF: Final = 3
 STATE_ESTOP: Final = 1
 STATE_ESTOP_RESET: Final = 2
+TRAJ_MODE_FREE: Final = 1
 TRAJ_MODE_TELEOP: Final = 3
 MIST_ON: Final = 1
 MIST_OFF: Final = 0

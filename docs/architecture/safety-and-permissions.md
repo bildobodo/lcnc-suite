@@ -721,3 +721,141 @@ named exception, an older page's `mdi` with `vars` included (R336).
   (`armed_writer` refuses without one). `test_link_ownership.py` holds the R352 probe as
   acceptance (a replacement before the thread refuses the write; during the
   wait every slice stays on the old Link) and the contracts above.
+
+### The payload contract (package 3a, SYS-CONN.S5 + issue #27, Codex R363–R365)
+
+- **What it replaced.** `validate_payload` skipped a missing and a null field
+  (`if field not in msg or msg[field] is None: continue`) and the handlers
+  filled in their own defaults: `home` without `joint` homed ALL joints
+  (−1), `clear_wcs` without `target` zeroed the ACTIVE offset, an override
+  without `scale` went to 100 %, `bool("false")` switched block delete and
+  optional stop ON, a null tool length wrote 0 into the table, a null
+  parameter value wrote `#n=0`. Numbers came through `to_float` / `to_int` /
+  `finite_*`, which took `true` as 1 and truncated `2.9` to 2 (= AUTO). A
+  wrong `via` refused E-Stop, Abort and the jog stops. The reader ended on a
+  non-object frame, an unhashable `cmd`, a list as `hello.session` or
+  `save_settings.section`, a `client_id` key in `client_diag`.
+- **One check** (`command_policy.validate_payload`, N1): every gated command
+  has a `COMMAND_SCHEMA` entry (an empty one = no fields); each field spec
+  says whether it is `required`. Missing, null and the wrong type are three
+  cases: a required field missing is refused; null is NEVER "missing" (the
+  page's NaN arrives as null) and is refused for every field — the one
+  exception is `touchoff.expect`'s two leaves, where null is "no claim for
+  this dimension" (VM363-02); the wrong type is refused. An optional field
+  left out keeps its handler's NAMED rule (auto_run's modifiers, mdi.vars,
+  run_macro.args, save/renumber "unchanged", add "unmeasured").
+  Unknown extra fields are not judged (N8); a `Forbidden` field is refused.
+- **Forms** (N3, N3b): a number is a JSON number — a boolean and a string
+  never; an integer field takes a JSON integer only, compared without a
+  float detour (an id past 2^53 is not rounded); a switch is a JSON boolean;
+  a word is one of its set. Ranges are named per field: `auto_run.line`
+  0…INT_MAX (LinuxCNC's C `int`, emcmodule.cc 2.9.4 `emcauto`), versions and
+  request ids 0…2^53−1, tool and pocket numbers as before (0…99999),
+  `pre_tool` the tool-number rule. Nested values are judged too: the
+  entries of the jog-multi lists (`Entry`), run_macro's args, every value of
+  a `vars` / `sets` / `probe_vars` / axis map.
+- **Before any write** (N6): the check runs in the dispatch before the
+  handler; the handlers read a required field with `msg[k]` (no default to
+  come back). Four writes used to come first: run_macro's `_start_guard`
+  (MDI switch, `#3116`) before its values were built — now
+  `_macro_call_precheck`; the jog-multi MANUAL switch before an
+  out-of-range axis or an empty list — now the schema; a Plane touch-off's
+  MDI switch before U/V/W were refused — now `touchoff_route`; auto_run's
+  invalid `spindle_dir` — now a `Choice` before `_start_guard`.
+- **The stops** (N5, Q363-3): `_WS_STOP_CMDS` IS `command_policy.
+  STOP_COMMANDS`; their payload goes through `widen_stop`, never
+  `validate_payload`: an invalid `via` is dropped (the stop runs as one from
+  the strip), a jog stop whose target fails (missing, null, wrong type, out of
+  range, a bad entry) stops every jog the gateway booked — gateway-wide, as
+  any client may press E-Stop; a valid empty `jog_stop_multi` names nothing.
+  `arm` (the worker's) arms only on the literal `true`; anything else
+  disarms. Traced `ws.payload_stop_widened`.
+- **The step jog** (Q363-1 operator: bound; Codex R364 VM364-01, R365): a
+  step is bounded by the travel of the target it ADDRESSES — the mode is
+  fixed before any preparatory write by `_jog_mode_flag`'s own rule (not
+  homed or a joint beyond its window → joint mode, else teleop): joint mode
+  takes the mapped joint's `[JOINT_n] MAX_LIMIT − MIN_LIMIT` from the PURE
+  mapping (`_axis_joint_map`, independent of the jog-before-homing switch),
+  teleop the axis' `[AXIS_L]` span (`gateway_util.step_span_refusal`). An
+  unknown target or travel closes the step jog ("Step jog closed — travel
+  unknown"); continuous jogs and the stops are not bounded. The mode the
+  span was judged under is confirmed AT THE CONTROLLER (`stat.motion_mode`)
+  in the last admission inside each jog's write thread — a mode not reached
+  or changed since refuses with no jog written ("Jog mode changed — step
+  again"). The shipped steps (≤ 100 mm, TWP) are below every shipped span
+  (≥ 190).
+- **The reader** (VM363-03): a frame that is no object or whose `cmd` is no
+  string is answered ("Malformed frame — reload the page") and the socket
+  reads on; each reader field has its rule (`hello.session` a non-empty
+  string or the hello refused — a hold is looked up only with one;
+  `resume_armed` only `true`; `save_settings.section` a string before the
+  set lookup; `device_rename.name` a string; `timing_log.enable`,
+  `halshow_live.on`, `tab_visibility.hidden` JSON booleans; `client_diag`'s
+  reserved keys dropped; a malformed device token leaves the connection
+  unbound). `safety_trip_ack` names the trip it acknowledges (Q363-2): only
+  the CURRENT trip's id clears it; a missing, other or repeated id changes
+  neither the trip nor the booking. A catch around every reader frame keeps
+  a missed form from ending the connection (`ws.reader_frame_failed`) —
+  beside the field checks, not instead of them.
+- **Guards.** `test_payload_contract.py`: per required field the missing,
+  null and wrong forms through the REAL `handle_command` (refused with zero
+  recorded controller calls, mode included, and nothing booked), the valid
+  and 0/false twins, both limits and one past for the native integers,
+  present optional and nested values, the expect exception, the stops
+  through the dispatch, the reader's malformed frames on ONE socket (a pong
+  after each), the trip id, arm. `test_payload_scan.py`: every field a
+  command branch, a closure or a helper it hands `msg` to reads is in that
+  command's schema, a required field is never read with a default, the
+  reader's and the worker's fields are in their tables; every use of `msg`
+  the scan cannot read fails it (another name, `**msg`, iteration, an
+  unresolved callee) — with counter-cases for each form.
+
+### Home and Unhome per axis (package 3a F-HOME.S2b; operator Q349-1, Q363-4; Codex R363–R365)
+
+- **What it replaced.** The strip sent `home {joint: a.index}` — the axis'
+  POSITION in the axis list as the joint — and read `homed_joints[a.index]`:
+  right where the joint order is the axis order (every shipped profile),
+  wrong on a swapped order, a gantry, an own kinematics. `home` without a
+  joint homed every joint.
+- **The wire form.** `home {axis}` / `unhome {axis}` (the strip's index);
+  `joint` is refused even beside a valid axis (`Forbidden`), a missing axis is
+  never "all" (home_all / unhome_all are). The gateway names the joint from
+  the PURE mapping (`_axis_joint_map`: `[DISPLAY] WEBUI_JOINT_AXES`, else
+  trivkins' `coordinates=`; independent of the jog-before-homing switch, its
+  cap and speed); an axis without one declared joint (undeclared, a gantry,
+  an incomplete declaration) is refused with its reason.
+- **The home group** (Q363-4: lock). LinuxCNC's `home(j)` with a NEGATIVE
+  sequence homes every joint whose sequence has the same magnitude
+  (homing.c 2.9.4 `do_home_one_joint`; positive ones too: `[-1, 0, 1]` →
+  home(0) starts 0 and 2). Home per axis is open only where the target set is
+  the joint itself (`gateway_util.home_targets` / `home_admission`); a group
+  closes its axes' buttons naming them ("Homes X Y Z together
+  (HOME_SEQUENCE -1) — Home All"). The sequences are the EFFECTIVE ones —
+  `ini.N.home_sequence` as reader extra pins (`home_seq_N`), changeable at
+  run time; unread or a stale reader closes Home per axis
+  ("Home sequence not read — Home All"). The admission is `_manual_command`'s
+  `extra`: checked before the queue AND inside the mode switch's and the home
+  write's threads on the current read — a group or an unread pin appearing
+  during the wait sends no home; no atomicity against a HAL change after the
+  home write.
+- **Unhome** has no sequence rule (`base_set_unhomed` unhomes one joint) —
+  only the mapping closes it.
+- **The strip.** Status `home_axes`: per wire axis `{letter, joint, home,
+  unhome}`; SetupStrip reads the homed state at the axis' JOINT and shows a
+  closed button with the gateway's reason (`MachineBtn` disabled + reason).
+- **Profiles.** The 3-axis profile declares its order through trivkins
+  (`coordinates=XYZ`, sequences 1/1/0); the 5-axis (`xyzac-trt-kins`) and the
+  6-axis TWP (`xyzacb_trsrn`) now declare `WEBUI_JOINT_AXES` (X Y Z A C /
+  X Y Z A B C — from `machine.json`'s joint indices and the component's
+  identity branch); `install_examples` adds it to an installed copy that
+  lacks it (DISPLAY_SUITE_KEYS), never replacing one. The operator's machine
+  (repository, 2026-11-13: `trivkins coordinates=xyz`, all three
+  HOME_SEQUENCE −1) keeps Home All; its per-axis Home buttons are closed with
+  the group's name (each already homed all three).
+- **Guards.** `test_home_axis.py`: the 15 target sets of R365, the mapping
+  (swapped, gantry, undeclared, incomplete, the shipped profiles unchanged),
+  the dispatch (single sequence homes, a group refused before any write,
+  Unhome open, the retired joint refused), a group or an unread pin appearing
+  during the mode switch → no home write; `strip-actions.spec.ts`: the axis
+  on the wire, the state at the joint, a group closing the button with its
+  reason. Live: `twp_buttons_check.py`.

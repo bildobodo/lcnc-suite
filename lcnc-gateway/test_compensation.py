@@ -37,9 +37,11 @@ class TestCompensationDelivery(base._Handlers):
                 self.assertEqual(r, {"ok": False, "error": "Compensation unclear — check the display"})
 
     def test_a_missing_value_sends_nothing(self):
-        for msg, error in (({"cmd": "set_compensation"}, "Compensation not sent — on or off missing"),
-                           ({"cmd": "set_compensation", "enable": "yes"}, "Compensation not sent — on or off missing"),
-                           ({"cmd": "set_compensation_method"}, "Method not sent — none given")):
+        # the payload contract (package 3a, R363–R365) refuses these at its ONE
+        # check, before the handler's own wording — nothing sent either way
+        for msg, error in (({"cmd": "set_compensation"}, "set_compensation: enable missing"),
+                           ({"cmd": "set_compensation", "enable": "yes"}, "set_compensation: enable must be true or false"),
+                           ({"cmd": "set_compensation_method"}, "set_compensation_method: method missing")):
             with self.subTest(msg=msg):
                 self.assertEqual(self._set(msg, True), ({"ok": False, "error": error}, []))
 

@@ -605,8 +605,8 @@ class TestPayloadSchema(unittest.TestCase):
 
     def test_infinite_wcs_word_rejected(self):
         # Shipped `G10 L2 P1 Xinf` into the MDI before #27.
-        self.assertIn("finite", self._reject("set_wcs", {"x": float("inf")}))
-        self.assertIn("finite", self._reject("set_wcs", {"r": float("nan")}))
+        self.assertIn("finite", self._reject("set_wcs", {"target": "G54", "x": float("inf")}))
+        self.assertIn("finite", self._reject("set_wcs", {"target": "G54", "r": float("nan")}))
 
     def test_renumber_bounds_both_numbers_the_ui_sends(self):
         # Test strategy step 2: the schema bounded a `new_number` the UI never
@@ -619,10 +619,12 @@ class TestPayloadSchema(unittest.TestCase):
             self.assertIn(field, self._reject("renumber_tool", {**ok, field: bad}), (field, bad))
 
     def test_axis_and_joint_indices_bounded_by_the_machine(self):
-        self.assertIn("maximum 4", self._reject("jog_cont", {"axis": 7}))
-        self.assertIn("maximum 4", self._reject("home", {"joint": 99}))
-        # -1 is the documented "all joints" sentinel and must survive.
-        self.assertEqual(validate_payload("home", {"joint": -1}, self.LIM), {})
+        self.assertIn("maximum 4", self._reject("jog_cont", {"axis": 7, "vel": 1.0}))
+        self.assertIn("maximum 4", self._reject("home", {"axis": 99}))
+        # package 3a (R363 N8, F-HOME): "all" is home_all alone — -1 and the
+        # retired joint field are refused
+        self.assertIn("minimum 0", self._reject("home", {"axis": -1}))
+        self.assertIn("retired", self._reject("home", {"axis": 0, "joint": -1}))
 
     def test_jog_multi_axes_list_is_capped(self):
         # Each entry issues a CMD.jog under the command lock — an uncapped list
@@ -659,17 +661,17 @@ class TestPayloadSchema(unittest.TestCase):
         #
         # Contrast the spindle case directly above, where lo=0 is CORRECT
         # because a negative speed there is a direction error, not a sign.
-        for cmd in ("jog_cont", "jog_incr"):
+        for cmd, extra in (("jog_cont", {}), ("jog_incr", {"distance": 1.0})):
             self.assertEqual(
-                validate_payload(cmd, {"axis": 0, "vel": -10.0}, self.LIM), {},
+                validate_payload(cmd, {"axis": 0, "vel": -10.0, **extra}, self.LIM), {},
                 f"{cmd}: an in-range NEGATIVE jog velocity must pass untouched")
             # The magnitude is still bounded — symmetrically.
             self.assertEqual(
-                validate_payload(cmd, {"axis": 0, "vel": -999.0}, self.LIM),
+                validate_payload(cmd, {"axis": 0, "vel": -999.0, **extra}, self.LIM),
                 {"vel": -50.0},
                 f"{cmd}: over-speed clamps to -max, preserving direction")
             self.assertEqual(
-                validate_payload(cmd, {"axis": 0, "vel": 999.0}, self.LIM),
+                validate_payload(cmd, {"axis": 0, "vel": 999.0, **extra}, self.LIM),
                 {"vel": 50.0})
 
     def test_in_range_values_are_left_alone(self):
@@ -677,13 +679,18 @@ class TestPayloadSchema(unittest.TestCase):
         self.assertEqual(validate_payload("jog_cont", {"axis": 2, "vel": 10.0}, self.LIM), {})
 
     def test_absent_fields_are_not_invented(self):
-        # The handler's own default applies; the schema must not fabricate one.
-        self.assertEqual(validate_payload("jog_cont", {}, self.LIM), {})
-        self.assertEqual(validate_payload("mdi", {"text": None}, self.LIM), {})
+        # The schema fabricates no value: a REQUIRED field missing or null is
+        # refused (package 3a, R363 — the handler defaults acted: Home All, the
+        # active offset zeroed); an OPTIONAL one left out stays out.
+        self.assertIn("missing", self._reject("jog_cont", {}))
+        self.assertIn("null", self._reject("mdi", {"text": None}))
+        self.assertEqual(validate_payload("mdi", {"text": "G0 X1"}, self.LIM), {})
 
     def test_unschemad_command_passes_through(self):
-        # The table CONSTRAINS; it does not enumerate.
+        # An unknown EXTRA field is not judged (N8); an unknown COMMAND is
+        # refused (every gated command has an entry, package 3a N1).
         self.assertEqual(validate_payload("estop", {"anything": 1}, self.LIM), {})
+        self.assertIn("unknown command", self._reject("no_such_command", {}))
 
     # ---- touchoff: letters structural, values finite ----
 
@@ -694,10 +701,11 @@ class TestPayloadSchema(unittest.TestCase):
                                                        "expect": {"kins_type": 2, "g5x_index": 6}}, self.LIM), {})
         self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0},
                                                        "expect": {"kins_type": None, "g5x_index": None}}, self.LIM), {})
-        self.assertIn("not an expected-target key",
+        self.assertIn("must name exactly",
                       self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": {"mode": 2}}))
         self.assertIn("must be a mapping", self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": [2, 6]}))
-        self.assertIn("whole number", self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": {"kins_type": 1.5}}))
+        self.assertIn("integer", self._reject("touchoff", {"axes": {"Z": 0.0},
+                                                          "expect": {"kins_type": 1.5, "g5x_index": None}}))
 
     def test_touchoff_target_text(self):
         from command_policy import touchoff_target_text
@@ -755,7 +763,7 @@ class TestPayloadSchema(unittest.TestCase):
         # An INI that declares nothing must not crash the pass or invent limits.
         empty = MachineLimits()
         self.assertEqual(validate_payload("jog_cont", {"axis": 3, "vel": 1e6}, empty), {})
-        self.assertIn("finite", str(self._reject_with("set_wcs", {"x": float("inf")}, empty)))
+        self.assertIn("finite", str(self._reject_with("set_wcs", {"target": "G54", "x": float("inf")}, empty)))
 
     def _reject_with(self, cmd, payload, limits):
         with self.assertRaises(ValueError) as cm:

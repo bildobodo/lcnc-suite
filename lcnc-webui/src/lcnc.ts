@@ -60,8 +60,8 @@ export type WsCommand =
   | { cmd: "set_mode"; mode: number }
   // Homing
   | ({ cmd: "home_all" } & Via)
-  | { cmd: "home"; joint: number }
-  | { cmd: "unhome"; joint: number }
+  | { cmd: "home"; axis: number }
+  | { cmd: "unhome"; axis: number }
   | { cmd: "unhome_all" }
   // Program execution
   | ({ cmd: "cycle_start" } & Via)
@@ -175,7 +175,7 @@ export type WsCommand =
   // the asyncio loop responsive under multi-tab storm conditions.
   | { cmd: "tab_visibility"; hidden: boolean }
   // Safety trip acknowledgment (clears sticky trip, re-allows arming)
-  | { cmd: "safety_trip_ack" };
+  | { cmd: "safety_trip_ack"; id: string };
 
 // Commands safe to queue while the socket is closed and replay after reconnect
 // (issue #18). Read-only / telemetry only — everything else (motion, mode,

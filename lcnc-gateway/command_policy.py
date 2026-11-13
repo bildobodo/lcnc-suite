@@ -378,6 +378,11 @@ def touchoff_route(s: MachineState, letters: Iterable[object]) -> Tuple[Optional
         if s.g5x_index != 1:
             return None, "Rotary touch-off: G54 only"
     if k == 2:
+        # the remap writes X/Y/Z through the plane; U/V/W are refused HERE,
+        # before the handler's switch to MDI (package 3a A2, Codex R363)
+        extra = sorted(l for l in ls if l not in ("X", "Y", "Z"))
+        if extra:
+            return None, f"Plane-mode touch-off takes X/Y/Z only (got {extra})"
         if not s.twp_active:
             return None, "No active plane — press Orient or select Machine"
         if s.g5x_index != 6:
@@ -1009,33 +1014,66 @@ WRITABLE_VAR_DENY_RANGES = ((1, 30), (5000, 99999))
 Bound = Union[int, float, None, Callable[["MachineLimits"], Optional[float]]]
 
 
+# Every spec says whether its field is REQUIRED (package 3a, SYS-CONN.S5 +
+# #27, Codex R363–R364). Missing, null and the wrong type are three cases:
+# a required field missing is refused; null is never "missing" (the page's
+# NaN arrives as null) and is refused for every field — the one named
+# exception is touchoff.expect's two leaves (ExpectMap); a wrong type is
+# refused. An optional field left out keeps its handler's NAMED rule.
+
+
 @dataclass(frozen=True)
 class Num:
-    """A numeric field. `lo`/`hi` are a literal, None, or a callable taking
-    MachineLimits (so machine-declared bounds are named at the use site)."""
+    """A numeric field: a JSON number — never a boolean, never a string. An
+    `integer` field takes a JSON integer only, compared WITHOUT a detour
+    through float (an id past 2^53 is not rounded). `lo`/`hi` are a literal,
+    None, or a callable taking MachineLimits (machine-declared bounds named
+    at the use site)."""
     lo: Bound = None
     hi: Bound = None
     clamp: bool = False
     integer: bool = False
+    required: bool = False
 
 
 @dataclass(frozen=True)
 class Enum:
-    """A small closed value set — reject anything else."""
+    """A small closed set of JSON integers — reject anything else (a
+    boolean, 1.9, "2")."""
     values: FrozenSet[int]
+    required: bool = False
+
+
+@dataclass(frozen=True)
+class Flag:
+    """A switch: a JSON boolean, nothing else (bool("false") is True)."""
+    required: bool = False
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One element of a list of objects (the jog multi forms): its own
+    fields, each checked like a top-level field."""
+    fields: Mapping[str, object]
 
 
 @dataclass(frozen=True)
 class Seq:
     """A list field with a hard length cap. Unbounded lists matter: the
     jog-multi handlers iterate the payload's `axes` issuing one CMD.jog per
-    entry while holding the command lock."""
+    entry while holding the command lock. `item` checks every element
+    (a Num, or an Entry); `min_len` refuses an empty list where nothing
+    would be done but a mode switch."""
     max_len: Bound
+    required: bool = False
+    item: Optional[object] = None
+    min_len: int = 0
 
 
 @dataclass(frozen=True)
 class Text:
     max_len: Bound
+    required: bool = False
 
 
 @dataclass(frozen=True)
@@ -1043,6 +1081,7 @@ class Choice:
     """A small closed set of WORDS — reject anything else (Enum is for
     integers)."""
     values: FrozenSet[str]
+    required: bool = False
 
 
 @dataclass(frozen=True)
@@ -1050,12 +1089,15 @@ class AxisMap:
     """touchoff's `axes` mapping: axis LETTER -> finite value. Letters are
     structural (an unknown one is rejected, never dropped); values are the
     operator's DRO entries, unbounded like set_wcs' words."""
+    required: bool = False
 
 
 @dataclass(frozen=True)
 class VarNumbers:
     """A parameter write's `vars` mapping: keys must be var numbers this
-    machine declares AND outside WRITABLE_VAR_DENY_RANGES."""
+    machine declares AND outside WRITABLE_VAR_DENY_RANGES; every value a
+    finite JSON number (a null value wrote `#n=0`)."""
+    required: bool = False
 
 
 @dataclass(frozen=True)
@@ -1063,14 +1105,30 @@ class PurposeSets:
     """set_params' `sets`: purpose (features.PURPOSE_VARS) -> a VarNumbers
     mapping. Each purpose's own variables are the handler's check
     (features.sets_refusal)."""
+    required: bool = False
+
+
+@dataclass(frozen=True)
+class Forbidden:
+    """A field that must NOT be present — a retired wire form refused rather
+    than ignored next to its successor (home's `joint`, R363 N8)."""
+    reason: str
 
 
 @dataclass(frozen=True)
 class ExpectMap:
     """touchoff's optional `expect` mapping (U-03, review 2026-09-14): the
-    kinematics mode and fixture the operator SAW while entering the value
-    (`kins_type`, `g5x_index`; int or null). The handler refuses when the
-    live state differs — the value must never land on another target."""
+    kinematics mode and fixture the operator SAW while entering the value.
+    When present: exactly the keys `kins_type` and `g5x_index`, each its
+    known form (an integer of its range) or null — "no claim for this
+    dimension", the ONE null the contract admits (Codex R363 VM363-02;
+    TouchoffExpect, SetupStrip.expectNow). The handler refuses when the live
+    state differs — the value must never land on another target."""
+    required: bool = False
+
+
+#: the fixture names a WCS command addresses, in G5X index order (1..9)
+FIXTURE_NAMES = ("G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3")
 
 
 EXPECT_KEYS = frozenset({"kins_type", "g5x_index"})
@@ -1122,6 +1180,32 @@ def _neg(v: Optional[float]) -> Optional[float]:
     return None if v is None else -v
 
 
+#: the largest value LinuxCNC's C `int` arguments take (emcmodule.cc 2.9.4:
+#: `emcauto`'s start line — Codex R363 VM363-01)
+INT_MAX = 2**31 - 1
+#: a counter the gateway keeps itself (a preview version, a tool-change
+#: request): any JSON integer a client can send exactly
+SAFE_INT_MAX = 2**53 - 1
+PATH_MAX = 4096
+
+
+def _jog_entry(incremental: bool) -> Entry:
+    """One element of jog_cont_multi / jog_incr_multi's `axes`."""
+    fields: Dict[str, object] = {
+        "axis": Num(lo=0, hi=_axis_index, integer=True, required=True),
+        "vel": Num(lo=lambda l: _neg(l.max_jog_velocity), hi=lambda l: l.max_jog_velocity, clamp=True,
+                   required=True)}
+    if incremental:
+        fields["distance"] = Num(required=True)    # the span bound is the handler's (it needs the homing state)
+    return Entry(fields)
+
+
+_JOG_VEL = Num(lo=lambda l: _neg(l.max_jog_velocity), hi=lambda l: l.max_jog_velocity, clamp=True, required=True)
+_TOOL = Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True, required=True)
+_POCKET = Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)
+_TOOL_FIELDS: Dict[str, object] = {"pocket": _POCKET, "z_offset": Num(), "diameter": Num(lo=0),
+                                   "remark": Text(max_len=255)}
+
 COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- jogging: axis INDEX is structural (reject), velocity is a slider (clamp)
     #
@@ -1131,121 +1215,158 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # negative jog into vel 0 — the button moved nothing and, because
     # continuous values clamp silently rather than erroring, said nothing
     # either. What is bounded here is the SPEED, i.e. |vel|, so the floor is
-    # -max, not 0.
-    "jog_cont":  {"axis": Num(lo=0, hi=_axis_index, integer=True),
-                  "vel": Num(lo=lambda l: _neg(l.max_jog_velocity),
-                             hi=lambda l: l.max_jog_velocity, clamp=True)},
-    "jog_incr":  {"axis": Num(lo=0, hi=_axis_index, integer=True),
-                  "vel": Num(lo=lambda l: _neg(l.max_jog_velocity),
-                             hi=lambda l: l.max_jog_velocity, clamp=True)},
-    "jog_stop":  {"axis": Num(lo=0, hi=_axis_index, integer=True)},
-    "jog_cont_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
-    "jog_incr_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
-    "jog_stop_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
-    # --- homing: joint index structural; -1 is the documented "all joints"
-    "home":   {"joint": Num(lo=-1, hi=lambda l: (l.n_joints - 1) if l.n_joints else None,
-                            integer=True)},
-    "unhome": {"joint": Num(lo=-1, hi=lambda l: (l.n_joints - 1) if l.n_joints else None,
-                            integer=True)},
+    # -max, not 0. A velocity of 0 stays valid and unchanged (N4: what the
+    # controller does with it is not verified here).
+    "jog_cont":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True), "vel": _JOG_VEL},
+    "jog_incr":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True), "vel": _JOG_VEL,
+                  "distance": Num(required=True)},
+    # the stops: a payload that fails here is WIDENED, never refused
+    # (gateway dispatch, widen_stop — N5)
+    "jog_stop":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True)},
+    "jog_cont_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(False), min_len=1)},
+    "jog_incr_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(True), min_len=1)},
+    "jog_stop_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True,
+                                    item=Num(lo=0, hi=_axis_index, integer=True))},
+    # --- homing per AXIS (package 3a F-HOME.S2b; operator Q349-1): the strip's
+    #     wire index; the gateway names the joint from the declared mapping
+    #     and refuses an unclear one (and, for Home, a home group). The joint
+    #     on the wire is retired — refused even beside a valid axis (R363 N8).
+    #     "All" is home_all / unhome_all alone.
+    "home":   {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True),
+               "joint": Forbidden("is retired — send the axis, the gateway names the joint")},
+    "unhome": {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True),
+               "joint": Forbidden("is retired — send the axis, the gateway names the joint")},
     # --- spindle: a speed is continuous, but NEGATIVE is a direction error, not
     #     a slider overshoot — lo=0 clamps a stray sign rather than reversing.
-    "spindle_forward": {"speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
-    "spindle_reverse": {"speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
+    #     0 stays valid: the page sends it for an empty field (N4).
+    "spindle_forward": {"speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True, required=True)},
+    "spindle_reverse": {"speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True, required=True)},
     # --- overrides: builder-declared ceilings, previously hardcoded 2.0 / 0.5
-    "set_feed_override":    {"scale": Num(lo=0, hi=lambda l: l.max_feed_override, clamp=True)},
+    "set_feed_override":    {"scale": Num(lo=0, hi=lambda l: l.max_feed_override, clamp=True, required=True)},
     "set_spindle_override": {"scale": Num(lo=lambda l: l.min_spindle_override,
-                                          hi=lambda l: l.max_spindle_override, clamp=True)},
-    "set_rapid_override":   {"scale": Num(lo=0, hi=1.0, clamp=True)},  # 1.0 per LinuxCNC
+                                          hi=lambda l: l.max_spindle_override, clamp=True, required=True)},
+    "set_rapid_override":   {"scale": Num(lo=0, hi=1.0, clamp=True, required=True)},  # 1.0 per LinuxCNC
     "set_max_velocity":     {"velocity": Num(lo=0, hi=lambda l: l.max_linear_velocity,
-                                             clamp=True)},
+                                             clamp=True, required=True)},
+    "set_optional_stop": {"value": Flag(required=True)},
+    "set_block_delete":  {"value": Flag(required=True)},
+    "set_mode": {"mode": Enum(frozenset({1, 2, 3}), required=True)},      # MANUAL / AUTO / MDI
     # --- program run
-    "auto_run": {"line": Num(lo=0, integer=True),
-                 "version": Num(lo=0, integer=True),
-                 "source": Text(max_len=64),   # the confirmed text's sha256 (R17 XZ-07)
+    "auto_run": {"line": Num(lo=0, hi=INT_MAX, integer=True, required=True),
+                 "file": Text(max_len=PATH_MAX, required=True),
+                 "version": Num(lo=0, hi=SAFE_INT_MAX, integer=True, required=True),
+                 "source": Text(max_len=64, required=True),   # the confirmed text's sha256 (R17 XZ-07)
                  "probe_vars": VarNumbers(),   # the pre-measurement's toolsetter values (R16)
-                 "pre_tool": Num(lo=0, integer=True),
-                 "spindle_speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
+                 "pre_tool": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                 "spindle_dir": Choice(frozenset({"forward", "reverse"})),
+                 "spindle_speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True),
+                 "safe_z": Flag(),
+                 "entry_x": Num(), "entry_y": Num(),
+                 "entry_wcs": Choice(frozenset(FIXTURE_NAMES)),
+                 "entry_units": Choice(frozenset({"G20", "G21"}))},
     # --- MDI text: length only. Parsing G-code server-side to decide policy is
     #     an open-ended project and deliberately out of scope.
-    "mdi": {"text": Text(max_len=MDI_MAX_CHARS),
+    "mdi": {"text": Text(max_len=MDI_MAX_CHARS, required=True),
             "vars": VarNumbers()},   # set first, the line only once taken over (R16)
     # --- a macro file: name, the operator's values, the revision shown
     #     (each value is checked against the file's header in the handler)
-    "run_macro": {"name": Text(max_len=63), "args": Seq(max_len=30),
-                  "revision": Text(max_len=64)},
+    "run_macro": {"name": Text(max_len=63, required=True), "args": Seq(max_len=30, item=Num()),
+                  "revision": Text(max_len=64, required=True)},
     # --- work offsets: these become G10 L2 words. Unbounded floats reached the
     #     MDI as `G10 L2 P1 Xinf` before this.
-    "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
-    "touchoff": {"axes": AxisMap(), "expect": ExpectMap()},
-    "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}))},
-    # --- tool table
-    "save_tool":     {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "diameter": Num(lo=0)},
-    "add_tool":      {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "diameter": Num(lo=0)},
-    "delete_tool":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
+    "set_wcs": {"target": Choice(frozenset(FIXTURE_NAMES), required=True),
+                **{ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")}},
+    "clear_wcs": {"target": Choice(frozenset(FIXTURE_NAMES) | {"all", "reserved"}, required=True)},
+    "touchoff": {"axes": AxisMap(required=True), "expect": ExpectMap()},
+    "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}), required=True)},
+    # --- tool table: a field left out stays as it is (save / renumber, R321
+    #     FI321-02), a new tool is unmeasured (add: 0); null is refused
+    "save_tool":     {"tool_number": _TOOL, **_TOOL_FIELDS},
+    "add_tool":      {"tool_number": _TOOL, **_TOOL_FIELDS},
+    "delete_tool":   {"tool_number": _TOOL},
     # The numbers the UI sends (ToolFields): the old one and the new one, and
     # pocket / diameter as save and add bound them (test strategy step 2: a
     # `new_number` nobody sends was bounded, `old_tool_number` was not).
-    "renumber_tool": {"old_tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "diameter": Num(lo=0)},
-    "tool_change":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
+    "renumber_tool": {"old_tool_number": _TOOL, "tool_number": _TOOL, **_TOOL_FIELDS},
+    "tool_change":   {"tool_number": _TOOL},              # 0 = unload
+    "tool_measure":  {"tool": Num(lo=1, hi=TOOL_NUMBER_MAX, integer=True, required=True)},
+    # its absence is the handler's own refusal, which names the next step
+    # ("Tool change request changed — confirm again", BG-17/BG-20)
+    "confirm_tool_change": {"request": Num(lo=0, hi=SAFE_INT_MAX, integer=True)},
     # --- surface compensation
-    "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}))},  # nearest/linear/cubic
+    "set_compensation": {"enable": Flag(required=True)},
+    "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}), required=True)},  # nearest/linear/cubic
     # --- parameters with their purpose, and the routines as jobs (package 3;
-    #     each purpose's own variables are the handler's check, features.py)
-    "set_params": {"sets": PurposeSets()},
-    "probe_run": {"routine": Text(max_len=63), "vars": VarNumbers()},
-    "surface_scan_run": {"vars": VarNumbers()},
-    "tool_measure": {"tool": Num(lo=1, hi=TOOL_NUMBER_MAX, integer=True)},
-    "set_g30": {"values": AxisMap(), "based_on": AxisMap()},
+    #     each purpose's own variables are the handler's check, features.py).
+    #     probe_run's `vars`: required but for the parameterless routines
+    #     (features.PARAMLESS_PROBE_ROUTINES) — the handler's rule.
+    "set_params": {"sets": PurposeSets(required=True)},
+    "probe_run": {"routine": Text(max_len=63, required=True), "vars": VarNumbers()},
+    "surface_scan_run": {"vars": VarNumbers(required=True)},
+    "set_g30": {"values": AxisMap(required=True), "based_on": AxisMap(required=True)},
+    "load_file": {"path": Text(max_len=PATH_MAX, required=True)},
 }
 
 # The gamepad's commands say so (package 3): `via: "gamepad"`, refused with
 # the gamepad switched off — its stops excepted (gateway dispatch).
 for _c in GAMEPAD_COMMANDS:
     COMMAND_SCHEMA.setdefault(_c, {})["via"] = Choice(VIA_VALUES)
+# Every gated command has an entry (N1): an empty one says "no fields" — a
+# command without an entry is no longer passed through unchecked.
+for _c in COMMAND_GATES:
+    COMMAND_SCHEMA.setdefault(_c, {})
 
 
 def _bound(spec_bound: Bound, limits: MachineLimits) -> Optional[float]:
     return spec_bound(limits) if callable(spec_bound) else spec_bound
 
 
-def _check_number(cmd: str, field: str, raw: JsonValue, spec: Num, limits: MachineLimits) -> Optional[float]:
+def _json_number(raw: JsonValue) -> Optional[Union[int, float]]:
+    """A JSON number as parsed — int or float; None for anything else (a
+    boolean is no number here: bool is an int subclass in Python)."""
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        return None
+    return raw
+
+
+def _num_text(v: Union[int, float]) -> str:
+    """A bound or value as the operator reads it: an integer whole (2147483648,
+    not 2.14748e+09), a float short."""
+    return str(v) if isinstance(v, int) else f"{v:g}"
+
+
+def _check_number(cmd: str, field: str, raw: JsonValue, spec: Num, limits: MachineLimits) -> Optional[Union[int, float]]:
     """Returns a CORRECTED value when clamping applied, else None. Raises
-    ValueError when the value is out of range and the field rejects."""
-    try:
-        val = to_float(raw)
-    except (TypeError, ValueError):
+    ValueError for anything but a finite JSON number (an integer field: a
+    JSON integer), or a value out of range on a field that rejects."""
+    val = _json_number(raw)
+    if val is None:
         raise ValueError(f"{cmd}: {field} must be a number")
-    if val != val or val in (float("inf"), float("-inf")):
-        # finite_* normally catches this; set_wcs laundered its cast through a
-        # local and shipped `Xinf` into the MDI, so bounds re-assert it.
+    if isinstance(val, float) and not math.isfinite(val):
+        # set_wcs laundered a cast through a local and shipped `Xinf` into
+        # the MDI once, so bounds re-assert it.
         raise ValueError(f"{cmd}: {field} must be finite")
-    if spec.integer and val != int(val):
+    if spec.integer and not isinstance(val, int):
         raise ValueError(f"{cmd}: {field} must be a whole number")
     lo, hi = _bound(spec.lo, limits), _bound(spec.hi, limits)
     if lo is not None and val < lo:
         if not spec.clamp:
-            raise ValueError(f"{cmd}: {field} {val:g} below minimum {lo:g}")
+            raise ValueError(f"{cmd}: {field} {_num_text(val)} below minimum {_num_text(lo)}")
         return lo
     if hi is not None and val > hi:
         if not spec.clamp:
-            raise ValueError(f"{cmd}: {field} {val:g} above maximum {hi:g}")
+            raise ValueError(f"{cmd}: {field} {_num_text(val)} above maximum {_num_text(hi)}")
         return hi
     return None
 
 
 def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimits) -> None:
     """A VarNumbers mapping: keys var numbers this machine declares, outside
-    WRITABLE_VAR_DENY_RANGES. Raises ValueError."""
+    WRITABLE_VAR_DENY_RANGES; every value a finite JSON number (a null value
+    used to write `#n=0` — R363). Raises ValueError."""
     if not isinstance(raw, dict):
         raise ValueError(f"{cmd}: {field} must be a mapping")
-    for key in raw:
+    for key, value in raw.items():
         try:
             num = int(key)
         except (TypeError, ValueError):
@@ -1259,87 +1380,177 @@ def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimi
             raise ValueError(
                 f"{cmd}: #{num} is not in this machine's var file — "
                 f"declare it there to make it configurable")
+        _check_number(cmd, f"{field}.#{num}", value, Num(), limits)
 
 
-def validate_payload(cmd: str, msg: Mapping[str, JsonValue], limits: MachineLimits) -> Dict[str, object]:
-    """Bounds-check one command payload against what the machine declares.
+def _required(spec: object) -> bool:
+    return bool(getattr(spec, "required", False))
+
+
+def _check_field(cmd: str, field: str, raw: JsonValue, spec: object, limits: MachineLimits) -> Optional[JsonValue]:
+    """One PRESENT, non-null value against its spec. Returns a corrected
+    value (a clamp, also inside a list of entries) or None; raises
+    ValueError for a refused one."""
+    if isinstance(spec, Num):
+        return _check_number(cmd, field, raw, spec, limits)
+    if isinstance(spec, Enum):
+        if isinstance(raw, bool) or not isinstance(raw, int):
+            raise ValueError(f"{cmd}: {field} must be an integer")
+        if raw not in spec.values:
+            raise ValueError(f"{cmd}: {field} {raw} not one of {sorted(spec.values)}")
+        return None
+    if isinstance(spec, Flag):
+        if not isinstance(raw, bool):
+            raise ValueError(f"{cmd}: {field} must be true or false")
+        return None
+    if isinstance(spec, Seq):
+        if not isinstance(raw, list):
+            raise ValueError(f"{cmd}: {field} must be a list")
+        cap = _bound(spec.max_len, limits)
+        if cap is not None and len(raw) > cap:
+            raise ValueError(f"{cmd}: {field} has {len(raw)} entries, maximum {cap}")
+        if len(raw) < spec.min_len:
+            raise ValueError(f"{cmd}: {field} is empty")
+        if spec.item is None:
+            return None
+        fixed_list: list[JsonValue] = []
+        changed = False
+        for i, el in enumerate(raw):
+            if el is None:
+                raise ValueError(f"{cmd}: {field}[{i}] must not be null")
+            fixed = _check_field(cmd, f"{field}[{i}]", el, spec.item, limits)
+            changed = changed or fixed is not None
+            fixed_list.append(el if fixed is None else fixed)
+        return fixed_list if changed else None
+    if isinstance(spec, Entry):
+        if not isinstance(raw, dict):
+            raise ValueError(f"{cmd}: {field} must be an object")
+        corrected = _check_object(cmd, field, raw, spec.fields, limits)
+        return {**raw, **corrected} if corrected else None
+    if isinstance(spec, Choice):
+        # a WORD of the set; anything else (an unhashable list or object
+        # too) is the same refusal, never set membership's TypeError
+        if not isinstance(raw, str) or raw not in spec.values:
+            raise ValueError(f"{cmd}: {field} {str(raw)[:24]!r} not one of {sorted(spec.values)}")
+        return None
+    if isinstance(spec, Text):
+        if not isinstance(raw, str):
+            raise ValueError(f"{cmd}: {field} must be a string")
+        cap = _bound(spec.max_len, limits)
+        if cap is not None and len(raw) > cap:
+            raise ValueError(
+                f"{cmd}: {field} is {len(raw)} characters, maximum {cap} "
+                f"(LinuxCNC truncates longer input mid-word)")
+        return None
+    if isinstance(spec, AxisMap):
+        if not isinstance(raw, dict) or not raw:
+            raise ValueError(f"{cmd}: {field} must be a non-empty mapping")
+        for key, val in raw.items():
+            letter = str(key).upper()
+            if letter not in TOUCHOFF_LETTERS:
+                raise ValueError(f"{cmd}: {key!r} is not an axis letter")
+            _check_number(cmd, f"{field}.{letter}", val, Num(), limits)
+        return None
+    if isinstance(spec, ExpectMap):
+        if not isinstance(raw, dict):
+            raise ValueError(f"{cmd}: {field} must be a mapping")
+        if frozenset(raw) != EXPECT_KEYS:
+            raise ValueError(f"{cmd}: {field} must name exactly {sorted(EXPECT_KEYS)}")
+        leaves = {"kins_type": Enum(frozenset({0, 1, 2})), "g5x_index": Num(lo=1, hi=9, integer=True)}
+        for key, val in raw.items():
+            if val is not None:          # null = no claim for this dimension (VM363-02)
+                _check_field(cmd, f"{field}.{key}", val, leaves[key], limits)
+        return None
+    if isinstance(spec, VarNumbers):
+        _check_var_numbers(cmd, field, raw, limits)
+        return None
+    if isinstance(spec, PurposeSets):
+        if not isinstance(raw, dict):
+            raise ValueError(f"{cmd}: {field} must be a mapping")
+        for purpose, values in raw.items():
+            if purpose not in PARAM_PURPOSES:
+                raise ValueError(f"{cmd}: {field} {str(purpose)[:24]!r} not one of {sorted(PARAM_PURPOSES)}")
+            _check_var_numbers(cmd, f"{field}.{purpose}", values, limits)
+        return None
+    # A spec class this chain does not know would otherwise pass every value
+    # through silently — the opposite of a bounds check.
+    raise TypeError(f"{cmd}: {field} has an unhandled schema spec {spec!r}")
+
+
+def _check_object(cmd: str, where: str, msg: Mapping[str, JsonValue], schema: Mapping[str, object],
+                  limits: MachineLimits) -> Dict[str, JsonValue]:
+    """Every field of `schema` in `msg`: a Forbidden one present, a required
+    one missing, any one null — refused; a present one checked. Returns the
+    corrections."""
+    corrections: Dict[str, JsonValue] = {}
+    for field, spec in schema.items():
+        name = f"{where}.{field}" if where else field
+        if isinstance(spec, Forbidden):
+            if field in msg:
+                raise ValueError(f"{cmd}: {name} {spec.reason}")
+            continue
+        if field not in msg:
+            if _required(spec):
+                raise ValueError(f"{cmd}: {name} missing")
+            continue
+        raw = msg[field]
+        if raw is None:
+            raise ValueError(f"{cmd}: {name} must not be null")
+        fixed = _check_field(cmd, name, raw, spec, limits)
+        if fixed is not None:
+            corrections[field] = fixed
+    return corrections
+
+
+def validate_payload(cmd: str, msg: Mapping[str, JsonValue], limits: MachineLimits) -> Dict[str, JsonValue]:
+    """The ONE payload check of a command (package 3a, SYS-CONN.S5 + #27,
+    Codex R363–R364): its fields against what the machine declares.
 
     Returns a dict of CORRECTED field values (clamped continuous inputs) for the
     caller to merge into the payload — never mutates `msg`, so the correction is
-    explicit and testable. Raises ValueError for a rejected value; the gateway's
-    dispatch boundary already turns that into a bounded structured reply.
+    explicit and testable. Raises ValueError for a refused payload; the
+    gateway's dispatch boundary turns that into a bounded structured reply.
 
-    Fields absent from the payload are not invented: a handler's own default
-    applies. Commands with no schema entry pass through — this table constrains,
-    it does not enumerate. Pure."""
+    A required field missing, ANY field null (but touchoff.expect's two
+    leaves), a wrong type and a value out of range are refused. An optional
+    field left out keeps its handler's named rule. Every gated command has an
+    entry; a command with none is refused rather than passed through. Unknown
+    extra fields are not judged (N8), a Forbidden one is refused. Pure."""
     schema = COMMAND_SCHEMA.get(cmd)
-    if not schema:
-        return {}
-    corrections: Dict[str, object] = {}
-    for field, spec in schema.items():
-        if field not in msg or msg[field] is None:
-            continue
-        raw = msg[field]
-        if isinstance(spec, Num):
-            fixed = _check_number(cmd, field, raw, spec, limits)
-            if fixed is not None:
-                corrections[field] = int(fixed) if spec.integer else fixed
-        elif isinstance(spec, Enum):
-            try:
-                val = to_int(raw)
-            except (TypeError, ValueError):
-                raise ValueError(f"{cmd}: {field} must be an integer")
-            if val not in spec.values:
-                raise ValueError(
-                    f"{cmd}: {field} {val} not one of "
-                    f"{sorted(spec.values)}")
-        elif isinstance(spec, Seq):
-            if not isinstance(raw, (list, tuple)):
-                raise ValueError(f"{cmd}: {field} must be a list")
-            cap = _bound(spec.max_len, limits)
-            if cap is not None and len(raw) > cap:
-                raise ValueError(
-                    f"{cmd}: {field} has {len(raw)} entries, maximum {cap}")
-        elif isinstance(spec, Choice):
-            # a WORD of the set; anything else (an unhashable list or object
-            # too) is the same refusal, never set membership's TypeError
-            if not isinstance(raw, str) or raw not in spec.values:
-                raise ValueError(f"{cmd}: {field} {str(raw)[:24]!r} not one of {sorted(spec.values)}")
-        elif isinstance(spec, Text):
-            if not isinstance(raw, str):
-                raise ValueError(f"{cmd}: {field} must be a string")
-            cap = _bound(spec.max_len, limits)
-            if cap is not None and len(raw) > cap:
-                raise ValueError(
-                    f"{cmd}: {field} is {len(raw)} characters, maximum {cap} "
-                    f"(LinuxCNC truncates longer input mid-word)")
-        elif isinstance(spec, AxisMap):
-            if not isinstance(raw, dict) or not raw:
-                raise ValueError(f"{cmd}: {field} must be a non-empty mapping")
-            for key, val in raw.items():
-                letter = str(key).upper()
-                if letter not in TOUCHOFF_LETTERS:
-                    raise ValueError(f"{cmd}: {key!r} is not an axis letter")
-                _check_number(cmd, f"{field}.{letter}", val, Num(), limits)
-        elif isinstance(spec, ExpectMap):
-            if not isinstance(raw, dict):
-                raise ValueError(f"{cmd}: {field} must be a mapping")
-            for key, val in raw.items():
-                if key not in EXPECT_KEYS:
-                    raise ValueError(f"{cmd}: {field}.{key} is not an expected-target key")
-                if val is not None:
-                    _check_number(cmd, f"{field}.{key}", val, Num(integer=True), limits)
-        elif isinstance(spec, VarNumbers):
-            _check_var_numbers(cmd, field, raw, limits)
-        elif isinstance(spec, PurposeSets):
-            if not isinstance(raw, dict):
-                raise ValueError(f"{cmd}: {field} must be a mapping")
-            for purpose, values in raw.items():
-                if purpose not in PARAM_PURPOSES:
-                    raise ValueError(f"{cmd}: {field} {str(purpose)[:24]!r} not one of {sorted(PARAM_PURPOSES)}")
-                _check_var_numbers(cmd, f"{field}.{purpose}", values, limits)
-        else:
-            # A spec class this chain does not know would otherwise pass
-            # every value through silently — the opposite of a bounds check.
-            raise TypeError(f"{cmd}: {field} has an unhandled schema spec {spec!r}")
-    return corrections
+    if schema is None:
+        raise ValueError(f"{cmd}: unknown command")
+    return _check_object(cmd, "", msg, schema, limits)
+
+
+#: The stop commands (gateway._WS_STOP_CMDS is the same set — a test holds
+#: them equal): their payload is never a reason to refuse (N5).
+STOP_COMMANDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop", "cycle_pause", "spindle_stop"})
+#: the stops that address jogs — a fault in their target widens them to
+#: every jog the gateway booked
+JOG_STOPS = frozenset({"jog_stop", "jog_stop_multi"})
+
+
+def widen_stop(cmd: str, msg: Mapping[str, JsonValue],
+               limits: MachineLimits) -> Tuple[Dict[str, JsonValue], Optional[str], bool]:
+    """A stop's payload checked — and on a fault WIDENED, never refused (N5,
+    Codex R363 Q363-3): an invalid `via` is dropped (the stop runs as one
+    from the strip); a jog stop whose target fails (missing, null, the wrong
+    type, out of range, a bad entry) stops every jog the gateway booked.
+    Returns (the payload to run, the fault or None, stop every booked jog).
+    A valid empty jog_stop_multi stays "nothing named". Pure."""
+    out: Dict[str, JsonValue] = dict(msg)
+    faults: list[str] = []
+    if "via" in out:
+        try:
+            _check_object(cmd, "", {"via": out["via"]}, {"via": Choice(VIA_VALUES)}, limits)
+        except ValueError as e:
+            faults.append(str(e))
+            out.pop("via")
+    schema = {k: v for k, v in COMMAND_SCHEMA.get(cmd, {}).items() if k != "via"}
+    stop_all = False
+    try:
+        out.update(_check_object(cmd, "", out, schema, limits))
+    except ValueError as e:
+        faults.append(str(e))
+        stop_all = cmd in JOG_STOPS
+    return out, ("; ".join(faults) or None), stop_all

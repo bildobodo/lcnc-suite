@@ -1804,13 +1804,16 @@ const homedJoints = computed<boolean[]>(() => {
   return Array.isArray(hj) ? hj.map(Boolean) : [];
 });
 
-function homeAxis(joint: number) {
-  fire({ cmd: "home", joint }, 'zero');
+// Per AXIS (package 3a F-HOME.S2b): the gateway names the joint from the
+// declared mapping and refuses an unclear one or a home group.
+function homeAxis(axis: number) {
+  fire({ cmd: "home", axis }, 'zero');
 }
 
-function unhomeAxis(joint: number) {
-  fire({ cmd: "unhome", joint }, 'zero');
+function unhomeAxis(axis: number) {
+  fire({ cmd: "unhome", axis }, 'zero');
 }
+const homeAxes = computed(() => Array.isArray(st.value.home_axes) ? st.value.home_axes : null);
 
 
 
@@ -2820,6 +2823,7 @@ watch(viewerGcode, (newGcode) => {
         :axes="axes"
         :workPos="workPos"
         :homedJoints="homedJoints"
+        :homeAxes="homeAxes"
         :isHomed="isHomed"
         :g5xLabel="g5xLabel"
         :kinsType="liveKinsType"
