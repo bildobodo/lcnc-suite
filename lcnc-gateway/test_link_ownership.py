@@ -234,5 +234,134 @@ class TheLinkContracts(unittest.TestCase):
         self.assertEqual((r.status_code, r.json()), (503, {"ok": False, "error": "LinuxCNC not connected"}))
 
 
+class OneLinkPerCommand(unittest.TestCase):
+    """A command runs on ONE Link (Fable's review of R359): handle_command
+    pins the published Link; a reconnect while the command runs makes its
+    next link() NotConnected(LINK_CHANGED) — it never continues on the new
+    Link with what it read from the old one."""
+
+    def test_a_command_that_outlives_its_link_answers_link_changed(self):
+        connect_fake(self)
+        new = FakeConnection()
+        seen = {}
+
+        async def impl(msg, armed, conn_key=None):
+            seen["first"] = gateway.link()
+            swap_connection(new)                   # a reconnect while the command runs
+            seen["stat"] = gateway._stat_now()     # a tolerant read: no connection for this command
+            gateway.link()                         # needs it now
+        with mock.patch.object(gateway, "_handle_command_impl", impl):
+            with self.assertRaises(gateway.NotConnected) as cm:
+                asyncio.run(gateway.handle_command({"cmd": "x"}, True))
+        self.assertEqual(str(cm.exception), gateway.LINK_CHANGED)
+        self.assertIsNone(seen["stat"])
+        self.assertIs(gateway.link().stat, new.stat)   # outside the command: the new Link
+
+    def test_without_a_reconnect_the_command_reads_its_own_link(self):
+        conn = connect_fake(self)
+
+        async def impl(msg, armed, conn_key=None):
+            return {"ok": gateway.link().stat is conn.stat and gateway._stat_now() is conn.stat}
+        with mock.patch.object(gateway, "_handle_command_impl", impl):
+            self.assertEqual(asyncio.run(gateway.handle_command({"cmd": "x"}, True)), {"ok": True})
+
+
+class AStopOnAChangedLink(unittest.TestCase):
+    """A stop whose Link changed before its write is refused like any write
+    (it used to go out on the stale channel through the bound method); the
+    next press goes out on the new Link."""
+
+    def test_an_abort_on_a_changed_link_is_refused_and_the_next_goes_out(self):
+        class _Aborts:
+            serial = 0
+
+            def __init__(self):
+                self.aborts = 0
+
+            def abort(self):
+                self.aborts += 1
+
+            def wait_complete(self, timeout=5.0, /):
+                return linuxcnc.RCS_DONE
+        old_cmd, new_cmd = _Aborts(), _Aborts()
+        connect_fake(self, cmd=old_cmd)
+        new = FakeConnection(cmd=new_cmd)
+        real = asyncio.to_thread
+
+        async def replaced_at_dispatch(fn, /, *args, **kwargs):
+            swap_connection(new)
+            return await real(fn, *args, **kwargs)
+        with mock.patch.object(asyncio, "to_thread", replaced_at_dispatch):
+            r = asyncio.run(gateway.handle_command({"cmd": "abort"}, True))
+        self.assertEqual((r["ok"], r.get("error")), (False, gateway.LINK_CHANGED))
+        self.assertEqual((old_cmd.aborts, new_cmd.aborts), (0, 0))
+        r = asyncio.run(gateway.handle_command({"cmd": "abort"}, True))
+        self.assertTrue(r["ok"], r)
+        self.assertEqual((old_cmd.aborts, new_cmd.aborts), (0, 1))
+
+
+class ClaimsOfAnEarlierLink(unittest.TestCase):
+    """A start claim written on an earlier Link is never released by its
+    serial against this Link's echo; the quiet controller, held for the
+    error proof's window, releases it."""
+
+    def setUp(self):
+        self.conn = connect_fake(self)
+        saved = list(gateway._source_claims)
+        self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), saved))
+        gateway._source_claims.clear()
+        c = gateway._StartClaim("mdi")
+        c.state, c.serial, c.sent_t, c.link_seq = "sent", 5, 0.0, -1   # an earlier Link
+        gateway._source_claims.append(c)
+        self.claim = c
+
+    def status(self, *, echo, state, interp, queued=0, exec_state=None):
+        s = self.conn.stat
+        s.echo_serial_number, s.state, s.interp_state = echo, state, interp
+        s.queued_mdi_commands = queued
+        s.exec_state = linuxcnc.EXEC_DONE if exec_state is None else exec_state
+
+    def test_a_matching_serial_on_this_link_releases_nothing(self):
+        self.status(echo=9, state=linuxcnc.RCS_DONE, interp=linuxcnc.INTERP_READING)
+        gateway._release_start_claims(1.0)
+        self.assertEqual(gateway._source_claims, [self.claim])
+
+    def test_the_quiet_controller_held_for_the_window_releases_it(self):
+        self.status(echo=0, state=linuxcnc.RCS_DONE, interp=linuxcnc.INTERP_IDLE)
+        gateway._release_start_claims(1.0)
+        self.assertEqual(gateway._source_claims, [self.claim])          # the window starts
+        gateway._release_start_claims(1.0 + gateway._CLAIM_ERROR_PROOF_S)
+        self.assertEqual(gateway._source_claims, [])
+
+    def test_a_queued_mdi_keeps_it(self):
+        self.status(echo=0, state=linuxcnc.RCS_DONE, interp=linuxcnc.INTERP_IDLE, queued=1)
+        gateway._release_start_claims(1.0)
+        gateway._release_start_claims(1.0 + gateway._CLAIM_ERROR_PROOF_S)
+        self.assertEqual(gateway._source_claims, [self.claim])
+
+
+class OneConnectAtATime(unittest.TestCase):
+    def test_a_failing_attempt_revokes_only_the_link_it_found(self):
+        connect_fake(self)
+        from link_fixture import restore_after
+        restore_after(self)
+        published = {}
+        real_stat = gateway.linuxcnc.stat
+
+        class _Dead:
+            def __init__(self):
+                assert gateway._connect_lock.locked(), "a connect runs under _connect_lock"
+                # someone else publishes while this attempt runs
+                published["link"] = gateway._publish_link(real_stat(), linuxcnc.command(),
+                                                         linuxcnc.error_channel(), None)
+
+            def poll(self):
+                raise linuxcnc.error("no status channel")
+        with mock.patch.object(gateway, "_nml_connectable", lambda: True), \
+                mock.patch.object(gateway.linuxcnc, "stat", _Dead):
+            self.assertFalse(gateway.try_connect_lcnc())
+        self.assertIs(gateway._link, published["link"])
+
+
 if __name__ == "__main__":
     unittest.main()

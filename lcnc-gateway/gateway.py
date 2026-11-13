@@ -12,6 +12,7 @@ import os
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+import contextvars
 import threading
 from pathlib import Path
 import linuxcnc
@@ -456,38 +457,63 @@ _link: Optional[Link] = None
 _link_lock = threading.Lock()
 _link_seq = 0
 _lcnc_pid: Optional[int] = None  # tracks linuxcncsvr PID
+# serialises try_connect_lcnc (the WS endpoint and the poller may both
+# connect): one attempt at a time, so a failing one never revokes the Link
+# another just published
+_connect_lock = threading.Lock()
+
+#: The Link a COMMAND runs on (handle_command pins the published one for the
+#: command's whole run, the tasks it starts inherit it): every write of a
+#: command goes to one Link — a command that outlives its Link (a reconnect
+#: in between) answers LINK_CHANGED instead of continuing on another one
+#: with decisions read from the first.
+_command_link: "contextvars.ContextVar[Optional[Link]]" = contextvars.ContextVar("_command_link", default=None)
+
+#: a command whose Link was replaced or revoked while it ran
+LINK_CHANGED = "Connection to LinuxCNC changed — try again"
 
 
 def current_link() -> Optional[Link]:
-    """The published Link, or None — for a reader that tolerates no
-    connection (a status read answers "unknown" without one)."""
-    return _link
+    """The Link a reader may use now, or None — for a reader that tolerates
+    no connection (a status read answers "unknown" without one). Inside a
+    command: its pinned Link while it is still the published one."""
+    current = _link
+    pinned = _command_link.get()
+    if pinned is not None and pinned is not current:
+        return None
+    return current
 
 
 def link() -> Link:
-    """The published Link — for a path that needs the connection; raises
-    NotConnected without one."""
+    """The Link — for a path that needs the connection: NotConnected without
+    one; inside a command its pinned Link, NotConnected(LINK_CHANGED) once
+    that is no longer the published one."""
     current = _link
+    pinned = _command_link.get()
+    if pinned is not None:
+        if pinned is not current:
+            raise NotConnected(LINK_CHANGED)
+        return pinned
     if current is None:
         raise NotConnected()
     return current
 
 
 def _stat_now() -> Optional[linuxcnc.stat]:
-    """The published Link's status channel, None without a connection (a
+    """The usable Link's status channel (current_link), None without one (a
     tolerant read: `getattr(_stat_now(), "x", None)`). A path that NEEDS it
     takes link().stat — NotConnected without one."""
-    current = _link
+    current = current_link()
     return None if current is None else current.stat
 
 
 def _cmd_now() -> Optional[linuxcnc.command]:
-    current = _link
+    current = current_link()
     return None if current is None else current.cmd
 
 
 def _err_now() -> Optional[linuxcnc.error_channel]:
-    current = _link
+    current = current_link()
     return None if current is None else current.err
 
 
@@ -2465,6 +2491,13 @@ def _on_instance_ended(where: str) -> None:
 
 
 def try_connect_lcnc() -> bool:
+    """One attempt at a time (_connect_lock — the WS endpoint and the poller
+    may both connect); see _try_connect_lcnc."""
+    with _connect_lock:
+        return _try_connect_lcnc()
+
+
+def _try_connect_lcnc() -> bool:
     """Attempt to connect to LinuxCNC. Returns True on success.
 
     Bind-once: the first success records the instance; a later connect to a
@@ -2480,6 +2513,7 @@ def try_connect_lcnc() -> bool:
     global _joint_jog_cache
     if _instance_ended:
         return False  # bound instance ended: never re-bind
+    found = _link               # a failing attempt revokes only the Link it found
     _nc_files_dir = None        # re-resolve on reconnect
     _ini_config = None          # re-read INI config on reconnect
     _machine_limits = None      # rebuild payload bounds on reconnect (#27)
@@ -2528,7 +2562,8 @@ def try_connect_lcnc() -> bool:
         return True
     except Exception as e:
         print(f"[VINIT] try_connect_lcnc FAILED: {e}", flush=True)
-        _revoke_link(f"connect failed: {type(e).__name__}")
+        if _link is found:
+            _revoke_link(f"connect failed: {type(e).__name__}")
         _lcnc_pid = None
         return False
 
@@ -3351,7 +3386,7 @@ _CLAIM_ERROR_PROOF_S = 0.02
 
 
 class _StartClaim:
-    __slots__ = ("what", "serial", "state", "t", "sent_t", "err_since")
+    __slots__ = ("what", "serial", "state", "t", "sent_t", "err_since", "link_seq")
 
     def __init__(self, what: str):
         self.what = what
@@ -3360,6 +3395,7 @@ class _StartClaim:
         self.t = time.monotonic()
         self.sent_t: Optional[float] = None      # when the sending thread saw the write return
         self.err_since: Optional[float] = None   # the first poll of an unbroken error proof
+        self.link_seq: Optional[int] = None      # the Link the command was written on
 
 
 _source_lock: Optional[asyncio.Lock] = None
@@ -3401,9 +3437,32 @@ def _release_start_claims(polled_at: Optional[float] = None) -> None:
     err_quiet = (idle and state == getattr(linuxcnc, "RCS_ERROR", 3)
                  and safe_get("queued_mdi_commands", None) == 0
                  and safe_get("exec_state", None) == getattr(linuxcnc, "EXEC_DONE", 2))
+    quiet = (idle and state in (getattr(linuxcnc, "RCS_DONE", 1), getattr(linuxcnc, "RCS_ERROR", 3))
+             and safe_get("queued_mdi_commands", None) == 0
+             and safe_get("exec_state", None) == getattr(linuxcnc, "EXEC_DONE", 2))
+    now_link = current_link()
     keep = []
     for c in _source_claims:
         if c.state == "unsent":
+            continue
+        if (c.state == "sent" and c.link_seq is not None and now_link is not None
+                and c.link_seq != now_link.seq):
+            # Written on an earlier Link (package 2b): its serial is that
+            # channel's, the echo this Link's — no comparison across them.
+            # The controller proves it is through with EVERY earlier command
+            # by being quiet (idle, done or error, nothing queued, the exec
+            # done), held for the error proof's window; a new Link exists only
+            # seconds after the old one failed, long after task took the write.
+            if quiet:
+                if c.err_since is None:
+                    c.err_since = polled_at
+                elif polled_at - c.err_since >= _CLAIM_ERROR_PROOF_S:
+                    _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof="relinked",
+                                held_ms=round((time.monotonic() - c.t) * 1000))
+                    continue
+            else:
+                c.err_since = None
+            keep.append(c)
             continue
         seen = (c.state == "sent" and c.sent_t is not None and c.sent_t < polled_at
                 and c.serial is not None and echo is not None)
@@ -3590,10 +3649,6 @@ class _WriteRefused(PermissionError):
     the manual commands): the reply says why, nothing was written."""
 
 
-#: the refusal of a write whose Link was replaced or revoked before it went out
-LINK_CHANGED = "Connection to LinuxCNC changed — try again"
-
-
 async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD_WAIT_TIMEOUT,
                         claim: Optional["_StartClaim"] = None,
                         admit: Optional[Callable[[], Optional[str]]] = None,
@@ -3704,6 +3759,7 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
             run_basis["state"] = "sent"
         if claim is not None:
             claim.serial = getattr(conn.cmd, "serial", None)
+            claim.link_seq = conn.seq
             claim.sent_t = time.monotonic()
             claim.state = "sent"
         if wait is None:
@@ -5438,7 +5494,13 @@ async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[st
     # arm at dispatch; `conn_key` its connection, which a protected write
     # reads again at its commit (button gates BG-23, Codex R211).
     async with _get_cmd_lock():
-        return await _handle_command_impl(msg, armed, conn_key)
+        # the command runs on the Link published NOW (package 2b): every
+        # write of it, and the tasks it starts, on that one
+        pinned = _command_link.set(_link)
+        try:
+            return await _handle_command_impl(msg, armed, conn_key)
+        finally:
+            _command_link.reset(pinned)
 
 
 class _Unhandled:

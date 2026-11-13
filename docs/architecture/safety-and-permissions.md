@@ -594,6 +594,26 @@ named exception, an older page's `mdi` with `vars` included (R336).
   channel — the claim and the run basis `unsent`, also when the admission
   itself raises — and is never redirected. A wait already running stays on
   its Link: the new channel never answers for the old write.
+- **One Link per command** (Fable, R359). `handle_command` pins the
+  published Link for the command's whole run (`_command_link`, a ContextVar —
+  the tasks a command starts, the run-from-line sequence among them, inherit
+  it): `link()` inside answers that Link, or `NotConnected(LINK_CHANGED)`
+  once it is no longer the published one; `current_link()` / `_stat_now()`
+  answer None then. A command never continues on a new Link with what it read
+  from the old one.
+- **A stop on a changed Link** is refused like any write (it used to go out on
+  the stale channel through the bound method); the next press goes out on
+  the new Link. The HAL chain stays the safety stop.
+- **A start claim keeps its Link** (`link_seq`): its serial is that
+  channel's. A claim of an earlier Link is never compared with this Link's
+  echo — the controller QUIET (idle, done or error, nothing queued, the exec
+  done), held for the error proof's window, releases it (`proof=relinked`);
+  a new Link exists only seconds after the old one failed, long after task
+  took the write. How libnml numbers a fresh channel's serials is outside the
+  binding and is not relied on.
+- **One connect at a time.** `try_connect_lcnc` runs under `_connect_lock`
+  (the WS endpoint and the poller may both connect, each in a thread); a
+  failing attempt revokes only the Link it found when it began.
 - **`op()`.** `op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, axis)` — the
   binding CLASS's method (its run-time `__name__` is the command; the
   Protocol's overloads have none) and its positional arguments; a name
