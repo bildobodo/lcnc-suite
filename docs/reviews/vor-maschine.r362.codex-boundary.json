@@ -1,0 +1,305 @@
+{
+  "target": "45727d61",
+  "boot_control": {
+    "first": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "after_reconnect": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "decl": {
+      "module": "xyzacb_trsrn",
+      "type": "xyzacb-trsrn",
+      "identity_first": false,
+      "params": {}
+    },
+    "events": []
+  },
+  "boot_read_loses_link": {
+    "first": {
+      "checked": false,
+      "pending": null,
+      "warning": "",
+      "link": false
+    },
+    "after_reconnect": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "decl": {
+      "module": "xyzacb_trsrn",
+      "type": "xyzacb-trsrn",
+      "identity_first": false,
+      "params": {}
+    },
+    "events": []
+  },
+  "queued_heal_none": {
+    "before": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "after_heal": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "after_reconnect": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ]
+    ],
+    "trace": [
+      [
+        "twp.reserved_fixture_on_boot",
+        {
+          "level": "warn",
+          "index": 7
+        }
+      ],
+      [
+        "twp.reserved_fixture_heal_deferred",
+        {
+          "level": "info",
+          "index": 7,
+          "why": "review: not ready"
+        }
+      ]
+    ]
+  },
+  "queued_heal_no_link": {
+    "before": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "after_heal": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": false
+    },
+    "after_reconnect": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "events": [],
+    "trace": [
+      [
+        "twp.reserved_fixture_on_boot",
+        {
+          "level": "warn",
+          "index": 7
+        }
+      ],
+      [
+        "lcnc.link_revoked",
+        {
+          "level": "warn",
+          "seq": 5,
+          "reason": "review: transport failed while heal waited"
+        }
+      ],
+      [
+        "twp.reserved_fixture_heal_deferred",
+        {
+          "level": "info",
+          "index": 7,
+          "why": "kins declaration unknown"
+        }
+      ],
+      [
+        "lcnc.link_published",
+        {
+          "seq": 6,
+          "pid": null
+        }
+      ]
+    ]
+  },
+  "queued_heal_unread_ini": {
+    "before": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "after_heal": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "after_reconnect": {
+      "checked": true,
+      "pending": 7,
+      "warning": "G59.1 (a TWP scratch row) was active at the last shutdown \u2014 the DRO reads a dead plane frame; restoring G54 once the machine is homed",
+      "link": true
+    },
+    "events": [],
+    "trace": [
+      [
+        "twp.reserved_fixture_on_boot",
+        {
+          "level": "warn",
+          "index": 7
+        }
+      ],
+      [
+        "lcnc.link_published",
+        {
+          "seq": 8,
+          "pid": null
+        }
+      ],
+      [
+        "viewer_init.kins_parse_failed",
+        {
+          "level": "warn",
+          "exc_type": "OSError",
+          "exc_msg": "review: transient INI read failure"
+        }
+      ],
+      [
+        "twp.reserved_fixture_heal_deferred",
+        {
+          "level": "info",
+          "index": 7,
+          "why": "kins declaration unknown"
+        }
+      ]
+    ]
+  },
+  "claim_none": {
+    "events": [
+      [
+        "poll",
+        "polled",
+        3
+      ]
+    ],
+    "first": {
+      "claims": 1,
+      "err_since": 100.0,
+      "proof": [
+        "relinked",
+        9
+      ],
+      "current_seq": 9,
+      "polled_seq": 9
+    },
+    "after_first_current_poll": {
+      "claims": 1,
+      "err_since": 100.0,
+      "proof": [
+        "relinked",
+        9
+      ]
+    }
+  },
+  "claim_publish": {
+    "events": [
+      [
+        "poll",
+        "polled",
+        3
+      ],
+      [
+        "poll",
+        "replacement",
+        3
+      ]
+    ],
+    "first": {
+      "claims": 1,
+      "err_since": null,
+      "proof": null,
+      "current_seq": 11,
+      "polled_seq": 10
+    },
+    "after_first_current_poll": {
+      "claims": 1,
+      "err_since": 100.025,
+      "proof": [
+        "relinked",
+        11
+      ]
+    }
+  },
+  "claim_revoke": {
+    "events": [
+      [
+        "poll",
+        "polled",
+        3
+      ]
+    ],
+    "first": {
+      "claims": 1,
+      "err_since": null,
+      "proof": null,
+      "current_seq": null,
+      "polled_seq": 12
+    },
+    "after_first_current_poll": {
+      "claims": 1,
+      "err_since": null,
+      "proof": null
+    }
+  },
+  "claim_revoke_after_fields": {
+    "events": [
+      [
+        "poll",
+        "polled",
+        3
+      ]
+    ],
+    "first": {
+      "claims": 1,
+      "err_since": null,
+      "proof": null,
+      "current_seq": null,
+      "polled_seq": 13
+    },
+    "after_first_current_poll": {
+      "claims": 1,
+      "err_since": null,
+      "proof": null
+    }
+  },
+  "contract_checks": {
+    "control_boot_detects_twp": true,
+    "control_queued_not_ready_retains_warning": true,
+    "boot_loss_does_not_spend_check": true,
+    "queued_heal_no_link_retains_pending": true,
+    "queued_heal_unread_ini_retains_pending": true,
+    "control_first_quiet_sample_retains_claim": true,
+    "control_lost_before_fields_retains_claim": true,
+    "replacement_needs_own_first_sample": true,
+    "replacement_first_sample_cannot_finish_window": true,
+    "lost_after_fields_retains_claim": true
+  }
+}

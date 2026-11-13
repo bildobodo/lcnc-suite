@@ -1,0 +1,131 @@
+{
+  "target": "45727d61a3cb2d88728d8212b208f0220c07f083",
+  "base": "58010ecb",
+  "archive": "/tmp/codex-r362",
+  "live_tree_product_edits": false,
+  "live_sim_access": false,
+  "commands": [
+    "git archive 45727d61 -- :!docs/reviews | tar -x -C /tmp/codex-r362",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r362/probes/run_tests.py -q test_link_ownership.py test_toolsetter_basis.py test_command_dispatch.py test_g30.py test_session_bind.py test_button_gates_e.py --junitxml=/tmp/codex-r362/probes/tests.xml",
+    "node /tmp/codex-r362/lcnc-webui/node_modules/pyright/index.js --pythonpath /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 --outputjson",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r362/probes/probe.py",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r362/probes/boundary.py",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r362/probes/commit.py"
+  ],
+  "test_functions": 326,
+  "junit_suites": [
+    {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "427",
+      "time": "9.825",
+      "timestamp": "2026-11-13T14:50:39.341434+01:00",
+      "hostname": "debian"
+    }
+  ],
+  "pyright": {
+    "filesAnalyzed": 44,
+    "errorCount": 0,
+    "warningCount": 0,
+    "informationCount": 0,
+    "timeInSec": 15.003
+  },
+  "r360_cases": {
+    "mode_refused_without_swap": true,
+    "mode_refused_old_but_new_mode_matches": true,
+    "admission_swaps": true,
+    "admission_swaps_then_raises": true,
+    "mode_success_without_swap": true,
+    "mdi_without_swap": true,
+    "two_write_without_swap": true,
+    "mdi_swap_during_mode_wait": true,
+    "two_write_swap_after_first": true,
+    "failed_nml_precheck": true,
+    "terminal_event_during_connect": true,
+    "limits_without_swap": true,
+    "limits_swap_during_poll": true,
+    "joint_cache_without_swap": true,
+    "joint_cache_swap_during_ini": true,
+    "readback_none": true,
+    "readback_wait": true,
+    "readback_last_read": true,
+    "heal_completion_control": true,
+    "heal_completion_swap": true,
+    "claim_window_same_link": true,
+    "claim_window_relinked": true
+  },
+  "r361_boundary_contracts": {
+    "control_boot_detects_twp": true,
+    "control_queued_not_ready_retains_warning": true,
+    "boot_loss_does_not_spend_check": true,
+    "queued_heal_no_link_retains_pending": true,
+    "queued_heal_unread_ini_retains_pending": true,
+    "control_first_quiet_sample_retains_claim": true,
+    "control_lost_before_fields_retains_claim": true,
+    "replacement_needs_own_first_sample": true,
+    "replacement_first_sample_cannot_finish_window": true,
+    "lost_after_fields_retains_claim": true
+  },
+  "new_multi_claim_commit_cases": {
+    "none_after_mark_computed": true,
+    "publish_after_mark_computed": true,
+    "revoke_after_mark_computed": true,
+    "none_after_release_computed": true,
+    "publish_after_release_computed": true,
+    "revoke_after_release_computed": true
+  },
+  "adaptations": [
+    "R360 heal probe now mocks _twp_capability, the three-state dependency used by the current heal check, instead of _twp_capable.",
+    "R361 last-field revoke hook moved from safe_get to the fake status exec_state getter because release no longer uses safe_get. The transition is otherwise unchanged.",
+    "Both reused scripts target /tmp/codex-r362 and 45727d61. Tests and probes use fake_linuxcnc, own LCNC_LOG_DIR and no host LinuxCNC discovery.",
+    "Boot import repository test intentionally supplies its own process as instance and a temporary stub module to the NML subprocess; no live LinuxCNC channel."
+  ],
+  "changed_files_integrity": [
+    {
+      "file": "CLAUDE.md",
+      "expected_sha256": "11c4843290f7acc841132a2a4fea798a49e8d07ba7989e4d90d1eaece0ff783f",
+      "actual_sha256": "11c4843290f7acc841132a2a4fea798a49e8d07ba7989e4d90d1eaece0ff783f",
+      "unchanged": true
+    },
+    {
+      "file": "docs/architecture/safety-and-permissions.md",
+      "expected_sha256": "4803e622839a9dcdc3d4ae289e1810b94511ddf6cdfa0ea61227754a04994238",
+      "actual_sha256": "4803e622839a9dcdc3d4ae289e1810b94511ddf6cdfa0ea61227754a04994238",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/gateway.py",
+      "expected_sha256": "0c33e1e1bc3b31a89dbfdaa73a4503f70be7ce9d1d9fe7aa09d94d697ae432ac",
+      "actual_sha256": "0c33e1e1bc3b31a89dbfdaa73a4503f70be7ce9d1d9fe7aa09d94d697ae432ac",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/test_button_gates_e.py",
+      "expected_sha256": "902df7ed8acbfa64bec2575fe212f3d887df4358fd396f0572a425c3af2791c1",
+      "actual_sha256": "902df7ed8acbfa64bec2575fe212f3d887df4358fd396f0572a425c3af2791c1",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/test_link_ownership.py",
+      "expected_sha256": "3c31504b38345b0b53580fa4317a748e64f20759ff06cfebee4a20e22d2c4b2f",
+      "actual_sha256": "3c31504b38345b0b53580fa4317a748e64f20759ff06cfebee4a20e22d2c4b2f",
+      "unchanged": true
+    }
+  ],
+  "review_prefix_sha256": "47b025a39b3bba2627eca92b537625d108c401cddb3a497d69620b3c5b6808f7",
+  "review_append_sha256": "017a4cd6115a269aca8d65ab1ce072a8f7753aafe75aaa7798b4ea58deec8a89",
+  "evidence_sha256": {
+    "probe.py": "f9f3fe442dcc9acfbbab08f33082364510122e183682e9c524a4e9a5fd735678",
+    "probe.json": "f13051ed09d97f3b2b8bbe10f2258c3623396c90dd09fac57fdbf9031b78d500",
+    "boundary.py": "6082b70d9982f33029739886b5e787f414ed3bbbb228e82b1e2d2311d8327a82",
+    "boundary.json": "afb232c55f899fe3d5e6f2ee0bb73e26048208f2949e6f50ffa728d49e139028",
+    "commit.py": "1639d547c5154e90995df84bc9e0e3d525fab30769ef8b481c7e0763627579cd",
+    "commit.json": "62cd44de35b00ad943aab27a1f9d4ae6f2d0c810c9120052d72685f4b913bfea",
+    "tests.txt": "6347f84d8a5ff961259aeb921680eb7ab0685d63723b524fc2b3ef75266b67b5",
+    "tests.xml": "9adb026f3c3e5069876cd4477dad36f73982bf16671002822fba053d87d72229",
+    "pyright.json": "d4f79c36d5cf89aceed997164dbdf9639dc82a69be572ceac7eae656fc552512",
+    "run-tests.py": "363b0b1a1b92ddbda1407f623131a7efcb9dc19476ef4ec45ef80e3293740e86"
+  }
+}

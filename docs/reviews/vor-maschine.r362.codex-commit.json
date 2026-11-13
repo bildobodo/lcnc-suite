@@ -1,0 +1,108 @@
+{
+  "target": "45727d61",
+  "none_after_mark_computed": {
+    "claims": 2,
+    "first_before": [
+      null,
+      null
+    ],
+    "first_after": [
+      100.0,
+      [
+        "relinked",
+        1
+      ]
+    ],
+    "second_since": 100.0,
+    "owner_still_current": true,
+    "contract_holds": true
+  },
+  "publish_after_mark_computed": {
+    "claims": 2,
+    "first_before": [
+      null,
+      null
+    ],
+    "first_after": [
+      null,
+      null
+    ],
+    "second_since": null,
+    "owner_still_current": false,
+    "contract_holds": true
+  },
+  "revoke_after_mark_computed": {
+    "claims": 2,
+    "first_before": [
+      null,
+      null
+    ],
+    "first_after": [
+      null,
+      null
+    ],
+    "second_since": null,
+    "owner_still_current": false,
+    "contract_holds": true
+  },
+  "none_after_release_computed": {
+    "claims": 1,
+    "first_before": [
+      99.9,
+      [
+        "relinked",
+        5
+      ]
+    ],
+    "first_after": [
+      99.9,
+      [
+        "relinked",
+        5
+      ]
+    ],
+    "second_since": 100.0,
+    "owner_still_current": true,
+    "contract_holds": true
+  },
+  "publish_after_release_computed": {
+    "claims": 2,
+    "first_before": [
+      99.9,
+      [
+        "relinked",
+        6
+      ]
+    ],
+    "first_after": [
+      99.9,
+      [
+        "relinked",
+        6
+      ]
+    ],
+    "second_since": null,
+    "owner_still_current": false,
+    "contract_holds": true
+  },
+  "revoke_after_release_computed": {
+    "claims": 2,
+    "first_before": [
+      99.9,
+      [
+        "relinked",
+        8
+      ]
+    ],
+    "first_after": [
+      99.9,
+      [
+        "relinked",
+        8
+      ]
+    ],
+    "second_since": null,
+    "owner_still_current": false,
+    "contract_holds": true
+  }
+}

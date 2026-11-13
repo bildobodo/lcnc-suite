@@ -1871,3 +1871,51 @@ Gebaut auf `feat/link` (gepusht, Zwilling `harden/link` für CI), `58010ecb..457
 - Gegenfälle: [pyright](vor-maschine.p2b.r362.mutations.txt), [Testsitzung](vor-maschine.p2b.r362.mutations-iso.txt), [rot vor dem Fix](vor-maschine.p2b.r362.red.txt) ([Skript](vor-maschine.p2b.r362.red_2b.py))
 - Live: [Läufe](vor-maschine.p2b.live-runs.txt) (Lauf 7), [live-twp](vor-maschine.p2b.r362.live-twp.txt) ([Bericht](vor-maschine.p2b.r362.live-twp.report.json)), [Toolsetter](vor-maschine.p2b.r362.toolsetter-readback.txt) ([Bericht](vor-maschine.p2b.r362.toolsetter-readback.report.txt)), [Macro](vor-maschine.p2b.r362.macro-live.txt), [perf](vor-maschine.p2b.r362.perf.txt), [perf, erster Lauf](vor-maschine.p2b.r362.perf-run1-rotation.txt), [native Haupt](vor-maschine.p2b.r362.native-main.json), [native Latch](vor-maschine.p2b.r362.native-latch.json)
 - CI: `harden/link`, [Lauf 43419417053](https://github.com/bildobodo/lcnc-suite/actions/runs/43419417053) (backend + frontend success)
+
+---
+
+## Codex · Nachprüfung Paket 2b · R362 · 13. November 2026
+
+**Urteil: agreement. VM-I09-Rest und VM-I10 sind geschlossen.** Den zusätzlichen Boot-Connect-Fix nehme ich an. Keine weiteren Befunde im Umfang `58010ecb..45727d61`, keine Operator-Frage. Die geschlossenen Punkte der vorherigen Runden bleiben geschlossen.
+
+Geprüft am Kopf **`45727d61`**, in der eigenen Archivkopie `/tmp/codex-r362`; die fünf geänderten Dateien wurden am Ende gegen den Commit verglichen und sind unverändert.
+
+### VM-I09 · Auswertung und Übernahme gehören demselben Poll
+
+Die Korrektur erfüllt den Vertrag: Alle Felder kommen aus `owner.stat`. Beweismarken und Freigaben werden zunächst nur lokal berechnet. Erst der Vergleich mit `_link` unter der gemeinsamen `_link_lock` macht sie wirksam; die Protokollierung erfolgt danach. Ein fehlender Besitzer führt zu keiner Auswertung. Damit gibt es auch den Ausweichweg über das Echo bei `now_link=None` nicht mehr.
+
+Beide eigenen R361-Übergänge sind grün:
+
+- Der während A's Auswertung veröffentlichte Link B erhält durch A keinen Beginn seines Ruhefensters. B's erster eigener Poll beginnt das Fenster und entfernt den Claim noch nicht; der Repository-Wächter prüft zusätzlich die Freigabe nach dem vollständigen Fenster.
+- Ein Entzug nach dem letzten Statusfeld entfernt keinen Claim.
+
+Die zweite Sonde musste ihren Hook von `safe_get` an den Getter von `exec_state` des Fake-Status verschieben: Der Produktcode verwendet `safe_get` hier zu Recht nicht mehr. Ohne diese Anpassung wäre der alte Übergang nicht mehr ausgelöst worden. [Sonde](vor-maschine.r362.codex-boundary.py), [Ergebnisse](vor-maschine.r362.codex-boundary.json).
+
+**Zusätzliche Abschlussprobe:** Zwei Claims werden gemeinsam ausgewertet. Für den ersten ist bereits eine neue Beweismarke beziehungsweise eine Freigabe berechnet, als das Lesen des zweiten einen Publish oder Revoke auslöst. In allen vier Wechselvarianten bleiben beide Claims und die bisherigen Marken unverändert. Die beiden Kontrollen ohne Wechsel übernehmen das berechnete Ergebnis. Damit ist auch der Übergang **nach** dem Lesen der Statusfelder und **während** der Berechnung geprüft, nicht nur die Eingangsprüfung. **6/6** ([Sonde](vor-maschine.r362.codex-commit.py), [Ergebnisse](vor-maschine.r362.codex-commit.json)).
+
+### VM-I10 · Unbekannt bewahrt den Auftrag
+
+Die drei Zustände sind jetzt ausdrücklich getrennt. `_twp_capability()` liefert bei fehlender oder ungelesener Deklaration `None`; die Heilung schiebt dann auf. Das bestehende boolesche Prädikat bleibt über dieselbe Regel `_twp_of` angebunden. Die einmalige Bootprüfung verwendet eine Lesung und prüft deren Besitzer, bevor sie entscheidet. Der Poller übergibt außerdem seinen Link an den Tick; ein bereits ersetzter Schnappschuss darf weder die Bootprüfung verbrauchen noch eine bestehende Heilung aufheben. Vor dem Abschluss „superseded“ prüft die gepinnte Heilung ihren Besitzer erneut.
+
+Meine eigenen Fälle mit dem echten Parser und derselben Fake-TWP-Deklaration sind jetzt richtig:
+
+- Linkverlust während des ersten INI-Lesens verbraucht die Bootprüfung nicht; nach Wiederverbindung wird G59.1 erkannt und das Banner gesetzt.
+- Eine hinter `_cmd_lock` wartende Heilung behält Auftrag und Warnung sowohl bei entzogenem Link als auch bei vorübergehend unlesbarer INI.
+- Die lesbare, noch nicht bereite TWP-Maschine bleibt als Kontrolle ebenfalls ausstehend.
+
+Alle zehn Soll-Aussagen der neun R361-Grenzabläufe sind erfüllt ([Ergebnisse](vor-maschine.r362.codex-boundary.json)). Die ergänzten Repository-Wächter für einen gepinnten, inzwischen ersetzten Besitzer sowie alte Tick-Schnappschüsse sind ebenfalls grün. Die Ausnahme für eine tatsächlich gelesene Maschine ohne TWP bleibt erhalten.
+
+### Boot-Connect und Nachweise
+
+Die Berichtigung zu R361 ist übernommen: Die frühere Deklarationsreihenfolge konnte den Import-Connect nach der Veröffentlichung mit `NameError` abbrechen, obwohl die späteren Live-Läufe bestanden. `_viewer_init_cache` steht jetzt vor diesem Eintrittspfad. Der neue Wächter `TheBootConnectAtImport` läuft in meiner Archivkopie grün: frischer Prozess, eigene Prozessidentität, Fake-Bindung und temporäres Stub-Modul für den NML-Unterprozess. Er prüft den tatsächlichen Importpfad einschließlich „try_connect_lcnc OK“ und der veröffentlichten Verbindung. Die Tests bleiben von der Host-Sim getrennt. Das gelieferte Rot-Protokoll nennt den vorherigen Fehler ausdrücklich; die beiden nur wegen des neuen Tick-Parameters roten Tests sind korrekt als Schnittstellenfälle ausgewiesen.
+
+**Eigene Läufe am Kopf:**
+
+- **326 Testfunktionen** aus `test_link_ownership`, `test_toolsetter_basis`, `test_command_dispatch`, `test_g30`, `test_session_bind` und `test_button_gates_e` bestanden, keine Fehler oder Überspringungen. JUnit zählt einschließlich zusätzlicher Subtest-Ergebnisse **427** ([Protokoll](vor-maschine.r362.codex-tests.txt), [JUnit](vor-maschine.r362.codex-tests.xml)).
+- **Typprüfung: 44 Dateien, 0 Fehler, 0 Warnungen** ([Bericht](vor-maschine.r362.codex-pyright.json)).
+- Die eigenen älteren Modus-, Schreib-, Cache-, Read-back-, Heilungsabschluss- und Zeitfensterproben weiterhin **22/22** richtig ([Sonde](vor-maschine.r362.codex-probe.py), [Ergebnisse](vor-maschine.r362.codex-probe.json)); die Heilungskontrolle verwendet jetzt ihre neue dreistufige Abhängigkeit `_twp_capability`.
+- Die neun R361-Grenzabläufe und die sechs neuen Mehr-Claim-Abschlussfälle wie oben beschrieben bestanden.
+
+Die gelieferten Round-, Gegenfall-, Rot- und Live-Berichte sind berücksichtigt, nicht vollständig wiederholt. Der erste Perf-Lauf bleibt **FAIL wegen fehlender Laufmarken**; die dokumentierte Wiederholung am selben Kopf ist ein eigener PASS-Nachweis. Die native Hauptprüfung nennt weiterhin **59 PASS / 5 unvollständige Jog-Bremswege aus Statusframes**, deren Servo-Zwillinge bestanden sind; der Latch-Lauf enthält drei PASS. Die neue ausdrückliche Prüfung des Boot-Connects schließt die zuvor übersehene Nachweislücke. Linkwechsel mitten in den geprüften Abläufen und die TWP-Heilung sind weiterhin durch Fake-Übergangsproben belegt, nicht als native Abnahme dieser Übergänge ausgegeben.
+
+Befehle, Anpassungen der Sonden, Ergebnisse und Hashvergleich im [Prüfprotokoll](vor-maschine.r362.codex-checks.json). **Keine Produktdatei geändert, keine Tests oder Builds im Live-Baum, kein Zugriff auf die laufende Sim.** Nur dieser Anhang und neue R362-Belege.
