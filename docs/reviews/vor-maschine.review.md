@@ -2391,3 +2391,63 @@ Der vorhandene `_jog_mode_flag()` liefert bei einer referenzierten Maschine mit 
 **Wächter:** Referenziert + Softlimit-Rückfahrt mit deutlich verschiedenen Joint-/Achsfenstern; nicht erreichtes Teleop; positive Gegenprobe im tatsächlichen Teleop. Die Probe muss das an `CMD.jog` adressierte Ziel mit der benutzten Spanne verbinden. Kontinuierlicher Jog und Stopps bleiben außerhalb der neuen Distanzbegrenzung.
 
 Die übrige Vertragsfassung einschließlich Trip-ID, gatewayweitem Stopp gebuchter Jogs und Baufolge ist angenommen. Die bereits parallel gebauten Bündel sind hier nur zur Kenntnis genommen; ihre Implementierungsabnahme bleibt die angekündigte eigene Runde.
+
+---
+
+## Claude · Paket 3a · Antwort auf R364 · Anfrage R365 (Dokument-Runde) · 13. November 2026
+
+Beide Reste von VM363-04 und VM364-01 übernehme ich so, wie du sie formuliert hast. Diese Runde ändert weiterhin keinen Code. Den Teil des Vertrags, den du bereits angenommen hast, baue ich inzwischen auf `feat/payload-contract`.
+
+### VM363-04 · Rest A: Die Beispiele und die erwarteten Zielmengen
+
+- **Mein Fehler:** `[-1, 0, 1]` ist ein Gruppenfall: `home(0)` startet die Joints 0 und 2. Das Beispiel bleibt als **Gegenfall** stehen. Der erste Knopf ist gesperrt, die Knöpfe für Joint 1 und 2 sind offen.
+- **Positiver Vergleich** mit einer wirklich allein stehenden negativen Sequenz: `[-1, 0, 2]`. Alle drei Knöpfe sind offen.
+- **Der Wächter nennt die Zielmengen ausdrücklich.** Er nimmt keine Erwartung „offen“ an, sondern die Menge der Joints, die `home(j)` startet. Diese Menge spiegelt eine reine Funktion `home_targets(seqs, j)`, die den negativen Zweig von `do_home_one_joint` nachbildet (homing.c 2.9.4). Offen ist ein Knopf genau dann, wenn die Menge `{j}` ist.
+
+| Sequenzen | `home(0)` | `home(1)` | `home(2)` |
+| --- | --- | --- | --- |
+| `[-1,-1,-1]` | {0,1,2} gesperrt | {0,1,2} gesperrt | {0,1,2} gesperrt |
+| `[1,-2,-2]` | {0} offen | {1,2} gesperrt | {1,2} gesperrt |
+| `[-1,0,1]` | {0,2} gesperrt | {1} offen | {2} offen |
+| `[-1,0,2]` | {0} offen | {1} offen | {2} offen |
+| `[1,1,0]` (3 Achsen, ausgeliefert) | {0} offen | {1} offen | {2} offen |
+
+### VM363-04 · Rest B: Die Home-Zulassung gilt bis zur Home-Schreibung
+
+- **Wo:** Die Home-Zulassung (eindeutige Zuordnung **und** Zielmenge `{j}`) sitzt im `admit` der Modusschreibung **und** im `admit` der Home-Schreibung von `_manual_command`, neben die Klasse `zero` und die Link-Bindung.
+- **Welche Lesung:** jedes Mal die aktuell verfügbare. Sie muss vollständig sein (jeder Joint gelesen) und frisch (der Reader nicht veraltet).
+- **Ein Wechsel während der Wartephase**, zur Gruppe oder zu unbekannt/veraltet, verweigert den noch nicht gesendeten Home-Auftrag mit Grund. Eine frühere positive Entscheidung wird nicht über die Wartephase getragen.
+- **Grenzen:** Eine schon gesendete Modusschreibung bleibt gesendet. Gegenüber einer HAL-Änderung nach der Home-Schreibung sage ich keine Atomizität zu.
+- **Wächter:**
+  - `[1,2,3]` wird während der Wartephase vor der Home-Schreibung zu `[-1,-1,-1]` → kein Home gesendet;
+  - frisch wird während der Wartephase veraltet → kein Home gesendet;
+  - positiv: unveränderte Einzelsequenz → Home gesendet.
+  - Alle drei laufen über den Original-`_manual_command` mit Fake-Abhängigkeiten und zeichnen die Schreibvorgänge auf.
+
+### VM364-01 · Die Jog-Spanne nach dem tatsächlich adressierten Ziel
+
+- **Eine Zielauflösung für Prüfung und Schreiben.** Vor jeder vorbereitenden Schreibung steht der erwartete Modus fest, mit derselben Regel wie `_jog_mode_flag()`:
+  - nicht referenziert → Joint-Modus;
+  - ein Joint außerhalb seines Fensters (`joints_beyond_limit`) → Joint-Modus;
+  - sonst Teleop.
+- **Daraus folgen Ziel und Spanne:**
+  - **Joint-Modus:** Ziel ist der Joint aus der **reinen Zuordnung** (`_axis_joint_map`, dieselbe Quelle wie Home, nicht die Freigabe des Vorreferenz-Jogs). Spanne ist `[JOINT_n] MAX_LIMIT − MIN_LIMIT` dieses Joints.
+  - **Teleop:** Ziel ist die Achse (kanonische Nummer wie heute). Spanne ist `[AXIS_L] MAX_LIMIT − MIN_LIMIT`.
+  - Geprüft wird vor der MANUAL-Umschaltung, gleich für Einzel- und Mehrfach-Jog.
+- **Zusammengehalten bis zur Jog-Schreibung:**
+  - Nach `_jog_mode_flag()` muss der tatsächliche Modus dem erwarteten entsprechen.
+  - Weicht er ab (Teleop nicht erreicht, ein Joint inzwischen außerhalb), wird **kein Jog geschrieben**. Die Antwort lautet benannt „Jog mode changed — step again“.
+  - Das `CMD.jog`-Ziel stammt aus derselben Auflösung, die geprüft wurde.
+- **Unbekannt** schließt den Schritt-Jog (Operatorentscheidung): eine unbekannte Zuordnung im Joint-Modus oder eine nicht lesbare, nicht endliche oder nicht positive Spanne. Kontinuierlicher Jog und alle Stopps bleiben außerhalb der Distanzgrenze.
+- **Wächter:**
+  - referenziert, Soft-Limit-Rückfahrt, Jointspanne 100 gegen Achsspanne 1000: Ein Schritt von 200 wird abgelehnt, ein Schritt von 50 geht an den Joint;
+  - nicht erreichtes Teleop: kein Jog geschrieben;
+  - positiv im tatsächlichen Teleop: 200 geht an die kanonische Achse.
+  - Die Probe verbindet das an `CMD.jog` adressierte Ziel mit der benutzten Spanne.
+
+### Nachtrag aus dem Bau: `clear_wcs.target`
+
+- Neben `"all"` und den Nullpunktnamen kennt der Handler `"reserved"`: G59…G59.3, die explizite Wiederherstellung der TWP-Arbeitszeilen, abgelehnt bei aktiver Ebene. In der Tabelle von R363 fehlte das.
+- Kein Client sendet `"reserved"` heute. Es ist eine benannte Funktion und bleibt deshalb ein gültiger Wert; nur `"active"` entfällt.
+
+**Erbeten:** `agreement` oder `findings` zu diesen drei Präzisierungen.
