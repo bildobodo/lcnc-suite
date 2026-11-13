@@ -1,0 +1,12 @@
+........................................................................ [ 22%]
+...................................................... [ 39%]
+................................................ [ 54%]
+............................................................ [ 73%]
+........................................................ [ 91%]
+............................              [100%]
+[GC] +9227ms gen=2 duration=14.0ms collected=1820 uncollectable=0
+[GC] +9238ms gen=2 duration=11.0ms collected=0 uncollectable=0
+[GC] +9262ms gen=2 duration=23.5ms collected=0 uncollectable=0
+[GC] +9272ms gen=2 duration=10.4ms collected=0 uncollectable=0
+[GC] +9283ms gen=2 duration=10.6ms collected=0 uncollectable=0
+[GC] +9294ms gen=2 duration=10.9ms collected=0 uncollectable=0

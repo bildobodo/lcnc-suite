@@ -1736,3 +1736,60 @@ Dieselbe Frage stellt sich innerhalb der Befehle. Der Durchgang (AST, ohne Namen
 - Gegenfälle: [pyright](vor-maschine.p2b.r361.mutations.txt), [Testsitzung](vor-maschine.p2b.r361.mutations-iso.txt), [rot vor dem Fix](vor-maschine.p2b.r361.red.txt) ([Skript](vor-maschine.p2b.r361.red_2b.py))
 - Live: [Läufe](vor-maschine.p2b.live-runs.txt) (Lauf 6; Lauf 5 auf `f4ba0f31`), [live-twp](vor-maschine.p2b.r361.live-twp.txt), [Toolsetter](vor-maschine.p2b.r361.toolsetter-readback.txt), [Macro](vor-maschine.p2b.r361.macro-live.txt), [perf](vor-maschine.p2b.r361.perf.txt), [native Haupt](vor-maschine.p2b.r361.native-main.json), [native Latch](vor-maschine.p2b.r361.native-latch.json)
 - CI: `harden/link`, Lauf 43402463190 an `58010ecb`: Backend und Frontend grün
+
+---
+
+## Codex · Nachprüfung Paket 2b · R361 · 13. November 2026
+
+**Urteil: findings.** Die Abschlussfälle aus **VM-I06-Rest** und die Cache-Veröffentlichung aus **VM-I08** sind geschlossen. Die Zeitrechnung aus **VM-I09** ist korrigiert, ihre Besitzerprüfung reicht aber noch nicht bis zum Verbrauch des Polls. Dazu kommt **VM-I10**: „Deklaration unbekannt“ kann die ausstehende TWP-Heilung endgültig erledigen. **Keine Operator-Frage.**
+
+Geprüft: `3e3ec6ed..58010ecb`, einschließlich des bereits in R360 gelesenen Nachtrags `3aae6337`, in der eigenen Archivkopie `/tmp/codex-r361`. Die folgenden Zeilen beziehen sich auf `58010ecb`.
+
+### VM-I09 · Rest: Der gepollte Link wird nur vor dem Lesen geprüft
+
+**Stelle:** `lcnc-gateway/gateway.py:3576–3634`, `_release_start_claims`.
+
+Die neue Eingangsprüfung verwirft einen schon ersetzten `polled_link` korrekt. Anschließend lesen die einzelnen `safe_get`-Aufrufe aber jeweils wieder den **gerade aktuellen** Link; erst danach wird `now_link` erneut ermittelt. Ein Publish/Revoke aus dem Verbindungs-Thread kann dazwischen liegen. Dass diese Funktion kein `await` enthält, verhindert den Wechsel durch einen anderen Thread nicht.
+
+Zwei deterministische Gegenfälle an der echten Freigabefunktion, mit den echten `_publish_link`/`_revoke_link`-Funktionen:
+
+| Übergang während der Auswertung | Beobachtung am Kopf | Geschuldete Aussage |
+| --- | --- | --- |
+| Claim stammt von Z; A wurde bei `100.000` gepollt und ist nicht idle. Beim Lesen seines Echos wird B veröffentlicht. Die weiteren Felder stammen vom ruhigen B. | `err_since=100.000`, `err_proof=("relinked", B.seq)`, obwohl `polled_link=A`. Bereits der **erste eigene Poll von B** bei `100.025` entfernt den Claim. | Der A-Poll darf kein Ruhefenster für B beginnen. B braucht seinen eigenen ersten Beweispunkt und das vollständige Fenster danach. |
+| Claim stammt von Z; A liefert ruhige Felder und ein passendes Echo. Unmittelbar nach dem letzten Feld wird A entzogen. | `now_link=None` überspringt den `relinked`-Zweig. Der normale `done`-Zweig entfernt den Claim **ohne Link und ohne Ruhefenster**, anhand von A's Echo für Z's Claim. | Ein Entzug während der Auswertung liefert keine neue Freigabe und keine kanalübergreifende Echo-Bestätigung. |
+
+Ohne Wechsel bleibt der Claim nach dem ersten ruhigen Poll erhalten; ein Entzug bereits vor den übrigen Feldern bleibt ebenfalls vorsichtig. Der alte R360-Fall mit einem Poll **vor** dem Schreiben ist jetzt richtig (`1, 1, 0` Claims bei `100.000`, `100.105`, `100.130`). Es ist also ein Rest der Besitzerbindung, kein Einwand gegen die korrigierte Zeitrechnung.
+
+**Korrektur:** Statusfelder und Beweis an den tatsächlich gepollten Besitzer binden. Auch das Ändern von `err_since`/`err_proof` und das Entfernen eines Claims müssen noch diesem Besitzer gehören; ein Linkwechsel bis zu diesem Abschluss verwirft die Auswertung. Dafür eine kurze, mit Publish/Revoke gemeinsame Abschlussregel verwenden, ohne die Sperre über NML-Warten zu halten. Bei `now_link=None` niemals in die normale Echo-Freigabe ausweichen. Beide Übergänge als Wächter, mit vollständigem Ruhefenster als Kontrolle.
+
+**Beleg:** [Grenzsonde](vor-maschine.r361.codex-boundary.py), [Ergebnisse](vor-maschine.r361.codex-boundary.json), Fälle `claim_publish` und `claim_revoke_after_fields`. Hooks stellen die Thread-Unterbrechung an der Lesestelle her; es wurde kein nativer Reconnect ausgeführt.
+
+### VM-I10 · Unbekannte TWP-Deklaration löscht Warnung und Heilungsauftrag
+
+**Stellen:** `gateway.py:7412–7427` (Bootentscheidung), `7457–7465` (`_reserved_heal_check`) und `7502–7508` (Übernahme von `superseded`).
+
+`_reserved_heal_check` wertet `_twp_capable() == False` als bestätigtes „kein TWP-Stack“ aus, **bevor** es `link()` verlangt. Das Prädikat liefert aber auch bei fehlendem Link oder unlesbarer Deklaration `False`. Die Heilung löscht dann ihren Auftrag und das Banner als `superseded`.
+
+Meine Sonde verwendet in allen Phasen dieselbe TWP-Deklaration `xyzacb_trsrn`, G59.1 und keine aktive Ebene. Die echte Bootprüfung setzt zuerst `pending=7` samt Warnung. Danach wartet die echte Heilung hinter `_cmd_lock`:
+
+- **Verbindung während des Wartens entzogen:** Nach Freigabe der Sperre meldet die Heilung „no TWP stack“, löscht Auftrag und Banner. Der spätere Link zur selben TWP-Maschine stellt beides nicht wieder her: `_reserved_heal_checked` ist bereits wahr.
+- **Ersatzlink vorhanden, INI vorübergehend unlesbar:** Dasselbe Ergebnis. Nach wieder erfolgreichem Lesen bleibt der Heilungsauftrag verloren.
+- **Kontrolle mit lesbarer Deklaration, aber noch nicht bereiter Maschine:** Auftrag und Warnung bleiben richtig erhalten; kein Schreibauftrag geht hinaus.
+
+Auch die neue Bootprüfung hat einen Übergang derselben Klasse: Wird der Link **während des ersten INI-Lesens** entzogen, liefert `_parse_kins_decl` noch sein lokales, erfolgreich gelesenes Ergebnis zurück, verweigert jedoch korrekt dessen Cache-Ablage. Der Tick verbraucht daraufhin `_reserved_heal_checked`. Der zweite Aufruf über `_twp_capable()` liest jetzt „unbekannt“ als False; kein Banner entsteht. Auch nach Wiederverbindung ist der einmalige Check verbraucht. Ohne Entzug erkennt dieselbe Sonde die reservierte Zeile richtig.
+
+**Korrektur:** Für diese endgültigen Entscheidungen drei Zustände unterscheiden: gelesen TWP, gelesen ohne TWP, unbekannt. Unbekannt beziehungsweise ein verlorener Besitzer schiebt auf und bewahrt einen bereits bestehenden Auftrag samt Warnung. Die einmalige Bootentscheidung erst auf einer gültigen, zusammengehörigen Lesung verbrauchen; das Ergebnis des ersten Lesens nicht durch einen zweiten, möglicherweise unbekannten Blick ersetzen. Die vorhandene Ausnahme für eine tatsächlich gelesene TCP-Maschine ohne TWP bleibt richtig.
+
+**Beleg:** dieselbe [Grenzsonde](vor-maschine.r361.codex-boundary.py), [Ergebnisse](vor-maschine.r361.codex-boundary.json): `boot_read_loses_link`, `queued_heal_no_link`, `queued_heal_unread_ini` und die beiden Kontrollen. Die entscheidenden Prädikate, der Parser, die Bootprüfung und die Heilung sind Produktcode; nur INI/NML und der gezielte Übergang sind Fakes.
+
+### Geschlossene Punkte und Prüfung
+
+- **VM-I06-Rest geschlossen:** Die eigenen R360-Fälle für Wechsel im letzten Synch-Warten, im letzten Datei-Read und im G54-Warten bestätigen nichts mehr auf dem Ersatzlink. Ohne Wechsel bleibt der Erfolg erhalten. Die mitgelesenen und ausgeführten Ergänzungen für Probe-Vars, RFL-Flag, G30, Programm-Öffnen und den echten Datei-`PermissionError` sind grün. VM-I10 betrifft die andere Abschlussentscheidung „superseded“.
+- **VM-I08 geschlossen:** Das gemeinsame Leeren und `_owned_store` unter `_link_lock` schließen die alte Cache-Veröffentlichung. Die beiden eigenen Cache-Gegenfälle laufen nun über das echte `_publish_link`; der nächste Leser erhält ausschließlich die neuen Grenzen beziehungsweise Joint-Jog-Fakten. Die Erweiterung auf Kinematikbefehle und Viewer-Init ist angemessen. Dass ein alter Leser seinen Wert nur lokal zurückgeben darf, bleibt als Vertrag bestehen; VM-I10 zeigt einen Aufrufer, der ihn für eine endgültige Entscheidung weiter absichern muss.
+- **VM-I05/VM-I07 und die Befehlspins bleiben geschlossen:** Die eigenen Modus-, Zweischritt-, Schreibzulassungs- und Lebensdauerproben aus R359/R360 sind weiterhin grün.
+
+**Eigene Läufe:** **318 Testfunktionen** aus `test_link_ownership`, `test_toolsetter_basis`, `test_command_dispatch`, `test_g30`, `test_session_bind` und `test_button_gates_e` grün, keine Fehler oder Überspringungen. JUnit zählt einschließlich zusätzlicher Subtest-Ergebnisse **419**. [Testprotokoll](vor-maschine.r361.codex-tests.txt), [JUnit](vor-maschine.r361.codex-tests.xml). Typprüfung: **44 Dateien, 0 Fehler, 0 Warnungen** mit der Projekt-Python-Umgebung ([Bericht](vor-maschine.r361.codex-pyright.json)). Die angepasste [R360-Sonde](vor-maschine.r361.codex-probe.py) bestätigt **22/22** erwartete Ergebnisse ([Daten](vor-maschine.r361.codex-probe.json)). Die neue Grenzsonde enthält neun Abläufe: vier Kontrollen und fünf Abläufe, die die zwei obigen Befunde belegen; `contract_checks` nennt die verletzten Soll-Aussagen ausdrücklich.
+
+Gelieferte Belege geprüft: Round-Gate am Kopf PASS, 60/60 Typ-Gegenfälle, Testsitzungs-Gegenfälle, neues Rot-Protokoll und native Haupt-/Latch-Berichte am selben Kopf. Nicht vollständig wiederholt. Die fünf unvollständigen Jog-Bremswege aus Statusframes bleiben benannt; die Servo-Zwillinge sind bestanden. Die Live-Läufe enthalten ausdrücklich weder einen Linkwechsel in diesen Übergängen noch die Heilung. Sie ersetzen die vorliegenden Übergangsproben daher nicht.
+
+Befehle, Ergebnisse, Hinweise zu den Sonden und Hashvergleich der sieben geänderten Dateien stehen im [Prüfprotokoll](vor-maschine.r361.codex-checks.json). **Keine Produktdatei geändert, keine Tests oder Builds im Live-Baum und kein Zugriff auf die laufende Sim.** Nur dieser Anhang und neue R361-Belege.

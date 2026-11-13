@@ -1,0 +1,132 @@
+{
+  "target": "58010ecb8c586cd811ceb271d09f5f9311d0d55a",
+  "base": "3e3ec6ed",
+  "archive": "/tmp/codex-r361",
+  "live_tree_product_edits": false,
+  "live_sim_access": false,
+  "commands": [
+    "git archive 58010ecb -- :!docs/reviews | tar -x -C /tmp/codex-r361",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r361/probes/run_tests.py -q test_link_ownership.py test_toolsetter_basis.py test_command_dispatch.py test_g30.py test_session_bind.py test_button_gates_e.py --junitxml=/tmp/codex-r361/probes/tests.xml",
+    "node /tmp/codex-r361/lcnc-webui/node_modules/pyright/index.js --pythonpath /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 --outputjson",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r361/probes/probe.py",
+    "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r361/probes/boundary.py"
+  ],
+  "test_functions": 318,
+  "junit_suites": [
+    {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "419",
+      "time": "9.407",
+      "timestamp": "2026-11-13T12:07:30.406320+01:00",
+      "hostname": "debian"
+    }
+  ],
+  "pyright": {
+    "filesAnalyzed": 44,
+    "errorCount": 0,
+    "warningCount": 0,
+    "informationCount": 0,
+    "timeInSec": 13.322
+  },
+  "r360_cases": {
+    "mode_refused_without_swap": true,
+    "mode_refused_old_but_new_mode_matches": true,
+    "admission_swaps": true,
+    "admission_swaps_then_raises": true,
+    "mode_success_without_swap": true,
+    "mdi_without_swap": true,
+    "two_write_without_swap": true,
+    "mdi_swap_during_mode_wait": true,
+    "two_write_swap_after_first": true,
+    "failed_nml_precheck": true,
+    "terminal_event_during_connect": true,
+    "limits_without_swap": true,
+    "limits_swap_during_poll": true,
+    "joint_cache_without_swap": true,
+    "joint_cache_swap_during_ini": true,
+    "readback_none": true,
+    "readback_wait": true,
+    "readback_last_read": true,
+    "heal_completion_control": true,
+    "heal_completion_swap": true,
+    "claim_window_same_link": true,
+    "claim_window_relinked": true
+  },
+  "boundary_contract_checks": {
+    "control_boot_detects_twp": true,
+    "control_queued_not_ready_retains_warning": true,
+    "boot_loss_does_not_spend_check": false,
+    "queued_heal_no_link_retains_pending": false,
+    "queued_heal_unread_ini_retains_pending": false,
+    "control_first_quiet_sample_retains_claim": true,
+    "control_lost_before_fields_retains_claim": true,
+    "replacement_needs_own_first_sample": false,
+    "replacement_first_sample_cannot_finish_window": false,
+    "lost_after_fields_retains_claim": false
+  },
+  "harness_notes": [
+    "First pyright invocation omitted --pythonpath and reported missing project dependencies; rerun with project interpreter passed. No source changes.",
+    "Standalone fake probe in the socket-restricted sandbox was interrupted; the same script finished under approved escalation. Host discovery was patched out at import in both.",
+    "First boundary draft used an unrecognized fake kinematics module name; corrected to shipped xyzacb_trsrn and control assertions added before recording these results.",
+    "Tests and probes use fake_linuxcnc, own LCNC_LOG_DIR, no launcher/INI environment, and no host instance/NML discovery."
+  ],
+  "changed_files_integrity": [
+    {
+      "file": "CLAUDE.md",
+      "expected_sha256": "141ab9909df2cba039576055fa8bfedeeb474cc952671d825acbc1d56963763c",
+      "actual_sha256": "141ab9909df2cba039576055fa8bfedeeb474cc952671d825acbc1d56963763c",
+      "unchanged": true
+    },
+    {
+      "file": "docs/architecture/safety-and-permissions.md",
+      "expected_sha256": "77efb393163ff477c615c2ec22f24d6ddeeb82eb0ab76a409e722f7f4027e467",
+      "actual_sha256": "77efb393163ff477c615c2ec22f24d6ddeeb82eb0ab76a409e722f7f4027e467",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/gateway.py",
+      "expected_sha256": "73ccaf3ca6eaf34e0771cd04ba979a5ff9dfdaae02940db34eb2a491e86d7877",
+      "actual_sha256": "73ccaf3ca6eaf34e0771cd04ba979a5ff9dfdaae02940db34eb2a491e86d7877",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/test_button_gates_e.py",
+      "expected_sha256": "f338d2f0c05234fd0eacd8a4d86a792f17f2f5f7eb12072e6d18f36d7c6a9c0a",
+      "actual_sha256": "f338d2f0c05234fd0eacd8a4d86a792f17f2f5f7eb12072e6d18f36d7c6a9c0a",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/test_command_dispatch.py",
+      "expected_sha256": "f46dc9b82f7689d693724aa5f944095ef7d57caeae5c17d3c7b8491cc6942a26",
+      "actual_sha256": "f46dc9b82f7689d693724aa5f944095ef7d57caeae5c17d3c7b8491cc6942a26",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/test_link_ownership.py",
+      "expected_sha256": "d68087ce189653d9f549172c8ef77095e964633cdf729c2f9752a088b7dc6fcc",
+      "actual_sha256": "d68087ce189653d9f549172c8ef77095e964633cdf729c2f9752a088b7dc6fcc",
+      "unchanged": true
+    },
+    {
+      "file": "lcnc-gateway/test_toolsetter_basis.py",
+      "expected_sha256": "7b1b2b2040a70c57726bb29ffff8261f98e55d9ab2df42833dbeff12179106bf",
+      "actual_sha256": "7b1b2b2040a70c57726bb29ffff8261f98e55d9ab2df42833dbeff12179106bf",
+      "unchanged": true
+    }
+  ],
+  "review_prefix_sha256": "9440babb777b55faefe159f9cbb6bed51155597f8468e530e6b0e6a35912a586",
+  "review_append_sha256": "96a126e0cc3ef366602ab374279716f90a214db135fcdb42865e8d0abcdf4d10",
+  "evidence_sha256": {
+    "probe.py": "9d3af42596acf9491e817db5387e8cf7c086a01afc16de7c079ef2e054e1e8f6",
+    "probe.json": "bffebcad16241c999684862090a735fa0357ef22aa6c2a109cc8e2085ff9f5c1",
+    "boundary.py": "69dc7c88d3869bc921839af3d451acd3edfbe58dd237600c2f010825cab904b0",
+    "boundary.json": "0645a14ac0a0258b92b5a7c4ed002b194a0d679e00b9d88dfacb116084a6dd55",
+    "tests.txt": "b32c7e44f4fa690d615925f0a5a95061d176607f8253d443016c522fe4f004de",
+    "tests.xml": "88698e484d409fc756a9dc766f2b3254b9e566cdf43c7006f04fa53c13da5c4a",
+    "run-tests.py": "3794f6fb644e8b7ecc23346e1966dadd40e31445978e3dceb3b27352c7e65e88",
+    "pyright.json": "df9d4c02a513876043f08ba3966fc91aee23b742a129cc49df25181bdcebb8ef"
+  }
+}
