@@ -1919,3 +1919,33 @@ Die Berichtigung zu R361 ist übernommen: Die frühere Deklarationsreihenfolge k
 Die gelieferten Round-, Gegenfall-, Rot- und Live-Berichte sind berücksichtigt, nicht vollständig wiederholt. Der erste Perf-Lauf bleibt **FAIL wegen fehlender Laufmarken**; die dokumentierte Wiederholung am selben Kopf ist ein eigener PASS-Nachweis. Die native Hauptprüfung nennt weiterhin **59 PASS / 5 unvollständige Jog-Bremswege aus Statusframes**, deren Servo-Zwillinge bestanden sind; der Latch-Lauf enthält drei PASS. Die neue ausdrückliche Prüfung des Boot-Connects schließt die zuvor übersehene Nachweislücke. Linkwechsel mitten in den geprüften Abläufen und die TWP-Heilung sind weiterhin durch Fake-Übergangsproben belegt, nicht als native Abnahme dieser Übergänge ausgegeben.
 
 Befehle, Anpassungen der Sonden, Ergebnisse und Hashvergleich im [Prüfprotokoll](vor-maschine.r362.codex-checks.json). **Keine Produktdatei geändert, keine Tests oder Builds im Live-Baum, kein Zugriff auf die laufende Sim.** Nur dieser Anhang und neue R362-Belege.
+
+---
+
+## Claude · Paket 2b gemergt · 13. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R362 für `45727d61`.
+  - Fables Zustimmung zum selben Kopf. Bedingungen: Merge-Gate PASS genau an diesem SHA; dazu selbst gelesen die Zeile `install-binding` und der Boot-Connect der Installationsprobe.
+- **Merge-Gate PASS auf `45727d61`** ([Bericht](vor-maschine.p2b.merge-gate.json)):
+  - Unit 2650 + 104, Backend einschließlich `ruff` und `pyright`, Browser 918/918 auf drei Workern.
+  - Die Installationsprobe hat alle 14 Zeilen bestanden:
+    - **`install-binding`:** „the installed modules hold every claim of the stubs (names, members, values, bases)“. Das ist der in 2a angekündigte neue Wortlaut.
+    - **Boot-Connect** im frisch installierten Profil: `gateway.log` hat „[VINIT] try_connect_lcnc OK“ und kein „FAILED“; der Trace hat `boot.lcnc_connect connected=true` und `lcnc.link_published`. Das einzige `crash.*`-Ereignis ist `crash.signal` SIGTERM (Stufe info) beim Stopp der Probe.
+    - Die LAN-Sim ist zurückgegeben (`restore: complete, settled`).
+  - Als offen nennt das Gate nur die Live-Prüfungen vor main, `perf-matrix` und `twp-buttons`. Beide sind an diesem Kopf gelaufen (R362, Lauf 7).
+- **development** = `45727d61`: Fast-Forward von `13affe2b` per SHA, 18 Commits, gepusht. Vorher geprüft: `origin/development` stand noch auf `13affe2b`.
+- **CI auf development:** grün, Backend und Frontend ([Lauf 43444613750](https://github.com/bildobodo/lcnc-suite/actions/runs/43444613750), Kopf `45727d61`).
+- **Verhaltensänderungen, die der Operator erfährt:**
+  1. Ein Befehl, dessen Verbindung zu LinuxCNC während der Ausführung wechselt, wird abgelehnt: „Connection to LinuxCNC changed — try again“. Das gilt auch für einen Stopp; der nächste Druck geht auf der neuen Verbindung hinaus.
+  2. Die TWP-Heilung eines reservierten Nullpunkts:
+     - Sie wartet hinter einem laufenden Befehl und lässt sich mit Abort abbrechen; danach versucht sie es nach etwa 5 s erneut.
+     - Bei einer unbekannten Kinematik-Deklaration bleibt sie samt Banner stehen, bis die Deklaration gelesen ist.
+     - Auf einer umschaltbaren Maschine ohne TWP (TCP-Trunnion) bleibt G59 ein gewöhnlicher Nullpunkt.
+  3. Ein G30-Lesen, während dessen die Verbindung wechselt, meldet „G30 not confirmed — the connection changed, read again“.
+  4. Toolsetter-Werte, deren Bestätigung auf eine ersetzte Verbindung fiel, gelten als unbekannt und werden beim nächsten Start neu geschrieben.
+  5. Grenzen aus einer unlesbaren INI werden nicht zwischengespeichert, sondern beim nächsten Lesen erneut versucht.
+  6. Beim Gateway-Start verbindet der Boot-Connect wieder im ersten Anlauf.
+- **Weiter offen:**
+  - #36 bleibt offen; der Operator entscheidet darüber jetzt, nach 2b.
+  - Als Nächstes folgt Paket 3.

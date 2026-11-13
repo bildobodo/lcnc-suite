@@ -1,0 +1,536 @@
+{
+  "kind": "merge",
+  "note": "merge feat/link 45727d61 into development 13affe2b (fast-forward), package 2b, Codex R362 agreement + Fable go, standing merge go 2026-11-12",
+  "round_selection": {
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "example-tool-library"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "lcnc-gateway/conftest.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/gateway.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/hal_bridge.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/link_fixture.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/session_bind.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_b.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_b_commit.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_d.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_e.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_r208.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_command_dispatch.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_command_policy.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_feature_switches.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_g30.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_hb_budget.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_link_ownership.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_macros_gateway.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_preview_poll_chain.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_program_reload_unload.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_rfl_guard.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_session_policy.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_tool_edit_contract.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_tool_refresh.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_toolsetter_basis.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_toolsetter_sync.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_trip_trace.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_upload_conflict.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_var_file_cache.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_command_worker.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_lifecycle.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_smoke.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/writer_fixture.py: the gateway: the browser suite runs against the mock",
+        "pyrightconfig.json: the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)",
+        "scripts/install_probe.py: scripts and their tests ride the backend gate",
+        "typings/BOUNDARY.md: the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)"
+      ]
+    }
+  },
+  "base": "13affe2b523124c84037ab50786c160a9567f3cf",
+  "head": "45727d61a3cb2d88728d8212b208f0220c07f083",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "unit-heavy",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ],
+      "heavy_reasons": {
+        "lcnc-webui/src/viewer/collisionContacts.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/sweepShards.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/contactViewCross.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionOracle.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionBounds.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ]
+      },
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {
+      "perf-matrix": [
+        "lcnc-gateway/gateway.py",
+        "lcnc-gateway/hal_bridge.py",
+        "lcnc-gateway/session_bind.py"
+      ],
+      "twp-buttons": [
+        "lcnc-gateway/gateway.py"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1038974
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 419818
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 306705
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 290173
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 268548
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 224412
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 221176
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 130883
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 109405
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 100436
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 98874
+    },
+    {
+      "file": "help-icons.spec.ts",
+      "ms": 84497
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 83976
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 81684
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 72063
+    },
+    {
+      "file": "simulation-off.viewer.spec.ts",
+      "ms": 62503
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 57306
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 56642
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 49292
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 48123
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 43941
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 41923
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 40154
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 37737
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 36206
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 35378
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 31388
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 28787
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 28078
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 26625
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 23640
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 23636
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 23308
+    },
+    {
+      "file": "devices.spec.ts",
+      "ms": 22768
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 20584
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 20439
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 19972
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 18400
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 17801
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 15564
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 14452
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 14422
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 14305
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 14008
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 13969
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 13848
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 12436
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 8925
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 8122
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 7524
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 7440
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 6937
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 6895
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 6101
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 5830
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 3194
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 2920
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 1924
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1418
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 891
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 29
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/mg2b.service",
+    "cpu_s": 8546,
+    "memory_peak_mb": 3644
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-link/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 15
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/typecheck/mg2b/merge-gate.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 50,
+      "files": 165,
+      "tests": 2650,
+      "passed": 2650,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2650
+    },
+    {
+      "name": "unit-heavy",
+      "command": "npx vitest run src/viewer/collisionBounds.test.ts src/viewer/collisionContacts.test.ts src/viewer/collisionLineSample.test.ts src/viewer/collisionOracle.test.ts src/viewer/collisionRangeOracle.test.ts src/viewer/contactViewCross.test.ts src/viewer/contactViewIndexed.test.ts src/viewer/sweepShards.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/typecheck/mg2b/merge-gate.logs/unit-heavy.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 399,
+      "files": 8,
+      "tests": 104,
+      "passed": 104,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 104,
+      "selected": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ]
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python /home/cnc/lcnc-suite-link/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/typecheck/mg2b/merge-gate.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 203
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1647,
+      "tests": 918,
+      "passed": 918,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 918
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-b6783c10-03ca-488c-b170-a1a15303fe76",
+      "mocks": 3
+    },
+    {
+      "name": "install-probe",
+      "status": "PASS",
+      "seconds": 90,
+      "run": "/home/cnc/claude-work/typecheck/mg2b/merge-gate.logs/install-probe-018d879964bb",
+      "run_id": "018d879964bb",
+      "rows": [
+        "install-run: PASS",
+        "install-links: PASS",
+        "install-venv: PASS",
+        "install-binding: PASS",
+        "install-build: PASS",
+        "install-profiles: PASS",
+        "install-config-sync: PASS",
+        "install-tracked-files: PASS",
+        "install-target: PASS",
+        "install-confinement: PASS",
+        "start-ready: PASS",
+        "start-processes: PASS",
+        "start-safety-chain: PASS",
+        "start-browser: PASS"
+      ]
+    }
+  ],
+  "omitted": [],
+  "pending": [
+    {
+      "check": "perf-matrix",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gateway.py",
+        "lcnc-gateway/hal_bridge.py",
+        "lcnc-gateway/session_bind.py"
+      ]
+    },
+    {
+      "check": "twp-buttons",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gateway.py"
+      ]
+    }
+  ]
+}
