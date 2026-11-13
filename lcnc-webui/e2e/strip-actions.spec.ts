@@ -210,7 +210,9 @@ test("a home group closes Home per axis with its reason; Unhome and Home All sta
   const setup = strip(page, "setup");
   const homeX = setup.getByRole("button", { name: "Home X", exact: true });
   await expect(homeX).toBeDisabled();
-  await expect(setup.locator(".btnTip", { has: homeX })).toHaveAttribute("title", GROUP);
+  // the wrapper carrying the reason (a has-locator is queried inside the wrapper: page-rooted)
+  await expect(setup.locator(".btnTip", { has: page.getByRole("button", { name: "Home X", exact: true }) }))
+    .toHaveAttribute("title", GROUP);
   await expect(setup.getByRole("button", { name: "Unhome Z", exact: true }), "Unhome has no group rule").toBeEnabled();
   await expect(setup.getByRole("button", { name: "Home All", exact: true })).toBeEnabled();
 });
