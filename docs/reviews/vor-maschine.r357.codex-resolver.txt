@@ -1,0 +1,4 @@
+baseline {'filesAnalyzed': 42, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.911} []
+annotated_resolver {'filesAnalyzed': 43, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.936} []
+method_resolver {'filesAnalyzed': 43, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 3.018} ['the stub of linuxcnc, line 170: command.__getattribute__ makes every member check — not a stub form the check reads']
+restored {'filesAnalyzed': 42, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.974} []

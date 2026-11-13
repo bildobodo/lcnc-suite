@@ -1,0 +1,251 @@
+{
+  "head": "3fe74118e364077d3ff6e43e64d27cd5dbdc6f0d",
+  "base": "bafed8b2",
+  "archive": "/tmp/codex-r357",
+  "files": {
+    "lcnc-gateway/fake_linuxcnc.py": {
+      "restored": true,
+      "sha256": "a21e2eb8ade7b9c58a03d751fd311e4d67846daae9a858a1952bf6a35c49e09e"
+    },
+    "lcnc-gateway/lcnc_iface_check.py": {
+      "restored": true,
+      "sha256": "639def235b453dc3dcc42308e12ce34c2867e51461810cad41db94a2f4e02c2e"
+    },
+    "lcnc-gateway/test_lcnc_iface.py": {
+      "restored": true,
+      "sha256": "511b4e6bd91606a11e3ac1a5666d64067418b33a9b2fada08d4145173dd4df78"
+    },
+    "typings/BOUNDARY.md": {
+      "restored": true,
+      "sha256": "3aa4dc42c49b8b1d78937cd2def31864dfb37b4c7b556d461db68d3e60f53e11"
+    }
+  },
+  "tests": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "51",
+    "time": "0.552",
+    "timestamp": "2026-11-13T01:49:04.018924+01:00",
+    "hostname": "debian"
+  },
+  "commands": [
+    "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3 -m pytest -q -p no:cacheprovider test_lcnc_iface.py test_typecheck_findings.py --junitxml=/tmp/codex-r357/probes/tests.xml",
+    "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3 /tmp/codex-r357/probes/probe.py /tmp/codex-r357 /tmp/codex-r357/probes/probe.json",
+    "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3 /tmp/codex-r357/probes/resolver3.py /tmp/codex-r357 /tmp/codex-r357/probes/resolver3.json"
+  ],
+  "environment_note": "First sandboxed pyright could not discover the installed interpreter imports (24 errors, 10 warnings); isolated runs with interpreter discovery allowed passed before and after each mutation. This is not counted as a product failure.",
+  "rejected_resolver_variants": {
+    "__getattribute__: Callable[[str], Any]": {
+      "gate": {
+        "exit": 1,
+        "summary": {
+          "filesAnalyzed": 43,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 2.964
+        },
+        "diagnostics": [
+          {
+            "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+            "severity": "error",
+            "message": "Method \"__getattribute__\" overrides class \"object\" in an incompatible manner\n\u00a0\u00a0Positional parameter count mismatch; base method has 2, but override has 1",
+            "range": {
+              "start": {
+                "line": 169,
+                "character": 4
+              },
+              "end": {
+                "line": 169,
+                "character": 20
+              }
+            },
+            "rule": "reportIncompatibleMethodOverride"
+          }
+        ]
+      },
+      "native_problems": []
+    },
+    "__getattribute__: Callable[[object, str], Any]": {
+      "gate": {
+        "exit": 1,
+        "summary": {
+          "filesAnalyzed": 43,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 2.982
+        },
+        "diagnostics": [
+          {
+            "file": "/tmp/codex-r357/typings/conformance/check_r357_resolver.py",
+            "severity": "error",
+            "message": "Expected 1 more positional argument",
+            "range": {
+              "start": {
+                "line": 3,
+                "character": 13
+              },
+              "end": {
+                "line": 3,
+                "character": 30
+              }
+            },
+            "rule": "reportCallIssue"
+          }
+        ]
+      },
+      "native_problems": []
+    }
+  },
+  "boundaries": "No live connection, native classes only; CPython parsers have no CNC effects; all mutations restored.",
+  "supplied_gate_read": {
+    "head": "3fe74118e364077d3ff6e43e64d27cd5dbdc6f0d",
+    "verdict": "PASS",
+    "uncommitted": 0,
+    "checks": [
+      {
+        "name": "selection-guards",
+        "command": "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-tc/scripts/test_select/test_selector.py",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 3
+      },
+      {
+        "name": "lint",
+        "command": "npm run lint",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 9
+      },
+      {
+        "name": "build",
+        "command": "npm run build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 17
+      },
+      {
+        "name": "unit-light",
+        "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/typecheck/r6/gate-round.logs/unit-light.json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 71,
+        "files": 165,
+        "tests": 2650,
+        "passed": 2650,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 2650
+      },
+      {
+        "name": "unit-heavy",
+        "command": "npx vitest run src/viewer/collisionBounds.test.ts src/viewer/collisionContacts.test.ts src/viewer/collisionLineSample.test.ts src/viewer/collisionOracle.test.ts src/viewer/collisionRangeOracle.test.ts src/viewer/contactViewCross.test.ts src/viewer/contactViewIndexed.test.ts src/viewer/sweepShards.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/typecheck/r6/gate-round.logs/unit-heavy.json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 417,
+        "files": 8,
+        "tests": 104,
+        "passed": 104,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 104,
+        "selected": [
+          "lcnc-webui/src/viewer/collisionBounds.test.ts",
+          "lcnc-webui/src/viewer/collisionContacts.test.ts",
+          "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+          "lcnc-webui/src/viewer/collisionOracle.test.ts",
+          "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+          "lcnc-webui/src/viewer/contactViewCross.test.ts",
+          "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+          "lcnc-webui/src/viewer/sweepShards.test.ts"
+        ]
+      },
+      {
+        "name": "backend",
+        "command": "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python /home/cnc/lcnc-suite-tc/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/typecheck/r6/gate-round.logs/backend",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 197
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 1840,
+        "tests": 918,
+        "passed": 918,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 918
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS",
+        "run": "gate-40d41206-0db4-481e-b85b-53c2fb258a0b",
+        "mocks": 3
+      }
+    ],
+    "pending": [
+      {
+        "check": "firefox-core",
+        "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+      },
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py",
+          "lcnc-gateway/gcode_canon.py",
+          "lcnc-gateway/gcode_parse_worker.py"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/hal_bridge.py",
+          "lcnc-gateway/hal_reader.py",
+          "lcnc-gateway/hal_watchdog.py",
+          "lcnc-gateway/session_bind.py",
+          "lcnc-gateway/status_runtime.py"
+        ]
+      },
+      {
+        "check": "probe-live",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "subroutines/surfacemap/compensation.py"
+        ]
+      },
+      {
+        "check": "toolsetter-readback",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "subroutines/surfacemap/compensation.py"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/command_policy.py",
+          "lcnc-gateway/features.py"
+        ]
+      }
+    ]
+  },
+  "supplied_mutations_tail": "54/54 as expected \u2014 ALL AS EXPECTED"
+}

@@ -1007,3 +1007,67 @@ Die 54/54 aus R355 waren an `6cab2166` gemessen. `eeabd55a` hatte die Körper vo
   - Nur eine private Klasse auf Modulebene bleibt eine Hilfe, deren Körper nicht gelesen wird (die HAL-Info-`TypedDict`s).
 - **Belege:** Gegentests für alle drei Fälle, ein positiver Fall für `hal.component.__getitem__`. Der native Lauf ergibt `ok`.
 - **Nebenbei, ebenfalls nach Fables Hinweis:** `auto` mit zwei Argumenten und Überlauf (`auto(AUTO_RUN, 2**31)`, `auto(2**31, 0)`) wirft jetzt wie `emcauto` `TypeError`. Ein fehlgeschlagener `"ii"`-Parse wird gelöscht, dann verweigert `"i"` die zwei Argumente; `auto(2**31)` allein bleibt der `OverflowError` von `"i"`.
+
+
+---
+
+## Codex · Nachprüfung Paket 2a · R357 · 13. November 2026
+
+**Urteil: findings.** Prüfstand `3fe74118` gegen `bafed8b2`, eigene Archivkopie `/tmp/codex-r357`. **VM-I04 ist geschlossen.** Die konkrete Vererbungsprobe aus R356 wird jetzt verweigert. **VM-I02 bleibt mit zwei reproduzierbaren Resten offen:** Eine Basis wird noch nach ihrem Namen statt ihrer Bindung eingeordnet; die Resolver-Sperre erfasst nicht jede zugelassene Deklarationsform. Beides betrifft die Aussagekraft des Stub-Abgleichs, keinen beobachteten Maschinenfehler. Keine Operator-Frage.
+
+### VM-I02 · Rest A: Ein importierter Typ mit Builtin-Namen gilt als Builtin
+
+**Stellen:** `lcnc-gateway/lcnc_iface_check.py:128–145,222–225` am Prüfstand.
+
+Der neue Zweig verweigert `_CommandExtra` und andere fremde Basennamen. Ein gewöhnlicher Hilfsimport darf aber weiterhin den Namen eines Builtins binden. Der Leser überspringt diesen Import und prüft später ausschließlich `getattr(builtins, b.id)`.
+
+Meine Gegenprobe ergänzt eine Hilfsdatei `typings/codex_helper.pyi`:
+
+```python
+class RuntimeError(Exception):
+    def codex_nonexistent(self) -> int: ...
+```
+
+Im LinuxCNC-Stub steht vor der vorhandenen Fehlerklasse zusätzlich:
+
+```python
+from codex_helper import RuntimeError
+class error(RuntimeError): ...
+```
+
+Eine Prüfdatei ruft `e.codex_nonexistent()` auf einem `linuxcnc.error` auf. **Ergebnis: vollständiges Typ-Gate 44 Dateien, 0 Fehler, 0 Warnungen; nativer Abgleich `[]`.** Die echte Klasse besitzt das Mitglied nicht. Der native Test bestätigt zwar ihre tatsächliche Verwandtschaft mit **builtins.RuntimeError**, aber das ist nicht die im Stub verwendete Basis.
+
+Die Kontrolle mit `from builtins import RuntimeError` und demselben Verbraucher wird dagegen vom Typchecker wegen des fehlenden Mitglieds abgelehnt. Somit ist dies genau der noch offene Herkunftsteil der R356-Forderung „eindeutig an die Builtins gebunden“.
+
+**Korrektur:** Für zugelassene Basen auch die Bindung im Stub prüfen. Eine lokale oder importierte Überdeckung eines Builtin-Namens darf nicht als Builtin durchgehen. Eine konservative Ablehnung genügt; kein allgemeiner Importresolver ist nötig. Falls der explizite Import aus `builtins` unterstützt wird, diesen gesondert zulassen. Die normalen Hilfsimporte und das heutige `error(RuntimeError)` bleiben positive Fälle.
+
+[Reproduzierbare Sonde](vor-maschine.r357.codex-probe.py), [Ergebnisse einschließlich Kontrolle und Rückbau](vor-maschine.r357.codex-probe.json), [Ausgabe](vor-maschine.r357.codex-probe.txt).
+
+### VM-I02 · Rest B: Ein annotierter Resolver umgeht die neue Sperre
+
+**Stellen:** `lcnc-gateway/lcnc_iface_check.py:151–166` am Prüfstand.
+
+Die Prüfung von `_RESOLVERS` steht nur im `FunctionDef`-Zweig. Die ebenfalls zugelassene Form `name: T` nimmt denselben Namen als gewöhnliche Dunder-Behauptung auf. Gegenprobe im LinuxCNC-Stub, mit `Any` als zusätzlichem Typimport:
+
+```python
+class command:
+    __getattribute__: Any
+    # bisheriger Klassenkörper unverändert
+```
+
+Der Verbraucher ruft erneut `c.codex_nonexistent()` auf. **Ergebnis: Typ-Gate 43 Dateien, 0 Fehler, 0 Warnungen; nativer Abgleich `[]`.** Pyright akzeptiert damit die zusätzliche Attributauflösung; der native Namensabgleich findet das von `object` geerbte `__getattribute__`, ohne das tatsächlich fehlende neue Mitglied zu bemerken.
+
+Die gleichwirkende Methodendeklaration `def __getattribute__(self, name: str) -> Any: ...` wird vom neuen Wächter korrekt verweigert. Die Sperre hängt somit noch an der Syntaxform statt an der ausgeschlossenen Namensauflösung.
+
+**Korrektur:** `__getattr__` und `__getattribute__` auf Modul- und öffentlicher Klassenebene unabhängig von der Deklarationsform verweigern, insbesondere auch bei `AnnAssign`. Dunder wie die vorhandenen `hal.component.__getitem__` bleiben normale geprüfte Behauptungen. Gegenwächter für die annotierte Form ergänzen.
+
+[Resolver-Sonde](vor-maschine.r357.codex-resolver.py), [Ergebnisse mit verweigerter Methoden-Kontrolle](vor-maschine.r357.codex-resolver.json), [Ausgabe](vor-maschine.r357.codex-resolver.txt). Zwei zuvor versuchte `Callable`-Annotationen scheiterten bereits am Typchecker und sind ausdrücklich keine Befunde; ihre Diagnosen stehen im [Prüfprotokoll](vor-maschine.r357.codex-checks.json).
+
+### Angenommen und geprüft
+
+- **VM-I04:** Meine drei bisherigen Format-Gegenfälle stimmen jetzt mit CPythons Parser überein: positiver und negativer C-`int`-Überlauf sowie ungültiges UTF-8 werden vor der Buchung abgelehnt, `serial` bleibt unverändert. Die gültigen Kontrollwerte werden angenommen. Der neue Differentialtest und die `auto`-Fälle sind grün. Die benannte engere Annahme von `str`/`bytes` statt sämtlicher nativer Puffer sowie die schon ausgenommenen Befehlslängen sind für diesen Fake angemessen.
+- **Weitere Stub-Änderungen:** Die R355-Gegenfälle und die ursprüngliche private Vererbungsprobe aus R356 werden gemeldet. Die neuen Wächter für Re-Exporte, Methoden-Resolver, private Mitglieder und Dunder laufen grün. Die Einschränkungen sind sinnvoll; die beiden obigen Reste gehören noch zu ihrer Durchsetzung.
+- **Eigene Läufe:** **51 gezielte Testfunktionen bestanden, keine übersprungen**, einschließlich nativem Abgleich und CPython-Differentialtest ([Ausgabe](vor-maschine.r357.codex-tests.txt), [JUnit](vor-maschine.r357.codex-tests.xml)). Das unveränderte Typ-Gate vor und nach den Sonden: **42 Dateien, 0 Fehler, 0 Warnungen**, nativer Abgleich ohne Probleme. Die wiederholten 70 ungültigen Settings-Schreibversuche aus R356 bleiben ebenfalls verweigert, ohne Datei- oder Revisionsänderung. Alle temporär veränderten Quelldateien wurden wiederhergestellt; Hashes im [Prüfprotokoll](vor-maschine.r357.codex-checks.json).
+- **Gelieferte Belege:** Round-Gate PASS an `3fe74118` und das korrigierte Protokoll **54/54 wie erwartet** gelesen; diese vollständigen Läufe nicht erneut ausgeführt. Der tatsächliche Installations-/Merge-Gate-Lauf und die CI am Endkopf bleiben die angekündigten nachfolgenden Prüfungen. Die Grenze zwischen 2a und 2b bleibt unverändert.
+
+Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindung zur laufenden Sim. Nur dieser Anhang und neue R357-Belege.

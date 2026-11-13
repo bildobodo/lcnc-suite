@@ -1,0 +1,698 @@
+{
+  "target": "3fe74118",
+  "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+  "baseline": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.859
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "r355_class_assignment": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.905
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "the stub of linuxcnc, line 170: class command: Assign 'codex_nonexistent = 1' \u2014 not a stub form the check reads"
+    ]
+  },
+  "r355_conditional_member": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.941
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "the stub of linuxcnc, line 172: class command: If \"if sys.platform == 'linux':\\n\\n    def codex_nonexistent(self)\" \u2014 not a stub form the check reads"
+    ]
+  },
+  "r355_calculated_constant": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.962
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "the stub of hal, line 37: HAL_OUT: a computed value '16 + 17' \u2014 write the literal \u2014 not a stub form the check reads"
+    ]
+  },
+  "private_inherited_member": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.986
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "the stub of linuxcnc, line 172: class command: base _CommandExtra \u2014 only a builtin base is read \u2014 not a stub form the check reads"
+    ]
+  },
+  "public_inherited_member": {
+    "gate": {
+      "exit": 1,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 6,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.049
+      },
+      "diagnostics": [
+        {
+          "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+          "severity": "error",
+          "message": "\"feedrate\" incorrectly overrides property of same name in class \"stat\"",
+          "range": {
+            "start": {
+              "line": 177,
+              "character": 8
+            },
+            "end": {
+              "line": 177,
+              "character": 16
+            }
+          },
+          "rule": "reportIncompatibleMethodOverride"
+        },
+        {
+          "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+          "severity": "error",
+          "message": "\"flood\" incorrectly overrides property of same name in class \"stat\"",
+          "range": {
+            "start": {
+              "line": 178,
+              "character": 8
+            },
+            "end": {
+              "line": 178,
+              "character": 13
+            }
+          },
+          "rule": "reportIncompatibleMethodOverride"
+        },
+        {
+          "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+          "severity": "error",
+          "message": "\"mist\" incorrectly overrides property of same name in class \"stat\"",
+          "range": {
+            "start": {
+              "line": 189,
+              "character": 8
+            },
+            "end": {
+              "line": 189,
+              "character": 12
+            }
+          },
+          "rule": "reportIncompatibleMethodOverride"
+        },
+        {
+          "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+          "severity": "error",
+          "message": "\"rapidrate\" incorrectly overrides property of same name in class \"stat\"",
+          "range": {
+            "start": {
+              "line": 192,
+              "character": 8
+            },
+            "end": {
+              "line": 192,
+              "character": 17
+            }
+          },
+          "rule": "reportIncompatibleMethodOverride"
+        },
+        {
+          "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+          "severity": "error",
+          "message": "\"spindle\" incorrectly overrides property of same name in class \"stat\"",
+          "range": {
+            "start": {
+              "line": 205,
+              "character": 8
+            },
+            "end": {
+              "line": 205,
+              "character": 15
+            }
+          },
+          "rule": "reportIncompatibleMethodOverride"
+        },
+        {
+          "file": "/tmp/codex-r357/typings/linuxcnc.pyi",
+          "severity": "error",
+          "message": "\"state\" incorrectly overrides property of same name in class \"stat\"",
+          "range": {
+            "start": {
+              "line": 207,
+              "character": 8
+            },
+            "end": {
+              "line": 207,
+              "character": 13
+            }
+          },
+          "rule": "reportIncompatibleMethodOverride"
+        }
+      ]
+    },
+    "native_problems": [
+      "the stub of linuxcnc, line 169: class command: base stat \u2014 only a builtin base is read \u2014 not a stub form the check reads"
+    ]
+  },
+  "imported_builtin_spelling": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 44,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.076
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "explicit_actual_builtin_control": {
+    "gate": {
+      "exit": 1,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 1,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.082
+      },
+      "diagnostics": [
+        {
+          "file": "/tmp/codex-r357/typings/conformance/check_r357.py",
+          "severity": "error",
+          "message": "Cannot access attribute \"codex_nonexistent\" for class \"error\"\n\u00a0\u00a0Attribute \"codex_nonexistent\" is unknown",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 13
+            },
+            "end": {
+              "line": 3,
+              "character": 30
+            }
+          },
+          "rule": "reportAttributeAccessIssue"
+        }
+      ]
+    },
+    "native_problems": []
+  },
+  "native_error_has_codex_nonexistent": false,
+  "real_missing_members": {
+    "codex_nonexistent": true,
+    "actual_position": true
+  },
+  "argument_formats": [
+    {
+      "case": "i_max_control",
+      "value_repr": "2147483647",
+      "method": "home",
+      "cpython_parser": {
+        "ok": true,
+        "value_repr": "2147483647"
+      },
+      "fake": {
+        "ok": true,
+        "value_repr": "None"
+      },
+      "serial_increment": 1
+    },
+    {
+      "case": "i_positive_overflow",
+      "value_repr": "2147483648",
+      "method": "home",
+      "cpython_parser": {
+        "ok": false,
+        "exception": "OverflowError",
+        "message": "signed integer is greater than maximum"
+      },
+      "fake": {
+        "ok": false,
+        "exception": "OverflowError",
+        "message": "signed integer is greater than maximum"
+      },
+      "serial_increment": 0
+    },
+    {
+      "case": "i_negative_overflow",
+      "value_repr": "-2147483649",
+      "method": "unhome",
+      "cpython_parser": {
+        "ok": false,
+        "exception": "OverflowError",
+        "message": "signed integer is less than minimum"
+      },
+      "fake": {
+        "ok": false,
+        "exception": "OverflowError",
+        "message": "signed integer is less than minimum"
+      },
+      "serial_increment": 0
+    },
+    {
+      "case": "s_hash_valid",
+      "value_repr": "'G0 X1'",
+      "method": "mdi",
+      "cpython_parser": {
+        "ok": true,
+        "value_repr": "b'G0 X1'"
+      },
+      "fake": {
+        "ok": true,
+        "value_repr": "None"
+      },
+      "serial_increment": 1
+    },
+    {
+      "case": "s_hash_invalid_unicode",
+      "value_repr": "'\\ud800'",
+      "method": "mdi",
+      "cpython_parser": {
+        "ok": false,
+        "exception": "UnicodeEncodeError",
+        "message": "'utf-8' codec can't encode character '\\ud800' in position 0: surrogates not allowed"
+      },
+      "fake": {
+        "ok": false,
+        "exception": "UnicodeEncodeError",
+        "message": "'utf-8' codec can't encode character '\\ud800' in position 0: surrogates not allowed"
+      },
+      "serial_increment": 0
+    }
+  ],
+  "settings_non_object_writes": {
+    "refused": 70,
+    "unchanged_file_and_versions": true,
+    "cases": [
+      {
+        "section": "features",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "features",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "features",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "features",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "features",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "gamepad",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "gamepad",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "gamepad",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "gamepad",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "gamepad",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "keyboard",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "keyboard",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "keyboard",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "keyboard",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "keyboard",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "machine",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "machine",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "machine",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "machine",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "machine",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "macros",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "macros",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "macros",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "macros",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "macros",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "mdi",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "mdi",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "mdi",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "mdi",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "mdi",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "probe",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "probe",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "probe",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "probe",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "probe",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "toolsetter",
+        "scope": "machine",
+        "value_repr": "None"
+      },
+      {
+        "section": "toolsetter",
+        "scope": "machine",
+        "value_repr": "[]"
+      },
+      {
+        "section": "toolsetter",
+        "scope": "machine",
+        "value_repr": "4"
+      },
+      {
+        "section": "toolsetter",
+        "scope": "machine",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "toolsetter",
+        "scope": "machine",
+        "value_repr": "False"
+      },
+      {
+        "section": "camera",
+        "scope": "device",
+        "value_repr": "None"
+      },
+      {
+        "section": "camera",
+        "scope": "device",
+        "value_repr": "[]"
+      },
+      {
+        "section": "camera",
+        "scope": "device",
+        "value_repr": "4"
+      },
+      {
+        "section": "camera",
+        "scope": "device",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "camera",
+        "scope": "device",
+        "value_repr": "False"
+      },
+      {
+        "section": "display",
+        "scope": "device",
+        "value_repr": "None"
+      },
+      {
+        "section": "display",
+        "scope": "device",
+        "value_repr": "[]"
+      },
+      {
+        "section": "display",
+        "scope": "device",
+        "value_repr": "4"
+      },
+      {
+        "section": "display",
+        "scope": "device",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "display",
+        "scope": "device",
+        "value_repr": "False"
+      },
+      {
+        "section": "macroBar",
+        "scope": "device",
+        "value_repr": "None"
+      },
+      {
+        "section": "macroBar",
+        "scope": "device",
+        "value_repr": "[]"
+      },
+      {
+        "section": "macroBar",
+        "scope": "device",
+        "value_repr": "4"
+      },
+      {
+        "section": "macroBar",
+        "scope": "device",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "macroBar",
+        "scope": "device",
+        "value_repr": "False"
+      },
+      {
+        "section": "panels",
+        "scope": "device",
+        "value_repr": "None"
+      },
+      {
+        "section": "panels",
+        "scope": "device",
+        "value_repr": "[]"
+      },
+      {
+        "section": "panels",
+        "scope": "device",
+        "value_repr": "4"
+      },
+      {
+        "section": "panels",
+        "scope": "device",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "panels",
+        "scope": "device",
+        "value_repr": "False"
+      },
+      {
+        "section": "simulation",
+        "scope": "device",
+        "value_repr": "None"
+      },
+      {
+        "section": "simulation",
+        "scope": "device",
+        "value_repr": "[]"
+      },
+      {
+        "section": "simulation",
+        "scope": "device",
+        "value_repr": "4"
+      },
+      {
+        "section": "simulation",
+        "scope": "device",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "simulation",
+        "scope": "device",
+        "value_repr": "False"
+      },
+      {
+        "section": "viewer",
+        "scope": "device",
+        "value_repr": "None"
+      },
+      {
+        "section": "viewer",
+        "scope": "device",
+        "value_repr": "[]"
+      },
+      {
+        "section": "viewer",
+        "scope": "device",
+        "value_repr": "4"
+      },
+      {
+        "section": "viewer",
+        "scope": "device",
+        "value_repr": "'bad'"
+      },
+      {
+        "section": "viewer",
+        "scope": "device",
+        "value_repr": "False"
+      }
+    ]
+  },
+  "legacy_load": {
+    "toolsetter": {
+      "x": 1
+    }
+  },
+  "restored": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.148
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  }
+}
