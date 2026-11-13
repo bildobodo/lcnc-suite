@@ -84,7 +84,10 @@ jobs:
       # and machine/ is committed so the StaticFiles mount resolves. NumPy is
       # required by the vectorized limit/rotary checks. Install it only in this
       # isolated CI environment; runtime keeps the system LinuxCNC NumPy.
-      # cv2/PIL remain lazy camera dependencies outside this test subset.
+      # cv2: the camera's optional import (gateway.py falls back to None) —
+      # installed here because gateway.py is in the type check since package
+      # 2b and pyright must resolve it; pinned to what install.sh installs
+      # from requirements.txt (<4.12).
       # Tests using the real rs274 canon explicitly skip when it is absent.
       # python-multipart is required by FastAPI to analyze the upload route at
       # import time (UploadFile/Form), even though no test posts a file.
@@ -98,6 +101,7 @@ jobs:
           pip install fastapi==0.136.1 starlette==1.0.0 httpx==0.28.1
           msgspec==0.21.1 click==8.3.3 python-multipart==0.0.28 -r requirements-test.txt
           numpy==2.2.4 scipy==1.15.3 websockets==16.0 requests==2.32.3
+          opencv-python-headless==4.11.0.86
       # No LinuxCNC on the runner: the native name check of the binding is the
       # one test this job skips, by name (test_lcnc_iface.py, package 2 Q352-4);
       # the VM and the install probe run it.

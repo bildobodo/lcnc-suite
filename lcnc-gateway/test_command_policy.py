@@ -43,13 +43,26 @@ def _function_body(src: str, signature: str) -> str:
     return rest[: m.start()] if m else rest
 
 
+def _dispatch_source(src: str = "") -> str:
+    """The command dispatch as ONE text: _handle_command_impl and every
+    command group it runs — read from its own _COMMAND_GROUPS, so a group
+    added there is scanned too (package 2b split the 1600-line ladder into
+    groups for the type check)."""
+    src = src or _gateway_src()
+    m = re.search(r"\n_COMMAND_GROUPS = \(([^)]*)\)", src)
+    assert m, "the dispatch's _COMMAND_GROUPS is gone — read the dispatch where it went"
+    groups = re.findall(r"\w+", m.group(1))
+    assert groups, "no command group named"
+    return "\n".join([_function_body(src, "async def _handle_command_impl")]
+                     + [_function_body(src, f"async def {g}(") for g in groups])
+
+
 def _dispatched_commands() -> set:
     """Command names the gateway ACTUALLY dispatches, parsed from the
     ``_handle_command_impl`` source (its ``cmd == "..."`` ladder) rather than a
     hand-maintained copy — so a newly added handler that wasn't gated fails the
     coverage test below (review #2). Reads the source as text; no linuxcnc import."""
-    return set(re.findall(r'cmd == "([^"]+)"',
-                          _function_body(_gateway_src(), "async def _handle_command_impl")))
+    return set(re.findall(r'cmd == "([^"]+)"', _dispatch_source()))
 
 
 def _inline_commands() -> set:
@@ -774,7 +787,7 @@ class TestNoBarePayloadCasts(unittest.TestCase):
         `G10 L2 P1 Xinf` on the MDI and arbitrary `#N=inf` into the parameter
         file. Catch the shape: a bare cast of any short local inside the command
         dispatch, where every numeric coercion must be finite_*."""
-        body = _function_body(_gateway_src(), "async def _handle_command_impl")
+        body = _dispatch_source()
         found = set(re.findall(
             r"[^_\w]((?:int|float)\([a-z_][a-z0-9_]{0,12})[\)\.,\[]", body))
         # Casts of values that are NOT payload-derived are legitimate. Naming

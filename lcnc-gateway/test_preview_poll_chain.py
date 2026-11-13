@@ -25,7 +25,7 @@ HERE = Path(__file__).resolve().parent
 def _chain():
     tree = ast.parse((HERE / "gateway.py").read_text())
     root = next(n for n in ast.walk(tree)
-                if isinstance(n, ast.If) and ast.unparse(n.test) == "_fe is not None")
+                if isinstance(n, ast.If) and ast.unparse(n.test) == "_fe is not None and st.active_file")
     node = copy.deepcopy(root)
     c = node
     while c.orelse and isinstance(c.orelse[0], ast.If):

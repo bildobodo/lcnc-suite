@@ -46,7 +46,7 @@ import struct
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Mapping, Optional, Tuple
+from typing import Callable, Dict, List, Mapping, Optional, Tuple, TypedDict
 
 from json_types import JsonObject, JsonValue, to_int
 
@@ -493,8 +493,22 @@ def pid_alive(pid: int) -> bool:
     return True
 
 
+class LauncherBinding(TypedDict, total=False):
+    """bind_to_launcher's report for the boot trace (the keys it sets)."""
+    mode: str            # "standalone" | "launcher"
+    ok: bool
+    reason: str          # bad_launcher_pid | launcher_gone | ppid_mismatch
+    raw: str
+    launcher_pid: int
+    needs_poll: bool
+    pdeathsig: bool
+    errno: int
+    error: str
+    ppid: int
+
+
 def bind_to_launcher(env: Optional[Mapping[str, str]] = None, *,
-                     signum: int = signal.SIGTERM) -> JsonObject:
+                     signum: int = signal.SIGTERM) -> LauncherBinding:
     """Arm ``PR_SET_PDEATHSIG`` when a launcher started us (``LCNC_LAUNCHER_PID``).
 
     The launcher's EXIT trap SIGTERMs the gateway on every path bash can
@@ -516,7 +530,7 @@ def bind_to_launcher(env: Optional[Mapping[str, str]] = None, *,
         launcher_pid = int(raw)
     except ValueError:
         return {"mode": "launcher", "ok": False, "reason": "bad_launcher_pid", "raw": raw}
-    res: JsonObject = {"mode": "launcher", "launcher_pid": launcher_pid, "needs_poll": False}
+    res: LauncherBinding = {"mode": "launcher", "launcher_pid": launcher_pid, "needs_poll": False}
     try:
         libc = ctypes.CDLL(None, use_errno=True)
         rc = libc.prctl(_PR_SET_PDEATHSIG, int(signum), 0, 0, 0)

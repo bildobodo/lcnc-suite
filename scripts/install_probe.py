@@ -159,7 +159,7 @@ def install(abort_at=None):
         r3 = _sh([str(venv), "-I", str(src / "lcnc-gateway/lcnc_iface_check.py")], ctx)
         bound = r3.returncode == 0 and r3.stdout.strip() == "ok"
         rows.append(ic.row("install-binding", "PASS" if bound else "FAIL",
-                           "the installed linuxcnc has every status field and command the code uses"
+                           "the installed modules hold every claim of the stubs (names, members, values, bases)"
                            if bound else (r3.stdout + r3.stderr).strip()[-300:]))
         index = src / "lcnc-webui/dist/index.html"
         rows.append(ic.row("install-build", "PASS" if index.is_file() else "FAIL",

@@ -10,7 +10,6 @@
     "lcnc-gateway/conftest.py",
     "lcnc-gateway/suite_py_bind_probe.py",
     "lcnc-gateway/native_*_probe.py",
-    "lcnc-gateway/gateway.py",
     "**/__pycache__",
     "**/node_modules"
   ],

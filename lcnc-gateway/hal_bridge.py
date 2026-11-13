@@ -132,7 +132,7 @@ class HalBridge:
         self,
         *,
         set_phase: Callable[[str], None],
-        on_reader_connect: Callable[[], None],
+        on_reader_connect: Callable[[], object],
         hello: Callable[[], dict],
         on_rejected: Callable[[str, str], None] = lambda role, reason: None,
         watchdog_path: str = WATCHDOG_SOCK_PATH,

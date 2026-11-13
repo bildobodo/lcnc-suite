@@ -6,8 +6,9 @@ What `scripts/run_pyright.py` checks (`pyrightconfig.json`, pyright pinned in
 ## Checked
 
 - **The gateway's product modules** (`lcnc-gateway/*.py`), mode `standard` —
-  **except `gateway.py` during 2a** (named, temporary: it enters with 2b, the
-  connection `Link` that replaces the optional `STAT`/`CMD` globals).
+  `gateway.py` included since 2b (the `Link` replaced the nullable `STAT` /
+  `CMD` globals; the 1600-line command dispatch, too complex for pyright to
+  analyze, runs as seven command groups, moved unchanged).
 - **`strict` for the pure modules** (`pyrightconfig.json` `strict`, R354
   VM-I03): `command_policy`, `settings_store`, `session_bind`, `lcnc_paths`,
   `lcnc_trace` — no unknown type anywhere in them. What arrives as JSON (a
@@ -49,10 +50,10 @@ error — a form the gate accepted again turns it red. The fake refuses the
 same forms at run time with the binding's exception, before the send is
 counted (`test_lcnc_iface.py` FakeForms).
 
-**Boundary in 2a:** every `auto` / `jog` call of the product code is in
-`gateway.py`, through `_cmd_blocking(CMD.jog, …)`; 2a proves the forms on the
-conformance file only. They reach those call sites when 2b types
-`_cmd_blocking` (the `Link`).
+**Since 2b** every command of the product code goes through
+`op(linuxcnc.command.x, …)` (ParamSpec): the type check holds each gateway call
+site to the binding's overloads — a refused form there turns the gate red
+(the counter-cases), not only in the conformance file.
 
 ## Not checked — named
 

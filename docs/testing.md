@@ -109,7 +109,7 @@ pinned in `lcnc-webui/package.json` (npm, lockfile — never fetched; missing =
 FAIL with its reason) with the root `pyrightconfig.json`, mode `standard` and
 `strict` for the pure modules (command_policy, settings_store, session_bind,
 lcnc_paths, lcnc_trace), and the running Python's import paths. What it checks
-and what it does not — the gateway's product modules (`gateway.py` from 2b on),
+and what it does not — the gateway's product modules (`gateway.py` included since 2b),
 `writer_fixture.py`, compensation.py, the LinuxCNC stubs `typings/*.pyi`, the
 interface `lcnc_iface.py` that the stub and the tests' fake are each held
 against (`typings/conformance/`, the call forms in `check_forms.py`), and the

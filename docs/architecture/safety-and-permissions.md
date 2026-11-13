@@ -566,3 +566,63 @@ named exception, an older page's `mdi` with `vars` included (R336).
   helper), a command or route marked switched is the gateway's under that
   switch, and every one the gateway switches is claimed so
   (`functions.feature_problems`).
+
+### The connection: one Link (package 2b, plan vor-maschine R352/R353 VM352-02)
+
+- **What it replaced.** The gateway held its connection in three nullable
+  globals `STAT` / `CMD` / `ERR` plus a separate `lcnc_connected` flag. They
+  drifted apart (an ended instance cleared only the flag; the WS endpoint
+  "restored" the flag by polling channels the poller had given up), and a
+  write read them at each step: Codex R352's probe saw a replacement between
+  the queue and the thread make the admission poll the NEW status, the write
+  go to the OLD channel and the start claim book the NEW channel's serial.
+- **The Link.** `Link(stat, cmd, err, pid, seq)`, frozen, identity is the
+  object. `try_connect_lcnc` prepares the channel set in locals, polls,
+  identifies the instance, decides the binding and only then publishes it
+  (`_publish_link`) — one step; a failure on the way publishes nothing and
+  revokes the old Link. Every loss (5 failed status cycles, the instance check,
+  the instance end, a refused rebind) is ONE `_revoke_link(reason)`, traced
+  (`lcnc.link_published` / `lcnc.link_revoked`). "Connected" = a Link is
+  published; `lcnc_connected` is gone.
+- **A write belongs to its Link.** `_cmd_blocking(conn, op(...), wait=,
+  claim=, admit=, written=)`: in the write's own thread the Link must be the
+  published one BEFORE the admission and AFTER it (a Link is published once,
+  so an admission that read the controller through the published Link read
+  THIS one); the write, the serial the start claim books and every wait slice
+  go to `conn`. A write whose Link changed is refused with `LINK_CHANGED`
+  ("Connection to LinuxCNC changed — try again") before it reaches either
+  channel — the claim and the run basis `unsent`, also when the admission
+  itself raises — and is never redirected. A wait already running stays on
+  its Link: the new channel never answers for the old write.
+- **`op()`.** `op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, axis)` — the
+  binding CLASS's method (its run-time `__name__` is the command; the
+  Protocol's overloads have none) and its positional arguments; a name
+  outside `lcnc_iface.COMMAND_METHODS` or a keyword is refused. The type check
+  holds each call to the binding's overloads (ParamSpec): the call forms of
+  package 2a reach every gateway call site. `_start_kind(name, args)` reads
+  the op — the start claim, the run basis and the toolsetter booking hang on
+  it (Codex R353 build note 1).
+- **`_link_lock`.** A `threading.Lock` held only for a reference compare or
+  swap — never across a poll, an NML call or an await, so neither the event
+  loop nor a write thread waits on it for longer than an assignment (a test
+  asserts it is free during the write and the wait). Order: `_cmd_lock`
+  (asyncio, a whole command) → `_link_lock` (a moment). Codex R353 build
+  note 2.
+- **Reads.** `link()` (raises `NotConnected`) where the connection is needed;
+  `current_link()` / `_stat_now()` / `_cmd_now()` / `_err_now()` where none is
+  tolerated (a status read answers "unknown") — the old globals' exact
+  semantics, chosen per site by the type check (an Optional member access was
+  an AttributeError without a connection).
+- **`NotConnected` per entry path** (not a RuntimeError — the WS reader takes
+  those as a client disconnect): a WS command answers "LinuxCNC not
+  connected" (dispatched without a Link, or the Link revoked while it ran —
+  `ws.command_not_connected`); an HTTP route answers 503
+  (`rest.not_connected`, registered with `app.add_exception_handler`); the
+  disconnect and hb-stall jog stops trace it by name
+  (`safety.*_jog_stop_failed exc=NotConnected`); the poller reconnects.
+- **Tests.** One seam, `lcnc-gateway/link_fixture.py`: `connect_fake`,
+  `use` / `using`, `disconnect` / `without_connection`, `swap_connection`,
+  `restore_after`, `current()`, `is_connected()` — every test restores the
+  whole connection state. `test_link_ownership.py` holds the R352 probe as
+  acceptance (a replacement before the thread refuses the write; during the
+  wait every slice stays on the old Link) and the contracts above.
