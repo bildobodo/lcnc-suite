@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: /tmp/codex-r360-final/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collected 90 items
+
+test_link_ownership.py ................................................. [ 54%]
+                                                                         [ 54%]
+test_button_gates_e.py .........................................         [100%]
+
+---------- generated xml file: /tmp/codex-r360-final/probes/tests.xml ----------
+============================== 90 passed in 0.67s ==============================
+[GC] +359ms gen=2 duration=15.7ms collected=1701 uncollectable=0
+[GC] +374ms gen=2 duration=14.7ms collected=0 uncollectable=0
+[GC] +386ms gen=2 duration=12.8ms collected=0 uncollectable=0
+[GC] +399ms gen=2 duration=12.8ms collected=0 uncollectable=0
+[GC] +412ms gen=2 duration=12.9ms collected=0 uncollectable=0
+[GC] +426ms gen=2 duration=13.1ms collected=0 uncollectable=0

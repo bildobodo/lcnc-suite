@@ -1502,3 +1502,74 @@ Fable hat auf `3e3ec6ed` eine Lücke gefunden, die meine Neuprüfung der Heilung
 - **Ergebnis:** Backend 2045 bestanden / 1 übersprungen; jede Testdatei besteht allein, gemessen am Kopf.
 - **Verhaltensänderung für die Liste:** Auf einer umschaltbaren Maschine ohne TWP bleibt ein beim Boot aktives G59–G59.3 stehen. Auf der 3-Achs-Maschine des Operators ändert sich nichts, sie ist nicht umschaltbar.
 - **Belege** am neuen Kopf (Round-Gate, Gegenfälle, Live, CI) folgen in diesem Abschnitt.
+
+---
+
+## Codex · Nachprüfung Paket 2b · R360 · 13. November 2026
+
+**Urteil: findings. VM-I05 und VM-I07 sind geschlossen; die beiden Bedienbefehlsfälle aus VM-I06 ebenfalls.** Offen bleiben der **Abschluss der Hintergrundabläufe (VM-I06-Rest)**, das **Veröffentlichen alter Cachewerte (VM-I08)** und die **Zeitbasis der neuen Claim-Freigabe (VM-I09)**. Keine Operator-Frage.
+
+Geprüft wurde zunächst `999a8ca9..3e3ec6ed` in `/tmp/codex-r360`, anschließend auch der während des Reviews nachgereichte Kopf **`3aae6337`** in `/tmp/codex-r360-final`. Die unten genannten Stellen und eigenen Gegenproben gelten für diesen Nachtrag. Er behebt die Einteilung der TWP-Scratch-Zeilen, nicht die drei verbleibenden Übergänge.
+
+### VM-I06 · Rest: Der Pin schützt die nächsten Zugriffe, aber nicht den Abschluss
+
+**Stellen:** `lcnc-gateway/gateway.py:5139–5177` (`_ts_read_back`) und `7351–7385` (`_reserved_fixture_heal`).
+
+Die Hintergrundabläufe bleiben jetzt bei ihrer Modusprüfung und ihren Schreibschritten am eigenen Link. Nach dem letzten Schreiben gibt es aber keinen weiteren `link()`-Zugriff, der einen Wechsel feststellen würde. Beide verlassen den Pin, bevor sie ihr gemeinsames Ergebnis buchen. Das alte Warten darf gemäß Vertrag zu Ende laufen; seine Fertigmeldung bestätigt dadurch noch nicht den aktuellen Zustand.
+
+**A — Toolsetter-Read-back:** Meine Sonde verwendet den echten Synchronisationshelfer, `_cmd_blocking`, echte temporäre Parameterdateien mit Inode-Wechsel und die echte `_ts_book`-Buchung. Der Fake des alten Interpreters schreibt beim Synch die Werte `2.0`. Wird der Link während seines `wait_complete` ersetzt, liest der Helfer anschließend die Datei und bucht trotzdem **`origin=read`, `state=confirmed`** in die gemeinsame Basis. Dasselbe geschieht bei einem Wechsel während des abschließenden Dateilesens. Der unveränderte Kontrolllauf bestätigt die Werte korrekt. Die neuen Wächter prüfen bisher einen Wechsel **vor** dem Synch-Schreiben; sie erfassen diese beiden Abschlüsse nicht.
+
+**B — Nullpunkt-Heilung:** Auf einer TWP-fähigen Testmaschine schreibt der alte Link `G54`. Während seines Wartens wird ein Ersatzlink veröffentlicht, dessen Status weiterhin G59.1 nennt. Der Helfer meldet trotzdem `twp.reserved_fixture_healed`, setzt `_reserved_heal_pending = None` und löscht das Banner. Die Erfolgsaussage und das Löschen gehören hier zum inzwischen abgelösten Ablauf. Ohne Wechsel steht der eigene Status auf G54 und der Abschluss ist richtig.
+
+**Korrektur:** Besitzer, Parameterdatei und Abschluss bis einschließlich der gemeinsamen Buchung zusammenhalten. Nach dem letzten Warten und Dateilesen den Besitzer für die Veröffentlichung erneut zulassen; ein veralteter Abschluss darf weder eine neue Bestätigung buchen noch eine aktuelle Warnung beziehungsweise einen aktuellen Auftrag löschen. Beim Read-back auch die Pfadauflösung vor den beiden Sperren in diese Bindung einbeziehen. Die vorhandenen korrekten Regeln für tatsächlich gesendete Befehle und das Zu-Ende-Warten bleiben erhalten. Wächter für Wechsel im letzten Warten **und** im letzten Datei-Read, jeweils mit unverändertem Erfolgsfall.
+
+**Beleg:** [Sonde](vor-maschine.r360.codex-probe.py), [Ergebnisse](vor-maschine.r360.codex-probe.json): `readback_none`, `readback_wait`, `readback_last_read`, `heal_completion_control`, `heal_completion_swap`. Alle Kanäle sind Fakes; die Parameterdateien liegen ausschließlich in der Archivkopie.
+
+### VM-I08 · Ein alter Leser füllt nach dem Reconnect wieder gemeinsame Caches
+
+**Stellen:** `gateway.py:2810–2853` (`get_machine_limits`) und `7941–8010` (`_joint_jog_facts`).
+
+Die Korrektur verhindert das Cachen eines Rückfallwerts, wenn der Leser **schon vor Beginn des Lesens** aus seinem Pin gefallen ist. Sie prüft aber nicht, ob der erfolgreich gelesene Status beziehungsweise die INI **beim Ablegen des Ergebnisses noch zum aktuellen Link** gehört. Ein lokales Statusobjekt schützt die Zusammengehörigkeit seiner Felder, nicht die Eigentümerschaft des gemeinsamen Caches.
+
+Zwei gezielte Gegenfälle mit unterschiedlichen Daten, damit eine Vermischung sichtbar wird:
+
+| Ablauf | Nächster Leser des aktuellen Links | Lesen nach Leeren des falschen Caches |
+| --- | --- | --- |
+| Alter Status wird gerade gepollt; Reconnect leert die Caches, ein neuer Leser hat bereits seine INI geliefert; alter Aufruf legt danach seine Grenzen ab | 3 Achsen/3 Gelenke, Jog-Grenze `100` | 5 Achsen/5 Gelenke, Jog-Grenze `2` |
+| Während der alten INI-Lesung werden Link und Cache ersetzt; alter Aufruf legt anschließend seine Joint-Jog-Fakten ab | `enabled=true`, alte Zuordnung X/Y/Z | `enabled=false`, wie die neue INI verlangt |
+
+Die Sonde bildet Linktausch, Cache-Leeren und im ersten Fall das erneute Füllen der INI ausdrücklich nach; sie führt keinen nativen Reconnect aus. Der **nächste ungepinnte Aufruf** bekommt jeweils den falschen Cache. Die Kontrollen ohne Wechsel bleiben richtig. [Ergebnisse](vor-maschine.r360.codex-probe.json): `limits_swap_during_poll`, `joint_cache_swap_during_ini` samt Kontrollen.
+
+**Korrektur:** Gemeinsame Cacheeinträge mit ihrem Besitzer beziehungsweise ihrer Konfigurationsgeneration verbinden. Ein alter Berechner darf nach einem Entzug keinen für den neuen Link gültigen Eintrag veröffentlichen. Erwerb, Invalidierung und Übernahme brauchen dafür eine konsistente Abschlussregel; ein beiläufiges `_ini_config is not None` belegt keine Herkunft. Die beteiligte INI-Lesung und die frühen Cache-Ablegezweige ebenfalls berücksichtigen. Lokale Ergebnisse dürfen nach klar benannter Regel verworfen oder nur lokal verwendet werden, aber nicht Folgeaufträge des Ersatzlinks steuern.
+
+### VM-I09 · Die neue `relinked`-Freigabe zählt einen Poll vor dem Schreiben zum Ruhefenster
+
+**Stelle:** `gateway.py:3469–3523`, neuer Zweig vor der bisherigen `seen`-Prüfung.
+
+Der bisherige Freigabepfad verlangt `c.sent_t < polled_at`. Der neue Zweig für einen Claim eines früheren Links setzt dagegen `err_since = polled_at`, ohne diesen Zeitpunkt gegen das Schreiben zu prüfen. `polled_at` ist laut Vertrag und Aufruf im Poller **der Beginn** des Polls. Ein während eines langsamen Polls geschriebener Befehl kann also bereits gebucht sein, wenn dessen älterer Poll ausgewertet wird.
+
+Meine isolierte Gegenprobe an der echten Freigabefunktion setzt `sent_t=100.100` und das vorhandene Beweisfenster `0.020 s`:
+
+| Poll-Beginn | Derselbe Link | Neuer Link, Zweig `relinked` |
+| --- | --- | --- |
+| `100.000` — vor dem Schreiben | Claim bleibt, kein Beweisbeginn | Claim bleibt, Beweisbeginn wird `100.000` |
+| `100.105` — erst 5 ms nach dem Schreiben | Claim bleibt, Beweisbeginn wird `100.105` | **Claim bereits freigegeben** |
+| `100.130` | Claim nach seinem Fenster freigegeben | bereits entfernt |
+
+Beide Fälle lesen denselben ruhigen Status (`IDLE`, `RCS_ERROR`, keine MDI-Warteschlange, `EXEC_DONE`). Nur der Besitzervergleich unterscheidet sie. Die erste Auswertung darf nach dem Schreiben stattfinden, obwohl der Poll vorher begann; die Sonde prüft diese Reihenfolge, keine Aussage über die Häufigkeit im Scheduler. [Ergebnisse](vor-maschine.r360.codex-probe.json): `claim_window_same_link`, `claim_window_relinked`.
+
+**Korrektur:** Auch der neue Beweis darf erst mit einem zum betreffenden Link gehörenden, nach dem Schreiben begonnenen Poll starten. Die vollständige Ruhezeit muss danach beobachtet werden; alte Zeitmarken aus einem anderen Beweis beziehungsweise Link dürfen sie nicht verkürzen. Der Satz „ein neuer Link existiert erst Sekunden später“ ist keine durchgesetzte Mindestzeit des Verbindungsaufbaus und ersetzt diese Prüfung nicht. Gegenfall mit einem das Schreiben überlappenden Poll plus Kontrolle, die erst nach dem vollständigen Fenster freigibt.
+
+### Geschlossene Punkte und weitere Prüfung
+
+- **VM-I05 geschlossen:** Eigene R359-Sonde erneut ausgeführt: Alt bleibt MANUAL, Neu zeigt MDI → `LINK_CHANGED`; ohne Wechsel bleiben echte Ablehnung und Erfolg korrekt. Der zusätzliche frühe Rücksprung und die Jog-Buchung sind durch die gelesenen und ausgeführten Wächter abgedeckt.
+- **VM-I06, Bedienbefehle geschlossen:** Die R359-Sonden laufen nun innerhalb des neuen Befehlspins, da sie die Gruppen direkt aufrufen. Modus→MDI und M6→G43 verweigern den noch ungesendeten Rest; ohne Wechsel schreiben beide Schritte auf denselben Link. Die Tests von `handle_command` prüfen zusätzlich die Verdrahtung des Pins und den Start ohne Verbindung. Ein Pin auf `None` ist sinnvoll und wird nicht mehr still durch einen späteren Link ersetzt.
+- **VM-I07 geschlossen:** Der fehlgeschlagene NML-Vortest entzieht den alten Link; ein weiterer Schreibversuch darauf wird verweigert. Der während des Aufbaus ausgelöste terminale Endpfad verhindert jetzt die Veröffentlichung. `_connect_lock` serialisiert die produktiven Aufbauten; Endflag und Publish entscheiden unter derselben kurzen Referenzsperre. Meine beiden R359-Fälle sind am neuen Kopf geschlossen.
+- **Heilung/Abbruch:** Sperre, erneute Zulassung und Abbruch der Heilung passen zu den Regeln für eigene Umschaltungen. Die Wächter für vorausgegangene Fixture-/Ebenenwahl, unbekannten Zustand und Abort sind grün. Den Nachtrag `3aae6337` nehme ich inhaltlich an: Eine TCP-Maschine ohne TWP-Stack hat keine TWP-Scratch-Zeilen. Er behebt nicht den oben belegten alten Abschluss auf einer tatsächlichen TWP-Maschine.
+- **Testsitzung:** Die neue Trennung von Host-Instanz und Testverbindung sowie das Verweigern eines `armed_writer` ohne eingerichtete Verbindung sind angemessen. Meine Testläufe benutzen diese Einrichtung des Zielstands, ohne eine eigene Vorverbindung zu installieren. Die betroffenen HTTP-/Tool-/WS-Tests sind grün. Die Berichtigung der AST-Aussage ist übernommen.
+
+**Eigene Läufe:** Am angefragten Kopf `3e3ec6ed` **339 Testfunktionen** grün, keine Fehler oder Überspringungen; am Nachtrag `3aae6337` die beiden betroffenen Dateien erneut mit **90 Testfunktionen** grün. Die JUnit-Summenzähler schließen zusätzliche Subtest-Ergebnisse ein und lauten 621 beziehungsweise 126. Typ-Gate an beiden Köpfen **44 Dateien, 0 Fehler, 0 Warnungen**. [Erster Testlauf](vor-maschine.r360.codex-tests-base.txt), [JUnit](vor-maschine.r360.codex-tests-base.xml), [Nachtrag-Testlauf](vor-maschine.r360.codex-tests.txt), [JUnit Nachtrag](vor-maschine.r360.codex-tests.xml), [Typ-Gate](vor-maschine.r360.codex-pyright.json). Die unabhängige [Sonde](vor-maschine.r360.codex-probe.py) enthält 22 Fälle einschließlich Kontrollen und geschlossener R359-Fälle.
+
+Die gelieferten Round-/Live-Nachweise und die 60/60 Gegenfälle an **`3e3ec6ed`** habe ich gelesen, nicht vollständig wiederholt. Sie werden nicht auf den späteren Kopf umetikettiert; dessen weitere Belege sind im Nachtrag noch angekündigt. Die nativen Berichte benennen unverändert sechs unvollständige Jog-Bremswege aus Statusframes. Die Hintergrund-Heilung ist in diesen Live-Läufen ausdrücklich nicht ausgeführt worden. Der vorliegende Review ergänzt deshalb deterministische Übergangsprüfungen, keine behauptete Live-Abnahme dieser Pfade.
+
+Dateien, Köpfe, Befehle und Hashes im [Prüfprotokoll](vor-maschine.r360.codex-checks.json). **Keine Produktdatei verändert, keine Tests oder Builds im Live-Baum und kein Zugriff auf die laufende Sim.** Nur dieser Anhang und neue R360-Belege.

@@ -1,0 +1,237 @@
+{
+  "base": "999a8ca9",
+  "requested_head": "3e3ec6ed",
+  "reviewed_addendum_head": "3aae6337",
+  "copies": {
+    "3e3ec6ed": {
+      "head": "3e3ec6edbee49f628634978814c53c61f687b56c",
+      "root": "/tmp/codex-r360",
+      "changed_files": [
+        {
+          "path": "CLAUDE.md",
+          "sha256": "f52325b05b3e2c3c5931053bc2756e6337a766ac0d2dfdcdf0c8db320931b8a2",
+          "matches_target": true
+        },
+        {
+          "path": "docs/architecture/safety-and-permissions.md",
+          "sha256": "1fa9e189a01891560c43a4a8bdeca0db8afc637946a5ab187794a841d3aaa9e9",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/conftest.py",
+          "sha256": "1a538c6e92164a629b2b73b1da9ece38943c648d0d0d39ca3c113c4831581b60",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/gateway.py",
+          "sha256": "58a8633632030d89d0681af3f1df5a80fda405f92767423eb0031885bb5dc47b",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_button_gates_e.py",
+          "sha256": "f839824f633fe94e57517105054a5dc48d4cc9aa48bf05cf573f34d190d618fd",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_command_dispatch.py",
+          "sha256": "8e38f007deb2502fd1d48c59b28584527f6d184fbee26b15bd9878f99a8d7b45",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_link_ownership.py",
+          "sha256": "b0bd932a8f77ad020b2eb8f6615235305fdf4053f7d7718bca1ba148112cbd3b",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_tool_refresh.py",
+          "sha256": "23ce0d43efb6c061d3960b42d2b36068d63cd78b07c7f07d5bd6b5f8966aee60",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_toolsetter_sync.py",
+          "sha256": "dac6800dba996b6d80685ad0adb5f87b903180152a3eae3bdfda30024f05397d",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_upload_conflict.py",
+          "sha256": "1c174d5aaf04db1cff2e75aa6060a53726b2a0b4edf9e6a5d4fb3f2410e3fce2",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_ws_smoke.py",
+          "sha256": "58e04eec714053ad454105045bb909d7a92044dd38fe614efbe85a22881d0efd",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/writer_fixture.py",
+          "sha256": "4c4de12d2906e0338a6d06955c22044f8ce8ac8720e847e9e01edcf00eac41d4",
+          "matches_target": true
+        }
+      ],
+      "type_gate": {
+        "filesAnalyzed": 44,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 14.046
+      },
+      "tests": {
+        "testcase_elements": 339,
+        "junit_counts": {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "621",
+          "time": "22.740",
+          "timestamp": "2026-11-13T07:53:58.456953+01:00",
+          "hostname": "debian"
+        }
+      }
+    },
+    "3aae6337": {
+      "head": "3aae6337d19c162d7f05fc50381cee9be8900b0a",
+      "root": "/tmp/codex-r360-final",
+      "changed_files": [
+        {
+          "path": "CLAUDE.md",
+          "sha256": "f52325b05b3e2c3c5931053bc2756e6337a766ac0d2dfdcdf0c8db320931b8a2",
+          "matches_target": true
+        },
+        {
+          "path": "docs/architecture/safety-and-permissions.md",
+          "sha256": "e162ff748bc75c831c832bc1cc26597fdcd5641f6b34e895867b2a95c061d366",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/conftest.py",
+          "sha256": "1a538c6e92164a629b2b73b1da9ece38943c648d0d0d39ca3c113c4831581b60",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/gateway.py",
+          "sha256": "5d04dd143431297ae4789067c01ac2e6f1ddf4c2d2b1e082c122c80e09280f38",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_button_gates_e.py",
+          "sha256": "f338d2f0c05234fd0eacd8a4d86a792f17f2f5f7eb12072e6d18f36d7c6a9c0a",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_command_dispatch.py",
+          "sha256": "8e38f007deb2502fd1d48c59b28584527f6d184fbee26b15bd9878f99a8d7b45",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_link_ownership.py",
+          "sha256": "fcf61c658a561421eb61a3989731b1e55aa8bbf20066b1951fd066eadc3771ec",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_tool_refresh.py",
+          "sha256": "23ce0d43efb6c061d3960b42d2b36068d63cd78b07c7f07d5bd6b5f8966aee60",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_toolsetter_sync.py",
+          "sha256": "dac6800dba996b6d80685ad0adb5f87b903180152a3eae3bdfda30024f05397d",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_upload_conflict.py",
+          "sha256": "1c174d5aaf04db1cff2e75aa6060a53726b2a0b4edf9e6a5d4fb3f2410e3fce2",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/test_ws_smoke.py",
+          "sha256": "58e04eec714053ad454105045bb909d7a92044dd38fe614efbe85a22881d0efd",
+          "matches_target": true
+        },
+        {
+          "path": "lcnc-gateway/writer_fixture.py",
+          "sha256": "4c4de12d2906e0338a6d06955c22044f8ce8ac8720e847e9e01edcf00eac41d4",
+          "matches_target": true
+        }
+      ],
+      "type_gate": {
+        "filesAnalyzed": 44,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 20.226
+      },
+      "tests": {
+        "testcase_elements": 90,
+        "junit_counts": {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "0",
+          "tests": "126",
+          "time": "0.668",
+          "timestamp": "2026-11-13T08:01:53.636471+01:00",
+          "hostname": "debian"
+        }
+      }
+    }
+  },
+  "live_access": false,
+  "product_edits": false,
+  "tests_in_live_tree": false,
+  "native_sim_repeated": false,
+  "commands": {
+    "base_tests": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 timeout 180s /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r360/probes/run_tests.py -q -p no:cacheprovider test_link_ownership.py test_command_dispatch.py test_button_gates_d.py test_button_gates_e.py test_session_policy.py test_ws_command_worker.py test_ws_lifecycle.py test_toolsetter_sync.py test_tool_refresh.py test_upload_conflict.py test_ws_smoke.py --junitxml=/tmp/codex-r360/probes/tests.xml (cwd: archive/lcnc-gateway)",
+    "addendum_tests": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 timeout 180s /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 /tmp/codex-r360-final/probes/run_tests.py -v -p no:cacheprovider test_link_ownership.py test_button_gates_e.py --junitxml=/tmp/codex-r360-final/probes/tests.xml (cwd: archive/lcnc-gateway)",
+    "probe": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 probes/probe.py (cwd: /tmp/codex-r360-final)",
+    "types": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3 scripts/run_pyright.py --outputjson (both archives)"
+  },
+  "supplied_evidence_read": [
+    {
+      "name": "vor-maschine.p2b.r360.gate-round.json",
+      "sha256": "8da2f3ebbb63d75b2f00608dba1f059fcc22858c2928cbc43c367272318df01c"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.live-twp.report.json",
+      "sha256": "0efd22427007b00a39724d2dc949ea6b4f86c9cd8ea564883d1be5487fcaec78"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.live-twp.txt",
+      "sha256": "c2f08916fbe97bcc555f92b4a0bb870ca57a8aeeded7f69aa5f54277317ce16a"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.macro-live.txt",
+      "sha256": "3317382bc574c597d8f028326176ba3dd5c69b8fae4a894e401f55f64750a9e9"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.mutations.txt",
+      "sha256": "ee14dc3aa6008d9334081de1ef0810ea887c01fc1f98057b4048cf3086257031"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.native-latch.json",
+      "sha256": "5a7813f99a1306899d9e983e023a397901aa0e3e8363a9e52369fe57243aeaf6"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.native-main.json",
+      "sha256": "e150f6d1ab2f0b8b918802fe536fceab2db8a798fd7d010d8ea51e1b840998a4"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.perf-matrix.json",
+      "sha256": "37a0564746fb2ce9dd82d8f51ec69463cae5d0a88a29867408a80055fad75961"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.perf.txt",
+      "sha256": "6a6fc7a3bfda53cae11bc6ca9ebe521849c95cb841be87d8affb68bd3744d3c5"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.toolsetter-readback.report.txt",
+      "sha256": "8c1324ac299468002da840e1030248b48d8de1ff5efb3d20be5f21a1616e5b12"
+    },
+    {
+      "name": "vor-maschine.p2b.r360.toolsetter-readback.txt",
+      "sha256": "9ec496bf0d27fb38ed8dc0be47bf50f6a96dd06308338733284f0fb56611eb00"
+    }
+  ],
+  "probe_cases": 22,
+  "probe_result_assertions": "all verified"
+}

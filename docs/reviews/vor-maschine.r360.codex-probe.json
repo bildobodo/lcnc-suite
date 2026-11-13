@@ -1,0 +1,870 @@
+{
+  "target": "3aae6337",
+  "mode_refused_without_swap": {
+    "ok": false,
+    "exception": "ValueError",
+    "error": "LinuxCNC kept MANUAL (asked for MDI)",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "old_mode": 1,
+    "new_mode": 3,
+    "published": "old"
+  },
+  "mode_refused_old_but_new_mode_matches": {
+    "ok": false,
+    "exception": "_WriteRefused",
+    "error": "Connection to LinuxCNC changed \u2014 try again",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "old_mode": 1,
+    "new_mode": 3,
+    "published": "new"
+  },
+  "mode_success_without_swap": {
+    "ok": true,
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ]
+    ],
+    "old_mode": 3,
+    "new_mode": 3,
+    "published": "old"
+  },
+  "mdi_without_swap": {
+    "reply": {
+      "ok": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "G4 P0",
+        42
+      ]
+    ],
+    "published": "old"
+  },
+  "mdi_swap_during_mode_wait": {
+    "reply": {
+      "ok": false,
+      "exception": "_WriteRefused",
+      "error": "Connection to LinuxCNC changed \u2014 try again"
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "poll",
+        "old",
+        1
+      ],
+      [
+        "mode",
+        "old",
+        3,
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ]
+    ],
+    "published": "new"
+  },
+  "two_write_without_swap": {
+    "reply": {
+      "ok": true
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "T7 M6",
+        41
+      ],
+      [
+        "mdi",
+        "old",
+        "G43 H7",
+        42
+      ]
+    ],
+    "published": "old"
+  },
+  "two_write_swap_after_first": {
+    "reply": {
+      "ok": false,
+      "exception": "NotConnected",
+      "error": "Connection to LinuxCNC changed \u2014 try again"
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "T7 M6",
+        41
+      ]
+    ],
+    "published": "new"
+  },
+  "admission_swaps": {
+    "ok": false,
+    "exception": "_WriteRefused",
+    "error": "Connection to LinuxCNC changed \u2014 try again",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "claim": {
+      "state": "unsent",
+      "serial": null,
+      "sent_t": null
+    }
+  },
+  "admission_swaps_then_raises": {
+    "ok": false,
+    "exception": "RuntimeError",
+    "error": "admit failed",
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ],
+    "claim": {
+      "state": "unsent",
+      "serial": null,
+      "sent_t": null
+    }
+  },
+  "failed_nml_precheck": {
+    "connect_return": false,
+    "old_still_current": false,
+    "write_result": {
+      "exception": "_WriteRefused",
+      "error": "Connection to LinuxCNC changed \u2014 try again"
+    },
+    "events": []
+  },
+  "terminal_event_during_connect": {
+    "connect_return": false,
+    "instance_ended": true,
+    "published": false,
+    "shutdown_requests": [
+      "linuxcnc instance ended"
+    ],
+    "events": [
+      [
+        "poll",
+        "old",
+        1
+      ]
+    ]
+  },
+  "limits_without_swap": {
+    "old_result": {
+      "n_axes": 3,
+      "n_joints": 3,
+      "max_jog_velocity": 100.0
+    },
+    "next_context": {
+      "n_axes": 3,
+      "n_joints": 3,
+      "max_jog_velocity": 100.0
+    },
+    "uncached_current": {
+      "n_axes": 3,
+      "n_joints": 3,
+      "max_jog_velocity": 100.0
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ]
+    ]
+  },
+  "limits_swap_during_poll": {
+    "old_result": {
+      "n_axes": 3,
+      "n_joints": 3,
+      "max_jog_velocity": 100.0
+    },
+    "next_context": {
+      "n_axes": 3,
+      "n_joints": 3,
+      "max_jog_velocity": 100.0
+    },
+    "uncached_current": {
+      "n_axes": 5,
+      "n_joints": 5,
+      "max_jog_velocity": 2.0
+    },
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "new",
+        3
+      ]
+    ]
+  },
+  "joint_cache_without_swap": {
+    "old_result": {
+      "enabled": true,
+      "fraction": 0.1,
+      "axes": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    "next_context": {
+      "enabled": true,
+      "fraction": 0.1,
+      "axes": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    "uncached_current": {
+      "enabled": true,
+      "fraction": 0.1,
+      "axes": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    "events": []
+  },
+  "joint_cache_swap_during_ini": {
+    "old_result": {
+      "enabled": true,
+      "fraction": 0.1,
+      "axes": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    "next_context": {
+      "enabled": true,
+      "fraction": 0.1,
+      "axes": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    "uncached_current": {
+      "enabled": false,
+      "fraction": null,
+      "axes": [],
+      "reason": null
+    },
+    "events": []
+  },
+  "readback_none": {
+    "published": "old",
+    "basis": {
+      "state": "confirmed",
+      "unknown": [],
+      "assumed": [],
+      "origin": "read",
+      "t": 1794553511.9567683
+    },
+    "origins": [
+      "read"
+    ],
+    "values": [
+      2.0
+    ],
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "synch",
+        "old",
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ]
+    ],
+    "trace": [
+      [
+        "toolsetter.basis",
+        {
+          "origin": "read",
+          "keys": [
+            3004,
+            3005,
+            3006,
+            3007,
+            3009,
+            3010,
+            3013,
+            3014,
+            3100,
+            3101,
+            3102,
+            3103,
+            3104,
+            3105,
+            3106,
+            3107,
+            3108,
+            3109,
+            3110,
+            3111,
+            3112,
+            3113,
+            3114,
+            3115
+          ],
+          "version": 2
+        }
+      ],
+      [
+        "toolsetter.read_back",
+        {
+          "file": "probe.ngc",
+          "version": 2,
+          "state": "confirmed"
+        }
+      ]
+    ]
+  },
+  "readback_wait": {
+    "published": "new",
+    "basis": {
+      "state": "confirmed",
+      "unknown": [],
+      "assumed": [],
+      "origin": "read",
+      "t": 1794553511.958391
+    },
+    "origins": [
+      "read"
+    ],
+    "values": [
+      2.0
+    ],
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "synch",
+        "old",
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ]
+    ],
+    "trace": [
+      [
+        "toolsetter.basis",
+        {
+          "origin": "read",
+          "keys": [
+            3004,
+            3005,
+            3006,
+            3007,
+            3009,
+            3010,
+            3013,
+            3014,
+            3100,
+            3101,
+            3102,
+            3103,
+            3104,
+            3105,
+            3106,
+            3107,
+            3108,
+            3109,
+            3110,
+            3111,
+            3112,
+            3113,
+            3114,
+            3115
+          ],
+          "version": 2
+        }
+      ],
+      [
+        "toolsetter.read_back",
+        {
+          "file": "probe.ngc",
+          "version": 2,
+          "state": "confirmed"
+        }
+      ]
+    ]
+  },
+  "readback_last_read": {
+    "published": "new",
+    "basis": {
+      "state": "confirmed",
+      "unknown": [],
+      "assumed": [],
+      "origin": "read",
+      "t": 1794553511.9615605
+    },
+    "origins": [
+      "read"
+    ],
+    "values": [
+      2.0
+    ],
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "synch",
+        "old",
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ]
+    ],
+    "trace": [
+      [
+        "toolsetter.basis",
+        {
+          "origin": "read",
+          "keys": [
+            3004,
+            3005,
+            3006,
+            3007,
+            3009,
+            3010,
+            3013,
+            3014,
+            3100,
+            3101,
+            3102,
+            3103,
+            3104,
+            3105,
+            3106,
+            3107,
+            3108,
+            3109,
+            3110,
+            3111,
+            3112,
+            3113,
+            3114,
+            3115
+          ],
+          "version": 2
+        }
+      ],
+      [
+        "toolsetter.read_back",
+        {
+          "file": "probe.ngc",
+          "version": 2,
+          "state": "confirmed"
+        }
+      ]
+    ]
+  },
+  "heal_completion_control": {
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "G54",
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ]
+    ],
+    "trace": [
+      [
+        "twp.reserved_fixture_healed",
+        {
+          "level": "info",
+          "index": 7
+        }
+      ]
+    ],
+    "published": "old",
+    "current_fixture": 1,
+    "pending": null,
+    "warning": ""
+  },
+  "heal_completion_swap": {
+    "events": [
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "poll",
+        "old",
+        3
+      ],
+      [
+        "mdi",
+        "old",
+        "G54",
+        41
+      ],
+      [
+        "wait",
+        "old",
+        41
+      ]
+    ],
+    "trace": [
+      [
+        "twp.reserved_fixture_healed",
+        {
+          "level": "info",
+          "index": 7
+        }
+      ]
+    ],
+    "published": "new",
+    "current_fixture": 7,
+    "pending": null,
+    "warning": ""
+  },
+  "claim_window_same_link": {
+    "sent_t": 100.1,
+    "proof_window": 0.02,
+    "observations": [
+      {
+        "poll_started": 100.0,
+        "claims": 1,
+        "err_since": null
+      },
+      {
+        "poll_started": 100.105,
+        "claims": 1,
+        "err_since": 100.105
+      },
+      {
+        "poll_started": 100.13,
+        "claims": 0,
+        "err_since": 100.105
+      }
+    ]
+  },
+  "claim_window_relinked": {
+    "sent_t": 100.1,
+    "proof_window": 0.02,
+    "observations": [
+      {
+        "poll_started": 100.0,
+        "claims": 1,
+        "err_since": 100.0
+      },
+      {
+        "poll_started": 100.105,
+        "claims": 0,
+        "err_since": 100.0
+      },
+      {
+        "poll_started": 100.13,
+        "claims": 0,
+        "err_since": 100.0
+      }
+    ]
+  }
+}
