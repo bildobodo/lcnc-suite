@@ -1,0 +1,195 @@
+{
+  "target": "45727d61",
+  "live_access": false,
+  "reader_probe": "original AST loop, not a socket or server",
+  "source_sha256": {
+    "lcnc-gateway/gateway.py": "0c33e1e1bc3b31a89dbfdaa73a4503f70be7ce9d1d9fe7aa09d94d697ae432ac",
+    "lcnc-gateway/command_policy.py": "59d02a3db98bbd325c1b7790d3e9ae87f196e1ddee5b5127cdcda557cd98fa69",
+    "lcnc-gateway/fake_linuxcnc.py": "a21e2eb8ade7b9c58a03d751fd311e4d67846daae9a858a1952bf6a35c49e09e"
+  },
+  "reader": [
+    {
+      "frame": {
+        "cmd": "save_settings",
+        "section": "unknown-section"
+      },
+      "failure": null,
+      "frames_sent": [
+        {
+          "type": "pong"
+        },
+        {
+          "type": "reply",
+          "ok": false,
+          "error": "Unknown settings section: unknown-section",
+          "cmd": "save_settings"
+        },
+        {
+          "type": "pong"
+        }
+      ],
+      "remaining_inputs": []
+    },
+    {
+      "frame": {
+        "cmd": "hello",
+        "session": [
+          "x"
+        ],
+        "resume_armed": true
+      },
+      "failure": {
+        "type": "TypeError",
+        "message": "unhashable type: 'list'"
+      },
+      "frames_sent": [
+        {
+          "type": "pong"
+        }
+      ],
+      "remaining_inputs": [
+        {
+          "cmd": "heartbeat",
+          "seq": 2
+        }
+      ]
+    },
+    {
+      "frame": {
+        "cmd": "hello",
+        "session": {
+          "x": 1
+        },
+        "resume_armed": true
+      },
+      "failure": {
+        "type": "TypeError",
+        "message": "unhashable type: 'dict'"
+      },
+      "frames_sent": [
+        {
+          "type": "pong"
+        }
+      ],
+      "remaining_inputs": [
+        {
+          "cmd": "heartbeat",
+          "seq": 2
+        }
+      ]
+    },
+    {
+      "frame": {
+        "cmd": "save_settings",
+        "section": []
+      },
+      "failure": {
+        "type": "TypeError",
+        "message": "unhashable type: 'list'"
+      },
+      "frames_sent": [
+        {
+          "type": "pong"
+        }
+      ],
+      "remaining_inputs": [
+        {
+          "cmd": "heartbeat",
+          "seq": 2
+        }
+      ]
+    },
+    {
+      "frame": {
+        "cmd": "save_settings",
+        "section": {}
+      },
+      "failure": {
+        "type": "TypeError",
+        "message": "unhashable type: 'dict'"
+      },
+      "frames_sent": [
+        {
+          "type": "pong"
+        }
+      ],
+      "remaining_inputs": [
+        {
+          "cmd": "heartbeat",
+          "seq": 2
+        }
+      ]
+    }
+  ],
+  "auto_run": [
+    {
+      "line": 0,
+      "schema_accepted": true,
+      "corrections": {},
+      "calls_before_result": [
+        "start_guard",
+        "toolsetter_sync",
+        [
+          "mode",
+          2
+        ]
+      ],
+      "fake_writes": 2,
+      "result": {
+        "ok": true,
+        "toolsetter": {}
+      }
+    },
+    {
+      "line": 2147483647,
+      "schema_accepted": true,
+      "corrections": {},
+      "calls_before_result": [
+        "start_guard",
+        "toolsetter_sync",
+        [
+          "mode",
+          2
+        ]
+      ],
+      "fake_writes": 2,
+      "result": {
+        "ok": true,
+        "toolsetter": {}
+      }
+    },
+    {
+      "line": 2147483648,
+      "schema_accepted": true,
+      "corrections": {},
+      "calls_before_result": [
+        "start_guard",
+        "toolsetter_sync",
+        [
+          "mode",
+          2
+        ]
+      ],
+      "fake_writes": 1,
+      "result": {
+        "type": "TypeError",
+        "message": "function takes exactly 1 argument (2 given)"
+      }
+    }
+  ],
+  "touch_expect": {
+    "payload": {
+      "cmd": "touchoff",
+      "axes": {
+        "X": 0
+      },
+      "expect": {
+        "kins_type": null,
+        "g5x_index": 1
+      }
+    },
+    "current_schema_corrections": {},
+    "setup_sender": "SetupStrip.vue expectNow: kinsType ?? null, g5xIndex ?? null",
+    "client_type": "useTouchoffMath.ts TouchoffExpect: number | null for both dimensions"
+  }
+}

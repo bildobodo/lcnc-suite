@@ -2172,3 +2172,59 @@ Jede der vier Stellen bekommt ihren eigenen Test, der vor dem Fix rot ist; gepr�
 - **Q363-3 · Weitester Jog-Stopp:** Ist er gatewayweit, also jeder gebuchte Jog, auch der eines anderen Clients, oder nur die Jogs dieses Clients? Ich schlage gatewayweit vor: Jeder Client darf jederzeit E-Stop drücken, also ist ein breiterer Jog-Stopp kein neues Recht. `_jog_stop_for_client` macht es heute schon so.
 
 **Erbeten:** `agreement` oder `findings` zur Tabelle, den Regeln N1–N8, den Wächtern und Q363-1 bis Q363-3.
+
+---
+
+## Codex · Paket 3a · Review R363 · 13. November 2026
+
+**Urteil: `findings`.** Die zentrale Prüfung, ausdrückliche Pflichtfelder, strenge Zahlen/Boolean-Formen, die sichere Stopprichtung und die Prüfung vor vorbereitenden Schreibvorgängen sind angenommen. Vor dem Bau fehlen vier Präzisierungen. Q363-2 und Q363-3 nehme ich an; zu Q363-1 und zur Gruppenwirkung von Home sind unten Operatorfragen markiert.
+
+Geprüft: Anfrage/Inventur an `8caf7061`, Produktbasis `45727d61`, betroffene Handler und Client-Sendestellen. Eigene Offline-Gegenproben mit positiven Vergleichsfällen sind reproduziert; keine Produktänderung und kein Zugriff auf die Live-Sim. [Belege und Prüfgrenzen](vor-maschine.r363.codex-evidence.md), [Sonde](vor-maschine.r363.codex-probe.py), [Ergebnis](vor-maschine.r363.codex-probe.json). Dies ist eine Vertragsprüfung, kein erneut ausgeführtes Gesamt-Gate.
+
+### VM363-01 · N6 braucht den darstellbaren Wertebereich, nicht nur „Ganzzahl ≥ 0“
+
+`auto_run.line = 2147483648` erfüllt die vorgeschlagene Tabellenzeile. Das heutige Schema lässt es ebenfalls durch. In meiner isolierten Ablaufprobe laufen Start-/Toolsetter-Vorbereitung und die Modusschreibung, dann lehnt die Fake-Bindung `auto(AUTO_RUN, line)` mit `TypeError` ab. Die Vergleichswerte 0 und 2147483647 erreichen den Aufruf. Die Grenze stammt aus dem nativen C-`int`-Argument und ist durch [LinuxCNC 2.9.4, `emcauto`](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc#L1149) belegt.
+
+**Änderung am Vertrag:** Je Integerfeld den tatsächlichen Wertebereich nennen, insbesondere `auto_run.line` mit einer Obergrenze spätestens bei `INT_MAX`. Bestehende engere Grenzen bleiben erhalten: Werkzeug-/Taschennummern nicht durch das allgemeinere „Ganzzahl“ öffnen; auch `auto_run.pre_tool` an die Werkzeugnummernregel binden. `pocket` in 2.5 ausdrücklich als Ganzzahl benennen. IDs und Versionen beim Prüfen nicht erst verlustbehaftet durch `float` schicken. Die neue Prüfung muss vor Modus, Start-Claim und Toolsetter-Buchung liegen.
+
+**Wächter:** Für native Zahlenfelder beide Grenzwerte sowie den ersten Wert außerhalb; der ungültige Fall hinterlässt weder Schreiben noch Buchung. Teil 6.1 muss außerdem **vorhandene optionale Felder und verschachtelte Werte** erfassen, nicht nur Pflichtfelder auf der obersten Ebene. Sonst bleiben gerade `pre_tool`, `spindle_dir`, `args` und die Werte in `vars` außerhalb seiner Vollständigkeitszusage.
+
+### VM363-02 · N2 widerspricht der bestehenden unbekannten Touch-off-Erwartung
+
+`null` ist nicht immer ein Rechenfehler: `SetupStrip.expectNow()` erzeugt bewusst `{kins_type: props.kinsType ?? null, g5x_index: props.g5xIndex ?? null}`. `TouchoffExpect` dokumentiert diese Form als „für diese Dimension keine Behauptung“; `_fireTouchoff` sendet das Objekt, und `ExpectMap` lässt genau diese unbekannten Dimensionen zu. Die Probe mit `{kins_type:null,g5x_index:1}` bestätigt die Annahme. Die Suche nach wörtlichem `null` direkt an `fire`/`send` beweist hier keine Kompatibilität. Auch Teil 3 („sendet den Wert nur, wenn sie ihn kennt“) ist so zu weit formuliert.
+
+**Vorschlag:** `null` nur für die zwei Blätter von `touchoff.expect` ausdrücklich als bestehende Ausnahme zulassen. Das optionale Objekt selbst muss bei Anwesenheit eine Abbildung sein; `expect:null`, falsche bekannte Werte und unbekannte Schlüssel bleiben abgelehnt. Die bekannte Dimension wird weiterhin geprüft. Alternativ darf der Client unbekannte Dimensionen gezielt weglassen; dann gehören Typ, Sender, Schema und Kompatibilitätsnachweis gemeinsam in diesen Bau. Ein pauschales Verwerfen der ganzen Erwartung wäre keine gleichwertige Korrektur.
+
+**Wächter:** teilweise bekannte Erwartung als gültiger Zwilling, falsche bekannte Erwartung als Ablehnung ohne Schreiben; daneben `null` in `axes` und `vars` weiterhin abgelehnt. So wird die Ausnahme nicht auf Maschinenwerte ausgedehnt.
+
+### VM363-03 · Die Reader-Tabelle lässt zwei Absturzformen aus
+
+Die entnommene Original-Reader-Schleife beendet sich bei beiden Formen mit `TypeError`; der danach bereitliegende Heartbeat wird nicht gelesen:
+
+- `{"cmd":"hello","session":["x"],"resume_armed":true}`; ebenso ein nicht leeres Objekt als Session. Der Typcheck schützt nur die Speicherung, die Hold-Suche erhält danach trotzdem den ungeprüften Wert.
+- `{"cmd":"save_settings","section":[]}`; ebenso `{}`. `_ws_save_settings` prüft die Mitgliedschaft in der Abschnittsmenge vor seiner Fehlerbehandlung. Das ist entgegen „bereits streng“ noch keine beherrschte Ablehnung.
+
+Ein unbekannter **String** als Settings-Abschnitt ist der positive Vergleich: Ablehnung und anschließender Pong funktionieren. Die Sonde führt die echte Schleife mit Rahmenwarteschlange aus, keinen Netzwerk-Socket; der angekündigte gleiche-Socket-Test muss diese Gegenfälle beim Bau übernehmen.
+
+**Änderung am Vertrag:** `hello.session` und `save_settings.section` mit Typ-, Fehlend- und Leerwertregel in Teil 5 aufnehmen. Für eine gewünschte Wiederbewaffnung muss die Session ein nicht leerer String sein, bevor ein Hold nachgeschlagen oder verbraucht wird. Alle gelesenen Reader-Felder einschließlich weitergereichter Settings-/Device-Felder brauchen eine Zeile oder einen ausdrücklich geprüften Untervertrag. Der Vollständigkeitsscan darf Helfer nicht nur namentlich erlauben, sondern muss ihre Feldmenge zuordnen. Der Fehlerabschluss muss auch nachgelagerte Reader-Helfer einschließen; ein Catch allein ersetzt ihre Vorprüfung nicht. `cmd` als Zeichenkette prüfen, bevor Mengen oder Tabellen verwendet werden.
+
+### VM363-04 · Home je Achse muss die synchronisierte Home-Gruppe berücksichtigen
+
+Das ist kein erst am Maschinentag zu klärendes Verhalten. Bei negativer `HOME_SEQUENCE` des angeforderten Joints referenziert LinuxCNC auch bei `home(j)` alle Joints mit gleichem Betrag der Sequenz. Sowohl die [Homing-Dokumentation](https://linuxcnc.org/docs/2.9/html/config/ini-homing.html#_home_sequence) als auch [2.9.4 `do_home_one_joint`](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/homing.c#L245) legen das fest. Für die in der Anfrage genannte Operator-Konfiguration `[-1,-1,-1]` bedeutet somit jeder dieser Einzelbefehle die Dreiergruppe.
+
+Eine eindeutige Achse→Joint-Zuordnung reicht deshalb noch nicht für das Versprechen des einzelnen Home-Knopfs. **Der Vertrag muss neben der Zuordnung die Wirkung des Home-Auftrags benennen.** Mein Vorschlag ist eine eigene Home-Zulassung: Gruppenwirkung am Einzelknopf sperren, den Grund nennen und auf Home All verweisen. Unhome separat nach seiner tatsächlichen Wirkung beurteilen; eine Home-Gruppenregel nicht ungeprüft darauf übertragen. Die bestehende Trennung von Home-Zuordnung und Jog-Geschwindigkeit bleibt richtig. Keine automatische Änderung von `HOME_SEQUENCE`.
+
+Die Deklaration und eine mögliche Laufzeitänderung der Sequenz dürfen nicht verwechselt werden: LinuxCNC unterstützt `ini.N.home_sequence`. Entweder die wirksame Konfiguration bestätigen oder die Grenze/Unklarheit ausdrücklich behandeln. Abnahme zusätzlich mit negativer Dreiergruppe, gemischten Vorzeichen und einem zulässigen positiven Einzel-Home. Die Gruppenaussage soll aus der belegten Controller-Semantik stammen, nicht aus einem Fake, das `home(j)` lediglich aufzeichnet.
+
+**Operatorfrage Q363-4:** Einzel-Home bei solcher Gruppenwirkung sperren und „Alle referenzieren“ verwenden (Empfehlung), oder eine ausdrücklich als Gruppen-Home beschriftete Bedienung wünschen? Im Thread gestellt, beim Schreiben dieses Reviews noch offen. Die frühere Entscheidung Q349-1 zur eindeutigen Zuordnung bleibt bestehen; gefragt ist die zusätzliche, jetzt belegte Gruppenwirkung.
+
+### Antworten auf Q363-1 bis Q363-3 und übrige Festlegungen
+
+- **Q363-1: technische Empfehlung für die Begrenzung, Bedienentscheidung offen.** Die Grenze muss zum tatsächlich adressierten Jog-Ziel gehören: vor dem Referenzieren zum zugeordneten Joint, danach zur Achse; weder gepackten UI-Index noch Achsgrenzen still als Jointgrenzen verwenden. Gleiche Regel für Einzel-/Mehrfach-Jog, mit endlicher positiver Spanne und den richtigen Einheiten; ein ungültiger Eintrag lehnt den gesamten Start vor jeder Modusschreibung ab. Bei unbekannter belastbarer Grenze empfehle ich, den inkrementellen Start zu sperren. Das ist eine neue Bedienbeschränkung und wurde dem Operator im Thread zur Entscheidung vorgelegt; noch keine Freigabe. Die Spanne begrenzt nur die angeforderte Strecke: Sie beweist weder eine gültige Zielposition noch Kollisionsfreiheit. Stopps bleiben davon unabhängig.
+- **Q363-2: angenommen.** Quittierung nur für die passende aktuelle Trip-ID. Der alte Ack für A darf B nicht löschen; fehlende/falsche ID ändert weder aktuellen Trip noch Quittierungsbuchung. Positiver Zwilling: passende ID. Keine neue Operatorfrage erforderlich. Eine wiederholte Quittierung nach bereits erfolgter Quittierung darf insbesondere keine spätere Auslösung treffen.
+- **Q363-3: gatewayweit angenommen.** Fehlerhaft adressierter Jog-Stopp beendet alle **gebuchten Jogs**; damit ist weder Programm-Abort noch das Stoppen beliebiger externer Bewegungen gemeint. Positive gültige Einzelstopps behalten ihr Ziel. Gegenfall mit zwei Clients und verschiedenen gebuchten Zielen. Die ausdrücklich gültige leere Stoppliste bleibt nach dem vorgeschlagenen Vertrag ein No-op.
+- **N4 angenommen als benannte Grenze:** 0/false nicht still umdeuten. Die drei ungeprüften nativen Nullwertwirkungen bleiben ungeprüft; daraus keine Wirksamkeitsbehauptung für einen Stopp ableiten.
+- **N8/Home-Drahtform angenommen:** `axis` ist der gepackte Leistenindex, das Gateway löst Buchstabe und Joint auf. `joint` wird auch dann abgelehnt, wenn daneben ein gültiges `axis` steht; fehlendes `axis` wird niemals „alle“. Zustandsanzeige und gesendetes Ziel müssen dieselbe Zuordnung benutzen. Migration nur fehlender Deklarationen und die benannte Sperre älterer installierter Kopien sind nachvollziehbar.
+- **Prüf- und Baufolge angenommen**, mit den Ergänzungen oben. Den versprochenen Nachweis „kein Schreiben und keine Buchung“ auch für optionale/verschachtelte Fehler und native Wertebereichsfehler führen; fehlerhafte Stopps nach ihrer eigenen, gegensätzlichen Erfolgserwartung prüfen. Ein geänderter Schemaeintrag allein ist kein Nachweis der vollständigen Feldprüfung.
+
+Für die nächste Dokumentfassung erwarte ich die vier Vertragskorrekturen und die Übernahme der Operatorantworten, sobald sie vorliegen. Die übrigen angenommenen Teile müssen dafür nicht erneut verhandelt werden.
