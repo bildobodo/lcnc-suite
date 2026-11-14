@@ -1,0 +1,121 @@
+FFFFFFFFFFFFF....                                                        [100%]
+=================================== FAILURES ===================================
+_________________ test_missing_reader_field_is_not_valid[msg0] _________________
+scripts/test_select/test_r373_codex.py:28: in test_missing_reader_field_is_not_valid
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1, 'timing_log': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_missing_reader_field_is_not_valid[msg1] _________________
+scripts/test_select/test_r373_codex.py:28: in test_missing_reader_field_is_not_valid
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'halshow_live': 1, 'hello': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_missing_reader_field_is_not_valid[msg2] _________________
+scripts/test_select/test_r373_codex.py:28: in test_missing_reader_field_is_not_valid
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'device_rename': 1, 'hello': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_missing_reader_field_is_not_valid[msg3] _________________
+scripts/test_select/test_r373_codex.py:28: in test_missing_reader_field_is_not_valid
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1, 'save_settings': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_missing_reader_field_is_not_valid[msg4] _________________
+scripts/test_select/test_r373_codex.py:28: in test_missing_reader_field_is_not_valid
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1, 'save_settings': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_missing_reader_field_is_not_valid[msg5] _________________
+scripts/test_select/test_r373_codex.py:28: in test_missing_reader_field_is_not_valid
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1, 'tab_visibility': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_origin_project_is_checked[bad_origin0] __________________
+scripts/test_select/test_r373_codex.py:41: in test_origin_project_is_checked
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_________________ test_origin_project_is_checked[bad_origin1] __________________
+scripts/test_select/test_r373_codex.py:41: in test_origin_project_is_checked
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+________________ test_test_cannot_send_to_another_workers_mock _________________
+scripts/test_select/test_r373_codex.py:51: in test_test_cannot_send_to_another_workers_mock
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 2, 'commands': {'hello': 2, 'machine_off': 1}, 'connections': {'test': 3}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+__________ test_frame_without_open_is_never_silently_discarded[False] __________
+scripts/test_select/test_r373_codex.py:63: in test_frame_without_open_is_never_silently_discarded
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+__________ test_frame_without_open_is_never_silently_discarded[True] ___________
+scripts/test_select/test_r373_codex.py:63: in test_frame_without_open_is_never_silently_discarded
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1}, 'connections': {'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_______ test_no_cookie_exception_is_exactly_one_valid_hello[extra-field] _______
+scripts/test_select/test_r373_codex.py:78: in test_no_cookie_exception_is_exactly_one_valid_hello
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1}, 'connections': {'none': 1, 'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+_______ test_no_cookie_exception_is_exactly_one_valid_hello[two-hellos] ________
+scripts/test_select/test_r373_codex.py:78: in test_no_cookie_exception_is_exactly_one_valid_hello
+    assert result['verdict'] == 'FAIL', result
+E   AssertionError: {'attempts': 1, 'commands': {'hello': 1}, 'connections': {'none': 1, 'test': 1}, 'expected': [], ...}
+E   assert 'PASS' == 'FAIL'
+E     
+E     - FAIL
+E     + PASS
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_r373_codex.py::test_missing_reader_field_is_not_valid[msg0]
+FAILED scripts/test_select/test_r373_codex.py::test_missing_reader_field_is_not_valid[msg1]
+FAILED scripts/test_select/test_r373_codex.py::test_missing_reader_field_is_not_valid[msg2]
+FAILED scripts/test_select/test_r373_codex.py::test_missing_reader_field_is_not_valid[msg3]
+FAILED scripts/test_select/test_r373_codex.py::test_missing_reader_field_is_not_valid[msg4]
+FAILED scripts/test_select/test_r373_codex.py::test_missing_reader_field_is_not_valid[msg5]
+FAILED scripts/test_select/test_r373_codex.py::test_origin_project_is_checked[bad_origin0]
+FAILED scripts/test_select/test_r373_codex.py::test_origin_project_is_checked[bad_origin1]
+FAILED scripts/test_select/test_r373_codex.py::test_test_cannot_send_to_another_workers_mock
+FAILED scripts/test_select/test_r373_codex.py::test_frame_without_open_is_never_silently_discarded[False]
+FAILED scripts/test_select/test_r373_codex.py::test_frame_without_open_is_never_silently_discarded[True]
+FAILED scripts/test_select/test_r373_codex.py::test_no_cookie_exception_is_exactly_one_valid_hello[extra-field]
+FAILED scripts/test_select/test_r373_codex.py::test_no_cookie_exception_is_exactly_one_valid_hello[two-hellos]
+13 failed, 4 passed in 0.06s

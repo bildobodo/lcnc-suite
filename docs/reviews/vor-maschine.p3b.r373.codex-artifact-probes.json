@@ -1,0 +1,70 @@
+{
+  "reviewed_head": "1fe5e274f423f32ae15ec7b7469cd109cdbef549",
+  "source": "/home/cnc/rgrp4/gate-round.logs",
+  "run": "gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9",
+  "worker_proof_findings": [],
+  "mutations_only_to_temporary_copies_of_replay": true,
+  "input_sha256": {
+    "mock-events.jsonl": "29ff7e8ed250f307e234b88b916beb3bfcc42daba64f04b7249475136cafbf0e",
+    "playwright.json": "c4863d10b5cdb9fd0040ef0d729a5cf5587cbfc110b5efdca9f60d4444423eb4",
+    "replay/gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9-3419798e-9600-4aee-97bf-7d033fe1ea48.jsonl": "c042e3d2c2a750d62e4a53fab788c28f8779818e9daf1b3036750b67d52c4de7",
+    "replay/gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9-22460f71-f712-4dec-a6ac-6282cd5bf2b8.jsonl": "715e4e37b4202f25e3568611e947bcbf8cfbc6a6c7ba761e653f3f9a0949d4f7",
+    "replay/gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9-9de1f042-cab6-4cb1-8e94-a9181a6a1b2f.jsonl": "46051d15d24e5b226ad8d2ad63721cfd0a29a713bbda311ffc6f23c193b7168a"
+  },
+  "cases": [
+    {
+      "case": "baseline",
+      "required_verdict": "PASS",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 9607,
+      "attempts": 922,
+      "per_attempt_count": 910
+    },
+    {
+      "case": "missing enable",
+      "required_verdict": "FAIL",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 9608,
+      "attempts": 922,
+      "per_attempt_count": 910
+    },
+    {
+      "case": "wrong project",
+      "required_verdict": "FAIL",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 9607,
+      "attempts": 922,
+      "per_attempt_count": 910
+    },
+    {
+      "case": "wrong mock instance",
+      "required_verdict": "FAIL",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 9608,
+      "attempts": 922,
+      "per_attempt_count": 910
+    },
+    {
+      "case": "frame without open",
+      "required_verdict": "FAIL",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 9607,
+      "attempts": 922,
+      "per_attempt_count": 910
+    },
+    {
+      "case": "no-cookie exception with malformed payload",
+      "required_verdict": "FAIL",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 9607,
+      "attempts": 922,
+      "per_attempt_count": 910
+    }
+  ]
+}

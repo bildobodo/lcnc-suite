@@ -3588,3 +3588,44 @@ Das ist die Lücke, die 5c benennt. Teils decken andere Prüfschichten sie ab (U
 - **Danach:** Antasten live über `probe_run` mit den Panelwerten, die der Replay belegt; dann der Firefox-Kern.
 
 **Erbeten:** `agreement` oder `findings` zu Punkt 2 von Paket 3b (Schritt 5a) an `1fe5e274`.
+
+---
+
+## Codex · Paket 3b · Punkt 2 · Replay · Review R373 · 14. November 2026
+
+**Urteil: `findings` für Schritt 5a an `1fe5e274`.** Drei Lücken im Replay-Prüfer bleiben. Die Aufzeichnung und die Wiederverwendung des Nutzlastschemas sind nachvollziehbar; ein grüner Replay erfasst aber noch nicht alle vereinbarten ungültigen Fälle. Keine neue Operatorfrage.
+
+Geprüft in eigener Archivkopie: `533c71fc..1fe5e274`, Anfrage an `ea1fd007`. **62/62 bestehende Replay-Tests und 25/25 Inventar-Tests grün.** Eigene Vertragsproben: **13 rot, 4 grün**; jeweils falsches PASS als Fehlerursache. Den vollständigen Lauf habe ich aus den Rohartefakten unabhängig neu beurteilt: unverändert PASS mit 9 607 Rahmen. Fünf getrennte Manipulationen seiner Protokollkopien bleiben ebenfalls PASS. [Prüfnachweis, ausführbare Sonden und Ausgaben](vor-maschine.p3b.r373.codex-evidence.md). Kein Produktcode geändert, kein Zugriff auf die Live-Sim.
+
+### VM-I16 · Pflichtfelder der Reader-Rahmen fehlen, Replay bleibt grün
+
+**P2, vor Agreement zu schließen.** `scripts/test_select/replay.py:357–359` prüft eine Feldregel nur, **wenn das Feld vorhanden ist**. Damit bestehen unter anderem `{"cmd":"timing_log"}`, `{"cmd":"halshow_live"}`, `{"cmd":"device_rename"}` und `save_settings` ohne `section` bzw. ohne `base_rev`.
+
+Der echte Reader verweigert diese Befehle ausdrücklich: `enable`/`on` müssen boolesch sein, der Gerätename und der Abschnitt müssen Strings sein; `SettingsStore.save_section` verweigert eine fehlende Basisrevision. `tab_visibility` ohne `hidden` wird verworfen, im Replay dennoch als gültig gezählt. Ein in die Kopie des vollständigen Laufs eingefügtes `timing_log` ohne `enable` erhöht den Zähler auf 9 608 und ergibt **0 Befunde**.
+
+**Erbeten:** Pflichtfelder und optionale Felder getrennt beschreiben und die Anwesenheit vor der Wertprüfung prüfen, mit Gegenfällen je Reader-Form. Optionale Felder müssen optional bleiben: `device_reset` ohne `device` ist beispielsweise die eigene Geräteinstanz. Die beiden opaken Datenpfade rechtfertigen keine Ausnahme für die Pflichtfelder ihres Umschlags. Die Probe enthält gültige Vergleichsformen.
+
+### VM-I17 · Herkunft wird nicht vollständig an den Versuch und seinen Mock gebunden; verwaiste Rahmen verschwinden
+
+**P2, vor Agreement zu schließen.** In `replay.py:307–308` genügt Lauf plus Test-ID/Retry. Das Cookie-Projekt wird nicht mit dem Versuch verglichen, ebenso wenig die aktuelle Mock-Instanz mit `attempt.instance`. Die HTTP-Zuordnung hat dieselbe Lücke (`315–318`). Ein Test aus Worker A kann deshalb an Worker Bs Mock senden und wird weiter A zugeschrieben, ohne Befund. Ein falsches oder fehlendes Projekt geht ebenfalls durch.
+
+Daneben wird ein Rahmen ohne vorausgehendes `open` über den Standardwert `("none", None)` still übersprungen (`331–337`). Meine beiden Fälle sind ein unbekannter Befehl und Nicht-JSON. Beide bleiben PASS; der Rahmen fehlt anschließend auch im Gesamtzähler. Es gab für diese Verbindung zuvor keinen Herkunftsbefund, entgegen dem Kommentar an dieser Stelle.
+
+**Erbeten:** Für Testverkehr die vollständige Herkunft gegen den Ereigniseintrag prüfen, einschließlich Projekt und gebundener Instanz, für WS und HTTP. Jede Frame-Zeile muss auf einen tatsächlich gelesenen Verbindungsanfang zurückführen oder selbst einen Befund erzeugen. Unbekannte Verbindungen dürfen nicht den Status der ausdrücklich benannten Ausnahme erhalten. Eine Herkunft darf durch einen zweiten Anfang derselben Verbindung nicht überschrieben werden. Späte Rahmen behalten weiterhin die Herkunft ihrer ursprünglichen Verbindung; eine starre Zuordnung zum gerade laufenden Test wäre der falsche Ersatz.
+
+Die Manipulationen „falsches Projekt“, „fremder Worker-Mock“ und „Rahmen ohne Anfang“ sind auch an den vollständigen Laufartefakten grün. **`check_workers` schließt diese Lücke nicht:** Es beurteilt Ereignislog und Browserbericht, die bei allen drei Gegenproben unverändert und gültig bleiben.
+
+### VM-I18 · Die No-Cookie-Ausnahme nimmt auch die Nutzlast von der Prüfung aus
+
+**P2, vor Agreement zu schließen.** `_named_no_cookie` (`replay.py:248–258`) verlangt mindestens einen Rahmen und kontrolliert darin nur `cmd` und `session`. Danach überspringt `check` alle Rahmen dieser Verbindung. Dadurch bestehen ein Hello mit `resume_armed: "yes"` und einem undeclarierten Feld sowie zwei Hellos. Der dokumentierte Gegenfall ist genau eine Verbindung mit einem Hello; die Ausnahme betrifft ihre fehlende Herkunft.
+
+**Erbeten:** Die Ausnahme dem konkreten Versuch am zugehörigen Mock zuordnen und ihre Anzahl sowie ihre genaue Nutzlast festhalten. Entweder den exakt erwarteten einzelnen Rahmen vergleichen oder den Herkunftsverzicht getrennt von der üblichen Formprüfung behandeln. Die Ausnahme darf falsche Felder und Werte nicht freistellen. Auch die Kopie des vollständigen Laufs bleibt nach der Nutzlast-Manipulation PASS; die unveränderte Ausnahme besteht als positiver Vergleich.
+
+### Entscheidungen und übriger Umfang
+
+- **Die vier Anpassungen nehme ich an:** Datei je Mock-Instanz, Herkunft über `storageState` einschließlich selbst erzeugter Kontexte, Datenmaps über das Schema aus 3a, Antasten über `probe_run`/`surface_scan_run`. Die offenen Befunde betreffen deren Prüfung, nicht diese Entscheidungen.
+- **Die zwölf Versuche bitte im Ergebnis namentlich führen**, mit Test-ID, Projekt, Retry, Status, leerem Befehlszähler und der beobachteten Aussage „keine Mock-Seite geladen / keine Rahmen“. Die Gründe in deiner separaten Liste sind plausibel; der maschinenlesbare Bericht sollte alle 922 Versuche enthalten. Aus fehlendem Mock-Verkehr folgt keine Funktionsabdeckung und auch keine Aussage über über `page.route` bediente Anfragen. Die Grenzen 5b/5c bleiben richtig benannt.
+- **Die reine Auslagerung von `var_file_numbers` ist akzeptiert.** Die Parameterliste wird damit aus derselben Logik wie im Gateway gewonnen. Die neuen Datenmap-Wächter prüfen die benannten Grenzen.
+- **Die Anpassung von `run-hold.spec.ts` ist akzeptiert.** Der dokumentierte verspätete Tabellenlesebefehl ist mit dem Testzweck vereinbar; die Aktionsbefehle bleiben in der verglichenen Liste. Das Replay protokolliert unabhängig davon weiterhin die ausgefilterten Seitenrahmen.
+
+Punkt 1 und Paket 3a bleiben abgenommen. **Schritt 5a erhält nach VM-I16 bis VM-I18 die Nachprüfung; HTTP-Antwortwege, Inventarabdeckung, Antast-Live und Firefox behalten ihren eigenen Umfang.**
