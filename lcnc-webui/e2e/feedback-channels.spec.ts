@@ -297,6 +297,11 @@ test("a safety trip: the banner with Acknowledge; the click sends the ack, the t
   await expect(banner.locator(".bannerError")).toContainText("SAFETY TRIPPED");
   await ack.click();
   await expect.poll(acts).toEqual(["safety_trip_ack"]);
+  // it names the banner's trip (package 3a, Codex R363 Q363-2): the gateway
+  // refuses an acknowledgement without the current trip's id
+  const sentAck = ((await ctl({ op: "lastCmds" })).cmds as { cmd: string; id?: unknown }[])
+    .filter(c => c.cmd === "safety_trip_ack");
+  expect(sentAck.map(c => c.id), "the ack carries the trip's id").toEqual(["e2e0001-1"]);
   // The ack has crossed to the mock, so the click's render is long done: read
   // ONCE, no retry — a local clear would show here, and no frame has come
   // that could bring the trip back.
