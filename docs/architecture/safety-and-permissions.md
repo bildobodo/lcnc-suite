@@ -129,7 +129,11 @@ the server re-checks before the effect. Package A closed what made that false:
   lock holder is bounded and Disconnect waits for it without losing its
   effect — R209); a
   refused or unclear confirmation shows in the dialog and a deliberate press
-  tries again, bound to the same request. Boundary: two requests for the SAME
+  tries again, bound to the same request. A confirmation with NO reply within
+  30 s (`CONFIRM_REPLY_MS`) shows "No reply — outcome unknown" and keeps its
+  lock — a timeout proves no refusal, so neither a repeat nor a second press;
+  the status ending the request ends it, and a late timeout of an earlier
+  request labels nothing (Codex R366 VM-I12). Boundary: two requests for the SAME
   tool whose low phase falls between two polls stay one observed request.
 - *Stops need no arm* (BG-08 / BG-18): `abort` has no requirement, `pause` is
   running-and-not-paused (AUTO or MDI), `spindleStop` is on + idle without arm
