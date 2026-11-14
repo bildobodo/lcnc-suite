@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Live acceptance of Home / Unhome per axis, the step jog and the MDI line's
-byte limit on a running sim (package 3a: F-HOME.S2b, the step jog's travel,
-VM-I11; Codex R363–R367).
+byte limit and the program path's on a running sim (package 3a: F-HOME.S2b,
+the step jog's travel, VM-I11; Codex R363–R367).
 
 Drives the gateway through the WebSocket as the strip does (`home {axis}`,
 `jog_incr`, `jog_cont` / `jog_stop`) and reads the outcome from LinuxCNC's
@@ -24,6 +24,10 @@ Rows (default):
   mdi-utf8    a 254-byte line of fewer characters (an umlaut comment) runs too
   mdi-past    a 255-byte line is refused by the gateway with the task mode left
               MANUAL and X unmoved (Codex R366 VM-I11; R367: 254, not 255)
+  load-edge   a program whose path is 254 bytes (nested folders) is loaded:
+              STAT.file names it
+  load-past   one of 255 bytes is refused, and the loaded program stays (the
+              binding's program_open would send PLAN_CLOSE before refusing it)
 Rows (--group: the INI gives every joint HOME_SEQUENCE -1, the operator's
 machine's shape — a copy of a profile):
   group-map   home_axes closes Home on every axis with the group's reason
@@ -35,6 +39,7 @@ Usage: home_step_live_check.py <ini> [--group]  (the gateway on 127.0.0.1:WEBUI_
 """
 import asyncio
 import json
+import os
 import sys
 import time
 
@@ -265,6 +270,31 @@ async def mdi_limit(gw, ini):
         f"reply {r.get('ok')} {r.get('error')}; task_mode {s.task_mode}; X {x:.3f}")
 
 
+async def program_path(gw, ini):
+    prefix = os.path.abspath(os.path.expanduser(ini_value(ini, "DISPLAY", "PROGRAM_PREFIX")))
+    sub = os.path.join(prefix, "p3_path_edge_" + "d" * 60)
+    os.makedirs(sub, exist_ok=True)
+
+    def at(n):
+        path = os.path.join(sub, "e" * (n - len(sub.encode()) - 1 - 4) + ".ngc")
+        with open(path, "w") as f:
+            f.write("(the program path's byte limit, R367)\nM2\n")
+        assert len(path.encode()) == n, (len(path.encode()), n)
+        return path
+    edge, past = at(254), at(255)
+    r = await gw.cmd({"cmd": "load_file", "path": edge})
+    loaded = await wait(lambda: poll().file == edge, 15)
+    await gw.settled(lambda d: d.get("active_file") == edge, 10)
+    row("load-edge", r.get("ok") is True and loaded,
+        f"reply {r.get('ok')} {r.get('error') or ''}; {len(edge.encode())} bytes; STAT.file is it: {loaded}")
+    r = await gw.cmd({"cmd": "load_file", "path": past})
+    await asyncio.sleep(2.0)
+    row("load-past", r.get("ok") is False and "255 bytes" in str(r.get("error")) and poll().file == edge
+        and gw.data.get("active_file") == edge,
+        f"reply {r.get('ok')} {r.get('error')}; STAT.file still the 254-byte one: {s.file == edge}; "
+        f"active_file kept: {gw.data.get('active_file') == edge}")
+
+
 async def group(gw):
     axes = gw.data.get("home_axes") or []
     reasons = [a.get("home") for a in axes]
@@ -299,6 +329,7 @@ async def main(ini, as_group):
             await per_axis(gw, ini)
             await steps(gw, ini)
             await mdi_limit(gw, ini)
+            await program_path(gw, ini)
     bad = [r for r in RESULTS if r[1] == "FAIL"]
     print(f"RESULT: {'FAIL' if bad else 'PASS'} ({len(RESULTS) - len(bad)}/{len(RESULTS)})", flush=True)
     return 1 if bad else 0

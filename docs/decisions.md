@@ -11426,7 +11426,10 @@ the source before the live run found the off-by-one, and
 `home_step_live_check.py` proves the edge on the real binding. The red check
 of the fix found the parameter rounding's 28-digit limit (an exception's
 name as the reply from about 1e22). The confirmation: a timeout proves no
-refusal — no repeat, no second press (Codex's correction).
+refusal — no repeat, no second press (Codex's correction). The program path
+is the sibling (Fable, held against every fixed buffer the binding copies):
+`program_open` sends PLAN_CLOSE before refusing a path past 254 bytes — the
+loaded program closed, nothing opened; nested folders reach it.
 
 ## 2026-11-13 — The payload contract (package 3a, SYS-CONN.S5 + #27; Codex R363–R365, operator Q363-1 / Q363-4)
 

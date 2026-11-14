@@ -1150,6 +1150,36 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertIsNone(rt.program.unconfirmed)
             self.assertEqual(read_load_record(path, (10, 20)), (a,))
 
+    def test_a_program_path_past_linuxcnc_s_limit_closes_nothing(self):
+        # R367 (the VM-I11 sibling): the binding's program_open sends
+        # EMC_TASK_PLAN_CLOSE BEFORE it refuses `len > sizeof(m.file) - 1`
+        # = 254 bytes — a longer path closed the loaded program and opened
+        # nothing. The gateway refuses it before the record and the open;
+        # 254 bytes open.
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            current().stat.file = a
+            sub = os.path.join(tmp, "d" * 100)          # nested folders make a long path
+            os.makedirs(sub)
+
+            def at(n):
+                p = os.path.join(sub, "e" * (n - len(sub.encode()) - 1 - 4) + ".ngc")
+                Path(p).write_text("G0 X1\nM2\n")
+                self.assertEqual(len(p.encode()), n)
+                return p
+            past = at(255)
+            r, cmd = self._load_with_rc(tmp, rt, past, rc=1)
+            self.assertEqual(r, {"ok": False, "error": "Path is 255 bytes, LinuxCNC opens 254 — shorten it"})
+            self.assertEqual([c for c in cmd.calls if c[0] == "program_open"], [], "no PLAN_CLOSE, no open")
+            self.assertEqual(read_load_record(path, (10, 20)), (a,), "A stays the loaded program")
+            edge = at(254)
+            r, cmd = self._load_with_rc(tmp, rt, edge, rc=1)
+            self.assertEqual(r, {"ok": True, "path": edge})
+            self.assertIn(("program_open", (edge,), {}), cmd.calls)
+
     def test_an_open_done_on_a_replaced_link_proves_nothing(self):
         # Fable's check of f4ba0f31 (the VM-I06 class): the open's own
         # status confirms it — but not through a Link replaced during its

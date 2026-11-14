@@ -119,7 +119,7 @@ from gateway_util import (
     PROV_STAMPED,
 )
 from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
-from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, program_path_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3879,11 +3879,19 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     An MDI line LinuxCNC would not take as ONE command (a NUL, not UTF-8,
     past its byte limit — command_policy.mdi_line_refusal) is refused here
     with nothing written: the last guard behind every handler's own check of
-    the lines it builds (Codex R366 VM-I11)."""
+    the lines it builds (Codex R366 VM-I11); a program path past its limit
+    likewise (program_path_refusal — the binding would close the loaded
+    program first, R367)."""
     if command.name == "mdi":
         _why = mdi_line_refusal(str(command.args[0]) if command.args else "")
         if _why:
             _trace.emit("mdi.line_refused", level="warn", reason=_why)
+            raise _WriteRefused(_why)
+    if command.name == "program_open":
+        # the binding sends PLAN_CLOSE before it refuses a long path (R367)
+        _why = program_path_refusal(str(command.args[0]) if command.args else "")
+        if _why:
+            _trace.emit("program.path_refused", level="warn", reason=_why)
             raise _WriteRefused(_why)
     cancel = threading.Event()
     args = command.args
@@ -5444,8 +5452,8 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
 
     1) One canonical number per key — the MDI's `#n=%.6f`, the booking's and
        the file's (the writer formats `%.6f` too).
-    2) MDI (armed + machine on + not running), in chunks ≤ 250 chars for
-       LinuxCNC's 256-char buffer; `admit` at the switch and each write
+    2) MDI (armed + machine on + not running), in chunks ≤ 250 bytes for
+       LinuxCNC's 254-byte MDI line (command_policy.MDI_MAX_BYTES); `admit` at the switch and each write
        (default: the interpreter KNOWN idle). Each chunk is booked: RCS_DONE
        applied, a failure / timeout / cut unknown — no transaction, a taken
        chunk is not rolled back (Codex R103); a chunk never sent keeps its
@@ -6747,6 +6755,12 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
 
         if not validate_extension(abs_path):
             return {"ok": False, "error": "Invalid file extension"}
+        # Before the record and the open: program_open sends PLAN_CLOSE
+        # before its own length check (R367) — a path it cannot take would
+        # close the loaded program and open nothing.
+        why = program_path_refusal(abs_path)
+        if why:
+            return {"ok": False, "error": why}
 
         # The commit-time admission (button gates BG-03, the BG-14 rule):
         # THIS connection armed now, no start claim, no run from line

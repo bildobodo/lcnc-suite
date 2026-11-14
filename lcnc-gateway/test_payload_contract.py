@@ -611,6 +611,16 @@ class TestTheMdiLine(_Dispatch):
         self.assertIn("255 bytes", r["error"])
         self.assertEqual(self.cmd.calls, [], "refused before the mode switch")
 
+    def test_the_last_write_path_refuses_a_program_path_too(self):
+        """R367: program_open behind load_file's own check — the binding
+        would send PLAN_CLOSE before refusing a path past 254 bytes."""
+        for p in ("/" + "p" * 254 + ".ngc", "/prog\u0000.ngc"):
+            with self.subTest(n=len(p.encode())):
+                self.cmd.calls.clear()
+                with self.assertRaises(gateway._WriteRefused):
+                    _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.program_open, p), wait=None))
+                self.assertEqual(self.cmd.calls, [])
+
     def test_a_nul_in_the_text_is_refused_before_anything(self):
         r = self.send({"cmd": "mdi", "text": "G0 X1\u0000 Y2"})
         self.assertFalse(r["ok"], r)
