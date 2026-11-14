@@ -630,6 +630,16 @@ class TestTheMdiLine(_Dispatch):
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.last_mdi(), ("G10 L2 P1 X1.500000",))
 
+    def test_a_large_parameter_value_its_line_holds_goes_out(self):
+        """R367: a value past the rounding's old 28 digits (≈ 1e22) whose word
+        fits the line is written as that word — it answered with the name of
+        a decimal exception (toolsetter_rules.canonical)."""
+        r = self.send({"cmd": "mdi", "text": "G0 X1", "vars": {"3014": 1e30}})
+        self.assertTrue(r["ok"], r)
+        mdis = [a[0] for n, a, _k in self.cmd.calls if n == "mdi"]
+        self.assertIn("#3014=1000000000000000019884624838656.000000", mdis[0].split())   # (the #3116 clear rides along)
+        self.assertEqual(mdis[-1], "G0 X1")
+
     def test_the_last_write_path_refuses_too(self):
         """Behind every handler's own check: an MDI the gateway composes
         itself (a routine call, a plan) passes _cmd_blocking's guard."""
