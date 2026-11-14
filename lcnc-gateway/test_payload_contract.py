@@ -621,6 +621,65 @@ class TestTheMdiLine(_Dispatch):
                     _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.program_open, p), wait=None))
                 self.assertEqual(self.cmd.calls, [])
 
+    def _with_reader(self, msg, z_eoffset=0):
+        """Codex R367's state: a fresh reader, compensation off, a known
+        z_eoffset; the parameter bookings recorded."""
+        pins = {"z_eoffset_enable": 0, "comp_enabled": 0, "kins_type": 0,
+                "twp_active": 0, "jog_active": 0, "z_eoffset": z_eoffset}
+        books = []
+        with unittest.mock.patch.object(gateway, "_skip_flag_unknown", False), \
+                unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: False), \
+                unittest.mock.patch.object(gateway, "_reader_get", lambda key: pins.get(key)), \
+                unittest.mock.patch.object(gateway, "_ts_book", lambda *a, **k: books.append((a, k))), \
+                unittest.mock.patch.object(gateway, "_resolve_var_file_path", lambda: None):
+            return self.send(msg), books
+
+    def test_a_parameter_number_has_one_spelling(self):
+        """Codex R367 VM-I11 rest A: the key was checked as int(key) and
+        written as sent — "000…3054" passed as #3054, and its chunk (274
+        bytes) was refused only after MODE_MDI and #3014 were written."""
+        for key in ("0" * 260 + "3054", "03054", "+3054", " 3054", "3054 ", "3_054", "\u0663\u0660\u0665\u0664"):
+            with self.subTest(key=key[:12]):
+                self.cmd.calls.clear()
+                r, books = self._with_reader({"cmd": "mdi", "text": "G4 P0", "vars": {"3014": 1, key: 2}})
+                self.assertFalse(r["ok"], r)
+                self.assertIn("not a parameter number", r["error"])
+                self.assertEqual((self.cmd.calls, books), ([], []), "nothing written, nothing booked")
+        self.cmd.calls.clear()
+        r, _books = self._with_reader({"cmd": "mdi", "text": "G4 P0", "vars": {"3014": 1, "3054": 2}})
+        self.assertTrue(r["ok"], r)
+        self.assertIn("G4 P0", [a[0] for n, a, _k in self.cmd.calls if n == "mdi"])
+
+    def test_every_final_chunk_is_judged_before_the_first_write(self):
+        """Codex R367: a valid first parameter and a later chunk LinuxCNC
+        would refuse — the writer itself (behind the schema) writes neither
+        the mode nor the first chunk, and books nothing."""
+        books = []
+        with unittest.mock.patch.object(gateway, "_ts_book", lambda *a, **k: books.append((a, k))):
+            r = _run(gateway._apply_probe_vars_detail({"3014": 1.0, "3054": 1e300}, True))
+        self.assertEqual((r["mdi_set"], r["applied_keys"]), (False, []))
+        self.assertIn("bytes", r["refused"])
+        self.assertEqual((self.cmd.calls, books), ([], []))
+
+    def test_the_touchoff_line_is_judged_with_the_known_z_eoffset(self):
+        """Codex R367 VM-I11 rest B: z_eoffset −1 makes the 254-byte line of
+        Z0 a 255-byte line — refused before the mode switch; with 0 the
+        254-byte line goes out."""
+        x = next(10.0 ** n for n in range(1, 300)
+                 if len(f"G10 L20 P9 X{10.0 ** n:.6f} Z0.000000".encode()) == 254)
+        r, _b = self._with_reader({"cmd": "touchoff", "axes": {"X": x, "Z": 0}}, z_eoffset=-1)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("255 bytes", r["error"])
+        self.assertEqual(self.cmd.calls, [], "refused before the mode switch")
+        r, _b = self._with_reader({"cmd": "touchoff", "axes": {"X": x, "Z": 0}}, z_eoffset=0)
+        self.assertTrue(r["ok"], r)
+        lines = [a[0] for n, a, _k in self.cmd.calls if n == "mdi"]
+        self.assertEqual(len(lines[0].encode()), 254)
+        self.cmd.calls.clear()
+        r, _b = self._with_reader({"cmd": "touchoff", "axes": {"X": 1.0, "Z": 0}}, z_eoffset=None)
+        self.assertEqual(r, {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"})
+        self.assertEqual(self.cmd.calls, [], "an unknown eoffset refuses before the mode switch")
+
     def test_a_nul_in_the_text_is_refused_before_anything(self):
         r = self.send({"cmd": "mdi", "text": "G0 X1\u0000 Y2"})
         self.assertFalse(r["ok"], r)

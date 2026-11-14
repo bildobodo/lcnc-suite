@@ -172,6 +172,97 @@ def check_copy(ini, sim_config=SIM_CONFIG, which=shutil.which, nc_files=None, ma
                 raise ValueError(f"not the shipped simulator: {rel}: {e}")
 
 
+#: The ONE deliberate change the home-group fixture makes to a shipped
+#: profile's installed copy (home_step_live_check.py --group, Codex R367
+#: VM-I13): every joint's HOME_SEQUENCE set to -1 — the operator's shape.
+GROUP_SUFFIX = "_group.ini"
+
+
+def group_fixture_text(base_text):
+    """The fixture's INI from its base copy's: every `HOME_SEQUENCE = …` line
+    `HOME_SEQUENCE = -1`, nothing else (homestep-ip3.sh's sed, as a rule)."""
+    out = []
+    for line in base_text.splitlines(keepends=True):
+        if line.split("=", 1)[0].strip() == "HOME_SEQUENCE" and "=" in line:
+            nl = "\n" if line.endswith("\n") else ""
+            line = "HOME_SEQUENCE = -1" + nl
+        out.append(line)
+    return "".join(out)
+
+
+def validate_group_target(ini, running_ini, sim_config=SIM_CONFIG, which=shutil.which):
+    """The home-group fixture (Codex R367 VM-I13): the running INI, named
+    `<profile>_group.ini` beside an installed copy of a shipped profile that
+    passes check_copy, its text EXACTLY that copy's with every HOME_SEQUENCE
+    -1 and at least two joints in the group. Its HAL files are the base's
+    (relative paths in the same folder). Raises ValueError."""
+    req = os.path.realpath(os.path.expanduser(ini))
+    if not running_ini or req != os.path.realpath(os.path.expanduser(running_ini)):
+        raise ValueError("the requested INI is not the one LinuxCNC runs")
+    if not req.endswith(GROUP_SUFFIX):
+        raise ValueError(f"{os.path.basename(req)} is no home-group fixture (*{GROUP_SUFFIX})")
+    base = req[:-len(GROUP_SUFFIX)] + ".ini"
+    if not os.path.isfile(base):
+        raise ValueError(f"the fixture's base {os.path.basename(base)} is missing")
+    check_copy(base, sim_config, which)
+    with open(base) as f:
+        base_text = f.read()
+    with open(req) as f:
+        text = f.read()
+    if text != group_fixture_text(base_text):
+        raise ValueError(f"not the home-group fixture: differs from {os.path.basename(base)} "
+                         f"beyond HOME_SEQUENCE = -1")
+    grouped = sum(1 for (_sec, key), vs in ini_values(text).items() if key == "HOME_SEQUENCE"
+                  for v in vs if v == "-1")
+    if grouped < 2:
+        raise ValueError("not the home-group fixture: fewer than two joints in the group")
+
+
+def listening_pids(port, run=None):
+    """The pids that listen on TCP `port` (`ss -ltnpH`, the caller's own
+    processes). None when it cannot be told."""
+    import re
+    import subprocess
+    run = run or (lambda argv: subprocess.run(argv, capture_output=True, text=True, timeout=10).stdout)
+    try:
+        out = run(["ss", "-ltnpH", f"sport = :{int(port)}"])
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return sorted({int(m) for m in re.findall(r"pid=(\d+)", out or "")})
+
+
+def _proc_read(pid, name):
+    with open(f"/proc/{pid}/{name}", "rb") as f:
+        return f.read().split(b"\0")
+
+
+def gateway_target_problems(port, running_ini, pids, read=_proc_read):
+    """The gateway on `port` is THIS instance's (Codex R367 VM-I13): a
+    process listens there, each listener runs `gateway:app`, and its
+    environment names the running INI (`INI_FILE_NAME`, which the
+    `linuxcnc` script exports to its display). [] when it is; the problems
+    otherwise — never a fallback to another port."""
+    if pids is None:
+        return [f"who listens on port {port} cannot be told (ss)"]
+    if not pids:
+        return [f"no process listens on port {port}"]
+    want = os.path.realpath(os.path.expanduser(running_ini or ""))
+    out = []
+    for pid in pids:
+        try:
+            argv = [a.decode(errors="replace") for a in read(pid, "cmdline")]
+            env = dict(e.decode(errors="replace").split("=", 1) for e in read(pid, "environ") if b"=" in e)
+        except OSError as e:
+            out.append(f"pid {pid} on port {port} unreadable: {e}")
+            continue
+        if not any("gateway:app" in a for a in argv):
+            out.append(f"pid {pid} on port {port} is no gateway ({' '.join(argv)[:60]})")
+        elif os.path.realpath(env.get("INI_FILE_NAME", "")) != want or not running_ini:
+            out.append(f"the gateway on port {port} serves {env.get('INI_FILE_NAME') or 'no INI'}, "
+                       f"not the running {running_ini}")
+    return out
+
+
 # ── The native stage's run (plan Codex R268/R269 FI265-04, R283/R284) ────
 
 #: Every file or folder the copy WRITES — each must lie in the run's folder.

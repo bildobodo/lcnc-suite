@@ -12,6 +12,7 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 | `python3 scripts/test_suite.py offline --component backend` | Backend discovery plus 5-axis mesh/kinematics acceptance | None; fake controller |
 | `python3 scripts/test_suite.py offline --component frontend` | Frontend checks, including recorded parity replay | None |
 | `lcnc-gateway/.venv/bin/python scripts/test_suite.py live-twp --ini /path/lcnc_suite_sim_6axis_twp_xyzabc.ini --allow-sim-motion` | Fresh preview goldens, cached-payload parity and plane invariants, mode/button, capture, reorient, touch-off and adverse-path checks | Yes, simulator only |
+| `lcnc-gateway/.venv/bin/python scripts/home_step_live_check.py /path/lcnc_suite_sim_<profile>.ini [--group]` | Home / Unhome per axis, the step jog, the MDI line's and the program path's byte limits (package 3a); `--group` the home-group fixture (`<profile>_group.ini`: the installed copy with every HOME_SEQUENCE -1). The target is proven before anything acts (`test_support/live_target.py`, Codex R367 VM-I13): the running INI, a shipped simulator's copy or exactly its group fixture, WEBUI_PORT named (no default), the gateway on it serving that INI | Yes, simulator only |
 
 ## The native stage (Codex R282–R285; build step 1)
 
