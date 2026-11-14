@@ -219,8 +219,10 @@ def validate_group_target(ini, running_ini, sim_config=SIM_CONFIG, which=shutil.
 
 
 def listening_pids(port, run=None):
-    """The pids that listen on TCP `port` (`ss -ltnpH`, the caller's own
-    processes). None when it cannot be told."""
+    """Every listener on TCP `port`, ROW BY ROW (`ss -ltnpH`, the caller's
+    own processes): [(local address, [pids])] — a row whose process ss does
+    not name keeps its row with no pids (Codex R368: a pid found on one row
+    never covers another). None when it cannot be told."""
     import re
     import subprocess
     run = run or (lambda argv: subprocess.run(argv, capture_output=True, text=True, timeout=10).stdout)
@@ -228,7 +230,14 @@ def listening_pids(port, run=None):
         out = run(["ss", "-ltnpH", f"sport = :{int(port)}"])
     except (OSError, subprocess.SubprocessError):
         return None
-    return sorted({int(m) for m in re.findall(r"pid=(\d+)", out or "")})
+    rows = []
+    for line in (out or "").splitlines():
+        words = line.split()
+        if not words:
+            continue
+        local = words[3] if len(words) > 3 else line.strip()
+        rows.append((local, sorted({int(m) for m in re.findall(r"pid=(\d+)", line)})))
+    return rows
 
 
 def _proc_read(pid, name):
@@ -236,30 +245,35 @@ def _proc_read(pid, name):
         return f.read().split(b"\0")
 
 
-def gateway_target_problems(port, running_ini, pids, read=_proc_read):
-    """The gateway on `port` is THIS instance's (Codex R367 VM-I13): a
-    process listens there, each listener runs `gateway:app`, and its
-    environment names the running INI (`INI_FILE_NAME`, which the
-    `linuxcnc` script exports to its display). [] when it is; the problems
-    otherwise — never a fallback to another port."""
-    if pids is None:
+def gateway_target_problems(port, running_ini, listeners, read=_proc_read):
+    """The gateway on `port` is THIS instance's (Codex R367 VM-I13, R368):
+    at least one listener, EVERY listener row names its process, each such
+    process runs `gateway:app` and its environment names the running INI
+    (`INI_FILE_NAME`, which the `linuxcnc` script exports to its display).
+    `listeners`: listening_pids' rows. [] when it is; the problems otherwise
+    — an unidentified row refuses (another user's socket, a vanished
+    process), never a fallback to another port."""
+    if listeners is None:
         return [f"who listens on port {port} cannot be told (ss)"]
-    if not pids:
+    if not listeners:
         return [f"no process listens on port {port}"]
     want = os.path.realpath(os.path.expanduser(running_ini or ""))
     out = []
-    for pid in pids:
-        try:
-            argv = [a.decode(errors="replace") for a in read(pid, "cmdline")]
-            env = dict(e.decode(errors="replace").split("=", 1) for e in read(pid, "environ") if b"=" in e)
-        except OSError as e:
-            out.append(f"pid {pid} on port {port} unreadable: {e}")
-            continue
-        if not any("gateway:app" in a for a in argv):
-            out.append(f"pid {pid} on port {port} is no gateway ({' '.join(argv)[:60]})")
-        elif os.path.realpath(env.get("INI_FILE_NAME", "")) != want or not running_ini:
-            out.append(f"the gateway on port {port} serves {env.get('INI_FILE_NAME') or 'no INI'}, "
-                       f"not the running {running_ini}")
+    for local, pids in listeners:
+        if not pids:
+            out.append(f"the listener {local} on port {port} names no process — unidentified")
+        for pid in pids:
+            try:
+                argv = [a.decode(errors="replace") for a in read(pid, "cmdline")]
+                env = dict(e.decode(errors="replace").split("=", 1) for e in read(pid, "environ") if b"=" in e)
+            except OSError as e:
+                out.append(f"pid {pid} on {local} unreadable: {e}")
+                continue
+            if not any("gateway:app" in a for a in argv):
+                out.append(f"pid {pid} on {local} is no gateway ({' '.join(argv)[:60]})")
+            elif os.path.realpath(env.get("INI_FILE_NAME", "")) != want or not running_ini:
+                out.append(f"the gateway on {local} serves {env.get('INI_FILE_NAME') or 'no INI'}, "
+                           f"not the running {running_ini}")
     return out
 
 
