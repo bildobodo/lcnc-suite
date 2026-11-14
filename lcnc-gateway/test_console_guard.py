@@ -202,6 +202,20 @@ class TheConsoleGuard(_Recording):
         rec = [kw for t, kw in self.events if t == "console.recovered"]
         self.assertEqual(rec, [{"stream": "stderr", "dropped": 2}])
 
+    def test_an_unbuffered_stream_s_empty_flush_is_no_recovery(self):
+        # Unbuffered (PYTHONUNBUFFERED, the backend gate): the WRITE raises and
+        # the flush of an empty buffer succeeds — that proves nothing left.
+        class _WriteRaises:
+            def write(self, s):
+                raise BrokenPipeError(errno.EPIPE, "Broken pipe")
+
+            def flush(self):
+                pass
+        g = lcnc_trace.ConsoleGuard(_WriteRaises(), "stdout")
+        for _ in range(5):
+            print("x", file=g, flush=True)
+        self.assertEqual(self.tags(), ["console.lost"])
+
     def test_a_closed_stream_raises_nothing(self):
         s = io.StringIO()
         s.close()
@@ -248,9 +262,16 @@ class TheConsoleGuard(_Recording):
 
 class AProcessSurvivesItsReaderGoing(unittest.TestCase):
     """A real child, a real pipe, a real EPIPE: the process that installed
-    the crash hooks prints on and ends with its own exit code."""
+    the crash hooks prints on and ends with its own exit code — buffered and
+    unbuffered (the backend gate runs with PYTHONUNBUFFERED=1, where the write
+    itself raises; the first version traced every line there)."""
 
     def test_prints_into_a_closed_pipe(self):
+        for unbuffered in (False, True):
+            with self.subTest(unbuffered=unbuffered):
+                self._child(unbuffered)
+
+    def _child(self, unbuffered):
         with tempfile.TemporaryDirectory() as logdir:
             child = textwrap.dedent("""
                 import lcnc_trace
@@ -264,6 +285,9 @@ class AProcessSurvivesItsReaderGoing(unittest.TestCase):
             r, w = os.pipe()
             os.close(r)                              # the reader is gone before the first write
             env = dict(os.environ, LCNC_LOG_DIR=logdir, PYTHONPATH=str(HERE))
+            env.pop("PYTHONUNBUFFERED", None)
+            if unbuffered:
+                env["PYTHONUNBUFFERED"] = "1"
             try:
                 proc = subprocess.run([sys.executable, "-c", child], stdout=w,
                                       stderr=subprocess.PIPE, env=env, cwd=str(HERE), timeout=60)

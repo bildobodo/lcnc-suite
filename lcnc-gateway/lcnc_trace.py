@@ -354,6 +354,7 @@ class ConsoleGuard:
         self._name = name
         self._failing: Optional[tuple[str, Optional[int]]] = None
         self._dropped = 0
+        self._wrote = False     # a write got through since the last failure
         self._tracing = False
 
     @property
@@ -362,6 +363,7 @@ class ConsoleGuard:
 
     def _failed(self, op: str, exc: BaseException) -> None:
         self._dropped += 1
+        self._wrote = False
         kind = (type(exc).__name__, getattr(exc, "errno", None))
         if kind == self._failing or self._tracing:
             return
@@ -373,10 +375,12 @@ class ConsoleGuard:
 
     def write(self, s: str) -> int:
         try:
-            return self._stream.write(s)
+            n = self._stream.write(s)
         except (OSError, ValueError) as e:
             self._failed("write", e)
             return len(s)
+        self._wrote = True
+        return n
 
     def flush(self) -> None:
         try:
@@ -384,8 +388,10 @@ class ConsoleGuard:
         except (OSError, ValueError) as e:
             self._failed("flush", e)
             return
-        # Only a flush proves the line left (a write may only have buffered it).
-        if self._failing is not None and not self._tracing:
+        # Recovered only when a write got through AND a flush carried it out:
+        # a write may only have buffered its line, and a flush of an empty
+        # buffer proves nothing (unbuffered, the write itself raised).
+        if self._failing is not None and self._wrote and not self._tracing:
             self._tracing = True
             try:
                 emit("console.recovered", stream=self._name, dropped=self._dropped)
