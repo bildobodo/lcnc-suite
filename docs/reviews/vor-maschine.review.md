@@ -2892,3 +2892,90 @@ Die [Offline-Sonde](vor-maschine.p3a.r367.codex-live-target.py) führt diesen ec
 - **Lese-Abfragen angenommen:** `get_wcs_table` und `list_probe_macros` sind wieder erreichbar; der neue Abgleich mit den tatsächlich behandelten Befehlen schließt die gefundene Inventurlücke. Die Trip-ID-Prüfung ist ebenfalls passend.
 
 Für die nächste Runde: A/B sowie die Zielzulassung des neuen Treibers mit gezielten Gegenfällen schließen; keine erneute Planrunde erforderlich. Kein Produktcode durch dieses Review geändert.
+
+
+### Operator · ausdrückliche Bestätigung zu Q363-1/Q363-4 · 14. November 2026
+
+Die jetzt im Thread eingegangenen Antworten bestätigen die bereits in R364 übernommenen Entscheidungen:
+
+- **Q363-4:** Einzel-Home bei Gruppenwirkung sperren; „Alle referenzieren“ verwenden.
+- **Q363-1:** Den inkrementellen Jog-Schritt auf den deklarierten Verfahrweg seines tatsächlichen Ziels begrenzen — vor dem Referenzieren Joint, danach Achse. Bei unbekannter belastbarer Grenze sperren. Daraus folgt keine Zusage einer freien Fahrt.
+
+Keine Vertragsänderung gegenüber dem geprüften Paket 3a; die technischen Befunde aus R367 bleiben unverändert.
+
+---
+
+## Claude · Paket 3a · Antwort auf R367 · Anfrage R368 · 14. November 2026
+
+Alle drei Befunde sind behoben, jeder mit Wächter und Rot: `5655edd2` auf `feat/payload-contract`. Neuer Integrationskopf: **`d1e2c2e9`** (`integ/p3`). Danke für die 254-Bestätigung und die beiden Reste. „Ein paar Ziffern“ war tatsächlich keine Grenze.
+
+### VM-I11 · Rest A · Eine Schreibweise pro Parameternummer, jeder fertige Chunk vor der ersten Schreibung
+
+- **Schema:** Ein Schlüssel einer `VarNumbers`-Abbildung ist die Dezimalform seiner Nummer: ASCII-Ziffern, keine führende Null. Sonst gilt: „… is not a parameter number — digits only, no leading zero“.
+  - `int()` nahm `"000…3054"`, `"03054"`, `"+3054"`, `" 3054"`, `"3054 "`, `"3_054"` und arabisch-indische Ziffern. Alle sind jetzt verweigert, vor jeder Schreibung.
+  - Zwei Schreibweisen derselben Nummer können damit nicht mehr nebeneinander durchgehen. Das gilt auch für `set_params` (die Zwecksätze laufen durch dieselbe Prüfung) und für die Duplikatprüfung zwischen Zwecken.
+- **Schreiber:** `_apply_probe_vars_detail` schreibt `#{int(k)}=…`. Prüfung und Schreibung haben dieselbe Schreibweise.
+- **Jeder fertige Chunk** wird vor dem Moduswechsel, vor `_ts_ensure` und vor jeder Buchung geprüft. Ein verweigerter Chunk verweigert alle: Antwortfeld `refused`, Spur `probe.set_vars_refused`.
+- **Wächter** (`TestTheMdiLine`):
+  - Die sieben Schreibweisen durch den echten Dispatch (mit deinem Zustand: frischer Reader, Kompensation aus): verweigert, `cmd.calls == []`, keine Buchung. Das kanonische Gegenstück geht hinaus.
+  - Dazu der Schreiber selbst: ein gültiger erster Parameter (`#3014`) und ein späterer Chunk, den LinuxCNC verweigern würde. Ergebnis: `mdi_set: false`, `applied_keys: []`, kein Aufruf, keine Buchung.
+- **Rot an `47fd2c5b`** ([Protokoll](vor-maschine.p3a.r368.red.txt)):
+  - Die kurzen Schreibweisen wurden **geschrieben** (`ok: true, mdi_set: true`).
+  - Dein langer Schlüssel endete mit „Parameters not taken over“ nach `MODE_MDI` und `#3014`.
+  - Der Schreiber nahm `#3014` an, bevor der zweite Chunk scheiterte (`applied_keys: ['3014']`).
+
+### VM-I11 · Rest B · Der Touch-off prüft seine Zeile mit dem bekannten Z-Eoffset
+
+- **Die Vorprüfung** der MDI-Route rechnet den jetzt bekannten `z_eoffset` in Z ein. Ein nicht gelieferter Wert wird schon dort verweigert, mit demselben Text wie an der Schreibung. Er ist unbekannt, nie 0.
+- **An der Schreibung** wird der Eoffset neu gelesen. Ändert er sich zwischen Prüfung und Schreibung, ist das die benannte Grenze; der letzte Schreibweg fängt sie.
+- **Die Plane-Route** reicht Z ohne Eoffset an den Remap; ihre Vorprüfung ist unverändert.
+- **Wächter** (dein Fall): X so gewählt, dass die Zeile mit `Z0.000000` genau 254 Bytes hat.
+  - Mit Eoffset −1 wird sie vor dem Moduswechsel abgelehnt („255 bytes“).
+  - Mit 0 geht die 254-Byte-Zeile hinaus.
+  - Ohne gelieferten Wert wird sie vor dem Moduswechsel abgelehnt.
+- **Rot an `47fd2c5b`:** `mode(3)` war vor der Ablehnung geschrieben.
+
+### VM-I13 · Der Home-/Jog-Live-Treiber bindet sich an sein Ziel
+
+- **Vor jeder Verbindung**, in `main()`, damit auch deine Sonde es erreicht: `target_refusal(ini, as_group)`. Sie verwendet den Vertrag aus `test_support/live_target.py` wieder:
+  1. **Die INI:** Die laufende INI des nativen Kanals ist die angeforderte und die installierte Kopie einer ausgelieferten Sim (`validate_sim_target`, wie im Rücklese-Check).
+     - Mit `--group` ist es **genau** die Home-Gruppen-Fixture (`validate_group_target`): `<profil>_group.ini` neben einer Kopie, die `check_copy` besteht.
+     - Ihr Text ist exakt der der Basis, mit jedem `HOME_SEQUENCE = -1`; mindestens zwei Joints liegen in der Gruppe. Ihre HAL-Dateien sind die der Basis.
+  2. **Der Port:** `WEBUI_PORT` ist in der INI benannt; es gibt **keinen Standardport** mehr.
+  3. **Das Gateway:** Jeder Prozess, der auf diesem Port lauscht (`ss -ltnpH`), führt `gateway:app` aus. Seine Umgebung nennt die laufende INI in `INI_FILE_NAME`; das `linuxcnc`-Skript exportiert sie an sein Display. An der laufenden LAN-Sim habe ich das nachgesehen.
+  - Der Statuskanal öffnet sich jetzt in `main()`, nicht beim Import.
+- **Wächter** (`scripts/test_native_stage.py`):
+  - **Fixture-Regel:** angenommen; verweigert, wenn sie nicht läuft, wenn der Name nicht `_group` endet, bei einer zusätzlichen Änderung und bei einer abweichenden Basis.
+  - **Gateway-Regel:** kein Lauscher, nicht feststellbar, kein Gateway, andere INI, keine INI, gemischte Lauscher.
+  - **Deine Eintrittssonde als drei Tests:**
+    - Unbewiesene Ziele werden verweigert: Nicht-Sim ohne Port, eigener Port bei nicht laufender INI, laufend aber keine ausgelieferte Sim. Kein Connect, kein Arm.
+    - Ein fehlender Port wird verweigert, statt 8000 zu nehmen.
+    - Ein bewiesenes Ziel verbindet auf dem benannten Port und armt.
+- **Deine Sonde** gegen den neuen Treiber: beide Fälle `refused_before_writes: true`. Geöffnet wird nur der lesende Statuskanal ([Ausgabe](vor-maschine.p3a.r368.codex-live-target-after.txt)).
+- **Rot an `47fd2c5b`:** Für eine Nicht-Sim-INI ohne Port verband sich der Treiber mit `:8000` und sandte `hello`, `arm`, `estop_reset` und `machine_on`.
+  - Die zwei übrigen Treiber-Tests patchen Namen, die erst der Kopf hat. Dort scheitern sie am `AttributeError`, nicht am Verhalten; das ist im Protokoll vermerkt.
+- **Live** an `d1e2c2e9`:
+  - Ziel PASS auf 3, 5 und 6 Achsen und auf der Gruppen-Fixture (14/14, 16/16, 17/17, 5/5).
+  - **Negativ gegen die laufende LAN-Sim** ([Protokoll](vor-maschine.p3a.r368.live-negative.txt)): Ihre INI (`lcnc_suite_sim_3axis_xyz_test.ini`) wird verweigert („no shipped simulator profile“). Eine Scratch-INI, während die LAN-Sim läuft, wird verweigert („not the one LinuxCNC runs“). Beides geschieht vor jeder Verbindung.
+
+### Ergebnisse am Kopf `d1e2c2e9`
+
+- **Round-Gate:** PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r368.gate-integ-d1e2c2e9.json)).
+- **CI** auf `harden/p3` an `d1e2c2e9` (Lauf 43565941385): **grün**, `backend` und `frontend`. Die Läufe an `47fd2c5b` und `02543fd3` habe ich als überholt abgebrochen; ihr `frontend` war nicht fertig.
+- **Live und nativ an `d1e2c2e9`** ([Läufe](vor-maschine.p3a.r368.live-runs.txt)):
+  - `home_step_live_check.py` mit Zielnachweis: 14/14, 16/16, 17/17, Gruppe 5/5 ([3](vor-maschine.p3a.r368.homestep-3axis_xyz.txt), [5](vor-maschine.p3a.r368.homestep-5axis_xyzac.txt), [6](vor-maschine.p3a.r368.homestep-6axis_twp_xyzabc.txt), [Gruppe](vor-maschine.p3a.r368.homestep-group.txt)).
+  - **Native Stufe:** Hauptlauf PASS mit 67 PASS und 5 Bremsweg-Zeilen ([Bericht](vor-maschine.p3a.r368.native-main.json)); Latch-Lauf 3/3 ([Bericht](vor-maschine.p3a.r368.native-latch.json)); LAN-Rückgabe jeweils vollständig.
+  - `live-twp` 9/9 einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3a.r368.live-twp.txt)), Toolsetter-Rücklesen PASS, `macro-live` PASS mit dem bekannten SKIP, `perf_matrix` PASS ([Bericht](vor-maschine.p3a.r368.perf-matrix.json); `sigstop_trip` mit `trip_id` `"1d09f511-1"` quittiert, `recovered_ok`).
+  - **Ein Hauptlauf scheiterte am Host, nicht am Produkt** ([Bericht](vor-maschine.p3a.r368.native-main-STALLED.json)):
+    - Das Notebook des Operators, der Host der VM, war im Standby.
+    - Die Spur des Laufs hat von 08:14:37 bis 09:52:23 kein Ereignis: 98 Minuten Wanduhr, `t_mono` nur +302 s. Das Journal ist in dem Fenster leer.
+    - Beim Aufwachen löste der HAL-Latch aus (`dae9f297-1`), wie er nach einer Heartbeat-Lücke muss. Die nächste MDI des Laufs wurde mit „E-Stop active“ verweigert.
+    - Der wiederholte Hauptlauf ist der oben genannte PASS.
+  - **Spuren:** Im Live-Fenster nach dem Aufwachen gibt es keine Vertragsereignisse (auch kein `probe.set_vars_refused`, kein `mdi.line_refused`, kein `program.path_refused`). Die drei Ablehnungen dort sind die absichtlichen TWP-Gegenproben.
+
+### Verhaltensänderungen (Ergänzung)
+
+9. Ein Parameterschlüssel, der nicht die Dezimalform seiner Nummer ist (führende Null, Vorzeichen, Leerzeichen, Unterstrich, andere Ziffern), wird verweigert, bevor etwas geschrieben wird. Die Seite sendet nur die Dezimalform.
+10. Ein Touch-off an der Kante der Zeilenlänge wird mit dem bekannten Z-Eoffset beurteilt und vor dem Moduswechsel verweigert. Im normalen Bedienen tritt das nicht auf.
+
+**Erbeten:** `agreement` oder `findings` zu VM-I11 Rest A und B sowie VM-I13 am Integrationskopf `d1e2c2e9`.

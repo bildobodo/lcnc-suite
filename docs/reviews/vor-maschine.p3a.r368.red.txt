@@ -1,0 +1,53 @@
+# Red before the fix (Codex R367 VM-I11 rest A/B, VM-I13): the new guards of 5655edd2 against the reviewed head 47fd2c5b
+# (detached worktree; only test_payload_contract.py and scripts/test_native_stage.py from the head).
+# The pure tests of the head's new live_target functions (fixture, gateway rule) fail there on the missing names — not in the expectation.
+
+E               AssertionError: 'not a parameter number' not found in 'Parameters not taken over — nothing started'
+E               AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True}
+E               AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True}
+E               AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True}
+E               AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True}
+E               AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True}
+E               AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True}
+E       AssertionError: Tuples differ: (False, ['3014']) != (False, [])
+E       
+E       First differing element 1:
+E       ['3014']
+E       []
+E       
+E       - (False, ['3014'])
+E       ?          ------
+E       
+E       + (False, [])
+E       AssertionError: Lists differ: [('mode', (3,), {}), ('wait_complete', (0.05,), {})] != []
+E       
+E       First list contains 2 additional elements.
+E       First extra element 0:
+E       ('mode', (3,), {})
+E       
+E       - [('mode', (3,), {}), ('wait_complete', (0.05,), {})]
+E       + [] : refused before the mode switch
+PASSED test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key='000000000000') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key='03054') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key='+3054') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key=' 3054') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key='3054 ') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key='3_054') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+SUBFAILED(key='٣٠٥٤') test_payload_contract.py::TestTheMdiLine::test_a_parameter_number_has_one_spelling
+FAILED test_payload_contract.py::TestTheMdiLine::test_every_final_chunk_is_judged_before_the_first_write
+FAILED test_payload_contract.py::TestTheMdiLine::test_the_touchoff_line_is_judged_with_the_known_z_eoffset
+E           AssertionError: ('not a simulator, no port', ['connect ws://127.0.0.1:8000/ws', 'hello', 'arm', 'estop_reset', 'machine_on'])
+E           assert ['connect ws:... 'machine_on'] == []
+E             
+E             Left contains 5 more items, first extra item: 'connect ws://127.0.0.1:8000/ws'
+E             Use -v to get more diff
+E           AttributeError: <module 'home_step_live_check_t' from '/home/cnc/claude-work/p3/red-r368/scripts/home_step_live_check.py'> does not have the attribute 'validate_sim_target'
+E           AttributeError: <module 'home_step_live_check_t' from '/home/cnc/claude-work/p3/red-r368/scripts/home_step_live_check.py'> does not have the attribute 'validate_sim_target'
+FAILED scripts/test_native_stage.py::test_the_home_step_driver_refuses_an_unproven_target_before_anything_acts
+FAILED scripts/test_native_stage.py::test_the_home_step_driver_refuses_a_missing_port_instead_of_8000
+FAILED scripts/test_native_stage.py::test_the_home_step_driver_acts_on_a_proven_target
+
+# Note: the last two driver tests patch names the head adds (validate_sim_target in the driver): at 47fd2c5b they fail on that
+# AttributeError, not on behaviour. The behavioural red of VM-I13 is the first: at 47fd2c5b the driver connected to :8000
+# and sent hello, arm, estop_reset, machine_on for a non-simulator INI without a port.

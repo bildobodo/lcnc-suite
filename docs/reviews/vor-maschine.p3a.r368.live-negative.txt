@@ -1,0 +1,8 @@
+== /home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini
+FAIL target       lcnc_suite_sim_3axis_xyz_test.ini is no shipped simulator profile
+RESULT: FAIL (target refused)
+rc=0
+== /home/cnc/claude-work/live-checks/configs-ip3/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini
+FAIL target       the requested INI is not the one LinuxCNC runs
+RESULT: FAIL (target refused)
+rc=0

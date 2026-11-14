@@ -1,0 +1,56 @@
+# Package 3a, R368: the live and native runs at integ/p3 d1e2c2e9 (2026-11-14, Europe/Zurich)
+
+## homestep-ip3.sh (with the target proof, VM-I13)
+== start 2026-11-14T07:21:29+01:00, tree /home/cnc/lcnc-suite-ip3 at d1e2c2e9
+group copy: 3 joints at -1
+ip3-homestep-3axis_xyz rc=0 2026-11-14T07:21:59+01:00
+ip3-homestep-5axis_xyzac rc=0 2026-11-14T07:22:19+01:00
+ip3-homestep-6axis_twp_xyzabc rc=0 2026-11-14T07:22:44+01:00
+ip3-homestep-group rc=0 2026-11-14T07:22:57+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 5c281e8c834c4d7489613d179dfb541e
+Running as unit: bg-keepalive.service; invocation ID: f76d3d7a704e49f19b1258ed75a909d9
+d1e2c2e9 Integration: package 3a — R367 (the parameter number's one spelling, the touch-off with its known Z eoffset, the home/step driver's target), from feat/payload-contract
+lan-to rc=0 2026-11-14T07:22:58+01:00
+active
+active
+== end 2026-11-14T07:22:58+01:00
+
+## the driver against wrong targets on the live machine (refused before any connection)
+== /home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini
+FAIL target       lcnc_suite_sim_3axis_xyz_test.ini is no shipped simulator profile
+RESULT: FAIL (target refused)
+rc=0
+== /home/cnc/claude-work/live-checks/configs-ip3/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini
+FAIL target       the requested INI is not the one LinuxCNC runs
+RESULT: FAIL (target refused)
+rc=0
+
+## all-ip3.sh (native main + latch-delayed, a fresh install, live-twp, toolsetter read-back, macro-live, perf-matrix)
+== start 2026-11-14T08:04:24+01:00, tree /home/cnc/lcnc-suite-ip3 at d1e2c2e9
+Running as unit: native-run.service; invocation ID: 7dc2b39c94d9410ebbf215eb6bc5396d
+native main: /home/cnc/claude-work/live-tier/20261114T080424-ip3 FAIL complete
+Running as unit: native-run.service; invocation ID: 3772f542ba2c4c35a709beb2799f8f09
+native latch-delayed: /home/cnc/claude-work/live-tier/20261114T095243-ip3-latch-delayed PASS complete
+install-ip3 rc=0 2026-11-14T09:53:31+01:00
+ip3-live-twp rc=0 2026-11-14T10:00:27+01:00
+ip3-toolsetter-readback rc=0 2026-11-14T10:01:08+01:00
+ip3-macro-live rc=0 2026-11-14T10:03:05+01:00
+ip3-perf rc=0 2026-11-14T10:06:09+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 193c2ef9d8fa4a9fb3afe855383b3aff
+Running as unit: bg-keepalive.service; invocation ID: 9306c5cb846f4e248dd3759fb4906b70
+d1e2c2e9 Integration: package 3a — R367 (the parameter number's one spelling, the touch-off with its known Z eoffset, the home/step driver's target), from feat/payload-contract
+lan-to rc=0 2026-11-14T10:06:10+01:00
+active
+active
+== end 2026-11-14T10:06:10+01:00
+
+## The native main run of all-ip3.sh FAILED on a host standby, not the product:
+# the operator's notebook (the VM's host) was in standby: the run's trace has no event from 08:14:37 to 09:52:23 (98 min
+# wall time, t_mono +302 s), the system journal is silent in that window; on resume the HAL latch tripped (dae9f297-1, as it
+# must after a heartbeat gap) and the run's next MDI was refused "E-Stop active". Report: vor-maschine.p3a.r368.native-main-STALLED.json.
+
+## native-main-ip3.sh (the main run repeated)
+== start 2026-11-14T10:07:08+01:00, tree /home/cnc/lcnc-suite-ip3 at d1e2c2e9
+Running as unit: native-run.service; invocation ID: 46f3230835344d96a6f2ed83e0bdc937
+native main: /home/cnc/claude-work/live-tier/20261114T100708-ip3 PASS complete
+== end 2026-11-14T10:19:43+01:00
