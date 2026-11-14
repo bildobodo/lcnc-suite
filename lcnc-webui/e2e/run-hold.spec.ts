@@ -36,9 +36,14 @@ const PROGRAM = "(program A)\nG0 X0\nG1 X10 F100\nG1 Y10\nM2\n";
 const BAR = { macros: { macros: [] }, macroBar: { bar: ["park", "face_top"] } };
 const HOLD_MS = 700;   // > HOLD_FIRE_MS (500)
 
+// What the TEST's actions sent: the page's own frames and reads drop out, as in
+// g30.spec / toolsetter-setup.spec — ToolStrip reads the table 300 ms after the
+// connect and on a tool change, on its own schedule; on a slow runner such a
+// read landed 32 ms after a test's clearCmds (CI 43630215898, its replay log).
+const PAGE_OWN = ["hello", "arm", "client_diag", "tab_visibility", "get_tool_table", "heartbeat"];
 async function sent(): Promise<{ cmd?: string; text?: string; line?: number }[]> {
   const r = await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; text?: string; line?: number }[] };
-  return r.cmds ?? [];
+  return (r.cmds ?? []).filter(c => !PAGE_OWN.includes(c.cmd ?? ""));
 }
 const count = async (cmd: string) => (await sent()).filter(c => c.cmd === cmd).length;
 
