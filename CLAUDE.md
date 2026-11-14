@@ -175,7 +175,7 @@ TIER 3 — Machine enabled (base = armed + !estop + enabled)
   spindleStop ────────── !estop + enabled + isIdle — a STOP: no arm, homing, sim or busy (BG-18; running/paused: the program owns the spindle)   Spindle Stop
   resume ─────────────── base + isPaused                              Resume
   step ───────────────── base + (isPaused OR the `run` rule: idle + homed + kins runnable — BG-09; a program start re-reads the kinematics from the controller at the write, `_cmd_blocking(admit=)`)   Single-step
-  toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim; the command names the request (`tool_change_seq`), booked once only when delivered (BG-17/BG-20)   M6 Confirm
+  toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim; the command names the request (`tool_change_seq`), booked once only when delivered (BG-17/BG-20); no reply in 30 s = "No reply — outcome unknown", the lock kept (VM-I12)   M6 Confirm
 
 TIER 4 — Machine idle (requires base + isIdle)
   idle ───────────────── base + isIdle + !busy                        (the base of the idle classes)
