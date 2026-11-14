@@ -1,0 +1,21 @@
+533c71fc
+== chain live at 533c71fc, /home/cnc/claude-work/p3b/chain-live-20261114T184635, 2026-11-14T18:46:35+01:00
+bound: {"t_wall_ns":1794678395824895841,"t_mono_ms":27.532,"proc":"gateway","pid":3996278,"tag":"session.bound","level":"info","instance_pid":3856798,"instance_start":167968609}
+the standalone gateway ended: exit 143, 3.41 s after the sim's stop began
+       -0.1 ms  lcnc.link_revoked            warn  {'reason': 'the bound instance ended'}
+       +0.0 ms  session.instance_ended       error {'where': 'instance watch'}
+       +0.0 ms  session.shutdown_requested   warn  {'reason': 'linuxcnc instance ended', 'deadline_s': 5.0}
+     +119.6 ms  crash.signal                 info  {'signame': 'SIGTERM'}
+  crash.log: {"t_wall_ns":1794678397006859133,"t_mono_ms":1209.496,"proc":"gateway","pid":3996278,"tag":"crash.signal","level":"info","signo":15,"signame":"SIGTERM"}
+[SHUTDOWN] +1195ms lifespan teardown begin
+[SHUTDOWN] +1195ms cancelled 3 bg tasks
+[SHUTDOWN] +1195ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +1195ms HAL sockets disconnected
+[SHUTDOWN] +1195ms camera released
+[SHUTDOWN] +1195ms lifespan teardown complete
+== LAN sim back
+533c71fc Package 3b item 1, R371 (Fable): the crash rows' consumers and the link lock held by guards
+active
+active
+== end 2026-11-14T18:46:42+01:00
+

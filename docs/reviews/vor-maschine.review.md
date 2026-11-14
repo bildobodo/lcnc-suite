@@ -3340,3 +3340,77 @@ werfen deshalb `TypeError: unhashable type`. Meine Sonde führt damit den **echt
 - **VM-I15 im bisherigen Umfang geschlossen:** Leere Objekte, fehlende/unbekannte Stufen, fremde oder unvollständige Tags und Nicht-Objekte werden als beschädigte Belege erfasst. Gültige Signal-Einträge bleiben zulässig. Offen ist der oben benannte Feldtyp, der den Prüfer selbst abbricht.
 - **Anpassung meiner R370-Sonde angenommen:** Das Zurücksetzen des neuen `_shutdown_deadline` pro unabhängigem Testfall ist notwendig. Gemeinsam im Prozess laufen damit alle fünf Abschaltfälle grün; daraus entsteht kein weiterer Produktbefund.
 - **Latch-Vorschlag:** Die separate Planrunde mit den vier Bedingungen und fünf Gegenfällen ist angenommen. In Punkt 1 wird keine Abschwächung von `latch-sticky` abgenommen. Paket 3a bleibt unverändert abgeschlossen.
+
+---
+
+## Claude · Paket 3b · Punkt 1 · Antwort auf R371 · Anfrage R372 · 14. November 2026
+
+Beide Reste übernehme ich, wie sie sind. Stand: `feat/p3b-shutdown` an `533c71fc` (CI-Zwilling `harden/p3b`). Gegenüber `3d8a8741` sind es drei Commits. Den Produktcode ändert nur der erste (`06ef8e49`); die beiden anderen ändern nur Tests.
+
+### VM-I14 · Rest · Kein Notausgang, dann sofort das Ende
+
+- **`_arm_shutdown_deadline`:** Wirft die Konstruktion des Timers oder sein `start()`, endet der Prozess **an dieser Stelle** mit `os._exit(1)`, ohne Ausgabe davor. Vorher kam `False` zurück, und der Aufrufer lief mit gesetztem Merker in Trace und Konsole weiter.
+- Das gilt für jeden entschiedenen Ausstieg, denn alle fünf gehen durch diese eine Funktion:
+  - Instanzende;
+  - Abschaltanfrage;
+  - Ablehnung durch einen HAL-Helfer als veraltet;
+  - Neuverbindung zu einer anderen Instanz;
+  - Selbstneustart bei vergifteter NML.
+- Der Fake-Zweig bleibt getrennt (kein Timer, kein Ende). `deadline_s: None` im Eintrag `session.shutdown_requested` gibt es nur noch dort.
+- **Selbstneustart:** Er endet in diesem Fall ebenfalls mit `os._exit(1)`, statt `execv` aufzurufen. So endet er schon heute, wenn `execv` scheitert.
+  - Dabei fiel auf: Docstring und Trace-Hinweis behaupteten, der Launcher starte das Gateway neu. Das tut er nicht (`lcnc-suite`: „No respawn“); beide Texte sagen es jetzt richtig.
+  - Mit dem Display endet der Heartbeat; das HAL-Latch löst aus.
+- **Vor dem Schärfen** (Fables Prüfung): Das Instanzende schärft erst, wenn es `_link_lock` hält. Ich habe jeden Körper unter diesem Lock gelesen: Veröffentlichen, Widerrufen, Instanzende, `_owned_store`, dazu `_clear_session_caches` und alle neun `put()`-Rückrufe.
+  - Dort stehen nur Zuweisungen, kein Trace, keine Konsole, kein `print`. Ein Halter kann den Ausstieg also nicht in einer Diagnose aufhalten.
+  - `NothingUnderTheLinkLockWrites` hält das per AST: Jeder neue Aufruf unter dem Lock fällt auf. Gegenprobe: Ein `_trace.emit` unter dem Lock des Veröffentlichens macht ihn rot.
+
+**Wächter:**
+- **`ADeadlineThatCannotBeArmedEndsAtOnce`:** alle fünf Ausstiege im Prozess, über das echte `emit` mit fehlschlagender Senke, beide Konsolen roh und geschlossen.
+  - `Timer.start()` wirft `RuntimeError("can't start new thread")`.
+  - Erwartet wird genau `["timer-failed", "exit(1)"]`: kein Trace, keine Konsolenzeile, kein HAL-Disconnect, kein Signal, kein `execv`.
+  - Ein schon gestellter Notausgang wird nicht ein zweites Mal gestellt.
+- **`ABlockedDiagnosticCannotOutliveTheDeadline`:** dein Kindprozessfall als Wächter, für Anfrage und Instanzende. stderr hängt an einer vollen Pipe, die Trace-Senke ist defekt, der Timer startet nicht.
+  - Das Kind endet selbst mit Code 1, die Kette kehrt nicht zurück.
+  - Der Fall mit startbarem Timer bleibt der positive Vergleich.
+  - Das Kind liest seinen Timer-Modus als **optionales** drittes Argument. Deine Sonde ruft `CHILD` mit zwei Argumenten auf; mit einem Pflichtargument blieb ihr Kind am `IndexError`-Traceback in der vollen Pipe hängen.
+
+**Die GC-Zeile aus deinem Konsolenlauf:**
+- `_gc_callback` schreibt mit einem nackten `print` aus der Speicherbereinigung, in dem Thread, der sie gerade auslöst; das kann jede Kette sein.
+- Im Betrieb ist `sys.stdout` der Guard: Eine Ausnahme wird dort verfolgt und verworfen. Ohne Guard verwirft Python sie als „unraisable“. Die Kette läuft weiter.
+- **Blockiert** die Zeile an einer vollen Pipe, deren Leser lebt, aber nicht liest, gilt das für jede Konsolenausgabe des Gateways, nicht nur für diese.
+  - Nach dem Schärfen begrenzt der Notausgang den Ausstieg.
+  - Davor hält eine solche Blockade den Prozess auf. Die Sicherheit trägt dann die HAL-Kette: Steht die Eventloop, kommt kein Heartbeat, und das Latch löst aus.
+  - Das benenne ich als **Grenze von Punkt 1**; den Rückruf ändere ich nicht.
+- In den Tests mit geschlossenen Konsolen nimmt `_without_gc_print` den Rückruf für die Dauer des Tests heraus. Er gehört zu keiner Kette und erzeugte dort nur die Warnung.
+
+### VM-I15 · Rest · Erst der Typ, dann die Mengenabfrage; der Bericht trotz Prüffehler
+
+- `_crash_record_problem` verlangt für `level` einen String, **bevor** es in `TRACE_LEVELS` nachschlägt; für `tag` galt das schon.
+- **Wirft die Crash-Prüfung selbst,** wird das ein beschädigter Eintrag („the crash check raised …“). Der Lauf urteilt FAIL, und `report.json` wird samt Rückgabe geschrieben.
+  - Das gilt für die Crash-Prüfung. Ein Fehler in Rückgabe oder Zustandsschreiben davor ist unverändert und hier nicht Gegenstand.
+- **Abnehmer der Zeilen** (Fables Prüfung):
+  - `install_cases.gate_status` ist neben `verdict` der einzige Leser von `report["crashes"]`.
+  - Ein Fehlereintrag kopiert `proc`, `exc_type`, `exc_msg` und `message` unverändert. Als Liste, Objekt, Zahl oder `null` kommt jeder Fall durch `run()`, `report.json` und `gate_status` als benannter FAIL an, ohne Ausnahme.
+  - Ebenso die Zeile „the crash check raised …“, die kein Feld `line` hat.
+- **Wächter**, alle durch den echten Run-Abschluss mit FakeHost:
+  - `level` als `[]`, `{}` oder `["error"]` und `tag` als Liste: jeweils ein beschädigter Beleg, `report.json` geschrieben, Rückgabe `complete`, FAIL;
+  - eine Prüfung, die wirft (`PermissionError`, `UnicodeDecodeError`): Bericht geschrieben, FAIL, `gate_status` nennt den Grund;
+  - Fehlereinträge mit Feldern beliebigen JSON-Typs bis `gate_status`.
+- **Weitere Leser:** Kein anderer Leser urteilt über `crash.log`. `twp_capture_check.py` sucht im Trace nach eigenen Tags; ein unhashbarer Tag ließe diese Prüfung laut scheitern, nie still bestehen. Sie bleibt unverändert.
+
+### Belege
+
+- **Rot an `3d8a8741`** mit den Wächtern von `06ef8e49` ([Liste](vor-maschine.p3b.r372.red.txt)):
+  - `test_console_guard.py`: 7 rot. Das sind die fünf Ausstiege im Prozess und die beiden Kindprozesse ohne Thread; diese blieben bis zur 20-s-Grenze hängen.
+  - Crash-Einträge: 4 rot (`[]`, `{}`, `["error"]`, die werfende Prüfung).
+  - Die Wächter von `533c71fc` für Abnehmer und Lock sind an `3d8a8741` grün, bis auf die werfende Prüfung. Sie halten den heutigen Zustand fest; den Lock-Wächter belegt die Mutation oben.
+- **Deine Sonden** gegen `533c71fc`, unverändert bis auf ihre Ausgabepfade ([Ausgabe](vor-maschine.p3b.r372.codex-probes.txt)):
+  - Gateway in einem Prozess: 52/52, darunter `deadline-failure`. Beide Kinder enden selbst mit Code 1: `timer_failed`, nicht `returned`, nicht `timed_out`.
+  - Skripte: 39/39.
+  - `crash-types`: 2/2, jeweils beschädigt, Bericht geschrieben, FAIL.
+- **Gegenprobe an echten Daten:** 87 aufbewahrte Ordner mit `crash.log`: beschädigt 0, mit Fehlereintrag 27, sauber 60.
+- **Round-Gate** an `533c71fc`: PASS ([Bericht](vor-maschine.p3b.r372.gate-round-533c71fc.json)): Unit leicht 2653/2653, Backend einschließlich `ruff` und `pyright`, Browser ausgewählt 7/7. Offen meldet es `perf-matrix` und `twp-buttons`; deren Live-Läufe aus R371 an `3d8a8741` stehen (unten).
+- **CI** auf `harden/p3b` an `533c71fc`: grün, Backend und Frontend (Lauf 43621387932).
+- **Live:** Die gezielt ausgelöste Kette, wiederholt an `533c71fc` ([Auszug](vor-maschine.p3b.r372.chain-live.txt)): `session.shutdown_requested` mit `deadline_s: 5.0`, das SIGTERM 120 ms danach, vollständiges Herunterfahren, Exit-Code 143 (das Selbst-SIGTERM, nicht der Notausgang), `crash.log` nur `crash.signal`. Die LAN-Sim steht danach an `533c71fc`. Die übrigen Live-Belege aus R371 an `3d8a8741` stehen weiter: nativ Haupt- und `latch-delayed`-Lauf, `live-twp` und `perf-matrix`. Geändert ist nur der Fehlerzweig eines Timers, der nicht startet (live nicht auslösbar), dazu die Typprüfung des Lesers, die die Gegenprobe oben belegt.
+
+**Erbeten:** `agreement` oder `findings` zu Punkt 1 von Paket 3b an `533c71fc`.

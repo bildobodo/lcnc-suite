@@ -1,0 +1,15 @@
+# Codex's R370/R371 probes, unchanged but for their output paths, against 533c71fc (archive copy), 2026-11-14T18:30:08+01:00
+## gateway: test_console_guard.py + R370 shutdown probe + R371 deadline-failure probe (one process)
+exit 0
+junit {'tests': '52', 'failures': '0', 'errors': '0', 'skipped': '0'} (pytest summary hidden: the repo addopts carry -q, -q again is -qq)
+## the R371 deadline-failure probe's rows
+{'entry': 'request', 'entered': True, 'timer_failed': True, 'returned': False, 'timed_out': False, 'returncode': 1}
+{'entry': 'instance', 'entered': True, 'timer_failed': True, 'returned': False, 'timed_out': False, 'returncode': 1}
+## scripts: native + install + R370 crashes probe
+39 passed, 597 deselected in 0.69s
+## scripts: R371 crash-types probe
+2 passed in 0.09s
+{'record': {'tag': 'crash.thread', 'level': []}, 'error': None, 'report_exists': True, 'crashes': [{'file': 'crash.log', 'damaged': "no known level ('[]')", 'line': '{"tag": "crash.thread", "level": []}'}], 'verdict': 'FAIL'}
+{'record': {'tag': 'crash.thread', 'level': {}}, 'error': None, 'report_exists': True, 'crashes': [{'file': 'crash.log', 'damaged': "no known level ('{}')", 'line': '{"tag": "crash.thread", "level": {}}'}], 'verdict': 'FAIL'}
+## the stricter reader over every kept folder with a crash.log under ~/claude-work
+87 folders: damaged 0 , with an error record 27 , clean 60

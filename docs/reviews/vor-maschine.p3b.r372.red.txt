@@ -1,0 +1,19 @@
+# Red at 3d8a8741 with the guards of 06ef8e49 (test files copied; product at 3d8a8741), 2026-11-14T18:18 — 7f7f0583 changes only how the blocked child reads its optional third argument
+## lcnc-gateway/test_console_guard.py
+FAILED test_console_guard.py::ADeadlineThatCannotBeArmedEndsAtOnce::test_the_helper_s_stale_rejection
+FAILED test_console_guard.py::ADeadlineThatCannotBeArmedEndsAtOnce::test_the_instance_end
+FAILED test_console_guard.py::ADeadlineThatCannotBeArmedEndsAtOnce::test_the_nml_self_restart
+FAILED test_console_guard.py::ADeadlineThatCannotBeArmedEndsAtOnce::test_the_reconnect_that_sees_another_instance
+FAILED test_console_guard.py::ADeadlineThatCannotBeArmedEndsAtOnce::test_the_shutdown_request
+FAILED test_console_guard.py::ABlockedDiagnosticCannotOutliveTheDeadline::test_the_instance_end_without_a_thread
+FAILED test_console_guard.py::ABlockedDiagnosticCannotOutliveTheDeadline::test_the_shutdown_request_without_a_thread
+## scripts/test_native_stage.py (crash records)
+FAILED test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "crash.thread", "level": []}-no known level]
+FAILED test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "crash.thread", "level": {}}-no known level]
+FAILED test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "crash.thread", "level": ["error"]}-no known level]
+FAILED test_native_stage.py::test_a_crash_check_that_raises_still_writes_a_failing_report
+4 failed, 15 passed, 507 deselected in 1.41s
+## the guards added at 533c71fc (consumers, link lock), at 3d8a8741
+FAILED test_native_stage.py::test_a_raising_crash_check_reaches_the_gate_s_reason
+test_native_stage.py: 1 failed, 5 passed (the five field-type cases green: they hold today's consumers)
+test_console_guard.py::NothingUnderTheLinkLockWrites: 3 passed (holds today's lock bodies; its mutation: a _trace.emit under _publish_link's lock turns it red)
