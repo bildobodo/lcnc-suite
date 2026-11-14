@@ -294,3 +294,28 @@ def test_an_expected_refusal_that_never_came_fails(tmp_path):
 def test_the_shipped_expectations_are_well_formed():
     for x in json.loads(replay.REFUSALS.read_text()):
         assert set(x) >= {"file", "title", "cmd", "payload", "refusal", "why"}, x
+
+
+def test_the_worker_s_ready_probe_is_the_one_request_without_an_origin(tmp_path):
+    # wsWorker.ts fetches /ready with credentials "omit": no cookie by construction
+    m = Mock()
+    m.page(A)
+    m.http(None, path="/ready")
+    r = run(tmp_path, [m], [attempt(A)])
+    assert r["verdict"] == "PASS", r["findings"]
+    assert r["http"] == {"with origin": 1, "ready probe (no cookie by construction)": 1}
+
+
+@pytest.mark.parametrize("method, path, o", [
+    ("POST", "/upload", None),                       # any other request without one
+    ("GET", "/ready", {"run": "run-0", "test": "tid-a", "project": "e2e", "retry": 0}),   # an origin of another run
+    ("POST", "/ready", None),                        # the probe is a GET
+    ("GET", "/api/programs", {"infra": "infra:unknown"}),
+])
+def test_a_request_without_an_origin_of_this_run_is_a_finding(tmp_path, method, path, o):
+    m = Mock()
+    m.page(A)
+    m.http(o, path=path, method=method)
+    r = run(tmp_path, [m], [attempt(A)])
+    assert r["verdict"] == "FAIL" and len(r["findings"]) == 1, r["findings"]
+    assert f"{method} {path} without an origin of this run" in r["findings"][0]

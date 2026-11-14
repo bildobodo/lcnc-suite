@@ -19,7 +19,9 @@ The checks:
      instance under this run.
   2. origin — every app connection carries an attempt of THIS run the
      fixture logged (test id + retry), or a named infrastructure origin
-     that sends nothing; a connection without one is a finding.
+     that sends nothing; a connection without one is a finding. So is an
+     HTTP request without one — but the worker's reconnect probe (GET
+     /ready, credentials "omit": no cookie by construction).
   3. vacuity — every attempt whose page loaded shows a `hello`.
   4. form — a frame is a JSON object with a string `cmd`; its fields are
      the frame's or the command's own (`atoms.web.json`: WsCommand's
@@ -54,6 +56,10 @@ REFUSALS = Path(__file__).with_name("replay_refusals.json")
 TRANSPORT = frozenset({"cmd", "req_id"})
 #: the named infrastructure origins (FI265-02 3) — they read, they send nothing
 INFRA = {"infra:baseline": "e2e/ctl.ts appConnectFrames: a fresh client reads the connect frames"}
+#: the ONE request without an origin that is no finding: the WebSocket worker's
+#: reconnect probe — `fetch(readyUrlFor(…), {credentials: "omit"})` (src/wsWorker.ts)
+#: sends no cookie BY CONSTRUCTION; a GET without payload (judged in no step)
+READY_PROBE = ("GET", "/ready")
 #: the ONE connection without an origin that is no finding: replay-origin.spec's
 #: counter-case (a socket from Node without the cookie) — its only frame a hello
 #: with this session, inside that spec's attempt on the same mock
@@ -307,10 +313,21 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
             elif kind == "http":
                 o = rec.get("origin")
                 key = (o.get("test"), o.get("retry")) if isinstance(o, dict) and o.get("run") == run else None
-                http["with origin" if key in attempts else "without"] += 1
-                if key in attempts and rec.get("method") == "GET" and rec.get("path") in ("/", "/index.html") \
-                        and rec.get("status") == 200:
-                    loaded.add(key)
+                req = f"{rec.get('method')} {rec.get('path')}"
+                if key in attempts:
+                    http["with origin"] += 1
+                    if rec.get("method") == "GET" and rec.get("path") in ("/", "/index.html") \
+                            and rec.get("status") == 200:
+                        loaded.add(key)
+                elif o is None and (rec.get("method"), rec.get("path")) == READY_PROBE:
+                    http["ready probe (no cookie by construction)"] += 1
+                elif isinstance(o, dict) and o.get("infra") in INFRA:
+                    http["infrastructure"] += 1
+                else:
+                    # FI265-02: a request is the test's, a named infrastructure's
+                    # or the named probe's — never nobody's
+                    http["without"] += 1
+                    findings.append(f"{inst}: {req} without an origin of this run: {str(o)[:120]}")
             elif kind == "frame":
                 cls, who = origin_of.get(rec["conn"], ("none", None))
                 if cls == "infra":
