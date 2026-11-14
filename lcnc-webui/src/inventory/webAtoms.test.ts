@@ -179,8 +179,28 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     const a = framesAdapter(memory({ "wsWorker.ts": worker }));
     expect(a.atoms.map((x) => x.id)).toEqual(["frame:heartbeat", "frame:hello", "frame:new_frame"]);
     expect(a.unresolved).toEqual([]);
+    // each frame's fields, the replay's closed form (test strategy step 5)
+    expect(a.atoms.map((x) => x.members)).toEqual([["seq"], [], ["value"]]);
     const other = framesAdapter(memory({ "wsWorker.ts": worker + `\nfunction x(v) { ws.send(v); ws.send(msg.payload); preOpenQueue.push(build()); }` }));
     expect(other.unresolved.map((u) => u.expr)).toEqual(["ws.send(v)", "ws.send(msg.payload)", "preOpenQueue.push(build())"]);
+  });
+
+  it("frames: fields a spread, a computed name or a nested text hides are unresolved; one frame sent with other fields too (replay, step 5)", () => {
+    const forms = {
+      spread: `ws.send(JSON.stringify({ cmd: "hello", ...extra }));`,
+      computed: `ws.send(JSON.stringify({ cmd: "hello", [key]: 1 }));`,
+      nested: 'ws.send(`{"cmd":"heartbeat","seq":${n},"t":{"a":1}}`);',
+    };
+    for (const [name, src] of Object.entries(forms)) {
+      const a = framesAdapter(memory({ "wsWorker.ts": src }));
+      expect([a.atoms, a.unresolved.map((u) => u.form)], name).toEqual([[], ["a frame whose fields are not read"]]);
+    }
+    const twice = framesAdapter(memory({ "wsWorker.ts": `ws.send(JSON.stringify({ cmd: "tab_visibility", hidden: h }));
+      ws.send(JSON.stringify({ cmd: "tab_visibility", hidden: h, extra: 1 }));` }));
+    expect(twice.unresolved.map((u) => u.form)).toEqual(["one frame sent with different fields"]);
+    const same = framesAdapter(memory({ "wsWorker.ts": `ws.send(JSON.stringify({ cmd: "tab_visibility", hidden: h }));
+      ws.send(JSON.stringify({ hidden: h, cmd: "tab_visibility" }));` }));
+    expect([same.atoms, same.unresolved]).toEqual([[{ id: "frame:tab_visibility", members: ["hidden"] }], []]);
   });
 
   it("routines: the reference's syntax text is excluded with its reason; the same text elsewhere is not", () => {

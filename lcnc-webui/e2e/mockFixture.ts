@@ -23,6 +23,10 @@ const REGISTRY = join(tmpdir(), "lcnc-e2e-mock");
 /** This run: set by the config in the runner, inherited by every worker. */
 export const RUN = process.env.LCNC_E2E_RUN ?? `unset-${process.ppid}`;
 const EVENTS = process.env.LCNC_E2E_EVENTS;
+/** The replay logs' folder (test strategy step 5): each mock writes its own
+ *  `<run>-<instance>.jsonl` there; unset = no replay log. */
+const REPLAY_DIR = process.env.LCNC_E2E_REPLAY_DIR;
+export const replayFile = (instance: string) => REPLAY_DIR ? join(REPLAY_DIR, `${RUN}-${instance}.jsonl`) : null;
 
 export interface MockEvent { event: string; [k: string]: unknown }
 
@@ -98,8 +102,11 @@ export async function startMock(slot: number, workerIndex: number): Promise<Mock
     }
   }
   const instance = randomUUID();
+  const replay = replayFile(instance);
+  if (replay) mkdirSync(REPLAY_DIR!, { recursive: true });
   const child = spawn(process.execPath, [MOCK_SCRIPT], {
-    env: { ...process.env, MOCK_PORT: String(port), MOCK_INSTANCE: instance, MOCK_EXIT_ON_STDIN_EOF: "1" },
+    env: { ...process.env, MOCK_PORT: String(port), MOCK_INSTANCE: instance, MOCK_EXIT_ON_STDIN_EOF: "1",
+           ...(replay ? { MOCK_REPLAY: replay } : {}) },
     stdio: ["pipe", "pipe", "pipe"],
   });
   let died: string | null = null, stderr = "";
@@ -116,7 +123,7 @@ export async function startMock(slot: number, workerIndex: number): Promise<Mock
   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
   child.stdout!.resume();
   writeOwner({ run: RUN, slot, port, instance, pid: child.pid!, workerIndex });
-  logEvent({ event: "bound", slot, port, workerIndex, instance, endpoint: `http://localhost:${port}/` });
+  logEvent({ event: "bound", slot, port, workerIndex, instance, endpoint: `http://localhost:${port}/`, replay });
   return { slot, port, instance, workerIndex, child, died: () => died };
 }
 

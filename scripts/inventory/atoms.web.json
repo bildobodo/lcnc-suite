@@ -3102,13 +3102,25 @@
    ],
    "atoms": [
     {
-     "id": "frame:heartbeat"
+     "id": "frame:heartbeat",
+     "members": [
+      "seq"
+     ]
     },
     {
-     "id": "frame:hello"
+     "id": "frame:hello",
+     "members": [
+      "device_storage",
+      "device_token",
+      "resume_armed",
+      "session"
+     ]
     },
     {
-     "id": "frame:tab_visibility"
+     "id": "frame:tab_visibility",
+     "members": [
+      "hidden"
+     ]
     }
    ],
    "unresolved": []

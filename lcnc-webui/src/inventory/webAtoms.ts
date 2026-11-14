@@ -284,12 +284,21 @@ function soleProgram(name: string, text: string): ts.Program {
  *  literal or template text with a literal `"cmd":"…"`, or one of the two
  *  RELAYS of a main-thread WsCommand (the commands adapter's): `msg.payload`
  *  in the `case "send":` clause, and a const bound to `preOpenQueue.shift()`
- *  — a queue only that clause fills. Anything else is unresolved. */
+ *  — a queue only that clause fills. Anything else is unresolved.
+ *  Each frame names its FIELDS (`members`, the replay's closed form — test
+ *  strategy step 5): the object literal's property names, or a flat text's
+ *  `"key":` names; a spread, a computed name or a nested text is unresolved,
+ *  and two sites of one frame must name the same fields. */
 export function framesAdapter(src: WebSources): Adapter {
   const rel = "wsWorker.ts";
   const atoms = new Map<string, Atom>();
   const unresolved: Unresolved[] = [];
-  const frame = (cmd: string) => atoms.set(cmd, { id: `frame:${cmd}` });
+  const frame = (cmd: string, members: string[], expr: string) => {
+    const had = atoms.get(cmd)?.members;
+    if (had && had.join() !== members.join())
+      unresolved.push({ file: rel, form: "one frame sent with different fields", expr: expr.slice(0, 80) });
+    atoms.set(cmd, { id: `frame:${cmd}`, members });
+  };
   const program = soleProgram(rel, src.files[rel] ?? "");
   const checker = program.getTypeChecker();
   for (const sf of [program.getSourceFile(rel)!]) {
@@ -307,12 +316,23 @@ export function framesAdapter(src: WebSources): Adapter {
       if (!d || !ts.isVariableDeclaration(d) || !ts.isIdentifier(d.name) || !ts.isVariableDeclarationList(d.parent)) return undefined;
       return (d.parent.flags & ts.NodeFlags.Const) !== 0 ? d.initializer : undefined;
     };
-    const literalCmd = (e: ts.Expression): string | undefined => {
+    /** The frame's cmd and its fields; fields null when they cannot be read. */
+    const literalCmd = (e: ts.Expression): { cmd: string; members: string[] | null } | undefined => {
       const obj = ts.isCallExpression(e) && e.expression.getText(sf) === "JSON.stringify" ? e.arguments[0] : undefined;
       const cmd = obj && ts.isObjectLiteralExpression(obj)
         ? obj.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText(sf) === "cmd") : undefined;
-      if (cmd && ts.isStringLiteralLike(cmd.initializer)) return cmd.initializer.text;
-      return ts.isStringLiteralLike(e) || ts.isTemplateExpression(e) ? /^["'`]\{"cmd":"(\w+)"/.exec(e.getText(sf))?.[1] : undefined;
+      if (obj && ts.isObjectLiteralExpression(obj) && cmd && ts.isStringLiteralLike(cmd.initializer)) {
+        const names = obj.properties.map(p => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && ts.isIdentifier(p.name)
+          ? p.name.text : null);
+        return { cmd: cmd.initializer.text,
+          members: names.includes(null) ? null : (names as string[]).filter(n => n !== "cmd").sort() };
+      }
+      if (!(ts.isStringLiteralLike(e) || ts.isTemplateExpression(e))) return undefined;
+      const text = e.getText(sf);
+      const name = /^["'`]\{"cmd":"(\w+)"/.exec(text)?.[1];
+      if (!name) return undefined;
+      const flat = (text.match(/\{/g) ?? []).length - (text.match(/\$\{/g) ?? []).length === 1;
+      return { cmd: name, members: flat ? [...text.matchAll(/"(\w+)":/g)].map(m => m[1]!).filter(n => n !== "cmd").sort() : null };
     };
     walk(sf, (n) => {
       if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression)) return;
@@ -326,9 +346,9 @@ export function framesAdapter(src: WebSources): Adapter {
       if (arg.getText(sf) === "msg.payload" && inSendCase(n)) return;   // relay: the main thread's command
       const only = ts.isIdentifier(arg) ? bindingAt(arg) : undefined;
       if (only && only.getText(sf).replace(/!$/, "") === "preOpenQueue.shift()") return;   // relay: the queue of the same
-      const cmd = literalCmd(only ?? arg);
-      if (cmd) return void frame(cmd);
-      unresolved.push({ file: rel, form: "send", expr: n.getText(sf).slice(0, 80) });
+      const sent = literalCmd(only ?? arg);
+      if (sent && sent.members) return void frame(sent.cmd, sent.members, n.getText(sf));
+      unresolved.push({ file: rel, form: sent ? "a frame whose fields are not read" : "send", expr: n.getText(sf).slice(0, 80) });
     });
   }
   return { source: "wsWorker.ts <socket>.send(…)",

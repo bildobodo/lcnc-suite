@@ -12,12 +12,21 @@
 //                the wire) equal to the ones it got then (Codex R263
 //                PM263-01: a key the snapshot did not name once survived).
 //                After the test, every context left open is closed (a
-//                failing test's own contexts included). A mock that died
-//                fails the test.
+//                failing test's own contexts included), THEN `test-end` is
+//                written (FI265-02: the observation ends after the last
+//                context). A mock that died fails the test.
+//  storageState  (test)   — the replay's origin (test strategy step 5,
+//                Codex R251 TS248-04 Rest B): the cookie `e2e_origin` with
+//                this run, the test's id, project and retry, for the mock's
+//                host. Playwright applies the test's context options to the
+//                `page` fixture's context AND to every `browser.newContext()`
+//                inside the test, so each connection the page or a context
+//                opens carries its test attempt — the mock binds it at the
+//                upgrade (e2e/mock-gateway.mjs).
 import { relative } from "node:path";
 import { test as base, expect } from "@playwright/test";
 import { appConnectFrames, ctl, MOCK } from "./ctl";
-import { logEvent, startMock, stopMock, type MockHandle } from "./mockFixture";
+import { logEvent, RUN, startMock, stopMock, type MockHandle } from "./mockFixture";
 import { portOf, slotOf } from "./mockSlot.mjs";
 
 export * from "@playwright/test";
@@ -29,7 +38,21 @@ const noAppSockets = (why: string) => expect.poll(async () => (await snapshot())
   { timeout: 5_000, message: why }).toBe(0);
 type Wire = Awaited<ReturnType<typeof appConnectFrames>>;
 
+/** The replay's origin of one test attempt, as the cookie carries it. */
+export interface ReplayOrigin { run: string; test: string; project: string; retry: number }
+export const ORIGIN_COOKIE = "e2e_origin";
+
 export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { pristine: Snapshot; pristineWire: Wire } }>({
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from this pattern
+  storageState: async ({}, use, testInfo) => {
+    const origin: ReplayOrigin = { run: RUN, test: testInfo.testId, project: testInfo.project.name, retry: testInfo.retry };
+    await use({
+      cookies: [{ name: ORIGIN_COOKIE, value: encodeURIComponent(JSON.stringify(origin)), domain: new URL(MOCK).hostname,
+                  path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" }],
+      origins: [],
+    });
+  },
+
   // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from this pattern
   mock: [async ({}, use, workerInfo) => {
     const slot = slotOf(process.env.TEST_PARALLEL_INDEX);
@@ -51,7 +74,7 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
   mockBaseline: [async ({ mock, browser }, use, testInfo) => {
     const where = { slot: mock.slot, workerIndex: mock.workerIndex, instance: mock.instance,
       file: relative(testInfo.project.testDir, testInfo.file), project: testInfo.project.name,
-      title: testInfo.titlePath.slice(1).join(" › "),
+      title: testInfo.titlePath.slice(1).join(" › "), testId: testInfo.testId,
       retry: testInfo.retry };
     if (mock.died()) throw new Error(`the worker's mock ended: ${mock.died()}`);
     // the test before closed its contexts at its end; their sockets close a moment later
@@ -64,8 +87,8 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
     expect(wire, "a fresh app client's connect frames after reset").toEqual(mock.pristineWire);
     logEvent({ event: "test-start", ...where });
     await use();   // resolves after the test, failed or not
-    logEvent({ event: "test-end", ...where, status: testInfo.status });
     for (const c of browser.contexts()) await c.close().catch(() => {});
+    logEvent({ event: "test-end", ...where, status: testInfo.status });
     if (mock.died()) throw new Error(`the worker's mock ended during the test: ${mock.died()}`);
   }, { auto: true }],
 });

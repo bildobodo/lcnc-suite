@@ -30,7 +30,8 @@ export function ctl(op: Record<string, unknown>): Promise<any> {
  *  moment longer (`snapshot().clients`). */
 export function appConnectFrames(): Promise<{ status: Record<string, unknown>; viewerInit: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`${MOCK.replace(/^http/, "ws")}ws`);
+    // a named infrastructure origin in the replay (FI265-02): never a test's traffic
+    const ws = new WebSocket(`${MOCK.replace(/^http/, "ws")}ws`, { headers: { "x-e2e-origin": "infra:baseline" } });
     const frames: Record<string, unknown>[] = [];
     const timer = setTimeout(() => { ws.terminate(); reject(new Error(`a fresh client got ${frames.length} of its 2 connect frames in 5 s`)); }, 5_000);
     ws.on("error", e => { clearTimeout(timer); reject(e); });

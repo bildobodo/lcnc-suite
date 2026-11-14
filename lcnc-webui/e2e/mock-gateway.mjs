@@ -18,7 +18,7 @@
 // socket inside a Web Worker, which routeWebSocket intercepts only unreliably.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
@@ -26,6 +26,37 @@ import { encode as msgpackEncode } from "@msgpack/msgpack";
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const PORT = Number(process.env.MOCK_PORT) || 4174;
+
+// The replay log (test strategy step 5 — Codex R251 TS248-04 Rest B, R265–
+// R269 FI265-02): one JSONL file per mock instance, set by the worker
+// fixture (MOCK_REPLAY). It holds every frame an app connection sends — at
+// receipt, BEFORE any handling, uncapped, non-JSON too — under the
+// connection it came on, each connection with the ORIGIN it was bound to at
+// its upgrade: the `e2e_origin` cookie the fixture sets per test attempt
+// (run, test id, project, retry) or a named infrastructure origin
+// (`x-e2e-origin`, the baseline's fresh client). A later frame on an old
+// connection keeps that connection's origin. Every HTTP request is a line
+// with its origin, method, path (never the query: the beacon carries the
+// token) and status; every /ctl op a line of its own, never product
+// traffic. A head line at the start, an end line at the exit — a file
+// without its end is incomplete. `reset` and `clearCmds` never touch it.
+const REPLAY = process.env.MOCK_REPLAY || null;
+let replayConn = 0;
+function replay(rec) {
+  if (REPLAY) appendFileSync(REPLAY, JSON.stringify({ t: Date.now(), ...rec }) + "\n");
+}
+/** The origin a request carries: the infrastructure header, the cookie, or null. */
+function originOf(req) {
+  const infra = req.headers["x-e2e-origin"];
+  if (typeof infra === "string" && infra) return { infra };
+  const raw = (req.headers.cookie || "").split(/;\s*/).find(c => c.startsWith("e2e_origin="));
+  if (!raw) return null;
+  try {
+    return JSON.parse(decodeURIComponent(raw.slice("e2e_origin=".length)));
+  } catch {
+    return { invalid: raw.slice(0, 200) };
+  }
+}
 
 const MIME = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
@@ -75,6 +106,10 @@ const PREVIEW = msgpackEncode({
 
 const server = createServer(async (req, res) => {
   const path = decodeURIComponent((req.url || "/").split("?")[0]);
+  if (REPLAY) {
+    const origin = originOf(req), reqId = req.headers["x-e2e-req"] ?? null;
+    res.on("finish", () => replay({ kind: "http", method: req.method, path, origin, req_id: reqId, status: res.statusCode }));
+  }
   if (path === "/macros") {
     // Package 5: the macro folder of a configuration without one (specs that
     // need files serve their own folder through page.route)
@@ -275,12 +310,17 @@ const withDevice = (frame) => ({
 // What a fresh app client receives on connect — also what `snapshot` reports.
 const connectFrames = () => [withEnvelope(state), activeViewerInit];
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
+  const conn = ++replayConn;
+  replay({ kind: "open", conn, origin: originOf(req) });
+  ws.on("close", () => replay({ kind: "close", conn }));
   for (const frame of connectFrames()) ws.send(JSON.stringify(frame));
   ws.on("message", (buf) => {
     let msg = null;
     try { msg = JSON.parse(String(buf)); } catch { /* non-JSON — fall through */ }
+    replay(msg !== null && typeof msg === "object" && !Array.isArray(msg)
+      ? { kind: "frame", conn, msg } : { kind: "frame", conn, raw: String(buf).slice(0, 2000) });
     const cmd = msg?.cmd ?? null;
     if (cmd === "hello") {
       hellos.push(msg);
@@ -345,6 +385,7 @@ ctlWss.on("connection", (ws) => {
   ws.on("message", (buf) => {
     let m;
     try { m = JSON.parse(String(buf)); } catch { ws.send(JSON.stringify({ ok: false, error: "bad json" })); return; }
+    replay({ kind: "ctl", op: typeof m?.op === "string" ? m.op : null });   // the control channel, never product traffic
     if (m.op === "status_delta") {
       Object.assign(state.data, m.data ?? {});
       if (typeof m.armed === "boolean") state.armed = m.armed;
@@ -523,6 +564,9 @@ server.listen(PORT, process.env.MOCK_HOST, () => {
   console.log(`mock-gateway: http://localhost:${PORT}`);
   // The e2e worker fixture waits for exactly this line of ITS child: the bind
   // confirmed, not a reachable page (whose could it be?).
+  // the replay's head line before the bind is confirmed: no frame can come first
+  replay({ kind: "head", run: process.env.LCNC_E2E_RUN ?? null, instance: process.env.MOCK_INSTANCE ?? null,
+           port: server.address().port, pid: process.pid });
   if (process.env.MOCK_INSTANCE) console.log(`MOCK-BOUND ${server.address().port} ${process.env.MOCK_INSTANCE}`);
 });
 
@@ -533,7 +577,11 @@ server.listen(PORT, process.env.MOCK_HOST, () => {
 // MOCK_EXIT_HOLD_UNTIL: the isolation harness only — hold the exit until that
 // file exists, to steer a slow predecessor against the handoff wait.
 if (process.env.MOCK_EXIT_ON_STDIN_EOF === "1") {
+  let left = false;
   const leave = () => {
+    if (left) return;          // stdin's end and close both call it
+    left = true;
+    replay({ kind: "end" });   // the replay is complete only with this line
     const hold = process.env.MOCK_EXIT_HOLD_UNTIL;
     if (!hold) process.exit(0);
     const poll = setInterval(() => {
