@@ -31,6 +31,13 @@ class TestToolsetterRules(unittest.TestCase):
             self.assertEqual(tr.canonical(v), want, v)
             self.assertEqual(f"{tr.canonical(v):.6f}", f"{want:.6f}", v)   # the MDI's text of that number
 
+    def test_every_finite_double_has_its_number(self):
+        # R367: the default 28-digit context raised InvalidOperation from
+        # about 1e22 — the reply named an exception, not a reason
+        import sys as _sys
+        for v in (1e22, -1e30, 1e300, _sys.float_info.max, -_sys.float_info.max, 5e-324):
+            self.assertEqual(tr.canonical(v), round(v, 6) if abs(v) < 1 else v, v)
+
     def test_a_missing_or_invalid_field_is_no_set_up(self):
         r = tr.setup({})
         self.assertFalse(r["ok"])

@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import math
 import sys
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Context, Decimal
 from pathlib import Path
 
 #: The form's keys → the parameter numbers tool_touch_off.ngc reads
@@ -52,6 +52,7 @@ BOUNDS = {
     "finderTouchX": {}, "finderTouchY": {}, "finderDiffZ": {},
 }
 _SIX = Decimal("0.000001")
+_WIDE = Context(prec=340)   # the largest finite double has 309 integer digits
 UNSET_REASON = "Toolsetter not set up — Probing › Toolsetter"
 INVALID_REASON = "Toolsetter values invalid — Probing › Toolsetter"
 
@@ -62,8 +63,14 @@ def canonical(v: float) -> float:
     Rounded as JavaScript's toFixed(6) rounds — the exact binary value to
     six decimals, a tie away from zero (ECMA-262 Number.prototype.toFixed:
     "pick the larger n" of |x|) — where %.6f would round a tie to even:
-    −179.0078125 is −179.007813 on both sides (Codex R311 FI-I39)."""
-    return float(Decimal(float(v)).quantize(_SIX, rounding=ROUND_HALF_UP))
+    −179.0078125 is −179.007813 on both sides (Codex R311 FI-I39).
+
+    Exact for EVERY finite double (`_WIDE`: 309 integer digits + 6): the
+    default context's 28 digits raised InvalidOperation from about 1e22 —
+    a value the payload contract admits answered with an exception's name
+    instead of going out or being refused for its line (R367: the MDI line's
+    byte limit is the one bound)."""
+    return float(Decimal(float(v)).quantize(_SIX, rounding=ROUND_HALF_UP, context=_WIDE))
 
 
 def _valid(key: str, v) -> bool:
