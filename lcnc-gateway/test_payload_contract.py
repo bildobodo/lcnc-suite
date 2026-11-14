@@ -573,3 +573,69 @@ class TestTheStepJogThroughTheDispatch(_Dispatch):
         current().stat.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
         r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 0, "vel": 5.0}, True))
         self.assertTrue(r["ok"], r)
+
+
+class TestTheMdiLine(_Dispatch):
+    """Codex R366 VM-I11: LinuxCNC takes ONE MDI command of at most 255 BYTES
+    (2.9.4 emcmodule.cc, LINELEN 256) and copies it with strcpy — a NUL cuts
+    the line it runs. Every line a payload makes — the raw text, a parameter
+    word, a G10, an entry rapid, a touch-off — is judged before the FIRST
+    write (the mode switch included); the last write path guards behind."""
+
+    def setUp(self):
+        super().setUp()
+        # no surface compensation, a fresh reader: the refusal here must be
+        # the line's (the eoffset guard runs before it in set_wcs / touchoff)
+        p = unittest.mock.patch.object(gateway, "require_no_eoffset", lambda: None)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def last_mdi(self):
+        return [a for n, a, _k in self.cmd.calls if n == "mdi"][-1]
+
+    def test_a_nul_in_the_text_is_refused_before_anything(self):
+        r = self.send({"cmd": "mdi", "text": "G0 X1\u0000 Y2"})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("NUL", r["error"])
+        self.assertEqual(self.cmd.calls, [])
+
+    def test_the_byte_limit_not_the_character_count(self):
+        long_ = "G4 P0 (" + "ä" * 130 + ")"          # 138 characters, 268 bytes
+        r = self.send({"cmd": "mdi", "text": long_})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("268 bytes", r["error"])
+        self.assertEqual(self.cmd.calls, [], "refused before the mode switch")
+        ok = "G4 P0 (" + "ä" * 100 + ")"              # 208 bytes: taken unchanged
+        r = self.send({"cmd": "mdi", "text": ok})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.last_mdi(), (ok,))
+
+    def test_a_generated_line_past_the_limit_writes_nothing(self):
+        for msg in ({"cmd": "set_wcs", "target": "G54", "x": 1e300},
+                    {"cmd": "touchoff", "axes": {"X": 1e300}},
+                    {"cmd": "mdi", "text": "G0 X1", "vars": {"3014": 1e300}},
+                    {"cmd": "auto_run", "line": 5, "file": "/p.ngc", "version": 1, "source": "a" * 64,
+                     "entry_x": 1e300, "entry_y": 0.0}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                before = self.booked()
+                r = self.send(msg)
+                self.assertFalse(r["ok"], r)
+                self.assertTrue("bytes" in r["error"] or "too long" in r["error"], r)
+                self.assertEqual(self.cmd.calls, [], "nothing written — the mode switch included")
+                self.assertEqual(self.booked(), before)
+
+    def test_a_generated_line_within_the_limit_still_goes_out(self):
+        r = self.send({"cmd": "set_wcs", "target": "G54", "x": 1.5})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.last_mdi(), ("G10 L2 P1 X1.500000",))
+
+    def test_the_last_write_path_refuses_too(self):
+        """Behind every handler's own check: an MDI the gateway composes
+        itself (a routine call, a plan) passes _cmd_blocking's guard."""
+        for line in ("G0 X1\u0000", "G4 P0 (" + "ä" * 130 + ")"):
+            with self.subTest(line=line[:12]):
+                self.cmd.calls.clear()
+                with self.assertRaises(gateway._WriteRefused):
+                    _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, line), wait=None))
+                self.assertEqual(self.cmd.calls, [])

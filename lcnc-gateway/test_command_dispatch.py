@@ -1870,7 +1870,7 @@ class TestPayloadBoundsReachCmd(unittest.TestCase):
 
     def test_overlong_mdi_never_reaches_cmd_mdi(self):
         err = self._refused({"cmd": "mdi", "text": "G1 X1 " * 60}, "mdi")
-        self.assertIn("truncat", err.lower())
+        self.assertIn("linuxcnc takes 255", err.lower())   # refused, never cut (R366 VM-I11)
 
     def test_negative_spindle_speed_reaches_cmd_clamped_to_zero(self):
         r = self._send({"cmd": "spindle_forward", "speed": -5000})

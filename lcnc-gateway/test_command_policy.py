@@ -633,7 +633,7 @@ class TestPayloadSchema(unittest.TestCase):
 
     def test_mdi_length_rejected_not_truncated(self):
         msg = self._reject("mdi", {"text": "G1 X1 " * 60})
-        self.assertIn("truncates", msg)
+        self.assertIn("LinuxCNC takes 255", msg)        # refused, never cut: bytes since R366 VM-I11
 
     def test_compensation_method_is_a_closed_set(self):
         self.assertIn("not one of", self._reject("set_compensation_method", {"method": 9}))
@@ -755,9 +755,12 @@ class TestPayloadSchema(unittest.TestCase):
             self.assertIn(cmd, ALL_HANDLED_COMMANDS, f"schema for unhandled {cmd!r}")
 
     def test_schema_commands_are_gated(self):
-        # A bounds-checked command that nothing authorizes would be a gap.
+        # A bounds-checked command that nothing authorizes would be a gap —
+        # but a read-only query (no gate by design) has its entry too since
+        # package 3a: two of them reach the handlers after the check (R366).
         for cmd in COMMAND_SCHEMA:
-            self.assertIn(cmd, COMMAND_GATES, f"{cmd!r} has bounds but no gate")
+            self.assertTrue(cmd in COMMAND_GATES or cmd in READ_ONLY_COMMANDS,
+                            f"{cmd!r} has bounds but no gate and is no read-only query")
 
     def test_undeclared_bounds_degrade_to_type_check_only(self):
         # An INI that declares nothing must not crash the pass or invent limits.
