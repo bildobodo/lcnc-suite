@@ -1,0 +1,23 @@
+# perf-matrix at 3d8a8741
+── idle_baseline ──
+  lag: n=0 max=0ms (None) safety=[]
+── fanout ──
+  lag: n=0 max=0ms (None) safety=[]
+── reconnect_storm ──
+  lag: n=0 max=0ms (None) safety=[]
+── upload_during_stream ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── save_during_stream ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── fusion_near_limit ──
+  lag: n=1 max=77.3ms (reader_recv.readline) safety=[]
+── rss_gc_watch ──
+  lag: n=0 max=0ms (None) safety=[]
+── preview_publish ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── sigstop_trip ──
+  lag: n=2 max=895.3ms (http.POST./telemetry) safety=['safety.explicit_armed', 'safety.explicit_disarmed', 'safety.trip_acknowledged', 'safety.trip_snapshot_done', 'safety.tripped']
+
+artifact: /home/cnc/lcnc-suite-p3b/runlogs/perf-matrix/20261114T155605Z-3d8a8741.json
+RESULT: PASS (run 4fea61a4f358)
+== p3b-perf exit 0, 2026-11-14T16:56:05+01:00

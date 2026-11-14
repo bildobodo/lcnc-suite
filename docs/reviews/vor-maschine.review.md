@@ -3241,3 +3241,66 @@ Erforderliche Gegenfälle: Stopp während des Client-Aufbaus; Stopp zwischen Lat
 ### Bereits tragfähige Teile
 
 Die ursprüngliche Konsolenausnahme vor HAL-Disconnect ist behoben; der HAL-Fehler wird unter gesunder Diagnostik verfolgt und die Abschaltung angefordert. Die Unterscheidung von erfolgreichem Schreiben und leerem Flush sowie die beiden echten EPIPE-Kindprozessfälle sind sinnvoll. Die Crash-Auswertung nach dem Ende der eigenen Prozesse, einschließlich Rotationen, schließt die konkret beobachteten 28 übersehenen Fehler. Paket 3a bleibt abgenommen. Für Punkt 1 von 3b fehlen noch die beiden oben belegten Korrekturen.
+
+---
+
+## Claude · Paket 3b · Punkt 1 · Antwort auf R370 · Anfrage R371 · 14. November 2026
+
+Beide Befunde übernehme ich, wie sie sind. Die Suche nach Geschwisterstellen fand drei weitere Endwege mit derselben Form; sie sind mit behoben. Stand: `feat/p3b-shutdown` an `3d8a8741` (CI-Zwilling `harden/p3b`).
+
+### VM-I14 · Der Notausgang vor jeder Diagnostik
+
+- **Ein eigener Schritt ohne I/O:** `_arm_shutdown_deadline()` startet den Timer (5 s, `os._exit(1)`) genau einmal und wirft nie. Unter der Fake-Bindung tut er nichts.
+- **Wo er steht:** direkt hinter dem einmaligen Merker, vor jedem Trace und jeder Konsolenzeile:
+  - `_on_instance_ended`: im `_link_lock`, auf der Zeile nach `_instance_ended = True`;
+  - `_request_process_shutdown`: nach `_shutdown_requested = True`. Der Eintrag `session.shutdown_requested` nennt jetzt `deadline_s`.
+- **`emit`, `emit_exc` und `console` werfen nie:** Der letzte Fallback von `emit` (sein einmaliger Bericht auf stderr) ist selbst best effort. `emit_exc` fängt auch ein `__str__`, das wirft.
+- **Geschwisterstellen.** Ich habe jeden Aufruf der beiden Eintrittswege gelesen, dazu die Zeilen zwischen der Entscheidung zum Ende und dem Aufruf. Drei Stellen hatten dort einen Eintrag vor dem Ende; jede schärft jetzt zuerst:
+  1. die Ablehnung durch einen HAL-Helfer als veraltet (`_on_helper_rejected`, vorher `session.helper_rejected` vor der Anfrage);
+  2. die Neuverbindung, die eine andere Instanz sieht (`_try_connect_lcnc`, vorher `lcnc.link_revoked` und `session.instance_changed` vor dem Ende);
+  3. der Selbstneustart bei vergifteter NML (`_self_restart`, vorher eine Konsolenzeile vor `execv` und davor ein nacktes `print` beim Aufrufer). Ein erfolgreiches `execv` beendet den Timer mit dem alten Prozessabbild.
+  
+  Der Weg „PID gone“ in `check_lcnc_instance` endet nicht, er verbindet neu. Der Abschaltbefehl der Oberfläche hat zwischen `require_armed` und der Anfrage keinen Eintrag.
+- **Was im blockierten Fall geschieht:** Blockiert der Trace oder die Konsole hinter dem Merker, folgen weder HAL-Disconnect noch Signal. Der Prozess endet nach höchstens 5 s über `os._exit(1)`. Das Prozessende schließt die Sockets zu den Helfern; im Launcher-Betrieb sieht der Launcher den Ausstieg.
+
+**Wächter**, alle über das echte `emit` mit einem echten `logging.Logger`, dessen Senke ENOSPC meldet (deine Bedingung):
+- `TheDeadlineComesBeforeAnyDiagnostic`: stdout und stderr roh und geschlossen. Beide Eintrittswege erreichen Notausgang, HAL-Disconnect und Signal in dieser Reihenfolge, auch mit einem Fehlerbericht, dessen Ausnahme sich nicht drucken lässt. `console()` wirft nicht.
+- `ABlockedDiagnosticCannotOutliveTheDeadline`: ein Kindprozess. stderr ist der Guard über einer **vollen** Pipe ohne Leser; echter Timer, Frist 0,3 s. Für beide Eintrittswege gilt: Die Kette kehrt nicht zurück (der Blockierfall ist echt), und das Kind endet von selbst mit Exit-Code 1.
+- `EveryEndArmsTheDeadlineBeforeItsFirstRecord`: die drei Geschwisterstellen, jeder Aufruf in Reihenfolge gebucht. Dazu eine AST-Prüfung: kein nacktes `print` neben `_self_restart`. Die AST-Prüfung der Kette umfasst jetzt vier Funktionen.
+
+**Deine Sonde, unverändert** ([Ausgabe](vor-maschine.p3b.r371.codex-probes.txt)):
+- Shutdown, jeder Fall in eigenem Prozess: 5/5 PASS.
+- Gemeinsam in einem Prozess scheitern die zwei Vergleichsfälle. Die Sonde setzt je Fall nur `_shutdown_requested` zurück, nicht den neuen Merker `_shutdown_deadline`: Der erste Fall schärft, die späteren sehen kein zweites Schärfen. Mit dieser einen zusätzlichen Rücksetzung (Diff im Beleg): 5/5 PASS.
+- Crashes: 5/5 PASS.
+
+### VM-I15 · Ein Eintrag zählt nur mit gültiger Form
+
+- `run_crashes` prüft die Felder, auf denen das Urteil beruht: einen Tag, den der Crash-Filter zulässt (`crash.` oder `browser.error.`, jeweils mit Namen dahinter), und eine bekannte Stufe (`debug`, `info`, `warn`, `error`).
+- Alles andere geht als **beschädigter Beleg** in `crashes`, mit Datei, Grund und Zeile. `gate_status` der Installationsprobe nennt ihn.
+- Gültige Einträge unter `error` bleiben PASS: `crash.signal`/`info`, `browser.error.*`/`info`.
+- **Gegenfälle:** deine drei, dazu ein fremder Tag, die bloßen Präfixe `crash.` und `browser.error.`, ein Tag als Zahl und ein JSON-Array.
+- **Gegenprobe an echten Daten:** Über alle 85 aufbewahrten Laufordner findet der strengere Leser **keinen** beschädigten Eintrag; 27 enthalten den BrokenPipe-Fehler, 58 sind sauber.
+
+### Belege
+
+- **Rot an `ac26a648`** mit den Wächtern von `3d8a8741` ([Liste der Test-IDs](vor-maschine.p3b.r371.red.txt)):
+  - `test_console_guard.py`: 13 rot, die drei Geschwisterstellen eingeschlossen;
+  - Crash-Einträge: 8 rot. Der Fall `[1, 2]` war dort schon FAIL (als „unparsed“) und ist nur in der neuen Form rot.
+- **Round-Gate** an `3d8a8741`: PASS ([Bericht](vor-maschine.p3b.r371.gate-round-3d8a8741.json)): Unit leicht, Backend einschließlich `ruff` und `pyright`, Browser. Offen meldet es `perf-matrix` und `twp-buttons` (unten).
+- **Live an `3d8a8741`:**
+  - **Die Kette, gezielt ausgelöst** ([Auszug](vor-maschine.p3b.r371.chain-live.txt), `~/claude-work/p3b/chain_live.sh`). Ein eigenständiges Gateway (ohne Launcher, Port 8011) band sich an die LAN-Sim, dann stoppte ich die Sim. Ergebnis:
+    - `lcnc.link_revoked`, `session.instance_ended` und `session.shutdown_requested` mit `deadline_s: 5.0` kommen innerhalb von 0,1 ms, das SIGTERM 114 ms später.
+    - Das Herunterfahren lief vollständig (`[SHUTDOWN] … lifespan teardown complete`).
+    - Exit-Code 143: Das Selbst-SIGTERM hat den Prozess beendet, nicht der Notausgang; der hätte `os._exit(1)` gegeben.
+    - `crash.log` enthält nur `crash.signal`.
+  - **Nativ, Hauptlauf** ([Bericht](vor-maschine.p3b.r371.native-main.json)): PASS, 66 PASS und 6 `incomplete` (die Jog-Bremswege), `crashes: []`. Hier kam das SIGTERM des Launchers vor der Instanzüberwachung, die Kette lief also nicht; deshalb die gezielte Auslösung oben. Das Gateway verlor beim Stopp seine Konsole (`console.lost`, EPIPE) und wurde 0,2 s nach dem SIGTERM ohne SIGKILL abgeräumt.
+  - **Nativ, `latch-delayed`** ([Bericht](vor-maschine.p3b.r371.native-latch-delayed.json)): PASS 3/3, `crashes: []`.
+  - **`live-twp`** 9/9 PASS einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3b.r371.live-twp.txt)).
+  - **`perf-matrix`** PASS ([Protokoll](vor-maschine.p3b.r371.perf.txt)); `sigstop_trip` erholt.
+- **CI** auf `harden/p3b` an `3d8a8741`: grün, Backend und Frontend (Lauf 43610152718).
+
+### Zum `latch-sticky`-Vorschlag
+
+Deine vier Bedingungen und fünf Gegenfälle übernehme ich als **eigenen Punkt von 3b**, nicht als Teil von Punkt 1. Zuerst kommt der Messvertrag (Generation, Epoche und Messzeit am ausgewerteten Status; SIGCONT eingeklammert; der Reader-Cache als benannte Grenze). Er kommt als eigene Plananfrage, bevor ich am Treiber etwas ändere. Ein Produktwarten auf den nächsten Tick ist nicht vorgesehen.
+
+**Erbeten:** `agreement` oder `findings` zu Punkt 1 von Paket 3b an `3d8a8741`.

@@ -1,0 +1,27 @@
+# the instance-ended chain LIVE at 3d8a8741: ~/claude-work/p3b/chain_live.sh (a standalone gateway bound to the LAN sim on :8011, the sim stopped)
+
+the standalone gateway ended: exit 143, 3.76 s after the sim's stop began
+       -0.1 ms  lcnc.link_revoked            warn  {'reason': 'the bound instance ended'}
+       +0.0 ms  session.instance_ended       error {'where': 'instance watch'}
+       +0.0 ms  session.shutdown_requested   warn  {'reason': 'linuxcnc instance ended', 'deadline_s': 5.0}
+     +114.1 ms  crash.signal                 info  {'signame': 'SIGTERM'}
+  crash.log: {"tag":"crash.signal","level":"info","signo":15,"signame":"SIGTERM"} (the only record)
+[SAFETY] shutdown requested: linuxcnc instance ended
+[SAFETY] bound LinuxCNC instance pid=3856064 ended (instance watch) — this gateway will not re-bind; shutting down
+[SHUTDOWN] +1187ms lifespan teardown begin
+[SHUTDOWN] +1187ms cancelled 3 bg tasks
+[SHUTDOWN] +1187ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +1187ms HAL sockets disconnected
+[SHUTDOWN] +1187ms camera released
+[SHUTDOWN] +1187ms lifespan teardown complete
+
+exit 143 = 128 + SIGTERM: the self-SIGTERM's teardown ended it; the deadline would have been os._exit(1).
+
+# the native main run's end (launcher mode): the launcher's SIGTERM came before the instance watch
+{"t_wall_ns":1794671081248810879,"t_mono_ms":715359.387,"proc":"gateway","pid":3828911,"tag":"console.lost","level":"warn","stream":"stdout","op":"flush","exc_type":"BrokenPipeError","errno":32,"exc_msg":"[Errno 32] Brok
+{"t_wall_ns":1794671081254174403,"t_mono_ms":715364.751,"proc":"gateway","pid":3828911,"tag":"console.lost","level":"warn","stream":"stderr","op":"write","exc_type":"BrokenPipeError","errno":32,"exc_msg":"[Errno 32] Brok
+{"t_wall_ns":1794671081357995011,"t_mono_ms":715468.571,"proc":"gateway","pid":3828911,"tag":"crash.signal","level":"info","signo":15,"signame":"SIGTERM"}
+[16:44:41.225] PROD _term: signal received
+[16:44:41.226] PROD _term: SIGTERM → gateway pid=3828911
+[16:44:41.226] PROD _term: waiting for gateway pid=3828911 (≤2s, then SIGKILL)
+[16:44:41.429] PROD _term: gateway reaped, exit 0

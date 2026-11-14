@@ -1,0 +1,37 @@
+# Codex's R370 probes, unmodified, against 3d8a8741's code (vor-maschine.p3b.r370.codex-shutdown.py / -crashes.py)
+
+## shutdown, each case in its own process
+test_console_does_not_rethrow_when_its_loss_report_fails: PASS
+test_shutdown_reaches_deadline_when_trace_and_stderr_fail: PASS
+test_comparison_closed_raw_streams_with_healthy_trace: PASS
+test_comparison_failed_trace_with_stderr_guard_intact: PASS
+test_deadline_precedes_trace_fallback_to_a_full_guarded_pipe: PASS
+
+## shutdown, all cases in one process (unmodified)
+E       AssertionError: {'calls': ['signal'], 'case': 'comparison_healthy_trace', 'error': None, 'shutdown_requested': True}
+E       assert ['signal'] == ['deadline', 'signal']
+E         
+E         At index 0 diff: 'signal' != 'deadline'
+E         Right contains one more item: 'signal'
+E         Use -v to get more diff
+E       AssertionError: {'calls': ['signal'], 'case': 'comparison_guarded_stderr', 'error': None, 'shutdown_requested': True}
+E       assert ['signal'] == ['deadline', 'signal']
+
+## shutdown, all in one process, with the one-line reset of the new flag
+40c40
+<             patch.object(gateway, "_shutdown_requested", False), \
+---
+>             patch.object(gateway, "_shutdown_requested", False), patch.object(gateway, "_shutdown_deadline", None), \
+PASSED test_r370_codex_probe.py::test_console_does_not_rethrow_when_its_loss_report_fails
+PASSED test_r370_codex_probe.py::test_shutdown_reaches_deadline_when_trace_and_stderr_fail
+PASSED test_r370_codex_probe.py::test_comparison_closed_raw_streams_with_healthy_trace
+PASSED test_r370_codex_probe.py::test_comparison_failed_trace_with_stderr_guard_intact
+PASSED test_r370_codex_probe.py::test_deadline_precedes_trace_fallback_to_a_full_guarded_pipe
+
+## crashes (unmodified)
+PASSED test_r370_codex_crashes.py::test_invalid_record_cannot_make_a_clean_run[record0]
+PASSED test_r370_codex_crashes.py::test_invalid_record_cannot_make_a_clean_run[record1]
+PASSED test_r370_codex_crashes.py::test_invalid_record_cannot_make_a_clean_run[record2]
+PASSED test_r370_codex_crashes.py::test_comparison_valid_records[record0-PASS]
+PASSED test_r370_codex_crashes.py::test_comparison_valid_records[record1-FAIL]
+5 passed in 0.02s

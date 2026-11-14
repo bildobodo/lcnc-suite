@@ -1,0 +1,27 @@
+# red at ac26a648 (R370's head) with the R371 guards of 3d8a8741 — test ids only
+## lcnc-gateway/test_console_guard.py
+FAILED test_console_guard.py::TheShutdownRequestArmsItsDeadlineFirst::test_a_second_request_arms_no_second_deadline
+FAILED test_console_guard.py::TheShutdownRequestArmsItsDeadlineFirst::test_a_standalone_gateway_signals_itself_with_a_raising_stdout
+FAILED test_console_guard.py::TheShutdownRequestArmsItsDeadlineFirst::test_the_launcher_is_signalled_with_a_raising_stdout
+FAILED test_console_guard.py::TheDeadlineComesBeforeAnyDiagnostic::test_a_failure_report_whose_exception_cannot_be_printed_skips_nothing
+FAILED test_console_guard.py::TheDeadlineComesBeforeAnyDiagnostic::test_console_never_raises_with_both_sinks_lost
+FAILED test_console_guard.py::TheDeadlineComesBeforeAnyDiagnostic::test_the_instance_end_reaches_deadline_disconnect_and_signal
+FAILED test_console_guard.py::TheDeadlineComesBeforeAnyDiagnostic::test_the_shutdown_request_reaches_deadline_and_signal
+FAILED test_console_guard.py::EveryEndArmsTheDeadlineBeforeItsFirstRecord::test_the_helper_s_stale_rejection
+FAILED test_console_guard.py::EveryEndArmsTheDeadlineBeforeItsFirstRecord::test_the_nml_self_restart
+FAILED test_console_guard.py::EveryEndArmsTheDeadlineBeforeItsFirstRecord::test_the_reconnect_that_sees_another_instance
+FAILED test_console_guard.py::EveryEndArmsTheDeadlineBeforeItsFirstRecord::test_the_self_restart_s_caller_prints_nothing_itself
+FAILED test_console_guard.py::ABlockedDiagnosticCannotOutliveTheDeadline::test_the_instance_end
+FAILED test_console_guard.py::ABlockedDiagnosticCannotOutliveTheDeadline::test_the_shutdown_request
+13 of 28 failed (the other 15 hold on ac26a648 too: the guard's own behaviour, the real-EPIPE children, the AST checks)
+## scripts/test_native_stage.py (crash records)
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{}-no crash tag]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "crash.thread", "level": null}-no known level]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "crash.thread", "level": "erorr"}-no known level]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "gateway.boot", "level": "info"}-no crash tag]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "crash.", "level": "error"}-no crash tag]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": "browser.error.", "level": "info"}-no crash tag]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[{"tag": 7, "level": "info"}-no crash tag]
+FAILED scripts/test_native_stage.py::test_a_record_the_verdict_cannot_classify_fails_the_run[[1, 2]-not a JSON object]
+8 failed, 9 passed, 504 deselected in 1.31s
+note: the [1, 2] case was already FAIL at ac26a648 (as "unparsed"); it is red here only by the record's new form — the other seven were PASS there

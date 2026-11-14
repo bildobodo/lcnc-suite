@@ -1,0 +1,11 @@
+# live-twp at 3d8a8741 (~/lcnc-suite-p3b, scratch install configs-p3b)
+PASS preview-goldens (0.16s)
+PASS live-parity (191.12s)
+PASS twp_buttons_check (71.11s)
+PASS twp_reorient_check (11.44s)
+PASS twp_capture_check (45.68s)
+PASS twp_touchoff_check (12.32s)
+PASS twp_touchoff_plane_check (23.63s)
+PASS twp_g683_check (9.28s)
+PASS twp_adverse_check (38.97s)
+PASS: /home/cnc/lcnc-suite-p3b/runlogs/test-suite/20261114T154613Z-live-twp/report.json
