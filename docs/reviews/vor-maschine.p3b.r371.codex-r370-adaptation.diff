@@ -1,0 +1,27 @@
+--- R370 original
++++ R371 probe
+@@ -38,6 +38,7 @@
+     with patch.object(trace, "_initialized", True), patch.object(trace, "_logger", logger), \
+             patch.object(trace, "_logger_failed", False), \
+             patch.object(gateway, "_shutdown_requested", False), \
++            patch.object(gateway, "_shutdown_deadline", None), \
+             patch.object(gateway, "_launcher_bind", {"mode": "standalone"}), \
+             patch.object(gateway.linuxcnc, "__lcnc_fake__", False), \
+             patch.object(gateway.threading, "Timer", Timer), \
+@@ -53,7 +54,7 @@
+         row = {"case": name, "error": error, "calls": calls,
+                "shutdown_requested": gateway._shutdown_requested}
+     OUT.append(row)
+-    Path("/tmp/r370-shutdown.json").write_text(json.dumps(OUT, indent=2))
++    Path("/tmp/r371-shutdown.json").write_text(json.dumps(OUT, indent=2))
+     return row
+ 
+ 
+@@ -134,6 +135,6 @@
+            'deadline': (tmp_path / 'deadline').exists(),
+            'returned': (tmp_path / 'returned').exists(), 'timed_out': timed_out}
+     OUT.append(row)
+-    Path('/tmp/r370-shutdown.json').write_text(json.dumps(OUT, indent=2))
++    Path('/tmp/r371-shutdown.json').write_text(json.dumps(OUT, indent=2))
+     assert row['entered'], row
+     assert row['deadline'], row

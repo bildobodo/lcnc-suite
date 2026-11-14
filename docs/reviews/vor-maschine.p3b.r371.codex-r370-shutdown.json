@@ -1,0 +1,42 @@
+[
+  {
+    "case": "console_and_trace_sinks_lost",
+    "error": null,
+    "calls": [],
+    "shutdown_requested": false
+  },
+  {
+    "case": "shutdown_trace_fails",
+    "error": null,
+    "calls": [
+      "deadline",
+      "signal"
+    ],
+    "shutdown_requested": true
+  },
+  {
+    "case": "comparison_healthy_trace",
+    "error": null,
+    "calls": [
+      "deadline",
+      "signal"
+    ],
+    "shutdown_requested": true
+  },
+  {
+    "case": "comparison_guarded_stderr",
+    "error": null,
+    "calls": [
+      "deadline",
+      "signal"
+    ],
+    "shutdown_requested": true
+  },
+  {
+    "case": "full_pipe_with_guard",
+    "entered": true,
+    "deadline": true,
+    "returned": false,
+    "timed_out": true
+  }
+]

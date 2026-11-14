@@ -1,0 +1,64 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_unhashable_level_is_damaged_evidence_not_a_lost_report[level0] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2386/test_unhashable_level_is_damag0')
+level = []
+
+    @pytest.mark.parametrize("level", [[], {}])
+    def test_unhashable_level_is_damaged_evidence_not_a_lost_report(tmp_path, level):
+        record = {"tag": "crash.thread", "level": level}
+        error = None
+        report = None
+        try:
+            report = _passing_run(tmp_path, [json.dumps(record)])
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        run = tmp_path / "run"
+        restored = json.loads((run / "restore.json").read_text()) if (run / "restore.json").exists() else None
+        row = {"record": record, "error": error,
+               "restore_exists": (run / "restore.json").exists(),
+               "restore_outcome": restored.get("outcome") if restored else None,
+               "report_exists": (run / "report.json").exists(),
+               "crashes": report.get("crashes") if report else None,
+               "verdict": nr.verdict(report) if report else None}
+        OUT.append(row)
+        Path("/tmp/r371-crash-types.json").write_text(json.dumps(OUT, indent=2))
+>       assert error is None, row
+E       AssertionError: {'crashes': None, 'error': "TypeError: unhashable type: 'list'", 'record': {'level': [], 'tag': 'crash.thread'}, 'report_exists': False, ...}
+E       assert "TypeError: unhashable type: 'list'" is None
+
+scripts/test_r371_crash_types_codex.py:31: AssertionError
+_____ test_unhashable_level_is_damaged_evidence_not_a_lost_report[level1] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2386/test_unhashable_level_is_damag1')
+level = {}
+
+    @pytest.mark.parametrize("level", [[], {}])
+    def test_unhashable_level_is_damaged_evidence_not_a_lost_report(tmp_path, level):
+        record = {"tag": "crash.thread", "level": level}
+        error = None
+        report = None
+        try:
+            report = _passing_run(tmp_path, [json.dumps(record)])
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        run = tmp_path / "run"
+        restored = json.loads((run / "restore.json").read_text()) if (run / "restore.json").exists() else None
+        row = {"record": record, "error": error,
+               "restore_exists": (run / "restore.json").exists(),
+               "restore_outcome": restored.get("outcome") if restored else None,
+               "report_exists": (run / "report.json").exists(),
+               "crashes": report.get("crashes") if report else None,
+               "verdict": nr.verdict(report) if report else None}
+        OUT.append(row)
+        Path("/tmp/r371-crash-types.json").write_text(json.dumps(OUT, indent=2))
+>       assert error is None, row
+E       AssertionError: {'crashes': None, 'error': "TypeError: unhashable type: 'dict'", 'record': {'level': {}, 'tag': 'crash.thread'}, 'report_exists': False, ...}
+E       assert "TypeError: unhashable type: 'dict'" is None
+
+scripts/test_r371_crash_types_codex.py:31: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_r371_crash_types_codex.py::test_unhashable_level_is_damaged_evidence_not_a_lost_report[level0]
+FAILED scripts/test_r371_crash_types_codex.py::test_unhashable_level_is_damaged_evidence_not_a_lost_report[level1]
+2 failed in 0.05s

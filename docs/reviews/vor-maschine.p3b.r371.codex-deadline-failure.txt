@@ -1,0 +1,89 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___________ test_timer_start_failure_still_ends_the_gateway[request] ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2385/test_timer_start_failure_still0')
+entry = 'request'
+
+    @pytest.mark.parametrize("entry", ["request", "instance"])
+    def test_timer_start_failure_still_ends_the_gateway(tmp_path, entry):
+        # Reuse the repository's own real blocking case. Only the timer resource
+        # is now unavailable. LinuxCNC is fake; signals leaving the child are stubbed.
+        code = ABlockedDiagnosticCannotOutliveTheDeadline.CHILD.replace(
+            "gateway.SHUTDOWN_DEADLINE_S = 0.3",
+            """gateway.SHUTDOWN_DEADLINE_S = 0.3
+    class NoThread:
+        def __init__(self, *args): pass
+        def start(self):
+            (out / 'timer-failed').write_text('RuntimeError: cannot start new thread')
+            raise RuntimeError('cannot start new thread')
+    gateway.threading.Timer = NoThread""")
+        rc = None
+        timed_out = False
+        try:
+            result = subprocess.run([sys.executable, "-c", code, str(tmp_path), entry],
+                                    cwd=Path(__file__).parent, timeout=2, capture_output=True,
+                                    env={**os.environ, "LCNC_LOG_DIR": str(tmp_path / "logs")})
+            rc = result.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        row = {"entry": entry, "entered": (tmp_path / "entered").exists(),
+               "timer_failed": (tmp_path / "timer-failed").exists(),
+               "returned": (tmp_path / "returned").exists(),
+               "timed_out": timed_out, "returncode": rc}
+        OUT.append(row)
+        Path("/tmp/r371-deadline-failure.json").write_text(json.dumps(OUT, indent=2))
+        assert row["entered"] and row["timer_failed"], row
+>       assert not timed_out, row
+E       AssertionError: {'entered': True, 'entry': 'request', 'returncode': None, 'returned': False, ...}
+E       assert not True
+
+test_r371_codex.py:43: AssertionError
+__________ test_timer_start_failure_still_ends_the_gateway[instance] ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2385/test_timer_start_failure_still1')
+entry = 'instance'
+
+    @pytest.mark.parametrize("entry", ["request", "instance"])
+    def test_timer_start_failure_still_ends_the_gateway(tmp_path, entry):
+        # Reuse the repository's own real blocking case. Only the timer resource
+        # is now unavailable. LinuxCNC is fake; signals leaving the child are stubbed.
+        code = ABlockedDiagnosticCannotOutliveTheDeadline.CHILD.replace(
+            "gateway.SHUTDOWN_DEADLINE_S = 0.3",
+            """gateway.SHUTDOWN_DEADLINE_S = 0.3
+    class NoThread:
+        def __init__(self, *args): pass
+        def start(self):
+            (out / 'timer-failed').write_text('RuntimeError: cannot start new thread')
+            raise RuntimeError('cannot start new thread')
+    gateway.threading.Timer = NoThread""")
+        rc = None
+        timed_out = False
+        try:
+            result = subprocess.run([sys.executable, "-c", code, str(tmp_path), entry],
+                                    cwd=Path(__file__).parent, timeout=2, capture_output=True,
+                                    env={**os.environ, "LCNC_LOG_DIR": str(tmp_path / "logs")})
+            rc = result.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        row = {"entry": entry, "entered": (tmp_path / "entered").exists(),
+               "timer_failed": (tmp_path / "timer-failed").exists(),
+               "returned": (tmp_path / "returned").exists(),
+               "timed_out": timed_out, "returncode": rc}
+        OUT.append(row)
+        Path("/tmp/r371-deadline-failure.json").write_text(json.dumps(OUT, indent=2))
+        assert row["entered"] and row["timer_failed"], row
+>       assert not timed_out, row
+E       AssertionError: {'entered': True, 'entry': 'instance', 'returncode': None, 'returned': False, ...}
+E       assert not True
+
+test_r371_codex.py:43: AssertionError
+=========================== short test summary info ============================
+FAILED test_r371_codex.py::test_timer_start_failure_still_ends_the_gateway[request]
+FAILED test_r371_codex.py::test_timer_start_failure_still_ends_the_gateway[instance]
+[GC] +4192ms gen=2 duration=26.7ms collected=635 uncollectable=0
+[GC] +4218ms gen=2 duration=25.6ms collected=0 uncollectable=0
+[GC] +4234ms gen=2 duration=16.2ms collected=0 uncollectable=0
+[GC] +4247ms gen=2 duration=13.3ms collected=0 uncollectable=0
+[GC] +4265ms gen=2 duration=17.6ms collected=0 uncollectable=0
+[GC] +4282ms gen=2 duration=15.3ms collected=0 uncollectable=0

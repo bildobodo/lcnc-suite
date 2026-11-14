@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.052" timestamp="2026-11-14T18:11:45.310549+01:00" hostname="debian"><testcase classname="scripts.test_r371_crash_types_codex" name="test_unhashable_level_is_damaged_evidence_not_a_lost_report[level0]" time="0.001"><failure message="AssertionError: {'crashes': None, 'error': &quot;TypeError: unhashable type: 'list'&quot;, 'record': {'level': [], 'tag': 'crash.thread'}, 'report_exists': False, ...}&#10;assert &quot;TypeError: unhashable type: 'list'&quot; is None">tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2386/test_unhashable_level_is_damag0')
+level = []
+
+    @pytest.mark.parametrize("level", [[], {}])
+    def test_unhashable_level_is_damaged_evidence_not_a_lost_report(tmp_path, level):
+        record = {"tag": "crash.thread", "level": level}
+        error = None
+        report = None
+        try:
+            report = _passing_run(tmp_path, [json.dumps(record)])
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        run = tmp_path / "run"
+        restored = json.loads((run / "restore.json").read_text()) if (run / "restore.json").exists() else None
+        row = {"record": record, "error": error,
+               "restore_exists": (run / "restore.json").exists(),
+               "restore_outcome": restored.get("outcome") if restored else None,
+               "report_exists": (run / "report.json").exists(),
+               "crashes": report.get("crashes") if report else None,
+               "verdict": nr.verdict(report) if report else None}
+        OUT.append(row)
+        Path("/tmp/r371-crash-types.json").write_text(json.dumps(OUT, indent=2))
+&gt;       assert error is None, row
+E       AssertionError: {'crashes': None, 'error': "TypeError: unhashable type: 'list'", 'record': {'level': [], 'tag': 'crash.thread'}, 'report_exists': False, ...}
+E       assert "TypeError: unhashable type: 'list'" is None
+
+scripts/test_r371_crash_types_codex.py:31: AssertionError</failure></testcase><testcase classname="scripts.test_r371_crash_types_codex" name="test_unhashable_level_is_damaged_evidence_not_a_lost_report[level1]" time="0.001"><failure message="AssertionError: {'crashes': None, 'error': &quot;TypeError: unhashable type: 'dict'&quot;, 'record': {'level': {}, 'tag': 'crash.thread'}, 'report_exists': False, ...}&#10;assert &quot;TypeError: unhashable type: 'dict'&quot; is None">tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2386/test_unhashable_level_is_damag1')
+level = {}
+
+    @pytest.mark.parametrize("level", [[], {}])
+    def test_unhashable_level_is_damaged_evidence_not_a_lost_report(tmp_path, level):
+        record = {"tag": "crash.thread", "level": level}
+        error = None
+        report = None
+        try:
+            report = _passing_run(tmp_path, [json.dumps(record)])
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        run = tmp_path / "run"
+        restored = json.loads((run / "restore.json").read_text()) if (run / "restore.json").exists() else None
+        row = {"record": record, "error": error,
+               "restore_exists": (run / "restore.json").exists(),
+               "restore_outcome": restored.get("outcome") if restored else None,
+               "report_exists": (run / "report.json").exists(),
+               "crashes": report.get("crashes") if report else None,
+               "verdict": nr.verdict(report) if report else None}
+        OUT.append(row)
+        Path("/tmp/r371-crash-types.json").write_text(json.dumps(OUT, indent=2))
+&gt;       assert error is None, row
+E       AssertionError: {'crashes': None, 'error': "TypeError: unhashable type: 'dict'", 'record': {'level': {}, 'tag': 'crash.thread'}, 'report_exists': False, ...}
+E       assert "TypeError: unhashable type: 'dict'" is None
+
+scripts/test_r371_crash_types_codex.py:31: AssertionError</failure></testcase></testsuite></testsuites>

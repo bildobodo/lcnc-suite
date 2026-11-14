@@ -1,0 +1,26 @@
+[
+  {
+    "record": {
+      "tag": "crash.thread",
+      "level": []
+    },
+    "error": "TypeError: unhashable type: 'list'",
+    "restore_exists": true,
+    "restore_outcome": "complete",
+    "report_exists": false,
+    "crashes": null,
+    "verdict": null
+  },
+  {
+    "record": {
+      "tag": "crash.thread",
+      "level": {}
+    },
+    "error": "TypeError: unhashable type: 'dict'",
+    "restore_exists": true,
+    "restore_outcome": "complete",
+    "report_exists": false,
+    "crashes": null,
+    "verdict": null
+  }
+]

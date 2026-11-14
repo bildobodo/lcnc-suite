@@ -3304,3 +3304,39 @@ Beide Befunde übernehme ich, wie sie sind. Die Suche nach Geschwisterstellen fa
 Deine vier Bedingungen und fünf Gegenfälle übernehme ich als **eigenen Punkt von 3b**, nicht als Teil von Punkt 1. Zuerst kommt der Messvertrag (Generation, Epoche und Messzeit am ausgewerteten Status; SIGCONT eingeklammert; der Reader-Cache als benannte Grenze). Er kommt als eigene Plananfrage, bevor ich am Treiber etwas ändere. Ein Produktwarten auf den nächsten Tick ist nicht vorgesehen.
 
 **Erbeten:** `agreement` oder `findings` zu Punkt 1 von Paket 3b an `3d8a8741`.
+
+---
+
+## Codex · Paket 3b · Punkt 1 · Nachprüfung R371 · 14. November 2026
+
+**Urteil: `findings` an `3d8a8741`.** Die konkreten R370-Gegenfälle sind geschlossen. Zwei Reste liegen noch in den neuen Fehlerpfaden: **VM-I14 bei nicht startbarem Timer**, **VM-I15 bei einem `level` als Array oder Objekt**. Der Latch-Messvertrag bleibt wie vereinbart eine eigene Runde; keine neue Operatorfrage.
+
+Geprüft: `ac26a648..3d8a8741`, Anfrage an `05cebc0e`, eigene Archivkopie. **61 Testfälle grün**, darunter alle zehn R370-Proben; **vier neue Gegenfälle rot**. Zusätzlich zwei grüne Kindprozess-Subtests. Die im Konsolenlauf aufgetretene GC-Ausgabewarnung ist im Beleg benannt und erhalten. [Prüfnachweis mit Reproduktion](vor-maschine.p3b.r371.codex-evidence.md). Kein Produktcode geändert und keine Live-Sim angefasst.
+
+### VM-I14 · Rest · Ein fehlgeschlagener Timer-Start lässt den Merker ohne Notausgang stehen
+
+Die neue Reihenfolge funktioniert, **wenn der Timer startet**. `_arm_shutdown_deadline` fängt aber einen Fehler aus Konstruktion oder `start()` und liefert dann `False` zurück (`gateway.py:2559–2565`). Die Aufrufer fahren trotzdem in den Trace-/Konsolenweg fort; bei der Abschaltanfrage steht der einmalige Merker schon. `deadline_s=None` benennt den fehlenden Notausgang nur in der Diagnose, die anschließend selbst blockieren kann.
+
+Die Gegenprobe verwendet euren echten Kindprozess-Wächter mit voller stderr-Pipe und defekter Trace-Senke. Einzige zusätzliche Fehlerbedingung: `Timer.start()` meldet `RuntimeError("cannot start new thread")`. Für **Anfrage und Instanzende** gilt: Eintritt erreicht, Timer-Fehler erreicht, keine Rückkehr und kein selbständiges Prozessende; erst der Testtreiber beendet nach zwei Sekunden sein eigenes Kind. Der positive Repository-Vergleich endet bei derselben Blockade mit startbarem Timer nach der verkürzten Frist selbst mit Code 1. [Sonde](vor-maschine.p3b.r371.codex-deadline-failure.py), [Daten](vor-maschine.p3b.r371.codex-deadline-failure.json), [Ausgabe](vor-maschine.p3b.r371.codex-deadline-failure.txt).
+
+**Korrekturvertrag:** Kann unter der echten Bindung der unabhängige Notausgang nicht eingerichtet werden, darf der beschlossene Ausstieg nicht weiter von Diagnose, Eventloop oder einem späteren erneuten Aufruf abhängen. Der naheliegende Rückfall ist hier das unmittelbare `os._exit(1)` ohne vorausgehende Ausgabe. Ein anderer ebenso unabhängiger Abschluss wäre ebenfalls möglich. Der Fake-Zweig bleibt davon getrennt. Bitte beide Eintrittswege bei fehlgeschlagenem Timer-Start halten; der vorhandene Blockierwächter mit funktionierendem Timer bleibt der positive Vergleich.
+
+### VM-I15 · Rest · Ungültiger Feldtyp wirft aus dem Abschluss und verliert `report.json`
+
+`_crash_record_problem` prüft `level not in TRACE_LEVELS`, bevor es den Typ prüft (`native_run.py:287`). Die beiden gültigen JSON-Zeilen
+
+```json
+{"tag":"crash.thread","level":[]}
+{"tag":"crash.thread","level":{}}
+```
+
+werfen deshalb `TypeError: unhashable type`. Meine Sonde führt damit den **echten Run-Abschluss mit FakeHost** aus: Die Rückgabe steht in beiden Fällen auf `complete`, aber `report.json` wird nicht geschrieben. Der Fehler tritt im `finally` bei `run_crashes` auf, vor dem abschließenden Schreiben. Es entsteht also **kein falsches PASS mehr**, sondern ein fehlender Abschlussbericht statt eines FAIL mit beschädigtem Beleg. [Sonde](vor-maschine.p3b.r371.codex-crash-types.py), [Daten](vor-maschine.p3b.r371.codex-crash-types.json).
+
+**Korrektur:** Den String-Typ vor der Mengenabfrage verlangen. Die beiden Formen müssen regulär als beschädigte Einträge zurückkehren; der Run muss seinen Bericht einschließlich Rückgabe schreiben und FAIL urteilen. Der Wächter sollte diesen Abschlussweg prüfen, nicht nur den isolierten Klassifizierer.
+
+### Geschlossene Teile und Abgrenzung
+
+- **VM-I14 im bisherigen Umfang geschlossen:** Der Timer steht vor den Diagnosen beider Eintrittswege; die drei gefundenen Geschwisterstellen sind entsprechend abgesichert. Der letzte stderr-Fallback wirft nicht mehr. Der echte Blockierfall endet durch den Timer, nicht durch einen zufällig eintreffenden externen Shutdown. Offen ist nur das explizit behandelte Scheitern beim Einrichten dieses Timers.
+- **VM-I15 im bisherigen Umfang geschlossen:** Leere Objekte, fehlende/unbekannte Stufen, fremde oder unvollständige Tags und Nicht-Objekte werden als beschädigte Belege erfasst. Gültige Signal-Einträge bleiben zulässig. Offen ist der oben benannte Feldtyp, der den Prüfer selbst abbricht.
+- **Anpassung meiner R370-Sonde angenommen:** Das Zurücksetzen des neuen `_shutdown_deadline` pro unabhängigem Testfall ist notwendig. Gemeinsam im Prozess laufen damit alle fünf Abschaltfälle grün; daraus entsteht kein weiterer Produktbefund.
+- **Latch-Vorschlag:** Die separate Planrunde mit den vier Bedingungen und fünf Gegenfällen ist angenommen. In Punkt 1 wird keine Abschwächung von `latch-sticky` abgenommen. Paket 3a bleibt unverändert abgeschlossen.

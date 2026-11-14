@@ -1,0 +1,29 @@
+.................................                                      [100%]
+=============================== warnings summary ===============================
+test_console_guard.py::EveryEndArmsTheDeadlineBeforeItsFirstRecord::test_the_self_restart_s_caller_prints_nothing_itself
+  /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <function _gc_callback at 0xffffbaad42c0>
+  
+  Traceback (most recent call last):
+    File "/tmp/codex-r371/lcnc-gateway/gateway.py", line 231, in _gc_callback
+      print(
+      ~~~~~^
+          f"[GC] +{offset_ms:.0f}ms gen={gen} duration={dt_ms:.1f}ms "
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      ...<2 lines>...
+          flush=True,
+          ^^^^^^^^^^^
+      )
+      ^
+  ValueError: I/O operation on closed file
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[GC] +4429ms gen=2 duration=14.2ms collected=797 uncollectable=0
+[GC] +4439ms gen=2 duration=9.9ms collected=0 uncollectable=0
+[GC] +4448ms gen=2 duration=9.6ms collected=0 uncollectable=0
+[GC] +4458ms gen=2 duration=9.6ms collected=0 uncollectable=0
+[GC] +4467ms gen=2 duration=9.1ms collected=0 uncollectable=0
+[GC] +4491ms gen=2 duration=12.1ms collected=0 uncollectable=0
