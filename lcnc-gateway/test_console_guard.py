@@ -524,7 +524,7 @@ class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
         sys.stderr = lcnc_trace.ConsoleGuard(io.TextIOWrapper(os.fdopen(w, "wb", buffering=0), write_through=True), "stderr")
         sys.stdout = io.StringIO()
         gateway.SHUTDOWN_DEADLINE_S = 0.3
-        if sys.argv[3] == "no-thread":         # Codex R371 VM-I14: the timer cannot start
+        if sys.argv[3:] == ["no-thread"]:      # Codex R371 VM-I14: the timer cannot start
             class _NoThread:
                 def __init__(self, *a, **k): self.daemon = False
                 def start(self):
