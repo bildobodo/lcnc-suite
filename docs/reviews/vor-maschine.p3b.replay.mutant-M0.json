@@ -1,0 +1,802 @@
+{
+  "verdict": "PASS",
+  "run": "mut-M0-1794678796",
+  "logs": 3,
+  "connections": {
+    "infra": 126,
+    "test": 124,
+    "none": 1
+  },
+  "http": {
+    "with origin": 1795
+  },
+  "frames": 737,
+  "commands": {
+    "get_probe_results": 1,
+    "get_tool_table": 248,
+    "heartbeat": 168,
+    "hello": 124,
+    "jog_cont": 28,
+    "jog_stop": 28,
+    "mdi": 4,
+    "probe_run": 5,
+    "save_settings": 6,
+    "surface_scan_run": 1,
+    "tab_visibility": 124
+  },
+  "attempts": 123,
+  "per_attempt": {
+    "jog-buttons.spec.ts \u203a every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "jog_cont": 18,
+      "jog_stop": 18,
+      "tab_visibility": 1
+    },
+    "jog-buttons.spec.ts \u203a every jog button on XYZAC: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "jog_cont": 10,
+      "jog_stop": 10,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Angle: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "probe_run:probe_corner_x_plus_edge_angle": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Boss/Pocket: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "probe_run:probe_round_boss": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Calibrate: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "probe_run:probe_cal_round_pocket": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Outside: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "probe_run:probe_back_left_top_corner": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Ridge/Valley: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "probe_run:probe_ridge_x": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers [retry 0]": {
+      "get_probe_results": 1,
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "save_settings:probe": 1,
+      "surface_scan_run": 1,
+      "tab_visibility": 1
+    },
+    "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]": {
+      "get_tool_table": 4,
+      "heartbeat": 4,
+      "hello": 2,
+      "tab_visibility": 2
+    },
+    "setup-layout.spec.ts \u203a 1 X, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 5 TCP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 5 TCP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 6 TWP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 6 TWP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a new axis set re-lays the section out [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a landscape touch: a title's \"?\" is centred on its line [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a landscape: a title's \"?\" is centred on its line [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a portrait touch 150 %, the keypad on an axis field: only the axis rows stay [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a portrait touch: a title's \"?\" is centred on its line [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    }
+  },
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP requests' payloads (step 5b) \u2014 recorded with their origin, not judged",
+    "coverage against the inventory (step 5c)"
+  ]
+}

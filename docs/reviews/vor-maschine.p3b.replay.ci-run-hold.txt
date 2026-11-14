@@ -1,0 +1,13 @@
+CI run 43630215898 (harden/p3b-replay at ac3c56e5, one worker), replay log 4551-1794683842343-91745aba-aa6f-43fd-ad34-3d5a6d8a033a.jsonl
+attempt 97ace98ce37ac35c42b8-4ec77ec54346e0bc9b05 (run-hold.spec.ts:128, retry 0); times relative to the attempt's first request; heartbeats, snapshots, status deltas and HTTP left out; device tokens redacted
++   224 ms  open   conn 1125
++   226 ms  frame {"cmd": "hello", "session": "7bbb15ad-8183-419d-ab13-205c2a867337", "resume_armed": false, "device_token": "<redacted>", "device_storage": "ok"} conn 1125
++   226 ms  frame {"cmd": "tab_visibility", "hidden": false} conn 1125
++   542 ms  ctl   raw
++   543 ms  ctl   raw
++   619 ms  ctl   clearCmds
++   624 ms  ctl   raw
++   659 ms  frame {"cmd": "get_tool_table", "req_id": "0eoom2-3"} conn 1125
++  1111 ms  ctl   clearCmds
++  1143 ms  frame {"cmd": "get_tool_table", "req_id": "0eoom2-4"} conn 1125
++  1859 ms  frame {"cmd": "auto_run", "line": 5, "file": "/A.ngc", "version": 701, "source": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", "pre_tool": 5, "p conn 1125

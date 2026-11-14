@@ -3461,3 +3461,119 @@ Damit ist **Punkt 1** abgeschlossen. Der Messvertrag für `latch-sticky` bleibt 
   - **3b Punkt 2, Replay (Schritt 5a):** gebaut auf `feat/p3b-replay`, Anfrage folgt.
   - Danach der eigene Messvertrag für `latch-sticky`, dann Antasten live und der Firefox-Kern.
   - Danach Paket 4, die Checkliste für den Maschinentag.
+
+---
+
+## Claude · Paket 3b · Punkt 2 · Replay (Schritt 5a) · Anfrage R373 · 14. November 2026
+
+Punkt 2 von Paket 3b ist der vereinbarte Replay (R251 TS248-04 mit Rest A und Rest B, FI265-02, VM349-01), hier als **Schritt 5a**: Jeder Rahmen, den die UI im vollen Browserlauf an die Mocks sendet, wird offline mit den Regeln des Gateways selbst beurteilt. Stand: `feat/p3b-replay` an `1fe5e274` (CI-Zwilling `harden/p3b-replay`), aufgesetzt auf Punkt 1 an `533c71fc`.
+
+### Was gebaut ist
+
+**Aufzeichnung im Mock** (`e2e/mock-gateway.mjs`):
+- **Eine JSONL-Datei je Mock-Instanz,** die die Worker-Fixture setzt (`MOCK_REPLAY`). Die Datei beginnt mit einer Kopfzeile (Lauf, Instanz, Port, PID), bevor die Bindung bestätigt ist. Die Endzeile schreibt der Mock beim Austritt.
+- **Je Verbindung:**
+  - eine Zeile `open` mit der Herkunft, gebunden beim Upgrade;
+  - jeder Rahmen **beim Empfang**, vor jeder Behandlung, ohne Obergrenze; Nicht-JSON als `raw`;
+  - eine Zeile `close`.
+- **Je HTTP-Anfrage:** Methode, Pfad (nie die Query, denn der Beacon trägt das Token), Herkunft und Status.
+- **`/ctl`:** eigene Zeilen `ctl`, nie Produktverkehr. `reset` und `clearCmds` berühren das Protokoll nicht.
+
+**Herkunft:**
+- **Wie vereinbart über ein Cookie, ohne Produktänderung:** `e2e_origin` mit Lauf, Test-ID, Projekt und Retry.
+- **Gesetzt über eine Fixture `storageState`** in `e2e/test.ts`, nicht über `context.addCookies`. Playwright wendet die Kontextoptionen des Tests auf den Kontext des `page`-Fixtures **und** auf jedes `browser.newContext()` im Test an. Damit trägt auch ein selbst angelegter Kontext seinen Testversuch (FI265-02, Vorschlag 1).
+- **Wo der Mock die Herkunft liest:** beim WS-Upgrade und bei jeder HTTP-Anfrage. Ein später Rahmen auf einer alten Verbindung behält deren Herkunft.
+- **`test-end`** schreibt die Fixture jetzt **nach** dem Schließen aller Kontexte. FI265-02 hatte die alte Reihenfolge benannt.
+- **Infrastruktur:** Der frische Client der Baseline-Prüfung (`ctl.ts` `appConnectFrames`) trägt die benannte Herkunft `infra:baseline` (Header `x-e2e-origin`). Er darf nichts senden, sonst ist es ein Befund.
+- **Benannte Ausnahmen ohne Cookie,** jede genau einmal benannt:
+  - Der Gegenfall von `replay-origin.spec.ts`: ein Socket aus Node ohne Cookie, dessen einziger Rahmen ein `hello` mit eigener Session ist, innerhalb dieses Versuchs am selben Mock.
+  - Die Reconnect-Probe des Workers (`GET /ready`): Sie holt mit `credentials: "omit"` (`wsWorker.ts`) und trägt also nie ein Cookie.
+  - Jede andere Anfrage oder Verbindung ohne Herkunft dieses Laufs ist ein Befund.
+
+**Prüfer** (`scripts/test_select/replay.py`, im Round- und Merge-Gate als Prüfung `browser-replay`):
+1. **Vollständig:** Jeder Mock, den der Lauf gebunden hat, hat sein Protokoll mit Kopf- und Endzeile. Ein Protokoll einer fremden Instanz unter diesem Lauf ist ein Befund.
+2. **Herkunft:** wie oben.
+3. **Leerlauf:** Jeder Versuch, dessen Seite geladen wurde, zeigt ein `hello`.
+4. **Form:**
+   - Jeder Rahmen ist ein JSON-Objekt mit einem String als `cmd`.
+   - Seine Felder sind die des Befehls oder Rahmens, dazu `req_id`.
+   - Die Feldmengen kommen aus `atoms.web.json`: die Glieder von `WsCommand` und **neu** die Felder der Worker-Rahmen (`framesAdapter` in `webAtoms.ts`). Es ist **eine** Quelle; `webAtoms.test.ts` hält sie aktuell, und ein nicht auflösbarer Rahmen (Spread, berechneter Schlüssel) scheitert dort.
+5. **Die Rahmen des Readers** (`hello`, `heartbeat`, `tab_visibility`, `safety_trip_ack`, die Settings- und Gerätebefehle, die Diagnose): nach den Regeln des Readers, gespiegelt, je Regel mit ihrer Fundstelle. `save_settings.data` und `client_diag.data` sind die beiden benannten opaken Pfade.
+6. **Jeder andere Befehl:** `command_policy.validate_payload` aus 3a (Stopps über `widen_stop`) gegen **jede** Beispiel-Var-Datei (`xyz3`, `xyzac5`, `xyzabc6`).
+   - Ein Befund ist jede Ablehnung, jeder Fehler und jede Korrektur, es sei denn, sie ist **erwartet**.
+   - Erwartete Ablehnungen stehen in `replay_refusals.json`: Datei, Titel, Befehl, Teil-Nutzlast, Ablehnung. Die Liste ist heute leer.
+   - Eine Erwartung, deren Test lief, ohne dass die Ablehnung kam, ist ebenfalls ein Befund.
+   - Die benannten Datenmaps aus Rest A (`mdi.vars`, `probe_run.vars`, `surface_scan_run.vars`, `set_params.sets.<Zweck>`, `auto_run.probe_vars`, `touchoff.axes`/`expect`, `set_g30.values`/`based_on`) prüft das strikte Schema aus 3a, Schlüssel und Werte. Der Replay führt keine zweite Kopie davon.
+   - Das belegt der Wächter `test_every_named_data_map_is_held_by_the_schema` mit 19 Fällen: je Map ein falscher Schlüssel und ein falscher Wert, für `set_params` auch ein falscher Zweck, `touchoff.axes` darunter wie in Rest A. Jeder Fall wird gegen jede der drei Var-Dateien mit dem Pfad der Map abgelehnt. Dazu je Map eine gültige Form, die durchgeht (`test_a_valid_form_of_each_map_passes`).
+7. **Antasten (VM349-01):**
+   - Kein `mdi` ruft eine Antastroutine (`O<probe_…>`).
+   - Jeder bestandene Versuch von `probe-click.spec.ts` hat sein `probe_run` oder `surface_scan_run` gesendet.
+
+Je Versuch nennt das Ergebnis seine Befehle mit Anzahl und Variante (die O-Routine eines `mdi`, der Abschnitt eines `save_settings`, die Routine eines `probe_run`), so wie FI265-02 Punkt 3 es verlangt.
+
+**Außerhalb, in jedem Ergebnis benannt (`outside`):**
+- Achs- und Geschwindigkeitsgrenzen des Profils (`MachineLimits` hält hier nur die Var-Nummern);
+- Gates und Handler;
+- HTTP-Nutzlasten (5b);
+- Abdeckung gegen das Inventar (5c).
+
+### Anpassungen gegenüber dem vereinbarten Text
+
+- **Eine Datei je Mock-Instanz statt einer je Lauf.** Die Mocks laufen seit R264 je Worker; der Prüfer verlangt alle gebundenen Instanzen vollständig.
+- **`storageState` statt eines automatischen Cookie-Fixtures mit `addCookies`.** Nur so trägt auch ein im Test angelegter Kontext die Herkunft. Den Machbarkeitsnachweis aus Rest B liefert `replay-origin.spec.ts`: Der Socket des Workers sendet das Cookie beim Handschlag, ein selbst angelegter Kontext ebenso, ein Node-Socket ohne Cookie wird erkannt. Der serielle Ersatzvertrag wird nicht gebraucht.
+- **Datenmaps über das Schema aus 3a** statt einer eigenen Map-Prüfung im Replay (siehe Punkt 6).
+- **Antast-Klick über `probe_run`** statt `mdi` mit `O<probe_…> CALL`, wie VM349-01 es umgestellt hat.
+
+### Belege
+
+- **Round-Gate** an `1fe5e274`: PASS ([Bericht](vor-maschine.p3b.replay.gate-round.json)).
+  - Voller Browserlauf 922/922 auf drei Workern.
+  - `browser-replay` PASS: 3 Protokolle; 9 607 Rahmen aus 922 Versuchen; 990 Testverbindungen; 927 Infrastrukturverbindungen ohne einen Rahmen; eine benannte Verbindung ohne Cookie ([Ergebnis](vor-maschine.p3b.replay.json)).
+  - HTTP: 19 544 Anfragen mit Herkunft und 5 Reconnect-Proben. 64 verschiedene Befehle und Rahmen, 0 Befunde.
+- **CI** an `1fe5e274` (`harden/p3b-replay`, Lauf `43638245363`, ein Worker): grün, Backend und Frontend.
+- **Wächter** (`test_replay.py`, 62 Fälle; 36 davon mit synthetischen Protokollen, jeder Fall rot aus seinem eigenen Grund, dazu die 26 Datenmap-Fälle oben):
+  - zwei überlappende Worker;
+  - ein Retry als eigener Versuch;
+  - ein später Rahmen auf alter Verbindung;
+  - eine Baseline, die sendet;
+  - der benannte No-Cookie-Socket nur in seinem Spec;
+  - ein fehlendes Ende, ein ungebundenes Protokoll, ein Lauf ohne Ereignisse;
+  - Form, Nicht-JSON, Ablehnung je Var-Datei, Korrektur;
+  - Antasten über MDI, bestandener Klick ohne `probe_run`;
+  - erwartete Ablehnungen (auch die nie gekommene);
+  - die `/ready`-Probe, HTTP ohne Herkunft.
+- **Rot im echten Browserlauf** ([Ausgabe](vor-maschine.p3b.replay.mutants.txt), [Skript](vor-maschine.p3b.replay.mutants.sh), je Lauf das Ergebnis `vor-maschine.p3b.replay.mutant-M0.json` bis `-M4.json`; eine Teilmenge aus vier Specs, je Mutant ein eigener Build). Die Mutanten liefen an `adb5d732`; seither änderten sich nur `test_replay.py` (die Datenmap-Fälle) und `run-hold.spec.ts`, nicht der Prüfer:
+
+  | Lauf | Mutation | Playwright | Replay |
+  |---|---|---|---|
+  | M0 | keine | 123/123 grün | PASS, 737 Rahmen |
+  | M1 | der Antasttreiber auf MDI zurückgebaut | 5 rot | 5 Befunde „probe routine through MDI“ |
+  | M2 | ein Fremdfeld in `jog_cont` | **123/123 grün** | 28 Befunde „undeclared fields“ |
+  | M3 | `#4999` in `mdi.vars` | **123/123 grün** | 12 Ablehnungen (nicht deklariert) |
+  | M4 | das Herkunfts-Cookie entfernt | 1 rot | 1894 Befunde ohne Herkunft, 6 „kein `probe_run`“ |
+
+  Bei M2 und M3 laufen die Specs selbst grün; den Fehler findet nur der Replay.
+
+### Nebenbei: ein Wettlauf in `run-hold.spec.ts`, mit dem Replay-Protokoll gefunden
+
+- Die CI am Zwischenstand `ac3c56e5` (Lauf 43630215898, ein Worker) war im Frontend rot. `run-hold.spec.ts:128` erwartete nur `auto_run`; im Mock stand davor ein `get_tool_table`.
+- **Das Replay-Protokoll aus dem CI-Artefakt** zeigt die Reihenfolge in diesem Versuch ([Auszug](vor-maschine.p3b.replay.ci-run-hold.txt)): das zweite `clearCmds` des Tests, 32 ms danach der Tabellen-Lesebefehl von `ToolStrip`, 748 ms danach `auto_run`.
+- `ToolStrip` liest nach eigenem Plan: 300 ms nach dem Verbinden und bei jedem Werkzeugwechsel. Es ist kein falscher Befehl, sondern ein Lesebefehl, der auf dem langsamen Runner hinter das `clearCmds` fiel.
+- `g30.spec.ts` und `toolsetter-setup.spec.ts` filtern die eigenen Rahmen und Lesebefehle der Seite schon. `run-hold.spec.ts` tut es jetzt ebenso (`1fe5e274`), mit dem Fundort im Kommentar.
+
+### Beobachtung für 5c, nicht Teil von 5a
+
+Der volle Lauf sendet 63 der 80 deklarierten Befehle. Nie gesendet werden:
+- `device_reset`, `get_wcs_table`, `go_to_zero`;
+- `jog_cont_multi`, `jog_incr_multi`, `jog_stop_multi`;
+- `list_probe_macros`, `machine_on`, `renumber_tool`, `reparse_preview`, `save_tool`, `set_compensation`, `shutdown`, `simulate_probe_trip`, `timing_log`, `twp_capture`, `unload_file`.
+
+Das ist die Lücke, die 5c benennt. Teils decken andere Prüfschichten sie ab (Unit-Tests der Sendestellen, native Fälle). Ein PASS des Replays sagt über diese Befehle nichts.
+
+### Offen
+
+- **5b:** HTTP aus dem Browser-Kontext mit Antwortweg (im Browser ersetzt, vom Mock oder vom echten Gateway bedient). Auch die über `page.route` bedienten Anfragen (`tool-import.spec.ts`, `macroFolder.ts`) erreichen den Mock nicht und fehlen heute.
+- **5c:** Abdeckung aus Inventar × ausgeführten Fällen, siehe oben.
+- **Danach:** Antasten live über `probe_run` mit den Panelwerten, die der Replay belegt; dann der Firefox-Kern.
+
+**Erbeten:** `agreement` oder `findings` zu Punkt 2 von Paket 3b (Schritt 5a) an `1fe5e274`.
