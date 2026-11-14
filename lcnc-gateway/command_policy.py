@@ -977,6 +977,28 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
 # executed as a different move, silently. Reject instead (gateway.py's own
 # parameter chunker (_apply_probe_vars_detail) already encodes this limit).
 MDI_MAX_CHARS = 255
+#: LinuxCNC's own limit, in BYTES (2.9.4 emcmodule.cc mdi(): the UTF-8 line
+#: is copied into EMC_TASK_PLAN_EXECUTE.command[LINELEN = 256] — longer is
+#: refused there, AFTER the gateway's mode switch; Codex R366 VM-I11). A
+#: character limit let 138 umlauts (268 bytes) through.
+MDI_MAX_BYTES = 255
+
+
+def mdi_line_refusal(line: str) -> Optional[str]:
+    """Why LinuxCNC would not take `line` as one MDI command, or None — no NUL
+    (its strcpy would cut the line there: the controller runs a DIFFERENT,
+    shorter command than the one checked), valid UTF-8, at most
+    MDI_MAX_BYTES bytes. Never repaired: a line that fails is refused.
+    Pure."""
+    if "\x00" in line:
+        return "MDI line holds a NUL character"
+    try:
+        n = len(line.encode("utf-8"))
+    except UnicodeEncodeError:
+        return "MDI line is not valid text"
+    if n > MDI_MAX_BYTES:
+        return f"MDI line is {n} bytes — LinuxCNC takes {MDI_MAX_BYTES}"
+    return None
 # LinuxCNC tool-number ceiling. Not machine-declared anywhere, so it is named
 # here rather than buried as a literal in a handler.
 TOOL_NUMBER_MAX = 99999
@@ -1073,6 +1095,13 @@ class Seq:
 @dataclass(frozen=True)
 class Text:
     max_len: Bound
+    required: bool = False
+
+
+@dataclass(frozen=True)
+class MdiText:
+    """A raw MDI line (mdi.text): a string LinuxCNC takes as ONE command —
+    mdi_line_refusal (no NUL, valid UTF-8, its byte limit)."""
     required: bool = False
 
 
@@ -1266,7 +1295,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
                  "entry_units": Choice(frozenset({"G20", "G21"}))},
     # --- MDI text: length only. Parsing G-code server-side to decide policy is
     #     an open-ended project and deliberately out of scope.
-    "mdi": {"text": Text(max_len=MDI_MAX_CHARS, required=True),
+    "mdi": {"text": MdiText(required=True),
             "vars": VarNumbers()},   # set first, the line only once taken over (R16)
     # --- a macro file: name, the operator's values, the revision shown
     #     (each value is checked against the file's header in the handler)
@@ -1385,6 +1414,13 @@ def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimi
                 f"{cmd}: #{num} is not in this machine's var file — "
                 f"declare it there to make it configurable")
         _check_number(cmd, f"{field}.#{num}", value, Num(), limits)
+        number = _json_number(value)                 # a finite JSON number by now
+        # each value becomes ONE word `#n=<v>` of an MDI chunk; a word longer
+        # than a line no chunking can carry (Codex R366 VM-I11) — refused here,
+        # before any write
+        word = f"#{num}={float(number or 0):.6f}"   # the form _apply_probe_vars_detail writes
+        if len(word) > MDI_MAX_BYTES:
+            raise ValueError(f"{cmd}: {field}.#{num} is too long for one MDI word ({len(word)} characters)")
 
 
 def _required(spec: object) -> bool:
@@ -1436,6 +1472,13 @@ def _check_field(cmd: str, field: str, raw: JsonValue, spec: object, limits: Mac
         # too) is the same refusal, never set membership's TypeError
         if not isinstance(raw, str) or raw not in spec.values:
             raise ValueError(f"{cmd}: {field} {str(raw)[:24]!r} not one of {sorted(spec.values)}")
+        return None
+    if isinstance(spec, MdiText):
+        if not isinstance(raw, str):
+            raise ValueError(f"{cmd}: {field} must be a string")
+        why = mdi_line_refusal(raw)
+        if why:
+            raise ValueError(f"{cmd}: {field}: {why}")
         return None
     if isinstance(spec, Text):
         if not isinstance(raw, str):

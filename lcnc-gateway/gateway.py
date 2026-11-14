@@ -119,7 +119,7 @@ from gateway_util import (
     PROV_STAMPED,
 )
 from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
-from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3875,7 +3875,16 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     or failed write books nothing.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
-    """
+
+    An MDI line LinuxCNC would not take as ONE command (a NUL, not UTF-8,
+    past its byte limit — command_policy.mdi_line_refusal) is refused here
+    with nothing written: the last guard behind every handler's own check of
+    the lines it builds (Codex R366 VM-I11)."""
+    if command.name == "mdi":
+        _why = mdi_line_refusal(str(command.args[0]) if command.args else "")
+        if _why:
+            _trace.emit("mdi.line_refused", level="warn", reason=_why)
+            raise _WriteRefused(_why)
     cancel = threading.Event()
     args = command.args
     kind = _start_kind(command.name, args)
@@ -6347,6 +6356,9 @@ async def _cmds_program_run(cmd: str, msg: Dict[str, Any], armed: bool,
                 "units": msg.get("entry_units"),   # absent = the modal units; an invalid one is refused upstream
             }
             safe_z = True  # the XY preamble only ever moves at safe height
+            why = mdi_line_refusal(_rfl_entry_mdi(entry))   # before _start_guard (Codex R366 VM-I11)
+            if why:
+                return {"ok": False, "error": f"auto_run: entry {why}"}
 
         # Bound to the program the operator confirmed (Codex R16 XZ-07):
         # its path and the preview version whose TEXT the dialog showed.
@@ -7054,6 +7066,16 @@ async def _cmds_work_offsets(cmd: str, msg: Dict[str, Any], armed: bool,
                         reason=reason, kins_type=pstate.kins_type,
                         g5x_index=pstate.g5x_index)
             return {"ok": False, "error": reason}
+        # the line the route writes, judged before the mode switch (Codex R366
+        # VM-I11): the remap call (plane) or G10 L20 with the widest fixture
+        # word; the Z eoffset added later moves a value by a few digits at
+        # most — the last write's own check stays behind it
+        _prospect = (f"o<twp_touchoff> call [7] [{values.get('X', 0.0):.6f}] [{values.get('Y', 0.0):.6f}] "
+                     f"[{values.get('Z', 0.0):.6f}]" if route == "plane"
+                     else "G10 L20 P9 " + " ".join(f"{l}{v:.6f}" for l, v in values.items()))
+        why = mdi_line_refusal(_prospect)
+        if why:
+            return {"ok": False, "error": f"touchoff: {why}"}
         await set_mode(linuxcnc.MODE_MDI)
         # R-02 (implementation review 2026-09-15): the checks above ran on
         # the PUBLISHED snapshot, which lags the controller — one stale
@@ -7301,6 +7323,10 @@ async def _cmds_work_offsets(cmd: str, msg: Dict[str, Any], armed: bool,
                 parts.append(f"{axis.upper()}{finite_float(val):.6f}")
         if not parts:
             return {"ok": False, "error": "No axis values provided"}
+        line = f"G10 L2 P{p} {' '.join(parts)}"
+        why = mdi_line_refusal(line)          # before the mode switch (Codex R366 VM-I11)
+        if why:
+            return {"ok": False, "error": f"set_wcs: {why}"}
         await set_mode(linuxcnc.MODE_MDI)
         ci = p - 1
         # Capture the PRE-write triple first: the mixed-angle decision
@@ -7308,7 +7334,7 @@ async def _cmds_work_offsets(cmd: str, msg: Dict[str, Any], armed: bool,
         # writes shows up as a mismatch here).
         prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0))
                     for k in ("x", "y", "z")]
-        await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L2 P{p} {' '.join(parts)}"), wait=5)
+        await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=5)
         for axis in all_keys:
             val = msg.get(axis)
             if val is not None:
@@ -7362,7 +7388,9 @@ def _macro_call_precheck(mstate: Dict[str, Any], name: str, revision: str, value
     if not entry["runnable"]:
         return entry["reason"]
     call = macro_files.build_call(entry, values)
-    return call.get("error")
+    if call.get("error"):
+        return call["error"]
+    return mdi_line_refusal(call["line"])      # the line LinuxCNC gets (Codex R366 VM-I11)
 
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     cmd = msg.get("cmd")
@@ -10868,6 +10896,11 @@ async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": False, "error": why}
         if any(L not in based for L in values):
             return {"ok": False, "error": "G30 draft has no basis — reload"}
+        # the line the write sends, judged before the synch (Codex R366 VM-I11:
+        # an axis without a declared window bounds no value)
+        why = mdi_line_refusal(" ".join(f"#{keys[L]}={v:.6f}" for L, v in values.items() if L in keys))
+        if why:
+            return {"ok": False, "error": f"set_g30: {why}"}
         open_axes = [L for L in values if L not in limits]
     async with _get_var_file_lock():
         try:
