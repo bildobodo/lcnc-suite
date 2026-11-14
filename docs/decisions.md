@@ -11457,6 +11457,21 @@ anything else — a bare prefix too — is damaged evidence and fails the run (`
 "erorr" each read as clean before). Over the 85 kept run folders the stricter
 reader finds no damaged record (27 with the BrokenPipe error, 58 clean).
 
+**Corrected after Codex R371 (VM-I14, VM-I15 rests).** A deadline that cannot
+be armed — the timer's thread does not start — ends the process at once,
+`os._exit(1)` with no output: before, `_arm_shutdown_deadline` returned False,
+the caller went on into the trace and console with its flag already set, and
+a blocked diagnostic held the process for good (Codex's child with a full
+pipe ran until its driver killed it). The end is decided at that point, so
+nothing after it may depend on a diagnostic, the event loop or a later call;
+the self-restart ends the same way instead of exec'ing, as its failed `execv`
+does — the launcher does not respawn (its own words, "No respawn"; the old
+docstring and the trace hint said it would). The crash.log reader checks the
+TYPE before the set lookup: a level that is a list or an object was
+unhashable, raised out of the run's completion and lost `report.json` (no
+false PASS, but no report). Whatever the check meets now, the report is
+written: a check that raises is itself a damaged record and fails the run.
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

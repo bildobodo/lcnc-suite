@@ -435,12 +435,32 @@ def test_a_rotated_crash_log_and_a_torn_line_count(tmp_path):
     ('{"tag": "crash.", "level": "error"}', "no crash tag"),
     ('{"tag": "browser.error.", "level": "info"}', "no crash tag"),            # a prefix alone names nothing
     ('{"tag": 7, "level": "info"}', "no crash tag"),
+    ('{"tag": ["crash.thread"], "level": "error"}', "no crash tag"),
+    ('{"tag": "crash.thread", "level": []}', "no known level"),               # Codex R371 VM-I15: unhashable
+    ('{"tag": "crash.thread", "level": {}}', "no known level"),
+    ('{"tag": "crash.thread", "level": ["error"]}', "no known level"),
     ("[1, 2]", "not a JSON object"),
 ])
 def test_a_record_the_verdict_cannot_classify_fails_the_run(tmp_path, line, why):
+    # through the run's own completion (FakeHost): the report is WRITTEN and judges FAIL
     report = _passing_run(tmp_path, [json.dumps(SIGNAL), line])
     assert [(c["file"], c["damaged"].split(" (")[0]) for c in report["crashes"]] == [("crash.log", why)]
     assert nr.verdict(report) == "FAIL"
+    written = json.loads((tmp_path / "run/report.json").read_text())
+    assert written["crashes"] == report["crashes"] and written["restore"]["outcome"] == "complete"
+    assert nr.verdict(written) == "FAIL"
+
+
+def test_a_crash_check_that_raises_still_writes_a_failing_report(tmp_path, monkeypatch):
+    # Codex R371 VM-I15: whatever the check meets, the run ends with its report
+    def boom(log_dir):
+        raise PermissionError(13, "Permission denied", str(log_dir / "crash.log"))
+    monkeypatch.setattr(nr, "run_crashes", boom)
+    report = _passing_run(tmp_path, [json.dumps(SIGNAL)])
+    assert [c["damaged"].split(":")[0] for c in report["crashes"]] == ["the crash check raised PermissionError"]
+    assert nr.verdict(report) == "FAIL"
+    written = json.loads((tmp_path / "run/report.json").read_text())
+    assert written["crashes"] == report["crashes"] and nr.verdict(written) == "FAIL"
 
 
 def test_valid_records_below_error_pass(tmp_path):

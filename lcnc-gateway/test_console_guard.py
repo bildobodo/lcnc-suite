@@ -13,6 +13,9 @@ outside SIGTERM ended the gateway. These tests hold:
   raises — and through the REAL emit with its sink failing and the console
   raw and closed (it raised), or the console a full pipe (it blocked: only the
   deadline ends that child) — Codex R370 VM-I14;
+- a deadline that cannot be armed (no thread left) ends the process at once,
+  os._exit(1) with no output, at every decided end — in process and in the
+  blocked child (Codex R371 VM-I14);
 - `lcnc_trace.ConsoleGuard` / `console()` never raise and trace the loss;
 - a process that installed the crash hooks survives prints into a pipe whose
   reader is gone (a real child process, a real EPIPE);
@@ -213,6 +216,17 @@ def _failing_trace(test):
         test.addCleanup(p.stop)
 
 
+def _without_gc_print(test):
+    """The gateway's GC diagnostics out of the way while a test closes the
+    consoles: `_gc_callback` prints bare from inside a collection — part of
+    no chain, and Python reports its raise there as unraisable, which only
+    clutters the run (seen in Codex R371's console run)."""
+    import gc
+    if gateway._gc_callback in gc.callbacks:
+        gc.callbacks.remove(gateway._gc_callback)
+        test.addCleanup(gc.callbacks.append, gateway._gc_callback)
+
+
 class TheDeadlineComesBeforeAnyDiagnostic(unittest.TestCase):
     """Codex R370 VM-I14, the in-process half: the trace sink fails AND both
     console streams are raw and closed — logging's error report raised on
@@ -227,6 +241,7 @@ class TheDeadlineComesBeforeAnyDiagnostic(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
         connect_fake(self)
+        _without_gc_print(self)
         gateway._instance_ended = False
         gateway._shutdown_requested = False
         gateway._bound_instance = (424242, 1)
@@ -302,6 +317,7 @@ class EveryEndArmsTheDeadlineBeforeItsFirstRecord(unittest.TestCase):
         gateway._nml_connectable = lambda: True
         gateway._get_lcnc_pid = lambda: os.getpid()        # a real, live /proc entry
         swap_connection(None)
+        _without_gc_print(self)
         self.order = []
         order = self.order
         gateway._hal_disconnect = lambda: order.append("hal_disconnect")
@@ -372,6 +388,109 @@ class EveryEndArmsTheDeadlineBeforeItsFirstRecord(unittest.TestCase):
                 self.assertEqual(prints, [], "a bare print beside _self_restart")
 
 
+class _Exited(BaseException):
+    """os._exit, stubbed: nothing after it may run."""
+
+
+class ADeadlineThatCannotBeArmedEndsAtOnce(unittest.TestCase):
+    """Codex R371 VM-I14 rest: the timer cannot start (no thread left). The
+    flag stood, the record said `deadline_s: None`, and the diagnostic after
+    it could block for good. Now the arm itself ends the process — os._exit(1)
+    and NO output: at every decided end nothing runs between the failed start
+    and the exit — no trace, no console, no HAL disconnect, no signal, no
+    execv. The real emit and console over a failing sink, closed consoles."""
+
+    def setUp(self):
+        restore_after(self)
+        saved = {k: getattr(gateway, k) for k in (
+            "_bound_instance", "_instance_ended", "_shutdown_requested", "_lcnc_pid", "_get_lcnc_pid",
+            "_nml_connectable", "_hal_disconnect")}
+        self.addCleanup(lambda: [setattr(gateway, k, v) for k, v in saved.items()])
+        self.addCleanup(setattr, session_bind, "instance_for_pid", session_bind.instance_for_pid)
+        p = mock.patch.object(gateway, "_shutdown_deadline", None, create=True)
+        p.start()
+        self.addCleanup(p.stop)
+        gateway._bound_instance = None
+        gateway._instance_ended = False
+        gateway._shutdown_requested = False
+        gateway._nml_connectable = lambda: True
+        gateway._get_lcnc_pid = lambda: os.getpid()        # a real, live /proc entry
+        swap_connection(None)
+        _without_gc_print(self)
+        self.order = []
+        order = self.order
+        gateway._hal_disconnect = lambda: order.append("hal_disconnect")
+
+        class _NoThread:
+            def __init__(self, interval, fn, args=None):
+                self.daemon = False
+
+            def start(self):
+                order.append("timer-failed")
+                raise RuntimeError("can't start new thread")
+
+        def _exit(code):
+            order.append(f"exit({code})")
+            raise _Exited()
+        _failing_trace(self)
+        real_emit, real_console = lcnc_trace.emit, lcnc_trace.console
+
+        def _emit(tag, **kw):
+            order.append(f"emit:{tag}")
+            real_emit(tag, **kw)
+
+        def _console(text):
+            order.append("console")
+            real_console(text)
+        closed_out, closed_err = io.StringIO(), io.StringIO()
+        closed_out.close()
+        closed_err.close()
+        for p in (mock.patch.object(lcnc_trace, "emit", _emit), mock.patch.object(lcnc_trace, "console", _console),
+                  mock.patch.object(gateway.linuxcnc, "__lcnc_fake__", False),
+                  mock.patch.object(gateway.threading, "Timer", _NoThread),
+                  mock.patch.object(gateway, "_launcher_bind", {"mode": "standalone"}),
+                  mock.patch.object(gateway.os, "kill", lambda pid, sig: order.append("kill")),
+                  mock.patch.object(gateway.signal, "raise_signal", lambda sig: order.append("signal")),
+                  mock.patch.object(gateway.os, "execv", lambda *a: order.append("execv")),
+                  mock.patch.object(gateway.os, "_exit", _exit),
+                  mock.patch.object(sys, "stdout", closed_out), mock.patch.object(sys, "stderr", closed_err)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _ends_at_once(self, end):
+        with self.assertRaises(_Exited):
+            end()
+        self.assertEqual(self.order, ["timer-failed", "exit(1)"])
+        self.assertIsNone(gateway._shutdown_deadline)
+
+    def test_the_shutdown_request(self):
+        self._ends_at_once(lambda: gateway._request_process_shutdown("test: no thread"))
+        self.assertTrue(gateway._shutdown_requested)
+
+    def test_the_instance_end(self):
+        gateway._bound_instance = (424242, 1)
+        self._ends_at_once(lambda: gateway._on_instance_ended("test: no thread"))
+        self.assertTrue(gateway._instance_ended)
+
+    def test_the_helper_s_stale_rejection(self):
+        self._ends_at_once(lambda: gateway._on_helper_rejected("watchdog", "stale_instance"))
+
+    def test_the_reconnect_that_sees_another_instance(self):
+        with mock.patch.object(sys, "stdout", io.StringIO()), mock.patch.object(sys, "stderr", io.StringIO()):
+            self.assertTrue(gateway.try_connect_lcnc())     # the first connect binds: no end, no arm
+        del self.order[:]
+        session_bind.instance_for_pid = lambda pid, proc_root="/proc": (pid, 999)   # another start
+        self._ends_at_once(gateway.try_connect_lcnc)
+
+    def test_the_nml_self_restart(self):
+        self._ends_at_once(lambda: gateway._self_restart("test: poisoned, no thread"))
+
+    def test_an_armed_deadline_is_not_armed_again(self):
+        gateway._shutdown_deadline = object()      # armed earlier: no second start, no exit
+        self.assertTrue(gateway._arm_shutdown_deadline())
+        self.assertEqual(self.order, [])
+
+
 class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
     """Codex R370 VM-I14, the blocking half, in a child process: the trace
     sink fails, stderr is the process guard over a FULL pipe nobody reads —
@@ -405,6 +524,13 @@ class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
         sys.stderr = lcnc_trace.ConsoleGuard(io.TextIOWrapper(os.fdopen(w, "wb", buffering=0), write_through=True), "stderr")
         sys.stdout = io.StringIO()
         gateway.SHUTDOWN_DEADLINE_S = 0.3
+        if sys.argv[3] == "no-thread":         # Codex R371 VM-I14: the timer cannot start
+            class _NoThread:
+                def __init__(self, *a, **k): self.daemon = False
+                def start(self):
+                    (out / "timer-failed").write_text("RuntimeError: can't start new thread")
+                    raise RuntimeError("can't start new thread")
+            gateway.threading.Timer = _NoThread
         gateway.linuxcnc.__lcnc_fake__ = False
         gateway._launcher_bind = {"mode": "standalone"}
         gateway.os.kill = lambda *a: None
@@ -422,17 +548,19 @@ class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
         os._exit(0)
     """)
 
-    def _run(self, entry):
+    def _run(self, entry, timer="real"):
         with tempfile.TemporaryDirectory() as d:
             try:
-                r = subprocess.run([sys.executable, "-c", self.CHILD, d, entry], cwd=HERE, timeout=20,
+                r = subprocess.run([sys.executable, "-c", self.CHILD, d, entry, timer], cwd=HERE, timeout=20,
                                    capture_output=True, env={**os.environ, "LCNC_LOG_DIR": d})
             except subprocess.TimeoutExpired:
-                self.fail(f"{entry}: the child outlived its deadline")
+                self.fail(f"{entry}, {timer} timer: the child outlived its deadline")
             entered = (Path(d) / "entered").exists()
             returned = (Path(d) / "returned").exists()
+            failed = (Path(d) / "timer-failed").exists()
         self.assertTrue(entered, r.stderr.decode(errors="replace")[-600:])
-        self.assertFalse(returned, f"{entry}: the diagnostics did not block — the case proves nothing")
+        self.assertEqual(failed, timer == "no-thread")
+        self.assertFalse(returned, f"{entry}: the chain returned — the case proves nothing")
         self.assertEqual(r.returncode, 1, r.stderr.decode(errors="replace")[-600:])
 
     def test_the_shutdown_request(self):
@@ -440,6 +568,12 @@ class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
 
     def test_the_instance_end(self):
         self._run("instance")
+
+    def test_the_shutdown_request_without_a_thread(self):
+        self._run("request", "no-thread")
+
+    def test_the_instance_end_without_a_thread(self):
+        self._run("instance", "no-thread")
 
 
 class TheConsoleGuard(_Recording):

@@ -37,7 +37,8 @@ preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway
 of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
 Package 3b: a run's verdict (and the install probe's, the same `verdict`) is FAIL when its `logs/crash.log`
 or a rotation holds an error-level record or a line that is no classifiable record — no JSON object, no
-tag the crash filter admits, no known level (Codex R370 VM-I15) — (`native_run.run_crashes`, read after
+tag the crash filter admits, no known level (Codex R370 VM-I15; each field's type first, R371) — or when
+the check itself raised (the report is still written) — (`native_run.run_crashes`, read after
 the restore — the processes' last words included): the instance-ended chain's BrokenPipeError sat in the
 crash.log of 28 of the 82 kept run folders (2026-11-06 to 3a) while every report said PASS.
 

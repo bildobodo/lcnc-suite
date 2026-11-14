@@ -2514,7 +2514,8 @@ def _self_restart(why: str) -> None:
     os.execv atomically swaps the process image — no parent/child handoff
     window, no stale PID, file descriptors that aren't FD_CLOEXEC are
     inherited but the gateway re-opens its own HAL/socket state. Falls back
-    to os._exit so the launcher can respawn if execv fails. The hard
+    to os._exit(1) if execv fails — the launcher does not respawn (lcnc-suite:
+    "No respawn"), the display ends. The hard
     deadline is armed first (no I/O — Codex R370 VM-I14): a console line
     that blocks cannot hold the poisoned process; a successful execv ends
     its timer with the old image.
@@ -2527,7 +2528,7 @@ def _self_restart(why: str) -> None:
     except Exception as e:
         _trace.emit("restart.execv_failed", level="error",
                     exc=type(e).__name__, msg=str(e),
-                    hint="exiting; launcher will respawn")
+                    hint="exiting; the launcher does not respawn")
         os._exit(1)
 
 
@@ -2550,7 +2551,15 @@ def _arm_shutdown_deadline() -> bool:
     closed stderr) or blocks (a full pipe nobody reads, the trace sink's
     error report on its way there) can then delay the process' end by the
     deadline at most, never keep it alive. Not under the fake binding
-    (tests). Returns whether a deadline is armed."""
+    (tests). Returns whether a deadline is armed.
+
+    A deadline that cannot be armed (no thread left to start) ends the
+    process HERE, with os._exit(1) and no output (Codex R371 VM-I14): the
+    end is decided, and nothing after this call may then depend on a trace,
+    a console, the event loop or a later call — every caller's next step
+    is a diagnostic. A self-restart ends this way too instead of exec'ing,
+    as its failed execv does (the launcher does not respawn: the display
+    ends, and with it the heartbeat — the HAL latch trips)."""
     global _shutdown_deadline
     if _shutdown_deadline is not None:
         return True
@@ -2560,8 +2569,8 @@ def _arm_shutdown_deadline() -> bool:
         deadline = threading.Timer(SHUTDOWN_DEADLINE_S, os._exit, [1])
         deadline.daemon = True
         deadline.start()
-    except Exception:  # noqa: BLE001 — no thread left: the chain still runs; its record names it
-        return False
+    except BaseException:  # noqa: BLE001 — no independent end left: end now, before any diagnostic
+        os._exit(1)
     _shutdown_deadline = deadline
     return True
 

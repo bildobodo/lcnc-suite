@@ -259,8 +259,14 @@ def run(host, steps, run_dir: Path) -> dict:
         report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json",
                                        save=lambda st: write_json(run_dir / "state.json", st))
         write_json(run_dir / "state.json", ctx["state"])
-        # after the restore: the run's processes have ended, their last words included
-        report["crashes"] = run_crashes(run_dir / "logs")
+        # after the restore: the run's processes have ended, their last words included.
+        # A check that raises is no proof of a clean run and never costs the
+        # report: its failure is a damaged record (Codex R371 VM-I15)
+        try:
+            report["crashes"] = run_crashes(run_dir / "logs")
+        except Exception as e:  # noqa: BLE001 — named in the report, which still gets written
+            report["crashes"] = [{"file": "crash.log*",
+                                  "damaged": f"the crash check raised {type(e).__name__}: {str(e)[:120]}"}]
         # the owed return stays owed: the run's FINAL restore — its unit's
         # ExecStopPost, the record a gate demands — settles it (Codex R332 A1:
         # settled here, a waiting gate came in before that restore)
@@ -284,7 +290,9 @@ def _crash_record_problem(rec: object) -> str | None:
     tag, level = rec.get("tag"), rec.get("level")
     if not (isinstance(tag, str) and any(tag.startswith(p) and len(tag) > len(p) for p in CRASH_TAG_PREFIXES)):
         return f"no crash tag ({str(tag)[:60]!r})"
-    if level not in TRACE_LEVELS:
+    # the type BEFORE the set lookup: a list or an object is unhashable and
+    # raised out of the run's completion — no report.json (Codex R371 VM-I15)
+    if not (isinstance(level, str) and level in TRACE_LEVELS):
         return f"no known level ({str(level)[:20]!r})"
     return None
 
