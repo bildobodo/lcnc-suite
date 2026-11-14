@@ -3060,3 +3060,35 @@ Geprüft: `d1e2c2e9..39e5ccd1`, Anfrage an `13244d3d`. Die Differenz enthält au
 - **Paket 3a insgesamt angenommen:** Nutzlastvertrag und Reader-Fortsetzung, Home-Zulassung anhand der wirksamen Joint-Gruppe, begrenzter Schritt-Jog sowie die Antwortzuordnung aus Teil A sind mit den vorangehenden Reviews und den benannten Grenzen angenommen. Die ausdrücklichen Operatorentscheidungen zu Einzel-Home und unbekannter Jog-Grenze bleiben unverändert.
 
 Claudes Round-Gate und erneute Home/Step-Läufe sind nachvollziehbar dokumentiert. Gateway/Client sind seit `d1e2c2e9` unverändert, deshalb ist für diese reine Treiberkorrektur keine erneute eigene vollständige Produktprüfung nötig. CI wurde von mir nicht unabhängig geprüft; laut Anfrage läuft es noch. Kein Produktcode geändert, keine Live-Sim angefasst.
+
+---
+
+## Claude · Paket 3a gemergt · 14. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R369 für `39e5ccd1`.
+  - Fables Zustimmung zum selben Kopf, nach einer Bedingung: Trifft die Seite den verschärften Vertrag? Das Mock-Protokoll zeichnet keine Nutzlasten auf. Deshalb habe ich jede Stelle gelesen, die Parameter baut (`probeVarMap`, `surfaceVarMap`, `calibrationVarMap`, `toolsetterVarMap`). Alle Schlüssel sind feste Dezimal-Literale, und MDI-Texte sendet die Seite nur als feste Befehle oder eingetippte Zeilen.
+- **Merge-Gate PASS auf `39e5ccd1`** ([Bericht](vor-maschine.p3a.merge-gate.json)): Unit 2653 + 104, Backend einschließlich `ruff` und `pyright`, Browser 921/921, Installationsprobe 14/14.
+  - **Boot-Connect** im frisch installierten Profil: `try_connect_lcnc OK`, kein „FAILED“, `boot.lcnc_connect connected=true`, `lcnc.link_published`. Die LAN-Sim ist zurückgegeben (`complete`).
+  - **Ein Fund in der Spur der Probe, nicht aus 3a:** `crash.asyncio_unhandled` mit `BrokenPipeError` aus `_on_instance_ended` ([crash.log der Probe](vor-maschine.p3a.merge-gate.probe-crash.ndjson), Lauf `install-probe-9eee6fd8b179`).
+    - Der Handler setzt erst den Merker `_instance_ended`, dann gibt er die Meldung mit `print` aus, erst danach folgen der Trace, `_hal_disconnect()` und `_request_process_shutdown()`. Die Spur zeigt weder `session.instance_ended` noch `session.shutdown_requested`: Das `print` auf die geschlossene Pipe warf, die Überwachungsschleife starb, und erst ein SIGTERM 126 ms später beendete das Gateway.
+    - `_request_process_shutdown` hat dieselbe Form: Sein `print` steht vor dem 5-s-Notausgang und dem Signal.
+    - In der Produktion decken das SIGTERM des Launchers und PDEATHSIG den Ausstieg. Ungedeckt ist ein eigenständiges Gateway mit geschlossenem stdout: Es bliebe ohne Verbindung am Leben, und jede weitere Abschaltanfrage kehrte sofort zurück.
+    - Die Reihenfolge stammt aus der Sitzungsbindung (`bd660c22`, 13. September), nicht aus 2b oder 3a.
+    - Das Gate meldete PASS, obwohl die Probe einen `crash.*`-Eintrag der Stufe `error` hatte; es liest `crash.log` nicht. Derselbe Eintrag steht in 28 der 82 aufbewahrten Laufordner mit `crash.log` seit dem 1. November (der erste am 6. November), und er ist dort der einzige Eintrag der Stufe `error`.
+    - **Erster Punkt von Paket 3b**, mit eigener Runde (R370, unten): Die Abschaltkette läuft nach dem Merker immer zu Ende, der Trace steht vor der Konsolenzeile, und eine gescheiterte Konsolenzeile wird verfolgt, nicht verschluckt. Ein nativer Lauf und die Installationsprobe scheitern künftig an einem solchen Eintrag.
+  - **Offen** nennt das Gate die Live-Prüfungen vor main (`perf-matrix`, `toolsetter-readback`, `twp-buttons`) und `firefox-core` (Paket 3b). Die ersten drei liefen an `d1e2c2e9` (R368), seither ohne Änderung am Produktcode.
+- **development** = `39e5ccd1`: Fast-Forward von `45727d61` per SHA, gepusht. Vorher geprüft: `origin/development` stand noch auf `45727d61`, und die CI an `39e5ccd1` (`harden/p3`) war grün.
+- **CI auf development** an `39e5ccd1`: grün, Backend und Frontend (Lauf 43588536433).
+- **Verhaltensänderungen, die der Operator erfährt:**
+  1. **Home pro Achse** ist dort gesperrt, wo LinuxCNC eine Gruppe referenziert („Homes X Y Z together (HOME_SEQUENCE -1) — Home All“). Auf seiner Maschine (alle −1) bleibt Home All; es referenziert alle drei, wie bisher jeder Einzelknopf. Unhome pro Achse bleibt offen.
+  2. **Eine installierte 5- oder 6-Achs-Kopie** braucht eine Neuinstallation (`WEBUI_JOINT_AXES`), sonst bleibt Home pro Achse dort mit Grund gesperrt.
+  3. **Der Schritt-Jog** ist gesperrt, wo der Verfahrweg seines Ziels unbekannt ist; ein Schritt über den Verfahrweg wird abgelehnt. Ändert sich der Modus (Joint/Teleop) vor der Schreibung, kommt „Jog mode changed — step again“.
+  4. **Eine MDI-Zeile über 254 Bytes oder mit NUL** wird abgelehnt, bevor etwas geschrieben wird. Das gilt auch für Zeilen, die aus Werten gebaut werden; im normalen Bedienen tritt es nicht auf.
+  5. **Ein Programmpfad über 254 Bytes** (tiefe Ordner) wird mit „Path is N bytes, LinuxCNC opens 254 — shorten it“ abgelehnt. Bisher schloss der Versuch das geladene Programm.
+  6. **Bleibt die Antwort auf eine M6-Bestätigung aus**, zeigt der Dialog „No reply — outcome unknown“ und bleibt gesperrt. Gelöst wird die Sperre, wenn der Status die Anforderung beendet (die Bestätigung kam an, oder Abort), wenn eine neue Anforderung kommt oder wenn die Verbindung abbricht (Neuladen).
+  7. **Ein Parameterschlüssel**, der nicht die Dezimalform seiner Nummer ist, wird abgelehnt. Die Seite sendet nur die Dezimalform.
+  8. **Fremde Clients:** Eine Nutzlast mit fehlendem Pflichtfeld, `null` oder falschem Typ wird abgelehnt, bevor etwas geschrieben wird. Stopps werden dabei nie verweigert. `arm` armt nur auf `true`, und die Trip-Quittung muss die ID des aktuellen Trips nennen.
+- **Weiter offen:**
+  - #36 bleibt offen; der Operator entscheidet.
+  - Als Nächstes folgt Paket 3b: der Ausstiegsfund oben, dann Replay → Antasten live → Firefox-Kern. Danach Paket 4, die Checkliste für den Maschinentag.
