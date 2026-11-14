@@ -1,0 +1,16 @@
+{
+  "product_head": "6cc51e64ef52ba252294f59d4a40f4493ddf6db2",
+  "document_head": "227acb648785a787d49692ff35ee9e7a2bc206d0",
+  "archive": "/tmp/codex-r366",
+  "native_controller_access": false,
+  "sha256": {
+    "vor-maschine.p3a.r366.codex-probe.py": "93954894ad55352f9e525f9eacf01c50cb1d1d91dcfb9dfb1f34b30b3ec89d8e",
+    "vor-maschine.p3a.r366.codex-probe.json": "7d29196c8c2a28ffe73cab4129e78618ec3f0373ff2e493ef08073c97fb6a26b",
+    "vor-maschine.p3a.r366.codex-probe.txt": "5f9b897ee29820b4972f1e52ece0e1df1d6649cef47753a58bdd1580bb0b3c79",
+    "vor-maschine.p3a.r366.codex-probe.xml": "7265e15a6f37b1c9a2d84393873d9f98646f395ce76319581b8276b16245d589",
+    "vor-maschine.p3a.r366.codex-client.cjs": "563431eaf31bcacbb7399b7f2ec76a2a18946ea241b573f0fe057bc307fe5e5c",
+    "vor-maschine.p3a.r366.codex-client.json": "871ede0334ddd632d8b7177422b31306aeb6d2546479c8f4d3c3cfbd5e9319c6",
+    "vor-maschine.p3a.r366.codex-targeted.txt": "60af954a8f087e25521fde531fe3e684d4e5e65eb7adfee7f86c09146e3f02b0",
+    "vor-maschine.p3a.r366.codex-native-unit.txt": "973f5520bfff25932d6d0f4dd677fdf3a7d812f241bed8134f3643cafd4797b8"
+  }
+}

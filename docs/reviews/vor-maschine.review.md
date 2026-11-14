@@ -2606,3 +2606,45 @@ Jeder dieser Commits ist ein Fund aus Rot-Beleg, Gate oder Live-Lauf; ihre Herku
 5. Im normalen Bedienen sonst nichts: Die Seite sendet jedes Pflichtfeld schon.
 
 **Erbeten:** `agreement` oder `findings` zu Teil A und Teil B am Integrationskopf.
+
+---
+
+## Codex · Paket 3a · Implementierungsreview R366 · 14. November 2026
+
+**Urteil: `findings`.** Der Integrationsstand schließt die wesentlichen Punkte aus R363–R365. Zwei Reste bleiben: die native MDI-Stringgrenze und die fehlende Timeout-Meldung der Werkzeugwechselbestätigung. Keine neue Operatorentscheidung erforderlich.
+
+Geprüft: Produkt `45727d61..6cc51e64`, einschließlich Teil A und Teil B; Anfrage an `227acb64`. Eigene Ausführung ausschließlich in einer Archivkopie: **156 Backend-Wächter und 19 Tests der neuen nativen Auswerter/Abläufe grün**. Eigene Gegenproben: **3 rote MDI-Fälle, 2 grüne Vergleiche**; zusätzlich ein roter Timeout-Fall und zwei grüne Antwortvergleiche im extrahierten Client-Handler. [Belege und Grenzen](vor-maschine.p3a.r366.codex-evidence.md). Kein Produktcode geändert, keine Live-Sim angefasst, kein Gesamt-Gate wiederholt.
+
+### VM-I11 · Hoch · Die tatsächliche MDI-Drahtform ist vor der ersten Schreibung noch nicht geprüft
+
+`command_policy.py:1436` begrenzt `Text` mit `len(raw)`. Damit sind weder die native Bytegrenze noch ein eingebettetes Nullzeichen abgedeckt. Die Prüfung endlicher Zahlen begrenzt außerdem nicht die Länge des daraus gebauten MDI-Befehls (`gateway.py:7293–7311`). Das betrifft den vereinbarten Vertrag N6: eine ungültige Nutzlast soll **vor** Moduswechsel und anderen vorbereitenden Schreibvorgängen verweigert werden.
+
+Drei konkrete Gegenfälle am Integrationskopf:
+
+1. **`mdi.text = "G0 X1\u0000 Y2"`:** Schema und Dispatch lassen durch, Antwort `ok:true`. LinuxCNC kopiert mit `strcpy`; der modellierte native Empfänger erhält deshalb nur **`G0 X1`**, nicht die geprüfte vollständige Eingabe. Ein Nullzeichen muss verweigert werden, nicht durch Kürzen oder Entfernen „repariert“ werden.
+2. **MDI mit Umlaut-Kommentar:** `G4 P0 (` + 130 × `ä` + `)` hat 138 Zeichen, aber 268 UTF-8-Bytes. Es passiert die 255-Zeichen-Prüfung. Erst CMD.mdi verweigert; **MODE_MDI wurde bereits geschrieben**. Der positive Vergleich mit 100 Umlauten / 208 Bytes wird korrekt unverändert angenommen.
+3. **Generierter Befehl:** `set_wcs {target:"G54", x:1e300}` ist eine endliche Zahl; die feste Dezimalformatierung erzeugt ein **319 Byte** langes G10. Wieder wird zuerst MODE_MDI geschrieben und danach verweigert.
+
+Die native Grenze ist im [LinuxCNC-2.9.4-Quelltext](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc#L922) nachgeprüft. [Meine Probe](vor-maschine.p3a.r366.codex-probe.py) verwendet den echten Gateway-Dispatch mit einem entsprechend modellierten CMD-Empfänger; **kein nativer Bewegungsversuch**. [Ergebnisse](vor-maschine.p3a.r366.codex-probe.json).
+
+**Korrektur:** Für Roh-MDI UTF-8-Darstellbarkeit, Nullfreiheit und die native Bytegrenze vor `_start_guard` prüfen. Für aus Nutzlasten gebaute MDI-Zeilen die **fertigen Zeilen bzw. Parameter-Chunks** vor der ersten vorbereitenden Schreibung prüfen; ein einzelnes zu langes Wort lässt sich nicht durch Chunking retten. Den tatsächlichen String am letzten Schreibweg zusätzlich absichern. Keine stillen Kürzungen und keine pauschale ASCII-Beschränkung. Die Wächter sollen die ausbleibende Modus-/Parameter-Schreibung und den gültigen Unicode-Vergleich behaupten, nicht nur ein abschließendes `ok:false`.
+
+Zur Einordnung: `10**400` passiert zwar die Fließkomma-Schemaform, wird bei `set_wcs` aber durch den Handler **vor** jeder Schreibung abgefangen. Daraus leite ich keinen weiteren Schreibbefund ab.
+
+### VM-I12 · Mittel · Werkzeugwechselbestätigung meldet den neuen Timeout nicht
+
+`App.vue:1173` behandelt nur `r && r.ok === false`. Wenn `awaitReply(id, 30_000)` mit `null` endet und dieselbe Werkzeugwechselanforderung weiter besteht, bleiben `confirmSent` gesetzt und `confirmRefusal` leer. Das Dialogfeld zeigt weiter **„Confirming…“**, ohne die in Teil A zugesagte Meldung „no reply“ / „outcome unknown“.
+
+[Die Sonde](vor-maschine.p3a.r366.codex-client.cjs) führt die tatsächliche extrahierte Funktion aus: beim Timeout keine Meldung; bei `ok:false` korrekte Ablehnung; bei `ok:true` korrekte Sperre bis zur Statusbestätigung. [Daten](vor-maschine.p3a.r366.codex-client.json).
+
+**Korrektur:** Bei `null` für die noch eigene Anforderung eine sichtbare Meldung „No reply — outcome unknown“ setzen. Die bestehende Sendesperre dabei behalten: ein Timeout beweist keine Ablehnung und rechtfertigt weder automatische Wiederholung noch eine zweite Bestätigung. Eine bereits durch Status/Anforderungswechsel abgeschlossene Bestätigung darf eine späte Timeout-Fortsetzung nicht wieder beschriften. Dazu ein Verhaltenswächter; der neue `lastReply`-Quelltextwächter kann diesen fehlenden Zweig nicht erkennen.
+
+### Angenommene Teile und Einordnung
+
+- **Home/Unhome:** Achse auf deklarierte Joint-Zuordnung, getrennte Unhome-Regel, die 15 Home-Zielmengen und erneute Zulassung an den Schreibstellen stimmen mit R365 überein. Auch die Anzeige liest den zugeordneten Joint. Die notwendige Neuinstallation der 5-/6-Achs-Profile ist richtig benannt.
+- **Schritt-Jog:** Gemeinsame Vorbereitung von Modus, Ziel und Spanne; Abgleich des tatsächlich gelesenen Controller-Modus in `jog_admit`. Damit ist die letzte Schreibgrenze aus R365 umgesetzt.
+- **Nutzlast/Reader:** Pflichtfelder, optionale und verschachtelte Formen, explizite Null-Ausnahme für `expect`, Stop-Erweiterung, nur `armed:true`, Trip-ID sowie Reader-Fortsetzung sind in Code und gezielten Wächtern nachvollzogen. Makro-Vorprüfung vor `_start_guard` und frühe Plane-U/V/W-Ablehnung sind an der richtigen Stelle.
+- **Teil A:** Antwortzuordnung per `awaitReply`, Wegfall der alten Datenrückfälle und der zusätzliche `set_params`-Weg über `fire` sind sinnvoll umgesetzt; VM-I12 betrifft den verbleibenden Ausgang ohne Antwort. Die deklarierte Grenze von `VARIABLE_SENDS` bleibt ausdrücklich eine Deklaration. Die drei nativen Fälle prüfen unterschiedliche Wirkungen; ihre Offline-Auswerter und der Ankunftswächter bestehen. Das ersetzt keinen eigenen Live-Nachweis, den ich in dieser Runde nicht erhoben habe.
+- **Nachgezogene Testkorrekturen:** Pflichtfeld-Untergrenze verhindert leere Gegenproben; die Ankunft statt eines möglicherweise übersprungenen Busy-Rahmens ist für `_to` passend; vollständige Markierungszahl und korrigierter Home-Locator sind nachvollziehbar. Der gemeldete CI-Lauf wurde von mir nicht unabhängig geprüft.
+
+Für die nächste Runde genügen die beiden Korrekturen samt gezielten Gegenfällen und dem dafür erforderlichen Gate; eine weitere Vertrags- oder Operatorrunde ist hierfür nicht nötig.

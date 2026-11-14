@@ -1,0 +1,23 @@
+[
+  {
+    "case": "timeout",
+    "sends": 1,
+    "pending": "req-1",
+    "notice": null,
+    "contract": false
+  },
+  {
+    "case": "refused",
+    "sends": 1,
+    "pending": null,
+    "notice": "not delivered",
+    "contract": true
+  },
+  {
+    "case": "accepted",
+    "sends": 1,
+    "pending": "req-1",
+    "notice": null,
+    "contract": true
+  }
+]

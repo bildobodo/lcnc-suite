@@ -1,0 +1,53 @@
+FF.F.                                                                    [100%]
+=================================== FAILURES ===================================
+_______ TestNativeMdiBoundary.test_embedded_nul_never_executes_a_prefix ________
+
+self = <test_r366_codex.TestNativeMdiBoundary testMethod=test_embedded_nul_never_executes_a_prefix>
+
+    def test_embedded_nul_never_executes_a_prefix(self):
+        row = self.exercise('embedded_nul', {'cmd': 'mdi', 'text': 'G0 X1\0 Y2'})
+>       assert row['reply']['ok'] is False, row
+E       AssertionError: {'case': 'embedded_nul', 'mdi_attempts': [{'bytes': 9, 'characters': 9, 'text': 'G0 X1\x00 Y2'}], 'native_effective_text': ['G0 X1'], 'reply': {'ok': True}, ...}
+E       assert True is False
+
+lcnc-gateway/test_r366_codex.py:41: AssertionError
+________ TestNativeMdiBoundary.test_generated_wcs_mdi_fits_before_mode _________
+
+self = <test_r366_codex.TestNativeMdiBoundary testMethod=test_generated_wcs_mdi_fits_before_mode>
+
+    def test_generated_wcs_mdi_fits_before_mode(self):
+        row = self.exercise('wcs_long_number', {'cmd': 'set_wcs', 'target': 'G54', 'x': 1e300})
+        assert row['reply']['ok'] is False
+>       assert row['writes'] == [], row
+E       AssertionError: {'case': 'wcs_long_number', 'mdi_attempts': [{'bytes': 319, 'characters': 319, 'text': 'G10 L2 P1 X1000000000000000052...native_effective_text': [], 'reply': {'error': 'ValueError: MDI commands limited to 255 characters', 'ok': False}, ...}
+E       assert [('mode', (3,... (0.05,), {})] == []
+E         
+E         Left contains 2 more items, first extra item: ('mode', (3,), {})
+E         Use -v to get more diff
+
+lcnc-gateway/test_r366_codex.py:47: AssertionError
+________ TestNativeMdiBoundary.test_multibyte_mdi_rejected_before_mode _________
+
+self = <test_r366_codex.TestNativeMdiBoundary testMethod=test_multibyte_mdi_rejected_before_mode>
+
+    def test_multibyte_mdi_rejected_before_mode(self):
+        row = self.exercise('multibyte_mdi', {'cmd': 'mdi', 'text': 'G4 P0 (' + '\u00e4' * 130 + ')'})
+        assert row['reply']['ok'] is False
+>       assert row['writes'] == [], row
+E       AssertionError: {'case': 'multibyte_mdi', 'mdi_attempts': [{'bytes': 268, 'characters': 138, 'text': 'G4 P0 (äääääääääääääääääääääääää...native_effective_text': [], 'reply': {'error': 'ValueError: MDI commands limited to 255 characters', 'ok': False}, ...}
+E       assert [('mode', (3,... (0.05,), {})] == []
+E         
+E         Left contains 2 more items, first extra item: ('mode', (3,), {})
+E         Use -v to get more diff
+
+lcnc-gateway/test_r366_codex.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED lcnc-gateway/test_r366_codex.py::TestNativeMdiBoundary::test_embedded_nul_never_executes_a_prefix
+FAILED lcnc-gateway/test_r366_codex.py::TestNativeMdiBoundary::test_generated_wcs_mdi_fits_before_mode
+FAILED lcnc-gateway/test_r366_codex.py::TestNativeMdiBoundary::test_multibyte_mdi_rejected_before_mode
+[GC] +85ms gen=2 duration=10.5ms collected=811 uncollectable=0
+[GC] +92ms gen=2 duration=7.3ms collected=0 uncollectable=0
+[GC] +105ms gen=2 duration=13.1ms collected=0 uncollectable=0
+[GC] +112ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +121ms gen=2 duration=8.7ms collected=0 uncollectable=0
+[GC] +128ms gen=2 duration=6.6ms collected=0 uncollectable=0

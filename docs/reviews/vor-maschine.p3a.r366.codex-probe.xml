@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="5" time="0.166" timestamp="2026-11-14T03:12:57.786674+01:00" hostname="debian"><testcase classname="test_r366_codex.TestNativeMdiBoundary" name="test_embedded_nul_never_executes_a_prefix" time="0.005"><failure message="AssertionError: {'case': 'embedded_nul', 'mdi_attempts': [{'bytes': 9, 'characters': 9, 'text': 'G0 X1\x00 Y2'}], 'native_effective_text': ['G0 X1'], 'reply': {'ok': True}, ...}&#10;assert True is False">self = &lt;test_r366_codex.TestNativeMdiBoundary testMethod=test_embedded_nul_never_executes_a_prefix&gt;
+
+    def test_embedded_nul_never_executes_a_prefix(self):
+        row = self.exercise('embedded_nul', {'cmd': 'mdi', 'text': 'G0 X1\0 Y2'})
+&gt;       assert row['reply']['ok'] is False, row
+E       AssertionError: {'case': 'embedded_nul', 'mdi_attempts': [{'bytes': 9, 'characters': 9, 'text': 'G0 X1\x00 Y2'}], 'native_effective_text': ['G0 X1'], 'reply': {'ok': True}, ...}
+E       assert True is False
+
+lcnc-gateway/test_r366_codex.py:41: AssertionError</failure></testcase><testcase classname="test_r366_codex.TestNativeMdiBoundary" name="test_generated_wcs_mdi_fits_before_mode" time="0.002"><failure message="AssertionError: {'case': 'wcs_long_number', 'mdi_attempts': [{'bytes': 319, 'characters': 319, 'text': 'G10 L2 P1 X1000000000000000052...native_effective_text': [], 'reply': {'error': 'ValueError: MDI commands limited to 255 characters', 'ok': False}, ...}&#10;assert [('mode', (3,... (0.05,), {})] == []&#10;  &#10;  Left contains 2 more items, first extra item: ('mode', (3,), {})&#10;  Use -v to get more diff">self = &lt;test_r366_codex.TestNativeMdiBoundary testMethod=test_generated_wcs_mdi_fits_before_mode&gt;
+
+    def test_generated_wcs_mdi_fits_before_mode(self):
+        row = self.exercise('wcs_long_number', {'cmd': 'set_wcs', 'target': 'G54', 'x': 1e300})
+        assert row['reply']['ok'] is False
+&gt;       assert row['writes'] == [], row
+E       AssertionError: {'case': 'wcs_long_number', 'mdi_attempts': [{'bytes': 319, 'characters': 319, 'text': 'G10 L2 P1 X1000000000000000052...native_effective_text': [], 'reply': {'error': 'ValueError: MDI commands limited to 255 characters', 'ok': False}, ...}
+E       assert [('mode', (3,... (0.05,), {})] == []
+E         
+E         Left contains 2 more items, first extra item: ('mode', (3,), {})
+E         Use -v to get more diff
+
+lcnc-gateway/test_r366_codex.py:47: AssertionError</failure></testcase><testcase classname="test_r366_codex.TestNativeMdiBoundary" name="test_huge_integer_is_refused_without_write_by_handler" time="0.000" /><testcase classname="test_r366_codex.TestNativeMdiBoundary" name="test_multibyte_mdi_rejected_before_mode" time="0.001"><failure message="AssertionError: {'case': 'multibyte_mdi', 'mdi_attempts': [{'bytes': 268, 'characters': 138, 'text': 'G4 P0 (äääääääääääääääääääääääää...native_effective_text': [], 'reply': {'error': 'ValueError: MDI commands limited to 255 characters', 'ok': False}, ...}&#10;assert [('mode', (3,... (0.05,), {})] == []&#10;  &#10;  Left contains 2 more items, first extra item: ('mode', (3,), {})&#10;  Use -v to get more diff">self = &lt;test_r366_codex.TestNativeMdiBoundary testMethod=test_multibyte_mdi_rejected_before_mode&gt;
+
+    def test_multibyte_mdi_rejected_before_mode(self):
+        row = self.exercise('multibyte_mdi', {'cmd': 'mdi', 'text': 'G4 P0 (' + '\u00e4' * 130 + ')'})
+        assert row['reply']['ok'] is False
+&gt;       assert row['writes'] == [], row
+E       AssertionError: {'case': 'multibyte_mdi', 'mdi_attempts': [{'bytes': 268, 'characters': 138, 'text': 'G4 P0 (äääääääääääääääääääääääää...native_effective_text': [], 'reply': {'error': 'ValueError: MDI commands limited to 255 characters', 'ok': False}, ...}
+E       assert [('mode', (3,... (0.05,), {})] == []
+E         
+E         Left contains 2 more items, first extra item: ('mode', (3,), {})
+E         Use -v to get more diff
+
+lcnc-gateway/test_r366_codex.py:37: AssertionError</failure></testcase><testcase classname="test_r366_codex.TestNativeMdiBoundary" name="test_small_multibyte_mdi_still_executes" time="0.004" /></testsuite></testsuites>

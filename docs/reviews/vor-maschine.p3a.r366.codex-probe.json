@@ -1,0 +1,138 @@
+[
+  {
+    "case": "embedded_nul",
+    "reply": {
+      "ok": true
+    },
+    "writes": [
+      [
+        "mode",
+        [
+          3
+        ],
+        {}
+      ],
+      [
+        "wait_complete",
+        [
+          0.05
+        ],
+        {}
+      ]
+    ],
+    "mdi_attempts": [
+      {
+        "characters": 9,
+        "bytes": 9,
+        "text": "G0 X1\u0000 Y2"
+      }
+    ],
+    "native_effective_text": [
+      "G0 X1"
+    ]
+  },
+  {
+    "case": "wcs_long_number",
+    "reply": {
+      "ok": false,
+      "error": "ValueError: MDI commands limited to 255 characters"
+    },
+    "writes": [
+      [
+        "mode",
+        [
+          3
+        ],
+        {}
+      ],
+      [
+        "wait_complete",
+        [
+          0.05
+        ],
+        {}
+      ]
+    ],
+    "mdi_attempts": [
+      {
+        "characters": 319,
+        "bytes": 319,
+        "text": "G10 L2 P1 X1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.000000"
+      }
+    ],
+    "native_effective_text": []
+  },
+  {
+    "case": "huge_integer_backstop",
+    "reply": {
+      "ok": false,
+      "error": "OverflowError: int too large to convert to float"
+    },
+    "writes": [],
+    "mdi_attempts": [],
+    "native_effective_text": []
+  },
+  {
+    "case": "multibyte_mdi",
+    "reply": {
+      "ok": false,
+      "error": "ValueError: MDI commands limited to 255 characters"
+    },
+    "writes": [
+      [
+        "mode",
+        [
+          3
+        ],
+        {}
+      ],
+      [
+        "wait_complete",
+        [
+          0.05
+        ],
+        {}
+      ]
+    ],
+    "mdi_attempts": [
+      {
+        "characters": 138,
+        "bytes": 268,
+        "text": "G4 P0 (\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4)"
+      }
+    ],
+    "native_effective_text": []
+  },
+  {
+    "case": "valid_multibyte_twin",
+    "reply": {
+      "ok": true
+    },
+    "writes": [
+      [
+        "mode",
+        [
+          3
+        ],
+        {}
+      ],
+      [
+        "wait_complete",
+        [
+          0.05
+        ],
+        {}
+      ]
+    ],
+    "mdi_attempts": [
+      {
+        "characters": 108,
+        "bytes": 208,
+        "text": "G4 P0 (\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4)"
+      }
+    ],
+    "native_effective_text": [
+      "G4 P0 (\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4\u00e4)"
+    ]
+  }
+]
