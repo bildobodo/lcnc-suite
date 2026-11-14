@@ -52,6 +52,9 @@ Logging-bucket policy (the contract for choosing print vs _trace.emit):
     The small set of messages the operator must see in the gateway terminal
     (uvicorn's own startup banner, deliberate machine-state announcements,
     user-typed shutdown confirmations). Keep these terse — one line each.
+    A line inside a chain that must run to its end (the shutdown, a HAL
+    disconnect) goes through `console(text)` and comes AFTER the chain's
+    trace; no console write ever raises (ConsoleGuard, below).
 
   TEMP probes         →  print(...), marked with `# TEMP`
     [HB-STALL], [LAG], [GC], [HB-WAKE], [HB-TRACE]. These exist to chase a
@@ -79,7 +82,7 @@ import threading
 import time
 import traceback
 from types import FrameType, TracebackType
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Optional, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Optional, TextIO, TypeGuard, Union
 
 if TYPE_CHECKING:
     import asyncio
@@ -304,6 +307,106 @@ def emit_exc_tb(tag: str, exc: BaseException, level: str = "warn",
 
 
 # ──────────────────────────────────────────────────────────────────
+# The console never raises into its caller.
+#
+# The gateway's stdout/stderr is the launcher's tee to gateway.log; the HAL
+# helpers' is whatever started LinuxCNC. When that reader is gone a write
+# raises — BrokenPipeError, EIO on a dead terminal, ValueError on a closed
+# stream — out of whatever path printed. The 3a merge gate's install probe
+# caught it: the instance-ended chain printed after its latch and before its
+# trace, its HAL disconnect and its shutdown request; the print raised, the
+# watch task died, and only an outside SIGTERM ended the gateway. In
+# hal_watchdog a console line inside the receive path lands in the except
+# that forces the pins LOW. A console line is for a human; the trace is the
+# record. So:
+#   - `console(text)` writes ONE line best-effort — the form a safety chain
+#     uses, whatever sys.stdout is at that moment;
+#   - `install_crash_hooks` wraps each process's stdout and stderr once in a
+#     ConsoleGuard, so every other print (and a library's) is held to the
+#     same rule.
+# A failure is traced as `console.lost` (once per failure kind and stream),
+# `console.recovered` when a later flush gets through — never swallowed.
+# ──────────────────────────────────────────────────────────────────
+
+
+def _console_failure(stream: str, op: str, exc: BaseException) -> tuple[str, Optional[int]]:
+    kind = (type(exc).__name__, getattr(exc, "errno", None))
+    emit("console.lost", level="warn", stream=stream, op=op,
+         exc_type=kind[0], errno=kind[1], exc_msg=str(exc)[:200])
+    return kind
+
+
+def console(text: str) -> None:
+    """Print one line to sys.stdout and flush it; a failed write is traced
+    (`console.lost`), never raised. emit() never raises either, so a chain
+    built from emit + console runs to its end."""
+    try:
+        print(text, flush=True)
+    except (OSError, ValueError) as e:
+        _console_failure("stdout", "console", e)
+
+
+class ConsoleGuard:
+    """A console stream whose write and flush never raise (see above)."""
+
+    def __init__(self, stream: TextIO, name: str) -> None:
+        self._stream = stream
+        self._name = name
+        self._failing: Optional[tuple[str, Optional[int]]] = None
+        self._dropped = 0
+        self._tracing = False
+
+    @property
+    def wrapped(self) -> TextIO:
+        return self._stream
+
+    def _failed(self, op: str, exc: BaseException) -> None:
+        self._dropped += 1
+        kind = (type(exc).__name__, getattr(exc, "errno", None))
+        if kind == self._failing or self._tracing:
+            return
+        self._tracing = True   # emit's own stderr report must not recurse here
+        try:
+            self._failing = _console_failure(self._name, op, exc)
+        finally:
+            self._tracing = False
+
+    def write(self, s: str) -> int:
+        try:
+            return self._stream.write(s)
+        except (OSError, ValueError) as e:
+            self._failed("write", e)
+            return len(s)
+
+    def flush(self) -> None:
+        try:
+            self._stream.flush()
+        except (OSError, ValueError) as e:
+            self._failed("flush", e)
+            return
+        # Only a flush proves the line left (a write may only have buffered it).
+        if self._failing is not None and not self._tracing:
+            self._tracing = True
+            try:
+                emit("console.recovered", stream=self._name, dropped=self._dropped)
+            finally:
+                self._tracing = False
+            self._failing = None
+            self._dropped = 0
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._stream, name)
+
+
+def guard_console() -> None:
+    """Wrap sys.stdout and sys.stderr in a ConsoleGuard (once each)."""
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name)
+        if stream is not None and not isinstance(stream, ConsoleGuard):
+            setattr(sys, name, ConsoleGuard(stream, name))
+
+
+# ──────────────────────────────────────────────────────────────────
 # Crash hooks
 #
 # Three things land in the trace bus that previously only hit stderr:
@@ -328,11 +431,15 @@ def install_crash_hooks(proc_name: str) -> None:
     doesn't exist at import time. Gateway calls `install_asyncio_handler()`
     inside its FastAPI lifespan startup.
 
+    Also guards the console (guard_console): from here on no print in the
+    process raises into its caller.
+
     Safe to call multiple times — only the first call wires the hooks."""
     global _crash_hooks_installed
     if _crash_hooks_installed:
         return
     _crash_hooks_installed = True
+    guard_console()
 
     prev_excepthook = sys.excepthook
 

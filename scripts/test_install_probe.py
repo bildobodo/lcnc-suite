@@ -474,7 +474,10 @@ POST = {"outcome": "complete"}
     ({**GOOD_REPORT, "restore": {"outcome": "not_returned", "isolation": []}}, POST, False),
     ({**GOOD_REPORT, "restore": {"outcome": "complete", "isolation": None}}, POST, False),
     ({**GOOD_REPORT, "restore": {"outcome": "complete", "isolation": ["home:.local/bin changed"]}}, POST, False),
-    (GOOD_REPORT, {"outcome": "not_returned", "reasons": ["x"]}, False)])
+    (GOOD_REPORT, {"outcome": "not_returned", "reasons": ["x"]}, False),
+    # package 3b: a crash record names itself (the verdict alone said only "FAIL")
+    ({**GOOD_REPORT, "crashes": [{"proc": "gateway", "tag": "crash.asyncio_unhandled",
+                                  "exc_type": "BrokenPipeError"}]}, POST, False)])
 def test_gate_status(report, post, ok):
     """Each case fails for ITS reason alone: every other proof holds (a case
     with two faults hid the isolation check from a mutant, inst-mut-2)."""

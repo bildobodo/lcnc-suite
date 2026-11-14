@@ -35,6 +35,10 @@ stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client th
 preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
 `trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
 of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
+Package 3b: a run's verdict (and the install probe's, the same `verdict`) is FAIL when its `logs/crash.log`
+or a rotation holds an error-level record or a line that is no record (`native_run.run_crashes`, read after
+the restore — the processes' last words included): the instance-ended chain's BrokenPipeError sat in the
+crash.log of 28 of the 82 kept run folders (2026-11-06 to 3a) while every report said PASS.
 
 ## Round gate and merge gate (test strategy, Codex R248–R260)
 

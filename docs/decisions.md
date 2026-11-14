@@ -11408,6 +11408,31 @@ of a newer epoch; a features save cancelled after its commit runs the camera
 hook (shielded) before the cancel goes on.
 
 
+## 2026-11-14 — A console line never stops a chain; a run's crash.log decides (package 3b, item 1)
+
+**Decision.** The gateway's instance-ended chain records, disconnects HAL (a
+failure traced) and requests the shutdown before its console line; the
+shutdown request arms its 5 s deadline before any console line. Every
+process guards its console in `install_crash_hooks` (`ConsoleGuard`: a
+failed write or flush is traced `console.lost`, never raised); a line inside
+a chain that must end goes through `lcnc_trace.console`. A native run's and
+the install probe's verdict is FAIL when the run's `crash.log` holds an
+error-level record (`native_run.run_crashes`).
+
+**Why.** The 3a merge gate's install probe said PASS while its crash.log held
+`crash.asyncio_unhandled` BrokenPipeError out of `_on_instance_ended`: the
+print came after the latch and before the trace, the HAL disconnect and the
+shutdown request; the launcher's tee was gone, the print raised, the watch
+task died, and an outside SIGTERM 126 ms later ended the gateway. A
+standalone gateway would have lived on without its Link, every later
+shutdown request returning at once. The order dates from session binding
+(bd660c22, 2026-09-13). Scanning the kept run folders since 2026-11-01: the
+same record in 28 of 82 (native and install runs, the first on 2026-11-06),
+the ONLY error record in any of them — no gate read the file. hal_watchdog has the sibling:
+a console line inside its receive path lands in the `except` that forces the
+pins LOW. The guard answers the class (any print, a library's too); the
+chain does not lean on it (a rebound `sys.stdout` drops a guard).
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

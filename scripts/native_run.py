@@ -259,6 +259,8 @@ def run(host, steps, run_dir: Path) -> dict:
         report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json",
                                        save=lambda st: write_json(run_dir / "state.json", st))
         write_json(run_dir / "state.json", ctx["state"])
+        # after the restore: the run's processes have ended, their last words included
+        report["crashes"] = run_crashes(run_dir / "logs")
         # the owed return stays owed: the run's FINAL restore — its unit's
         # ExecStopPost, the record a gate demands — settles it (Codex R332 A1:
         # settled here, a waiting gate came in before that restore)
@@ -267,10 +269,39 @@ def run(host, steps, run_dir: Path) -> dict:
     return report
 
 
+def run_crashes(log_dir: Path) -> list[dict]:
+    """Every error-level record in the run's crash.log (and its rotations):
+    an unhandled exception in any of the run's processes is a finding,
+    whatever the rows say. A line that is not a record is one too.
+
+    Package 3b: a BrokenPipeError out of the gateway's instance-ended chain
+    sat in the crash.log of 28 of the 82 kept native and install run folders
+    since 2026-11-01 (the first on 2026-11-06) — every report said PASS."""
+    found: list[dict] = []
+    for f in sorted(log_dir.glob("crash.log*")):
+        for line in f.read_text(errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                found.append({"file": f.name, "unparsed": line[:200]})
+                continue
+            if not isinstance(rec, dict):
+                found.append({"file": f.name, "unparsed": line[:200]})
+            elif rec.get("level") == "error":
+                tb = [x.strip() for x in str(rec.get("tb_tail") or "").splitlines() if x.strip().startswith("File ")]
+                found.append({"file": f.name, **{k: rec[k] for k in ("proc", "tag", "exc_type", "exc_msg", "message")
+                                                 if k in rec},
+                              **({"where": tb[-1][-160:]} if tb else {})})
+    return found
+
+
 def verdict(report: dict) -> str:
-    """PASS only with every row PASS, no error, the run's own resources ended,
-    the LAN returned complete and its isolation proven (an empty list)."""
-    if report.get("error") or report.get("cleanup_error"):
+    """PASS only with every row PASS, no error, no crash record of the run's
+    processes, the run's own resources ended, the LAN returned complete and
+    its isolation proven (an empty list)."""
+    if report.get("error") or report.get("cleanup_error") or report.get("crashes"):
         return "FAIL"
     r = report.get("restore", {})
     # isolation: [] is proven; a list names what changed; None was never proven (R286 FI-I21)

@@ -2514,7 +2514,7 @@ def _self_restart():
     inherited but the gateway re-opens its own HAL/socket state. Falls back
     to os._exit so the launcher can respawn if execv fails.
     """
-    print("NML POISONED: self-restarting gateway process", flush=True)
+    _trace.console("NML POISONED: self-restarting gateway process")
     _hal_disconnect()
     try:
         os.execv(sys.executable, [sys.executable, "-m", "uvicorn"] + sys.argv[1:])
@@ -2537,18 +2537,25 @@ def _request_process_shutdown(reason: str) -> None:
     deadline: an orphan has no launcher `_wait_or_kill`, and self-SIGTERM
     needs a responsive event loop — if teardown hangs, os._exit ends it.
     Under the fake binding (tests) it only records the request.
+
+    Once the flag is set every later call returns at once, so nothing after
+    it may stop this one: the record first, then the hard deadline (whatever
+    follows may fail or block — a console line into a pipe nobody reads),
+    and every console line through `_trace.console`, which never raises.
     """
     global _shutdown_requested
     if _shutdown_requested:
         return
     _shutdown_requested = True
-    print(f"[SAFETY] shutdown requested: {reason}", flush=True)
     _trace.emit("session.shutdown_requested", level="warn", reason=reason)
-    if getattr(linuxcnc, "__lcnc_fake__", False):
+    fake = getattr(linuxcnc, "__lcnc_fake__", False)
+    if not fake:
+        _deadline = threading.Timer(5.0, os._exit, [1])
+        _deadline.daemon = True
+        _deadline.start()
+    _trace.console(f"[SAFETY] shutdown requested: {reason}")
+    if fake:
         return
-    _deadline = threading.Timer(5.0, os._exit, [1])
-    _deadline.daemon = True
-    _deadline.start()
     launcher_pid = _launcher_bind.get("launcher_pid") if _launcher_bind.get("mode") == "launcher" else None
     try:
         if launcher_pid and os.getppid() == launcher_pid:
@@ -2558,7 +2565,7 @@ def _request_process_shutdown(reason: str) -> None:
     except (ProcessLookupError, PermissionError) as e:
         # No launcher (standalone) or it is gone — exit cleanly via
         # uvicorn's lifespan path ourselves.
-        print(f"Shutdown: launcher signal unavailable ({e}); self-signaling", flush=True)
+        _trace.console(f"Shutdown: launcher signal unavailable ({e}); self-signaling")
         signal.raise_signal(signal.SIGTERM)
 
 
@@ -2570,7 +2577,14 @@ def _bound_instance_alive() -> bool:
 def _on_instance_ended(where: str) -> None:
     """The bound LinuxCNC instance died or was replaced. Never re-bind:
     disconnect HAL and end the process (the launcher then returns to
-    LinuxCNC's Cleanup; a standalone gateway just exits)."""
+    LinuxCNC's Cleanup; a standalone gateway just exits).
+
+    From the latch on, every later call returns at once — so nothing after
+    it may stop this one: the record, the HAL disconnect (a failure traced,
+    never raised), the shutdown request, and the console line LAST through
+    `_trace.console`. The 3a merge gate's install probe saw the old order
+    break: the print came first, raised on the launcher's closed pipe, and
+    the watch task died before the trace, the disconnect and the request."""
     global _instance_ended, _link
     with _link_lock:   # the end and every publish decide under one lock (VM-I07)
         if _instance_ended:
@@ -2581,12 +2595,15 @@ def _on_instance_ended(where: str) -> None:
     if old is not None:
         _trace.emit("lcnc.link_revoked", level="warn", seq=old.seq, reason="the bound instance ended")
     inst_pid, inst_start = _bound_instance if _bound_instance is not None else (None, None)
-    print(f"[SAFETY] bound LinuxCNC instance pid={inst_pid} ended ({where}) — "
-          f"this gateway will not re-bind; shutting down", flush=True)
     _trace.emit("session.instance_ended", level="error", where=where,
                 instance_pid=inst_pid, instance_start=inst_start)
-    _hal_disconnect()
+    try:
+        _hal_disconnect()
+    except Exception as e:
+        _trace.emit_exc("session.hal_disconnect_failed", e, level="error")
     _request_process_shutdown("linuxcnc instance ended")
+    _trace.console(f"[SAFETY] bound LinuxCNC instance pid={inst_pid} ended ({where}) — "
+                   f"this gateway will not re-bind; shutting down")
 
 
 def try_connect_lcnc() -> bool:
@@ -2692,7 +2709,7 @@ def check_lcnc_instance() -> bool:
     _tool_tbl_ini = None
     _status_runtime.invalidate_wcs_mtime()  # force WCS re-seed from var file on next poll
     if pid is None:
-        print(f"[VINIT] check_lcnc_instance: PID gone (was {old_pid}), disconnecting", flush=True)
+        _trace.console(f"[VINIT] check_lcnc_instance: PID gone (was {old_pid}), disconnecting")
         _revoke_link("the LinuxCNC pid is gone")
         _hal_disconnect()
     else:

@@ -377,6 +377,56 @@ def test_a_failure_right_after_the_lan_stop_still_restores_and_reports(tmp_path)
     assert json.loads((tmp_path / "run/report.json").read_text())["restore"]["outcome"] == "complete"
 
 
+# ── The run's crash.log decides too (package 3b) ──────────────────────────
+# The 3a merge gate's probe: PASS, while its crash.log held this record.
+PROBE_CRASH = {"t_wall_ns": 1794654418082496090, "t_mono_ms": 24155.708, "proc": "gateway", "pid": 3501911,
+               "tag": "crash.asyncio_unhandled", "level": "error", "message": "Task exception was never retrieved",
+               "exc_type": "BrokenPipeError", "exc_msg": "[Errno 32] Broken pipe",
+               "tb_tail": "Traceback (most recent call last):\n  File \"/x/lcnc-gateway/gateway.py\", line 2584, "
+                          "in _on_instance_ended\n    print(...)\nBrokenPipeError: [Errno 32] Broken pipe\n"}
+SIGNAL = {"proc": "gateway", "tag": "crash.signal", "level": "info", "signo": 15, "signame": "SIGTERM"}
+
+
+def _passing_run(tmp_path, crash_lines):
+    def step(ctx):
+        logs = ctx["run"] / "logs"
+        logs.mkdir(exist_ok=True)
+        (logs / "crash.log").write_text("".join(line + "\n" for line in crash_lines))
+        return [{"case": "a", "status": "PASS"}]
+    return nr.run(FakeHost(), [("a", step)], tmp_path / "run")
+
+
+def test_a_run_whose_crash_log_holds_an_error_fails(tmp_path):
+    report = _passing_run(tmp_path, [json.dumps(SIGNAL), json.dumps(PROBE_CRASH)])
+    assert report["restore"]["outcome"] == "complete" and [r["status"] for r in report["rows"]] == ["PASS"]
+    assert [c["exc_type"] for c in report["crashes"]] == ["BrokenPipeError"]
+    assert "_on_instance_ended" in report["crashes"][0]["where"]
+    assert nr.verdict(report) == "FAIL"
+    assert json.loads((tmp_path / "run/report.json").read_text())["crashes"] == report["crashes"]
+
+
+def test_a_signal_record_alone_passes(tmp_path):
+    report = _passing_run(tmp_path, [json.dumps(SIGNAL)])
+    assert report["crashes"] == [] and nr.verdict(report) == "PASS"
+
+
+def test_no_crash_log_passes(tmp_path):
+    def step(ctx):
+        return [{"case": "a", "status": "PASS"}]
+    report = nr.run(FakeHost(), [("a", step)], tmp_path / "run")
+    assert report["crashes"] == [] and nr.verdict(report) == "PASS"
+
+
+def test_a_rotated_crash_log_and_a_torn_line_count(tmp_path):
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "crash.log").write_text(json.dumps(SIGNAL) + "\n")
+    (logs / "crash.log.1").write_text(json.dumps(PROBE_CRASH) + "\n" + '{"tag": "crash.thr' + "\n")
+    found = nr.run_crashes(logs)
+    assert [c.get("exc_type") or "unparsed" for c in found] == ["BrokenPipeError", "unparsed"]
+    assert {c["file"] for c in found} == {"crash.log.1"}
+
+
 class FileHost(FakeHost):
     """A FakeHost whose state lives in a file: the killed run and the
     ExecStopPost restore see the same LAN."""

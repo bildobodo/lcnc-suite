@@ -311,6 +311,11 @@ def gate_status(report: dict | None, restore_post: dict | None) -> tuple[str, li
         return "FAIL", ["no probe report — the probe did not finish"]
     if report.get("verdict") != "PASS":
         why.append(f"the probe's verdict is {report.get('verdict')}: {report.get('error') or ''}".rstrip(": "))
+    crashes = report.get("crashes") or []
+    if crashes:
+        first = crashes[0]
+        why.append(f"the run's crash.log: {len(crashes)} error record(s), first "
+                   f"{first.get('proc')} {first.get('tag')} {first.get('exc_type') or first.get('unparsed', '')}".rstrip())
     r = report.get("restore") or {}
     if r.get("outcome") != "complete":
         why.append(f"the LAN return: {r.get('outcome')} {r.get('reasons') or ''}".rstrip())
