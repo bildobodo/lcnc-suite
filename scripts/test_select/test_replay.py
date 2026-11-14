@@ -319,3 +319,52 @@ def test_a_request_without_an_origin_of_this_run_is_a_finding(tmp_path, method, 
     r = run(tmp_path, [m], [attempt(A)])
     assert r["verdict"] == "FAIL" and len(r["findings"]) == 1, r["findings"]
     assert f"{method} {path} without an origin of this run" in r["findings"][0]
+
+
+# Fable before the replay request: "3a's schema holds every named data map of
+# TS248-04 Rest A, keys and values" — each map with a wrong key and a wrong
+# value, refused against EACH example var file, naming its path; a valid form
+# of each passes (the replay keeps no second copy of the map rules)
+_RUN = {"line": 0, "file": "/a.ngc", "version": 1, "source": "s"}
+MAP_CASES = [
+    ("mdi", {"text": "G0 X1", "vars": {"x3014": 1}}, "vars key 'x3014'"),
+    ("mdi", {"text": "G0 X1", "vars": {"3014": "1"}}, "vars.#3014 must be a number"),
+    ("probe_run", {"routine": "probe_x", "vars": {"abc": 1}}, "vars key 'abc'"),
+    ("probe_run", {"routine": "probe_x", "vars": {"3014": None}}, "vars.#3014 must be a number"),
+    ("surface_scan_run", {"vars": {"-1": 1}}, "vars key '-1'"),
+    ("surface_scan_run", {"vars": {"3014": [1]}}, "vars.#3014 must be a number"),
+    ("set_params", {"sets": {"nonsense": {"3014": 1}}}, "sets 'nonsense' not one of"),
+    ("set_params", {"sets": {"toolsetter": {"x": 1}}}, "sets.toolsetter key 'x'"),
+    ("set_params", {"sets": {"toolsetter": {"3100": "a"}}}, "sets.toolsetter.#3100 must be a number"),
+    ("auto_run", {**_RUN, "probe_vars": {"y": 1}}, "probe_vars key 'y'"),
+    ("auto_run", {**_RUN, "probe_vars": {"3100": True}}, "probe_vars.#3100 must be a number"),
+    ("touchoff", {"axes": {"Q": 1.0}}, "'Q' is not an axis letter"),
+    ("touchoff", {"axes": {"X": "1"}}, "axes.X must be a number"),
+    ("touchoff", {"axes": {"X": 1.0}, "expect": {"other": 1}}, "expect must name exactly"),
+    ("touchoff", {"axes": {"X": 1.0}, "expect": {"kins_type": 1.5, "g5x_index": 1}}, "expect.kins_type must be an integer"),
+    ("set_g30", {"values": {"Q": 1.0}, "based_on": {"X": 0.0}}, "'Q' is not an axis letter"),
+    ("set_g30", {"values": {"X": None}, "based_on": {"X": 0.0}}, "values.X must be a number"),
+    ("set_g30", {"values": {"X": 1.0}, "based_on": {"Q": 0.0}}, "'Q' is not an axis letter"),
+    ("set_g30", {"values": {"X": 1.0}, "based_on": {"X": "0"}}, "based_on.X must be a number"),
+]
+
+
+@pytest.mark.parametrize("cmd, msg, why", MAP_CASES, ids=[f"{c}:{w.split()[0]}" for c, _, w in MAP_CASES])
+def test_every_named_data_map_is_held_by_the_schema(cmd, msg, why):
+    var_sets = replay._var_sets()
+    found = replay.judge_payload(cmd, {"cmd": cmd, **msg}, var_sets)
+    assert len(found) == len(var_sets) == 3, found
+    assert all(f.startswith("refused:") and why in f for f in found), found
+
+
+@pytest.mark.parametrize("cmd, msg", [
+    ("mdi", {"text": "G0 X1", "vars": {"3014": 1}}),
+    ("probe_run", {"routine": "probe_x", "vars": {"3014": 1}}),
+    ("surface_scan_run", {"vars": {"3014": 1}}),
+    ("set_params", {"sets": {"toolsetter": {"3100": 1.5}}}),
+    ("auto_run", {**_RUN, "probe_vars": {"3100": 1.5}}),
+    ("touchoff", {"axes": {"X": 1.0}, "expect": {"kins_type": 1, "g5x_index": 1}}),
+    ("set_g30", {"values": {"X": 1.0}, "based_on": {"X": 0.0}}),
+])
+def test_a_valid_form_of_each_map_passes(cmd, msg):
+    assert replay.judge_payload(cmd, {"cmd": cmd, **msg}, replay._var_sets()) == []
