@@ -5482,14 +5482,39 @@ def test_the_gateway_on_the_port_must_serve_the_running_ini(tmp_path):
 
     def read(pid, what):
         return procs[pid][0] if what == "cmdline" else procs[pid][1]
-    assert lt.gateway_target_problems(8000, ini, [1], read) == []
+
+    def rows(*pids):
+        return [(f"127.0.0.1:{8000 + i}", [p]) for i, p in enumerate(pids)]
+    assert lt.gateway_target_problems(8000, ini, rows(1), read) == []
     assert "cannot be told" in lt.gateway_target_problems(8000, ini, None, read)[0]
     assert "no process listens" in lt.gateway_target_problems(8000, ini, [], read)[0]
-    assert "is no gateway" in lt.gateway_target_problems(8000, ini, [2], read)[0]
-    assert "real-machine.ini" in lt.gateway_target_problems(8000, ini, [3], read)[0]
-    assert "no INI" in lt.gateway_target_problems(8000, ini, [4], read)[0]
-    assert lt.gateway_target_problems(8000, ini, [1, 3], read), "every listener must be this gateway"
-    assert lt.listening_pids(8000, run=lambda argv: 'LISTEN 0 2048 0.0.0.0:8000 0.0.0.0:* users:(("python3",pid=42,fd=10))') == [42]
+    assert "is no gateway" in lt.gateway_target_problems(8000, ini, rows(2), read)[0]
+    assert "real-machine.ini" in lt.gateway_target_problems(8000, ini, rows(3), read)[0]
+    assert "no INI" in lt.gateway_target_problems(8000, ini, rows(4), read)[0]
+    assert lt.gateway_target_problems(8000, ini, rows(1, 3), read), "every listener must be this gateway"
+    assert lt.listening_pids(8000, run=lambda argv: 'LISTEN 0 2048 0.0.0.0:8000 0.0.0.0:* users:(("python3",pid=42,fd=10))') \
+        == [("0.0.0.0:8000", [42])]
+
+
+def test_a_listener_without_a_named_process_refuses_beside_a_proven_gateway(tmp_path):
+    """Codex R368: `ss` lines reduced to their pids dropped a row that names
+    none — a proven gateway on 127.0.0.2 covered an unknown listener on
+    127.0.0.1, where the driver connects. Every row counts, in any order."""
+    ini = str(tmp_path / "sim.ini")
+    known = 'LISTEN 0 2048 127.0.0.2:4188 0.0.0.0:* users:(("python3",pid=77,fd=9))\n'
+    unknown = 'LISTEN 0 2048 127.0.0.1:4188 0.0.0.0:*\n'
+
+    def read(pid, what):
+        assert pid == 77
+        return [b"python3", b"-m", b"uvicorn", b"gateway:app"] if what == "cmdline" else [b"INI_FILE_NAME=" + ini.encode()]
+
+    def problems(text):
+        return lt.gateway_target_problems(4188, ini, lt.listening_pids(4188, run=lambda argv: text), read)
+    for text in (known + unknown, unknown + known):
+        got = problems(text)
+        assert got and "127.0.0.1:4188" in got[0] and "unidentified" in got[0], (text, got)
+    assert "unidentified" in problems(unknown)[0]
+    assert problems(known.replace("127.0.0.2", "127.0.0.1")) == []
 
 
 def _drive_home_step_main(tmp_path, ini_text, *, running, as_group=False, target_ok=False):
@@ -5550,7 +5575,7 @@ def _drive_home_step_main(tmp_path, ini_text, *, running, as_group=False, target
                patch.object(module.asyncio, "get_event_loop", lambda: Loop())]
     if target_ok:
         patches += [patch.object(module, "validate_sim_target", lambda *a, **k: None),
-                    patch.object(module, "listening_pids", lambda port: [7]),
+                    patch.object(module, "listening_pids", lambda port: [("127.0.0.1:4188", [7])]),
                     patch.object(module, "gateway_target_problems", lambda *a, **k: [])]
     import contextlib
     with contextlib.ExitStack() as stack:
