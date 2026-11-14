@@ -1,5 +1,5 @@
 {
-  "started": 1794630376.4970086,
+  "started": 1794635245.5942218,
   "steps": [
     "tree",
     "copy",
@@ -13,13 +13,13 @@
     {
       "case": "latch-same-cycle.delayed-order",
       "status": "PASS",
-      "detail": "the delayed order latched exactly one cycle late (sample 516)",
-      "samples": 2467,
+      "detail": "the delayed order latched exactly one cycle late (sample 520)",
+      "samples": 2468,
       "delayed": true,
-      "edge_n": 515,
-      "edge_index": 484,
+      "edge_n": 519,
+      "edge_index": 488,
       "latch_clear_before": true,
-      "latched_after": 516,
+      "latched_after": 520,
       "section_complete": true,
       "latch_at_edge": 0,
       "latch_next": 1,
@@ -28,8 +28,8 @@
     {
       "case": "latch-sticky",
       "status": "PASS",
-      "detail": "the heartbeat returned (sample 946), fault-out stayed TRUE, the reset before the acknowledgement was refused",
-      "samples": 2467,
+      "detail": "the heartbeat returned (sample 945), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+      "samples": 2468,
       "reset_reply": {
         "ok": false,
         "error": "estop_reset refused: Acknowledge the safety trip first"
@@ -44,15 +44,15 @@
         true,
         true
       ],
-      "resume_index": 915,
+      "resume_index": 914,
       "heartbeat_edges_after": 45,
       "variant": "latch-delayed"
     },
     {
       "case": "latch-recovered",
       "status": "PASS",
-      "detail": "fault-out FALSE from sample 2533 to the end; no trip, E-Stop clear, machine on",
-      "samples": 1289,
+      "detail": "fault-out FALSE from sample 2531 to the end; no trip, E-Stop clear, machine on",
+      "samples": 1415,
       "frames": [
         [
           false,
@@ -95,7 +95,7 @@
         "is_estop": false,
         "is_enabled": true
       },
-      "cleared_n": 2533,
+      "cleared_n": 2531,
       "variant": "latch-delayed"
     }
   ],
@@ -103,7 +103,7 @@
     "path": "/home/cnc/lcnc-suite/lcnc-gateway/.venv",
     "freeze": "annotated-doc==0.0.4\nannotated-types==0.7.0\nanyio==4.13.0\napt-listchanges==4.8\nBrlapi==0.8.6\ncertifi==2025.1.31\nchardet==5.2.0\ncharset-normalizer==3.4.2\nclick==8.3.3\nconfigobj==5.0.9\ncupshelpers==1.0\ndbus-python==1.4.0\ndecorator==5.2.1\nfastapi==0.136.1\nfeedparser==6.0.11\nh11==0.16.0\nhttpcore==1.0.9\nhttpx==0.28.1\nidna==3.10\niniconfig==2.3.0\nlouis==3.33.0\nmsgspec==0.21.1\nmusicbrainzngs==0.7.1\nmutagen==1.47.0\nnumpy==2.2.4\nolefile==0.47\nopencv==4.10.0\nopencv-python-headless==4.13.0.92\npackaging==25.0\npillow==11.1.0\nplatformdirs==4.3.7\npluggy==1.6.0\npooch==1.8.2\npsutil==7.0.0\npyasyncore==1.0.2\npycairo==1.27.0\npycups==2.0.4\npydantic==2.13.4\npydantic_core==2.46.4\nPygments==2.20.0\nPyGObject==3.50.0\npyinotify==0.9.6\nPyOpenGL==3.1.9\nPyQt5==5.15.11\nPyQt5_sip==12.17.0\nPyQtWebEngine==5.15.7\npyserial==3.5\npysmbc==1.0.25.1\npytest==9.0.3\npython-apt==3.0.0\npython-debian==1.0.1\npython-debianbts==4.1.1\npython-espeak==0.5\npython-multipart==0.0.28\npython-poppler-qt5==21.3.0\npython-xlib==0.33\npyxdg==0.28\nPyYAML==6.0.2\nQScintilla==2.14.1\nquodlibet==4.6.0\nreportbug==13.2.0\nrequests==2.32.3\nruff==0.14.4\nscipy==1.15.3\nsetproctitle==1.3.6\nsgmllib3k==1.0.0\nstarlette==1.0.0\ntqdm==4.67.1\ntyping-inspection==0.4.2\ntyping_extensions==4.15.0\nurllib3==2.3.0\nuvicorn==0.47.0\nuvloop==0.22.1\nwebsockets==16.0\nxdg==5\nYapps2==2.2.1\n"
   },
-  "commit": "02543fd30586c4f6c785e7f1834847a8480f55b4",
+  "commit": "47fd2c5b8a964dc41742c87df8293ef9d3acf2e4",
   "profile": "3axis_xyz",
   "servo": {
     "changes": [
@@ -569,13 +569,13 @@
       "start_mark": 3,
       "end_mark": 4,
       "first_n": 31,
-      "end_n": 2498,
+      "end_n": 2499,
       "integrity": {
         "enable_start": true,
         "enable_end": true,
         "overruns_start": 0,
         "overruns_end": 0,
-        "depth_end": 7,
+        "depth_end": 6,
         "depth": 65536,
         "period_ns": 1000000,
         "ini_period_ns": 1000000,
@@ -712,7 +712,7 @@
           "servo-thread"
         ]
       ],
-      "samples": 2467,
+      "samples": 2468,
       "file": "servo-latch-outage.jsonl",
       "time_file": "servo-latch-outage.time.json"
     },
@@ -722,14 +722,14 @@
       "end_error": null,
       "start_mark": 5,
       "end_mark": 6,
-      "first_n": 2527,
-      "end_n": 3816,
+      "first_n": 2524,
+      "end_n": 3939,
       "integrity": {
         "enable_start": true,
         "enable_end": true,
         "overruns_start": 0,
         "overruns_end": 0,
-        "depth_end": 2,
+        "depth_end": 3,
         "depth": 65536,
         "period_ns": 1000000,
         "ini_period_ns": 1000000,
@@ -866,23 +866,23 @@
           "servo-thread"
         ]
       ],
-      "samples": 1289,
+      "samples": 1415,
       "file": "servo-latch-recovery.jsonl",
       "time_file": "servo-latch-recovery.time.json"
     }
   ],
-  "servo_unload": "unloaded",
+  "servo_unload": "RuntimeError: halcmd unloadrt sampler: <commandline>:0: exit value: 255\n<commandline>:0: rmmod failed, returned -1\n<commandline>:0: unloadrt failed",
   "restore": {
     "outcome": "complete",
     "instance": [
       "linuxcncsvr",
-      3067332,
-      164416988
+      3184123,
+      164904493
     ],
     "isolation": [],
     "cleanup": []
   },
-  "ended": 1794630409.4291165,
+  "ended": 1794635285.468585,
   "variant": "latch-delayed",
   "verdict": "PASS"
 }

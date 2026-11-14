@@ -1,23 +1,23 @@
-== ip3-live-twp at 02543fd3 on lcnc_suite_sim_6axis_twp_xyzabc.ini, 2026-11-14T05:27:29+01:00
-Running as unit: lc-sim.service; invocation ID: 283e4ebc537c4694899bada3f61d2713
+== ip3-live-twp at 47fd2c5b on lcnc_suite_sim_6axis_twp_xyzabc.ini, 2026-11-14T06:48:12+01:00
+Running as unit: lc-sim.service; invocation ID: af0484705db94ebfb440831d062d7b30
 ready after 3s: lcnc_suite_sim_6axis_twp_xyzabc.ini
-RUN  preview-goldens → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/preview-goldens.log
+RUN  preview-goldens → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/preview-goldens.log
 PASS preview-goldens (0.17s)
-RUN  live-parity → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/live-parity.log
-PASS live-parity (189.29s)
-RUN  twp_buttons_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_buttons_check.log
-PASS twp_buttons_check (72.01s)
-RUN  twp_reorient_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_reorient_check.log
-PASS twp_reorient_check (11.58s)
-RUN  twp_capture_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_capture_check.log
-PASS twp_capture_check (45.93s)
-RUN  twp_touchoff_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_touchoff_check.log
-PASS twp_touchoff_check (12.31s)
-RUN  twp_touchoff_plane_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_touchoff_plane_check.log
-PASS twp_touchoff_plane_check (23.96s)
-RUN  twp_g683_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_g683_check.log
-PASS twp_g683_check (9.31s)
-RUN  twp_adverse_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/twp_adverse_check.log
-PASS twp_adverse_check (39.26s)
-PASS: /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T042731Z-live-twp/report.json
-== ip3-live-twp exit 0, 2026-11-14T05:34:16+01:00
+RUN  live-parity → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/live-parity.log
+PASS live-parity (188.99s)
+RUN  twp_buttons_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_buttons_check.log
+PASS twp_buttons_check (71.59s)
+RUN  twp_reorient_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_reorient_check.log
+PASS twp_reorient_check (11.43s)
+RUN  twp_capture_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_capture_check.log
+PASS twp_capture_check (45.95s)
+RUN  twp_touchoff_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_touchoff_check.log
+PASS twp_touchoff_check (12.36s)
+RUN  twp_touchoff_plane_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_touchoff_plane_check.log
+PASS twp_touchoff_plane_check (23.98s)
+RUN  twp_g683_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_g683_check.log
+PASS twp_g683_check (9.28s)
+RUN  twp_adverse_check → /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/twp_adverse_check.log
+PASS twp_adverse_check (39.15s)
+PASS: /home/cnc/lcnc-suite-ip3/runlogs/test-suite/20261114T054814Z-live-twp/report.json
+== ip3-live-twp exit 0, 2026-11-14T06:54:58+01:00

@@ -1,5 +1,5 @@
-== ip3-homestep-6axis_twp_xyzabc at 02543fd3 on lcnc_suite_sim_6axis_twp_xyzabc.ini, 2026-11-14T04:30:29+01:00
-Running as unit: lc-sim.service; invocation ID: b4787c12617a45de9d1e38f770e08dbc
+== ip3-homestep-6axis_twp_xyzabc at 47fd2c5b on lcnc_suite_sim_6axis_twp_xyzabc.ini, 2026-11-14T05:52:14+01:00
+Running as unit: lc-sim.service; invocation ID: 8e3f93b980b84f16959d145ab6f025a1
 ready after 3s: lcnc_suite_sim_6axis_twp_xyzabc.ini
      machine_on: E-Stop active — reset E-Stop first — again
 PASS map          home_axes [('X', 0, None), ('Y', 1, None), ('Z', 2, None), ('A', 3, None), ('B', 4, None), ('C', 5, None)]
@@ -10,11 +10,13 @@ PASS home-A       reply True ; joints changed [3], expected [3]
 PASS home-B       reply True ; joints changed [4], expected [4]
 PASS home-C       reply True ; joints changed [5], expected [5]
 PASS step-mdi     reply True ; X 0.000 → 1.000, motion_mode 3
-PASS step-jog     reply True ; X 3.185 → 2.185
-PASS step-span    reply False Step 3001 past the travel of axis X (3000) — choose a smaller step; X 2.185 → 2.185
+PASS step-jog     reply True ; X 3.200 → 2.200
+PASS step-span    reply False Step 3001 past the travel of axis X (3000) — choose a smaller step; X 2.200 → 2.200
 PASS mdi-binding  MDI commands limited to 254 characters
 PASS mdi-edge     reply True ; 254 bytes; X -300.000 (target -300.0)
 PASS mdi-utf8     reply True ; 135 characters, 254 bytes; X 300.000 (target 300.0)
 PASS mdi-past     reply False mdi: text: MDI line is 255 bytes — LinuxCNC takes 254; task_mode 1; X 300.000
-RESULT: PASS (14/14)
-== ip3-homestep-6axis_twp_xyzabc exit 0, 2026-11-14T04:30:47+01:00
+PASS load-edge    reply True ; 254 bytes; STAT.file is it: True
+PASS load-past    reply False Path is 255 bytes, LinuxCNC opens 254 — shorten it; STAT.file still the 254-byte one: True; active_file kept: True
+RESULT: PASS (16/16)
+== ip3-homestep-6axis_twp_xyzabc exit 0, 2026-11-14T05:52:34+01:00

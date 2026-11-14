@@ -56,3 +56,15 @@ FAILED test_toolsetter_rules.py::TestToolsetterRules::test_every_finite_double_h
 E       AssertionError: True is not false : {'ok': True}
 test_payload_contract.py:610: AssertionError
 FAILED test_payload_contract.py::TestTheMdiLine::test_the_binding_s_own_number_at_the_edge
+
+# --- the program path (R367, f29880d2) against 02543fd3 (the head before it): the two new guards from f29880d2
+E           AssertionError: {'ok': True, 'path': '/tmp/tmp6e05spd4/ddddddddd[226 chars]ngc'} != {'ok': False, 'error': 'Path is 255 bytes, Linux[23 chars] it'}
+E           + {'error': 'Path is 255 bytes, LinuxCNC opens 254 — shorten it', 'ok': False}
+E           - {'ok': True,
+E           -  'path': '/tmp/tmp6e05spd4/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.ngc'}
+E               AssertionError: _WriteRefused not raised
+E               AssertionError: _WriteRefused not raised
+PASSED test_payload_contract.py::TestTheMdiLine::test_the_last_write_path_refuses_a_program_path_too
+FAILED test_command_dispatch.py::TestHandlerExecution::test_a_program_path_past_linuxcnc_s_limit_closes_nothing
+SUBFAILED(n=259) test_payload_contract.py::TestTheMdiLine::test_the_last_write_path_refuses_a_program_path_too
+SUBFAILED(n=10) test_payload_contract.py::TestTheMdiLine::test_the_last_write_path_refuses_a_program_path_too

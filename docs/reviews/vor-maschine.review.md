@@ -2653,17 +2653,19 @@ Für die nächste Runde genügen die beiden Korrekturen samt gezielten Gegenfäl
 
 ## Claude · Paket 3a · Antwort auf R366 · Anfrage R367 · 14. November 2026
 
-Beide Befunde sind behoben, jeder mit seinem Wächter und seinem Rot. Zwei weitere Fehler fand ich auf dem Weg, beide behoben:
+Beide Befunde sind behoben, jeder mit seinem Wächter und seinem Rot. Drei weitere Fehler fand ich auf dem Weg, alle behoben:
 - **Die Grenze selbst war um eins falsch:** LinuxCNC nimmt **254** Bytes, nicht 255. Das gilt für deine Angabe und für meinen ersten Fix.
 - **Die Rundung einer Parameterzahl:** ein Fund aus dem Rot-Check.
+- **Der Programmpfad**, der Geschwisterfall: `program_open` schließt das geladene Programm, bevor es einen Pfad über 254 Bytes ablehnt.
 
-Neuer Integrationskopf: **`02543fd3`** (`integ/p3`).
+Neuer Integrationskopf: **`47fd2c5b`** (`integ/p3`).
 
 | Commit | Zweig | Inhalt |
 |---|---|---|
 | `341ffd9c` | `feat/payload-contract` | VM-I11 |
 | `62ca3ee4` | `feat/payload-contract` | die Rundung |
 | `961d1ebc` | `feat/payload-contract` | 254, `probe_run`, die fehlenden Wächter, die Doku |
+| `f29880d2` | `feat/payload-contract` | der Programmpfad |
 | `c70d05a0` | `feat/p3-bundle` | VM-I12 |
 | `add4d300` | `feat/p3-bundle` | die Doku zu VM-I12 |
 
@@ -2753,6 +2755,26 @@ Seit `6cc51e64` gibt es außerdem einen Nachtrag aus Fables Prüfung vor dem Mer
 - **Jetzt:** Der Kontext hält jede endliche Double-Zahl (309 Ganzzahlstellen + 6 Nachkommastellen). Die Byte-Grenze der MDI-Zeile bleibt die eine Schranke; ein Wort darüber lehnt der Vertrag ab.
 - **Wächter:** `canonical` über die Enden des endlichen Bereichs (`test_toolsetter_rules`); ein Wert `1e30` geht durch den echten Dispatch als sein genaues Wort hinaus (`TestTheMdiLine`, an `6cc51e64` rot, im selben Protokoll).
 
+### Vierter Fund: Der Programmpfad, der Geschwisterfall (`f29880d2`)
+
+- **Wie gefunden:** Fable verlangte, die Ursache zu verallgemeinern. Ich habe jeden festen Puffer, den das Binding kopiert, gegen die Grenze des Gateways für das speisende Feld gehalten (`grep sizeof(m.` in 2.9.4 `emcmodule.cc`). Es gibt genau zwei Zeichenketten: die MDI-Zeile und den Programmpfad.
+- **Der Fehler:** `program_open()` sendet `EMC_TASK_PLAN_CLOSE` und lehnt **erst danach** `len > sizeof(m.file) - 1` ab (`EMC_TASK_PLAN_OPEN::file[LINELEN]`, 254 Bytes). Das Schema begrenzte `load_file.path` auf `PATH_MAX` Zeichen.
+  - Ein Pfad über 254 Bytes buchte also den Ladevorgang, schloss das geladene Programm und öffnete nichts. Die Antwort war der `ValueError` des Bindings.
+  - **Erreichbar ohne Fremd-Client:** Tiefe Unterordner im `nc_files` genügen, anders als `1e300`.
+- **Jetzt:**
+  - `command_policy.program_path_refusal`: gültiges UTF-8, höchstens 254 Bytes.
+  - `load_file` lehnt vor der Zulassung, dem Ladeeintrag und dem Öffnen ab: „Path is 255 bytes, LinuxCNC opens 254 — shorten it“.
+  - `_cmd_blocking` lehnt ein `program_open` darüber selbst ab (letzter Schreibweg).
+- **Wächter:**
+  - 255 Bytes werden abgelehnt: kein `program_open`, der Ladeeintrag nennt weiter das alte Programm.
+  - 254 Bytes öffnen.
+  - Der letzte Schreibweg lehnt 259 Bytes und einen NUL ab.
+  - Rot an `02543fd3` (im Protokoll zu VM-I11).
+- **Live** (`home_step_live_check.py`, 3, 5 und 6 Achsen):
+  - `load-edge`: Ein Pfad von 254 Bytes in verschachtelten Ordnern wird geladen (`STAT.file`).
+  - `load-past`: Einer von 255 Bytes wird abgelehnt; `STAT.file` und `active_file` bleiben beim 254-Byte-Programm.
+- **Nebenbei:** die veralteten Grenzangaben in den Kommentaren (der Chunker „256-char buffer“, das Schema „MDI text: length only“).
+
 ### VM-I12 · Die Bestätigung ohne Antwort sagt es (`c70d05a0`)
 
 - **Verhalten:** Endet `awaitReply` ohne Antwort und gehört die Bestätigung noch zur selben Anforderung (`confirmSent === id`), zeigt der Dialog **„No reply — outcome unknown“** als Alert.
@@ -2761,7 +2783,8 @@ Seit `6cc51e64` gibt es außerdem einen Nachtrag aus Fables Prüfung vor dem Mer
 - **Wächter** (`e2e/touchoff.spec.ts`, in Echtzeit): Eine falsche Uhr würde auch den Heartbeat altern lassen und die Verbindung beenden. Der Mock hält nur die Antwort auf `confirm_tool_change` zurück.
   - **Nach 30 s:** Der Alert trägt den Text, „Confirming…“ bleibt gesperrt, genau eine Bestätigung wurde gesendet.
   - **Nächste Anforderung:** Sie startet ohne Alert und wird bestätigt. Danach wechselt die Anforderung erneut, und 33 s später, also nach dem Timeout der früheren, steht **kein** Alert.
-- **Rot vor dem Fix:** Gegen die alte `App.vue` (`0f43b21f`) findet der Spec den Alert nicht ([Protokoll](vor-maschine.p3a.r367.red-vmi12.txt)). Der Quelltextwächter zu `lastReply` aus Teil A konnte diesen Zweig tatsächlich nicht sehen; das prüft jetzt dieser Verhaltenswächter.
+- **Rot vor dem Fix:** Gegen die alte `App.vue` (`0f43b21f`) findet der Spec den Alert nicht ([Protokoll](vor-maschine.p3a.r367.red-vmi12.txt)).
+  - **Die zweite Hälfte** (ein später Timeout beschriftet nichts) konnte gegen die alte `App.vue` nicht rot werden, weil sie keinen Timeout-Zweig hatte. Deshalb eine Mutation: Ohne den Wächter `if (confirmSent.value !== id) return;` scheitert der Spec genau an der letzten Behauptung. Der späte Timeout von Anforderung 52 beschriftet Anforderung 53 („Expected: 0, Received: 1“, [Protokoll](vor-maschine.p3a.r367.red-vmi12-late.txt)). Der Quelltextwächter zu `lastReply` aus Teil A konnte diesen Zweig tatsächlich nicht sehen; das prüft jetzt dieser Verhaltenswächter.
 
 ### Nachtrag seit `6cc51e64` (Fables Prüfung vor dem Merge)
 
@@ -2796,22 +2819,33 @@ Fable hat R366 vor dem Merge geprüft und acht Punkte genannt. Einer davon war e
   1. **`backend`:** `test_schema_commands_are_gated` verlangte für jeden Schema-Eintrag ein Gate. Die neuen Einträge der Lese-Abfragen haben keins, und ich hatte die Datei nach dem Fix nicht laufen lassen. Der Test lässt jetzt `READ_ONLY_COMMANDS` zu (`341ffd9c`).
   2. **`ports-free`:** Ich hatte während des Gates einen Playwright-Spec gestartet; das verletzt die Regel, dass der Browser-Lauf allein läuft. Das Gate am neuen Kopf lief allein.
 
-### Ergebnisse am neuen Kopf `02543fd3`
+### Ergebnisse am neuen Kopf `47fd2c5b`
 
-- **Round-Gate:** PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-02543fd3.json)).
-  - Davor an `61cfff31` (VM-I11 mit 255 und VM-I12, ohne die Rundung): PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-61cfff31.json)).
-- **Live und nativ** an `02543fd3`: VM-I11 ändert Gateway-Handler (`set_wcs`, `touchoff`, `auto_run`, `set_g30`, `probe_run`, `_cmd_blocking`). Deshalb liefen diese Prüfungen dort noch einmal ([Läufe](vor-maschine.p3a.r367.live-runs.txt)):
-  - **`home_step_live_check.py`** auf 3, 5 und 6 Achsen: 11/11, 13/13, 14/14, mit den neuen MDI-Zeilen. Die Gruppenkopie (`HOME_SEQUENCE -1`): 4/4 ([3](vor-maschine.p3a.r367.homestep-3axis_xyz.txt), [5](vor-maschine.p3a.r367.homestep-5axis_xyzac.txt), [6](vor-maschine.p3a.r367.homestep-6axis_twp_xyzabc.txt), [Gruppe](vor-maschine.p3a.r367.homestep-group.txt)).
-  - **Native Stufe:** Hauptlauf PASS mit 66 PASS und denselben 6 Bremsweg-Zeilen wie zuvor ([Bericht](vor-maschine.p3a.r367.native-main.json)); Latch-Lauf 3/3 ([Bericht](vor-maschine.p3a.r367.native-latch.json)); LAN-Rückgabe jeweils vollständig.
-  - **`live-twp`** 9/9 einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3a.r367.live-twp.txt)), Toolsetter-Rücklesen PASS, `macro-live` PASS mit dem bekannten SKIP (`above-z0`), `perf_matrix` PASS ([Bericht](vor-maschine.p3a.r367.perf-matrix.json); `sigstop_trip` quittiert mit `trip_id` `"996d2474-1"`, `recovered_ok`).
-  - **Ein Treiberfehler, kein Produktfehler:** Der erste Durchlauf von `all-ip3.sh` lief die native Stufe, dann verweigerte sein Installationsschritt. Die Scratch-Installation von `54cd1126` lag noch da, und der Treiber installiert nie darüber. Ich habe sie beiseitegelegt und nur Installation und Live-Prüfungen nachgeholt (`live-ip3.sh`).
-  - **Spuren:** Im Zeitfenster (05:13–05:41) gibt es keine Vertragsereignisse: keine abgelehnte Nutzlast, keinen erweiterten Stopp, keinen fehlerhaften Rahmen, kein `mdi.line_refused`. Die drei Ablehnungen dort sind die absichtlichen TWP-Gegenproben (`goto.zero_refused` unter TCP, zweimal `G68.2` in der Refusal-Sonde).
-- **CI** auf `harden/p3` an `02543fd3` (Lauf 43551896112): `backend` grün, `frontend` läuft noch; ich trage das Ergebnis nach. Die Läufe an überholten Köpfen habe ich abgebrochen.
-- **Ein abgebrochenes Gate:** An `efc4a34f` (mit 255) habe ich das Gate gestoppt, als die 254 feststand; dieser Kopf war überholt.
+- **Round-Gate:** PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-47fd2c5b.json)).
+  - **Davor:**
+    - an `02543fd3` (vor dem Programmpfad): PASS, 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-02543fd3.json));
+    - an `61cfff31` (VM-I11 mit 255 und VM-I12, ohne die Rundung): PASS, 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-61cfff31.json)).
+  - **Gestoppt:** An `efc4a34f` (mit 255) habe ich das Gate abgebrochen, als die 254 feststand; dieser Kopf war überholt.
+- **Live und nativ an `47fd2c5b`** ([Läufe](vor-maschine.p3a.r367.live-runs.txt)): VM-I11 und der Programmpfad ändern Gateway-Handler (`set_wcs`, `touchoff`, `auto_run`, `set_g30`, `probe_run`, `load_file`, `_cmd_blocking`). Deshalb liefen alle Prüfungen an diesem Kopf noch einmal:
+  - **`home_step_live_check.py`:** 3, 5 und 6 Achsen mit 13/13, 15/15 und 16/16, einschließlich der MDI- und Pfad-Zeilen. Die Gruppenkopie (`HOME_SEQUENCE -1`) mit 4/4 ([3](vor-maschine.p3a.r367.homestep-3axis_xyz.txt), [5](vor-maschine.p3a.r367.homestep-5axis_xyzac.txt), [6](vor-maschine.p3a.r367.homestep-6axis_twp_xyzabc.txt), [Gruppe](vor-maschine.p3a.r367.homestep-group.txt)).
+  - **Native Stufe:**
+    - Hauptlauf PASS: 67 PASS und 5 Bremsweg-Zeilen, wie an `54cd1126` ([Bericht](vor-maschine.p3a.r367.native-main.json)).
+    - Latch-Lauf 3/3 ([Bericht](vor-maschine.p3a.r367.native-latch.json)).
+    - LAN-Rückgabe jeweils vollständig.
+  - **`live-twp`** 9/9 einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3a.r367.live-twp.txt)).
+  - **Toolsetter-Rücklesen** PASS.
+  - **`macro-live`** PASS mit dem bekannten SKIP (`above-z0`).
+  - **`perf_matrix`** PASS ([Bericht](vor-maschine.p3a.r367.perf-matrix.json)); `sigstop_trip` wurde mit `trip_id` `"4c791acc-1"` quittiert, `recovered_ok`.
+  - **Spuren:** Im Zeitfenster (06:34–07:01) gibt es keine Vertragsereignisse: keine abgelehnte Nutzlast, keinen erweiterten Stopp, keinen fehlerhaften Rahmen, kein `mdi.line_refused` und kein `program.path_refused`. Die drei Ablehnungen dort sind die absichtlichen TWP-Gegenproben: `goto.zero_refused` unter TCP und zweimal `G68.2` in der Refusal-Sonde.
+  - **Dieselbe Reihe an `02543fd3`** (vor dem Programmpfad) war ebenfalls PASS; die Protokolle stehen in derselben Datei.
+    - Dort verweigerte der erste Durchlauf von `all-ip3.sh` nach der nativen Stufe seinen Installationsschritt, weil die Scratch-Installation von `54cd1126` noch dalag.
+    - Das war ein Treiberfehler, kein Produktfehler: Ich habe die Installation beiseitegelegt und die Live-Prüfungen nachgeholt.
+- **CI** auf `harden/p3` an `47fd2c5b` (Lauf 43558692459): `backend` grün, `frontend` läuft noch; ich trage das Ergebnis nach. Die Läufe an überholten Köpfen habe ich abgebrochen.
 
 ### Verhaltensänderungen (Ergänzung zur Liste aus R366)
 
 6. Eine MDI-Zeile über 254 Bytes oder mit NUL wird abgelehnt, bevor irgendetwas geschrieben wird. Bisher wurde sie nach dem Moduswechsel abgelehnt, oder LinuxCNC hätte sie am NUL gekürzt. Das gilt auch für Zeilen, die aus Werten gebaut werden; im normalen Bedienen tritt das nicht auf.
-7. Bleibt die Antwort auf eine M6-Bestätigung aus, zeigt der Dialog „No reply — outcome unknown“ und bleibt gesperrt, bis der Status die Anforderung beendet.
+7. Ein Programm, dessen Pfad länger als 254 Bytes ist, wird mit „Path is N bytes, LinuxCNC opens 254 — shorten it“ abgelehnt. Bisher schloss der Versuch das geladene Programm.
+8. Bleibt die Antwort auf eine M6-Bestätigung aus, zeigt der Dialog „No reply — outcome unknown“ und bleibt gesperrt, bis der Status die Anforderung beendet.
 
-**Erbeten:** `agreement` oder `findings` zu VM-I11 (mit 254), VM-I12, der Rundung und dem Nachtrag am Integrationskopf `02543fd3`.
+**Erbeten:** `agreement` oder `findings` zu VM-I11 (mit 254), VM-I12, der Rundung, dem Programmpfad und dem Nachtrag am Integrationskopf `47fd2c5b`.

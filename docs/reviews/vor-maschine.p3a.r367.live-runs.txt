@@ -1,21 +1,44 @@
-# Package 3a, R367: the live and native runs at integ/p3 02543fd3 (2026-11-14, Europe/Zurich)
+# Package 3a, R367: the live and native runs (2026-11-14, Europe/Zurich)
 
-## homestep-ip3.sh (Home per axis, the step jog, the MDI line's byte limit; 3/5/6 axes + the HOME_SEQUENCE -1 copy)
-== start 2026-11-14T04:29:44+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3
+## At integ/p3 47fd2c5b (the request's head)
+
+### homestep-ip3.sh (Home per axis, the step jog, the MDI line's and the program path's byte limits; 3/5/6 axes + the HOME_SEQUENCE -1 copy)
+== start 2026-11-14T05:51:25+01:00, tree /home/cnc/lcnc-suite-ip3 at 47fd2c5b
 group copy: 3 joints at -1
-ip3-homestep-3axis_xyz rc=0 2026-11-14T04:30:12+01:00
-ip3-homestep-5axis_xyzac rc=0 2026-11-14T04:30:29+01:00
-ip3-homestep-6axis_twp_xyzabc rc=0 2026-11-14T04:30:52+01:00
-ip3-homestep-group rc=0 2026-11-14T04:31:05+01:00
-Running as unit: lcnc-sim-gates.service; invocation ID: 1f5721ff19f3466cbc52a0ba0b5e6da3
-Running as unit: bg-keepalive.service; invocation ID: 4a63c816502d41d8b788ecabff95acd2
-02543fd3 Integration: package 3a — the M6 confirmation's timeout documented, from feat/p3-bundle
-lan-to rc=0 2026-11-14T04:31:07+01:00
+ip3-homestep-3axis_xyz rc=0 2026-11-14T05:51:54+01:00
+ip3-homestep-5axis_xyzac rc=0 2026-11-14T05:52:14+01:00
+ip3-homestep-6axis_twp_xyzabc rc=0 2026-11-14T05:52:39+01:00
+ip3-homestep-group rc=0 2026-11-14T05:52:52+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: cc85d2aeca044281b6e947b9137d99e6
+Running as unit: bg-keepalive.service; invocation ID: 060a3ed756744e17b0d32b5e78883027
+47fd2c5b Integration: package 3a — the program path's byte limit before the record and the open (R367), from feat/payload-contract
+lan-to rc=0 2026-11-14T05:52:54+01:00
 active
 active
-== end 2026-11-14T04:31:07+01:00
+== end 2026-11-14T05:52:54+01:00
 
-## all-ip3.sh (native stage main + latch-delayed; its install step refused: the scratch install of 54cd1126 still existed — moved aside to configs-ip3/lcnc_suite_sim.54cd1126)
+### all-ip3.sh (native stage main + latch-delayed, a fresh install, live-twp, toolsetter read-back, macro-live, perf-matrix)
+== start 2026-11-14T06:34:52+01:00, tree /home/cnc/lcnc-suite-ip3 at 47fd2c5b
+Running as unit: native-run.service; invocation ID: d3f37cbe60754452bd05d58571d915c6
+native main: /home/cnc/claude-work/live-tier/20261114T063452-ip3 PASS complete
+Running as unit: native-run.service; invocation ID: 611cf2460ae44243b1d1e43b80df0e44
+native latch-delayed: /home/cnc/claude-work/live-tier/20261114T064725-ip3-latch-delayed PASS complete
+install-ip3 rc=0 2026-11-14T06:48:12+01:00
+ip3-live-twp rc=0 2026-11-14T06:55:04+01:00
+ip3-toolsetter-readback rc=0 2026-11-14T06:55:47+01:00
+ip3-macro-live rc=0 2026-11-14T06:57:44+01:00
+ip3-perf rc=0 2026-11-14T07:00:48+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 4ab22df88f0d4ea3833bfb1e7919c1fd
+Running as unit: bg-keepalive.service; invocation ID: 24ec8b63fc744f4da368504f0367099c
+47fd2c5b Integration: package 3a — the program path's byte limit before the record and the open (R367), from feat/payload-contract
+lan-to rc=0 2026-11-14T07:00:49+01:00
+active
+active
+== end 2026-11-14T07:00:49+01:00
+
+## Earlier, at 02543fd3 (before the program path fix f29880d2)
+
+### all-ip3.sh — its install step refused: the scratch install of 54cd1126 still existed (moved aside); the native stage passed
 == start 2026-11-14T05:13:42+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3
 Running as unit: native-run.service; invocation ID: 33687895f7cf43249d43ca5713838de0
 native main: /home/cnc/claude-work/live-tier/20261114T051342-ip3 PASS complete
@@ -30,7 +53,7 @@ active
 active
 == end 2026-11-14T05:27:04+01:00
 
-## live-ip3.sh (= all-ip3.sh without the native stage: a fresh install, live-twp, toolsetter read-back, macro-live, perf-matrix)
+### live-ip3.sh (= all-ip3.sh without the native stage)
 == start 2026-11-14T05:27:24+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3 (live checks only; the native stage ran at this commit in all-ip3)
 install-ip3 rc=0 2026-11-14T05:27:29+01:00
 ip3-live-twp rc=0 2026-11-14T05:34:22+01:00
@@ -44,3 +67,18 @@ lan-to rc=0 2026-11-14T05:40:07+01:00
 active
 active
 == end 2026-11-14T05:40:07+01:00
+
+### homestep-ip3.sh
+== start 2026-11-14T04:29:44+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3
+group copy: 3 joints at -1
+ip3-homestep-3axis_xyz rc=0 2026-11-14T04:30:12+01:00
+ip3-homestep-5axis_xyzac rc=0 2026-11-14T04:30:29+01:00
+ip3-homestep-6axis_twp_xyzabc rc=0 2026-11-14T04:30:52+01:00
+ip3-homestep-group rc=0 2026-11-14T04:31:05+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 1f5721ff19f3466cbc52a0ba0b5e6da3
+Running as unit: bg-keepalive.service; invocation ID: 4a63c816502d41d8b788ecabff95acd2
+02543fd3 Integration: package 3a — the M6 confirmation's timeout documented, from feat/p3-bundle
+lan-to rc=0 2026-11-14T04:31:07+01:00
+active
+active
+== end 2026-11-14T04:31:07+01:00

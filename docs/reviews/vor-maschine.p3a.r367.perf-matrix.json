@@ -1,14 +1,14 @@
 {
- "ts": "2026-11-14T04:37:11.377216+00:00",
- "git": "02543fd3",
- "run_id": "ec4fafebd367",
+ "ts": "2026-11-14T05:57:53.429057+00:00",
+ "git": "47fd2c5b",
+ "run_id": "9da3f3883c13",
  "trace": "/home/cnc/lcnc-suite-ip3/runlogs/trace.ndjson",
- "gateway_pid": 3080549,
+ "gateway_pid": 3196223,
  "scenarios": {
   "idle_baseline": {
    "direct": {
-    "viewer_frames": 246,
-    "status_rx": 198
+    "viewer_frames": 248,
+    "status_rx": 200
    },
    "trace": {
     "lag_windows": 0,
@@ -22,19 +22,19 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 81168,
-   "rss_kb_after": 81288,
+   "rss_kb_before": 81152,
+   "rss_kb_after": 81264,
    "window_s": 23.5
   },
   "fanout": {
    "direct": {
     "viewers": 8,
-    "viewer_frames": 592,
-    "viewer_bytes": 164705,
-    "status_rx": 403
+    "viewer_frames": 594,
+    "viewer_bytes": 171104,
+    "status_rx": 402
    },
    "trace": {
     "lag_windows": 0,
@@ -48,18 +48,18 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 81288,
-   "rss_kb_after": 81600,
+   "rss_kb_before": 81264,
+   "rss_kb_after": 81528,
    "window_s": 23.5
   },
   "reconnect_storm": {
    "direct": {
     "tabs": 12,
-    "all_connected_ms": 5,
-    "frames_after_6s": 480
+    "all_connected_ms": 6,
+    "frames_after_6s": 482
    },
    "trace": {
     "lag_windows": 0,
@@ -73,48 +73,19 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 81600,
-   "rss_kb_after": 82056,
+   "rss_kb_before": 81528,
+   "rss_kb_after": 82104,
    "window_s": 9.5
   },
   "upload_during_stream": {
    "direct": {
     "status": 200,
-    "upload_ms": 93,
+    "upload_ms": 99,
     "size_mb": 40.0,
-    "viewer_frames": 54,
-    "status_rx": 33
-   },
-   "trace": {
-    "lag_windows": 0,
-    "lag_max_drift_ms": 0,
-    "lag_max_dominant": null,
-    "safety_events": [
-     "safety.explicit_armed",
-     "safety.explicit_disarmed"
-    ],
-    "gcode_publishes": [],
-    "ws_connects": 4,
-    "marks": [
-     "end",
-     "start"
-    ],
-    "mark_pids": [
-     3080549
-    ]
-   },
-   "rss_kb_before": 82056,
-   "rss_kb_after": 86288,
-   "window_s": 6.2
-  },
-  "save_during_stream": {
-   "direct": {
-    "status": 200,
-    "save_ms": 64,
-    "size_mb": 40.0,
+    "viewer_frames": 57,
     "status_rx": 36
    },
    "trace": {
@@ -132,22 +103,51 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 86288,
-   "rss_kb_after": 86500,
+   "rss_kb_before": 82104,
+   "rss_kb_after": 84708,
+   "window_s": 6.2
+  },
+  "save_during_stream": {
+   "direct": {
+    "status": 200,
+    "save_ms": 55,
+    "size_mb": 40.0,
+    "status_rx": 33
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 4,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3196223
+    ]
+   },
+   "rss_kb_before": 84708,
+   "rss_kb_after": 86484,
    "window_s": 5.7
   },
   "fusion_near_limit": {
    "direct": {
     "status": 200,
-    "import_ms": 473,
+    "import_ms": 514,
     "size_mb": 13.8
    },
    "trace": {
     "lag_windows": 1,
-    "lag_max_drift_ms": 74.8,
+    "lag_max_drift_ms": 54.3,
     "lag_max_dominant": "reader_recv.readline",
     "safety_events": [],
     "gcode_publishes": [],
@@ -157,19 +157,19 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 86500,
-   "rss_kb_after": 148768,
+   "rss_kb_before": 86484,
+   "rss_kb_after": 186056,
    "window_s": 4.1
   },
   "rss_gc_watch": {
    "direct": {
-    "rss_kb_first": 148768,
-    "rss_kb_last": 147744,
-    "rss_kb_max": 148768,
-    "growth_kb": -1024
+    "rss_kb_first": 186056,
+    "rss_kb_last": 185052,
+    "rss_kb_max": 186056,
+    "growth_kb": -1004
    },
    "trace": {
     "lag_windows": 0,
@@ -183,27 +183,27 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 148768,
-   "rss_kb_after": 147744,
+   "rss_kb_before": 186056,
+   "rss_kb_after": 185052,
    "window_s": 63.6
   },
   "preview_publish": {
    "direct": {
     "loaded": "/home/cnc/claude-work/live-checks/home-ip3/linuxcnc/nc_files/perfmatrix-big.ngc",
     "upload_status": 200,
-    "source": "4622a27be7c05006",
+    "source": "42b4934ddb841775",
     "arm_ok": true,
     "version_before": null,
     "load_ok": true,
     "delivered": true,
-    "publish_wait_s": 19.4,
-    "version_after": 1794631024,
+    "publish_wait_s": 19.2,
+    "version_after": 1794635866,
     "file_published": "/home/cnc/claude-work/live-checks/home-ip3/linuxcnc/nc_files/perfmatrix-big.ngc",
     "other_ready": [],
-    "status_rx": 114
+    "status_rx": 113
    },
    "trace": {
     "lag_windows": 0,
@@ -217,8 +217,8 @@
      {
       "bytes": 34236138,
       "bytes_gz": 15950355,
-      "gzip_ms": 940.2,
-      "total_ms": 19139.6
+      "gzip_ms": 945.8,
+      "total_ms": 18834.3
      }
     ],
     "ws_connects": 2,
@@ -227,12 +227,12 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 147744,
-   "rss_kb_after": 225356,
-   "window_s": 26.7
+   "rss_kb_before": 185052,
+   "rss_kb_after": 251596,
+   "window_s": 26.5
   },
   "sigstop_trip": {
    "direct": {
@@ -240,14 +240,14 @@
     "latch_after_resume": "TRUE",
     "oneshot_after_resume": "TRUE",
     "sticky_ok": true,
-    "trip_id": "996d2474-1",
+    "trip_id": "4c791acc-1",
     "latch_after_reset": "FALSE",
     "recovered_ok": true
    },
    "trace": {
     "lag_windows": 1,
-    "lag_max_drift_ms": 877.5,
-    "lag_max_dominant": "http.POST./telemetry",
+    "lag_max_drift_ms": 893.6,
+    "lag_max_dominant": "reader_recv.readline",
     "safety_events": [
      "safety.explicit_armed",
      "safety.explicit_disarmed",
@@ -262,11 +262,11 @@
      "start"
     ],
     "mark_pids": [
-     3080549
+     3196223
     ]
    },
-   "rss_kb_before": 225356,
-   "rss_kb_after": 225372,
+   "rss_kb_before": 251596,
+   "rss_kb_after": 251600,
    "window_s": 8.0
   }
  }

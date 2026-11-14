@@ -1,0 +1,52 @@
+# Red before the fix (Codex R366 VM-I12, the late-timeout half; R367): the guard 'if (confirmSent.value !== id) return;'
+# removed in feat/p3-bundle add4d300's App.vue (a mutation, restored and rebuilt after), the built UI, e2e/touchoff.spec.ts -g VM-I12 alone.
+# Red at the LAST assertion: a late timeout of request 52 labels request 53 (the first half — the alert after 30 s — passes with the mutation).
+
+
+Running 1 test using 1 worker
+
+[1/1] [e2e] › e2e/touchoff.spec.ts:717:1 › tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12)
+  1) [e2e] › e2e/touchoff.spec.ts:717:1 › tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12) 
+
+    Error: the earlier request's timeout labels nothing
+
+    expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.safetyDialog .dialog').filter({ hasText: 'Load Tool into Spindle' }).getByRole('alert')
+    Expected: 0
+    Received: 1
+    Timeout:  10000ms
+
+    Call log:
+      - the earlier request's timeout labels nothing with timeout 10000ms
+      - waiting for locator('.safetyDialog .dialog').filter({ hasText: 'Load Tool into Spindle' }).getByRole('alert')
+        24 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      748 |     await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeEnabled();
+      749 |     await page.waitForTimeout(33_000);
+    > 750 |     await expect(dialog.getByRole("alert"), "the earlier request's timeout labels nothing").toHaveCount(0);
+          |                                                                                             ^
+      751 |   } finally {
+      752 |     await ctlSend({ op: "replies", replies: {} });
+      753 |     await ctlSend({ op: "reset" });
+        at /home/cnc/lcnc-suite-p3/lcnc-webui/e2e/touchoff.spec.ts:750:93
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/touchoff-tool-change-confi-7d238--request-Codex-R366-VM-I12--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/touchoff-tool-change-confi-7d238--request-Codex-R366-VM-I12--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/touchoff-tool-change-confi-7d238--request-Codex-R366-VM-I12--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/touchoff-tool-change-confi-7d238--request-Codex-R366-VM-I12--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [e2e] › e2e/touchoff.spec.ts:717:1 › tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12) 
