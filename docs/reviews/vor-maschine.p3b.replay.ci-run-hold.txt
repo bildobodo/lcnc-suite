@@ -1,8 +1,13 @@
-CI run 43630215898 (harden/p3b-replay at ac3c56e5, one worker), replay log 4551-1794683842343-91745aba-aa6f-43fd-ad34-3d5a6d8a033a.jsonl
-attempt 97ace98ce37ac35c42b8-4ec77ec54346e0bc9b05 (run-hold.spec.ts:128, retry 0); times relative to the attempt's first request; heartbeats, snapshots, status deltas and HTTP left out; device tokens redacted
+CI run 43630215898 (harden/p3b-replay at ac3c56e5, one worker): its frontend-test-evidence artifact,
+the replay logs under test-results/replay/ and mock-events.jsonl (titles, status).
+Times relative to the attempt's first line; heartbeats, ctl snapshots, lastCmds polls and HTTP left out; device tokens redacted.
+The mock's ctl lines carry the op only, not the frame a 'raw' or 'status_delta' sent.
+
+== attempt 97ace98ce37ac35c42b8-4ec77ec54346e0bc9b05 (4551-1794683842343-91745aba-aa6f-43fd-ad34-3d5a6d8a033a.jsonl): run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07) [retry 0] — failed
 +   224 ms  open   conn 1125
-+   226 ms  frame {"cmd": "hello", "session": "7bbb15ad-8183-419d-ab13-205c2a867337", "resume_armed": false, "device_token": "<redacted>", "device_storage": "ok"} conn 1125
++   226 ms  frame {"cmd": "hello", "session": "7bbb15ad-8183-419d-ab13-205c2a867337", "resume_armed": false, "device_token": "<r conn 1125
 +   226 ms  frame {"cmd": "tab_visibility", "hidden": false} conn 1125
++   541 ms  ctl   status_delta
 +   542 ms  ctl   raw
 +   543 ms  ctl   raw
 +   619 ms  ctl   clearCmds
@@ -10,4 +15,48 @@ attempt 97ace98ce37ac35c42b8-4ec77ec54346e0bc9b05 (run-hold.spec.ts:128, retry 0
 +   659 ms  frame {"cmd": "get_tool_table", "req_id": "0eoom2-3"} conn 1125
 +  1111 ms  ctl   clearCmds
 +  1143 ms  frame {"cmd": "get_tool_table", "req_id": "0eoom2-4"} conn 1125
-+  1859 ms  frame {"cmd": "auto_run", "line": 5, "file": "/A.ngc", "version": 701, "source": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", "pre_tool": 5, "p conn 1125
++  1859 ms  frame {"cmd": "auto_run", "line": 5, "file": "/A.ngc", "version": 701, "source": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm conn 1125
++ 12076 ms  ctl   reset (the attempt's end)
+
+== attempt 97ace98ce37ac35c42b8-894224893f7a371d82a5 (4551-1794683842343-de31234b-fcd8-458f-a40c-ee3ab60e2a7e.jsonl): run-hold.spec.ts › Run from line: a new revision cancels the action's hold, closes the dialog when the text changed, and the next run carries the new entry [retry 0] — passed
++   226 ms  open   conn 7
++   227 ms  frame {"cmd": "hello", "session": "24e5b17c-a3cd-406b-a02f-fca4b46595da", "resume_armed": false, "device_token": "<r conn 7
++   227 ms  frame {"cmd": "tab_visibility", "hidden": false} conn 7
++   542 ms  ctl   status_delta
++   545 ms  ctl   raw
++   548 ms  ctl   raw
++   688 ms  frame {"cmd": "get_tool_table", "req_id": "27ill7-3"} conn 7
++   709 ms  ctl   clearCmds
++  1091 ms  frame {"cmd": "get_tool_table", "req_id": "27ill7-4"} conn 7
++  1480 ms  ctl   raw
++  3934 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 701, "source": "", "safe_z": true, "entry_x": 20,  conn 7
++  4194 ms  ctl   reset (the attempt's end)
+
+== attempt 97ace98ce37ac35c42b8-167ac1a58fe862745db7 (4551-1794683842343-de31234b-fcd8-458f-a40c-ee3ab60e2a7e.jsonl): run-hold.spec.ts › the Run-from-line preset and Settings' default preset never uncheck each other — both orders, every value [retry 0] — passed
++   226 ms  open   conn 11
++   229 ms  frame {"cmd": "hello", "session": "980fee80-e445-4662-8b7f-ee569c1bb98a", "resume_armed": false, "device_token": "<r conn 11
++   230 ms  frame {"cmd": "tab_visibility", "hidden": false} conn 11
++   543 ms  ctl   status_delta
++   546 ms  ctl   raw
++   548 ms  ctl   raw
++   612 ms  frame {"cmd": "get_tool_table", "req_id": "niu28b-3"} conn 11
++   806 ms  ctl   clearCmds
++   807 ms  ctl   clearCmds
++   933 ms  frame {"cmd": "get_tool_table", "req_id": "niu28b-4"} conn 11
++  2410 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 700, "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa conn 11
++  2653 ms  ctl   clearCmds
++  4018 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 700, "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa conn 11
++  4272 ms  ctl   clearCmds
++  5444 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 700, "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa conn 11
++  5686 ms  ctl   clearCmds
++  6977 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 700, "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa conn 11
++  7217 ms  ctl   clearCmds
++  8393 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 700, "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa conn 11
++  8637 ms  ctl   clearCmds
++  9893 ms  frame {"cmd": "auto_run", "line": 3, "file": "/A.ngc", "version": 700, "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa conn 11
++ 10138 ms  ctl   reset (the attempt's end)
+
+ToolStrip.vue reads the table on mount, 300 ms after (re)connecting, on a tool change and on a tool_table_changed bump;
+which of these set off a given read, these lines do not show.
+Test 128 compared the whole list after its clearCmds (toEqual(["auto_run"])); the two other attempts filter for auto_run,
+so the same late table read passed there. 1fe5e274 drops the page's own frames and reads in sent(), as g30/toolsetter-setup do.

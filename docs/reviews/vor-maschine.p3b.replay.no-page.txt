@@ -1,0 +1,19 @@
+Round gate rgrp4 at 1fe5e274, run gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9: 922 attempts, 910 loaded their page from a mock
+(GET / with the attempt's origin), 910 sent a frame; every attempt that loaded its page sent one, and none without a page did.
+replay.json's per_attempt lists the 910 attempts with frames. The 12 attempts that never loaded a page from a mock:
+  layout-audit.spec.ts › layout guard catches clipping by an inner container and tolerates intentional page scrolling [retry 0] — passed
+  layout-audit.spec.ts › layout guard finds a scroller with the browser's own scrollbar, scrolling or not [retry 0] — passed
+  layout-audit.spec.ts › layout guard finds a sliver scroll anywhere and any sideways scroll inside the strip [retry 0] — passed
+  layout-audit.spec.ts › layout guard finds content spilling out of a fixed-height box and a control lying on a separator [retry 0] — passed
+  layout-audit.spec.ts › layout guard finds injected overlaps, clipping, collapsed and missing controls [retry 0] — passed
+  layout-audit.spec.ts › layout guard holds a locked value readout to its button's footprint [retry 0] — passed
+  mock-baseline.spec.ts › a test leaves its worker's mock dirty [retry 0] — passed
+  mock-baseline.spec.ts › the next test of the worker starts on the baseline [retry 0] — passed
+  scenes.viewer.spec.ts › a half-mixed pixel reads as half the limit, not as the backplot [retry 0] — passed
+  smoke.spec.ts › Arm control stays reachable [retry 0] — passed
+  smoke.spec.ts › app shell mounts with no gateway connected [retry 0] — passed
+  smoke.spec.ts › default-deny: machine controls are closed while disconnected [retry 0] — passed
+Why no page at the mock: layout-audit builds synthetic pages (page.setContent); the scenes.viewer case is a pure colour computation
+without a page; mock-baseline drives the mock through /ctl only; smoke opens the built app from the preview server (:4173) with
+no gateway behind it (its subject).
+framed == loaded: True

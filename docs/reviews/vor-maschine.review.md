@@ -3530,6 +3530,12 @@ Je Versuch nennt das Ergebnis seine Befehle mit Anzahl und Variante (die O-Routi
   - Voller Browserlauf 922/922 auf drei Workern.
   - `browser-replay` PASS: 3 Protokolle; 9 607 Rahmen aus 922 Versuchen; 990 Testverbindungen; 927 Infrastrukturverbindungen ohne einen Rahmen; eine benannte Verbindung ohne Cookie ([Ergebnis](vor-maschine.p3b.replay.json)).
   - HTTP: 19 544 Anfragen mit Herkunft und 5 Reconnect-Proben. 64 verschiedene Befehle und Rahmen, 0 Befunde.
+  - **910 der 922 Versuche** stehen in `per_attempt`. Die übrigen 12 laden nie eine Seite vom Mock ([Liste mit Grund](vor-maschine.p3b.replay.no-page.txt)):
+    - sechs synthetische Seiten in `layout-audit.spec.ts` (`page.setContent`);
+    - eine reine Farbrechnung ohne Seite in `scenes.viewer.spec.ts`;
+    - zwei Prüfungen in `mock-baseline.spec.ts`, die den Mock nur über `/ctl` treiben;
+    - drei in `smoke.spec.ts`, die die App vom Vorschau-Server ohne Gateway öffnen (ihr Gegenstand).
+  - Die Leerlaufregel liest „geladen“ aus dem Protokoll (`GET /` mit der Herkunft des Versuchs). Im Lauf sind die geladenen und die sendenden Versuche dieselben 910. Im Ergebnis erscheinen die 12 nur als Differenz; soll `replay.json` sie namentlich führen, ist das ein Satz im Prüfer.
 - **CI** an `1fe5e274` (`harden/p3b-replay`, Lauf `43638245363`, ein Worker): grün, Backend und Frontend.
 - **Wächter** (`test_replay.py`, 62 Fälle; 36 davon mit synthetischen Protokollen, jeder Fall rot aus seinem eigenen Grund, dazu die 26 Datenmap-Fälle oben):
   - zwei überlappende Worker;
@@ -3557,13 +3563,18 @@ Je Versuch nennt das Ergebnis seine Befehle mit Anzahl und Variante (die O-Routi
 ### Nebenbei: ein Wettlauf in `run-hold.spec.ts`, mit dem Replay-Protokoll gefunden
 
 - Die CI am Zwischenstand `ac3c56e5` (Lauf 43630215898, ein Worker) war im Frontend rot. `run-hold.spec.ts:128` erwartete nur `auto_run`; im Mock stand davor ein `get_tool_table`.
-- **Das Replay-Protokoll aus dem CI-Artefakt** zeigt die Reihenfolge in diesem Versuch ([Auszug](vor-maschine.p3b.replay.ci-run-hold.txt)): das zweite `clearCmds` des Tests, 32 ms danach der Tabellen-Lesebefehl von `ToolStrip`, 748 ms danach `auto_run`.
-- `ToolStrip` liest nach eigenem Plan: 300 ms nach dem Verbinden und bei jedem Werkzeugwechsel. Es ist kein falscher Befehl, sondern ein Lesebefehl, der auf dem langsamen Runner hinter das `clearCmds` fiel.
+- **Das Replay-Protokoll aus dem CI-Artefakt** zeigt die Reihenfolge in diesem Versuch ([Auszug mit Titel und Status aus `mock-events.jsonl`](vor-maschine.p3b.replay.ci-run-hold.txt)):
+  - das `clearCmds` des Tests bei +1111 ms;
+  - der zweite Tabellen-Lesebefehl der Seite bei +1143 ms, also 32 ms danach;
+  - `auto_run` bei +1859 ms, 748 ms nach dem `clearCmds` und 716 ms nach dem Lesebefehl.
+- **Jede Seite liest die Tabelle hier zweimal,** 320 bis 485 ms auseinander. `ToolStrip` liest beim Mount, 300 ms nach dem (Wieder-)Verbinden, bei einem Werkzeugwechsel und bei `tool_table_changed`. Welcher Auslöser welchen Lesebefehl setzte, zeigen die Zeilen nicht: Die `/ctl`-Zeilen des Mocks tragen nur die Operation, nicht den gesendeten Rahmen.
+- **Dieselbe Reihenfolge** (`clearCmds`, danach ein Lesebefehl, dann `auto_run`) steht im selben CI-Lauf in **zwei weiteren** Versuchen von `run-hold.spec.ts` (im Auszug). Beide bestanden, weil sie nach `auto_run` filtern; nur Test 128 verglich die ganze Liste.
+- Es ist also kein falscher Befehl, sondern ein Lesebefehl der Seite, der auf dem langsamen Runner hinter das `clearCmds` fiel.
 - `g30.spec.ts` und `toolsetter-setup.spec.ts` filtern die eigenen Rahmen und Lesebefehle der Seite schon. `run-hold.spec.ts` tut es jetzt ebenso (`1fe5e274`), mit dem Fundort im Kommentar.
 
 ### Beobachtung für 5c, nicht Teil von 5a
 
-Der volle Lauf sendet 63 der 80 deklarierten Befehle. Nie gesendet werden:
+Die 64 gesehenen Befehle und Rahmen sind 63 der 80 Glieder von `WsCommand` und dazu der Worker-Rahmen `hello`, der kein Glied ist (abgeglichen mit `atoms.web.json` an `1fe5e274`). Nie gesendet werden die übrigen 17:
 - `device_reset`, `get_wcs_table`, `go_to_zero`;
 - `jog_cont_multi`, `jog_incr_multi`, `jog_stop_multi`;
 - `list_probe_macros`, `machine_on`, `renumber_tool`, `reparse_preview`, `save_tool`, `set_compensation`, `shutdown`, `simulate_probe_trip`, `timing_log`, `twp_capture`, `unload_file`.
