@@ -1,0 +1,13 @@
+== ip3-homestep-3axis_xyz at 574d2055 on lcnc_suite_sim_3axis_xyz.ini, 2026-11-14T03:11:32+01:00
+Running as unit: lc-sim.service; invocation ID: d31882c2dd3b49b2b1eaa7c0d51e7799
+ready after 3s: lcnc_suite_sim_3axis_xyz.ini
+     machine_on: E-Stop active — reset E-Stop first — again
+PASS map          home_axes [('X', 0, None), ('Y', 1, None), ('Z', 2, None)]
+PASS home-X       reply True ; joints changed [0], expected [0]
+PASS home-Y       reply True ; joints changed [1], expected [1]
+PASS home-Z       reply True ; joints changed [2], expected [2]
+PASS step-mdi     reply True ; X 342.450 → 343.450, motion_mode 3
+PASS step-jog     reply True ; X 345.640 → 344.640
+PASS step-span    reply False Step 686.1 past the travel of axis X (685.1) — choose a smaller step; X 344.640 → 344.640
+RESULT: PASS (7/7)
+== ip3-homestep-3axis_xyz exit 0, 2026-11-14T03:11:52+01:00

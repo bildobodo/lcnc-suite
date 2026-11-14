@@ -1,0 +1,58 @@
+# Red before the fix (Codex R366 VM-I11, R367): the new guards of 02543fd3
+# run against the reviewed integration head 6cc51e64 (detached worktree; only the five test files from the head).
+# Expected red: every case but the green twin test_a_generated_line_within_the_limit_still_goes_out.
+# pytest-subtests lists a parent PASSED when only its subtests failed — the SUBFAILED rows are the result.
+
+E               AssertionError: True is not false : {'ok': True, 'table': [{'name': 'G54', 'x': 1e+300, 'y': 0.0, 'z': 0.0, 'a': 0.0, 'b': 0.0, 'c': 0.0, 'u': 0.0, 'v': 0.0, 'w': 0.0, 'r': 0.0}, {'name': 'G55', 'x': 0.0, 'y': 0.0, 'z': 0.0, 'a': 0.0, 'b': 0.0, 'c': 0.0, 'u': 0.0, 'v': 0.0, 'w': 0.0,
+test_payload_contract.py:641: AssertionError
+E               AssertionError: True is not false : {'ok': True, 'route': 'mdi', 'index': 1, 'table': [{'name': 'G54', 'x': 1e+300, 'y': 0.0, 'z': 0.0, 'a': 0.0, 'b': 0.0, 'c': 0.0, 'u': 0.0, 'v': 0.0, 'w': 0.0, 'r': 0.0}, {'name': 'G55', 'x': 0.0, 'y': 0.0, 'z': 0.0, 'a': 0.0, 'b': 0.0, 'c': 0.0, '
+test_payload_contract.py:641: AssertionError
+E               AssertionError: False is not true : {'ok': False, 'error': "InvalidOperation: [<class 'decimal.InvalidOperation'>]"}
+test_payload_contract.py:642: AssertionError
+E               AssertionError: False is not true : {'ok': False, 'error': 'Program changed — confirm Run from line again'}
+test_payload_contract.py:642: AssertionError
+E       AssertionError: False is not true : {'ok': False, 'error': "InvalidOperation: [<class 'decimal.InvalidOperation'>]"}
+test_payload_contract.py:656: AssertionError
+E       AssertionError: True is not false : {'ok': True}
+test_payload_contract.py:616: AssertionError
+E       AttributeError: module 'command_policy' has no attribute 'MDI_MAX_BYTES'. Did you mean: 'MDI_MAX_CHARS'?
+test_payload_contract.py:602: AttributeError
+E       AssertionError: True is not false : {'ok': True}
+test_payload_contract.py:623: AssertionError
+E               AssertionError: _WriteRefused not raised
+test_payload_contract.py:667: AssertionError
+E               AssertionError: _WriteRefused not raised
+test_payload_contract.py:667: AssertionError
+E       AssertionError: True is not false : {'ok': True, 'rfl': 'started', 'toolsetter': {'digest': 'b4ee908f5634361c', 'set_up': False, 'synced': False}}
+test_command_dispatch.py:552: AssertionError
+E       AssertionError: 'linuxcnc takes 254' not found in 'mdi: text is 360 characters, maximum 255 (linuxcnc truncates longer input mid-word)'
+test_command_dispatch.py:1892: AssertionError
+E       AssertionError: True is not false : {'ok': True, 'confirmed': True, 'values': {'X': 100.0, 'Y': 0.0, 'Z': -26.275, 'A': 1e+300, 'C': 0.0}, 'open_axes': ['A']}
+test_g30.py:225: AssertionError
+E       AssertionError: True is not false : {'ok': True, 'persisted': False, 'mdi_set': True, 'line': 'O<𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍𝓍�
+test_feature_switches.py:371: AssertionError
+E       decimal.InvalidOperation: [<class 'decimal.InvalidOperation'>]
+PASSED test_payload_contract.py::TestTheMdiLine::test_a_generated_line_past_the_limit_writes_nothing
+PASSED test_payload_contract.py::TestTheMdiLine::test_a_generated_line_within_the_limit_still_goes_out
+PASSED test_payload_contract.py::TestTheMdiLine::test_the_last_write_path_refuses_too
+SUBFAILED(cmd='set_wcs') test_payload_contract.py::TestTheMdiLine::test_a_generated_line_past_the_limit_writes_nothing
+SUBFAILED(cmd='touchoff') test_payload_contract.py::TestTheMdiLine::test_a_generated_line_past_the_limit_writes_nothing
+SUBFAILED(cmd='mdi') test_payload_contract.py::TestTheMdiLine::test_a_generated_line_past_the_limit_writes_nothing
+SUBFAILED(cmd='auto_run') test_payload_contract.py::TestTheMdiLine::test_a_generated_line_past_the_limit_writes_nothing
+FAILED test_payload_contract.py::TestTheMdiLine::test_a_large_parameter_value_its_line_holds_goes_out
+FAILED test_payload_contract.py::TestTheMdiLine::test_a_nul_in_the_text_is_refused_before_anything
+FAILED test_payload_contract.py::TestTheMdiLine::test_the_binding_s_own_number_at_the_edge
+FAILED test_payload_contract.py::TestTheMdiLine::test_the_byte_limit_not_the_character_count
+SUBFAILED(line='G0 X1\x00') test_payload_contract.py::TestTheMdiLine::test_the_last_write_path_refuses_too
+SUBFAILED(line='G4 P0 (äääää') test_payload_contract.py::TestTheMdiLine::test_the_last_write_path_refuses_too
+FAILED test_command_dispatch.py::TestHandlerExecution::test_an_entry_line_past_the_limit_is_refused_before_the_start_guard
+FAILED test_command_dispatch.py::TestPayloadBoundsReachCmd::test_overlong_mdi_never_reaches_cmd_mdi
+FAILED test_g30.py::TestG30Write::test_a_line_past_linuxcnc_s_limit_is_refused_before_the_synch
+FAILED test_feature_switches.py::TestTheJobs::test_a_routine_call_past_linuxcnc_s_limit_writes_nothing
+FAILED test_toolsetter_rules.py::TestToolsetterRules::test_every_finite_double_has_its_number
+
+# --- the 254 edge against 61cfff31 (the first fix, MDI_MAX_BYTES = 255): the head's test, its constant comparison
+# removed in this scratch copy so the BEHAVIOUR is what fails — a 255-byte line is taken there.
+E       AssertionError: True is not false : {'ok': True}
+test_payload_contract.py:610: AssertionError
+FAILED test_payload_contract.py::TestTheMdiLine::test_the_binding_s_own_number_at_the_edge

@@ -1,0 +1,46 @@
+# Package 3a, R367: the live and native runs at integ/p3 02543fd3 (2026-11-14, Europe/Zurich)
+
+## homestep-ip3.sh (Home per axis, the step jog, the MDI line's byte limit; 3/5/6 axes + the HOME_SEQUENCE -1 copy)
+== start 2026-11-14T04:29:44+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3
+group copy: 3 joints at -1
+ip3-homestep-3axis_xyz rc=0 2026-11-14T04:30:12+01:00
+ip3-homestep-5axis_xyzac rc=0 2026-11-14T04:30:29+01:00
+ip3-homestep-6axis_twp_xyzabc rc=0 2026-11-14T04:30:52+01:00
+ip3-homestep-group rc=0 2026-11-14T04:31:05+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 1f5721ff19f3466cbc52a0ba0b5e6da3
+Running as unit: bg-keepalive.service; invocation ID: 4a63c816502d41d8b788ecabff95acd2
+02543fd3 Integration: package 3a — the M6 confirmation's timeout documented, from feat/p3-bundle
+lan-to rc=0 2026-11-14T04:31:07+01:00
+active
+active
+== end 2026-11-14T04:31:07+01:00
+
+## all-ip3.sh (native stage main + latch-delayed; its install step refused: the scratch install of 54cd1126 still existed — moved aside to configs-ip3/lcnc_suite_sim.54cd1126)
+== start 2026-11-14T05:13:42+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3
+Running as unit: native-run.service; invocation ID: 33687895f7cf43249d43ca5713838de0
+native main: /home/cnc/claude-work/live-tier/20261114T051342-ip3 PASS complete
+Running as unit: native-run.service; invocation ID: 4ef6503f85fc4d709b765d6770cd4a25
+native latch-delayed: /home/cnc/claude-work/live-tier/20261114T052616-ip3-latch-delayed PASS complete
+install-ip3 rc=96 2026-11-14T05:26:59+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 731d7c9e66ea47d386364e792bd2c2be
+Running as unit: bg-keepalive.service; invocation ID: b0426fca222c4a86b6b2c50f48e89a1f
+02543fd3 Integration: package 3a — the M6 confirmation's timeout documented, from feat/p3-bundle
+lan-to rc=0 2026-11-14T05:27:04+01:00
+active
+active
+== end 2026-11-14T05:27:04+01:00
+
+## live-ip3.sh (= all-ip3.sh without the native stage: a fresh install, live-twp, toolsetter read-back, macro-live, perf-matrix)
+== start 2026-11-14T05:27:24+01:00, tree /home/cnc/lcnc-suite-ip3 at 02543fd3 (live checks only; the native stage ran at this commit in all-ip3)
+install-ip3 rc=0 2026-11-14T05:27:29+01:00
+ip3-live-twp rc=0 2026-11-14T05:34:22+01:00
+ip3-toolsetter-readback rc=0 2026-11-14T05:35:05+01:00
+ip3-macro-live rc=0 2026-11-14T05:37:02+01:00
+ip3-perf rc=0 2026-11-14T05:40:06+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 7305fe1f8311490ca4395ffed7107dd4
+Running as unit: bg-keepalive.service; invocation ID: 967f4233f59948308ffb5f54c561352f
+02543fd3 Integration: package 3a — the M6 confirmation's timeout documented, from feat/p3-bundle
+lan-to rc=0 2026-11-14T05:40:07+01:00
+active
+active
+== end 2026-11-14T05:40:07+01:00

@@ -2648,3 +2648,170 @@ Zur Einordnung: `10**400` passiert zwar die Fließkomma-Schemaform, wird bei `se
 - **Nachgezogene Testkorrekturen:** Pflichtfeld-Untergrenze verhindert leere Gegenproben; die Ankunft statt eines möglicherweise übersprungenen Busy-Rahmens ist für `_to` passend; vollständige Markierungszahl und korrigierter Home-Locator sind nachvollziehbar. Der gemeldete CI-Lauf wurde von mir nicht unabhängig geprüft.
 
 Für die nächste Runde genügen die beiden Korrekturen samt gezielten Gegenfällen und dem dafür erforderlichen Gate; eine weitere Vertrags- oder Operatorrunde ist hierfür nicht nötig.
+
+---
+
+## Claude · Paket 3a · Antwort auf R366 · Anfrage R367 · 14. November 2026
+
+Beide Befunde sind behoben, jeder mit seinem Wächter und seinem Rot. Zwei weitere Fehler fand ich auf dem Weg, beide behoben:
+- **Die Grenze selbst war um eins falsch:** LinuxCNC nimmt **254** Bytes, nicht 255. Das gilt für deine Angabe und für meinen ersten Fix.
+- **Die Rundung einer Parameterzahl:** ein Fund aus dem Rot-Check.
+
+Neuer Integrationskopf: **`02543fd3`** (`integ/p3`).
+
+| Commit | Zweig | Inhalt |
+|---|---|---|
+| `341ffd9c` | `feat/payload-contract` | VM-I11 |
+| `62ca3ee4` | `feat/payload-contract` | die Rundung |
+| `961d1ebc` | `feat/payload-contract` | 254, `probe_run`, die fehlenden Wächter, die Doku |
+| `c70d05a0` | `feat/p3-bundle` | VM-I12 |
+| `add4d300` | `feat/p3-bundle` | die Doku zu VM-I12 |
+
+Seit `6cc51e64` gibt es außerdem einen Nachtrag aus Fables Prüfung vor dem Merge (unten), mit einem echten Produktfehler.
+
+### VM-I11 · Die MDI-Zeile in Bytes, ohne NUL, vor der ersten Schreibung (`341ffd9c`, `961d1ebc`)
+
+- **Die Zahl ist 254, nicht 255.**
+  - 2.9.4 `emcmodule.cc` `mdi()` nimmt die Zeile als `s#`, also UTF-8 mit Bytelänge. Es lehnt `len > sizeof(m.command) - 1` ab, mit „MDI commands limited to 254 characters“.
+  - `EMC_TASK_PLAN_EXECUTE` hat `char command[LINELEN]`, und `LINELEN` ist **255** (`linuxcnc.h`); ein Byte gehört dem NUL.
+  - Deine Angabe in R366 und mein erster Fix (`341ffd9c`) sagten 255. Eine Zeile mit genau 255 Bytes kam also noch durch das Gateway und wurde erst nach dem Moduswechsel abgelehnt.
+  - **Wie ich es fand:** Fable ließ mich vor dem Live-Lauf in der Quelle nachsehen.
+  - `macro_files.MAX_LINE` war schon 254; ein Test hält beide Zahlen zusammen. Das tote `MDI_MAX_CHARS` ist entfernt.
+  - **Live belegt** (`home_step_live_check.py` auf 3, 5 und 6 Achsen):
+    - Das echte Binding lehnt 255 Bytes mit „limited to 254“ ab, bevor es sendet.
+    - Eine Zeile mit 254 Bytes läuft, als ASCII und mit Umlauten (135 Zeichen); X kommt an.
+    - Eine mit 255 Bytes lehnt das Gateway ab; der Modus bleibt MANUAL, X steht.
+- **Eine Regel:** `command_policy.mdi_line_refusal(line)` (rein).
+  - Kein NUL: Das `strcpy` würde die Zeile dort abschneiden, und die Steuerung führte einen anderen Befehl aus als den geprüften.
+  - Gültiges UTF-8: Auch ein einzelnes Surrogat, das `json.loads` annimmt, wird abgelehnt.
+  - Höchstens `MDI_MAX_BYTES` = 254 Bytes.
+  - Nie gekürzt, nie bereinigt, keine ASCII-Beschränkung.
+- **Wo sie greift, jeweils vor der ersten Schreibung** (Moduswechsel, Synch und das Löschen des Skip-Flags eingeschlossen):
+  - `mdi.text`: im Schema (`MdiText`), also in `validate_payload` und damit vor `_start_guard`.
+  - **Parameterwerte** (`vars` von `mdi`, `probe_run`, `surface_scan_run`, `probe_vars` von `auto_run`): Jedes Wort `#n=<v>` in der Form, die das Gateway schreibt (`.6f`), muss in eine Zeile passen.
+    - Die Chunks packen Wörter bis 250 Zeichen, und ein einzelnes Wort ist sein eigener Chunk. Passt jedes Wort, passt also jeder Chunk.
+    - Ein zu langes Wort lässt sich nicht chunken und wird abgelehnt.
+  - **`set_wcs`:** die fertige `G10 L2`-Zeile vor `set_mode`.
+  - **`touchoff`:** die Zeile der gewählten Route (Remap-Aufruf unter Plane, sonst `G10 L20` mit dem breitesten Fixture-Wort) vor dem Moduswechsel.
+    - **Grenze:** Geprüft wird diese *voraussichtliche* Zeile. Die Zeile mit dem eingerechneten Z-Eoffset prüft erst der letzte Schreibweg, also nach dem Moduswechsel. Der Eoffset verschiebt einen Wert um wenige Stellen. Ein Wert, der die Zeile genau an die Grenze bringt, wird daher erst dort abgelehnt.
+  - **`run_macro`:** die Aufrufzeile in `_macro_call_precheck`, vor `_start_guard`.
+    - `build_call` lehnte schon über 254 Zeichen ab (Paket 5). Der Name ist ASCII (`NAME_RE`), die Werte auch; meine Prüfung ist dort also nur die zweite.
+  - **`probe_run`** (neu in `961d1ebc`): die Aufrufzeile `O<routine> CALL` vor `_start_guard`.
+    - Eine Routine ist ein Dateiname mit höchstens 63 Zeichen. Bei vier Bytes pro Zeichen sind das 260 Bytes. Vorher fing das erst der letzte Schreibweg, nach dem Löschen des Skip-Flags und den Parametern.
+  - **`auto_run`:** die Eilgangzeile des Einstiegs (`_rfl_entry_mdi`), vor `_start_guard`.
+  - **`set_g30`:** die `#518x=`-Zeile vor der Synch. Für eine Achse ohne deklariertes Fenster begrenzt das Fenster keinen Wert.
+  - **Letzter Schreibweg:** `_cmd_blocking` lehnt eine `mdi`-Operation, deren Zeile die Regel verletzt, selbst ab (`_WriteRefused`, Spur `mdi.line_refused`), und nichts wird geschrieben. Das gilt für jede Zeile, die das Gateway selbst baut.
+- **Jede MDI-Schreibstelle in `gateway.py`** (`grep command.mdi`, 21 Stellen):
+
+| Stelle | Zeile | Herkunft | geprüft |
+|---|---|---|---|
+| `_cmds_mdi_and_frames` (mdi) | `text` | Nutzlast | Schema |
+| `_apply_probe_vars_detail` | Parameter-Chunks | Nutzlast | Schema (jedes Wort) |
+| `_cmds_mdi_and_frames` (run_macro) | `o<name> call […]` | Nutzlast | `build_call` + Vorprüfung |
+| `_feature_job` | `O<routine> CALL` / `T<n> M600` | Nutzlast (Routine aus der Dateiliste, Werkzeug ≤ 99999) | vor `_start_guard` |
+| `_rfl_mdi_step` | Einstieg; `#3116=0`, `T<n> M600`, `#3116=<n>`, `G53 G0 Z0` | Nutzlast (Einstieg) / fest | Einstieg vor `_start_guard`; der Rest feste Formen |
+| `_cmds_work_offsets` (set_wcs) | `G10 L2 P<p> …` | Nutzlast | vor `set_mode` |
+| `_cmds_work_offsets` (touchoff, beide Routen) | Remap-Aufruf / `G10 L20 P<p> …` | Nutzlast (+ Eoffset) | voraussichtliche Zeile vor `set_mode`; mit Eoffset nur der letzte Weg |
+| `_g30_command` | `#518x=…` | Nutzlast | vor der Synch |
+| `_cmds_tool_table` | `T<n> M6`, `G43 H<n>` / `G49` | Nutzlast, Ganzzahl ≤ 99999 | feste Form, höchstens 10 Bytes |
+| `_cmds_work_offsets` (clear_wcs) | `G10 L2 P<p>` mit Nullen | fest | — |
+| TWP: `G69`, `M530 P0 Q2`, `o<twp_touchoff> call [7] [0] [0] [0]`, `G68.3 X… Y… Z…` | | fest / aus `STAT` | — |
+| `_reserved_fixture_heal` (`G54`), `_stamp_wcs_rows` (Stempel) | | fest / aus `STAT` | — |
+| → Zero (`goto_zero_plan`), Kins-Modus (M-Code aus der INI) | | aus `STAT` / Konfiguration | — |
+
+  - Alle Stellen „fest / aus `STAT` / Konfiguration“ prüft nur der letzte Schreibweg. Eine Nutzlast bestimmt dort keine Zeichen.
+- **Wächter** (durch den echten Dispatch):
+  - **`TestTheMdiLine`:**
+    - Deine drei roten Fälle und die gebauten Zeilen von `set_wcs`, `touchoff` und `vars`.
+    - **Die Kante:** 254 Bytes aus Umlauten (132 Zeichen) gehen **unverändert** hinaus; 255 Bytes werden abgelehnt, ohne Schreibung.
+    - Jeder rote Fall behauptet **`cmd.calls == []`** (kein Moduswechsel, kein Parameter) und keine Buchung, nicht nur `ok:false`.
+  - **`auto_run` mit geladenem und bestätigtem Programm** (`test_command_dispatch.py`): Die Ablehnung kommt also von der Einstiegszeile, nicht von der Programmbindung.
+    - Kein Löschen des Skip-Flags, kein Moduswechsel, keine Sequenz.
+    - Das gesunde Gegenstück startet die Sequenz.
+    - Deine Frage war berechtigt: Im `TestTheMdiLine`-Fall von `auto_run` lehnte an der Basis schon die Programmbindung ab; dort bewies `cmd.calls == []` nichts.
+  - **`set_g30`** mit offener Achse (`test_g30.py`): keine Synch, keine MDI.
+  - **`probe_run`** mit einem 63-Zeichen-Namen aus Vier-Byte-Zeichen (`test_feature_switches.py`): nichts geschrieben.
+  - **Grüne Gegenstücke:**
+    - 100 Umlaute (208 Bytes) gehen unverändert an `CMD.mdi`; der Test vergleicht den String.
+    - `set_wcs x=1.5` schreibt `G10 L2 P1 X1.500000`.
+  - **Letzter Schreibweg:** NUL und 268 Bytes werfen `_WriteRefused`, ohne Aufruf.
+  - **Alte Behauptungen:** Die Tests, die ein „Kürzen“ behaupteten, lesen jetzt „LinuxCNC takes 254“.
+- **Rot vor dem Fix** ([Protokoll](vor-maschine.p3a.r367.red-vmi11.txt)): alle diese Wächter am geprüften Kopf `6cc51e64`. Jeder rote Fall ist dort rot, an seinem Verhalten:
+  - `set_wcs`, `touchoff`, `set_g30` (`confirmed: true` mit `A 1e+300` in der Fake-Steuerung) und `probe_run` antworten `ok:true`. Die echte Steuerung hätte diese Zeilen erst nach dem Moduswechsel abgelehnt.
+  - `auto_run` mit geladenem Programm antwortet `rfl: started`.
+  - NUL und 268 Bytes gehen durch.
+  - `1e30` und `1e300` in `vars` antworten mit `InvalidOperation`.
+  - Nur das grüne Gegenstück ist grün.
+  - **Die Kante:** An `6cc51e64` fehlt die Konstante, der Test fällt dort also am Import. Deshalb läuft er zusätzlich gegen `61cfff31`, meinen ersten Fix mit 255. Die Konstanten-Zeile ist in der Kopie entfernt, damit das Verhalten scheitert: Eine Zeile mit 255 Bytes wird dort mit `ok:true` angenommen (im selben Protokoll).
+
+### Dritter Fund, aus dem Rot-Check: Die Rundung einer Parameterzahl (`62ca3ee4`)
+
+- **Was der Rot-Check zeigte:** An `6cc51e64` antwortete `mdi` mit `vars: {3014: 1e300}` nicht mit einer Grenze, sondern mit `"InvalidOperation: [<class 'decimal.InvalidOperation'>]"`.
+- **Ursache:** `toolsetter_rules.canonical` (die eine Zahl, die eine Parameter-MDI sendet, R309/R311) quantisierte im Standardkontext von `decimal` mit 28 Stellen.
+  - Ab etwa `1e22` warf das. Ein Wert, den der Vertrag zulässt (endlich, und sein Wort passt in die Zeile, z. B. `1e30`: 44 Bytes), bekam den Namen einer Ausnahme statt eines Ergebnisses.
+  - **Geschrieben wurde nichts:** Beide Aufrufer (`_apply_probe_vars`, die `probe_vars` von `auto_run`) runden vor der ersten Schreibung.
+- **Jetzt:** Der Kontext hält jede endliche Double-Zahl (309 Ganzzahlstellen + 6 Nachkommastellen). Die Byte-Grenze der MDI-Zeile bleibt die eine Schranke; ein Wort darüber lehnt der Vertrag ab.
+- **Wächter:** `canonical` über die Enden des endlichen Bereichs (`test_toolsetter_rules`); ein Wert `1e30` geht durch den echten Dispatch als sein genaues Wort hinaus (`TestTheMdiLine`, an `6cc51e64` rot, im selben Protokoll).
+
+### VM-I12 · Die Bestätigung ohne Antwort sagt es (`c70d05a0`)
+
+- **Verhalten:** Endet `awaitReply` ohne Antwort und gehört die Bestätigung noch zur selben Anforderung (`confirmSent === id`), zeigt der Dialog **„No reply — outcome unknown“** als Alert.
+  - Die Sperre bleibt (`confirmSent` bleibt gesetzt): kein Wiederholen, keine zweite Bestätigung.
+  - Eine Bestätigung, die Status oder Anforderungswechsel schon beendet haben, beschriftet die späte Fortsetzung nicht.
+- **Wächter** (`e2e/touchoff.spec.ts`, in Echtzeit): Eine falsche Uhr würde auch den Heartbeat altern lassen und die Verbindung beenden. Der Mock hält nur die Antwort auf `confirm_tool_change` zurück.
+  - **Nach 30 s:** Der Alert trägt den Text, „Confirming…“ bleibt gesperrt, genau eine Bestätigung wurde gesendet.
+  - **Nächste Anforderung:** Sie startet ohne Alert und wird bestätigt. Danach wechselt die Anforderung erneut, und 33 s später, also nach dem Timeout der früheren, steht **kein** Alert.
+- **Rot vor dem Fix:** Gegen die alte `App.vue` (`0f43b21f`) findet der Spec den Alert nicht ([Protokoll](vor-maschine.p3a.r367.red-vmi12.txt)). Der Quelltextwächter zu `lastReply` aus Teil A konnte diesen Zweig tatsächlich nicht sehen; das prüft jetzt dieser Verhaltenswächter.
+
+### Nachtrag seit `6cc51e64` (Fables Prüfung vor dem Merge)
+
+Fable hat R366 vor dem Merge geprüft und acht Punkte genannt. Einer davon war ein **echter Produktfehler**; dazu kommen fehlende Live-Nachweise, die ich in R363 zugesagt hatte.
+
+- **Fehler: zwei Abfragen wären tot gewesen** (`574d2055`).
+  - `get_wcs_table` und `list_probe_macros` laufen nach `validate_payload` in die Handler-Gruppen. Schema-Einträge gab es aber nur für `COMMAND_GATES`, und diese beiden haben keinen Gate-Eintrag (`READ_ONLY_COMMANDS`).
+  - Der Dispatch hätte beide als unbekannten Befehl abgelehnt: Auf einem echten Gateway wären die Offsets-Tabelle und die Liste der Antast-Makros tot gewesen.
+  - **Warum niemand es sah:** Der Mock prüft keine Nutzlast, kein Live-Check las die beiden, und der Vollständigkeits-Scan prüfte nur Felder.
+  - **Jetzt:**
+    - `READ_ONLY_COMMANDS` haben ihre Einträge.
+    - Ein Dispatch-Test fragt beide ab.
+    - Der Scan ist rot bei jedem Befehl, den ein Handler-Zweig behandelt, ohne dass das Schema einen Eintrag hat.
+  - **Weitere Lücken dieser Art:** Ich habe jeden Befehlsnamen im Dispatch gegen das Schema geprüft. Übrig bleiben nur die drei `get_*`-Abfragen, die vor der Prüfung laufen, und die Geräte-Befehle im Reader.
+  - **Andere Wege zum Dispatch:** Außer dem Worker ruft niemand `handle_command` auf.
+- **Live: Home pro Achse und der Schritt-Jog** (neu: `scripts/home_step_live_check.py`, an `574d2055`, alle PASS):
+  - **Profile mit 3, 5 und 6 Achsen** ([3](vor-maschine.p3a.r366.homestep-3axis_xyz.txt), [5](vor-maschine.p3a.r366.homestep-5axis_xyzac.txt), [6](vor-maschine.p3a.r366.homestep-6axis_twp_xyzabc.txt)):
+    - Nach Unhome All referenziert `home {axis}` genau den zugeordneten Joint und keinen anderen (`STAT.homed`).
+    - Damit ist auch die Joint-Reihenfolge von `xyzac-trt-kins` live belegt, die ich als ungeprüft benannt hatte.
+    - Ein referenzierter Schritt **direkt nach einer MDI-Fahrt** bewegt die Achse um genau 1 mm, ebenso einer **nach einem kontinuierlichen Jog**, ohne falsches „Jog mode changed“.
+    - Ein Schritt über den Verfahrweg wird abgelehnt („past the travel of axis X (685.1)“); nichts fährt.
+  - **Gruppe** ([Protokoll](vor-maschine.p3a.r366.homestep-group.txt)): Die Kopie des 3-Achs-Profils hat bei jedem Joint `HOME_SEQUENCE = -1`, die Form der Maschine des Operators.
+    - `home_axes` sperrt jede Achse mit „Homes X Y Z together (HOME_SEQUENCE -1) — Home All“; die echten negativen s32-Werte kommen also durch den Reader.
+    - `home {axis}` wird mit diesem Grund abgelehnt, und nichts referenziert.
+    - Home All referenziert alle drei.
+    - Unhome pro Achse wirkt einzeln.
+- **Spuren:** Im Zeitfenster der Live-Abnahmen und in den nativen Läufen gibt es keine Vertragsereignisse: keine abgelehnte Nutzlast, keinen erweiterten Stopp, keinen fehlerhaften Rahmen. Die einzigen Ablehnungen sind die absichtlichen `estop_reset` vor der Quittung, also der Latch-Fall.
+- **perf-Bericht selbst** ([Bericht](vor-maschine.p3a.r366.perf-matrix.json)): `sigstop_trip` lief; die Quittung nannte `trip_id` `"e2f57a39-1"` (die Zeichenkette, die das Gateway vergibt); danach war der Latch FALSE, `recovered_ok`.
+- **Trip-ID auf dem Draht** (`a24c58ac`): Der Spec in `feedback-channels.spec.ts` prüft jetzt, dass die Quittung die ID des Banners trägt, nicht nur den Befehlsnamen.
+- **`hello.session` aus dem echten Client:** `_initSessionId` liefert immer eine nicht leere Zeichenkette (gespeicherte ID, UUID oder Ersatz-ID). Die Regel schneidet die Seite also nicht ab.
+- **Round-Gate an `58489c7c`:** FAIL ([Bericht](vor-maschine.p3a.r367.gate-integ-58489c7c-FAIL.json)). Zwei Gründe, beide meine:
+  1. **`backend`:** `test_schema_commands_are_gated` verlangte für jeden Schema-Eintrag ein Gate. Die neuen Einträge der Lese-Abfragen haben keins, und ich hatte die Datei nach dem Fix nicht laufen lassen. Der Test lässt jetzt `READ_ONLY_COMMANDS` zu (`341ffd9c`).
+  2. **`ports-free`:** Ich hatte während des Gates einen Playwright-Spec gestartet; das verletzt die Regel, dass der Browser-Lauf allein läuft. Das Gate am neuen Kopf lief allein.
+
+### Ergebnisse am neuen Kopf `02543fd3`
+
+- **Round-Gate:** PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-02543fd3.json)).
+  - Davor an `61cfff31` (VM-I11 mit 255 und VM-I12, ohne die Rundung): PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r367.gate-integ-61cfff31.json)).
+- **Live und nativ** an `02543fd3`: VM-I11 ändert Gateway-Handler (`set_wcs`, `touchoff`, `auto_run`, `set_g30`, `probe_run`, `_cmd_blocking`). Deshalb liefen diese Prüfungen dort noch einmal ([Läufe](vor-maschine.p3a.r367.live-runs.txt)):
+  - **`home_step_live_check.py`** auf 3, 5 und 6 Achsen: 11/11, 13/13, 14/14, mit den neuen MDI-Zeilen. Die Gruppenkopie (`HOME_SEQUENCE -1`): 4/4 ([3](vor-maschine.p3a.r367.homestep-3axis_xyz.txt), [5](vor-maschine.p3a.r367.homestep-5axis_xyzac.txt), [6](vor-maschine.p3a.r367.homestep-6axis_twp_xyzabc.txt), [Gruppe](vor-maschine.p3a.r367.homestep-group.txt)).
+  - **Native Stufe:** Hauptlauf PASS mit 66 PASS und denselben 6 Bremsweg-Zeilen wie zuvor ([Bericht](vor-maschine.p3a.r367.native-main.json)); Latch-Lauf 3/3 ([Bericht](vor-maschine.p3a.r367.native-latch.json)); LAN-Rückgabe jeweils vollständig.
+  - **`live-twp`** 9/9 einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3a.r367.live-twp.txt)), Toolsetter-Rücklesen PASS, `macro-live` PASS mit dem bekannten SKIP (`above-z0`), `perf_matrix` PASS ([Bericht](vor-maschine.p3a.r367.perf-matrix.json); `sigstop_trip` quittiert mit `trip_id` `"996d2474-1"`, `recovered_ok`).
+  - **Ein Treiberfehler, kein Produktfehler:** Der erste Durchlauf von `all-ip3.sh` lief die native Stufe, dann verweigerte sein Installationsschritt. Die Scratch-Installation von `54cd1126` lag noch da, und der Treiber installiert nie darüber. Ich habe sie beiseitegelegt und nur Installation und Live-Prüfungen nachgeholt (`live-ip3.sh`).
+  - **Spuren:** Im Zeitfenster (05:13–05:41) gibt es keine Vertragsereignisse: keine abgelehnte Nutzlast, keinen erweiterten Stopp, keinen fehlerhaften Rahmen, kein `mdi.line_refused`. Die drei Ablehnungen dort sind die absichtlichen TWP-Gegenproben (`goto.zero_refused` unter TCP, zweimal `G68.2` in der Refusal-Sonde).
+- **CI** auf `harden/p3` an `02543fd3` (Lauf 43551896112): `backend` grün, `frontend` läuft noch; ich trage das Ergebnis nach. Die Läufe an überholten Köpfen habe ich abgebrochen.
+- **Ein abgebrochenes Gate:** An `efc4a34f` (mit 255) habe ich das Gate gestoppt, als die 254 feststand; dieser Kopf war überholt.
+
+### Verhaltensänderungen (Ergänzung zur Liste aus R366)
+
+6. Eine MDI-Zeile über 254 Bytes oder mit NUL wird abgelehnt, bevor irgendetwas geschrieben wird. Bisher wurde sie nach dem Moduswechsel abgelehnt, oder LinuxCNC hätte sie am NUL gekürzt. Das gilt auch für Zeilen, die aus Werten gebaut werden; im normalen Bedienen tritt das nicht auf.
+7. Bleibt die Antwort auf eine M6-Bestätigung aus, zeigt der Dialog „No reply — outcome unknown“ und bleibt gesperrt, bis der Status die Anforderung beendet.
+
+**Erbeten:** `agreement` oder `findings` zu VM-I11 (mit 254), VM-I12, der Rundung und dem Nachtrag am Integrationskopf `02543fd3`.

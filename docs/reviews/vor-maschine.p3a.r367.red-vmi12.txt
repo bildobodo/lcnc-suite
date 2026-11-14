@@ -1,0 +1,6 @@
+  ✘  1 [e2e] › e2e/touchoff.spec.ts:717:1 › tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12) (42.6s)
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveText[2m([22m[32mexpected[39m[2m)[22m failed
+    Expected: [32m"No reply — outcome unknown"[39m
+    Error: element(s) not found
+    test-results/touchoff-tool-change-confi-7d238--request-Codex-R366-VM-I12--e2e/test-failed-1.png
+  1 failed
