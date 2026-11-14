@@ -1,0 +1,13 @@
+     × no command is sent through BOTH send() and fire() 3ms
+     × every variable-argument send is classified, and no entry is stale 22ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
++   "set_params: raw in [ToolsetterSettings.vue], fired in [App.vue]",
++   "useDialogState.ts|opts.send(payload)",
+      Tests  2 failed | 5 passed (7)
+     × lastReply has no other reader 12ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
++   "App.vue|watch(lastReply, (r)",
++   "App.vue|watch(lastReply, (r: any)",
++   "ToolTablePanel.vue|watch(lastReply, (reply)",
++   "ToolTablePanel.vue|watch(lastReply, (reply)",
+      Tests  1 failed | 7 skipped (8)

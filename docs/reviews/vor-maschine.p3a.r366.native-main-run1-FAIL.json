@@ -1,0 +1,404 @@
+{
+  "started": 1794613628.5770512,
+  "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "servo",
+    "home"
+  ],
+  "rows": [],
+  "venv": {
+    "path": "/home/cnc/lcnc-suite/lcnc-gateway/.venv",
+    "freeze": "annotated-doc==0.0.4\nannotated-types==0.7.0\nanyio==4.13.0\napt-listchanges==4.8\nBrlapi==0.8.6\ncertifi==2025.1.31\nchardet==5.2.0\ncharset-normalizer==3.4.2\nclick==8.3.3\nconfigobj==5.0.9\ncupshelpers==1.0\ndbus-python==1.4.0\ndecorator==5.2.1\nfastapi==0.136.1\nfeedparser==6.0.11\nh11==0.16.0\nhttpcore==1.0.9\nhttpx==0.28.1\nidna==3.10\niniconfig==2.3.0\nlouis==3.33.0\nmsgspec==0.21.1\nmusicbrainzngs==0.7.1\nmutagen==1.47.0\nnumpy==2.2.4\nolefile==0.47\nopencv==4.10.0\nopencv-python-headless==4.13.0.92\npackaging==25.0\npillow==11.1.0\nplatformdirs==4.3.7\npluggy==1.6.0\npooch==1.8.2\npsutil==7.0.0\npyasyncore==1.0.2\npycairo==1.27.0\npycups==2.0.4\npydantic==2.13.4\npydantic_core==2.46.4\nPygments==2.20.0\nPyGObject==3.50.0\npyinotify==0.9.6\nPyOpenGL==3.1.9\nPyQt5==5.15.11\nPyQt5_sip==12.17.0\nPyQtWebEngine==5.15.7\npyserial==3.5\npysmbc==1.0.25.1\npytest==9.0.3\npython-apt==3.0.0\npython-debian==1.0.1\npython-debianbts==4.1.1\npython-espeak==0.5\npython-multipart==0.0.28\npython-poppler-qt5==21.3.0\npython-xlib==0.33\npyxdg==0.28\nPyYAML==6.0.2\nQScintilla==2.14.1\nquodlibet==4.6.0\nreportbug==13.2.0\nrequests==2.32.3\nruff==0.14.4\nscipy==1.15.3\nsetproctitle==1.3.6\nsgmllib3k==1.0.0\nstarlette==1.0.0\ntqdm==4.67.1\ntyping-inspection==0.4.2\ntyping_extensions==4.15.0\nurllib3==2.3.0\nuvicorn==0.47.0\nuvloop==0.22.1\nwebsockets==16.0\nxdg==5\nYapps2==2.2.1\n"
+  },
+  "commit": "4857562ea94836ce67ab80256140003a27871fb4",
+  "profile": "3axis_xyz",
+  "servo": {
+    "changes": [
+      [
+        "loadrt",
+        "sampler",
+        "depth=65536",
+        "cfg=ffffffsbsbbbub"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.0.pos-fb"
+      ],
+      [
+        "linksp",
+        "sim-ts-x",
+        "sampler.0.pin.0"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.1.pos-fb"
+      ],
+      [
+        "linksp",
+        "sim-ts-y",
+        "sampler.0.pin.1"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.2.pos-fb"
+      ],
+      [
+        "linksp",
+        "sim-ts-z",
+        "sampler.0.pin.2"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.0.vel-cmd"
+      ],
+      [
+        "net",
+        "natv-ch3",
+        "joint.0.vel-cmd",
+        "sampler.0.pin.3"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.1.vel-cmd"
+      ],
+      [
+        "net",
+        "natv-ch4",
+        "joint.1.vel-cmd",
+        "sampler.0.pin.4"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.2.vel-cmd"
+      ],
+      [
+        "net",
+        "natv-ch5",
+        "joint.2.vel-cmd",
+        "sampler.0.pin.5"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.program-line"
+      ],
+      [
+        "net",
+        "natv-ch6",
+        "motion.program-line",
+        "sampler.0.pin.6"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.in-position"
+      ],
+      [
+        "net",
+        "natv-ch7",
+        "motion.in-position",
+        "sampler.0.pin.7"
+      ],
+      [
+        "newsig",
+        "natv-mark",
+        "s32"
+      ],
+      [
+        "linksp",
+        "natv-mark",
+        "sampler.0.pin.8"
+      ],
+      [
+        "show",
+        "pin",
+        "oneshot.0.out"
+      ],
+      [
+        "linksp",
+        "webui-hb-ok",
+        "sampler.0.pin.9"
+      ],
+      [
+        "show",
+        "pin",
+        "webui-hb-latch.fault-out"
+      ],
+      [
+        "net",
+        "natv-ch10",
+        "webui-hb-latch.fault-out",
+        "sampler.0.pin.10"
+      ],
+      [
+        "show",
+        "pin",
+        "oneshot.0.in"
+      ],
+      [
+        "linksp",
+        "webui-heartbeat",
+        "sampler.0.pin.11"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.servo.last-period"
+      ],
+      [
+        "net",
+        "natv-ch12",
+        "motion.servo.last-period",
+        "sampler.0.pin.12"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.probe-input"
+      ],
+      [
+        "linksp",
+        "probe-input",
+        "sampler.0.pin.13"
+      ],
+      [
+        "addf",
+        "sampler.0",
+        "servo-thread"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.0"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.1"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.2"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.3"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.4"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.5"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.6"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.7"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.9"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.10"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.11"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.12"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.13"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.8"
+      ],
+      [
+        "show",
+        "thread",
+        "servo-thread"
+      ]
+    ],
+    "wiring": [
+      {
+        "pin": "joint.0.pos-fb",
+        "signal": "sim-ts-x",
+        "channel": 0,
+        "read_back": "sim-ts-x"
+      },
+      {
+        "pin": "joint.1.pos-fb",
+        "signal": "sim-ts-y",
+        "channel": 1,
+        "read_back": "sim-ts-y"
+      },
+      {
+        "pin": "joint.2.pos-fb",
+        "signal": "sim-ts-z",
+        "channel": 2,
+        "read_back": "sim-ts-z"
+      },
+      {
+        "pin": "joint.0.vel-cmd",
+        "signal": "natv-ch3",
+        "channel": 3,
+        "read_back": "natv-ch3"
+      },
+      {
+        "pin": "joint.1.vel-cmd",
+        "signal": "natv-ch4",
+        "channel": 4,
+        "read_back": "natv-ch4"
+      },
+      {
+        "pin": "joint.2.vel-cmd",
+        "signal": "natv-ch5",
+        "channel": 5,
+        "read_back": "natv-ch5"
+      },
+      {
+        "pin": "motion.program-line",
+        "signal": "natv-ch6",
+        "channel": 6,
+        "read_back": "natv-ch6"
+      },
+      {
+        "pin": "motion.in-position",
+        "signal": "natv-ch7",
+        "channel": 7,
+        "read_back": "natv-ch7"
+      },
+      {
+        "pin": "oneshot.0.out",
+        "signal": "webui-hb-ok",
+        "channel": 9,
+        "read_back": "webui-hb-ok"
+      },
+      {
+        "pin": "webui-hb-latch.fault-out",
+        "signal": "natv-ch10",
+        "channel": 10,
+        "read_back": "natv-ch10"
+      },
+      {
+        "pin": "oneshot.0.in",
+        "signal": "webui-heartbeat",
+        "channel": 11,
+        "read_back": "webui-heartbeat"
+      },
+      {
+        "pin": "motion.servo.last-period",
+        "signal": "natv-ch12",
+        "channel": 12,
+        "read_back": "natv-ch12"
+      },
+      {
+        "pin": "motion.probe-input",
+        "signal": "probe-input",
+        "channel": 13,
+        "read_back": "probe-input"
+      }
+    ],
+    "mark_read_back": "natv-mark",
+    "thread": {
+      "period_ns": 1000000,
+      "functions": [
+        "motion-command-handler",
+        "motion-controller",
+        "ddt_x",
+        "ddt_xv",
+        "ddt_y",
+        "ddt_yv",
+        "ddt_z",
+        "ddt_zv",
+        "vel_xy",
+        "vel_xyz",
+        "surf-dx",
+        "surf-dy",
+        "surf-dx2",
+        "surf-dy2",
+        "surf-tilt",
+        "surf-curve",
+        "surf-z",
+        "sim-toolsetter.1",
+        "sim-toolsetter.0",
+        "limit_speed",
+        "lowpass_velocity",
+        "scale_to_rpm",
+        "near_speed",
+        "encoder.capture-position",
+        "sim-encoder.update-speed",
+        "comp_x",
+        "comp_y",
+        "comp_z",
+        "or2_0",
+        "scale.servo",
+        "pwmgen.update",
+        "pwmgen.make-pulses",
+        "oneshot.0",
+        "and2.0",
+        "and2.1",
+        "and2.2",
+        "webui-hb-latch",
+        "time.0",
+        "not.0",
+        "sampler.0"
+      ]
+    },
+    "stale_stream": null
+  },
+  "clock": {
+    "ok": true,
+    "sha256": "1a4bb954a645cc86a4109b363f6c2ce8ad21dbf40d82a7a3fcbe081d070ce6af",
+    "version": "1:2.9.4-2+deb13u1",
+    "why": null
+  },
+  "error": "StepFailed: the home step: not done within 60.0 s",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/cnc/lcnc-suite-ip3/scripts/native_run.py\", line 550, in step\n    _to(c, *HOME_OFF_SWITCH)\n    ~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/cnc/lcnc-suite-ip3/scripts/native_run.py\", line 997, in _to\n    _routine(c, f\"G53 G0 X{x:g} Y{y:g} Z{z:g}\", deadline=60.0,\n    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n             extra=lambda st: _near(st, (x, y, z)))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/cnc/lcnc-suite-ip3/scripts/native_run.py\", line 859, in _routine\n    served = tc.serve(c, changes, done, deadline, cursor=cursor)\n  File \"/home/cnc/lcnc-suite-ip3/scripts/test_support/tool_change.py\", line 191, in serve\n    raise ToolChangeError(f\"not done within {deadline_s} s\" + (\"\" if changes.idle() else\n                                                                f\" \u2014 T{changes.current['tool']} pending\"),\n                          \"unobserved\")\ntest_support.tool_change.ToolChangeError: not done within 60.0 s\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/home/cnc/lcnc-suite-ip3/scripts/native_run.py\", line 245, in run\n    rows = fn(ctx) or []\n           ~~^^^^^\n  File \"/home/cnc/lcnc-suite-ip3/scripts/native_run.py\", line 569, in step\n    raise StepFailed(rows, f\"the home step: {e}\") from e\nStepFailed: the home step: not done within 60.0 s\n",
+  "servo_unload": "unloaded",
+  "restore": {
+    "outcome": "complete",
+    "instance": [
+      "linuxcncsvr",
+      2640383,
+      162748388
+    ],
+    "isolation": [],
+    "cleanup": []
+  },
+  "ended": 1794613723.4534483,
+  "variant": null,
+  "verdict": "FAIL"
+}

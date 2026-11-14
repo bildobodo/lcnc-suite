@@ -1,0 +1,407 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "45727d61a3cb2d88728d8212b208f0220c07f083",
+  "head": "62dd93e084eca711c4cea05a820fc2c7c28e7fac",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/commandPath.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/commandPath.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "lcnc-webui/src/App.vue: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/useDialogState.ts: central: every surface, every dialog or every connection depends on it"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/inventory/functions.json: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/src/App.vue",
+        "lcnc-webui/src/useDialogState.ts"
+      ],
+      "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+    },
+    "live": {
+      "toolsetter-readback": [
+        "lcnc-webui/src/ToolsetterSettings.vue"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1052627
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 423037
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 312563
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 288852
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 266587
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 260313
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 218923
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 134037
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 109612
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 102315
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 100425
+    },
+    {
+      "file": "help-icons.spec.ts",
+      "ms": 87184
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 83956
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 83615
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 72966
+    },
+    {
+      "file": "simulation-off.viewer.spec.ts",
+      "ms": 66877
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 59308
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 57773
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 51863
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 46958
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 44939
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 41726
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 40931
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 37036
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 36908
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 36258
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 31537
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 30734
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 27638
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 27057
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 24221
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 24050
+    },
+    {
+      "file": "devices.spec.ts",
+      "ms": 23184
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 23110
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 22186
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 20525
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 20216
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 20145
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 20021
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 17680
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 15407
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 15215
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 14480
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 13956
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 13739
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 13565
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 12317
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 10309
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 8657
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 7922
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 7762
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 7661
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 6750
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 6469
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 6074
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 3306
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 2922
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 1887
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1766
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 840
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 27
+    }
+  ],
+  "verdict": "FAIL",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/p3-rg1.service",
+    "cpu_s": 7158,
+    "memory_peak_mb": 3568
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-p3/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-p3/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 14
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/p3/rg1/gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 52,
+      "files": 165,
+      "tests": 2653,
+      "passed": 2653,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2653
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-p3/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-p3/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/p3/rg1/gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 204
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "FAIL",
+      "exit": 1,
+      "seconds": 1677,
+      "tests": 918,
+      "passed": 917,
+      "failed": 1,
+      "flaky": 0,
+      "skipped": 0,
+      "why": [
+        "1 failed"
+      ]
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 918
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-cd9bb8c4-ec70-4966-9668-54d5bd7e2320",
+      "mocks": 4
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "firefox-core",
+      "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+    },
+    {
+      "check": "toolsetter-readback",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-webui/src/ToolsetterSettings.vue"
+      ]
+    }
+  ]
+}

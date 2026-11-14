@@ -1,0 +1,30 @@
+== ip3-perf at 54cd1126 on lcnc_suite_sim_3axis_xyz.ini, 2026-11-14T01:20:46+01:00
+Running as unit: lc-sim.service; invocation ID: 00ebe6935e134012a061725712474c0c
+ready after 2s: lcnc_suite_sim_3axis_xyz.ini
+arm {'type': 'reply', 'cmd': 'arm', 'ok': True, 'armed': True}
+estop_reset {'type': 'reply', 'cmd': 'estop_reset', 'ok': True}
+machine_on {'type': 'reply', 'cmd': 'machine_on', 'ok': True}
+home_all {'type': 'reply', 'cmd': 'home_all', 'ok': True}
+task_state 4 homed (1, 1, 1) interp 1
+── idle_baseline ──
+  lag: n=0 max=0ms (None) safety=[]
+── fanout ──
+  lag: n=0 max=0ms (None) safety=[]
+── reconnect_storm ──
+  lag: n=0 max=0ms (None) safety=[]
+── upload_during_stream ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── save_during_stream ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── fusion_near_limit ──
+  lag: n=1 max=88.5ms (reader_recv.readline) safety=[]
+── rss_gc_watch ──
+  lag: n=0 max=0ms (None) safety=[]
+── preview_publish ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── sigstop_trip ──
+  lag: n=2 max=876.8ms (http.POST./telemetry) safety=['safety.explicit_armed', 'safety.explicit_disarmed', 'safety.trip_acknowledged', 'safety.trip_snapshot_done', 'safety.tripped']
+
+artifact: /home/cnc/lcnc-suite-ip3/runlogs/perf-matrix/20261114T002346Z-54cd1126.json
+RESULT: PASS (run 9db56e42deaa)
+== ip3-perf exit 0, 2026-11-14T01:23:46+01:00

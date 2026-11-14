@@ -1,0 +1,43 @@
+Package 3a — the live and native runs (VM's real LinuxCNC, the LAN sim taken over and given back each time)
+(drivers: ~/claude-work/live-checks/native-p3.sh, all-ip3.sh, native-ip3.sh; scratch install configs-ip3, fake HOME home-ip3)
+
+Part A alone (feat/p3-bundle 0f43b21f), 2026-11-13 22:08:
+  native main          PASS — 67 PASS, 5 incomplete (the jog braking-travel rows; their .servo twins PASS);
+                         the 8 new rows PASS: sim-trip (one pulse of 21 servo periods), sim-trip.counter-silent,
+                         coolant-flood/-mist + their counter-other-pin, tool-reload (G43 H3 applies 29.25) + counter
+                         (vor-maschine.p3a.r366.native-main-bundle.json)
+  native latch-delayed PASS — 3 PASS (the sampler's new last column changes nothing for the latch rows)
+                         (vor-maschine.p3a.r366.native-latch-bundle.json)
+
+Integration run 1 (integ/p3 4857562e), 2026-11-14 00:47 — FAILED, kept:
+  native main          FAIL — the home step: "not done within 60.0 s" (vor-maschine.p3a.r366.native-main-run1-FAIL.json).
+                         Diagnosis run 00:52 (vor-maschine.p3a.r366.native-home-diagnosis.json, script
+                         vor-maschine.p3a.r366.native_debug.py): Home per axis works (each axis homes its joint,
+                         home_axes published); the 0.08 mm move off the switches arrives within 0.5 s. The gateway's
+                         claim saw that MDI done after 65 ms; the client saw no busy frame (the move fell between two
+                         status frames) and _to waited for one — a harness race: the passing 22:08 run had the same
+                         67 ms and caught a frame by chance. Fixed: _to ends by ARRIVAL (scripts/native_run.py, a unit
+                         test feeding exactly that race), feat/payload-contract → integ/p3 83b6a6b3.
+  native latch-delayed FAIL — the recovery's safety_trip_ack had no trip id: the contract refuses it ("Trip changed —
+                         acknowledge again", Q363-2) (vor-maschine.p3a.r366.native-latch-run1-FAIL.json). Fixed: the
+                         native stage and perf_matrix name the trip from the status envelope (54cd1126).
+  install              rc=95 — the macro profile's fixed patch: its context moved (WEBUI_JOINT_AXES now under
+                         WEBUI_MACRO_DIR); the driver applies the patch's three changes with sed now.
+
+Integration run 2 (integ/p3 54cd1126), 2026-11-14 00:57–01:23:
+  native main          PASS — 67 PASS, 5 incomplete (jog braking travel)
+  native latch-delayed PASS — 3 PASS
+  install              rc 0 (configs-ip3: the 5- and 6-axis profiles with WEBUI_JOINT_AXES)
+  live-twp             9/9 PASS incl. twp_buttons_check (vor-maschine.p3a.r366.live-twp.txt)
+  toolsetter read-back PASS (vor-maschine.p3a.r366.toolsetter-readback.txt)
+  macro-live           PASS, 1 SKIP (above-z0: Z MAX_LIMIT 0.0) (vor-maschine.p3a.r366.macro-live.txt)
+  perf-matrix          RESULT: PASS (vor-maschine.p3a.r366.perf.txt)
+  LAN sim back on 54cd1126 (lan-to rc 0).
+
+Final head (integ/p3 83b6a6b3 — run 2 + the arrival fix), 2026-11-14 01:27–01:40:
+  (a run started 01:27:00 against ~/lcnc-suite-p3n by a driver path error was stopped by hand, LAN restore complete — invalid)
+  native main          PASS — 66 PASS, 6 incomplete (the six jog braking-travel rows; the count of this known class
+                         varies 5–6 between runs) (vor-maschine.p3a.r366.native-main.json)
+  native latch-delayed PASS — 3 PASS (vor-maschine.p3a.r366.native-latch.json)
+  The live-twp / toolsetter / macro / perf checks ran at 54cd1126; 54cd1126..83b6a6b3 changes the native harness only
+  (scripts/native_run.py _to, its test).

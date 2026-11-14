@@ -1,0 +1,54 @@
+== red check at 45727d61: the head's package 3a guards (test_payload_contract.py, test_payload_scan.py, test_home_axis.py)
+RED   test_payload_contract.TestTheSchemaTable::test_the_table_covers_the_schema — AssertionError: only 0 required fields — the probes would pass vacuously
+RED   test_payload_contract.TestTheSchemaTable::test_every_gated_command_has_an_entry — AssertionError: Lists differ: ['arm', 'auto_step', 'capture_g30', 'clear[341 chars]ile'] != []
+RED   test_payload_contract.TestTheSchemaTable::test_an_unknown_command_is_refused_not_passed — AssertionError: ValueError not raised
+RED   test_payload_contract.TestTheSchemaTable::test_each_required_field_refuses_missing_null_and_its_wrong_forms — AssertionError: only 0 required fields — the probes would pass vacuously
+RED   test_payload_contract.TestTheSchemaTable::test_native_integer_ranges_at_both_limits_and_one_past — AssertionError: ValueError not raised
+RED   test_payload_contract.TestTheSchemaTable::test_an_integer_past_2_53_is_compared_without_float — AssertionError: ValueError not raised
+RED   test_payload_contract.TestTheSchemaTable::test_present_optional_and_nested_values_are_judged — AssertionError: ValueError not raised
+RED   test_payload_contract.TestTheSchemaTable::test_touchoff_expect_null_is_the_one_null_admitted — AssertionError: ValueError not raised
+RED   test_payload_contract.TestTheSchemaTable::test_clear_wcs_takes_all_reserved_or_a_fixture_never_an_implicit_active — AssertionError: ValueError not raised
+RED   test_payload_contract.TestStopsAreWidenedNeverRefused::test_the_gateway_stop_set_is_the_policy_set — AssertionError: frozenset({'estop', 'abort', 'cycle_pause', 'spindle_stop', 'jog_stop', 'jog_stop_multi'}) is not frozenset({'estop', 'abort', 'cycle_pause', 'spindle_stop', 'jog_stop', 'jog_stop_mult
+RED   test_payload_contract.TestRefusedBeforeAnyWrite::test_every_required_field_fault_writes_nothing_and_books_nothing — AssertionError: only 0 required fields — the probes would pass vacuously
+RED   test_payload_contract.TestRefusedBeforeAnyWrite::test_the_old_defaults_act_no_more — AssertionError: True is not false : {'ok': True}
+RED   test_payload_contract.TestStopsThroughTheDispatch::test_estop_and_abort_with_a_bad_via_still_stop — AssertionError: False is not true : {'ok': False, 'error': "abort: via 'keyboard' not one of ['gamepad']"}
+RED   test_payload_contract.TestStopsThroughTheDispatch::test_a_malformed_jog_stop_stops_every_booked_jog_gatewayweit — AssertionError: False is not true : {'ok': False, 'error': 'ValueError: missing required integer value'}
+RED   test_payload_contract.TestReaderFrames::test_each_malformed_frame_keeps_the_socket — AttributeError: 'list' object has no attribute 'get'
+RED   test_payload_contract.TestTheTripAcknowledgementNamesItsTrip::test_only_the_current_trip_id_acknowledges_it — AssertionError: True is not false : {'type': 'reply', 'ok': True}
+RED   test_payload_contract.TestArmOnlyByTheLiteralTrue::test_false_strings_and_numbers_disarm — AssertionError: True is not False : {'type': 'reply', 'cmd': 'arm', 'ok': True, 'armed': True}
+RED   test_payload_contract.TestTheStepJogThroughTheDispatch::test_backing_off_a_soft_limit_takes_the_joint_span — AssertionError: True is not false : {'ok': True}
+RED   test_payload_contract.TestTheStepJogThroughTheDispatch::test_teleop_not_reached_writes_no_jog — AttributeError: module 'gateway' has no attribute 'JOG_MODE_CHANGED'. Did you mean: 'JOG_HOMING_CHANGED'?
+RED   test_payload_contract.TestTheStepJogThroughTheDispatch::test_a_mode_change_after_the_match_is_caught_at_the_write — AssertionError: True is not false : {'ok': True}
+RED   test_payload_contract.TestTheStepJogThroughTheDispatch::test_an_unknown_travel_closes_the_step_but_not_the_continuous_jog — AssertionError: {'ok': True} != {'ok': False, 'error': 'Step jog closed — travel unknown'}
+RED   test_payload_scan.TestTheScan::test_the_gateway_holds_the_contract — AssertionError: Lists differ: ["_cmds_files_and_probing[confirm_tool_cha[2575 chars]n']"] != []
+RED   test_payload_contract.TestTheStepJogThroughTheDispatch::test_in_teleop_the_axis_span_and_the_canonical_axis — AssertionError: True is not false : {'ok': True}
+RED   test_home_axis.TestHomeThroughTheDispatch::test_a_single_sequence_homes_the_axis_joint — AssertionError: ('home', (1,)) not found in [('mode', (1,)), ('home', (-1,))]
+RED   test_home_axis.TestHomeThroughTheDispatch::test_unhome_has_no_group_rule — AssertionError: ('unhome', (2,)) not found in [('mode', (1,)), ('teleop_enable', (0,)), ('unhome', (-1,))]
+RED   test_home_axis.TestTheMapping::test_the_shipped_profiles_send_what_they_sent — AssertionError: 'Joint order not declared — set WEBUI_JOINT_AXES' is not None
+RED   test_home_axis.TestHomeThroughTheDispatch::test_a_group_is_refused_before_anything_is_written — AssertionError: True is not false : {'ok': True}
+RED   test_home_axis.TestHomeThroughTheDispatch::test_the_retired_joint_field_is_refused_even_beside_an_axis — AssertionError: True is not false : {'ok': True}
+RED   test_home_axis.TestHomeThroughTheDispatch::test_a_group_appearing_during_the_wait_sends_no_home — AssertionError: True is not false : {'ok': True}
+-- not in the expected-red set (22): their state at the base
+green test_home_axis.TestHomeTargets::test_an_unread_sequence_closes_home_but_not_unhome
+green test_home_axis.TestHomeTargets::test_open_exactly_where_the_set_is_the_joint_itself
+green test_home_axis.TestHomeTargets::test_the_group_reason_names_its_axes
+green test_home_axis.TestHomeTargets::test_the_target_sets
+green test_home_axis.TestHomeThroughTheDispatch::test_an_unchanged_single_sequence_sends_its_home
+green test_home_axis.TestTheMapping::test_a_gantry_axis_and_an_undeclared_order_are_closed_with_their_reason
+green test_home_axis.TestTheMapping::test_a_swapped_joint_order_sends_the_declared_joint
+green test_payload_contract.TestRefusedBeforeAnyWrite::test_a_valid_twin_still_reaches_the_controller
+green test_payload_contract.TestStopsAreWidenedNeverRefused::test_a_jog_stop_whose_target_fails_stops_every_booked_jog
+green test_payload_contract.TestStopsAreWidenedNeverRefused::test_a_valid_stop_keeps_its_target_and_an_empty_list_names_nothing
+green test_payload_contract.TestStopsAreWidenedNeverRefused::test_an_invalid_via_is_dropped_from_every_stop
+green test_payload_contract.TestStopsThroughTheDispatch::test_a_valid_jog_stop_keeps_its_target
+green test_payload_contract.TestTheAxisJointRows::test_a_swapped_order_a_gantry_and_an_undeclared_one
+green test_payload_contract.TestTheAxisJointRows::test_the_mapping_needs_no_max_velocity
+green test_payload_contract.TestTheSchemaTable::test_the_valid_zero_and_false_twins_arrive
+green test_payload_contract.TestTheStepJogSpan::test_an_unknown_target_or_travel_closes_the_step_but_not_a_continuous_jog
+green test_payload_contract.TestTheStepJogSpan::test_every_shipped_step_fits_every_shipped_span
+green test_payload_contract.TestTheStepJogSpan::test_joint_mode_reads_the_joint_teleop_the_axis
+green test_payload_contract.TestTheStepJogSpan::test_the_span_of_a_limit_window
+green test_payload_scan.TestTheScan::test_an_unresolved_callee_is_named
+RED   test_payload_scan.TestTheScan::test_each_missed_form_turns_the_scan_red
+RED   test_payload_scan.TestTheScan::test_the_scan_reads
+== 29 expected-red tests red; problems: none

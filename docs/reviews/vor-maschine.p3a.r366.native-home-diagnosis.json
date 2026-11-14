@@ -1,0 +1,992 @@
+[
+ {
+  "what": "start",
+  "t": 1627758.738,
+  "homed": false,
+  "homed_joints": [
+   false,
+   false,
+   false
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 1,
+  "joint_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "home axis 0 reply {'type': 'reply', 'cmd': 'home', 'ok': True}",
+  "t": 1627758.763,
+  "homed": false,
+  "homed_joints": [
+   false,
+   false,
+   false
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 1,
+  "joint_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "after home axis 0",
+  "t": 1627759.567,
+  "homed": false,
+  "homed_joints": [
+   true,
+   false,
+   false
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 1,
+  "joint_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "home axis 1 reply {'type': 'reply', 'cmd': 'home', 'ok': True}",
+  "t": 1627759.595,
+  "homed": false,
+  "homed_joints": [
+   true,
+   false,
+   false
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 1,
+  "joint_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "after home axis 1",
+  "t": 1627760.197,
+  "homed": false,
+  "homed_joints": [
+   true,
+   true,
+   false
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 1,
+  "joint_pos": [
+   0.0,
+   2.8659787876250675e-09,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "home axis 2 reply {'type': 'reply', 'cmd': 'home', 'ok': True}",
+  "t": 1627760.221,
+  "homed": false,
+  "homed_joints": [
+   true,
+   true,
+   false
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 1,
+  "joint_pos": [
+   0.0,
+   2.8659787876250675e-09,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "after home axis 2",
+  "t": 1627761.428,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 1,
+  "interp_state": 1,
+  "motion_mode": 3,
+  "joint_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "after G49 {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627764.06,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +0.5 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627764.586,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +1.0 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627765.086,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +1.5 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627765.588,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +2.0 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627766.09,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +2.5 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627766.59,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +3.0 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627767.091,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +3.5 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627767.591,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +4.0 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627768.092,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +4.5 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627768.593,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ },
+ {
+  "what": "G53 +5.0 s reply {'type': 'reply', 'cmd': 'mdi', 'ok': True}",
+  "t": 1627769.093,
+  "homed": true,
+  "homed_joints": [
+   true,
+   true,
+   true
+  ],
+  "home_axes": [
+   {
+    "letter": "X",
+    "joint": 0,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Y",
+    "joint": 1,
+    "home": null,
+    "unhome": null
+   },
+   {
+    "letter": "Z",
+    "joint": 2,
+    "home": null,
+    "unhome": null
+   }
+  ],
+  "inpos": true,
+  "task_mode": 3,
+  "interp_state": 1,
+  "motion_mode": 2,
+  "joint_pos": [
+   -0.07999999999999996,
+   -0.08000000000000007,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "estop": false,
+  "enabled": true,
+  "errors": []
+ }
+]

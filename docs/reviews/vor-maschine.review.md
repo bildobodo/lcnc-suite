@@ -2468,3 +2468,141 @@ Geprüft: Antwort an `5184b60e`, Produktbasis `45727d61`, ursprüngliche Home-/J
 **Für den Bau bleibt die bereits vereinbarte Schreibgrenze maßgeblich:** „zusammengehalten bis zur Jog-Schreibung“ bedeutet auch den Abgleich in der letzten Zulassung im Schreibthread. Ein Vergleich nur unmittelbar nach `_jog_mode_flag()` und vor der Warteschlange genügt nicht. „Tatsächlicher Modus“ muss außerdem am Controller bestätigt sein; der Rückgabewert des heutigen Helpers allein beweist das insbesondere nach `teleop_enable(0)` nicht. Die Implementierungswächter sollen deshalb auch nicht erreichtes Free/Joint und eine Änderung nach dem vorbereitenden Abgleich erfassen. Das konkretisiert den angenommenen Vertrag, ohne eine neue Bedienentscheidung zu verlangen.
 
 Die Zusagen zu fehlenden/optionalen/verschachtelten Feldern, nativen Zahlenbereichen, unveränderter unbekannter Touch-off-Erwartung, Reader-Fortsetzung, sicherer Stopprichtung und ausbleibenden Schreibvorgängen/Buchungen bleiben Teil der Implementierungsabnahme. Ebenso die vereinbarten Gates, Gegenfälle und nativen Nachweise. Die parallel gebauten Bündel sind durch dieses Dokument-Agreement nicht mit abgenommen.
+
+---
+
+## Claude · Paket 3a · Implementierung · Anfrage R366 · 14. November 2026
+
+Gebaut nach dem Agreement R365. Integrationskopf `integ/p3` (`6cc51e64`, gepusht; CI-Zwilling `harden/p3`) = development `45727d61` + Teil A + Teil B. Ich bitte um `agreement` oder `findings` zu beiden Teilen.
+
+### Teil A · Das Bündel ohne Gateway-Änderung (`feat/p3-bundle`, `358f95b8..0f43b21f`)
+
+- **TWP-Belege** (`358f95b8`):
+  - F-TWP.S3 und F-TOUCHOFF.S3b sind an ihre drei Live-Prüfungen gebunden, Schicht `script`, `live: true`.
+  - Alle drei liefen im live-twp-Lauf an `45727d61` grün, 9/9 ([Protokoll](vor-maschine.p2b.r362.live-twp.txt)).
+  - Der Lückentext von S3b („kein Test liest G54 nach dem Remap“) war veraltet.
+- **#28** (`318f7873`, Wächter `62dd93e0`):
+  - Die vier `watch(lastReply)`-Abgleiche warten jetzt auf IHRE Antwort über `awaitReply`: Bestätigung des Werkzeugwechsels, Antastpunkte, Kompensationsraster, Speichern und Löschen in der Werkzeugtabelle.
+  - Ohne Antwort meldet die Stelle „no reply“ bzw. „outcome unknown“, nie einen geratenen Ausgang.
+  - Die Form-Rückfälle, die die Daten einer überholten Antwort übernahmen, sind entfernt.
+  - **Wächter:** Außer der Aktivitätsnotiz und dem Debug-Tab liest niemand `lastReply`. Gegen die alten Dateien ist er rot und nennt genau die vier Stellen.
+- **#31** (`318f7873`):
+  - **Was der Wächter jetzt liest:**
+    - jeden Ordner;
+    - `request()` als rohen Transport;
+    - die Ternär-Form;
+    - eine geschlossene Liste der Aufrufe, deren Argument kein Literal ist (`VARIABLE_SENDS`, je Pfad und getragene Befehle).
+  - **Grenze, benannt:** Die getragenen Befehle sind deklariert, nicht hergeleitet.
+  - **Echter Doppelweg gefunden:** `set_params` ging aus dem Toolsetter-Push roh hinaus und aus dem Antast-Panel über `fire()`. Der Push nutzt jetzt `fire()` und wartet auf seine Antwort.
+  - **Eingeordnet:** G30 unter `DOM_GATED_ONLY`, die Geräte-Befehle unter `NO_GATE_NEEDED`.
+  - In `useDialogState` ist `fire` jetzt Pflicht; der tote rohe Rückfallweg ist entfernt.
+  - **Rot gegen die alten Dateien:** der `set_params`-Doppelweg und `opts.send(payload)`.
+- **Drei native Fälle** (`0f43b21f`):
+  - `sim-trip`: Der Sampler hat als letzten Kanal `motion.probe-input`; geprüft wird genau ein Puls, danach wieder low.
+  - `coolant-flood` / `coolant-mist`: die Ausgänge `iocontrol.0.coolant-*`, gelesen mit halcmd.
+  - `tool-reload`: `G43 H3` wendet die mit Save geschriebene Länge aus LinuxCNCs eigener Tabelle an; die ursprüngliche Länge wird zurückgeschrieben.
+  - Jeder Fall hat einen Gegenfall.
+  - **Nativer Lauf an `0f43b21f`:**
+    - Hauptlauf PASS: 67 PASS und die 5 bekannten Bremsweg-Zeilen „incomplete“; alle 8 neuen Zeilen PASS, Sim-Trip mit 21 Servoperioden ([Bericht](vor-maschine.p3a.r366.native-main-bundle.json)).
+    - Latch-Lauf PASS 3/3; die Spur des Samplers ist dabei mitgewachsen.
+- **Round-Gate des Bündels:**
+  - Lauf 1 FAIL ([Bericht](vor-maschine.p3a.r366.gate-bundle-run1.json)): nur `touch-hold.spec.ts:76`, die bekannte Hinweis-Wackelei unter Last, die ich mit Parallelarbeit selbst erzeugt hatte. Allein lief der Spec 3/3 grün.
+  - Lauf 2 PASS ohne Nebenlast, 918/918 ([Bericht](vor-maschine.p3a.r366.gate-bundle-run2.json)).
+
+### Teil B · Der Nutzlastvertrag und F-HOME (`feat/payload-contract`, `f2271d5c`, `808e8402`, `5725e87c`)
+
+Gebaut wie in R363–R365 vereinbart; die Abweichungen und Funde aus dem Bau stehen unten.
+
+- **Eine Prüfung** (`validate_payload`, N1–N3b):
+  - `required` je Feld; `null` ist nie „fehlend“, einzige Ausnahme die Blätter von `touchoff.expect`; strenge JSON-Typen; Ganzzahl ohne Umweg über `float`; benannte Bereiche (`line` ≤ INT_MAX); verschachtelte Werte (`Entry`, Werte von `vars`/`sets`).
+  - Jeder gegatete Befehl hat einen Eintrag; ein unbekannter Befehl wird abgelehnt.
+  - Die Standardwerte der Handler für Pflichtfelder sind entfernt (`msg[k]`).
+- **Stopps** (N5): `widen_stop`; `_WS_STOP_CMDS` IST `command_policy.STOP_COMMANDS`; `arm` bewaffnet nur bei `true`.
+- **Reihenfolge** (A2):
+  - `run_macro`: `_macro_call_precheck` läuft vor `_start_guard`.
+  - Mehrfach-Jog: Prüfung über das Schema.
+  - Plane-Touch-off mit U/V/W: Ablehnung in `touchoff_route`.
+  - `auto_run.spindle_dir`: ein `Choice`.
+- **Schritt-Jog** (VM364-01, R365):
+  - Erwarteter Modus nach der Regel von `_jog_mode_flag`; Spanne aus der reinen Zuordnung (Joint) bzw. aus `[AXIS_L]`.
+  - Abgleich nach `_jog_mode_flag`; der Modus wird **am Controller** (`stat.motion_mode`) in der letzten Zulassung jeder Jog-Schreibung bestätigt (`jog_admit`).
+  - Unbekannt schließt den Schritt-Jog.
+- **Reader** (VM363-03):
+  - Ein Rahmen ohne Objekt oder ohne String-`cmd` wird beantwortet; jedes Reader-Feld hat seinen Typ.
+  - `hello.session` ist geprüft, bevor ein Hold nachgeschlagen wird; `save_settings.section` ist ein String vor der Mengenprüfung.
+  - Ein ungültiger Geräte-Token lässt die Verbindung ungebunden.
+  - Ein Catch um jeden Reader-Rahmen kommt **zusätzlich** zu den Feldprüfungen.
+  - `safety_trip_ack` nennt seine Trip-ID; der Client sendet die ID des Banners.
+- **F-HOME.S2b** (Q349-1, Q363-4, R365):
+  - `home {axis}` / `unhome {axis}`; `joint` ist `Forbidden`.
+  - Die reine Zuordnung kommt aus `_axis_joint_map`.
+  - Die Zielmengen von `home_targets` sind die 15 aus R365.
+  - Wirksame Sequenzen aus `ini.N.home_sequence` (Reader-Pins `home_seq_N`); die Zulassung gilt in jedem `admit` bis zur Home-Schreibung (`_manual_command`, `extra`).
+  - Unhome hat keine Gruppenregel.
+  - Der Status `home_axes` speist die Leiste: Zustand am Joint, Sperre mit Grund.
+  - Die Profile mit 5 und 6 Achsen deklarieren `WEBUI_JOINT_AXES`; `DISPLAY_SUITE_KEYS` trägt den Schlüssel in installierte Kopien nach.
+- **Funde aus dem Bau:**
+  - `TRAJ_MODE_FREE` ist **1**, nicht 2. Gegen das echte Modul geprüft, bevor der Stub es festschrieb.
+  - **Ein echter Fehler meines Umbaus, den die 2b-Wächter fingen:** `_joint_jog_facts` las den Schalter über seinen Link, die herausgelöste Zuordnung aber erneut über `current_link()`. Bei einem Link-Wechsel dazwischen wären zwei Status gemischt worden (VM-I08). `_axis_joint_map(owner)` liest jetzt über den Link des Aufrufers.
+  - **Was der Vollständigkeits-Scan fand:**
+    - `jog_stop_multi` las `axes` mit einem Standardwert;
+    - `_feature_job` las `routine` doppelt und `tool` über einen bedingten Ausdruck.
+    - Beides ist umgestellt.
+  - **Was der Scan jetzt zusätzlich liest:**
+    - die eigenen Befehlszweige eines Helfers;
+    - `else`-Ausschlüsse;
+    - Schleifen über bekannte Schlüssel;
+    - die benannte Metadaten-Grenze.
+  - **Benannt ausgenommen:** der Dispatch und die Worker-Warteschlange, beide werden getrennt geprüft.
+  - **Inventar:** Mein lokaler INI-Wrapper war eine „unregistrierte Form“ (FI-I01); die INI-Lesungen stehen jetzt mit wörtlichen Schlüsseln.
+  - **Verhalten:** Ein Antwortlaut ändert sich. Die Kompensation ohne Wert meldet jetzt den Text der Vertragsprüfung statt des alten Handler-Textes; gesendet wird in beiden Fällen nichts.
+
+**Nachgezogene Commits** (über `feat/payload-contract` in den Integrationskopf):
+- `5725e87c`: der `has`-Locator im Spec zur Home-Gruppe.
+- Die Untergrenze für die Pflichtfeld-Sonden.
+- Die Quittung im Harnisch mit Trip-ID (`54cd1126`).
+- Die Ankunft als Ende einer Positionierfahrt (`83b6a6b3`).
+- Das Warten auf alle Markierungen im Spec des Sim-Panels (`6cc51e64`).
+
+Jeder dieser Commits ist ein Fund aus Rot-Beleg, Gate oder Live-Lauf; ihre Herkunft steht unten.
+
+### Ergebnisse am Integrationskopf
+
+- **Round-Gate am Endstand `6cc51e64`:** PASS ([Bericht](vor-maschine.p3a.r366.gate-integ-6cc51e64.json)). Unit leicht und schwer, Backend mit `ruff`/`pyright`, Browser 920/920. Offen meldet es `perf-matrix`, `toolsetter-readback` und `twp-buttons`; alle drei liefen live (unten). Dazu `firefox-core` (Schritt 6, Paket 3b).
+  - **Lauf an `3543b20d`:** PASS, 920/920 ([Bericht](vor-maschine.p3a.r366.gate-integ-3543b20d.json)).
+  - **Lauf an `83b6a6b3`:** FAIL ([Bericht](vor-maschine.p3a.r366.gate-integ-83b6a6b3-FAIL.json)). Rot war nur `sim-panel.viewer.spec.ts:92`, ohne Frontend-Änderung seit `3543b20d`. Allein lief der Spec 6/6 grün.
+    - **Ursache im Spec:** Er wartete auf die **erste** Markierung im Code-Panel und zählte dann sofort; die Zeilen rendern noch. Er wartet jetzt auf alle (`6cc51e64`).
+  - **Teil B allein an `808e8402`:** FAIL ([Bericht](vor-maschine.p3a.r366.gate-contract-808e8402.json)), nur mein neuer Spec zur Home-Gruppe. Dessen `has`-Locator hing an der Leiste statt an der Seite; korrigiert in `5725e87c`.
+- **Rot vor dem Fix:** **29 erwartete Tests rot an `45727d61`**, jeder mit seinem Verhaltensgrund ([Protokoll](vor-maschine.p3a.r366.red.txt), [Skript](vor-maschine.p3a.r366.red_3a.py)).
+  - **Wie gemessen:** Die Basis bekommt nur die **Namen**, die es erst am Kopf gibt (Spec-Klassen, Konstanten, reine Helfer). Das geprüfte Verhalten (Dispatch, `validate_payload`, Reader) bleibt das der Basis. Reine Funktionstests des Kopfes stehen nicht in der Erwartung.
+  - **Ein Beispiel aus dem Protokoll:** `unhome {axis: 2}` sendet an der Basis `unhome(-1)`, also Unhome All.
+  - **Der Rot-Beleg fand einen Fehler in meinen Tests:** Drei Sonden waren an der Basis grün, weil sie leer liefen. Die Basis-Specs haben kein `required`, die Schleife über die Pflichtfelder hatte also nichts zu prüfen. Jetzt gilt eine Untergrenze von 40 Pflichtfeldern; heute sind es 46.
+  - **Eine Rot-Zeile ist eine Schnittstelle:** `JOG_MODE_CHANGED` fehlt an der Basis.
+  - **#28/#31:** Ihr Rot steht im [eigenen Protokoll](vor-maschine.p3a.r366.red-28-31.txt).
+- **Live und nativ** ([Läufe](vor-maschine.p3a.r366.live-runs.txt)):
+  - **Lauf 1 an `4857562e` scheiterte**; die Berichte bleiben stehen. Drei Funde, alle behoben:
+    1. **Home-Schritt der nativen Stufe:** ein Wettlauf im Harnisch.
+       - Die Fahrt von 0,08 mm lief 65 ms; der Claim des Gateways sah sie erledigt. Sie fiel aber zwischen zwei Statusrahmen, und `_to` wartete auf einen Rahmen „beschäftigt“, der nicht kommen konnte.
+       - Ein Diagnoselauf ([Daten](vor-maschine.p3a.r366.native-home-diagnosis.json)) zeigt: Home pro Achse funktioniert, die Fahrt kommt an.
+       - Der bestandene Lauf am Vorabend hatte denselben Claim von 67 ms und den Rahmen nur zufällig erwischt.
+       - `_to` endet jetzt mit der **Ankunft** (`83b6a6b3`); ein Unit-Test speist genau diesen Wettlauf ein.
+    2. **Latch-Lauf:** Der Harnisch quittierte ohne Trip-ID, und der Vertrag lehnt das jetzt ab. Native Stufe und `perf_matrix` nennen den Trip aus dem Status-Umschlag (`54cd1126`).
+    3. **Installation:** Der feste Patch für das Makro-Profil passte nicht mehr, weil die neue INI-Zeile seinen Kontext verschob. Der Treiber setzt jetzt dieselben drei Änderungen per `sed`.
+  - **Lauf 2 an `54cd1126`:** alles PASS.
+    - Native Stufe Hauptlauf: 67 PASS, 5 Bremsweg-Zeilen; Latch-Lauf 3/3.
+    - `live-twp` 9/9 einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3a.r366.live-twp.txt)).
+    - Toolsetter-Rücklesen PASS, macro-live PASS mit dem bekannten SKIP, `perf_matrix` PASS.
+  - **Endstand `83b6a6b3`:** native Stufe Hauptlauf PASS mit 66 PASS und 6 Bremsweg-Zeilen ([Bericht](vor-maschine.p3a.r366.native-main.json)); Latch-Lauf 3/3 ([Bericht](vor-maschine.p3a.r366.native-latch.json)).
+    - `54cd1126..83b6a6b3` ändert nur den nativen Harnisch; `83b6a6b3..6cc51e64` nur einen Browser-Spec.
+  - **Ein ungültiger Lauf** (01:27:00, auf den falschen Baum gestartet) wurde von Hand gestoppt, die LAN-Rückgabe war vollständig. Er ist vermerkt und zählt nicht.
+- **CI:** läuft auf `harden/p3` am Endstand (Lauf 43540285445). Ich trage das Ergebnis nach, sobald es da ist.
+
+### Verhaltensänderungen (für die Liste des Operators)
+
+1. Home pro Achse ist dort gesperrt, wo LinuxCNC eine Gruppe referenziert. Auf seiner Maschine (alle −1) bleibt nur Home All, das alle drei referenziert, wie jeder Einzelknopf bisher.
+2. Eine schon installierte 5- oder 6-Achs-Kopie braucht eine Neuinstallation, sonst bleibt Home pro Achse dort gesperrt, mit Grund.
+3. Der Schritt-Jog ist gesperrt, wo der Verfahrweg des Ziels unbekannt ist; ein Schritt über den Verfahrweg wird abgelehnt.
+4. Ein Schritt, dessen Modus (Joint/Teleop) sich vor der Schreibung ändert, wird nicht geschrieben: „Jog mode changed — step again“.
+5. Im normalen Bedienen sonst nichts: Die Seite sendet jedes Pflichtfeld schon.
+
+**Erbeten:** `agreement` oder `findings` zu Teil A und Teil B am Integrationskopf.
