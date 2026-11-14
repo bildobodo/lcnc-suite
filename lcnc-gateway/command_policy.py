@@ -1311,9 +1311,13 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
 # the gamepad switched off — its stops excepted (gateway dispatch).
 for _c in GAMEPAD_COMMANDS:
     COMMAND_SCHEMA.setdefault(_c, {})["via"] = Choice(VIA_VALUES)
-# Every gated command has an entry (N1): an empty one says "no fields" — a
-# command without an entry is no longer passed through unchecked.
-for _c in COMMAND_GATES:
+# Every gated command AND every read-only query has an entry (N1): an empty
+# one says "no fields" — a command without an entry is no longer passed
+# through unchecked. The queries handled after the check (get_wcs_table,
+# list_probe_macros) need theirs too: without one the dispatch refused them
+# as unknown (found before the merge, R366 — the Offsets table and the probe
+# macro list would have been dead on a real gateway).
+for _c in (*COMMAND_GATES, *READ_ONLY_COMMANDS):
     COMMAND_SCHEMA.setdefault(_c, {})
 
 

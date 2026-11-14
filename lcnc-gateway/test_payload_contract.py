@@ -107,6 +107,8 @@ class TestTheSchemaTable(unittest.TestCase):
 
     def test_every_gated_command_has_an_entry(self):
         self.assertEqual(sorted(set(cp.COMMAND_GATES) - set(cp.COMMAND_SCHEMA)), [])
+        # the read-only queries too — two of them reach the handler groups after the check
+        self.assertEqual(sorted(set(cp.READ_ONLY_COMMANDS) - set(cp.COMMAND_SCHEMA)), [])
 
     def test_an_unknown_command_is_refused_not_passed(self):
         with self.assertRaisesRegex(ValueError, "unknown command"):
@@ -295,6 +297,17 @@ class TestRefusedBeforeAnyWrite(_Dispatch):
         r = self.send({"cmd": "spindle_forward", "speed": 0})
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.cmd.args_of("spindle")[1], 0)
+
+
+class TestTheQueriesStillAnswer(_Dispatch):
+    def test_the_read_only_queries_handled_after_the_check_answer(self):
+        """R366, before the merge: get_wcs_table and list_probe_macros reach
+        the handler groups AFTER validate_payload — without a schema entry the
+        dispatch refused them as unknown commands."""
+        for cmd in ("get_wcs_table", "list_probe_macros"):
+            with self.subTest(cmd=cmd):
+                r = self.send({"cmd": cmd}, armed=False)
+                self.assertTrue(r.get("ok"), r)
 
 
 class TestStopsThroughTheDispatch(_Dispatch):
