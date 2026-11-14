@@ -282,7 +282,7 @@ def _crash_record_problem(rec: object) -> str | None:
     if not isinstance(rec, dict):
         return "not a JSON object"
     tag, level = rec.get("tag"), rec.get("level")
-    if not (isinstance(tag, str) and tag.startswith(CRASH_TAG_PREFIXES) and len(tag) > len("crash.")):
+    if not (isinstance(tag, str) and any(tag.startswith(p) and len(tag) > len(p) for p in CRASH_TAG_PREFIXES)):
         return f"no crash tag ({str(tag)[:60]!r})"
     if level not in TRACE_LEVELS:
         return f"no known level ({str(level)[:20]!r})"

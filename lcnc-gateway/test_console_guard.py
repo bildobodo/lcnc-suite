@@ -37,7 +37,8 @@ linuxcnc = fake_linuxcnc.install()  # MUST precede `import gateway`
 
 import gateway  # noqa: E402
 import lcnc_trace  # noqa: E402
-from link_fixture import connect_fake, restore_after  # noqa: E402
+from link_fixture import connect_fake, restore_after, swap_connection  # noqa: E402
+import session_bind  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
@@ -276,6 +277,101 @@ class TheDeadlineComesBeforeAnyDiagnostic(unittest.TestCase):
         lcnc_trace.console("a line nobody reads")     # raises nothing
 
 
+class EveryEndArmsTheDeadlineBeforeItsFirstRecord(unittest.TestCase):
+    """The siblings (R371, the hunt over every call of the two entries): each
+    place that DECIDES an end arms the deadline before its first trace or
+    console line — the HAL helper's stale rejection, the reconnect that sees
+    another instance, the NML self-restart (its console line used to come
+    first, and its caller's bare print before that). The real emit and
+    console over a failing sink and closed consoles; each call booked in
+    order on its way through."""
+
+    def setUp(self):
+        restore_after(self)
+        saved = {k: getattr(gateway, k) for k in (
+            "_bound_instance", "_instance_ended", "_shutdown_requested", "_lcnc_pid", "_get_lcnc_pid",
+            "_nml_connectable", "_hal_disconnect")}
+        self.addCleanup(lambda: [setattr(gateway, k, v) for k, v in saved.items()])
+        self.addCleanup(setattr, session_bind, "instance_for_pid", session_bind.instance_for_pid)
+        p = mock.patch.object(gateway, "_shutdown_deadline", None, create=True)
+        p.start()
+        self.addCleanup(p.stop)
+        gateway._bound_instance = None
+        gateway._instance_ended = False
+        gateway._shutdown_requested = False
+        gateway._nml_connectable = lambda: True
+        gateway._get_lcnc_pid = lambda: os.getpid()        # a real, live /proc entry
+        swap_connection(None)
+        self.order = []
+        order = self.order
+        gateway._hal_disconnect = lambda: order.append("hal_disconnect")
+
+        class _Timer:
+            def __init__(self, interval, fn, args=None):
+                self.daemon = False
+
+            def start(self):
+                order.append("deadline")
+        _failing_trace(self)
+        real_emit, real_console = lcnc_trace.emit, lcnc_trace.console
+
+        def _emit(tag, **kw):
+            order.append(f"emit:{tag}")
+            real_emit(tag, **kw)
+
+        def _console(text):
+            order.append("console")
+            real_console(text)
+        closed_out, closed_err = io.StringIO(), io.StringIO()
+        closed_out.close()
+        closed_err.close()
+        for p in (mock.patch.object(lcnc_trace, "emit", _emit), mock.patch.object(lcnc_trace, "console", _console),
+                  mock.patch.object(gateway.linuxcnc, "__lcnc_fake__", False),   # bind-once on, the deadline armed
+                  mock.patch.object(gateway.threading, "Timer", _Timer),
+                  mock.patch.object(gateway, "_launcher_bind", {"mode": "standalone"}),
+                  mock.patch.object(gateway.os, "kill", lambda pid, sig: order.append("kill")),
+                  mock.patch.object(gateway.signal, "raise_signal", lambda sig: order.append("signal")),
+                  mock.patch.object(gateway.os, "execv", lambda *a: order.append("execv")),
+                  mock.patch.object(sys, "stdout", closed_out), mock.patch.object(sys, "stderr", closed_err)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _first_record_after_deadline(self, decided):
+        """The deadline stands before the first record of the end."""
+        self.assertIn("deadline", self.order, self.order)
+        first = min(i for i, e in enumerate(self.order) if e in decided or e == "console")
+        self.assertLess(self.order.index("deadline"), first, self.order)
+
+    def test_the_helper_s_stale_rejection(self):
+        gateway._on_helper_rejected("watchdog", "stale_instance")
+        self._first_record_after_deadline({"emit:session.helper_rejected", "emit:session.shutdown_requested"})
+        self.assertEqual(self.order[-1], "signal")
+
+    def test_the_reconnect_that_sees_another_instance(self):
+        with mock.patch.object(sys, "stdout", io.StringIO()), mock.patch.object(sys, "stderr", io.StringIO()):
+            self.assertTrue(gateway.try_connect_lcnc())     # the first connect binds (its [VINIT] lines print)
+        del self.order[:]
+        session_bind.instance_for_pid = lambda pid, proc_root="/proc": (pid, 999)   # another start
+        self.assertFalse(gateway.try_connect_lcnc())
+        self._first_record_after_deadline({"emit:lcnc.link_revoked", "emit:session.instance_changed",
+                                           "emit:session.instance_ended"})
+        self.assertIn("signal", self.order)
+
+    def test_the_nml_self_restart(self):
+        gateway._self_restart("test: poisoned")
+        self.assertEqual(self.order[:2], ["deadline", "console"])
+        self.assertEqual(self.order[-1], "execv")
+
+    def test_the_self_restart_s_caller_prints_nothing_itself(self):
+        tree = ast.parse((HERE / "gateway.py").read_text(), "gateway.py")
+        for node in ast.walk(tree):
+            if isinstance(node, ast.If) and any(isinstance(c, ast.Call) and getattr(c.func, "id", "") == "_self_restart"
+                                                for c in ast.walk(node)):
+                prints = [c.lineno for c in ast.walk(node) if isinstance(c, ast.Call)
+                          and getattr(c.func, "id", "") == "print"]
+                self.assertEqual(prints, [], "a bare print beside _self_restart")
+
+
 class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
     """Codex R370 VM-I14, the blocking half, in a child process: the trace
     sink fails, stderr is the process guard over a FULL pipe nobody reads —
@@ -493,7 +589,7 @@ class EachProcessGuardsBeforeItsFirstPrint(unittest.TestCase):
 
     def test_the_shutdown_chain_prints_only_through_console(self):
         tree = ast.parse((HERE / "gateway.py").read_text(), "gateway.py")
-        chain = {"_on_instance_ended", "_request_process_shutdown"}
+        chain = {"_on_instance_ended", "_request_process_shutdown", "_self_restart", "_on_helper_rejected"}
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and node.name in chain:
                 chain.discard(node.name)

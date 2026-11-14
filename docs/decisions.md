@@ -11445,10 +11445,15 @@ closed stderr it raised, `emit`'s own one-shot report raised again, and the
 request stood with its flag set, no deadline and no signal; on a FULL pipe
 behind the guard it blocked — a guard against exceptions cannot end a
 blocked write, only a deadline armed before it can (the child-process guard
-ends by itself through `os._exit(1)`). The crash.log reader classifies every
+ends by itself through `os._exit(1)`). The same holds wherever an end is
+DECIDED — the hunt over every call of the two entries found three siblings
+with a record before the end: the HAL helper's stale rejection, the reconnect
+that sees another instance, and the NML self-restart (its console line, and
+its caller's bare print, before `execv`); each now arms the deadline first
+(a successful `execv` ends the timer with the old image). The crash.log reader classifies every
 line by the fields its verdict rests on — a tag the crash filter admits
 (`crash.`, `browser.error.`) and a known level (debug, info, warn, error);
-anything else is damaged evidence and fails the run (`{}`, a null level and
+anything else — a bare prefix too — is damaged evidence and fails the run (`{}`, a null level and
 "erorr" each read as clean before). Over the 85 kept run folders the stricter
 reader finds no damaged record (27 with the BrokenPipe error, 58 clean).
 

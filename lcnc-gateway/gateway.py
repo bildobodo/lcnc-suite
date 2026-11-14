@@ -1183,8 +1183,11 @@ def _on_helper_rejected(role: str, reason: str) -> None:
     orphan of an earlier session: shut down. Everything else (duplicate,
     unbound, helper-side ambiguity) stays visible in the safety-chain banner
     via helper_status_reason()."""
+    stale = reason == "stale_instance" and _bind_once_enabled()
+    if stale:
+        _arm_shutdown_deadline()   # the end is decided: the deadline before any record (Codex R370 VM-I14)
     _trace.emit("session.helper_rejected", level="error", role=role, reason=reason)
-    if reason == "stale_instance" and _bind_once_enabled():
+    if stale:
         _request_process_shutdown(f"HAL {role} rejected this gateway as stale")
 
 
@@ -1754,8 +1757,7 @@ async def _status_poller():
                     if pid is not None and _ever_connected:
                         _reconnect_fails += 1
                         if _reconnect_fails >= _NML_POISON_THRESHOLD:
-                            print(f"NML reconnect failed {_reconnect_fails} times with linuxcncsvr alive — restarting gateway")
-                            _self_restart()
+                            _self_restart(f"NML reconnect failed {_reconnect_fails} times with linuxcncsvr alive")
                     else:
                         _reconnect_fails = 0
                     await asyncio.sleep(2.0)
@@ -2506,15 +2508,19 @@ _ever_connected = False     # set True on first successful connection
 _NML_POISON_THRESHOLD = 60  # consecutive probe-pass + main-fail = poisoned NML (single global poller)
 
 
-def _self_restart():
+def _self_restart(why: str) -> None:
     """Replace this process with a fresh gateway. Last resort for NML poisoning.
 
     os.execv atomically swaps the process image — no parent/child handoff
     window, no stale PID, file descriptors that aren't FD_CLOEXEC are
     inherited but the gateway re-opens its own HAL/socket state. Falls back
-    to os._exit so the launcher can respawn if execv fails.
+    to os._exit so the launcher can respawn if execv fails. The hard
+    deadline is armed first (no I/O — Codex R370 VM-I14): a console line
+    that blocks cannot hold the poisoned process; a successful execv ends
+    its timer with the old image.
     """
-    _trace.console("NML POISONED: self-restarting gateway process")
+    _arm_shutdown_deadline()
+    _trace.console(f"NML POISONED: {why} — self-restarting gateway process")
     _hal_disconnect()
     try:
         os.execv(sys.executable, [sys.executable, "-m", "uvicorn"] + sys.argv[1:])
@@ -2620,9 +2626,9 @@ def _on_instance_ended(where: str) -> None:
         if _instance_ended:
             return
         _instance_ended = True
+        _arm_shutdown_deadline()      # no I/O: before anything that could fail or block (VM-I14)
         old, _link = _link, None
         _clear_session_caches()
-    _arm_shutdown_deadline()
     if old is not None:
         _trace.emit("lcnc.link_revoked", level="warn", seq=old.seq, reason="the bound instance ended")
     inst_pid, inst_start = _bound_instance if _bound_instance is not None else (None, None)
@@ -2689,6 +2695,7 @@ def _try_connect_lcnc() -> bool:
                 _trace.emit("session.bound", instance_pid=inst[0], instance_start=inst[1])
         elif inst != _bound_instance and not _bound_instance_alive():
             if _bind_once_enabled():
+                _arm_shutdown_deadline()   # the end is decided: the deadline before any record (Codex R370 VM-I14)
                 _revoke_link("a different LinuxCNC instance")
                 _trace.emit("session.instance_changed", level="error",
                             old=list(_bound_instance), new=list(inst) if inst else None)

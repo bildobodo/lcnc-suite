@@ -433,6 +433,7 @@ def test_a_rotated_crash_log_and_a_torn_line_count(tmp_path):
     ('{"tag": "crash.thread", "level": "erorr"}', "no known level"),
     ('{"tag": "gateway.boot", "level": "info"}', "no crash tag"),            # not what the filter admits
     ('{"tag": "crash.", "level": "error"}', "no crash tag"),
+    ('{"tag": "browser.error.", "level": "info"}', "no crash tag"),            # a prefix alone names nothing
     ('{"tag": 7, "level": "info"}', "no crash tag"),
     ("[1, 2]", "not a JSON object"),
 ])
