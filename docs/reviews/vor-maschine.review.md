@@ -3429,3 +3429,35 @@ Geprüft: `3d8a8741..533c71fc`, Anfrage an `893f2261`, eigene Archivkopie. **87/
 - **Nachweisumfang:** Claudes gezielter Live-Auszug am neuen Kopf zeigt den normalen Selbst-SIGTERM-Ausstieg. Der nicht startbare Timer ist durch die isolierten Fehlerproben belegt. Die weiteren Live-Läufe bleiben nachvollziehbar an `3d8a8741`; ich habe sie nicht erneut ausgeführt. Der neue Catch betrifft die Crash-Prüfung, nicht Fehler bei der Rückgabe oder beim Berichtsschreiben selbst.
 
 Damit ist **Punkt 1** abgeschlossen. Der Messvertrag für `latch-sticky` bleibt die vereinbarte eigene Planrunde; Replay, Antast-Live und Firefox-Kern behalten ihren getrennten Umfang. Paket 3a bleibt unverändert abgenommen.
+
+---
+
+## Claude · Paket 3b · Punkt 1 gemergt · 14. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R372 für `533c71fc`.
+  - Fables Zustimmung zum selben Kopf, unter der Bedingung, dass das Merge-Gate besteht und dass ich in der Installationsprobe die Kettenzeilen lese: Sie ist der einzige Beleg der Kette im Launcher-Betrieb.
+- **Merge-Gate PASS auf `533c71fc`** ([Bericht](vor-maschine.p3b.merge-gate.json)): Unit 2653 + 104, Backend einschließlich `ruff` und `pyright`, Browser 921/921, Installationsprobe 14/14 mit `crashes: []`. Es ist das erste Merge-Gate, in dem die Crash-Einträge mitentscheiden.
+- **Die Kette in der Installationsprobe** (Lauf `install-probe-ff7eba902fa3`, [Auszug](vor-maschine.p3b.merge-gate.probe-chain.txt)), im Launcher-Betrieb beim Stopp des installierten Profils:
+  1. Der Launcher erhält `_term` (20:54:00.467) und sendet SIGTERM an das Gateway.
+  2. Das Gateway verliert seine Konsole: `console.lost` auf stderr und stdout, EPIPE (+14 ms und +44 ms). Der Guard verfolgt das und wirft nicht.
+  3. Die Instanzüberwachung meldet `lcnc.link_revoked`, `session.instance_ended` und `session.shutdown_requested` mit `deadline_s: 5.0`, alle innerhalb von 0,1 ms (+105 ms).
+  4. `crash.signal` (SIGTERM) wird 12,8 ms danach verarbeitet.
+  5. Der Launcher räumt das Gateway 0,21 s nach seinem SIGTERM mit **Exit 0** ab: über den normalen Teardown, nicht über den Notausgang (der hätte Exit 1 ergeben).
+  6. `crash.log` enthält nur `crash.signal`.
+  
+  Vor diesem Paket brach die Kette an derselben Stelle ab: Ein `print` auf die geschlossene Pipe warf, bevor die Kette ihren Trace schrieb.
+- **Offen** nennt das Gate die Live-Prüfungen vor main (`perf-matrix`, `twp-buttons`) und `firefox-core`. Die beiden ersten liefen an `3d8a8741` (R371). Seither änderte sich am Produktcode nur der Fehlerzweig eines Timers, der nicht startet.
+- **development** = `533c71fc`: Fast-Forward von `39e5ccd1` per SHA, gepusht. Vorher geprüft: `origin/development` stand noch auf `39e5ccd1`, und die CI an `533c71fc` (`harden/p3b`) war grün.
+- **CI auf development** an `533c71fc`: grün, Backend und Frontend (Lauf `43634742338`).
+- **Verhaltensänderungen, die der Operator erfährt:**
+  1. **Ein Gateway, dessen Konsole wegbricht** (der Launcher-Tee ist beendet, die Pipe geschlossen), läuft weiter und beendet sich bei Bedarf trotzdem sauber. Jeder Verlust steht einmal als `console.lost` im Trace.
+  2. **Jeder beschlossene Ausstieg** endet spätestens 5 s nach seiner Entscheidung, auch wenn eine Diagnose blockiert. Das gilt für alle fünf Wege: Instanzende, Abschaltanfrage, veralteter Helfer, Neuverbindung zu einer anderen Instanz, Selbstneustart.
+     - Kann das Gateway dafür keinen Thread mehr starten, endet es sofort mit Exit 1.
+     - Der Launcher startet es **nicht** neu; das Display endet. Der Docstring hatte bisher fälschlich einen Neustart versprochen.
+  3. **Native Läufe und die Installationsprobe** urteilen FAIL, sobald `crash.log` einen Eintrag der Stufe `error` oder einen beschädigten Eintrag enthält. Bisher las das Gate `crash.log` nicht; derselbe Fehler stand unbemerkt in 28 Laufordnern.
+- **Weiter offen:**
+  - #36 bleibt offen; der Operator entscheidet.
+  - **3b Punkt 2, Replay (Schritt 5a):** gebaut auf `feat/p3b-replay`, Anfrage folgt.
+  - Danach der eigene Messvertrag für `latch-sticky`, dann Antasten live und der Firefox-Kern.
+  - Danach Paket 4, die Checkliste für den Maschinentag.

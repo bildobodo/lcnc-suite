@@ -1,0 +1,18 @@
+# install-probe-ff7eba902fa3 (merge gate at 533c71fc): the chain in launcher mode, from logs/trace.ndjson, logs/launcher.log, logs/crash.log; report.json verdict PASS, crashes []
+## trace.ndjson (gateway)
+20:53:36.482 session.bound info {}
+20:54:00.481 console.lost warn {'stream': 'stderr', 'errno': 32, 'exc_type': 'BrokenPipeError'}
+20:54:00.511 console.lost warn {'stream': 'stdout', 'errno': 32, 'exc_type': 'BrokenPipeError'}
+20:54:00.572 lcnc.link_revoked warn {'reason': 'the bound instance ended'}
+20:54:00.572 session.instance_ended error {'where': 'instance watch'}
+20:54:00.572 session.shutdown_requested warn {'reason': 'linuxcnc instance ended', 'deadline_s': 5.0}
+20:54:00.584 crash.signal info {'signame': 'SIGTERM'}
+## launcher.log (tail)
+[20:53:36.278] PROD proc.status loop started pid=7859 (watching gw_pid=7857)
+[20:54:00.467] PROD _term: signal received
+[20:54:00.468] PROD _term: SIGTERM → gateway pid=7857
+[20:54:00.469] PROD _term: waiting for gateway pid=7857 (≤2s, then SIGKILL)
+[20:54:00.676] PROD _term: gateway reaped, exit 0
+[20:54:00.677] EXIT trap fired rc=0
+## crash.log
+{"t_wall_ns":1794686040584880601,"t_mono_ms":24161.828,"proc":"gateway","pid":7857,"tag":"crash.signal","level":"info","signo":15,"signame":"SIGTERM"}
