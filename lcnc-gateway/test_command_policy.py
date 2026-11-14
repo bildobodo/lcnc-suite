@@ -633,7 +633,7 @@ class TestPayloadSchema(unittest.TestCase):
 
     def test_mdi_length_rejected_not_truncated(self):
         msg = self._reject("mdi", {"text": "G1 X1 " * 60})
-        self.assertIn("LinuxCNC takes 255", msg)        # refused, never cut: bytes since R366 VM-I11
+        self.assertIn("LinuxCNC takes 254", msg)        # refused, never cut: bytes since R366 VM-I11, 254 since R367
 
     def test_compensation_method_is_a_closed_set(self):
         self.assertIn("not one of", self._reject("set_compensation_method", {"method": 9}))

@@ -540,6 +540,25 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertEqual(len(spawned), 1)
             self.assertFalse(gateway._skip_flag_unknown)
 
+    def test_an_entry_line_past_the_limit_is_refused_before_the_start_guard(self):
+        # Codex R366 VM-I11, R367: with the program loaded and confirmed (the
+        # refusal is the entry line's, not the program binding's) — the entry
+        # rapid is judged before _start_guard: no skip-flag clear, no mode
+        # switch, no sequence; a sane entry goes to the sequence
+        self._with_program()
+        cmd = self._rcs()
+        gateway._skip_flag_unknown = True
+        r, spawned = self._auto_run(entry_x=1e300, entry_y=0.0)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("bytes", r["error"])
+        self.assertEqual([c for c in cmd.calls if c[0] in ("mdi", "mode", "auto")], [], "nothing written")
+        self.assertEqual(spawned, [])
+        self.assertTrue(gateway._skip_flag_unknown, "the clear never ran")
+        cmd = self._rcs()
+        r, spawned = self._auto_run(entry_x=10.0, entry_y=0.0)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(len(spawned), 1)
+
     def test_a_start_whose_clear_is_refused_starts_nothing(self):
         for name, msg in self._starts():
             with self.subTest(start=name):
@@ -1870,7 +1889,7 @@ class TestPayloadBoundsReachCmd(unittest.TestCase):
 
     def test_overlong_mdi_never_reaches_cmd_mdi(self):
         err = self._refused({"cmd": "mdi", "text": "G1 X1 " * 60}, "mdi")
-        self.assertIn("linuxcnc takes 255", err.lower())   # refused, never cut (R366 VM-I11)
+        self.assertIn("linuxcnc takes 254", err.lower())   # refused, never cut (R366 VM-I11, 254 since R367)
 
     def test_negative_spindle_speed_reaches_cmd_clamped_to_zero(self):
         r = self._send({"cmd": "spindle_forward", "speed": -5000})

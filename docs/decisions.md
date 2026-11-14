@@ -11408,6 +11408,26 @@ of a newer epoch; a features save cancelled after its commit runs the camera
 hook (shielded) before the cancel goes on.
 
 
+## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
+
+**Decision.** Every MDI line the gateway writes — the raw text and every line
+built from a payload — is judged before the first write: at most 254 BYTES,
+valid UTF-8, no NUL; refused, never cut or cleaned. `_cmd_blocking` refuses
+such a line itself as the last guard. An M6 confirmation with no reply in
+30 s says "No reply — outcome unknown" and keeps its lock.
+
+**Why.** The schema counted characters (138 umlauts = 268 bytes passed and
+CMD.mdi refused them after the mode switch), let a NUL through (LinuxCNC's
+`strcpy` would run "G0 X1" of "G0 X1\0 Y2") and did not judge the lines it
+built (`set_wcs x=1e300`: a 319-byte G10 after MODE_MDI). The number is the
+binding's own (2.9.4 `emcmodule.cc` `mdi()`: `len > sizeof(command) - 1`,
+LINELEN 255 → 254) — R366 and the first fix said 255; the advisor's check of
+the source before the live run found the off-by-one, and
+`home_step_live_check.py` proves the edge on the real binding. The red check
+of the fix found the parameter rounding's 28-digit limit (an exception's
+name as the reply from about 1e22). The confirmation: a timeout proves no
+refusal — no repeat, no second press (Codex's correction).
+
 ## 2026-11-13 — The payload contract (package 3a, SYS-CONN.S5 + #27; Codex R363–R365, operator Q363-1 / Q363-4)
 
 **Decision.** One check of every command's fields (`validate_payload`

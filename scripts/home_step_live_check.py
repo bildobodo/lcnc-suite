@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Live acceptance of Home / Unhome per axis and the step jog on a running
-sim (package 3a: F-HOME.S2b and the step jog's travel; Codex R363–R366).
+"""Live acceptance of Home / Unhome per axis, the step jog and the MDI line's
+byte limit on a running sim (package 3a: F-HOME.S2b, the step jog's travel,
+VM-I11; Codex R363–R367).
 
 Drives the gateway through the WebSocket as the strip does (`home {axis}`,
 `jog_incr`, `jog_cont` / `jog_stop`) and reads the outcome from LinuxCNC's
@@ -17,6 +18,12 @@ Rows (default):
               false "Jog mode changed"
   step-jog    a step right after a continuous jog and its stop: the same
   step-span   a step past the axis' travel is refused, nothing moves
+  mdi-binding the binding's own limit: linuxcnc.command().mdi of 255 bytes is
+              refused before anything is sent ("limited to 254")
+  mdi-edge    a 254-byte MDI line (ASCII comment) goes out and runs: X arrives
+  mdi-utf8    a 254-byte line of fewer characters (an umlaut comment) runs too
+  mdi-past    a 255-byte line is refused by the gateway with the task mode left
+              MANUAL and X unmoved (Codex R366 VM-I11; R367: 254, not 255)
 Rows (--group: the INI gives every joint HOME_SEQUENCE -1, the operator's
 machine's shape — a copy of a profile):
   group-map   home_axes closes Home on every axis with the group's reason
@@ -217,6 +224,47 @@ async def steps(gw, ini):
         f"reply {r.get('ok')} {r.get('error') or ''}; X {x3:.3f} → {x4:.3f}")
 
 
+def padded(head, n, fill="x"):
+    """`head (` + fill… + `)` of exactly n UTF-8 bytes."""
+    base = head + " ("
+    room = n - len(base.encode()) - 1
+    k = room // len(fill.encode())
+    line = base + fill * k + "x" * (room - k * len(fill.encode())) + ")"
+    assert len(line.encode()) == n, (len(line.encode()), n)
+    return line
+
+
+async def mdi_limit(gw, ini):
+    lo, hi = float(ini_value(ini, "AXIS_X", "MIN_LIMIT")), float(ini_value(ini, "AXIS_X", "MAX_LIMIT"))
+    a, b = round(lo + (hi - lo) * 0.4, 3), round(lo + (hi - lo) * 0.6, 3)
+    try:
+        linuxcnc.command().mdi("x" * 255)     # refused by the binding before any send
+        said = "taken"
+    except ValueError as e:
+        said = str(e)
+    row("mdi-binding", "254" in said, said)
+    line = padded(f"G53 G0 X{a}", 254)
+    r = await mdi(gw, line)
+    x = poll().actual_position[0]
+    row("mdi-edge", r.get("ok") is True and abs(x - a) < 0.01,
+        f"reply {r.get('ok')} {r.get('error') or ''}; {len(line.encode())} bytes; X {x:.3f} (target {a})")
+    line = padded(f"G53 G0 X{b}", 254, "ä")
+    r = await mdi(gw, line)
+    x = poll().actual_position[0]
+    row("mdi-utf8", r.get("ok") is True and abs(x - b) < 0.01,
+        f"reply {r.get('ok')} {r.get('error') or ''}; {len(line)} characters, {len(line.encode())} bytes; "
+        f"X {x:.3f} (target {b})")
+    await until(gw, {"cmd": "set_mode", "mode": linuxcnc.MODE_MANUAL}, lambda: poll().task_mode == linuxcnc.MODE_MANUAL)
+    await gw.settled(lambda d: d.get("task_mode") == linuxcnc.MODE_MANUAL)
+    line = padded(f"G53 G0 X{a}", 255)
+    r = await gw.cmd({"cmd": "mdi", "text": line})
+    await asyncio.sleep(1.0)
+    x = poll().actual_position[0]
+    row("mdi-past", r.get("ok") is False and "255 bytes" in str(r.get("error"))
+        and s.task_mode == linuxcnc.MODE_MANUAL and abs(x - b) < 1e-6,
+        f"reply {r.get('ok')} {r.get('error')}; task_mode {s.task_mode}; X {x:.3f}")
+
+
 async def group(gw):
     axes = gw.data.get("home_axes") or []
     reasons = [a.get("home") for a in axes]
@@ -250,6 +298,7 @@ async def main(ini, as_group):
         else:
             await per_axis(gw, ini)
             await steps(gw, ini)
+            await mdi_limit(gw, ini)
     bad = [r for r in RESULTS if r[1] == "FAIL"]
     print(f"RESULT: {'FAIL' if bad else 'PASS'} ({len(RESULTS) - len(bad)}/{len(RESULTS)})", flush=True)
     return 1 if bad else 0
