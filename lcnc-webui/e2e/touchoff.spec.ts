@@ -714,6 +714,46 @@ test("tool-change confirm: once per request, retry after a refusal, nothing with
   }
 });
 
+test("tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12)", async ({ page }) => {
+  // real time: the confirmation waits 30 s for its reply (CONFIRM_REPLY_MS) —
+  // a fake clock would also age the heartbeat and end the connection
+  test.setTimeout(150_000);
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "replies", replies: { confirm_tool_change: "silent" } });   // only THIS reply withheld
+  try {
+    const request = (seq: number) => ctlSend({ op: "status_delta", data: {
+      tool_change_requested: true, tool_change_tool: 3, tool_change_seq: seq,
+      permissions: { ...PERMS_ALL, toolChangeConfirm: true } } });
+    await request(51);
+    const dialog = page.locator(".safetyDialog .dialog", { hasText: "Load Tool into Spindle" });
+    await expect(dialog).toBeVisible();
+    await ctlSend({ op: "clearCmds" });
+    await dialog.getByRole("button", { name: /Confirm/ }).click();
+    const confirming = dialog.getByRole("button", { name: "Confirming…", exact: true });
+    await expect(confirming).toBeDisabled();
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+    await expect(dialog.getByRole("alert")).toHaveText("No reply — outcome unknown", { timeout: 40_000 });
+    await expect(confirming, "the lock stays: a timeout proves no refusal").toBeDisabled();
+    const sent = async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change");
+    expect((await sent()).length, "no second confirmation, no repeat").toBe(1);
+    // the next request: its own confirmation, then the request changes again
+    // before that one's timeout — the late timeout labels nothing (the wait
+    // IS the condition: the timeout's moment, past it by 3 s)
+    await request(52);
+    await expect(dialog.getByRole("alert"), "a new request starts clean").toHaveCount(0);
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect.poll(async () => (await sent()).length).toBe(2);
+    await request(53);
+    await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeEnabled();
+    await page.waitForTimeout(33_000);
+    await expect(dialog.getByRole("alert"), "the earlier request's timeout labels nothing").toHaveCount(0);
+  } finally {
+    await ctlSend({ op: "replies", replies: {} });
+    await ctlSend({ op: "reset" });
+  }
+});
+
 test("a press begun on one tool-change request never confirms the next (Codex R205)", async ({ page }) => {
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();

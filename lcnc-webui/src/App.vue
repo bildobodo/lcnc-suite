@@ -1160,6 +1160,7 @@ const toolChangeConfirmKey = computed(() => `${toolChangeSeq.value}:${toolChange
 const confirmSent = ref<string | null>(null);
 /** How long a confirmation waits for its reply (a HAL write — quick). */
 const CONFIRM_REPLY_MS = 30_000;
+const CONFIRM_NO_REPLY = "No reply — outcome unknown";
 function confirmToolChange() {
   if (!toolChangeRequested.value || confirmSent.value) return;
   const seq = toolChangeSeq.value;
@@ -1168,12 +1169,17 @@ function confirmToolChange() {
   if (!id) return;
   confirmSent.value = id;
   // ITS reply, by req_id (#28 — a map, not a watch on lastReply): a refusal
-  // gives the button back and says why in the dialog; no reply leaves the
-  // confirmation standing (the outcome is unknown, never a guessed refusal).
+  // gives the button back and says why in the dialog; NO reply says so too
+  // (Codex R366 VM-I12) and keeps the confirmation standing — a timeout
+  // proves no refusal: no second confirmation, no repeat. A confirmation the
+  // request or the connection ended meanwhile is not labelled late.
   void awaitReply(id, CONFIRM_REPLY_MS).then((r) => {
-    if (r && r.ok === false && confirmSent.value === id) {
+    if (confirmSent.value !== id) return;
+    if (r && r.ok === false) {
       confirmSent.value = null;
       confirmRefusal.value = r.error ?? "Confirmation refused";
+    } else if (!r) {
+      confirmRefusal.value = CONFIRM_NO_REPLY;
     }
   });
 }
