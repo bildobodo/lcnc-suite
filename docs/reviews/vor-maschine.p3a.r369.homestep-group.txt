@@ -1,0 +1,11 @@
+== ip3-homestep-group at 39e5ccd1 on lcnc_suite_sim_3axis_xyz_group.ini, 2026-11-14T10:29:26+01:00
+Running as unit: lc-sim.service; invocation ID: 8a7b14513f154c8c80e4e2e789b8bf47
+ready after 2s: lcnc_suite_sim_3axis_xyz_group.ini
+PASS target       lcnc_suite_sim_3axis_xyz_group.ini (home-group fixture)
+     machine_on: E-Stop active — reset E-Stop first — again
+PASS group-map    ['Homes X Y Z together (HOME_SEQUENCE -1) — Home All', 'Homes X Y Z together (HOME_SEQUENCE -1) — Home All', 'Homes X Y Z together (HOME_SEQUENCE -1) — Home All']
+PASS group-home   reply False Homes X Y Z together (HOME_SEQUENCE -1) — Home All; homed [False, False, False]
+PASS group-all    homed [True, True, True]
+PASS group-unhome reply True ; homed [True, False, True]
+RESULT: PASS (5/5)
+== ip3-homestep-group exit 0, 2026-11-14T10:29:35+01:00

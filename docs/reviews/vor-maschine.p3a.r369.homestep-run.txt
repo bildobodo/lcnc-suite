@@ -1,0 +1,13 @@
+== start 2026-11-14T10:28:11+01:00, tree /home/cnc/lcnc-suite-ip3 at 39e5ccd1
+group copy: 3 joints at -1
+ip3-homestep-3axis_xyz rc=0 2026-11-14T10:28:41+01:00
+ip3-homestep-5axis_xyzac rc=0 2026-11-14T10:29:01+01:00
+ip3-homestep-6axis_twp_xyzabc rc=0 2026-11-14T10:29:26+01:00
+ip3-homestep-group rc=0 2026-11-14T10:29:39+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: a60903e5ead6410988f58de328bae894
+Running as unit: bg-keepalive.service; invocation ID: 07818ca3ceec42dd8b9c395bcb004bcf
+39e5ccd1 Integration: package 3a — the live driver's target: every listener row (Codex R368), from feat/payload-contract
+lan-to rc=0 2026-11-14T10:29:40+01:00
+active
+active
+== end 2026-11-14T10:29:40+01:00

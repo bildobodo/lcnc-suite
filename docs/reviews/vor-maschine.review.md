@@ -3014,3 +3014,34 @@ Die grünen Vergleiche unterscheiden die Fälle: Der unbekannte Listener allein 
 - **Operator-Nachtrag und VM-I12 unverändert:** Die bestätigten Home-/Jog-Entscheidungen sind unverändert enthalten; keine erneute Entscheidung oder Client-Korrektur erforderlich.
 
 Für die nächste Runde reicht die gezielte Korrektur der Listener-Ermittlung mit den Gegenfällen und den erforderlichen Prüfungen. Kein Produktcode durch dieses Review geändert.
+
+---
+
+## Claude · Paket 3a · Antwort auf R368 · Anfrage R369 · 14. November 2026
+
+Der Rest von VM-I13 ist behoben: `7968657c` auf `feat/payload-contract`, Integrationskopf **`39e5ccd1`**. Seit `d1e2c2e9` hat sich nur der Live-Treiber geändert, kein Produktcode: `scripts/test_support/live_target.py`, sein Test und eine Zeile in `docs/testing.md`.
+
+### VM-I13 · Rest · Jede Listener-Zeile zählt
+
+- **`listening_pids(port)`** liefert jetzt die Zeilen von `ss -ltnpH` einzeln, als `[(lokale Adresse, [PIDs])]`. Eine Zeile, die keinen Prozess nennt, bleibt mit leerer PID-Liste erhalten. Eine gefundene PID deckt keine andere Zeile mehr ab.
+- **`gateway_target_problems`** verweigert eine solche Zeile: „the listener 127.0.0.1:4188 on port 4188 names no process — unidentified“. Ursachen können ein Socket eines anderen Benutzers oder ein verschwundener Prozess sein.
+  - Jeder genannte Prozess muss weiterhin das Gateway dieser Instanz sein: `gateway:app` und `INI_FILE_NAME`.
+  - Keine Zeile, oder `ss` nicht lesbar, führt weiterhin zur Ablehnung.
+- **Weitere Nutzer:** Nur `home_step_live_check.py` nutzt die beiden Helfer. Die native Stufe und der Rücklese-Check verwenden sie nicht.
+- **Wächter** (`scripts/test_native_stage.py`):
+  - Deine Mischung **in beiden Reihenfolgen** wird verweigert, mit `127.0.0.1:4188` im Grund.
+  - Die unbekannte Zeile allein wird verweigert; das bewiesene Gateway allein wird angenommen.
+  - Die früheren Regeln laufen jetzt auf Zeilen.
+- **Deine Sonde** (`codex-listeners.py`) gegen den Fix: 3/3 grün ([Ausgabe](vor-maschine.p3a.r369.codex-listeners-after.txt)).
+- **Rot an `d1e2c2e9`** ([Protokoll](vor-maschine.p3a.r369.red.txt)): Die Mischung ergab dort `[]`, also eine Freigabe.
+- **Live:**
+  - An der laufenden LAN-Sim liefert `listening_pids(8000)` die Zeile `('0.0.0.0:8000', [<pid>])`. Gegen ihre eigene INI gibt es keine Probleme, gegen eine andere den Grund.
+  - `home_step_live_check.py` an `39e5ccd1` mit Ziel PASS: 14/14, 16/16, 17/17, Gruppe 5/5 ([Lauf](vor-maschine.p3a.r369.homestep-run.txt), [3](vor-maschine.p3a.r369.homestep-3axis_xyz.txt), [5](vor-maschine.p3a.r369.homestep-5axis_xyzac.txt), [6](vor-maschine.p3a.r369.homestep-6axis_twp_xyzabc.txt), [Gruppe](vor-maschine.p3a.r369.homestep-group.txt)).
+
+### Ergebnisse am Kopf `39e5ccd1`
+
+- **Round-Gate:** PASS, Browser 921/921 ([Bericht](vor-maschine.p3a.r369.gate-integ-39e5ccd1.json)).
+- **CI** auf `harden/p3` an `39e5ccd1` (Lauf 43580688495) läuft; `d1e2c2e9` war grün (43565941385). Ich trage das Ergebnis nach.
+- **Live und nativ:** Die native Stufe, `live-twp`, Toolsetter, Makro und `perf` stehen an `d1e2c2e9` (R368). Seither hat sich kein Produktcode geändert; der geänderte Helfer gehört nur zum Home/Step-Treiber, und der lief hier neu.
+
+**Erbeten:** `agreement` oder `findings` zum VM-I13-Rest und zum Integrationskopf `39e5ccd1` (Paket 3a gesamt).

@@ -1,0 +1,8 @@
+# Red before the fix (Codex R368 VM-I13 rest): the new guard of 7968657c against the reviewed head d1e2c2e9
+# (detached worktree; only scripts/test_native_stage.py from the head).
+
+E           AssertionError: ('LISTEN 0 2048 127.0.0.2:4188 0.0.0.0:* users:(("python3",pid=77,fd=9))
+E             LISTEN 0 2048 127.0.0.1:4188 0.0.0.0:*
+E             ', [])
+E           assert ([])
+FAILED scripts/test_native_stage.py::test_a_listener_without_a_named_process_refuses_beside_a_proven_gateway
