@@ -64,6 +64,7 @@ elif _launcher_bind.get("needs_poll"):
 
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
+    var_file_numbers,
     mode_switch_ignored_message,
     axis_joint_rows,
     step_span_refusal,
@@ -2926,16 +2927,8 @@ def _declared_var_numbers() -> Optional[frozenset]:
         mtime = os.path.getmtime(var_file)
         if _var_numbers_cache[0] == mtime:
             return _var_numbers_cache[1]
-        nums = set()
         with open(var_file) as fh:
-            for line in fh:
-                tok = line.split()
-                if tok:
-                    try:
-                        nums.add(int(tok[0]))
-                    except ValueError:
-                        pass
-        result = frozenset(nums)
+            result = var_file_numbers(fh)
         _var_numbers_cache = (mtime, result)
         return result
     except (OSError, AttributeError) as e:

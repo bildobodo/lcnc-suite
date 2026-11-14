@@ -144,6 +144,7 @@ def offline_commands(component):
         commands.append(("readback-target", [python(), "-m", "pytest", str(ROOT / "scripts/test_toolsetter_readback_check.py")], ROOT))
         commands.append(("parity-compare", [python(), "-m", "pytest", str(ROOT / "scripts/test_parity_compare.py")], ROOT))
         commands.append(("test-select", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_selector.py")], ROOT))
+        commands.append(("replay", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_replay.py")], ROOT))
         commands.append(("inventory", [python(), "-m", "pytest", str(ROOT / "scripts/inventory/test_inventory.py")], ROOT))
         commands.append(("native-stage", [python(), "-m", "pytest", str(ROOT / "scripts/test_native_stage.py")], ROOT))
         commands.append(("install-probe", [python(), "-m", "pytest", str(ROOT / "scripts/test_install_probe.py")], ROOT))

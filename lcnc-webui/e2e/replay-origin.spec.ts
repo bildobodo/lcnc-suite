@@ -41,7 +41,8 @@ test("every connection a test opens carries its attempt; a socket without the co
   // 3. a socket from Node without the cookie
   const bare = new WebSocket(`${MOCK.replace(/^http/, "ws")}ws`);
   await new Promise<void>((resolve, reject) => { bare.once("open", () => resolve()); bare.once("error", reject); });
-  bare.send(JSON.stringify({ cmd: "hello", session: "bare" }));
+  // the replay's ONE named connection without an origin (scripts/test_select/replay.py NO_COOKIE_SESSION)
+  bare.send(JSON.stringify({ cmd: "hello", session: "replay-origin:no-cookie" }));
 
   await expect.poll(() => helloOrigins(lines(file!).slice(before)).length, { message: "three hellos in the replay" })
     .toBeGreaterThanOrEqual(3);

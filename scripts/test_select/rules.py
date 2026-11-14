@@ -114,6 +114,8 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
     _E + "mock-gateway.mjs": (
         Read("readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),
         Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite")),
+    _E + "replay-origin.spec.ts": (
+        Read('readFileSync(file, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),),
     _E + "mockFixture.ts": (
         Read("spawn(process.execPath, [MOCK_SCRIPT]", 1, ("lcnc-webui/e2e/mock-gateway.mjs",),
              "starts the worker's own mock"),
@@ -130,6 +132,7 @@ FULL_ONLY = {
     "lifecycle": "the connection's lifecycle: lcncWs, the worker and ws/ — central",
     "smoke": "the app loading without a gateway: main, App and the build — central",
     "mock-baseline": "the per-worker mock's baseline reset (e2e/test.ts) — central",
+    "replay-origin": "the replay's origin binding (e2e/test.ts, the mock's replay log) — central",
 }
 
 # ── Spec groups ──────────────────────────────────────────────────────────

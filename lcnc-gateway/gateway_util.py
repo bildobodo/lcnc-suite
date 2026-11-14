@@ -6044,6 +6044,22 @@ def g30_param(letter: str) -> int:
     return G30_BASE_PARAM + AXIS_LETTERS.index(letter.upper())
 
 
+def var_file_numbers(lines: Iterable[str]) -> frozenset:
+    """The parameter numbers a var file declares: each line's first token
+    that is an integer (LinuxCNC's `<number> <value>` rows). Pure — the
+    gateway's writable set (`_declared_var_numbers`) and the replay's
+    offline check (scripts/test_select/replay.py) read a var file the same way."""
+    nums = set()
+    for line in lines:
+        tok = line.split()
+        if tok:
+            try:
+                nums.add(int(tok[0]))
+            except ValueError:
+                pass
+    return frozenset(nums)
+
+
 def read_var_snapshot(path: str, keys) -> Tuple[int, Dict[str, Optional[float]]]:
     """ONE snapshot of the parameter file: the inode (fstat) and the values
     from the SAME open descriptor — a rename between a stat and a read would
