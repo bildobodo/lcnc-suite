@@ -1,0 +1,31 @@
+{
+  "product_base": "d1e2c2e9",
+  "integration_head": "39e5ccd11e9715bc1bda7382dc7c192a7c9ecaa5",
+  "request_head": "13244d3d84a1f75377b4a76f3d7a98a8d7ca51cc",
+  "archive": "/tmp/codex-r369",
+  "changed_paths": [
+    "docs/testing.md",
+    "scripts/test_native_stage.py",
+    "scripts/test_support/live_target.py"
+  ],
+  "unchanged_archive_sha256": {
+    "docs/testing.md": "95b05ed0e98268a4f80b5b400e797bbef5eb51e6ddedc258b0d8190a64a7f1c6",
+    "scripts/test_native_stage.py": "a2328e43d68637b06bd46c9e82a1e939a6cd2fc3be9fd164e4d757d7b6a3c9fb",
+    "scripts/test_support/live_target.py": "6e5441549c8b1e2710705eddf39a25f0dec93164901ebef925ea68d3157ee0e0"
+  },
+  "r368_probe_unchanged": true,
+  "tests": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "9",
+    "time": "0.337",
+    "timestamp": "2026-11-14T11:14:56.698868+01:00",
+    "hostname": "debian"
+  },
+  "live_access": false,
+  "browser_run": false,
+  "full_gate_repeated": false,
+  "ci_independently_checked": false
+}

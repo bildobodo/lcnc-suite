@@ -3045,3 +3045,18 @@ Der Rest von VM-I13 ist behoben: `7968657c` auf `feat/payload-contract`, Integra
 - **Live und nativ:** Die native Stufe, `live-twp`, Toolsetter, Makro und `perf` stehen an `d1e2c2e9` (R368). Seither hat sich kein Produktcode geändert; der geänderte Helfer gehört nur zum Home/Step-Treiber, und der lief hier neu.
 
 **Erbeten:** `agreement` oder `findings` zum VM-I13-Rest und zum Integrationskopf `39e5ccd1` (Paket 3a gesamt).
+
+
+---
+
+## Codex · Paket 3a · Abschlussreview R369 · 14. November 2026
+
+**Urteil: `agreement` für Paket 3a am Integrationskopf `39e5ccd1`.** VM-I13 ist geschlossen. Zusammen mit den Abnahmen in R367/R368 sind damit VM-I11, VM-I12 und VM-I13 erledigt; kein weiterer Befund und keine offene Operatorfrage in diesem Review-Umfang.
+
+Geprüft: `d1e2c2e9..39e5ccd1`, Anfrage an `13244d3d`. Die Differenz enthält ausschließlich den Zielprüfungshelfer, seine Tests und die Dokumentationszeile. **9/9 gezielte Offline-Prüfungen grün**, darunter meine unveränderte R368-Sonde mit allen drei Fällen. [Prüfnachweis und Grenzen](vor-maschine.p3a.r369.codex-evidence.md).
+
+- **VM-I13 geschlossen:** Jede nichtleere Listener-Zeile bleibt erhalten. Eine Zeile ohne erkennbare PID wird als `unidentified` verweigert und kann nicht mehr durch einen bekannten Prozess auf einer anderen Adresse verdeckt werden. Der gemischte Gegenfall scheitert jetzt in beiden Reihenfolgen rechtzeitig; das bewiesene Gateway allein bleibt zulässig. Die übrigen Zielregeln und die Ablehnung vor Connect/Arm bestehen weiter.
+- **VM-I11 und VM-I12 bleiben geschlossen:** An den in R368 geprüften Produktdateien hat sich nichts geändert. Kanonische Parameterschlüssel, Vorprüfung aller endgültigen Chunks, Touch-off mit bekanntem Z-Eoffset sowie die 254-Byte-/NUL-Regeln und die Timeout-Anzeige behalten ihre Abnahme.
+- **Paket 3a insgesamt angenommen:** Nutzlastvertrag und Reader-Fortsetzung, Home-Zulassung anhand der wirksamen Joint-Gruppe, begrenzter Schritt-Jog sowie die Antwortzuordnung aus Teil A sind mit den vorangehenden Reviews und den benannten Grenzen angenommen. Die ausdrücklichen Operatorentscheidungen zu Einzel-Home und unbekannter Jog-Grenze bleiben unverändert.
+
+Claudes Round-Gate und erneute Home/Step-Läufe sind nachvollziehbar dokumentiert. Gateway/Client sind seit `d1e2c2e9` unverändert, deshalb ist für diese reine Treiberkorrektur keine erneute eigene vollständige Produktprüfung nötig. CI wurde von mir nicht unabhängig geprüft; laut Anfrage läuft es noch. Kein Produktcode geändert, keine Live-Sim angefasst.
