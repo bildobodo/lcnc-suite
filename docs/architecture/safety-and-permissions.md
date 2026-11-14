@@ -821,7 +821,12 @@ named exception, an older page's `mdi` with `vars` included (R336).
   `#3116=0`, `T<n> M6` / `G43 H<n>` with n ≤ 99999, `G69`, `M530 P0 Q2`,
   `G54`, the stamp rows, the → Zero plan, the INI's kins M-code). The
   rounding of a parameter value (`toolsetter_rules.canonical`) holds every
-  finite double — the default 28 digits raised from about 1e22.
+  finite double — the default 28 digits raised from about 1e22. The one other
+  string the binding copies is a program path: `program_open()` refuses
+  `len > sizeof(m.file) - 1` (254 bytes) AFTER it has sent
+  `EMC_TASK_PLAN_CLOSE`, so a longer path closed the loaded program and
+  opened nothing — `load_file` refuses it (`program_path_refusal`) before the
+  load record and the open, `_cmd_blocking` behind it.
 - **Guards.** `test_payload_contract.py`: per required field the missing,
   null and wrong forms through the REAL `handle_command` (refused with zero
   recorded controller calls, mode included, and nothing booked), the valid

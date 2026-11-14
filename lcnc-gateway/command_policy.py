@@ -1001,6 +1001,28 @@ def mdi_line_refusal(line: str) -> Optional[str]:
     if n > MDI_MAX_BYTES:
         return f"MDI line is {n} bytes — LinuxCNC takes {MDI_MAX_BYTES}"
     return None
+#: EMC_TASK_PLAN_OPEN's `char file[LINELEN]`: 2.9.4 emcmodule.cc
+#: program_open() refuses `len > sizeof(m.file) - 1` = 254 BYTES — AFTER it
+#: has sent EMC_TASK_PLAN_CLOSE: a longer path closed the loaded program and
+#: opened nothing (R367, the sibling of the MDI line's limit).
+PROGRAM_PATH_MAX_BYTES = 254
+
+
+def program_path_refusal(path: str) -> Optional[str]:
+    """Why LinuxCNC would not open `path` as a program, or None — valid
+    UTF-8 (a name the file system holds in other bytes), at most
+    PROGRAM_PATH_MAX_BYTES bytes; a NUL never names a file. Pure."""
+    if "\x00" in path:
+        return "Program path holds a NUL character"
+    try:
+        n = len(path.encode("utf-8"))
+    except UnicodeEncodeError:
+        return "Program path is not valid text — rename the file"
+    if n > PROGRAM_PATH_MAX_BYTES:
+        return f"Path is {n} bytes, LinuxCNC opens {PROGRAM_PATH_MAX_BYTES} — shorten it"
+    return None
+
+
 # LinuxCNC tool-number ceiling. Not machine-declared anywhere, so it is named
 # here rather than buried as a literal in a handler.
 TOOL_NUMBER_MAX = 99999
@@ -1295,8 +1317,9 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
                  "entry_x": Num(), "entry_y": Num(),
                  "entry_wcs": Choice(frozenset(FIXTURE_NAMES)),
                  "entry_units": Choice(frozenset({"G20", "G21"}))},
-    # --- MDI text: length only. Parsing G-code server-side to decide policy is
-    #     an open-ended project and deliberately out of scope.
+    # --- MDI text: the line's own rule only (mdi_line_refusal: bytes, NUL,
+    #     UTF-8). Parsing G-code server-side to decide policy is an
+    #     open-ended project and deliberately out of scope.
     "mdi": {"text": MdiText(required=True),
             "vars": VarNumbers()},   # set first, the line only once taken over (R16)
     # --- a macro file: name, the operator's values, the revision shown
