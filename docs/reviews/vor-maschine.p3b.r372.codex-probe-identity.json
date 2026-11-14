@@ -1,0 +1,30 @@
+[
+  {
+    "source": "vor-maschine.p3b.r371.codex-r370-shutdown.py",
+    "destination": "lcnc-gateway/test_r370_codex.py",
+    "only_change": "/tmp/r371- -> /tmp/r372- (output paths)",
+    "source_sha256": "d1e0424f5bf873a0f500f6395d309fe43eb3a5e33af966ea68ec0568423362cc",
+    "executed_sha256": "eab4b957b653611e827e32132af26cc19ad35812a45dfbf6402421adb406d8be"
+  },
+  {
+    "source": "vor-maschine.p3b.r371.codex-deadline-failure.py",
+    "destination": "lcnc-gateway/test_r371_codex.py",
+    "only_change": "/tmp/r371- -> /tmp/r372- (output paths)",
+    "source_sha256": "a116c1578e806035329655a9b8ae27e96bcd2caf396701a3860d42674bd2f5f9",
+    "executed_sha256": "fc8989cd31a1f5d2e15e4b43711420e4bfc69715a9e75dacc191142ae10e7c93"
+  },
+  {
+    "source": "vor-maschine.p3b.r371.codex-r370-crashes.py",
+    "destination": "scripts/test_r370_crashes_codex.py",
+    "only_change": "/tmp/r371- -> /tmp/r372- (output paths)",
+    "source_sha256": "9b5345f010f65c8a42e998448250000a366df504966eca105992c619f552f4e7",
+    "executed_sha256": "1fa4a85164758973f2fd0a3e98982a6dfffc3de4b458de653db8e4e4bff7d4f0"
+  },
+  {
+    "source": "vor-maschine.p3b.r371.codex-crash-types.py",
+    "destination": "scripts/test_r371_crash_types_codex.py",
+    "only_change": "/tmp/r371- -> /tmp/r372- (output paths)",
+    "source_sha256": "9bce6f1fe15cfdd24bd95b334c363a3cdedf9627588d26d9180c5fffdae53924",
+    "executed_sha256": "5b9656a8d3927b4ac27195b6cffd4b2f465a86db1f66961a0e741af13693b844"
+  }
+]

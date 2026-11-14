@@ -1,0 +1,18 @@
+[
+  {
+    "entry": "request",
+    "entered": true,
+    "timer_failed": true,
+    "returned": false,
+    "timed_out": false,
+    "returncode": 1
+  },
+  {
+    "entry": "instance",
+    "entered": true,
+    "timer_failed": true,
+    "returned": false,
+    "timed_out": false,
+    "returncode": 1
+  }
+]

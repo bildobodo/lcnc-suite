@@ -1,0 +1,38 @@
+[
+  {
+    "record": {
+      "tag": "crash.thread",
+      "level": []
+    },
+    "error": null,
+    "restore_exists": true,
+    "restore_outcome": "complete",
+    "report_exists": true,
+    "crashes": [
+      {
+        "file": "crash.log",
+        "damaged": "no known level ('[]')",
+        "line": "{\"tag\": \"crash.thread\", \"level\": []}"
+      }
+    ],
+    "verdict": "FAIL"
+  },
+  {
+    "record": {
+      "tag": "crash.thread",
+      "level": {}
+    },
+    "error": null,
+    "restore_exists": true,
+    "restore_outcome": "complete",
+    "report_exists": true,
+    "crashes": [
+      {
+        "file": "crash.log",
+        "damaged": "no known level ('{}')",
+        "line": "{\"tag\": \"crash.thread\", \"level\": {}}"
+      }
+    ],
+    "verdict": "FAIL"
+  }
+]
