@@ -477,7 +477,10 @@ POST = {"outcome": "complete"}
     (GOOD_REPORT, {"outcome": "not_returned", "reasons": ["x"]}, False),
     # package 3b: a crash record names itself (the verdict alone said only "FAIL")
     ({**GOOD_REPORT, "crashes": [{"proc": "gateway", "tag": "crash.asyncio_unhandled",
-                                  "exc_type": "BrokenPipeError"}]}, POST, False)])
+                                  "exc_type": "BrokenPipeError"}]}, POST, False),
+    # Codex R370 VM-I15: a damaged record names itself too
+    ({**GOOD_REPORT, "crashes": [{"file": "crash.log", "damaged": "no known level ('erorr')",
+                                  "line": "{}"}]}, POST, False)])
 def test_gate_status(report, post, ok):
     """Each case fails for ITS reason alone: every other proof holds (a case
     with two faults hid the isolation check from a mutant, inst-mut-2)."""

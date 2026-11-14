@@ -269,10 +269,34 @@ def run(host, steps, run_dir: Path) -> dict:
     return report
 
 
+#: the trace's levels (lcnc_trace.emit's callers and the launcher's own lines)
+TRACE_LEVELS = frozenset({"debug", "info", "warn", "error"})
+#: what lcnc_trace._CrashFilter admits to crash.log
+CRASH_TAG_PREFIXES = ("crash.", "browser.error.")
+
+
+def _crash_record_problem(rec: object) -> str | None:
+    """Why a crash.log line is no classifiable record, or None: the fields
+    the verdict rests on — a known level and a tag the crash filter admits
+    (Codex R370 VM-I15: `{}`, a null level and "erorr" each read as clean)."""
+    if not isinstance(rec, dict):
+        return "not a JSON object"
+    tag, level = rec.get("tag"), rec.get("level")
+    if not (isinstance(tag, str) and tag.startswith(CRASH_TAG_PREFIXES) and len(tag) > len("crash.")):
+        return f"no crash tag ({str(tag)[:60]!r})"
+    if level not in TRACE_LEVELS:
+        return f"no known level ({str(level)[:20]!r})"
+    return None
+
+
 def run_crashes(log_dir: Path) -> list[dict]:
     """Every error-level record in the run's crash.log (and its rotations):
     an unhandled exception in any of the run's processes is a finding,
-    whatever the rows say. A line that is not a record is one too.
+    whatever the rows say. A line that is no classifiable record — no JSON,
+    no object, no crash tag, no known level — is one too, as damaged
+    evidence with its file and reason: an unknown level is no proof of a
+    clean run (Codex R370 VM-I15). A valid record below error (crash.signal
+    at info) is no finding.
 
     Package 3b: a BrokenPipeError out of the gateway's instance-ended chain
     sat in the crash.log of 28 of the 82 kept native and install run folders
@@ -287,8 +311,9 @@ def run_crashes(log_dir: Path) -> list[dict]:
             except ValueError:
                 found.append({"file": f.name, "unparsed": line[:200]})
                 continue
-            if not isinstance(rec, dict):
-                found.append({"file": f.name, "unparsed": line[:200]})
+            problem = _crash_record_problem(rec)
+            if problem:
+                found.append({"file": f.name, "damaged": problem, "line": line[:200]})
             elif rec.get("level") == "error":
                 tb = [x.strip() for x in str(rec.get("tb_tail") or "").splitlines() if x.strip().startswith("File ")]
                 found.append({"file": f.name, **{k: rec[k] for k in ("proc", "tag", "exc_type", "exc_msg", "message")

@@ -427,6 +427,28 @@ def test_a_rotated_crash_log_and_a_torn_line_count(tmp_path):
     assert {c["file"] for c in found} == {"crash.log.1"}
 
 
+@pytest.mark.parametrize("line, why", [
+    ("{}", "no crash tag"),                                                    # Codex R370 VM-I15
+    ('{"tag": "crash.thread", "level": null}', "no known level"),
+    ('{"tag": "crash.thread", "level": "erorr"}', "no known level"),
+    ('{"tag": "gateway.boot", "level": "info"}', "no crash tag"),            # not what the filter admits
+    ('{"tag": "crash.", "level": "error"}', "no crash tag"),
+    ('{"tag": 7, "level": "info"}', "no crash tag"),
+    ("[1, 2]", "not a JSON object"),
+])
+def test_a_record_the_verdict_cannot_classify_fails_the_run(tmp_path, line, why):
+    report = _passing_run(tmp_path, [json.dumps(SIGNAL), line])
+    assert [(c["file"], c["damaged"].split(" (")[0]) for c in report["crashes"]] == [("crash.log", why)]
+    assert nr.verdict(report) == "FAIL"
+
+
+def test_valid_records_below_error_pass(tmp_path):
+    browser = {"proc": "gateway", "tag": "browser.error.console", "level": "info", "msg": "x"}
+    report = _passing_run(tmp_path, [json.dumps(SIGNAL), json.dumps(browser),
+                                     json.dumps({**SIGNAL, "level": "warn"})])
+    assert report["crashes"] == [] and nr.verdict(report) == "PASS"
+
+
 class FileHost(FakeHost):
     """A FakeHost whose state lives in a file: the killed run and the
     ExecStopPost restore see the same LAN."""

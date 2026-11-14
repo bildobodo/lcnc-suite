@@ -2528,31 +2528,60 @@ def _self_restart():
 _shutdown_requested = False
 
 
+#: the hard deadline from an end on: os._exit(1) this long after it was armed
+SHUTDOWN_DEADLINE_S = 5.0
+_shutdown_deadline: Optional[threading.Timer] = None
+
+
+def _arm_shutdown_deadline() -> bool:
+    """Arm the hard deadline ONCE: a daemon timer that ends the process with
+    os._exit(1) after SHUTDOWN_DEADLINE_S — an orphan has no launcher
+    `_wait_or_kill`, and a self-SIGTERM needs a responsive event loop.
+
+    No I/O, never raises (Codex R370 VM-I14): both ends — the instance-ended
+    chain and every shutdown request — arm it right after their one-time
+    flag, BEFORE any trace or console line. A diagnostic that raises (a raw,
+    closed stderr) or blocks (a full pipe nobody reads, the trace sink's
+    error report on its way there) can then delay the process' end by the
+    deadline at most, never keep it alive. Not under the fake binding
+    (tests). Returns whether a deadline is armed."""
+    global _shutdown_deadline
+    if _shutdown_deadline is not None:
+        return True
+    if getattr(linuxcnc, "__lcnc_fake__", False):
+        return False
+    try:
+        deadline = threading.Timer(SHUTDOWN_DEADLINE_S, os._exit, [1])
+        deadline.daemon = True
+        deadline.start()
+    except Exception:  # noqa: BLE001 — no thread left: the chain still runs; its record names it
+        return False
+    _shutdown_deadline = deadline
+    return True
+
+
 def _request_process_shutdown(reason: str) -> None:
     """End this gateway process through the normal lifespan teardown.
 
     Signals the LAUNCHER (our parent) so the exit routes through its `_term`
     trap and LinuxCNC sees a clean DISPLAY exit; self-SIGTERM when there is
-    no launcher parent (standalone). Idempotent. A daemon timer is the hard
-    deadline: an orphan has no launcher `_wait_or_kill`, and self-SIGTERM
-    needs a responsive event loop — if teardown hangs, os._exit ends it.
-    Under the fake binding (tests) it only records the request.
+    no launcher parent (standalone). Idempotent. Under the fake binding
+    (tests) it only records the request.
 
     Once the flag is set every later call returns at once, so nothing after
-    it may stop this one: the record first, then the hard deadline (whatever
-    follows may fail or block — a console line into a pipe nobody reads),
-    and every console line through `_trace.console`, which never raises.
+    it may stop this one: the hard deadline FIRST (`_arm_shutdown_deadline`,
+    no I/O — Codex R370 VM-I14: a trace whose error report raised or blocked
+    used to stop the chain before it), then the record, every console line
+    through `_trace.console` (never raises), then the signal.
     """
     global _shutdown_requested
     if _shutdown_requested:
         return
     _shutdown_requested = True
-    _trace.emit("session.shutdown_requested", level="warn", reason=reason)
+    armed = _arm_shutdown_deadline()
     fake = getattr(linuxcnc, "__lcnc_fake__", False)
-    if not fake:
-        _deadline = threading.Timer(5.0, os._exit, [1])
-        _deadline.daemon = True
-        _deadline.start()
+    _trace.emit("session.shutdown_requested", level="warn", reason=reason,
+                deadline_s=SHUTDOWN_DEADLINE_S if armed else None)
     _trace.console(f"[SAFETY] shutdown requested: {reason}")
     if fake:
         return
@@ -2580,8 +2609,9 @@ def _on_instance_ended(where: str) -> None:
     LinuxCNC's Cleanup; a standalone gateway just exits).
 
     From the latch on, every later call returns at once — so nothing after
-    it may stop this one: the record, the HAL disconnect (a failure traced,
-    never raised), the shutdown request, and the console line LAST through
+    it may stop this one: the hard deadline FIRST (no I/O — Codex R370
+    VM-I14), then the record, the HAL disconnect (a failure traced, never
+    raised), the shutdown request, and the console line LAST through
     `_trace.console`. The 3a merge gate's install probe saw the old order
     break: the print came first, raised on the launcher's closed pipe, and
     the watch task died before the trace, the disconnect and the request."""
@@ -2592,6 +2622,7 @@ def _on_instance_ended(where: str) -> None:
         _instance_ended = True
         old, _link = _link, None
         _clear_session_caches()
+    _arm_shutdown_deadline()
     if old is not None:
         _trace.emit("lcnc.link_revoked", level="warn", seq=old.seq, reason="the bound instance ended")
     inst_pid, inst_start = _bound_instance if _bound_instance is not None else (None, None)

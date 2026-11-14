@@ -266,10 +266,25 @@ def emit(tag: str, level: str = "info", msg: str = "", **fields: Any) -> None:
         global _logger_failed
         if not _logger_failed:
             _logger_failed = True
-            print(
-                f"[TRACE] logger write failed (further failures silenced): {e}",
-                file=sys.stderr, flush=True,
-            )
+            try:
+                print(
+                    f"[TRACE] logger write failed (further failures silenced): {e}",
+                    file=sys.stderr, flush=True,
+                )
+            except Exception:  # noqa: BLE001
+                # the LAST fallback is best effort too (Codex R370 VM-I14): a
+                # raw, closed stderr made emit() raise here and stopped the
+                # shutdown chain that called it before its deadline
+                pass
+
+
+def _exc_msg(exc: BaseException) -> str:
+    """str(exc), or a placeholder when the exception's own __str__ raises —
+    a failure report must never raise in its caller's chain (VM-I14)."""
+    try:
+        return str(exc)[:500]
+    except Exception:  # noqa: BLE001
+        return "<str() of the exception failed>"
 
 
 def emit_exc(tag: str, exc: BaseException, level: str = "warn",
@@ -278,11 +293,12 @@ def emit_exc(tag: str, exc: BaseException, level: str = "warn",
 
     Captures exc_type and a truncated exc_msg. Use this instead of
     `except Exception: pass` everywhere that drop hides a real failure
-    mode. For parsing failures wanting line context, use emit_exc_tb."""
+    mode. For parsing failures wanting line context, use emit_exc_tb.
+    Never raises, like emit()."""
     emit(
         tag, level=level,
         exc_type=type(exc).__name__,
-        exc_msg=str(exc)[:500],
+        exc_msg=_exc_msg(exc),
         **fields,
     )
 
@@ -300,7 +316,7 @@ def emit_exc_tb(tag: str, exc: BaseException, level: str = "warn",
     emit(
         tag, level=level,
         exc_type=type(exc).__name__,
-        exc_msg=str(exc)[:500],
+        exc_msg=_exc_msg(exc),
         tb_tail=tb_tail,
         **fields,
     )

@@ -8,8 +8,11 @@ outside SIGTERM ended the gateway. These tests hold:
 
 - the shutdown chain runs to its end under a stdout that raises — on the RAW
   stream too (the chain does not lean on the process guard);
-- `_request_process_shutdown` arms its hard deadline before any console line
-  and signals with a stdout that raises;
+- `_request_process_shutdown` and `_on_instance_ended` arm the hard deadline
+  BEFORE any trace or console line and reach their signal with a stdout that
+  raises — and through the REAL emit with its sink failing and the console
+  raw and closed (it raised), or the console a full pipe (it blocked: only the
+  deadline ends that child) — Codex R370 VM-I14;
 - `lcnc_trace.ConsoleGuard` / `console()` never raise and trace the loss;
 - a process that installed the crash hooks survives prints into a pipe whose
   reader is gone (a real child process, a real EPIPE);
@@ -132,6 +135,9 @@ class TheShutdownRequestArmsItsDeadlineFirst(_Recording):
         super().setUp()
         self.addCleanup(setattr, gateway, "_shutdown_requested", gateway._shutdown_requested)
         gateway._shutdown_requested = False
+        p = mock.patch.object(gateway, "_shutdown_deadline", None, create=True)   # create: red by behaviour on an older head
+        p.start()
+        self.addCleanup(p.stop)
         self.order = []
         order = self.order
 
@@ -164,18 +170,180 @@ class TheShutdownRequestArmsItsDeadlineFirst(_Recording):
     def test_the_launcher_is_signalled_with_a_raising_stdout(self):
         self._request(launcher=True)
         kinds = [e[0] if e[0] != "emit" else e[1] for e in self.order]
-        self.assertEqual(kinds[0], "session.shutdown_requested")
-        self.assertEqual(kinds[1], "deadline")           # before any console line
+        self.assertEqual(kinds[0], "deadline")           # before the record and any console line (VM-I14)
+        self.assertEqual(kinds[1], "session.shutdown_requested")
         self.assertIn("console.lost", kinds)
-        self.assertLess(kinds.index("deadline"), kinds.index("console.lost"))
         self.assertEqual(self.order[-1][0], "kill")
-        self.assertEqual(self.order[1][1:], (5.0, os._exit))
+        self.assertEqual(self.order[0][1:], (5.0, os._exit))
 
     def test_a_standalone_gateway_signals_itself_with_a_raising_stdout(self):
         self._request(launcher=False)
         kinds = [e[0] if e[0] != "emit" else e[1] for e in self.order]
-        self.assertEqual(kinds[:2], ["session.shutdown_requested", "deadline"])
+        self.assertEqual(kinds[:2], ["deadline", "session.shutdown_requested"])
         self.assertEqual(self.order[-1][0], "raise")
+
+    def test_a_second_request_arms_no_second_deadline(self):
+        self._request(launcher=False)
+        gateway._shutdown_requested = False      # a later end path asking again
+        self._request(launcher=False)
+        self.assertEqual([e[0] for e in self.order].count("deadline"), 1)
+
+
+class _DiskFull:
+    """The trace file's sink with the disk full: every write raises ENOSPC."""
+
+    def write(self, s):
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    def flush(self):
+        pass
+
+
+def _failing_trace(test):
+    """The REAL emit over a real logging.Logger whose sink fails (Codex R370
+    VM-I14: a guard that books emit into a list never sees this path) — the
+    StreamHandler's error report then goes to sys.stderr."""
+    import logging
+    logger = logging.Logger("r370-failing-trace", level=logging.INFO)
+    logger.addHandler(logging.StreamHandler(_DiskFull()))
+    for p in (mock.patch.object(lcnc_trace, "_initialized", True), mock.patch.object(lcnc_trace, "_logger", logger),
+              mock.patch.object(lcnc_trace, "_logger_failed", False)):
+        p.start()
+        test.addCleanup(p.stop)
+
+
+class TheDeadlineComesBeforeAnyDiagnostic(unittest.TestCase):
+    """Codex R370 VM-I14, the in-process half: the trace sink fails AND both
+    console streams are raw and closed — logging's error report raised on
+    stderr, emit's own report raised again, and the request stood with its
+    flag set, no deadline and no signal. Both entry paths, the real emit."""
+
+    def setUp(self):
+        restore_after(self)
+        for name in ("_instance_ended", "_bound_instance", "_hal_disconnect", "_shutdown_requested"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        p = mock.patch.object(gateway, "_shutdown_deadline", None, create=True)   # create: red by behaviour on an older head
+        p.start()
+        self.addCleanup(p.stop)
+        connect_fake(self)
+        gateway._instance_ended = False
+        gateway._shutdown_requested = False
+        gateway._bound_instance = (424242, 1)
+        self.order = []
+        order = self.order
+        gateway._hal_disconnect = lambda: order.append("hal_disconnect")
+
+        class _Timer:
+            def __init__(self, interval, fn, args=None):
+                self.daemon = False
+
+            def start(self):
+                order.append("deadline")
+        _failing_trace(self)
+        closed_out, closed_err = io.StringIO(), io.StringIO()
+        closed_out.close()
+        closed_err.close()
+        for p in (mock.patch.object(gateway.linuxcnc, "__lcnc_fake__", False),
+                  mock.patch.object(gateway.threading, "Timer", _Timer),
+                  mock.patch.object(gateway, "_launcher_bind", {"mode": "standalone"}),
+                  mock.patch.object(gateway.os, "kill", lambda pid, sig: order.append("kill")),
+                  mock.patch.object(gateway.signal, "raise_signal", lambda sig: order.append("signal")),
+                  mock.patch.object(sys, "stdout", closed_out), mock.patch.object(sys, "stderr", closed_err)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_the_shutdown_request_reaches_deadline_and_signal(self):
+        gateway._request_process_shutdown("test: diagnostics lost")
+        self.assertEqual(self.order, ["deadline", "signal"])
+
+    def test_the_instance_end_reaches_deadline_disconnect_and_signal(self):
+        gateway._on_instance_ended("test: diagnostics lost")
+        self.assertEqual(self.order, ["deadline", "hal_disconnect", "signal"])
+        self.assertTrue(gateway._shutdown_requested)
+
+    def test_a_failure_report_whose_exception_cannot_be_printed_skips_nothing(self):
+        class _Unprintable(Exception):
+            def __str__(self):
+                raise RuntimeError("no text")
+
+        def _boom():
+            raise _Unprintable()
+        gateway._hal_disconnect = _boom
+        gateway._on_instance_ended("test: an unprintable failure")
+        self.assertEqual(self.order, ["deadline", "signal"])
+
+    def test_console_never_raises_with_both_sinks_lost(self):
+        lcnc_trace.console("a line nobody reads")     # raises nothing
+
+
+class ABlockedDiagnosticCannotOutliveTheDeadline(unittest.TestCase):
+    """Codex R370 VM-I14, the blocking half, in a child process: the trace
+    sink fails, stderr is the process guard over a FULL pipe nobody reads —
+    logging's error report blocks inside the first emit. No guard against
+    exceptions can end a blocked write; the deadline armed BEFORE it does:
+    the child ends by itself with os._exit(1), the real timer, a short
+    deadline. Both entry paths; no signal and no kill leave the child."""
+
+    CHILD = textwrap.dedent("""
+        import errno, io, logging, os, sys
+        from pathlib import Path
+        import fake_linuxcnc
+        fake_linuxcnc.install()
+        import gateway, lcnc_trace
+        from link_fixture import connect_fake
+        out, entry = Path(sys.argv[1]), sys.argv[2]
+        class DiskFull:
+            def write(self, s): raise OSError(errno.ENOSPC, "No space left on device")
+            def flush(self): pass
+        logger = logging.Logger("r370-blocked", level=logging.INFO)
+        logger.addHandler(logging.StreamHandler(DiskFull()))
+        lcnc_trace._initialized, lcnc_trace._logger, lcnc_trace._logger_failed = True, logger, False
+        r, w = os.pipe()                       # the reader end stays open and unread
+        os.set_blocking(w, False)
+        try:
+            while True:
+                os.write(w, b"x" * 4096)
+        except BlockingIOError:
+            pass
+        os.set_blocking(w, True)
+        sys.stderr = lcnc_trace.ConsoleGuard(io.TextIOWrapper(os.fdopen(w, "wb", buffering=0), write_through=True), "stderr")
+        sys.stdout = io.StringIO()
+        gateway.SHUTDOWN_DEADLINE_S = 0.3
+        gateway.linuxcnc.__lcnc_fake__ = False
+        gateway._launcher_bind = {"mode": "standalone"}
+        gateway.os.kill = lambda *a: None
+        gateway.signal.raise_signal = lambda *a: None
+        (out / "entered").write_text(entry)
+        if entry == "request":
+            gateway._request_process_shutdown("test: blocked diagnostics")
+        else:
+            class _T:
+                def addCleanup(self, *a, **k): pass
+            connect_fake(_T())
+            gateway._bound_instance = (424242, 1)
+            gateway._on_instance_ended("test: blocked diagnostics")
+        (out / "returned").write_text("the chain returned: nothing blocked")
+        os._exit(0)
+    """)
+
+    def _run(self, entry):
+        with tempfile.TemporaryDirectory() as d:
+            try:
+                r = subprocess.run([sys.executable, "-c", self.CHILD, d, entry], cwd=HERE, timeout=20,
+                                   capture_output=True, env={**os.environ, "LCNC_LOG_DIR": d})
+            except subprocess.TimeoutExpired:
+                self.fail(f"{entry}: the child outlived its deadline")
+            entered = (Path(d) / "entered").exists()
+            returned = (Path(d) / "returned").exists()
+        self.assertTrue(entered, r.stderr.decode(errors="replace")[-600:])
+        self.assertFalse(returned, f"{entry}: the diagnostics did not block — the case proves nothing")
+        self.assertEqual(r.returncode, 1, r.stderr.decode(errors="replace")[-600:])
+
+    def test_the_shutdown_request(self):
+        self._run("request")
+
+    def test_the_instance_end(self):
+        self._run("instance")
 
 
 class TheConsoleGuard(_Recording):

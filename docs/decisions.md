@@ -11433,6 +11433,25 @@ a console line inside its receive path lands in the `except` that forces the
 pins LOW. The guard answers the class (any print, a library's too); the
 chain does not lean on it (a rebound `sys.stdout` drops a guard).
 
+**Corrected after Codex R370 (VM-I14, VM-I15).** From an end's one-time flag
+on, the 5 s hard deadline is armed FIRST — `_arm_shutdown_deadline`, no I/O,
+called by `_on_instance_ended` right after its latch and by
+`_request_process_shutdown` right after its flag — and only then come the
+records, the HAL disconnect, the console line and the signal. `emit`,
+`emit_exc` and `console` never raise, their last fallback included. Codex
+showed the trace itself could stop the chain: with the trace file's sink
+failing (ENOSPC), logging's error report goes to `sys.stderr`; on a raw,
+closed stderr it raised, `emit`'s own one-shot report raised again, and the
+request stood with its flag set, no deadline and no signal; on a FULL pipe
+behind the guard it blocked — a guard against exceptions cannot end a
+blocked write, only a deadline armed before it can (the child-process guard
+ends by itself through `os._exit(1)`). The crash.log reader classifies every
+line by the fields its verdict rests on — a tag the crash filter admits
+(`crash.`, `browser.error.`) and a known level (debug, info, warn, error);
+anything else is damaged evidence and fails the run (`{}`, a null level and
+"erorr" each read as clean before). Over the 85 kept run folders the stricter
+reader finds no damaged record (27 with the BrokenPipe error, 58 clean).
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line
