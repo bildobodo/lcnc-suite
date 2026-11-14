@@ -463,6 +463,32 @@ def test_a_crash_check_that_raises_still_writes_a_failing_report(tmp_path, monke
     assert written["crashes"] == report["crashes"] and nr.verdict(written) == "FAIL"
 
 
+@pytest.mark.parametrize("odd", [[], {}, 7, None, ["x", {"y": 1}]])
+def test_an_error_record_of_any_field_type_reaches_the_gate_s_reason(tmp_path, odd):
+    # Fable before R372: the rows' CONSUMERS — an error-level record copies
+    # proc / exc_type / exc_msg / message as they are; whatever their JSON
+    # type, the report is written, judges FAIL, and the merge gate's
+    # gate_status names it without raising
+    from test_support import install_cases as ic
+    rec = {"tag": "crash.thread", "level": "error", "proc": odd, "exc_type": odd, "exc_msg": odd,
+           "message": odd, "tb_tail": odd}
+    report = _passing_run(tmp_path, [json.dumps(rec)])
+    assert len(report["crashes"]) == 1 and nr.verdict(report) == "FAIL"
+    written = json.loads((tmp_path / "run/report.json").read_text())
+    assert written["crashes"] == report["crashes"]
+    status, why = ic.gate_status({**written, "verdict": nr.verdict(written)}, {"outcome": "complete"})
+    assert status == "FAIL" and any("crash.log: 1 error or damaged record" in w for w in why), why
+
+
+def test_a_raising_crash_check_reaches_the_gate_s_reason(tmp_path, monkeypatch):
+    from test_support import install_cases as ic
+    monkeypatch.setattr(nr, "run_crashes", lambda log_dir: (_ for _ in ()).throw(UnicodeDecodeError(
+        "utf-8", b"\xff", 0, 1, "invalid start byte")))
+    report = _passing_run(tmp_path, [json.dumps(SIGNAL)])
+    status, why = ic.gate_status({**report, "verdict": nr.verdict(report)}, {"outcome": "complete"})
+    assert status == "FAIL" and any("damaged (the crash check raised UnicodeDecodeError" in w for w in why), why
+
+
 def test_valid_records_below_error_pass(tmp_path):
     browser = {"proc": "gateway", "tag": "browser.error.console", "level": "info", "msg": "x"}
     report = _passing_run(tmp_path, [json.dumps(SIGNAL), json.dumps(browser),

@@ -16,6 +16,8 @@ outside SIGTERM ended the gateway. These tests hold:
 - a deadline that cannot be armed (no thread left) ends the process at once,
   os._exit(1) with no output, at every decided end — in process and in the
   blocked child (Codex R371 VM-I14);
+- nothing under `_link_lock` writes (the instance end arms only once it
+  holds the lock: a holder blocked in a diagnostic would keep it from there);
 - `lcnc_trace.ConsoleGuard` / `console()` never raise and trace the loss;
 - a process that installed the crash hooks survives prints into a pipe whose
   reader is gone (a real child process, a real EPIPE);
@@ -386,6 +388,48 @@ class EveryEndArmsTheDeadlineBeforeItsFirstRecord(unittest.TestCase):
                 prints = [c.lineno for c in ast.walk(node) if isinstance(c, ast.Call)
                           and getattr(c.func, "id", "") == "print"]
                 self.assertEqual(prints, [], "a bare print beside _self_restart")
+
+
+class NothingUnderTheLinkLockWrites(unittest.TestCase):
+    """The instance end arms its deadline only once it holds _link_lock
+    (Fable before R372): a holder blocked in a diagnostic would keep the end
+    from its arm. Every body under the lock calls only what is known to do
+    no I/O — a new call there needs its review, and this list its entry."""
+
+    #: the calls a _link_lock body may make (each: reference assignments only)
+    ALLOWED = {"Link", "_clear_session_caches", "_arm_shutdown_deadline", "store"}
+    #: what _clear_session_caches itself calls
+    CLEAR_CALLS = {"_viewer_init_cache.clear", "_status_runtime.invalidate_var_file_path"}
+
+    def setUp(self):
+        self.tree = ast.parse((HERE / "gateway.py").read_text(), "gateway.py")
+
+    def test_every_body_under_the_lock_calls_only_the_known_steps(self):
+        bodies = [n for n in ast.walk(self.tree) if isinstance(n, (ast.With, ast.AsyncWith))
+                  and any(ast.unparse(i.context_expr) == "_link_lock" for i in n.items)]
+        self.assertGreaterEqual(len(bodies), 6, "fewer _link_lock bodies than known — the scan lost them")
+        for w in bodies:
+            calls = {ast.unparse(c.func) for b in w.body for c in ast.walk(b) if isinstance(c, ast.Call)}
+            self.assertLessEqual(calls, self.ALLOWED, f"line {w.lineno}: a call under _link_lock")
+
+    def test_the_cache_clear_does_no_io(self):
+        fn = next(n for n in ast.walk(self.tree) if isinstance(n, ast.FunctionDef) and n.name == "_clear_session_caches")
+        calls = {ast.unparse(c.func) for c in ast.walk(fn) if isinstance(c, ast.Call)}
+        self.assertLessEqual(calls, self.CLEAR_CALLS, calls)
+
+    def test_every_store_passed_under_the_lock_only_assigns(self):
+        stores = [n.args[2] for n in ast.walk(self.tree) if isinstance(n, ast.Call)
+                  and getattr(n.func, "id", "") == "_owned_store" and len(n.args) == 3]
+        self.assertGreaterEqual(len(stores), 9, "fewer _owned_store calls than known")
+        funcs = {f.name: f for f in ast.walk(self.tree) if isinstance(f, ast.FunctionDef)}
+        for arg in stores:
+            self.assertIsInstance(arg, ast.Name)
+            # the nearest def of that name is a nested put(): only assignments,
+            # a dict pop / len for the viewer cache's bound
+            for put in [f for f in ast.walk(self.tree) if isinstance(f, ast.FunctionDef) and f.name == arg.id]:
+                calls = {ast.unparse(c.func) for c in ast.walk(put) if isinstance(c, ast.Call)}
+                self.assertLessEqual(calls, {"_viewer_init_cache.pop", "len", "next", "iter"}, (put.lineno, calls))
+        self.assertIn("_owned_store", funcs)
 
 
 class _Exited(BaseException):
