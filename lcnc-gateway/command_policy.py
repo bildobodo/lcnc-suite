@@ -1425,10 +1425,16 @@ def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimi
     if not isinstance(raw, dict):
         raise ValueError(f"{cmd}: {field} must be a mapping")
     for key, value in raw.items():
-        try:
-            num = int(key)
-        except (TypeError, ValueError):
-            raise ValueError(f"{cmd}: {key!r} is not a var number")
+        # ONE spelling per number (Codex R367 VM-I11 rest A): `int()` takes
+        # "03054", " 3054", "+3054", "3_054" and other scripts' digits — the
+        # check judged #3054 while the writer wrote the key as sent (a
+        # 274-byte chunk after the first parameter went out), and two
+        # spellings of one number passed side by side. Digits 0-9, no
+        # leading zero: the key IS the number's decimal form.
+        if not (key.isascii() and key.isdigit() and key == str(int(key))):   # (a JSON key is a str)
+            raise ValueError(f"{cmd}: {field} key {key!r} is not a parameter number "
+                             f"— digits only, no leading zero")
+        num = int(key)
         for dlo, dhi in WRITABLE_VAR_DENY_RANGES:
             if dlo <= num <= dhi:
                 raise ValueError(
@@ -1443,7 +1449,7 @@ def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimi
         # each value becomes ONE word `#n=<v>` of an MDI chunk; a word longer
         # than a line no chunking can carry (Codex R366 VM-I11) — refused here,
         # before any write
-        word = f"#{num}={float(number or 0):.6f}"   # the form _apply_probe_vars_detail writes
+        word = f"#{num}={float(number or 0):.6f}"   # the form _apply_probe_vars_detail writes (the key IS str(num))
         if len(word) > MDI_MAX_BYTES:
             raise ValueError(f"{cmd}: {field}.#{num} is too long for one MDI word ({len(word)} characters)")
 

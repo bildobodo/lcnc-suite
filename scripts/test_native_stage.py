@@ -5329,3 +5329,161 @@ def test_a_positioning_move_too_short_for_a_busy_frame_ends_by_its_arrival(monke
     C.status = {**C.status, "joint_pos": [-0.08, -0.08, 0.0]}
     nr._to(C(), -0.08, -0.08, 0.0)
     assert calls == []
+
+
+# ── The home/step live driver's target (Codex R367 VM-I13) ──────────────
+
+def _group_copy(tmp_path, name="lcnc_suite_sim_3axis_xyz.ini"):
+    """An installed copy of a shipped profile (as the installer renders it,
+    its hallib and tool setter beside it) and its home-group fixture."""
+    from install_examples import render_ini
+    sim = REPO / "examples/sim_config"
+    template = (sim / name).read_text()
+    base = tmp_path / name
+    base.write_text(render_ini(template, template, REPO))
+    for d in ("hallib", "sim_toolsetter"):
+        shutil.copytree(sim / d, tmp_path / d)
+    group = tmp_path / name.replace(".ini", lt.GROUP_SUFFIX)
+    group.write_text(lt.group_fixture_text(base.read_text()))
+    return base, group
+
+
+def _suite_which(n):
+    suite = {"hal_reader.py": REPO / "lcnc-gateway/hal_reader.py", "hal_watchdog.py": REPO / "lcnc-gateway/hal_watchdog.py",
+             "compensation.py": REPO / "subroutines/surfacemap/compensation.py"}
+    return str(suite[n]) if n in suite else f"/usr/bin/{n}"
+
+
+def test_the_home_group_fixture_is_its_base_copy_with_every_home_sequence_minus_one(tmp_path):
+    base, group = _group_copy(tmp_path)
+    sim = str(REPO / "examples/sim_config")
+    lt.validate_group_target(str(group), str(group), sim, _suite_which)
+    assert group.read_text().count("HOME_SEQUENCE = -1") >= 3
+    with pytest.raises(ValueError, match="not the one LinuxCNC runs"):
+        lt.validate_group_target(str(group), str(base), sim, _suite_which)
+    with pytest.raises(ValueError, match="no home-group fixture"):
+        lt.validate_group_target(str(base), str(base), sim, _suite_which)
+    group.write_text(group.read_text().replace("MAX_LINEAR_VELOCITY = 100", "MAX_LINEAR_VELOCITY = 500"))
+    with pytest.raises(ValueError, match="beyond HOME_SEQUENCE"):
+        lt.validate_group_target(str(group), str(group), sim, _suite_which)
+    group.write_text(lt.group_fixture_text(base.read_text()))
+    base.write_text(base.read_text().replace("MAX_LINEAR_VELOCITY = 100", "MAX_LINEAR_VELOCITY = 500"))
+    group.write_text(lt.group_fixture_text(base.read_text()))
+    with pytest.raises(ValueError, match="differs"):      # the base itself must be the shipped copy
+        lt.validate_group_target(str(group), str(group), sim, _suite_which)
+
+
+def test_the_gateway_on_the_port_must_serve_the_running_ini(tmp_path):
+    ini = str(tmp_path / "sim.ini")
+    procs = {1: ([b"python3", b"-m", b"uvicorn", b"gateway:app"], [b"INI_FILE_NAME=" + ini.encode()]),
+             2: ([b"python3", b"-m", b"http.server"], [b"INI_FILE_NAME=" + ini.encode()]),
+             3: ([b"python3", b"-m", b"uvicorn", b"gateway:app"], [b"INI_FILE_NAME=/home/x/real-machine.ini"]),
+             4: ([b"python3", b"-m", b"uvicorn", b"gateway:app"], [b"HOME=/home/x"])}
+
+    def read(pid, what):
+        return procs[pid][0] if what == "cmdline" else procs[pid][1]
+    assert lt.gateway_target_problems(8000, ini, [1], read) == []
+    assert "cannot be told" in lt.gateway_target_problems(8000, ini, None, read)[0]
+    assert "no process listens" in lt.gateway_target_problems(8000, ini, [], read)[0]
+    assert "is no gateway" in lt.gateway_target_problems(8000, ini, [2], read)[0]
+    assert "real-machine.ini" in lt.gateway_target_problems(8000, ini, [3], read)[0]
+    assert "no INI" in lt.gateway_target_problems(8000, ini, [4], read)[0]
+    assert lt.gateway_target_problems(8000, ini, [1, 3], read), "every listener must be this gateway"
+    assert lt.listening_pids(8000, run=lambda argv: 'LISTEN 0 2048 0.0.0.0:8000 0.0.0.0:* users:(("python3",pid=42,fd=10))') == [42]
+
+
+def _drive_home_step_main(tmp_path, ini_text, *, running, as_group=False, target_ok=False):
+    """The live driver's REAL entry (main) with every native and network edge
+    fake (Codex R367's probe as a guard): what reached the wire before power-on."""
+    import importlib.util
+    import types
+    from unittest.mock import patch
+    events = []
+    stat = types.SimpleNamespace(task_state=1, ini_filename=running, poll=lambda: None)
+    native = types.ModuleType("linuxcnc")
+    native.stat = lambda: stat
+    native.STATE_ESTOP, native.STATE_ESTOP_RESET, native.STATE_ON = 1, 2, 4
+
+    class ReachedPowerOn(Exception):
+        pass
+
+    class Task:
+        def cancel(self):
+            pass
+
+    class Loop:
+        def create_task(self, coro):
+            coro.close()
+            return Task()
+    with patch.dict(sys.modules, {"linuxcnc": native}):
+        spec = importlib.util.spec_from_file_location("home_step_live_check_t", HERE / "home_step_live_check.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    holder = {}
+
+    class Gateway(module.Gateway):
+        def __init__(self, url):
+            super().__init__(url)
+            self.frames = 3
+            holder["gw"] = self
+
+    class Socket:
+        async def send(self, raw):
+            d = json.loads(raw)
+            events.append(d.get("cmd"))
+            if d["cmd"] == "estop_reset":
+                stat.task_state = native.STATE_ESTOP_RESET
+            if d["cmd"] == "machine_on":
+                raise ReachedPowerOn
+            if d.get("req_id"):
+                holder["gw"].replies[d["req_id"]] = {"ok": True}
+
+        async def close(self):
+            pass
+
+    async def connect(url, **kw):
+        events.append(f"connect {url}")
+        return Socket()
+    ini = tmp_path / "target.ini"
+    ini.write_text(ini_text)
+    patches = [patch.object(module, "Gateway", Gateway), patch.object(module.websockets, "connect", connect),
+               patch.object(module.asyncio, "get_event_loop", lambda: Loop())]
+    if target_ok:
+        patches += [patch.object(module, "validate_sim_target", lambda *a, **k: None),
+                    patch.object(module, "listening_pids", lambda port: [7]),
+                    patch.object(module, "gateway_target_problems", lambda *a, **k: [])]
+    import contextlib
+    with contextlib.ExitStack() as stack:
+        for pt in patches:
+            stack.enter_context(pt)
+        coro = module.main(str(ini), as_group)
+        try:
+            coro.send(None)
+        except (ReachedPowerOn, StopIteration):
+            pass
+        finally:
+            coro.close()
+    return events, module.RESULTS
+
+
+def test_the_home_step_driver_refuses_an_unproven_target_before_anything_acts(tmp_path):
+    for label, text, running in (
+            ("not a simulator, no port", "[DISPLAY]\n[HAL]\nHALFILE = production-hardware.hal\n", "/other/machine.ini"),
+            ("its own port, not the running INI", "[DISPLAY]\nWEBUI_PORT = 4188\n", "/other/machine.ini"),
+            ("the running INI, but no shipped simulator", "[DISPLAY]\nWEBUI_PORT = 4188\n", None)):
+        events, results = _drive_home_step_main(tmp_path, text, running=running or str(tmp_path / "target.ini"))
+        assert events == [], (label, events)                 # no connect, no arm, no reset, no power
+        assert results and results[0][:2] == ("target", "FAIL"), (label, results)
+
+
+def test_the_home_step_driver_refuses_a_missing_port_instead_of_8000(tmp_path):
+    events, results = _drive_home_step_main(tmp_path, "[DISPLAY]\n", running=str(tmp_path / "target.ini"),
+                                            target_ok=True)
+    assert events == [] and "no WEBUI_PORT" in results[0][2], (events, results)
+
+
+def test_the_home_step_driver_acts_on_a_proven_target(tmp_path):
+    events, results = _drive_home_step_main(tmp_path, "[DISPLAY]\nWEBUI_PORT = 4188\n",
+                                            running=str(tmp_path / "target.ini"), target_ok=True)
+    assert results[0][:2] == ("target", "PASS"), results
+    assert events[0] == "connect ws://127.0.0.1:4188/ws" and "arm" in events, events

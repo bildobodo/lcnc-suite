@@ -11429,7 +11429,14 @@ name as the reply from about 1e22). The confirmation: a timeout proves no
 refusal — no repeat, no second press (Codex's correction). The program path
 is the sibling (Fable, held against every fixed buffer the binding copies):
 `program_open` sends PLAN_CLOSE before refusing a path past 254 bytes — the
-loaded program closed, nothing opened; nested folders reach it.
+loaded program closed, nothing opened; nested folders reach it. R367 (Codex):
+a parameter key is the number's ONE decimal spelling (the check judged
+`int(key)`, the writer wrote the key as sent), every final chunk is judged
+before the mode switch, and a touch-off's line is judged with the Z eoffset
+known then — "a few digits" was no bound at the edge. The home/step live
+driver proves its target before anything acts (VM-I13): a checked-in tool
+that arms and moves is admitted like the read-back check, never by a
+comment in its header.
 
 ## 2026-11-13 — The payload contract (package 3a, SYS-CONN.S5 + #27; Codex R363–R365, operator Q363-1 / Q363-4)
 

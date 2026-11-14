@@ -5464,7 +5464,8 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
        it (live run 5, 2026-11-05). Nothing taken, no file write.
 
     {"mdi_set": every chunk taken, "applied_keys": the keys taken,
-    "persisted": the file holds exactly those, "file_error": why not}. A file
+    "persisted": the file holds exactly those, "file_error": why not,
+    "refused": a final chunk LinuxCNC would not take — nothing written}. A file
     failure after the take-over leaves the take-over as it is ("applied,
     persistence not confirmed"). A taken #3116=0 makes the skip flag known
     clear."""
@@ -5476,21 +5477,30 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
     mdi_ok = False
     link().stat.poll()
     if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
+        chunks: List[tuple] = []
+        current, booked = "", {}
+        for k, v in vals.items():
+            item = f"#{int(k)}={v:.6f}"   # the number's one spelling — the check's (Codex R367)
+            if current and len(current) + 1 + len(item) > 250:
+                chunks.append((current, booked))
+                current, booked = item, {int(k): v}
+            else:
+                current = f"{current} {item}".strip() if current else item
+                booked[int(k)] = v
+        if current:
+            chunks.append((current, booked))
+        # Every FINAL chunk judged before the mode switch, any booking and
+        # the first write (Codex R367 VM-I11 rest A): one chunk LinuxCNC
+        # would refuse refuses them all — never a first chunk written and a
+        # later one refused.
+        refused = next((w for w in (mdi_line_refusal(c) for c, _b in chunks) if w), None)
+        if refused:
+            _trace.emit("probe.set_vars_refused", level="warn", reason=refused)
+            return {"mdi_set": False, "applied_keys": [], "persisted": False, "file_error": None,
+                    "refused": refused}
         _ts_ensure()
         inflight: Optional[Dict[int, Optional[float]]] = None
         try:
-            chunks: List[tuple] = []
-            current, booked = "", {}
-            for k, v in vals.items():
-                item = f"#{k}={v:.6f}"
-                if current and len(current) + 1 + len(item) > 250:
-                    chunks.append((current, booked))
-                    current, booked = item, {int(k): v}
-                else:
-                    current = f"{current} {item}".strip() if current else item
-                    booked[int(k)] = v
-            if current:
-                chunks.append((current, booked))
             # Not running by a current read at each write, as by the poll
             # above (Codex R217 — the executor queue lies between them).
             await set_mode(linuxcnc.MODE_MDI, admit=admit)
@@ -5538,7 +5548,8 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
         _skip_flag_unknown = False
     _trace.emit("probe.set_vars_result", mdi_set=mdi_ok, applied=sorted(applied), persisted=persisted,
                 file_error=file_error)
-    return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error}
+    return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error,
+            "refused": None}
 
 
 def _ts_booking_for(client) -> Optional[Dict[str, Any]]:
@@ -7083,13 +7094,21 @@ async def _cmds_work_offsets(cmd: str, msg: Dict[str, Any], armed: bool,
                         reason=reason, kins_type=pstate.kins_type,
                         g5x_index=pstate.g5x_index)
             return {"ok": False, "error": reason}
-        # the line the route writes, judged before the mode switch (Codex R366
+        # The line the route writes, judged before the mode switch (Codex R366
         # VM-I11): the remap call (plane) or G10 L20 with the widest fixture
-        # word; the Z eoffset added later moves a value by a few digits at
-        # most — the last write's own check stays behind it
+        # word — and Z WITH the eoffset known now (Codex R367 rest B: −1 made
+        # a 254-byte line 255; an undelivered value is unknown, refused here
+        # as at the write). The write re-reads the eoffset; a value changed in
+        # between is the named boundary, caught by the last write's check.
+        _known = dict(values)
+        if route != "plane" and "Z" in _known:
+            _z_now = _reader_get("z_eoffset")
+            if _z_now is None:
+                return {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"}
+            _known["Z"] = _known["Z"] + finite_float(_z_now)
         _prospect = (f"o<twp_touchoff> call [7] [{values.get('X', 0.0):.6f}] [{values.get('Y', 0.0):.6f}] "
                      f"[{values.get('Z', 0.0):.6f}]" if route == "plane"
-                     else "G10 L20 P9 " + " ".join(f"{l}{v:.6f}" for l, v in values.items()))
+                     else "G10 L20 P9 " + " ".join(f"{l}{v:.6f}" for l, v in _known.items()))
         why = mdi_line_refusal(_prospect)
         if why:
             return {"ok": False, "error": f"touchoff: {why}"}

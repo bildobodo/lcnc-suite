@@ -806,13 +806,18 @@ named exception, an older page's `mdi` with `vars` included (R336).
   (no NUL, valid UTF-8, ≤ `MDI_MAX_BYTES` 254; never cut, never cleaned, no
   ASCII rule) judges, before the first write (the mode switch, a synch, the
   skip-flag clear): `mdi.text` (spec `MdiText`), every parameter word
-  `#n=<v>` of a `vars` / `probe_vars` map (the chunker packs words to 250, a
-  word alone is its own chunk), the `G10 L2` of `set_wcs`, a touch-off's line
-  by its route, the call of `run_macro` (`macro_files.MAX_LINE`, the same
-  number) and of `probe_run`, `auto_run`'s entry rapid, `set_g30`'s `#518x=`
-  line. `_cmd_blocking` refuses such a line itself, nothing written — the last
-  guard behind every line the gateway builds; a touch-off's line with the Z
-  eoffset added is judged only there (after the mode switch). The other MDI
+  `#n=<v>` of a `vars` / `probe_vars` / `sets` map — a key is the number's
+  ONE decimal spelling (digits, no leading zero: `int()` took "000…3054",
+  "+3054", "3_054" and other scripts' digits, so the check judged a word the
+  writer did not write, R367 rest A) — and every FINAL chunk of them, before
+  the mode switch and any booking (one chunk refused refuses all), the `G10
+  L2` of `set_wcs`, a touch-off's line by its route WITH the Z eoffset known
+  then (an undelivered one refuses there; R367 rest B), the call of
+  `run_macro` (`macro_files.MAX_LINE`, the same number) and of `probe_run`,
+  `auto_run`'s entry rapid, `set_g30`'s `#518x=` line. `_cmd_blocking`
+  refuses such a line itself, nothing written — the last guard behind every
+  line the gateway builds; an eoffset that changes between the check and the
+  touch-off's write is caught only there (the named boundary). The other MDI
   writes are constant forms or gateway-derived numbers (the start guard's
   `#3116=0`, `T<n> M6` / `G43 H<n>` with n ≤ 99999, `G69`, `M530 P0 Q2`,
   `G54`, the stamp rows, the → Zero plan, the INI's kins M-code). The

@@ -35,6 +35,15 @@ machine's shape — a copy of a profile):
   group-all   Home All homes every joint (the one way, as before)
   group-unhome Unhome per axis stays open (no group rule): one joint unhomed
 
+Before any connection, arm or controller command (Codex R367 VM-I13) the
+target is proven, else the check refuses with the reason:
+  target      the requested INI is the one LinuxCNC runs and a shipped
+              simulator's installed copy (test_support/live_target.py, the
+              read-back check's contract) — or, with --group, exactly the
+              home-group fixture of such a copy; the INI names WEBUI_PORT (no
+              default port); the process listening there is a gateway whose
+              environment names that running INI.
+
 Usage: home_step_live_check.py <ini> [--group]  (the gateway on 127.0.0.1:WEBUI_PORT)
 """
 import asyncio
@@ -47,8 +56,33 @@ import linuxcnc
 import msgspec.msgpack
 import websockets
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # scripts/: the shared target check
+from test_support.live_target import (  # noqa: E402 — the read-back check's contract (Codex R367 VM-I13)
+    gateway_target_problems, listening_pids, validate_group_target, validate_sim_target)
+
 RESULTS = []
-s = linuxcnc.stat()
+s = None   # the status channel, opened in main() — checked against the target before anything acts
+
+
+def target_refusal(ini, as_group, pids_of=listening_pids):
+    """Why this run may not act on its target, or None (VM-I13): the native
+    channel's running INI is the requested one and a shipped simulator's
+    copy (or, --group, the home-group fixture of one), WEBUI_PORT is named,
+    and the gateway listening there serves that INI."""
+    try:
+        s.poll()
+        running = s.ini_filename
+    except Exception as e:  # noqa: BLE001 — no running LinuxCNC is a refusal, named
+        return f"no running LinuxCNC: {e}"
+    try:
+        (validate_group_target if as_group else validate_sim_target)(ini, running)
+    except ValueError as e:
+        return str(e)
+    port = ini_value(ini, "DISPLAY", "WEBUI_PORT")
+    if not port:
+        return "the INI names no WEBUI_PORT — no default port"
+    problems = gateway_target_problems(int(port), running, pids_of(int(port)))
+    return problems[0] if problems else None
 
 
 def row(name, ok, detail=""):
@@ -315,7 +349,16 @@ async def group(gw):
 
 
 async def main(ini, as_group):
-    port = int(ini_value(ini, "DISPLAY", "WEBUI_PORT") or 8000)
+    global s
+    s = linuxcnc.stat()
+    why = target_refusal(ini, as_group)
+    if why:
+        # before connecting, arming or resetting anything
+        row("target", False, why)
+        print("RESULT: FAIL (target refused)", flush=True)
+        return 1
+    row("target", True, f"{os.path.basename(s.ini_filename)}{' (home-group fixture)' if as_group else ''}")
+    port = int(ini_value(ini, "DISPLAY", "WEBUI_PORT"))
     token = ini_value(ini, "DISPLAY", "WEBUI_TOKEN") or ""
     url = f"ws://127.0.0.1:{port}/ws" + (f"?token={token}" if token else "")
     async with Gateway(url) as gw:
