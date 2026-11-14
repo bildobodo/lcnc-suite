@@ -361,7 +361,15 @@ def contract_problems(sources=SOURCES, schema=None) -> list[str]:
                           "_cmds_motion_and_overrides", "_cmds_files_and_probing", "_cmds_work_offsets",
                           "_command_feature_refusal") if n in scan.defs]
     for g in groups:
-        for cmd, reads in scan.branches(scan.fn(g), "msg", False, g).items():
+        branches = scan.branches(scan.fn(g), "msg", False, g)
+        if g != "_command_feature_refusal":
+            # every command a handler branch handles has its schema entry —
+            # without one the dispatch refuses it as unknown (R366: two
+            # read-only queries were dead that way)
+            for cmd in branches:
+                if isinstance(cmd, str) and cmd not in schema:
+                    out.append(f"{g}[{cmd}]: handled, but COMMAND_SCHEMA has no entry — the dispatch refuses it")
+        for cmd, reads in branches.items():
             for field, with_default in reads:
                 if field in META:
                     continue
