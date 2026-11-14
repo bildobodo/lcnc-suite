@@ -1,0 +1,26 @@
+FAIL target       the requested INI is not the one LinuxCNC runs
+RESULT: FAIL (target refused)
+FAIL target       the requested INI is not the one LinuxCNC runs
+RESULT: FAIL (target refused)
+[
+  {
+    "case": "not_a_sim_and_no_port",
+    "running_ini": "/different/running/machine.ini",
+    "events": [
+      {
+        "native_stat_constructed": true
+      }
+    ],
+    "refused_before_writes": true
+  },
+  {
+    "case": "not_the_running_ini",
+    "running_ini": "/different/running/machine.ini",
+    "events": [
+      {
+        "native_stat_constructed": true
+      }
+    ],
+    "refused_before_writes": true
+  }
+]

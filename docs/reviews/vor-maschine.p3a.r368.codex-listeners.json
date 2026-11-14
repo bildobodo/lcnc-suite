@@ -1,0 +1,29 @@
+[
+  {
+    "case": "unknown_alone",
+    "ss": "LISTEN 0 2048 127.0.0.1:4188 0.0.0.0:*\n",
+    "pids": [],
+    "problems": [
+      "no process listens on port 4188"
+    ],
+    "driver_connects_to": "ws://127.0.0.1:4188/ws"
+  },
+  {
+    "case": "known_on_loopback",
+    "ss": "LISTEN 0 2048 127.0.0.1:4188 0.0.0.0:* users:((\"python3\",pid=77,fd=9))\n",
+    "pids": [
+      77
+    ],
+    "problems": [],
+    "driver_connects_to": "ws://127.0.0.1:4188/ws"
+  },
+  {
+    "case": "unknown_loopback_beside_known_gateway",
+    "ss": "LISTEN 0 2048 127.0.0.2:4188 0.0.0.0:* users:((\"python3\",pid=77,fd=9))\nLISTEN 0 2048 127.0.0.1:4188 0.0.0.0:*\n",
+    "pids": [
+      77
+    ],
+    "problems": [],
+    "driver_connects_to": "ws://127.0.0.1:4188/ws"
+  }
+]

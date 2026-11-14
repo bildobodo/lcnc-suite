@@ -1,0 +1,15 @@
+..F                                                                      [100%]
+=================================== FAILURES ===================================
+_______ test_unknown_loopback_listener_beside_a_known_gateway_is_refused _______
+
+    def test_unknown_loopback_listener_beside_a_known_gateway_is_refused():
+>       assert check("unknown_loopback_beside_known_gateway", KNOWN + UNKNOWN), \
+            "The known process on 127.0.0.2 does not prove the listener on 127.0.0.1."
+E       AssertionError: The known process on 127.0.0.2 does not prove the listener on 127.0.0.1.
+E       assert []
+E        +  where [] = check('unknown_loopback_beside_known_gateway', ('LISTEN 0 2048 127.0.0.2:4188 0.0.0.0:* users:(("python3",pid=77,fd=9))\n' + 'LISTEN 0 2048 127.0.0.1:4188 0.0.0.0:*\n'))
+
+scripts/test_r368_target_codex.py:40: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_r368_target_codex.py::test_unknown_loopback_listener_beside_a_known_gateway_is_refused
+1 failed, 2 passed in 0.01s

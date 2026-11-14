@@ -2979,3 +2979,38 @@ Alle drei Befunde sind behoben, jeder mit Wächter und Rot: `5655edd2` auf `feat
 10. Ein Touch-off an der Kante der Zeilenlänge wird mit dem bekannten Z-Eoffset beurteilt und vor dem Moduswechsel verweigert. Im normalen Bedienen tritt das nicht auf.
 
 **Erbeten:** `agreement` oder `findings` zu VM-I11 Rest A und B sowie VM-I13 am Integrationskopf `d1e2c2e9`.
+
+
+---
+
+## Codex · Paket 3a · Nachprüfung R368 · 14. November 2026
+
+**Urteil: `findings`, begrenzt auf VM-I13.** VM-I11 Rest A und B sind geschlossen. Die R367-Gegenfälle des Live-Treibers werden jetzt rechtzeitig verweigert; in seiner neuen Listener-Ermittlung bleibt aber eine unvollständige Zielprüfung. Keine neue Operatorentscheidung erforderlich.
+
+Geprüft: Produkt `47fd2c5b..d1e2c2e9`, Anfrage an `870017c1`. **929 Backend-Tests und 5 neue Offline-Wächter grün**, die R366-/R367-Sonden unverändert übernommen. Eigene neue Listener-Probe: **1 rot / 2 grün**. Ausschließlich Archivkopie und Ersatzdaten; keine Live-Sim angefasst. [Prüfnachweis](vor-maschine.p3a.r368.codex-evidence.md).
+
+### VM-I13 · Rest · Hoch · Ein Listener ohne erkennbare PID verschwindet aus dem Zielnachweis
+
+`scripts/test_support/live_target.py:221–232` reduziert die gesamte `ss`-Ausgabe per `re.findall("pid=…")` auf die gefundenen PIDs. Eine Listener-Zeile **ohne** PID bleibt dabei unbeachtet. `gateway_target_problems` prüft anschließend nur diese verkürzte Menge und kann deshalb nicht den behaupteten Nachweis für jeden Listener liefern.
+
+Konkreter Gegenfall mit zwei Zeilen für denselben Port:
+
+```text
+LISTEN 0 2048 127.0.0.2:4188 0.0.0.0:* users:(("python3",pid=77,fd=9))
+LISTEN 0 2048 127.0.0.1:4188 0.0.0.0:*
+```
+
+PID 77 ist in der Probe ein Gateway mit der richtigen `INI_FILE_NAME`. Der zweite Listener ist nicht identifiziert. Ergebnis der echten Helfer: **`pids=[77]`, `problems=[]`**. `target_refusal` in `home_step_live_check.py:67` gibt damit frei, obwohl der Treiber auf **127.0.0.1** verbindet und nur der Prozess auf **127.0.0.2** belegt wurde. Es genügt also ein bekannter Listener neben einem unbekannten; der vorhandene Test mit zwei *bekannten*, aber unterschiedlichen INIs deckt das nicht ab. [Sonde](vor-maschine.p3a.r368.codex-listeners.py), [Daten](vor-maschine.p3a.r368.codex-listeners.json).
+
+Die grünen Vergleiche unterscheiden die Fälle: Der unbekannte Listener allein wird bereits verweigert; das bewiesene Gateway allein wird angenommen. Es geht um den Informationsverlust bei der Mischung, nicht um ein generelles Verbot mehrerer Listener.
+
+**Korrektur:** Die Listener-Zeilen einzeln erfassen und eine nicht aufklärbare Zeile als **unbekannt** weitergeben und verweigern. Für den bisherigen Vertrag „jeder Listener dieses Ports“ genügt eine konservative Ablehnung, sobald eine relevante Zeile nicht vollständig zugeordnet werden kann. Falls ihr die Prüfung stattdessen auf den tatsächlichen Verbindungsendpunkt beschränkt, muss dessen Zuordnung einschließlich passender Wildcard-Bindung ausdrücklich bewiesen sein. Ein gefundener PID-Eintrag darf weitere unbelegte Zeilen nicht überdecken. Wächter für die Mischung, unabhängig von der Zeilenreihenfolge, plus gültiger Vergleich.
+
+### Geschlossene Teile
+
+- **VM-I11 Rest A geschlossen:** Die kanonische Dezimalform wird vor der Schreibung verlangt, der Schreiber verwendet dieselbe Form. Alle fertigen Chunks werden vor Moduswechsel und Buchung geprüft; mein Fall mit gültigem erstem Parameter und langem späterem Schlüssel schreibt und bucht nichts mehr. Der direkte Chunk-Wächter ergänzt die Schema-Grenze sinnvoll.
+- **VM-I11 Rest B geschlossen:** Der vorab bekannte Z-Eoffset geht in die Zeilenprüfung ein. Die 255-Byte-Zeile wird vor MODE_MDI verweigert, der 254-Byte-Vergleich bleibt gültig, ein nicht gelieferter Wert wird ebenfalls vorher verweigert. Die ausdrücklich benannte Grenze einer späteren externen Änderung ist angenommen.
+- **VM-I13 teilweise geschlossen:** Kein Standardport, INI-Abgleich, Prüfung der ausgelieferten Sim und der exakten Home-Gruppen-Fixture sind nachvollziehbar umgesetzt. Die zwei ursprünglichen Eintrittsgegenfälle erreichen keinen Connect oder Arm mehr. Offen ist nur die oben beschriebene unvollständige Listener-Menge.
+- **Operator-Nachtrag und VM-I12 unverändert:** Die bestätigten Home-/Jog-Entscheidungen sind unverändert enthalten; keine erneute Entscheidung oder Client-Korrektur erforderlich.
+
+Für die nächste Runde reicht die gezielte Korrektur der Listener-Ermittlung mit den Gegenfällen und den erforderlichen Prüfungen. Kein Produktcode durch dieses Review geändert.
