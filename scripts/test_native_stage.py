@@ -5397,3 +5397,35 @@ def test_the_io_step_judges_the_real_readings_and_puts_the_length_back(monkeypat
     rows = {r["case"]: r for r in nr.io_cases()[1]({"client": c})}
     assert rows["tool-reload"]["status"] == "FAIL" and rows["tool-reload.counter-old-length"]["status"] == "incomplete"
     assert saved == [(3, 29.25), (3, 22.0)], "the length is put back whatever the reading said"
+
+def test_a_positioning_move_too_short_for_a_busy_frame_ends_by_its_arrival(monkeypatch):
+    """Live 2026-11-14 at 4857562e: the home step's 0.08 mm move ran 65 ms,
+    between two status frames — no frame showed it busy, the wait required
+    one and ran out. _to ends by ARRIVAL (idle, in position, at the target);
+    the frames below are exactly that race: idle at the start, idle at the
+    target, nothing busy between. Required busy (the old rule) never ends."""
+    calls = []
+
+    class C:
+        status = {"joint_pos": [0.0, 0.0, 0.0], "interp_state": tc.INTERP_IDLE, "inpos": True}
+
+    def routine(client, text, **kw):
+        calls.append((text, kw))
+    monkeypatch.setattr(nr, "_short", lambda client, text: None)
+    monkeypatch.setattr(nr, "_routine", routine)
+    nr._to(C(), -0.08, -0.08, 0.0)
+    (text, kw), = calls
+    assert text == "G53 G0 X-0.08 Y-0.08 Z0"
+    frames = [(0.0, {**C.status}), (0.2, {**C.status, "joint_pos": [-0.08, -0.08, 0.0]}),
+              (2.5, {**C.status, "joint_pos": [-0.08, -0.08, 0.0]})]
+
+    def ends(require_busy):
+        end = tc.RoutineEnd(require_busy=require_busy, grace=nr.SHORT_GRACE)
+        return [end(t, st) and kw["extra"](st) for t, st in frames]
+    assert ends(kw["require_busy"]) == [False, False, True], "the arrival ends it (after the short-block grace)"
+    assert ends(True) == [False, False, False], "the old rule waited for a busy frame that never came"
+    # already at the target: nothing is sent
+    calls.clear()
+    C.status = {**C.status, "joint_pos": [-0.08, -0.08, 0.0]}
+    nr._to(C(), -0.08, -0.08, 0.0)
+    assert calls == []
