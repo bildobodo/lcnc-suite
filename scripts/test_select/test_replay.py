@@ -157,7 +157,8 @@ def test_the_named_no_cookie_socket_only_inside_its_spec(tmp_path):
     other_spec = attempt(A, file="other.spec.ts")
     assert any("without an origin" in f for f in run(tmp_path, [m], [other_spec])["findings"])
     m.frame(c, {"cmd": "arm", "armed": True})                         # anything more than its hello
-    assert any("without an origin" in f for f in run(tmp_path, [m], [inside])["findings"])
+    r = run(tmp_path, [m], [inside])
+    assert any("the named connection without a cookie" in f and "exactly" in f for f in r["findings"]), r["findings"]
 
 
 def test_two_workers_overlapping_keep_their_attempts(tmp_path):
@@ -208,7 +209,7 @@ def test_a_loaded_page_without_a_hello_fails(tmp_path):
     ({"cmd": "warp_drive"}, "no command the UI declares"),                              # an invented command
     ({"cmd": "heartbeat", "seq": -1}, "the reader refuses ['seq']"),
     ({"cmd": "tab_visibility", "hidden": "yes"}, "the reader refuses ['hidden']"),
-    ({"cmd": "save_settings", "section": "nonsense", "data": {}}, "the reader refuses ['section']"),
+    ({"cmd": "save_settings", "section": "nonsense", "base_rev": 0, "data": {}}, "the reader refuses ['section']"),
     ({"seq": 1}, "without a string cmd"),
 ])
 def test_a_frame_outside_its_form_fails(tmp_path, msg, why):
@@ -368,3 +369,205 @@ def test_every_named_data_map_is_held_by_the_schema(cmd, msg, why):
 ])
 def test_a_valid_form_of_each_map_passes(cmd, msg):
     assert replay.judge_payload(cmd, {"cmd": cmd, **msg}, replay._var_sets()) == []
+
+
+# ── R373 VM-I16: the reader's fields, presence before value ──────────────────
+def _one(tmp_path, msg):
+    m = Mock()
+    c = m.page(A)
+    m.frame(c, msg)
+    return run(tmp_path, [m], [attempt(A)])["findings"]
+
+
+@pytest.mark.parametrize("msg, field", [
+    ({"cmd": "tab_visibility"}, "hidden"),                                   # dropped by the reader
+    ({"cmd": "safety_trip_ack"}, "id"),                                      # clears nothing
+    ({"cmd": "save_settings", "base_rev": 0, "data": {}}, "section"),
+    ({"cmd": "save_settings", "section": "machine", "data": {}}, "base_rev"),  # SettingsStore.save_section
+    ({"cmd": "save_settings", "section": "machine", "base_rev": 0}, "data"),
+    ({"cmd": "device_rename"}, "name"),
+    ({"cmd": "device_delete"}, "device"),                                    # absent = the own device: refused
+    ({"cmd": "timing_log"}, "enable"),
+    ({"cmd": "halshow_live"}, "on"),
+])
+def test_a_reader_frame_without_a_required_field_fails(tmp_path, msg, field):
+    assert _one(tmp_path, msg) == [f"x.spec.ts › t [retry 0]: {msg['cmd']} the reader refuses: missing ['{field}']"]
+
+
+@pytest.mark.parametrize("msg, field", [
+    ({"cmd": "save_settings", "section": "machine", "base_rev": 0, "data": []}, "data"),      # an object
+    ({"cmd": "save_settings", "section": ["machine"], "base_rev": 0, "data": {}}, "section"),  # unhashable: no crash
+    ({"cmd": "save_settings", "section": "machine", "base_rev": -1, "data": {}}, "base_rev"),
+    ({"cmd": "save_settings", "section": "machine", "base_rev": True, "data": {}}, "base_rev"),
+    ({"cmd": "device_delete", "device": ""}, "device"),
+    ({"cmd": "device_reset", "device": 7}, "device"),
+    ({"cmd": "device_rename", "name": 3}, "name"),
+    ({"cmd": "safety_trip_ack", "id": ""}, "id"),
+])
+def test_a_reader_field_the_reader_refuses_fails(tmp_path, msg, field):
+    assert _one(tmp_path, msg) == [f"x.spec.ts › t [retry 0]: {msg['cmd']} the reader refuses ['{field}']"]
+
+
+def test_a_device_on_a_machine_section_fails_and_on_a_device_section_passes(tmp_path):
+    assert _one(tmp_path, {"cmd": "save_settings", "section": "machine", "base_rev": 0, "data": {}, "device": "d1"}) \
+        == ["x.spec.ts › t [retry 0]: save_settings the reader refuses a device on the machine section 'machine'"]
+    assert _one(tmp_path, {"cmd": "save_settings", "section": "viewer", "base_rev": 0, "data": {}, "device": "d1"}) == []
+
+
+@pytest.mark.parametrize("msg", [
+    {"cmd": "hello"},                                    # every hello field optional
+    {"cmd": "heartbeat"},                                # a missing seq is booked as none
+    {"cmd": "device_reset"},                             # the connection's own device
+    {"cmd": "device_rename", "name": "Panel", "device": None},
+    {"cmd": "client_diag"},
+    {"cmd": "save_settings", "section": "viewer", "base_rev": 3, "data": {"a": 1}, "device": None},
+    {"cmd": "safety_trip_ack", "id": "e-1"},
+])
+def test_optional_reader_fields_stay_optional(tmp_path, msg):
+    assert _one(tmp_path, msg) == []
+
+
+def test_every_reader_rule_names_exactly_its_command_s_declared_fields():
+    shapes, rules = replay.members(), replay._reader_rules()
+    assert set(rules) <= set(shapes), "a rule for a frame the UI never sends"
+    for cmd, rule in rules.items():
+        assert set(rule) == shapes[cmd] - replay.TRANSPORT, cmd
+
+
+def test_every_declared_command_has_a_reader_rule_or_a_schema():
+    cp, _, _ = replay._policy()
+    rules = replay._reader_rules()
+    assert [c for c in replay.members() if c not in rules and c not in cp.COMMAND_SCHEMA] == []
+
+
+# ── R373 VM-I17: the whole origin, its mock, every line back to its open ─────
+@pytest.mark.parametrize("o, why", [
+    ({**origin(A), "project": "another"}, "an origin naming project 'another', its attempt ran in 'e2e'"),
+    ({k: v for k, v in origin(A).items() if k != "project"}, "an origin naming project None, its attempt ran in 'e2e'"),
+])
+def test_an_origin_of_another_project_fails_for_a_socket_and_a_request(tmp_path, o, why):
+    m = Mock()
+    m.page(A)
+    m.open(o)
+    m.http(o, path="/x")
+    f = run(tmp_path, [m], [attempt(A)])["findings"]
+    assert len(f) == 2 and all(why in x for x in f), f
+
+
+def test_an_attempt_s_traffic_on_another_worker_s_mock_fails(tmp_path):
+    m1, m2 = Mock("m1"), Mock("m2")
+    m1.page(A)
+    m2.page(B)
+    c = m2.open(origin(A))
+    m2.frame(c, {"cmd": "machine_off"})
+    m2.http(origin(A), path="/x")
+    f = run(tmp_path, [m1, m2], [attempt(A, "m1", title="a"), attempt(B, "m2", title="b")])["findings"]
+    assert len(f) == 2 and all("an origin of an attempt on mock m1, here on mock m2" in x for x in f), f
+
+
+def test_a_retry_on_a_new_worker_s_mock_keeps_its_attempt(tmp_path):
+    # a failed test restarts its worker: the retry runs on a NEW mock (CI 43630215898)
+    m1, m2 = Mock("m1"), Mock("m2")
+    retry = ("tid-a", 1)
+    m1.page(A)
+    c = m2.page(retry)
+    m2.frame(c, {"cmd": "abort"})
+    r = run(tmp_path, [m1, m2], [attempt(A, "m1", status="failed"), attempt(retry, "m2")])
+    assert r["verdict"] == "PASS", r["findings"]
+    assert r["per_attempt"]["x.spec.ts › t [retry 1]"]["abort"] == 1
+
+
+@pytest.mark.parametrize("raw", [False, True])
+def test_a_frame_without_its_open_line_is_a_finding_and_counted(tmp_path, raw):
+    m = Mock()
+    m.page(A)
+    if raw:
+        m.raw(999, "not JSON")
+    else:
+        m.frame(999, {"cmd": "abort"})
+    r = run(tmp_path, [m], [attempt(A)])
+    assert "m1 conn 999: 1 frame(s) on a connection with no open line" in r["findings"], r["findings"]
+    assert r["frames_by_class"]["no open"] == 1 and r["frames"] == 2
+
+
+def test_a_close_without_its_open_line_fails(tmp_path):
+    m = Mock()
+    m.page(A)
+    m.lines.append({"kind": "close", "conn": 77, "t": m.tick()})
+    assert run(tmp_path, [m], [attempt(A)])["findings"] == ["m1 conn 77: a close line without its open"]
+
+
+def test_a_second_open_of_one_connection_fails_and_the_first_origin_stays(tmp_path):
+    m = Mock()
+    c = m.page(A)
+    m.page(B)
+    m.lines.append({"kind": "open", "conn": c, "origin": origin(B), "t": m.tick()})
+    m.frame(c, {"cmd": "abort"})
+    r = run(tmp_path, [m], [attempt(A, title="a"), attempt(B, title="b")])
+    assert r["findings"] == [f"m1 conn {c}: a second open line — the first origin stays"]
+    assert r["per_attempt"]["x.spec.ts › a [retry 0]"].get("abort") == 1
+    assert "abort" not in r["per_attempt"]["x.spec.ts › b [retry 0]"]
+
+
+# ── R373 VM-I18: the named connection without a cookie waives the origin only ─
+def _no_cookie(tmp_path, frames, conns=1):
+    m = Mock()
+    m.page(A)
+    for _ in range(conns):
+        c = m.open(None)
+        for f in frames:
+            m.frame(c, f)
+    return run(tmp_path, [m], [attempt(A, file=replay.NO_COOKIE_SPEC)])
+
+
+def test_the_named_connection_is_recorded_with_its_frame(tmp_path):
+    r = _no_cookie(tmp_path, replay.NO_COOKIE_FRAMES)
+    assert r["verdict"] == "PASS", r["findings"]
+    assert r["no_cookie"] == [{"where": f"{replay.NO_COOKIE_SPEC} › t [retry 0]", "instance": "m1", "conn": 2,
+                               "frames": replay.NO_COOKIE_FRAMES}]
+    assert r["frames_by_class"] == {"no-cookie exception": 1, "test": 1}
+
+
+@pytest.mark.parametrize("frames, why", [
+    ([{**replay.NO_COOKIE_FRAMES[0], "resume_armed": True}], "exactly"),     # a valid hello, but not ITS frame
+    (replay.NO_COOKIE_FRAMES * 2, "exactly"),
+    ([], "exactly"),
+])
+def test_the_named_connection_sends_exactly_its_frame(tmp_path, frames, why):
+    f = _no_cookie(tmp_path, frames)["findings"]
+    assert len(f) == 1 and "the named connection without a cookie" in f[0] and why in f[0], f
+
+
+def test_a_malformed_frame_on_the_named_connection_is_judged_like_any_frame(tmp_path):
+    f = _no_cookie(tmp_path, [{**replay.NO_COOKIE_FRAMES[0], "resume_armed": "yes", "stray": 1}])["findings"]
+    assert any("hello carries undeclared fields ['stray']" in x for x in f), f
+    assert any("hello the reader refuses ['resume_armed']" in x for x in f), f
+
+
+def test_two_named_connections_in_one_attempt_fail(tmp_path):
+    f = _no_cookie(tmp_path, replay.NO_COOKIE_FRAMES, conns=2)["findings"]
+    assert f == [f"{replay.NO_COOKIE_SPEC} › t [retry 0]: 2 connections without a cookie — the exception names one"]
+
+
+# ── R373: every attempt in the result ────────────────────────────────────────
+def test_every_attempt_is_listed_one_without_a_page_too(tmp_path):
+    m = Mock()
+    m.page(A)
+    r = run(tmp_path, [m], [attempt(A, title="a"), attempt(B, title="b", status="passed")])
+    assert r["verdict"] == "PASS", r["findings"]
+    assert r["per_attempt"]["x.spec.ts › b [retry 0]"] == {}
+    assert [x for x in r["attempt_list"] if x["test"] == "tid-b"] == [
+        {"name": "x.spec.ts › b [retry 0]", "test": "tid-b", "project": "e2e", "retry": 0, "instance": "m1",
+         "status": "passed", "page": False, "frames": 0, "observed": "no page loaded at a mock, no frames"}]
+    assert [x["observed"] for x in r["attempt_list"] if x["test"] == "tid-a"] == ["page loaded at its mock, 1 frame(s)"]
+
+
+def test_two_attempts_of_one_file_and_title_keep_their_own_names(tmp_path):
+    m = Mock()
+    m.page(A)
+    b = m.page(B)
+    m.frame(b, {"cmd": "abort"})
+    r = run(tmp_path, [m], [attempt(A), attempt(B)])
+    assert r["verdict"] == "PASS", r["findings"]
+    assert set(r["per_attempt"]) == {"x.spec.ts › t [retry 0] [e2e tid-a]", "x.spec.ts › t [retry 0] [e2e tid-b]"}
+    assert r["per_attempt"]["x.spec.ts › t [retry 0] [e2e tid-b]"].get("abort") == 1

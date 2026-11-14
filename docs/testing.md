@@ -228,6 +228,45 @@ coverage, 8,000 poses against the compiled LinuxCNC C oracle and demo limits.
 A C compiler and Git LFS assets are required. Installer tests cover fresh
 installs, upgrades, state preservation and retirement outside the chooser.
 
+## The replay (step 5a; Codex R251 TS248-04, FI265-02, VM349-01, R373)
+
+Every browser run of the gates ends with `browser-replay`
+(`scripts/test_select/replay.py`): each mock writes a replay log (one JSONL
+file per mock instance, `MOCK_REPLAY`: a head, every connection's `open` with
+its origin, every frame AS RECEIVED, every HTTP request without its query,
+the `/ctl` ops, an end), and the checker judges every frame OFFLINE by the
+gateway's own rules. Run it by hand on a gate's logs:
+
+    python3 -I scripts/test_select/replay.py --dir <logs>/replay \
+        --events <logs>/mock-events.jsonl --run <run id> --out replay.json
+
+- **Origin:** the fixture's `e2e_origin` cookie (`storageState` in
+  `e2e/test.ts`, so a context a test makes itself carries it too) names the
+  run, the test id, the retry and the project. A connection or request
+  belongs to an attempt only when the WHOLE origin is that attempt's and
+  it reached the mock that attempt ran on. Every frame and close line goes
+  back to an `open` read before it; a second `open` of one connection is a
+  finding. Named exceptions, each once: the baseline client's
+  `infra:baseline` (sends nothing), the worker's `GET /ready` probe
+  (`credentials: "omit"`), and `replay-origin.spec.ts`'s cookie-less socket,
+  which waives the origin only and must send exactly its one hello.
+- **Form:** the fields of every command and worker frame come from
+  `atoms.web.json` (one source). The reader's own frames follow the reader's
+  rules, mirrored: required and optional fields as the reader takes them,
+  presence before value. Every other command goes through
+  `command_policy.validate_payload` (a stop: `widen_stop`) against each
+  example var file. Expected refusals live in `replay_refusals.json`.
+- **Probe:** no `mdi` calls a probe routine; a passed `probe-click` attempt
+  sent its `probe_run` / `surface_scan_run`.
+- **Result:** the frames by connection class, the commands, EVERY attempt
+  (`attempt_list`: id, project, retry, mock, status, page loaded at a mock,
+  frames) with its commands (`per_attempt`), the named cookie-less
+  connection with its frames, and what lies outside (`outside`: the
+  profile's axis bounds, gates and handlers, HTTP payloads (5b), coverage
+  against the inventory (5c)).
+- **Guards:** `scripts/test_select/test_replay.py` (synthetic logs, each case
+  red for its own reason).
+
 ## Function inventory (Codex R265–R269)
 
 Every operator function, complete with respect to the named sources: the
