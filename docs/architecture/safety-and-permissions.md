@@ -797,6 +797,27 @@ named exception, an older page's `mdi` with `vars` included (R336).
   neither the trip nor the booking. A catch around every reader frame keeps
   a missed form from ending the connection (`ws.reader_frame_failed`) —
   beside the field checks, not instead of them.
+- **The MDI line** (Codex R366 VM-I11, R367). LinuxCNC takes ONE MDI
+  command of at most 254 BYTES: 2.9.4 `emcmodule.cc` `mdi()` takes the UTF-8
+  line (`s#`) and refuses `len > sizeof(m.command) - 1`
+  (`EMC_TASK_PLAN_EXECUTE::command[LINELEN]`, LINELEN 255) — AFTER the
+  gateway's mode switch — and copies it with `strcpy`, so a NUL would run a
+  shorter command than the one checked. `command_policy.mdi_line_refusal`
+  (no NUL, valid UTF-8, ≤ `MDI_MAX_BYTES` 254; never cut, never cleaned, no
+  ASCII rule) judges, before the first write (the mode switch, a synch, the
+  skip-flag clear): `mdi.text` (spec `MdiText`), every parameter word
+  `#n=<v>` of a `vars` / `probe_vars` map (the chunker packs words to 250, a
+  word alone is its own chunk), the `G10 L2` of `set_wcs`, a touch-off's line
+  by its route, the call of `run_macro` (`macro_files.MAX_LINE`, the same
+  number) and of `probe_run`, `auto_run`'s entry rapid, `set_g30`'s `#518x=`
+  line. `_cmd_blocking` refuses such a line itself, nothing written — the last
+  guard behind every line the gateway builds; a touch-off's line with the Z
+  eoffset added is judged only there (after the mode switch). The other MDI
+  writes are constant forms or gateway-derived numbers (the start guard's
+  `#3116=0`, `T<n> M6` / `G43 H<n>` with n ≤ 99999, `G69`, `M530 P0 Q2`,
+  `G54`, the stamp rows, the → Zero plan, the INI's kins M-code). The
+  rounding of a parameter value (`toolsetter_rules.canonical`) holds every
+  finite double — the default 28 digits raised from about 1e22.
 - **Guards.** `test_payload_contract.py`: per required field the missing,
   null and wrong forms through the REAL `handle_command` (refused with zero
   recorded controller calls, mode included, and nothing booked), the valid

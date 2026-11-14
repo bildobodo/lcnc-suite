@@ -576,9 +576,9 @@ class TestTheStepJogThroughTheDispatch(_Dispatch):
 
 
 class TestTheMdiLine(_Dispatch):
-    """Codex R366 VM-I11: LinuxCNC takes ONE MDI command of at most 255 BYTES
-    (2.9.4 emcmodule.cc, LINELEN 256) and copies it with strcpy — a NUL cuts
-    the line it runs. Every line a payload makes — the raw text, a parameter
+    """Codex R366 VM-I11: LinuxCNC takes ONE MDI command of at most 254 BYTES
+    (2.9.4 emcmodule.cc: `sizeof(command) - 1`, LINELEN 255) and copies it
+    with strcpy — a NUL cuts the line it runs. Every line a payload makes — the raw text, a parameter
     word, a G10, an entry rapid, a touch-off — is judged before the FIRST
     write (the mode switch included); the last write path guards behind."""
 
@@ -592,6 +592,24 @@ class TestTheMdiLine(_Dispatch):
 
     def last_mdi(self):
         return [a for n, a, _k in self.cmd.calls if n == "mdi"][-1]
+
+    def test_the_binding_s_own_number_at_the_edge(self):
+        """R367: 254 bytes go out unchanged, 255 are refused with nothing
+        written — the binding refuses `len > sizeof(command) - 1` = 254 (the
+        fake does not mirror it; home_step_live_check.py proves it on the real
+        binding); a macro call has the same limit."""
+        import macro_files
+        self.assertEqual(macro_files.MAX_LINE, cp.MDI_MAX_BYTES)
+        edge = "G4 P0 (" + "ä" * 122 + "xx)"           # 254 bytes, 132 characters
+        self.assertEqual(len(edge.encode()), 254)
+        r = self.send({"cmd": "mdi", "text": edge})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.last_mdi(), (edge,))
+        self.cmd.calls.clear()
+        r = self.send({"cmd": "mdi", "text": edge[:-1] + "x)"})    # 255 bytes
+        self.assertFalse(r["ok"], r)
+        self.assertIn("255 bytes", r["error"])
+        self.assertEqual(self.cmd.calls, [], "refused before the mode switch")
 
     def test_a_nul_in_the_text_is_refused_before_anything(self):
         r = self.send({"cmd": "mdi", "text": "G0 X1\u0000 Y2"})

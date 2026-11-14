@@ -5669,6 +5669,9 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
     why = _features.purpose_refusal(purpose, vars_to_set)
     if why:
         return {"ok": False, "error": why}
+    why = mdi_line_refusal(line)   # the call LinuxCNC gets — a routine's file name may be long (Codex R366 VM-I11, R367)
+    if why:
+        return {"ok": False, "error": f"{cmd}: {why}"}
     refused = await _start_guard(armed, clears_flag=True)
     if refused:
         return refused

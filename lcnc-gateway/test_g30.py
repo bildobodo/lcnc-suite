@@ -217,6 +217,15 @@ class TestG30Write(_G30Case):
         self.assertEqual(self.task.calls, [], "no synch, no MDI")
         self.assertEqual(g30_window_refusal({"C": 1e6}, "XYZAC", {}), None, "an open axis: finiteness only")
 
+    def test_a_line_past_linuxcnc_s_limit_is_refused_before_the_synch(self):
+        # Codex R366 VM-I11, R367: an axis without a declared window bounds no
+        # value — the #518x= line is judged before the first synch
+        with unittest.mock.patch.object(gateway, "_g30_limits", lambda: {"X": (-250.0, 250.0)}):
+            r = self.send({"cmd": "set_g30", "values": {"a": 1e300}, "based_on": self.stored()})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("bytes", r["error"])
+        self.assertEqual(self.task.calls, [], "no synch, no MDI")
+
     def test_an_open_axis_is_named_in_the_reply(self):
         r = self.send({"cmd": "set_g30", "values": {"c": 30.0}, "based_on": self.stored()})
         self.assertEqual((r["ok"], r.get("open_axes")), (True, ["C"]), r)

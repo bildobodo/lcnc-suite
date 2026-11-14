@@ -973,15 +973,17 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
 #                   on the WRONG axis or tool — the worst possible outcome.
 # ---------------------------------------------------------------------------
 
-# LinuxCNC's MDI buffer is 256 chars; longer text is TRUNCATED MID-WORD and
-# executed as a different move, silently. Reject instead (gateway.py's own
-# parameter chunker (_apply_probe_vars_detail) already encodes this limit).
-MDI_MAX_CHARS = 255
-#: LinuxCNC's own limit, in BYTES (2.9.4 emcmodule.cc mdi(): the UTF-8 line
-#: is copied into EMC_TASK_PLAN_EXECUTE.command[LINELEN = 256] — longer is
-#: refused there, AFTER the gateway's mode switch; Codex R366 VM-I11). A
-#: character limit let 138 umlauts (268 bytes) through.
-MDI_MAX_BYTES = 255
+#: LinuxCNC's own limit for ONE MDI command, in BYTES: 2.9.4 emcmodule.cc
+#: mdi() takes the UTF-8 line ("s#") and refuses `len > sizeof(m.command) - 1`
+#: with "MDI commands limited to 254 characters" — EMC_TASK_PLAN_EXECUTE's
+#: `char command[LINELEN]`, LINELEN 255 (linuxcnc.h), one byte for the NUL.
+#: Refused there AFTER the gateway's mode switch, so the gateway refuses
+#: first (Codex R366 VM-I11; R367: 254, not 255 — the binding's own number,
+#: read in its source and proven live by home_step_live_check.py). A
+#: character limit let 138 umlauts (268 bytes) through; macro_files.MAX_LINE
+#: is the same number (test_payload_contract holds them together), the
+#: parameter chunker packs to 250.
+MDI_MAX_BYTES = 254
 
 
 def mdi_line_refusal(line: str) -> Optional[str]:

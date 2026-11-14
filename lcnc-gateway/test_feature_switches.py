@@ -359,6 +359,19 @@ class TestTheJobs(_Store, unittest.TestCase):
             self.assertEqual(r["error"], "Not a probe routine — reload the page", routine)
         self.assertEqual(self.mdis(), [])
 
+    def test_a_routine_call_past_linuxcnc_s_limit_writes_nothing(self):
+        # Codex R366 VM-I11, R367: a routine is a file name (≤ 63 characters,
+        # up to 4 bytes each) — its call is judged before the start guard
+        long_ = "\U0001d4cd" * 63                        # 63 characters (the schema's most), 252 bytes
+        line = f"O<{long_}> CALL"
+        self.assertGreater(len(line.encode()), 254)
+        with unittest.mock.patch.object(gateway, "get_probe_macros", lambda: [long_]):
+            gateway._skip_flag_unknown = True
+            r = self._send({"cmd": "probe_run", "routine": long_, "vars": self.PROBE})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("bytes", r["error"])
+        self.assertEqual(self.cmd.calls, [], "no clear, no values, no mode switch")
+
     def test_the_calibration_reset_runs_without_values_and_only_it(self):
         # Codex R343 SS-I08: the button's job ({routine: probe_cal_reset,
         # vars: {}}, recorded by the browser) was refused "Missing vars dict"
