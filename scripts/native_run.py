@@ -897,9 +897,18 @@ def _load_program(ctx, c, name, text, timeout=60.0):
 
 def _to(c, x, y, z):
     """G53 move with NO tool offset applied — the joint start proven whatever
-    G53 does with an active offset (G49 first), then waited for in joint space."""
+    G53 does with an active offset (G49 first), then waited for in joint space.
+
+    The ARRIVAL ends it, not a busy frame (package 3a, live run 2026-11-14 at
+    4857562e): the home step's 0.08 mm move off the switches ran 65 ms — the
+    gateway's claim saw it done — and fell between two status frames, so no
+    frame showed the interpreter busy and the wait ran out. Idle, in position
+    and AT the target (after the gateway's short-block grace) is the end; a
+    position already there before the send needs no move."""
     _short(c, "G49")
-    _routine(c, f"G53 G0 X{x:g} Y{y:g} Z{z:g}", deadline=60.0,
+    if _near(c.status, (x, y, z)):
+        return
+    _routine(c, f"G53 G0 X{x:g} Y{y:g} Z{z:g}", deadline=60.0, require_busy=False,
              extra=lambda st: _near(st, (x, y, z)))
 
 
