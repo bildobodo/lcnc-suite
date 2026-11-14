@@ -105,7 +105,10 @@ for (const vp of ["desktop", "touch-fullhd"]) {
     expect(sum, "the summary names three kinds").toHaveLength(3);
     for (const d of sum) expect(Math.abs(d), `summary: glyph centre to word centre ${JSON.stringify(sum)}`).toBeLessThanOrEqual(0.75);
     await page.getByRole("tab", { name: "Program", exact: true }).click();
-    await expect(page.locator(".codeLine .lineMark svg").first()).toBeVisible();
+    // the code panel's marks arrive with its rows — wait for ALL of them, not
+    // the first (the round gate at 83b6a6b3 counted 3 of them mid-render)
+    await expect.poll(() => page.locator(".codeLine .lineMark svg").count(),
+      { message: "the code panel marks the same lines" }).toBeGreaterThanOrEqual(5);
     const code = await markOffsets(page, ".codeLine:has(.lineMark svg)", ".lineMark svg", ".lineNumber");
     expect(code.length, "the code panel marks the same lines").toBeGreaterThanOrEqual(5);
     for (const d of code) expect(Math.abs(d), `Program tab: glyph centre to line centre ${JSON.stringify(code)}`).toBeLessThanOrEqual(0.75);
