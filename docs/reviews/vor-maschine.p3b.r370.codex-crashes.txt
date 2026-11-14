@@ -1,0 +1,76 @@
+FFF..                                                                    [100%]
+=================================== FAILURES ===================================
+_____________ test_invalid_record_cannot_make_a_clean_run[record0] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2352/test_invalid_record_cannot_mak0')
+record = {}
+
+    @pytest.mark.parametrize("record", [{}, {"tag":"crash.thread", "level":None},
+                                       {"tag":"crash.thread", "level":"erorr"}])
+    def test_invalid_record_cannot_make_a_clean_run(tmp_path, record):
+        (tmp_path / "crash.log").write_text(json.dumps(record)+"\n")
+        found = nr.run_crashes(tmp_path)
+        report = {"rows":[{"status":"PASS"}], "restore":{"outcome":"complete", "isolation":[]},
+                  "crashes":found}
+        row = {"record":record, "found":found, "verdict":nr.verdict(report)}
+        OUT.append(row)
+        Path("/tmp/r370-crashes.json").write_text(json.dumps(OUT, indent=2))
+>       assert row["verdict"] == "FAIL", row
+E       AssertionError: {'found': [], 'record': {}, 'verdict': 'PASS'}
+E       assert 'PASS' == 'FAIL'
+E         
+E         - FAIL
+E         + PASS
+
+scripts/test_r370_crashes_codex.py:20: AssertionError
+_____________ test_invalid_record_cannot_make_a_clean_run[record1] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2352/test_invalid_record_cannot_mak1')
+record = {'level': None, 'tag': 'crash.thread'}
+
+    @pytest.mark.parametrize("record", [{}, {"tag":"crash.thread", "level":None},
+                                       {"tag":"crash.thread", "level":"erorr"}])
+    def test_invalid_record_cannot_make_a_clean_run(tmp_path, record):
+        (tmp_path / "crash.log").write_text(json.dumps(record)+"\n")
+        found = nr.run_crashes(tmp_path)
+        report = {"rows":[{"status":"PASS"}], "restore":{"outcome":"complete", "isolation":[]},
+                  "crashes":found}
+        row = {"record":record, "found":found, "verdict":nr.verdict(report)}
+        OUT.append(row)
+        Path("/tmp/r370-crashes.json").write_text(json.dumps(OUT, indent=2))
+>       assert row["verdict"] == "FAIL", row
+E       AssertionError: {'found': [], 'record': {'level': None, 'tag': 'crash.thread'}, 'verdict': 'PASS'}
+E       assert 'PASS' == 'FAIL'
+E         
+E         - FAIL
+E         + PASS
+
+scripts/test_r370_crashes_codex.py:20: AssertionError
+_____________ test_invalid_record_cannot_make_a_clean_run[record2] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2352/test_invalid_record_cannot_mak2')
+record = {'level': 'erorr', 'tag': 'crash.thread'}
+
+    @pytest.mark.parametrize("record", [{}, {"tag":"crash.thread", "level":None},
+                                       {"tag":"crash.thread", "level":"erorr"}])
+    def test_invalid_record_cannot_make_a_clean_run(tmp_path, record):
+        (tmp_path / "crash.log").write_text(json.dumps(record)+"\n")
+        found = nr.run_crashes(tmp_path)
+        report = {"rows":[{"status":"PASS"}], "restore":{"outcome":"complete", "isolation":[]},
+                  "crashes":found}
+        row = {"record":record, "found":found, "verdict":nr.verdict(report)}
+        OUT.append(row)
+        Path("/tmp/r370-crashes.json").write_text(json.dumps(OUT, indent=2))
+>       assert row["verdict"] == "FAIL", row
+E       AssertionError: {'found': [], 'record': {'level': 'erorr', 'tag': 'crash.thread'}, 'verdict': 'PASS'}
+E       assert 'PASS' == 'FAIL'
+E         
+E         - FAIL
+E         + PASS
+
+scripts/test_r370_crashes_codex.py:20: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_r370_crashes_codex.py::test_invalid_record_cannot_make_a_clean_run[record0]
+FAILED scripts/test_r370_crashes_codex.py::test_invalid_record_cannot_make_a_clean_run[record1]
+FAILED scripts/test_r370_crashes_codex.py::test_invalid_record_cannot_make_a_clean_run[record2]
+3 failed, 2 passed in 0.03s

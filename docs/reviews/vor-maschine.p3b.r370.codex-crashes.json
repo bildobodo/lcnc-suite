@@ -1,0 +1,49 @@
+[
+  {
+    "record": {},
+    "found": [],
+    "verdict": "PASS"
+  },
+  {
+    "record": {
+      "tag": "crash.thread",
+      "level": null
+    },
+    "found": [],
+    "verdict": "PASS"
+  },
+  {
+    "record": {
+      "tag": "crash.thread",
+      "level": "erorr"
+    },
+    "found": [],
+    "verdict": "PASS"
+  },
+  {
+    "comparison": true,
+    "record": {
+      "proc": "gateway",
+      "tag": "crash.signal",
+      "level": "info"
+    },
+    "found": [],
+    "verdict": "PASS"
+  },
+  {
+    "comparison": true,
+    "record": {
+      "proc": "gateway",
+      "tag": "crash.thread",
+      "level": "error"
+    },
+    "found": [
+      {
+        "file": "crash.log",
+        "proc": "gateway",
+        "tag": "crash.thread"
+      }
+    ],
+    "verdict": "FAIL"
+  }
+]

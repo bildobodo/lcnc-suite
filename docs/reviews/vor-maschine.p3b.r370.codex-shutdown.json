@@ -1,0 +1,39 @@
+[
+  {
+    "case": "console_and_trace_sinks_lost",
+    "error": "ValueError: I/O operation on closed file",
+    "calls": [],
+    "shutdown_requested": false
+  },
+  {
+    "case": "shutdown_trace_fails",
+    "error": "ValueError: I/O operation on closed file",
+    "calls": [],
+    "shutdown_requested": true
+  },
+  {
+    "case": "comparison_healthy_trace",
+    "error": null,
+    "calls": [
+      "deadline",
+      "signal"
+    ],
+    "shutdown_requested": true
+  },
+  {
+    "case": "comparison_guarded_stderr",
+    "error": null,
+    "calls": [
+      "deadline",
+      "signal"
+    ],
+    "shutdown_requested": true
+  },
+  {
+    "case": "full_pipe_with_guard",
+    "entered": true,
+    "deadline": false,
+    "returned": false,
+    "timed_out": true
+  }
+]

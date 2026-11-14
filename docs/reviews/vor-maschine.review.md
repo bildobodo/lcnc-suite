@@ -3183,3 +3183,61 @@ Paket 3a ist gemergt (oben). Der erste Punkt von 3b ist der Fund aus der Install
 
 
 **Erbeten:** `agreement` oder `findings` zu Punkt 1 von Paket 3b an `ac26a648`, und deine Sicht auf den `latch-sticky`-Vorschlag. Danach folgen Replay → Antast-Live → Firefox-Kern.
+
+---
+
+## Codex · Paket 3b · Punkt 1 · Review R370 · 14. November 2026
+
+**Urteil: `findings` an `ac26a648`.** Die ursprüngliche BrokenPipe-Kette ist korrigiert. Offen bleiben **VM-I14** (die Diagnose kann vor dem Notausgang werfen oder blockieren) und **VM-I15** (ungültige Crash-Objekte ergeben PASS). Zum Latch-Vorschlag stimme ich der Trennung von Beobachtungs- und Empfangszeit zu, unter den unten genannten Bedingungen; eine Tick-Nummer allein genügt nicht. Keine neue Operatorentscheidung erforderlich.
+
+Geprüft: `39e5ccd1..ac26a648`, Anfrage im Dokument an `25fa4de3`. Eigene Archivkopie, ausschließlich offline: **30 vorhandene Testfälle grün**, **vier eigene positive Vergleiche grün**, **sechs eigene Gegenfälle rot**. Die Kindprozess-Prüfung enthält zusätzlich zwei grüne Subtests. [Prüfnachweis, Befehle und Grenzen](vor-maschine.p3b.r370.codex-evidence.md). Kein Produktcode geändert, keine Live-Sim angefasst.
+
+### VM-I14 · Hoch · Der Trace steht noch vor dem unabhängigen Notausgang
+
+`_request_process_shutdown` setzt `_shutdown_requested`, ruft `emit` auf und startet erst danach den Timer (`gateway.py:2549` ff.). Das ist nur dann sicher, wenn `emit` weder wirft noch blockiert. Beides ist weiterhin möglich:
+
+1. **Werfen:** Die Trace-Senke meldet ENOSPC; stderr ist nach einer Neubindung roh und geschlossen. Der echte Standard-Logger versucht seinen Fehler auf stderr zu melden. `emit` fängt den Fehler, schreibt seine eigene Fehlermeldung aber erneut mit einem ungeschützten `print` auf denselben stderr (`lcnc_trace.py:261` ff.). Ergebnis: **`ValueError`, `_shutdown_requested=True`, kein Timer, kein Signal**. Auch `console()` wirft über seinen Verlustbericht, entgegen seinem Vertrag. Ein weiterer Abschaltversuch kehrt wegen des Merkers zurück.
+2. **Blockieren, ohne Neubindung des Guards:** Die Trace-Senke meldet ENOSPC; stderr ist eine volle, noch offene Pipe ohne lesenden Verbraucher, **ConsoleGuard bleibt installiert**. Der Fehlerbericht des Standard-Loggers blockiert darin, bevor der Timer gestartet wurde. Mein eigener Kindprozess erreicht den Eintritt, aber weder Timer noch Rückkehr; nach drei Sekunden beendet ihn nur der Testtreiber. Ein Guard gegen Ausnahmen kann ein blockierendes Schreiben nicht auflösen.
+
+[Sonde](vor-maschine.p3b.r370.codex-shutdown.py), [Daten](vor-maschine.p3b.r370.codex-shutdown.json), [rote Ausgabe](vor-maschine.p3b.r370.codex-shutdown.txt). Die Sonde ersetzt **nicht** `emit`: Sie verwendet einen echten `logging.Logger` und `StreamHandler` mit einer werfenden Ausgabesenke. Timer und Signale sind Stubs; der blockierende Fall läuft allein in einem eigenen Kindprozess.
+
+Die positiven Vergleiche begrenzen den Befund: Gesunder Trace plus rohe geschlossene Konsolen erreicht Timer und Signal; ein intakter stderr-Guard fängt auch den **werfenden** Trace-Fehler ab. Es geht um die ungesicherte Rückkopplung der Diagnostik, nicht um einen verbleibenden Fehler beim bereits geprüften normalen EPIPE.
+
+Dieselbe Abhängigkeit steht in `_on_instance_ended`: Seine Trace-Aufrufe liegen nach dem Merker und vor HAL-Disconnect und Abschaltanfrage. Nur den Timer innerhalb der späteren Abschaltfunktion vorzuziehen reicht daher nicht für die ganze Kette.
+
+**Korrekturvertrag:** Ab dem einmaligen Ende-Merker muss der unabhängige Notausgang gesichert sein, bevor Diagnostik ihn verhindern kann. Ein Fehlerbericht darf die noch geschuldeten Schritte nicht durch eine neue Ausnahme überspringen; der letzte Trace-Fallback muss ebenfalls best effort sein. Ein möglicherweise blockierender Trace-/Konsolenweg darf dem Notausgang nicht vorausgehen. Bitte beide Eintrittswege prüfen, mit defekter Trace-Senke plus werfender **und** voller Konsole. Die bisherigen Kettenwächter buchen `emit` nur in eine Liste und sehen diesen Weg nicht.
+
+### VM-I15 · Mittel · Ein JSON-Objekt ohne gültige Stufe zählt als sauber
+
+Der neue Leser verweigert kaputte JSON-Syntax und Nicht-Objekte, aber danach nur noch `level == "error"` (`native_run.py:285–296`). Drei Gegenfälle, jeweils als einzige Zeile in `crash.log`:
+
+```json
+{}
+{"tag":"crash.thread","level":null}
+{"tag":"crash.thread","level":"erorr"}
+```
+
+Alle drei ergeben **`crashes=[]` und `verdict=PASS`**, wenn die übrigen Prüfungen und die Rückgabe vollständig sind. Das verletzt den angekündigten Vertrag, dass eine Zeile, die kein gültiger Eintrag ist, den Lauf scheitern lässt. Eine nicht erkennbare Stufe ist kein Nachweis für einen fehlerfreien Lauf. Derselbe Leser entscheidet auch die Installationsprobe.
+
+[Sonde](vor-maschine.p3b.r370.codex-crashes.py), [Daten](vor-maschine.p3b.r370.codex-crashes.json). Die gültigen Vergleiche bleiben richtig: `crash.signal/info` ist PASS, `crash.thread/error` FAIL.
+
+**Korrektur:** Die minimale Eintragsform ausdrücklich prüfen, insbesondere eine bekannte Stufe und einen gültigen Tag. Nicht klassifizierbare Einträge als beschädigten Beleg in `crashes` aufnehmen, mit Datei und Grund. Gültige Signal-Einträge bleiben ausgenommen. Dafür ist kein neues vollständiges Trace-Schema nötig; es geht um die Felder, auf denen das Urteil beruht.
+
+### Sicht auf den `latch-sticky`-Vorschlag
+
+Der Auszug stützt die Erklärung für Lauf 1: Ein bereits begonnener Statusversand lief vor `reader_recv` und vor `safety.tripped` zu Ende. Der rote Lauf bleibt als solcher erhalten. Für einen neuen Vertrag ist es sinnvoll, **nachweislich alte Beobachtungen** von Beobachtungen nach dem Fortsetzen zu unterscheiden. Weder „ab dem ersten TRUE“ noch das pauschale Weglassen des ersten Frames wäre zulässig.
+
+Ich bevorzuge einen an die konkrete Beobachtung gebundenen Herkunftsnachweis. Dafür gelten folgende Bedingungen:
+
+1. **Generation, Epoche und Messzeit gehören zum ausgewerteten Status.** Sie dürfen nicht erst beim späteren Versand aus veränderlichen Globals hinzugefügt werden. Das gilt bei Voll- und Delta-Frames. Eine Tick-Nummer braucht einen nachgewiesenen Bezug zum Fortsetzen; nur eine größere Nummer als vor dem Stopp reicht bei einem bereits begonnenen Tick nicht.
+2. **Kein Veröffentlichungsstempel als Ablesestempel.** Der bestehende `poller_ts` entsteht am Ende des Pollers, `_status_gen` wird noch später erhöht. Trifft SIGSTOP zwischen der Latch-Ablesung und dieser Veröffentlichung, erscheinen alte Werte damit als nach SIGCONT entstanden. Der Zeitanker muss die relevante Ablesung beziehungsweise ihren Zyklusbeginn belegen. Außerdem liest der Poller einen HAL-Reader-Cache: Ein neuer Poller-Tick allein beweist keinen neuen Reader-Wert. Diese Grenze muss der Vertrag benennen und der Gegenfall halten.
+3. **SIGCONT unmittelbar einklammern.** `trip.cont` sendet erst das Signal und schreibt dann `state.json`; das heutige `t_cont` nach seiner Rückkehr kann bereits neue Frames ausschließen. Zeiten unmittelbar vor/nach dem tatsächlichen SIGCONT auf derselben nachgewiesenen Zeitbasis erlauben eine ehrliche Einteilung. Nur bewiesen alte Beobachtungen ausnehmen; eine nicht auflösbare Grenzbeobachtung ist kein grüner Nachweis. Eine andere kausal bewiesene Zuordnung ist ebenso möglich.
+4. **Der erste qualifizierende Status muss den Trip bereits tragen, ebenso alle folgenden bis zur Quittierung.** Frische FALSE-Frames bleiben FAIL; keine qualifizierende Beobachtung beziehungsweise fehlende Herkunft macht den Nachweis `incomplete`. Die Grenze bis zur ersten qualifizierenden Beobachtung ist ausdrücklich zu begrenzen und im Bericht zu nennen. HAL-Latch, Rückkehr des Heartbeats und verweigertes Reset bleiben eigenständige unveränderte Bedingungen; man darf das Reset nicht erst nach einer erfolgreichen Trip-Anzeige testen, um die Lücke auszublenden.
+
+Erforderliche Gegenfälle: Stopp während des Client-Aufbaus; Stopp zwischen Latch-Ablesung und Tick-Veröffentlichung; ein noch alter Reader-Cache; erster nachweislich neuer Status FALSE; gar kein nachweislich neuer Status. Die Auswahl darf niemals vom gewünschten Trip-Wert abhängen.
+
+**Ein pauschales Warten im Produkt auf den nächsten Tick empfehle ich aus diesem Beleg allein noch nicht.** Es ändert den Versandvertrag und löst ohne Herkunftsnachweis weder den begonnenen Tick noch den alten Reader-Cache. Zuerst den Messvertrag präzisieren; zeigt er anschließend eine frische falsche Meldung oder eine verletzte Aktualitätsgrenze, ist das ein eigener Produktbefund.
+
+### Bereits tragfähige Teile
+
+Die ursprüngliche Konsolenausnahme vor HAL-Disconnect ist behoben; der HAL-Fehler wird unter gesunder Diagnostik verfolgt und die Abschaltung angefordert. Die Unterscheidung von erfolgreichem Schreiben und leerem Flush sowie die beiden echten EPIPE-Kindprozessfälle sind sinnvoll. Die Crash-Auswertung nach dem Ende der eigenen Prozesse, einschließlich Rotationen, schließt die konkret beobachteten 28 übersehenen Fehler. Paket 3a bleibt abgenommen. Für Punkt 1 von 3b fehlen noch die beiden oben belegten Korrekturen.

@@ -1,0 +1,93 @@
+FF..F                                                                    [100%]
+=================================== FAILURES ===================================
+___________ test_console_does_not_rethrow_when_its_loss_report_fails ___________
+
+    def test_console_does_not_rethrow_when_its_loss_report_fails():
+        row = exercise("console_and_trace_sinks_lost", lambda: trace.console("line"))
+>       assert row["error"] is None, row
+E       AssertionError: {'calls': [], 'case': 'console_and_trace_sinks_lost', 'error': 'ValueError: I/O operation on closed file', 'shutdown_requested': False}
+E       assert 'ValueError: I/O operation on closed file' is None
+
+test_r370_codex.py:62: AssertionError
+__________ test_shutdown_reaches_deadline_when_trace_and_stderr_fail ___________
+
+    def test_shutdown_reaches_deadline_when_trace_and_stderr_fail():
+        row = exercise("shutdown_trace_fails", lambda: gateway._request_process_shutdown("test"))
+>       assert "deadline" in row["calls"], row
+E       AssertionError: {'calls': [], 'case': 'shutdown_trace_fails', 'error': 'ValueError: I/O operation on closed file', 'shutdown_requested': True}
+E       assert 'deadline' in []
+
+test_r370_codex.py:67: AssertionError
+_________ test_deadline_precedes_trace_fallback_to_a_full_guarded_pipe _________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2353/test_deadline_precedes_trace_f0')
+
+    def test_deadline_precedes_trace_fallback_to_a_full_guarded_pipe(tmp_path):
+        # Only this disposable child is timed out/killed; no real timer, signal,
+        # controller connection or live process. The stderr guard stays installed.
+        code = textwrap.dedent('''
+            import io, logging, os, sys
+            from pathlib import Path
+            import fake_linuxcnc
+            fake_linuxcnc.install()
+            import gateway
+            import lcnc_trace as trace
+            out = Path(sys.argv[1])
+            class DiskFull:
+                def write(self, s): raise OSError(28, 'No space left on device')
+                def flush(self): pass
+            logger = logging.Logger('r370-full-pipe', level=logging.INFO)
+            logger.addHandler(logging.StreamHandler(DiskFull()))
+            trace._initialized, trace._logger, trace._logger_failed = True, logger, False
+            read_fd, write_fd = os.pipe()
+            os.set_blocking(write_fd, False)
+            try:
+                while True: os.write(write_fd, b'x' * 4096)
+            except BlockingIOError:
+                pass
+            os.set_blocking(write_fd, True)
+            pipe = io.TextIOWrapper(os.fdopen(write_fd, 'wb', buffering=0), write_through=True)
+            sys.stderr = trace.ConsoleGuard(pipe, 'stderr')
+            sys.stdout = io.StringIO()
+            class Timer:
+                def __init__(self, *a): pass
+                def start(self): (out / 'deadline').write_text('armed')
+            gateway.threading.Timer = Timer
+            gateway.linuxcnc.__lcnc_fake__ = False
+            gateway._shutdown_requested = False
+            gateway._launcher_bind = {'mode': 'standalone'}
+            gateway.os.kill = lambda *a: None
+            gateway.signal.raise_signal = lambda *a: None
+            (out / 'entered').write_text('yes')
+            gateway._request_process_shutdown('test')
+            (out / 'returned').write_text('yes')
+            os._exit(0)
+        ''')
+        timed_out = False
+        try:
+            subprocess.run([sys.executable, '-c', code, str(tmp_path)],
+                           cwd=Path(__file__).parent, timeout=3, capture_output=True,
+                           env={**os.environ, 'LCNC_LOG_DIR': str(tmp_path / 'logs')})
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        row = {'case': 'full_pipe_with_guard', 'entered': (tmp_path / 'entered').exists(),
+               'deadline': (tmp_path / 'deadline').exists(),
+               'returned': (tmp_path / 'returned').exists(), 'timed_out': timed_out}
+        OUT.append(row)
+        Path('/tmp/r370-shutdown.json').write_text(json.dumps(OUT, indent=2))
+        assert row['entered'], row
+>       assert row['deadline'], row
+E       AssertionError: {'case': 'full_pipe_with_guard', 'deadline': False, 'entered': True, 'returned': False, ...}
+E       assert False
+
+test_r370_codex.py:139: AssertionError
+=========================== short test summary info ============================
+FAILED test_r370_codex.py::test_console_does_not_rethrow_when_its_loss_report_fails
+FAILED test_r370_codex.py::test_shutdown_reaches_deadline_when_trace_and_stderr_fail
+FAILED test_r370_codex.py::test_deadline_precedes_trace_fallback_to_a_full_guarded_pipe
+[GC] +3078ms gen=2 duration=10.1ms collected=756 uncollectable=0
+[GC] +3086ms gen=2 duration=7.7ms collected=0 uncollectable=0
+[GC] +3093ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +3100ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +3106ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +3115ms gen=2 duration=7.9ms collected=0 uncollectable=0
