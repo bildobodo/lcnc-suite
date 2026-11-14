@@ -1,0 +1,16 @@
+# The live checks' production gateways at ac26a648 (live-twp, perf): their console and session events and every crash.log record
+# source: ~/lcnc-suite-p3b/runlogs/{trace.ndjson,crash.log} (pytest processes of the round gate write there too; they are named and left out)
+
+pid 3649769: /home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/uvicorn/__main__.py gateway:app --host 127.0.0.1 --
+   {"t_mono_ms": 404103.724, "tag": "console.lost", "level": "warn", "stream": "stdout", "op": "flush", "exc_type": "BrokenPipeError", "errno": 32}
+   {"t_mono_ms": 404169.082, "tag": "console.lost", "level": "warn", "stream": "stderr", "op": "write", "exc_type": "BrokenPipeError", "errno": 32}
+   {"t_mono_ms": 404272.697, "tag": "crash.signal", "level": "info", "signame": "SIGTERM"}
+
+pid 3658090: /home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/uvicorn/__main__.py gateway:app --host 127.0.0.1 --
+   {"t_mono_ms": 179283.001, "tag": "console.lost", "level": "warn", "stream": "stdout", "op": "flush", "exc_type": "BrokenPipeError", "errno": 32}
+   {"t_mono_ms": 179307.437, "tag": "console.lost", "level": "warn", "stream": "stderr", "op": "write", "exc_type": "BrokenPipeError", "errno": 32}
+   {"t_mono_ms": 179529.889, "tag": "crash.signal", "level": "info", "signame": "SIGTERM"}
+
+# crash.log
+   {"pid": 3649769, "proc": "gateway", "tag": "crash.signal", "level": "info", "signame": "SIGTERM"}
+   {"pid": 3658090, "proc": "gateway", "tag": "crash.signal", "level": "info", "signame": "SIGTERM"}

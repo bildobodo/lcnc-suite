@@ -1,0 +1,37 @@
+# red: the tests of feat/p3b-shutdown ac26a648 against 39e5ccd1 (worktree at 39e5ccd1 + these test files)
+
+## lcnc-gateway/test_console_guard.py
+E       ValueError: I/O operation on closed file
+E       OSError: [Errno 9] bad socket
+E       BrokenPipeError: [Errno 32] Broken pipe
+E       BrokenPipeError: [Errno 32] Broken pipe
+E       BrokenPipeError: [Errno 32] Broken pipe
+E   AssertionError: 1 != 7 : Traceback (most recent call last):
+E   BrokenPipeError: [Errno 32] Broken pipe
+E   AssertionError: 1 != 7 : Traceback (most recent call last):
+E   BrokenPipeError: [Errno 32] Broken pipe
+E               AssertionError: Lists differ: [2545, 2561] != []
+FAILED test_console_guard.py::TheShutdownChainRunsToItsEnd::test_a_closed_stdout_stops_nothing
+FAILED test_console_guard.py::TheShutdownChainRunsToItsEnd::test_a_failing_hal_disconnect_still_requests_the_shutdown
+FAILED test_console_guard.py::TheShutdownChainRunsToItsEnd::test_a_raw_raising_stdout_stops_nothing
+FAILED test_console_guard.py::TheShutdownRequestArmsItsDeadlineFirst::test_a_standalone_gateway_signals_itself_with_a_raising_stdout
+FAILED test_console_guard.py::TheShutdownRequestArmsItsDeadlineFirst::test_the_launcher_is_signalled_with_a_raising_stdout
+FAILED test_console_guard.py::TheConsoleGuard::test_a_broken_pipe_is_dropped_and_traced_once
+FAILED test_console_guard.py::TheConsoleGuard::test_a_closed_stream_raises_nothing
+FAILED test_console_guard.py::TheConsoleGuard::test_a_new_failure_kind_is_traced_and_a_flush_that_gets_through_recovers
+FAILED test_console_guard.py::TheConsoleGuard::test_an_emit_whose_stderr_report_fails_does_not_recurse
+FAILED test_console_guard.py::TheConsoleGuard::test_an_unbuffered_stream_s_empty_flush_is_no_recovery
+FAILED test_console_guard.py::TheConsoleGuard::test_console_never_raises - At...
+FAILED test_console_guard.py::TheConsoleGuard::test_guard_console_wraps_each_stream_once
+FAILED test_console_guard.py::TheConsoleGuard::test_the_stream_s_other_attributes_pass_through
+FAILED test_console_guard.py::EachProcessGuardsBeforeItsFirstPrint::test_the_shutdown_chain_prints_only_through_console
+
+SUBFAILED(unbuffered=False/True) AProcessSurvivesItsReaderGoing::test_prints_into_a_closed_pipe (the child ended 1, not 7)
+summary: 15 of 17 tests fail (14 FAILED + the child-process test in both subtests); the two that pass hold on 39e5ccd1 too: a second end returns at once, the hooks come before the first print. pytest prints no summary line here (the gateway's [GC] probe at exit).
+
+## crash-record guards
+FAILED scripts/test_native_stage.py::test_a_run_whose_crash_log_holds_an_error_fails
+FAILED scripts/test_native_stage.py::test_no_crash_log_passes - KeyError: 'cr...
+FAILED scripts/test_native_stage.py::test_a_rotated_crash_log_and_a_torn_line_count
+FAILED scripts/test_install_probe.py::test_gate_status[report8-post8-False]
+4 failed, 8 passed, 598 deselected in 0.87s

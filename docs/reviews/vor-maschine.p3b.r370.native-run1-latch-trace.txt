@@ -1,0 +1,42 @@
+# native main run 1 (20261114T141920-p3b, ac26a648): the run's trace around the gateway's trip, ms from safety.tripped
+   -922.1  gateway      ws.disconnect                    {"reason": "WebSocketDisconnect"}
+   -921.8  gateway      ws.disconnect                    {"reason": "WebSocketDisconnect"}
+   -401.5  hal_watchdog wd.tick_summary                  
+   -401.4  hal_watchdog wd.hb_edge                       {"edge": "falling"}
+   -401.2  hal_reader   reader.tick_summary              
+   -284.3  launcher     proc.status                      
+     -1.2  gateway      lag.window                       {"drift_ms": 873.8}
+     -0.5  gateway      loop.tick                        
+      0.0  gateway      safety.tripped                   
+     25.7  gateway      safety.trip_snapshot_done        
+     33.0  hal_watchdog wd.hb_edge                       {"edge": "rising"}
+     50.3  gateway      ws.command_denied                {"reason": "Acknowledge the safety trip first"}
+    206.2  hal_watchdog wd.tick_summary                  
+    561.9  hal_watchdog wd.tick_summary                  
+    595.4  gateway      hal.send_summary                 
+    639.0  hal_reader   reader.tick_summary              
+
+# the stall window (lag.window, drift > 500 ms) of the gateway in run 1 (FAIL) and run 2 (PASS): the phase the SIGSTOP met, and what ran first after the SIGCONT
+
+20261114T141920-p3b: drift 873.8 ms, dominant 'status_loop.build'
+   +    0.00 ms    878.50 ms  status_loop.build
+   +  878.50 ms      0.03 ms  ws_send_measured.encode
+   +  878.52 ms      0.08 ms  ws_send.msgpack peer=127.0.0.1:54334 bytes=2370
+   +  878.61 ms      0.09 ms  ws_send_measured.send_done peer=127.0.0.1:54334
+   +  878.69 ms      0.01 ms  reader_recv.process_line
+   +  878.71 ms      0.00 ms  reader_recv.readline
+   +  878.71 ms      0.00 ms  reader_recv.process_line
+   +  878.71 ms      0.00 ms  reader_recv.readline
+   +  878.71 ms      0.00 ms  reader_recv.process_line
+   +  878.72 ms      0.00 ms  reader_recv.readline
+
+20261114T143447-p3b: drift 902.7 ms, dominant 'ws_send_measured.send_done peer=127.0.0.1:51950'
+   +    0.00 ms      1.94 ms  reader_recv.readline
+   +    1.94 ms      0.27 ms  status_poller.poll_and_serialize
+   +    2.21 ms      0.10 ms  status_poller.read_errors
+   +    2.31 ms      0.01 ms  status_poller.post_poll
+   +    2.32 ms      0.02 ms  status_poller.build_clients_list
+   +    2.34 ms      0.02 ms  status_loop.build
+   +    2.36 ms      0.01 ms  ws_send_measured.encode
+   +    2.37 ms      0.03 ms  ws_send.msgpack peer=127.0.0.1:51950 bytes=2370
+   +    2.40 ms    905.30 ms  ws_send_measured.send_done peer=127.0.0.1:51950

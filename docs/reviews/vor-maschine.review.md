@@ -3092,3 +3092,94 @@ Claudes Round-Gate und erneute Home/Step-Läufe sind nachvollziehbar dokumentier
 - **Weiter offen:**
   - #36 bleibt offen; der Operator entscheidet.
   - Als Nächstes folgt Paket 3b: der Ausstiegsfund oben, dann Replay → Antasten live → Firefox-Kern. Danach Paket 4, die Checkliste für den Maschinentag.
+
+---
+
+## Claude · Paket 3b · Punkt 1 · Anfrage R370 · 14. November 2026
+
+Paket 3a ist gemergt (oben). Der erste Punkt von 3b ist der Fund aus der Installationsprobe des Merge-Gates: `39e5ccd1..ac26a648` auf `feat/p3b-shutdown` (zwei Commits), Basis `39e5ccd1` (development).
+
+### Der Fund
+
+- **Was die Probe zeigte:** In ihrem `crash.log` stand `crash.asyncio_unhandled` mit `BrokenPipeError` aus `_on_instance_ended` ([Eintrag](vor-maschine.p3a.merge-gate.probe-crash.ndjson)). Ihr Bericht lautete trotzdem PASS.
+- **Der Ablauf:**
+  - Der Handler setzt den Merker `_instance_ended` und gibt danach die Konsolenzeile aus. Erst dann folgen der Trace `session.instance_ended`, `_hal_disconnect()` und `_request_process_shutdown()`.
+  - Das `print` traf die geschlossene Pipe des Launchers und warf. Die Überwachungsschleife starb, und keines der drei folgenden Glieder lief: Die Spur zeigt weder `session.instance_ended` noch `session.shutdown_requested`.
+  - Erst ein SIGTERM 126 ms später beendete das Gateway.
+- **Dieselbe Form** hat `_request_process_shutdown`: Sein `print` steht nach dem Merker `_shutdown_requested` und vor dem 5-s-Notausgang und dem Signal.
+- **Ungedeckt wäre** ein eigenständiges Gateway, also ohne Launcher und ohne PDEATHSIG, mit geschlossenem stdout. Es bliebe ohne Link am Leben, und jede weitere Abschaltanfrage kehrte sofort zurück.
+- **Herkunft:** Die Reihenfolge stammt aus der Sitzungsbindung (`bd660c22`, 13. September), nicht aus 2b oder 3a (`git log -L`).
+- **Häufigkeit:** Ich habe die aufbewahrten Laufordner (`~/claude-work/live-tier`, Merge-Gates) seit dem 1. November durchsucht. Derselbe Eintrag steht in 28 der 82 Ordner mit `crash.log`, also in etwa jedem dritten nativen und Installationslauf, vom 6. November bis 3a. Er ist der einzige Eintrag der Stufe `error` in allen diesen Dateien, und kein Gate hat `crash.log` gelesen.
+
+### Die Änderung
+
+- **Die Kette läuft nach dem Merker zu Ende** (`gateway.py`):
+  - `_on_instance_ended` schreibt erst den Trace, trennt dann HAL (ein Fehler wird als `session.hal_disconnect_failed` verfolgt, nicht geworfen) und fordert die Abschaltung an. Die Konsolenzeile kommt zuletzt.
+  - `_request_process_shutdown` setzt den Trace, dann den 5-s-Notausgang. Erst danach folgt eine Konsolenzeile, denn eine Zeile in eine volle Pipe kann blockieren.
+  - Beide schreiben ihre Zeilen über `lcnc_trace.console`, das nie wirft. Dasselbe gilt für die Zeilen vor `_self_restart` und vor dem Trennen in `check_lcnc_instance`.
+- **Die Klasse** (`lcnc_trace.py`): `install_crash_hooks` hüllt in allen drei Prozessen stdout und stderr in einen `ConsoleGuard`.
+  - Ein gescheitertes `write` oder `flush` wird verworfen und als `console.lost` verfolgt, einmal pro Fehlerart und Strom. Geht später wieder ein `write` durch und trägt ein `flush` es hinaus, folgt `console.recovered` mit der Zahl der verworfenen Schreibversuche.
+  - Das Geschwister im Watchdog: Ein `print` in `_consume_buf` warf im Empfangszweig in das `except`, das die Pins auf LOW zwingt, und im Zulassungszweig aus der Schleife. Beides deckt der Guard durch die Konstruktion; live beobachtet ist es nicht (siehe „Die Helfer“ unten).
+  - Die Kette stützt sich nicht auf den Guard: Wer `sys.stdout` neu bindet, verliert ihn.
+- **Ein Lauf liest sein `crash.log`** (`scripts/native_run.py`): `run_crashes` liest nach der Rückgabe `logs/crash.log` und seine Rotationen.
+  - Jeder Eintrag der Stufe `error` und jede Zeile, die kein Eintrag ist, macht das Urteil eines nativen Laufs und der Installationsprobe (dasselbe `verdict`) zu FAIL.
+  - `gate_status` nennt den ersten Eintrag.
+  - Ein `crash.signal` (Stufe `info`) zählt nicht.
+- **Auswahl:** `lcnc_trace.py` wählt die Live-Prüfung `perf-matrix` der Sicherheitskette.
+
+### Wächter und Nachweise
+
+- **`lcnc-gateway/test_console_guard.py`:**
+  - Die Kette unter einem rohen, werfenden stdout, unter einem geschlossenen Strom (`ValueError`) und mit einem werfenden HAL-Disconnect. Geprüft wird: Nichts dringt zum Aufrufer, der Disconnect ist erfolgt, die Abschaltung ist angefordert, beide Trace-Ereignisse stehen vor der Konsolenzeile, und ein zweites Ende kehrt sofort zurück.
+  - `_request_process_shutdown` auf dem echten Pfad mit gestubbtem Timer, `os.kill` und `raise_signal`: Der Notausgang kommt vor jeder Konsolenzeile, und das Signal geht trotz werfendem stdout raus. Beide Wege sind geprüft, mit Launcher und eigenständig.
+  - Der Guard: nur einmal verfolgt, eine neue Fehlerart erneut, Erholung erst nach einem durchgegangenen `write` und einem `flush` (ungepuffert ist ein leeres `flush` keine Erholung), geschlossener Strom, Durchreichen der übrigen Attribute, keine Rekursion über den eigenen stderr-Bericht von `emit`.
+  - Ein echter Kindprozess schreibt gepuffert und ungepuffert 64 × 4 KiB in eine Pipe ohne Leser und endet mit seinem eigenen Exit-Code 7. Er hinterlässt je genau ein `console.lost` mit `EPIPE` und keinen `crash.*`-Eintrag.
+  - Ein AST-Wächter: In `gateway.py`, `hal_reader.py` und `hal_watchdog.py` steht `install_crash_hooks` auf Modulebene vor dem ersten `print`. Die beiden Funktionen der Kette enthalten kein nacktes `print`.
+- **`scripts/test_native_stage.py`, `scripts/test_install_probe.py`:**
+  - Ein Lauf mit dem Eintrag der 3a-Probe ist FAIL, obwohl seine Zeilen PASS sind und die Rückgabe vollständig ist.
+  - Ein Lauf mit nur einem Signal-Eintrag ist PASS, ebenso ein Lauf ohne `crash.log`.
+  - Rotation und zerrissene Zeile zählen; `gate_status` nennt den Eintrag.
+- **Rot an `39e5ccd1`** ([Protokoll](vor-maschine.p3b.r370.red.txt)):
+  - `test_console_guard.py`: 15 von 17 Tests scheitern. Die Kettentests scheitern an BrokenPipeError, ValueError und dem OSError des Disconnects, die aus der Kette dringen; der Kindprozess endet gepuffert wie ungepuffert mit 1 statt 7. Die beiden übrigen halten auch dort: das sofortige zweite Ende und die Hooks vor dem ersten `print`.
+  - Die Crash-Wächter scheitern mit 4 Fehlern.
+- **Das erste Round-Gate** (an `9ded5dfc`) war FAIL ([Bericht](vor-maschine.p3b.r370.gate-round-9ded5dfc-FAIL.json)) und fand einen Fehler meines Guards.
+  - Der Backend-Schritt läuft mit `PYTHONUNBUFFERED=1`. Dort wirft schon das `write`, und das folgende `flush` eines leeren Puffers gelingt. Der Guard hielt das für eine Erholung und verfolgte jede Zeile als neuen Verlust (65 Einträge statt einem).
+  - Die Behebung in `ac26a648`: Erholung verlangt ein `write`, das seit dem Fehler durchging, und ein `flush`, das es hinausbrachte. Der Kindprozess-Test läuft gepuffert und ungepuffert, und ein Unit-Test hält das leere `flush` fest.
+- **Round-Gate** an `ac26a648`: PASS ([Bericht](vor-maschine.p3b.r370.gate-round-ac26a648.json)). Unit 2653, Backend einschließlich `ruff` und `pyright`, Browser 7/7. Offen: `perf-matrix`, `twp-buttons`.
+- **Live an `ac26a648`** (Scratch-Installation):
+  - `live-twp` 9/9 PASS einschließlich `twp_buttons_check` ([Protokoll](vor-maschine.p3b.r370.live-twp.txt)).
+  - `perf-matrix` PASS ([Protokoll](vor-maschine.p3b.r370.perf.txt)); `sigstop_trip` erholt.
+  - Beide Produktions-Gateways verloren beim Stopp ihre Konsole ([Auszug](vor-maschine.p3b.r370.live-console.txt)): `console.lost` auf stdout (`flush`) und stderr (`write`) mit `EPIPE`, etwa 200 ms später das SIGTERM. Die Kette lief dort nicht, weil das SIGTERM vor der Instanzüberwachung kam. Ihr `crash.log` enthält nur die beiden `crash.signal` (Stufe `info`).
+- **Nativ an `ac26a648`** (3-Achs, je ein eigener Lauf):
+  - **Die Kette lief echt, im alten Fehlerfall.** In zwei Läufen verlor das Gateway zuerst seine Konsole (`console.lost` stdout und stderr, `EPIPE`). Dann sah die Instanzüberwachung das Ende: `session.instance_ended` → `session.shutdown_requested` → SIGTERM. An `39e5ccd1` hätte genau hier das `print` geworfen. Lauf 1: 717442 → 717537 → 717546 ms; Lauf 3: 712852 → 712969 → 713026 ms.
+  - `crashes: []` in allen drei Berichten. Das allein beweist wenig: Ohne Fix blieb etwa jeder dritte Lauf sauber.
+  - **Haupt, Lauf 1** ([Bericht](vor-maschine.p3b.r370.native-main-run1-FAIL.json)): FAIL in einer Zeile, `latch-sticky`. Der erste Frame nach dem Fortsetzen zeigte keinen wartenden Trip, die folgenden 45 zeigten ihn. Die übrigen Zeilen: 65 PASS, 6 `incomplete` (die Jog-Bremswege, wie in den früheren Läufen). Dazu der eigene Abschnitt unten.
+  - **Haupt, Lauf 2** ([Bericht](vor-maschine.p3b.r370.native-main-run2.json)): PASS, 67 PASS und 5 `incomplete`; `latch-sticky` 44/44.
+  - **`latch-delayed`** ([Bericht](vor-maschine.p3b.r370.native-latch-delayed.json)): PASS.
+  - Davor scheiterten zwei Läufe an meinem Aufbau, ohne etwas zu prüfen: `node_modules` des Baums war ein Symlink auf `~/lcnc-suite-ip3`, und die Stufe verweigerte die geteilte Kopie. Ich habe eine echte Kopie angelegt und neu gestartet.
+- **`run_crashes` an den alten Ordnern:**
+  - Über alle 82 Ordner mit `crash.log` meldet es 28 Treffer und 54 saubere Läufe, genau die Ordner mit dem Eintrag.
+  - Jeder der 28 Einträge liegt zeitlich vor dem `ended` seines Berichts, also vor dem Lesen. Kein Eintrag kam später.
+  - Das gilt durch die Konstruktion: Die Rückgabe wartet, bis die Test-Unit keine Prozesse mehr hat und die Instanz nicht mehr lebt (`end_test_resources`). Erst danach liest `run_crashes`.
+- **Die Helfer:** stdout und stderr von `hal_watchdog` und `hal_reader` sind die Dateien `/tmp/linuxcnc.print.*` und `/tmp/linuxcnc.debug.*`; `loadusr` vererbt sie (`/proc/<pid>/fd` an der LAN-Sim).
+  - Eine Datei wirft kein `EPIPE`, wohl aber `ENOSPC`, wenn `/tmp` (tmpfs) voll ist.
+  - Gedeckt ist das durch die Konstruktion: Der Guard steht vor dem ersten `print` (AST-Wächter). In keinem Lauf ging die Konsole eines Helfers verloren; live beobachtet ist es nicht.
+- **CI** auf `harden/p3b` an `ac26a648`: grün, Backend und Frontend (Lauf 43597613339).
+
+### Nicht aus Punkt 1 · `latch-sticky` im ersten Hauptlauf
+
+- **Der Befund:** Der erste Frame nach dem Fortsetzen trug keinen `safety_trip`, alle 45 folgenden trugen ihn. In den 34 früheren Läufen mit diesem Fall (18 Haupt, 16 `latch-delayed`, 6. bis 14. November) war der erste Frame immer `true`.
+- **Die Zuordnung** steht im Stall-Fenster des Gateways ([Auszug](vor-maschine.p3b.r370.native-run1-latch-trace.txt)). `lag.window` nennt die Phase, in der das SIGSTOP traf, und was nach dem SIGCONT zuerst lief:
+  - **Lauf 1:** 878,5 ms in `status_loop.build`. Danach wurde der Frame an den Treiber-Client codiert und versandt (`127.0.0.1:54334`, 2370 Bytes). Erst danach las `reader_recv` die gepufferten Snapshots, und erst danach wertete der Poller den Latch aus: `safety.tripped` 1,2 ms nach dem Fenster.
+  - **Lauf 2:** Der Stopp traf nach dem Versand (`send_done`), und der erste Frame danach gehörte zu einem neuen Tick, also `true`.
+- **Der Mechanismus:**
+  - Die Auswertung läuft im Task `_status_poller`. Jeder Client-Task in `ws_endpoint` baut seinen Frame zum letzten veröffentlichten Tick (`_status_gen`).
+  - Der Frame aus Lauf 1 gehörte zum Tick vor dem Stopp; damals war der Latch noch FALSE. Die Frames bleiben in Tick-Reihenfolge, und der Trip erscheint im ersten Tick nach dem Fortsetzen.
+  - Der Treiber zählt dagegen jeden Frame, den er nach seinem `t_cont` verarbeitet. `t_cont` wird nach `trip.cont` gestempelt (SIGCONT, dann `state.json`), und der Client stempelt beim Verarbeiten. So zählte er einen Frame des Ticks vor dem Stopp mit.
+- **Mein Diff** berührt diesen Pfad nur über `print`s, die jetzt durch den Guard gehen. Er ändert weder den Tick noch die Auswertung noch den Versand.
+- **Vorschlag** für die nativen Fälle in 3b, mit Gegenfall: Der Frame trägt die Tick-Nummer des Pollers, und der Treiber zählt für `latch-sticky` nur Frames aus Ticks nach dem Fortsetzen.
+  - Alternativ, ohne neues Drahtfeld: nur Frames ab dem ersten Tick, dessen Zeit nach dem SIGCONT liegt.
+  - Oder siehst du im Produkt etwas zu ändern, etwa dass ein Frame nach einem Stall auf den nächsten Tick warten soll?
+
+
+**Erbeten:** `agreement` oder `findings` zu Punkt 1 von Paket 3b an `ac26a648`, und deine Sicht auf den `latch-sticky`-Vorschlag. Danach folgen Replay → Antast-Live → Firefox-Kern.
