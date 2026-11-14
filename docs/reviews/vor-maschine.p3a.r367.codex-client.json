@@ -1,0 +1,35 @@
+[
+  {
+    "case": "timeout",
+    "sends": 1,
+    "pending": "req-1",
+    "notice": "No reply — outcome unknown",
+    "contract": true
+  },
+  {
+    "case": "refused",
+    "sends": 1,
+    "pending": null,
+    "notice": "not delivered",
+    "contract": true
+  },
+  {
+    "case": "accepted",
+    "sends": 1,
+    "pending": "req-1",
+    "notice": null,
+    "contract": true
+  },
+  {
+    "case": "ended-before-timeout",
+    "pending": null,
+    "notice": null,
+    "contract": true
+  },
+  {
+    "case": "new-owner-before-timeout",
+    "pending": "req-2",
+    "notice": null,
+    "contract": true
+  }
+]

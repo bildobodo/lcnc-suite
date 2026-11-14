@@ -1,0 +1,84 @@
+[
+  {
+    "case": "not_a_sim_and_no_port",
+    "running_ini": "/different/running/machine.ini",
+    "events": [
+      {
+        "native_stat_constructed": true
+      },
+      {
+        "url": "ws://127.0.0.1:8000/ws"
+      },
+      {
+        "wire": {
+          "cmd": "hello",
+          "session": "home-step-live"
+        }
+      },
+      {
+        "wire": {
+          "cmd": "arm",
+          "armed": true,
+          "req_id": "hslc-1"
+        }
+      },
+      {
+        "wire": {
+          "cmd": "estop_reset",
+          "req_id": "hslc-2"
+        }
+      },
+      {
+        "wire": {
+          "cmd": "machine_on",
+          "req_id": "hslc-3"
+        }
+      },
+      {
+        "socket_closed": true
+      }
+    ],
+    "refused_before_writes": false
+  },
+  {
+    "case": "not_the_running_ini",
+    "running_ini": "/different/running/machine.ini",
+    "events": [
+      {
+        "native_stat_constructed": true
+      },
+      {
+        "url": "ws://127.0.0.1:4188/ws"
+      },
+      {
+        "wire": {
+          "cmd": "hello",
+          "session": "home-step-live"
+        }
+      },
+      {
+        "wire": {
+          "cmd": "arm",
+          "armed": true,
+          "req_id": "hslc-1"
+        }
+      },
+      {
+        "wire": {
+          "cmd": "estop_reset",
+          "req_id": "hslc-2"
+        }
+      },
+      {
+        "wire": {
+          "cmd": "machine_on",
+          "req_id": "hslc-3"
+        }
+      },
+      {
+        "socket_closed": true
+      }
+    ],
+    "refused_before_writes": false
+  }
+]

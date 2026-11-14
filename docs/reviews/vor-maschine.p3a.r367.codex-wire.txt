@@ -1,0 +1,46 @@
+.FF.                                                                     [100%]
+=================================== FAILURES ===================================
+_________ TestR367Wire.test_corrected_z_is_checked_before_first_write __________
+
+self = <test_r367_codex.TestR367Wire testMethod=test_corrected_z_is_checked_before_first_write>
+
+    def test_corrected_z_is_checked_before_first_write(self):
+        # Stable, known residual eoffset, compensation disabled. Choose X so
+        # the uncorrected line is exactly 254 bytes and the actual one 255.
+        x = next(10.0 ** n for n in range(1, 300)
+                 if len(f"G10 L20 P9 X{10.0 ** n:.6f} Z0.000000".encode()) == 254)
+        row = self.exercise("corrected_z_boundary", {"cmd": "touchoff", "axes": {"X": x, "Z": 0}}, -1)
+        assert row["reply"]["ok"] is False, row
+>       assert row["writes"] == [], row
+E       AssertionError: {'bookings': [], 'case': 'corrected_z_boundary', 'payload': {'axes': {'X': 1e+225, 'Z': 0}, 'cmd': 'touchoff'}, 'reply': {'error': 'MDI line is 255 bytes — LinuxCNC takes 254', 'ok': False}, ...}
+E       assert [('mode', (3,... (0.05,), {})] == []
+E         
+E         Left contains 2 more items, first extra item: ('mode', (3,), {})
+E         Use -v to get more diff
+
+test_r367_codex.py:46: AssertionError
+_______ TestR367Wire.test_long_parameter_key_refused_before_first_write ________
+
+self = <test_r367_codex.TestR367Wire testMethod=test_long_parameter_key_refused_before_first_write>
+
+    def test_long_parameter_key_refused_before_first_write(self):
+        row = self.exercise("raw_parameter_key", {"cmd": "mdi", "text": "G4 P0",
+                            "vars": {"3014": 1, "0" * 260 + "3054": 2}})
+        assert row["reply"]["ok"] is False, row
+>       assert row["writes"] == [] and row["bookings"] == [], row
+E       AssertionError: {'bookings': [[({3004: None, 3005: None, 3006: None, 3007: None, ...}, 'assumed'), {}], [({3004: None, 3005: None, 300...ply': {'error': 'Parameters not taken over — nothing started', 'mdi_set': False, 'ok': False, 'persisted': False}, ...}
+E       assert ([('mode', (3,... (0.05,), {})] == []
+E         
+E         Left contains 4 more items, first extra item: ('mode', (3,), {})
+E         Use -v to get more diff)
+
+test_r367_codex.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED test_r367_codex.py::TestR367Wire::test_corrected_z_is_checked_before_first_write
+FAILED test_r367_codex.py::TestR367Wire::test_long_parameter_key_refused_before_first_write
+[GC] +92ms gen=2 duration=11.3ms collected=675 uncollectable=0
+[GC] +99ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +109ms gen=2 duration=9.8ms collected=0 uncollectable=0
+[GC] +119ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +126ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +133ms gen=2 duration=6.5ms collected=0 uncollectable=0

@@ -2849,3 +2849,46 @@ Fable hat R366 vor dem Merge geprüft und acht Punkte genannt. Einer davon war e
 8. Bleibt die Antwort auf eine M6-Bestätigung aus, zeigt der Dialog „No reply — outcome unknown“ und bleibt gesperrt, bis der Status die Anforderung beendet.
 
 **Erbeten:** `agreement` oder `findings` zu VM-I11 (mit 254), VM-I12, der Rundung, dem Programmpfad und dem Nachtrag am Integrationskopf `47fd2c5b`.
+
+
+---
+
+## Codex · Paket 3a · Nachprüfung R367 · 14. November 2026
+
+**Urteil: `findings`.** VM-I12 ist geschlossen. Die Korrektur auf **254 UTF-8-Bytes** ist richtig; meine Angabe 255 in R366 war falsch. Bei VM-I11 bleiben zwei Fälle, in denen die geprüfte Zeile nicht die gesendete ist. Hinzu kommt die fehlende Zielbindung des neuen Live-Treibers. Dafür ist keine neue Operatorentscheidung nötig.
+
+Geprüft: Produkt `6cc51e64..47fd2c5b`, Anfrage an `51a2f07a`. **915 gezielte Backend-Tests grün**, einschließlich der R366-Sonden; eigene neue Dispatch-Proben **2 rot / 2 grün**, Client-Handler **5/5 grün**, Zielprüfung des Live-Treibers **2 rot** mit vollständig ersetzten Außenstellen. Alles in einer Archivkopie; keine Verbindung zur Operator-Sim. [Prüfnachweis mit Quellen, Befehlen und Grenzen](vor-maschine.p3a.r367.codex-evidence.md).
+
+### VM-I11 · Rest A · Hoch · Parameterschlüssel wird anders geprüft als geschrieben
+
+`command_policy.py:1429–1447` prüft das Wort mit `int(key)`, `_apply_probe_vars_detail` in `gateway.py:5473–5500` baut es dagegen mit dem **ursprünglichen Schlüssel**. Der Kommentar „the form _apply_probe_vars_detail writes“ trifft deshalb nicht zu.
+
+Konkrete Nutzlast: `mdi`, `text:"G4 P0"`, `vars:{"3014":1, <260 Nullen + "3054">:2}`. Beide Parameternummern sind deklariert. Die Prüfung sieht das kurze `#3054=2.000000`, der spätere Chunk enthält aber **274 Bytes**. Am Kopf schreibt der Dispatch bereits **MODE_MDI und `#3014=1.000000`**, bucht 3014 als angewandt und 3054 als unbekannt; erst dann antwortet er `Parameters not taken over — nothing started`. Der letzte Schreibweg verhindert den überlangen Chunk, aber N6 ist bereits verletzt. Der Vergleich mit dem kanonischen Schlüssel `"3054"` läuft durch. [Gegenprobe und Daten](vor-maschine.p3a.r367.codex-wire.json).
+
+**Korrektur:** Sämtliche endgültigen Parameter-Chunks vor Moduswechsel, Buchung und erster Parameter-Schreibung auf die eine Byte-/NUL-Regel prüfen. Die Nummerndarstellung muss in Prüfung und Schreibung dieselbe sein. Falls ihr stattdessen nichtkanonische Schlüssel verweigert oder normalisiert, muss dieser Vertrag vor dem Schreiben greifen; zwei Schreibweisen derselben Nummer dürfen dabei nicht unbemerkt zusammenfallen. Wächter mit gültigem erstem Parameter und ungültigem späterem Chunk, nicht nur einem einzelnen überlangen Wort.
+
+### VM-I11 · Rest B · Mittel · Touch-off prüft noch den Wert ohne bekannte Z-Korrektur
+
+Die in der Anfrage offen benannte Einschränkung nehme ich so **nicht** an: „ein paar Ziffern“ reichen an der Kante. `gateway.py:7092–7104` prüft `_prospect` ohne den Wert, den `gateway.py:7161–7168` später zu Z addiert.
+
+Gegenfall bei frischem Reader, ausgeschalteter Kompensation und **stabilem** bekanntem `z_eoffset=-1`: `touchoff {axes:{X:1e225,Z:0}}`. Die vorgeprüfte G10-Zeile hat genau **254 Bytes**, die tatsächliche Zeile mit `Z-1.000000` **255**. Ergebnis: Moduswechsel, danach Ablehnung. Mit sonst identischem Zustand und `z_eoffset=0` wird die 254-Byte-Zeile angenommen. Das braucht weder eine externe Zustandsänderung noch eine unlesbare HAL-Größe.
+
+**Korrektur:** Den bekannten Korrekturwert schon vor der ersten Schreibung in die tatsächliche Zeilenbildung aufnehmen und diese prüfen; die erneute Zustands-/Zeilenprüfung an der Schreibgrenze bleibt bestehen. Eine zwischenzeitliche externe Änderung ist eine andere, zu benennende Grenze. Sie erklärt diesen vollständig vorab erkennbaren Fall nicht.
+
+### VM-I13 · Hoch · Der neue Home-/Jog-Live-Treiber bindet sich nicht an seine Scratch-Sim
+
+`scripts/home_step_live_check.py:50` öffnet beim Import den nativen Status; `:317–323` liest aus einer beliebigen angegebenen INI lediglich Port/Token, verwendet bei fehlendem Port **8000** und beginnt über `Gateway.__aenter__` mit Arm, anschließend E-Stop-Reset und Machine-on. Weder die Übereinstimmung mit der laufenden INI noch das deklarierte Simulatorprofil oder der eigene Scratch-Lauf werden geprüft. Der Statuskanal wird unabhängig vom gewählten Gateway geöffnet.
+
+Die [Offline-Sonde](vor-maschine.p3a.r367.codex-live-target.py) führt diesen echten Eintrittspfad mit gefälschtem LinuxCNC und Transport aus. Eine Nicht-Sim-INI ohne Port und eine INI mit eigenem Port, die nicht zur laufenden Instanz gehört, erreichen beide **Arm → E-Stop-Reset → Machine-on** ([Daten](vor-maschine.p3a.r367.codex-live-target.json)). Danach würden Home/Unhome und Fahrten folgen. Die Warnung im Dateikopf sichert die Zielauswahl nicht ab; ein ausgelassener Port führt gerade auf den üblichen Live-Port.
+
+**Korrektur:** Den Treiber an den bereits geprüften Scratch-Orchestrator binden oder vor Arm/Schreiben selbst das tatsächlich laufende Simulatorziel samt Übereinstimmung von INI, nativem Kanal und Gateway belegen. Den bestehenden Vertrag aus `scripts/test_support/live_target.py` wiederverwenden; die absichtlich geänderte Home-Gruppe als konkrete Fixture nachweisen. Kein stiller Rückfall auf den Live-Port. Negative Wächter müssen falsches/nicht nachweisbares Ziel **vor jedem Arm-/Controller-Befehl** verweigern. Dazu ein gültiger Scratch-Vergleich. Die schon vorliegenden Live-Ergebnisse werden dadurch nicht widerlegt; offen ist die sichere Zulassung dieses neu eingecheckten Werkzeugs.
+
+### Geschlossene und angenommene Teile
+
+- **VM-I12 geschlossen:** Der Timeout nennt den unbekannten Ausgang, hält die Sendesperre und beschriftet keine inzwischen beendete oder andere Anforderung. Die zweite Hälfte des Browser-Wächters ist durch die gezielte Mutation sinnvoll abgesichert.
+- **VM-I11 im Übrigen:** Roh-MDI prüft UTF-8, NUL und 254 Bytes korrekt. Der zusätzliche letzte Schreibweg ist richtig. Die Vorprüfungen für `set_wcs`, Einstieg, G30 und den `probe_run`-Aufruf schließen die benannten Wege; A/B betreffen die verbleibende Abweichung zwischen Vorprüfung und tatsächlicher Zeile.
+- **Decimal-Korrektur angenommen:** Der größere lokale Kontext trägt endliche Double-Werte und die sechs Nachkommastellen; der gültige große Parameterwert besteht, die MDI-Grenze bleibt getrennt zuständig.
+- **Programmpfad angenommen:** Die Prüfung liegt vor dem Ladeeintrag und `program_open`; damit bleibt das vorhandene Programm auch dann offen, wenn das Binding andernfalls zuerst PLAN_CLOSE senden würde. 254/255- und NUL-Wächter bestehen.
+- **Lese-Abfragen angenommen:** `get_wcs_table` und `list_probe_macros` sind wieder erreichbar; der neue Abgleich mit den tatsächlich behandelten Befehlen schließt die gefundene Inventurlücke. Die Trip-ID-Prüfung ist ebenfalls passend.
+
+Für die nächste Runde: A/B sowie die Zielzulassung des neuen Treibers mit gezielten Gegenfällen schließen; keine erneute Planrunde erforderlich. Kein Produktcode durch dieses Review geändert.

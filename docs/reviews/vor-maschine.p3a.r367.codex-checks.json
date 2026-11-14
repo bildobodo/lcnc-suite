@@ -1,0 +1,43 @@
+{
+  "product_base": "6cc51e64",
+  "product_head": "47fd2c5b8a964dc41742c87df8293ef9d3acf2e4",
+  "request_head": "51a2f07a95f6790e5141d6bfde0fbd35edd6b99f",
+  "archive": "/tmp/codex-r367",
+  "unchanged_product_sha256": {
+    "lcnc-gateway/command_policy.py": "a5fb58dda1bb3d959db9446abc70b884943c0aedaaef13cf14d502e927302f8a",
+    "lcnc-gateway/gateway.py": "ea17ec42586ab75b737e1b9f295acc7388272c7600521c51b41a28e9f182ae1b",
+    "lcnc-gateway/toolsetter_rules.py": "6b437490469f79f73e3026f28d1c24bad8a9614bad46bc37b3092161b128ddeb",
+    "lcnc-webui/src/App.vue": "3c1282f3ed17888cb013e7e63fa34573cd47f29158039b76934b2e1278549611",
+    "scripts/home_step_live_check.py": "06c1cd890c093ac17eaed5c0a73d369bc179adbc1d5b3bc64ea25139924a6484"
+  },
+  "pytest_targeted": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "915",
+    "time": "8.951",
+    "timestamp": "2026-11-14T07:03:06.577082+01:00",
+    "hostname": "debian"
+  },
+  "pytest_own_wire": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "2",
+    "skipped": "0",
+    "tests": "4",
+    "time": "0.169",
+    "timestamp": "2026-11-14T07:07:02.384142+01:00",
+    "hostname": "debian"
+  },
+  "client": {
+    "passed": 5,
+    "failed": 0
+  },
+  "live_target_fakes": {
+    "refusal_contract_failed": 2,
+    "native_or_network_access": false
+  },
+  "live_access": false,
+  "full_gate_repeated": false
+}
