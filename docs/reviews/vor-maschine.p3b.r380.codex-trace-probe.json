@@ -1,0 +1,10 @@
+{
+  "control_current_path_jobs": 1,
+  "rollover_before_window": true,
+  "current_path_identity_and_size_unchanged": true,
+  "planned_window_jobs": 0,
+  "new_job_written_to_rotated_file": true,
+  "new_job_writer": "gateway",
+  "new_job_pid_is_test_process": true,
+  "interpretation": "No absence verdict is justified from the current path alone."
+}

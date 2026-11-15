@@ -1,0 +1,36 @@
+{
+  "stream": [
+    [
+      0.0,
+      {
+        "feed_override_enabled": false,
+        "interp_state": 1,
+        "inpos": true
+      }
+    ],
+    [
+      0.1,
+      {
+        "feed_override_enabled": false,
+        "interp_state": 2,
+        "inpos": false
+      }
+    ],
+    [
+      1.0,
+      {
+        "feed_override_enabled": true,
+        "interp_state": 1,
+        "inpos": true
+      }
+    ]
+  ],
+  "accepted_start_before_this_call_changed_override": true,
+  "completion_answers": [
+    false,
+    false,
+    true
+  ],
+  "fresh_free_to_locked_transition": false,
+  "interpretation": "Require a confirmed free baseline before reusing this start witness."
+}

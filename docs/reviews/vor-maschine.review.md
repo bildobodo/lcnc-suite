@@ -4680,3 +4680,50 @@ Position, Modalzustand und Werkzeug übernimmt der nächste Schritt so, wie `pro
 - **Q-P2:** Fixture mit Wächter (oben) oder die Werte aus einem Replay-Datensatz eines Gate-Laufs? Die native Stufe läuft ohne Browser-Lauf; ein Datensatz müsste mitgeführt werden. Ich schlage die Fixture vor.
 
 **Erbeten:** `agreement` oder `findings` zum Plan.
+
+
+---
+
+## Codex · Paket 3b · Antasten über `probe_run` · Planreview R380 · 15. November 2026
+
+**Urteil: `findings` zum Plan an `1285c67f`, Produktbasis `cad9ac77`.** Ort und Grundaufbau sind angenommen. Drei Nachweisgrenzen bitte vor dem Bau ergänzen: die tatsächliche Browser-Nutzlast, der beobachtete Gateway-Trace und die freie Override-Grundlinie. **Q-P1: Ja. Q-P2: Fixture mit zusätzlicher Bindung an den Browserauftrag.** Keine neue Operatorentscheidung nötig.
+
+Geprüft: TS248-06/R251 und VM349-01/R350, der neue Plan, die aktuellen Panel-/App-Sendestellen, Handler, Antastroutine und native Ablauf-/Rückgabehelfer. Drei eigene Offline-Sonden bestätigen die unten beschriebenen Gegenfälle; die Trace-Sonde verwendet den echten Writer in zwei gewöhnlichen Python-Prozessen, die anderen entnommene Quellfunktionen mit künstlichen Eingaben. Das ist kein neuer Browser- oder nativer Abnahmelauf. [Belege, Skripte, Ergebnisse und Grenzen](vor-maschine.p3b.r380.codex-evidence.md).
+
+### VM380-01 · Die Fixture muss auch den tatsächlich gesendeten Z-Auftrag halten
+
+**P2, Plan §4/Q-P2.** `probeVarMap(PROBE_FALLBACK, 0)` ist eine passende Karte für den G54-Nachweis, aber nicht der Auftrag des unveränderten Panel-Ausgangspunkts: `PROBE_FALLBACK.autoZero` ist `false`, und `runGridProbe` berechnet dann Modus **1**. Für Modus **0** muss der erklärte Panelzustand ausdrücklich **Auto Zero an** enthalten. Das ändert keinen Produktstandard.
+
+Der vorgeschlagene Vitest-Vergleich hält nur Map gegen Fixture. Er erreicht die Sendestellen in Panel und App nicht. Konkreter Gegenfall: Die App ersetzt beim Senden `3030` durch `1`. Dann bleiben Map und native Fixture unverändert, und die bisherigen Browserprüfungen akzeptieren weiterhin Nummernmenge, endliche Werte und Modus aus `{0,1}`. Die echte Oberfläche würde jedoch nur messen, während der native G54-Nachweis weiterhin mit Modus 0 liefe. Meine Funktionssonde reproduziert genau diese Trennung; ein vollständiger Vergleich des abgefangenen Auftrags mit der Fixture wird rot.
+
+**Vertrag ergänzen:** Die Fixture benennt Panel-Eingaben einschließlich `autoZero: true`, die konkrete Routine `probe_z_minus_wco` und die vollständige erwartete Karte. Ein gezielter Browserfall stellt diesen Zustand her, betätigt den **Z-Flächenknopf**, und vergleicht den tatsächlich gesendeten `probe_run` einschließlich aller Werte mit der Fixture. Der Map-Wächter bleibt zusätzlich bestehen; Replay übernimmt diesen echten Auftrag. Mindestens der falsche Modus an der Sendestelle muss den Browser-Wächter rot machen. Für Surface analog den konkreten Profil-/Panelzustand und seine gesamte Karte binden. Ein gespeicherter vollständiger Gate-Replay-Datensatz ist dafür nicht nötig.
+
+### VM380-02 · Ein stabiles `trace.ndjson` beweist noch kein vollständiges Gateway-Fenster
+
+**P2, Plan §3/§5.** Alle Trace-Schreiber halten eigene offene Dateien. Nach einer Rotation durch einen anderen Prozess kann das Gateway weiterhin in `trace.ndjson.1` schreiben. Beginnt das Fenster **erst danach**, bleibt die aktuelle `trace.ndjson` während des gesamten Auftrags bei gleicher Inode und gleicher Größe. Keine der drei im Plan genannten Fehlerbedingungen greift.
+
+Meine Gegenprobe mit dem echten `lcnc_trace` zeigt: ohne Rotation genau ein Job im Fenster; mit einer einzelnen Rotation **vor** der Anfangsmarke kein Job im Fenster, aber der korrekt emittierte neue Gateway-Job in `.1`. Dafür sind weder eine Rotationskollision noch ein fremder Auftrag nötig. Die positive Zeile würde fälschlich „Handler nicht benutzt“ melden; eine Aussage „keine Lieferung“ ist aus diesem unbeobachteten Datenstrom ebenfalls nicht zulässig.
+
+**Vertrag ergänzen:** Anfang und Ende müssen nachweislich zum Trace-Strom **der gestarteten Gateway-PID** gehören. Ein kleiner Weg ohne Produktänderung sind eindeutige Start-/Endmarken über das vorhandene `client_diag`, vor dem Auftrag beziehungsweise vor jedem nachfolgenden MDI-Zurücklesen. Der Leser bestätigt die Marken aus dem tatsächlichen Gateway-Stream und bindet Dateistatus und Bytes an das geöffnete Objekt (`fstat`). Bereits umbenannte Dateien berücksichtigen oder den fehlenden Streamnachweis ausdrücklich als `incomplete` beenden. Ein durchgängig lesbares, vollständig eingerahmtes Fenster kann dann fehlende/falsche/zusätzliche Aufträge als FAIL beurteilen. Beschädigte beziehungsweise nur teilweise gelesene Zeilen im auszuwertenden Abschnitt werden nicht still übersprungen und damit zur vermeintlichen Abwesenheit.
+
+Abnahme zusätzlich zu den geplanten Gegenfällen: Rotation **vor** der Startmarke, Wechsel während des Fensters, fehlende Anfangs-/Endmarke, falsche PID und beschädigter Abschnitt. Kein allgemeiner Umbau des produktiven Trace-Systems verlangt. Die bisherigen Tags reichen, sobald ihre Beobachtung belegt ist.
+
+### VM380-03 · Die Override-Sperre braucht eine eigene Grundlinie und einen Abschluss
+
+**P2, Plan §1/§4/§6.** Der bestehende `probe-z` endet mit dem erwarteten G38.2-Fehlschlag. Die Routine hat dann `M50 P0` ausgeführt, erreicht ihr späteres `M50 P1` aber nicht; `probe_cases` stellt den Override nicht wieder frei. Auch die neue Aufräumliste nennt ihn nicht. Der aus `probe-z` übernommene Startwächter merkt lediglich irgendeinen Frame mit `feed_override_enabled == false`.
+
+Eine schon geerbte Sperre kann deshalb als Start des neuen Auftrags gelten. Der isolierte Original-Wächter akzeptiert den Verlauf **bereits gesperrt → Busy → frei/Idle**, obwohl kein zum Auftrag gehörender Wechsel von frei nach gesperrt beobachtet wurde. Damit könnte insbesondere ein fehlendes neues `M50 P0` unbemerkt bleiben. Die vorherige Miss-Prüfung und die spätere Surface-Prüfung dürfen diese Vorbedingung nicht zufällig liefern oder heilen.
+
+**Vertrag ergänzen:** Vor jedem neuen Probestart den Override nach bestätigtem Stillstand freigeben und aus einem frischen Status bestätigen; dafür existiert bereits `_override_free`. Der Startnachweis zählt erst die nach dem Auftrag beobachtete Sperre dieser freien Grundlinie. Nach dem erfolgreichen Hit wird die normale Freigabe geprüft, **bevor** Cleanup sie herstellen darf. Nach dem erwarteten Miss und auf Fehlerausgängen stellt der Abschluss bei gültigen Voraussetzungen ebenfalls die freie Übergabe an den nächsten Schritt her und liest sie zurück. Bei Trip, Verbindungsverlust oder fehlendem Stillstand bleibt die bisherige Regel bestehen: keine solche Weiterarbeit; Restzustand und fehlende Rückgabe benennen.
+
+Gegenfälle: geerbte Sperre, ausbleibende neue Sperre, ausbleibende normale Freigabe und scheiternde Cleanup-Freigabe. Die ursprünglichen fachlichen Zeilen bleiben auch bei einem Cleanup-Fehler erhalten, wie bereits in §6 vorgesehen.
+
+### Antworten und angenommener Umfang
+
+- **Q-P1: Ja, `surface_scan_run` jetzt aufnehmen.** Der aktuelle native Scan benutzt tatsächlich noch `mdi`. Den vorhandenen Scan über den strukturierten Auftrag führen; die unabhängigen Platten-/Werkstück-, Karten-, Override- und Kompensationsprüfungen aus G2 vollständig behalten. `surfaceMap` aus, eigener belegter Trace-Abschnitt, Wiederherstellung des Features-Abschnitts und MDI-Ersatz als roter Treiberfall passen dazu. Es braucht keinen zweiten vollständigen Scan allein für den alten Transportweg.
+- **Q-P2: Fixture bevorzugt, mit VM380-01.** So bleibt die native Stufe eigenständig lauffähig und trotzdem an einen tatsächlich gesendeten Browserauftrag gebunden. Eine weitere handgepflegte Zahlenquelle neben `probeVars.ts` wäre nicht ausreichend; der vorgeschlagene Map-Vergleich plus vollständiger Browservergleich hält die Bindung.
+- **Native Stufe statt eigenem Live-Skript angenommen.** Die isolierte Kopie mit Zielprüfung und bewiesener LAN-Rückgabe ist der richtige bestehende Rahmen. Position, Werkzeug und Modalzustand der weggeworfenen Kopie müssen nicht eigens auf den vorherigen LAN-Zustand zurückgefahren werden. Die Voraussetzungen und Übergaben innerhalb der nativen Fallfolge müssen aber ausdrücklich gelten; VM380-03 betrifft genau diese Grenze.
+- **Pflanzung P, Reihenfolge der Ablehnungen und Interpreter-Rücklesen angenommen.** Der abweichende Modus und die Werkzeugnummer machen eine fehlende Lieferung erkennbar. `#3116` hier nicht durch MDI lesen; seine einmalige Lieferung über den belegten Trace nachweisen. Der Plan nennt die Wirkung dieser Lesezeilen korrekt.
+- **Antwort und Antastergebnis getrennt angenommen.** `ok: true` bei der zugestellten Miss-Routine ist kein erfolgreicher Antastvorgang. Fehlerkanal, `#5070`, unverändertes G54 und tatsächliches Ende entscheiden den Fall. Die vorhandene 0,003-mm-Toleranz und der um 1 mm versetzte Gegenfall können bleiben; die angekündigten Live-Läufe müssen diese neue Kombination noch belegen.
+
+Bitte nur diese drei Grenzen im Plan festziehen. XY-/Kalibrierfahrten bleiben beim benannten Maschinentag, die Schalteränderung zwischen Zulassung und Schreibung beim vorhandenen Unit-Gegenfall. Keine Produktänderung, kein Build/Test im ausgelieferten Baum und kein Eingriff in die Live-Sim.

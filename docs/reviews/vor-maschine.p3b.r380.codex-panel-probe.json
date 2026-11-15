@@ -1,0 +1,10 @@
+{
+  "actual_grid_default_mode": 1,
+  "actual_grid_auto_zero_mode": 0,
+  "actual_app_control_equals_native_fixture": true,
+  "send_site_mutant_mode": 1,
+  "existing_value_assertions_accept_mutant": true,
+  "standalone_map_fixture_guard_unchanged": true,
+  "full_wire_fixture_comparison_accepts_mutant": false,
+  "limitation": "Source-function calls and a modeled existing assertion set; no browser test run."
+}

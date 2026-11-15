@@ -1,0 +1,27 @@
+{
+  "product": "cad9ac77",
+  "document": "1285c67f",
+  "archive": "/tmp/codex-r379",
+  "source_sha256": {
+    "lcnc-webui/src/probeVars.ts": "21cdb43f534aee1d30970d3ac0eb2879c82386b7231cf2bf571d2e5f7f9b0cef",
+    "lcnc-webui/src/ProbePanel.vue": "2fdcf2f3cb54d0bf372f21d6aca6a98b49311872f1ebfc7b0ab75046b13fe55e",
+    "lcnc-webui/src/App.vue": "3c1282f3ed17888cb013e7e63fa34573cd47f29158039b76934b2e1278549611",
+    "lcnc-webui/e2e/probe-click.spec.ts": "4f33b3595cfd9c4ebd9e3ef491e3b1bd077b166838a1abd2a639563b43783844",
+    "lcnc-gateway/lcnc_trace.py": "968e2542040fc5ee760beed625d58520cb0e5200a15baa57bebb61a2b81552b4",
+    "lcnc-gateway/gateway.py": "28d5a78d45c68653702b6123dae8694279346c4bc135c2fc64183b5feb33af97",
+    "scripts/native_run.py": "bb0a5f8dcd3de8423f5eea2f1fdde969e74d49a1d3c6af482d59188778ad7da5",
+    "scripts/test_support/tool_change.py": "a43413abd9684eb3bde53b83691496fdbc66a5f65caad0779a56ab05904f495b",
+    "subroutines/probe_basic/probe_z_minus_wco.ngc": "f627bc0142833d5656a12f56435901bae87669ca1ceca387d67137ade1487dc6"
+  },
+  "review_prefix_bytes": 536627,
+  "review_prefix_sha256": "857dd2ebbabf88d0d80c5fb483f4e8125cbb0b9b093917d8faf922ec50168272",
+  "no_live_access": true,
+  "probe_outputs": [
+    "vor-maschine.p3b.r380.codex-trace-probe.py",
+    "vor-maschine.p3b.r380.codex-trace-probe.json",
+    "vor-maschine.p3b.r380.codex-panel-probe.cjs",
+    "vor-maschine.p3b.r380.codex-panel-probe.json",
+    "vor-maschine.p3b.r380.codex-override-probe.py",
+    "vor-maschine.p3b.r380.codex-override-probe.json"
+  ]
+}
