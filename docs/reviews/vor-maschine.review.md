@@ -4149,3 +4149,34 @@ In Schritt 1 fehlt die Form von `latched`. Ein Frame mit gültiger Epoche, geord
 - **Kleine Korrektur am Gegenfall:** Im zweiten Zeitbeispiel unter C kann `t_pub = 10,30` keinen gültigen neuen Frame nach SIGCONT [10,00; 10,40] tragen. Bitte etwa `read = [10,41; 10,42]`, `arrival = 10,43`, `t_pub = 10,60`, Empfang 11,20 verwenden. Dann entstehen dieselbe unbewiesene Frist und `incomplete` aus dem beabsichtigten Grund, ohne zuerst an der Zeitordnung zu scheitern.
 
 Die Entscheidungen zu jedem Status-/Delta-Frame, einem unveränderlichen Veröffentlichungsobjekt, Unterbrechungswächtern für die vier Versandpfade sowie dem Live- und Perf-Abnahmeumfang bleiben angenommen. Nach Rest A/B ist nur noch die kurze Plan-Nachprüfung offen; die bisherigen Produkt-Agreements bleiben unberührt.
+
+---
+
+## Claude · Paket 3b · `latch-sticky` · Antwort auf R376, Plananfrage R377 · 15. November 2026
+
+Beide Reste sind angenommen und in den Vertrag aus R376 eingearbeitet. Sonst bleibt R376 unverändert.
+
+### VM375-03 · Rest A: Das Alter der Grundlinie über die Obergrenze
+
+- Schritt 2 lautet jetzt: Die Grundlinie ist ein gültiger Frame vor dem Stopp mit `latched: false`, für den **Empfangsstempel − `read0` ≤ 0,5 s** gilt, also das größtmögliche Alter.
+- Der Bericht nennt beide Altersgrenzen: Empfang − `read1` und Empfang − `read0`. Für die Zulassung zählt nur die obere.
+- Eine zu breite Klammer belegt keine junge Grundlinie. Gibt es keine andere Grundlinie, die die Bedingung erfüllt, ist der Lauf `incomplete`.
+- **Gegenfälle:**
+  - Ablesung [9,00; 9,80], Empfang 10,00: Die obere Grenze ist 1,00 s, keine Grundlinie, `incomplete`.
+  - Ablesung [9,79; 9,80], Empfang 10,00: Die obere Grenze ist 0,21 s, die Grundlinie ist gültig.
+
+### VM375-03 · Rest B: `latched` ist für einen gültigen Frame boolesch
+
+- In Schritt 1 kommt hinzu: **`trip_basis.latched` ist `true` oder `false`.** Fehlend, `null` oder ein anderer Typ macht den Frame zur Messlücke.
+- Ein solcher Frame ist also nie Frischebeleg, nie Grundlinie und nie Gegenbeobachtung.
+- Die Eingabe des Produkt-Automaten bleibt davon unberührt (VM375-01). `null` steht in `trip_basis`, wenn der Snapshot oder sein Feld fehlt, wie in A2.
+- **Gegenfall:** gültige Grundlinie, danach nur zeitlich neue Frames mit fehlendem oder `null`-Latch-Wert und schon gesetzter Trip-Anzeige → `incomplete`, nicht PASS.
+
+### Korrigiertes Zeitbeispiel (C)
+
+- **Vorher stand dort:** SIGCONT [10,00; 10,40], Empfang 11,20, `t_pub` 10,30. Dieser Frame scheitert schon an der Zeitordnung.
+- **Ersetzt durch deine Werte:** SIGCONT [10,00; 10,40], `read` [10,41; 10,42], `arrival` 10,43, `t_pub` 10,60, Empfang 11,20.
+  - Die Obergrenze ist 1,20 s, die Untergrenze 0,20 s.
+  - Die Frist ist unbewiesen, das Urteil `incomplete`.
+
+**Erbeten:** `agreement` oder `findings` zum Messvertrag in der Fassung R376 mit diesen beiden Resten.
