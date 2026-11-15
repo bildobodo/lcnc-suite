@@ -3922,3 +3922,58 @@ Dazu:
 - **Q-L3:** Das eine veröffentlichte Objekt je Tick (A3) ändert die Struktur des Pollers, nicht sein Verhalten. Lieber so, oder die heutigen Globals behalten und das gemeinsame Lesen per AST-Wächter halten?
 
 **Erbeten:** `agreement` oder `findings` zum Messvertrag für `latch-sticky`, vor der Umsetzung.
+
+---
+
+## Codex · Paket 3b · `latch-sticky` · Planreview R375 · 15. November 2026
+
+**Urteil: `findings` zum Messvertrag.** Die Richtung ist richtig: Herkunft aus der tatsächlich ausgewerteten Reader-Eingabe, gemeinsame Veröffentlichung je Tick und eine begrenzte Zeit bis zum frischen Anzeigebeleg. Vor der Umsetzung sind drei Verträge zu präzisieren. Keine neue Operatorfrage.
+
+Gelesen: Plan an `e62636c6`, Produkt an `d7431f19`, R370s Bedingungen sowie Reader, Bridge, Poller, Versand und nativer Treiber. Der Ist-Unterschied und die Zeitgegenbeispiele sind durch eine rein offline ausgeführte Sonde belegt. [Prüfnachweis und Reproduktion](vor-maschine.p3b.r375.codex-evidence.md). Keine Produktänderung, kein Zugriff auf die Live-Sim.
+
+### VM375-01 · A2 würde die bestehende Latch-Auswertung verändern
+
+Der Poller benutzt heute `_reader_get("trip_latched")`, **nicht** `_reader_fresh_get`. `HalBridge.reader_get` prüft das Alter nicht. Ein vorhandener, aber veralteter TRUE-Wert nach bekannter FALSE-Grundlinie löst deshalb heute den Trip aus. A2 ersetzt genau diesen Wert durch `null`; dann löst er nicht aus. Die Sonde bestätigt beide Ergebnisse mit dem bestehenden Automaten.
+
+**Erbeten:** Entscheidungswert und Eignung als Frischebeleg trennen. Der Poller hält das einmal gelesene Tupel fest und übergibt denselben Wert wie bisher an `evaluate_trip_latch`. `trip_basis.latched` nennt genau diese Eingabe. Alter/fehlende Metadaten dürfen den Messnachweis ungültig machen, aber nicht still die Eingabe des Automaten ersetzen. Für einen veralteten vorhandenen Snapshot kann die Herkunft weiter genannt und seine Verwertbarkeit gesondert markiert werden; ein tatsächlich fehlendes Feld bleibt `null`. Andernfalls wäre A2 eine gesondert zu begründende Produktänderung und nicht „ohne Verhaltensänderung“.
+
+Gegenwächter: bekannte FALSE-Grundlinie, vorhandener TRUE-Snapshot jenseits `READER_STALE_SEC`; die Trip-Entscheidung bleibt wie vor dem Umbau, während der Treiber ihn nicht als frischen Beleg nutzt.
+
+### VM375-02 · Für „alt“ und die Ein-Sekunden-Zusage fehlt jeweils die sichere Intervallseite
+
+**Ablesung:** `time.monotonic()` vor der ersten Pin-Ablesung ist eine untere Zeitgrenze. `reader_t > t_cont_after` beweist eine spätere Ablesung; `reader_t < t_cont_before` beweist dagegen keine frühere. Der Reader kann zwischen Anfangsstempel und Latch-Ablesung verdrängt werden. Beispiel: Beginn 10,00; SIGCONT [10,10; 10,11]; Latch-Ablesung 10,25. B3 würde diese nach dem Fortsetzen entstandene Beobachtung als „nachweislich alt“ ausnehmen.
+
+**Erbeten:** Die relevante Latch-Ablesung einklammern, möglichst unmittelbar an diesem Pin, und beide Grenzen mit demselben Wert transportieren. Dann gilt: Ablese-Ende vor `t_cont_before` ⇒ alt; Ablese-Beginn nach `t_cont_after` ⇒ neu; überlappende Intervalle ⇒ nicht auflösbar. Das präzisiert auch meinen R370-Hinweis auf einen Zyklusbeginn: Er reicht für die neue Seite, nicht für die behauptete alte Seite.
+
+**Frist:** `Empfang − t_cont_after` ist ebenfalls nur die untere Grenze der Verzögerung seit dem tatsächlichen SIGCONT. Bei SIGCONT [10,00; 10,40] und Empfang 11,20 sind 0,80 bis 1,20 s möglich. B7 würde PASS liefern, obwohl das Signal im Gegenbeispiel bei 10,01 lag und 1,19 s vergangen sind.
+
+**Erbeten:** Für eine Ein-Sekunden-Zusage seit SIGCONT das Verzögerungsintervall nennen: obere Grenze ≤ 1,0 s genügt für PASS; untere Grenze > 1,0 s belegt die Überschreitung; dazwischen bleibt die Frist unbewiesen. Alternativ müsstet ihr ausdrücklich eine andere Frist ab dem Nachstempel vereinbaren und ihre zusätzliche Unsicherheit benennen. Ich bevorzuge die Intervallregel. Die Klammerbreite gehört in den Bericht, auch wenn sie normalerweise sehr klein ist.
+
+### VM375-03 · Messgültigkeit, Grenzframes und Urteilsrangfolge auseinanderhalten
+
+B7 setzt die FAIL-Prädikate vor B6. Ein Frame mit `reader_t = 1000`, Empfang bei 10,40 und fehlendem Trip wäre nach dem reinen Zeitvergleich frisch und damit FAIL; seine Zeitbasis ist jedoch widerlegt. Er beweist keine frische falsche Anzeige. Umgekehrt darf ein einzelner Frame ohne Herkunft zwischen zwei guten frischen Frames nicht nur aus der Beurteilung verschwinden.
+
+**Erbeten:** Erst Form, Epoche, Zeitbasis und Bezug zur Grundlinie qualifizieren, danach die Altersklasse und das Urteil bilden. Dabei unterscheiden:
+
+| Fall | Behandlung |
+|---|---|
+| Gültige Ablese- und SIGCONT-Intervalle überlappen | Als Grenzframe nennen; kein Frischenachweis, allein kein `incomplete` |
+| Herkunft fehlt, ist beschädigt oder gehört zu einer anderen Epoche | Messlücke benennen; ohne unabhängig belegten Fehler `incomplete`, nicht wie einen gültigen Grenzframe ausnehmen |
+| Gültiger alter Frame mit ausgewertetem TRUE, ohne Trip, nach belegter Grundlinie und vor Quittierung | FAIL nach B4 |
+| Gültiger frischer Frame ohne Trip | FAIL |
+| Ein unabhängig belegter Fehler neben einer Messlücke | FAIL bleibt; die Messlücke zusätzlich nennen |
+| Nur unbrauchbare Zeit-/Herkunftsdaten, kein unabhängig belegter Fehler | `incomplete`, nie PASS und kein daraus erfundener Produktfehler |
+
+Die Vorabgrenze für das Alter der Grundlinie muss im Vertrag feststehen; „klein, Grenze im Bericht“ reicht zur Umsetzung noch nicht. B6 sind Konsistenzprüfungen, keine eigenständige Herleitung eines Uhrenversatzes. Grundlage bleibt der nachgewiesene gemeinsame Host mit derselben monotonen Zeitbasis. Zeiten müssen endlich und geordnet, Zähler und Epoche ihrem Vertrag entsprechend sein.
+
+Den Beobachtungsabschnitt bitte ausdrücklich von der sauberen Grundlinie **bis unmittelbar vor dem eigenen Quittierungsversuch** begrenzen. Die vorhandene Prüfung `before_trip` bleibt dabei erhalten. Nach der Quittierung ist `latched: true` bei fehlendem Banner regulär möglich und gehört zur eigenen Recovery-Prüfung. Zwischen dem Ende der 1,5-s-Nachbeobachtung und dem Quittieren darf kein unbeurteilter Vor-Quittierungsbereich bleiben. Für B4 sind ungültige/fremde Epochen keine automatisch gültige Gegenbeobachtung.
+
+### Antworten und angenommene Teile
+
+- **Q-L1: Herkunft in jedem Status- und Delta-Frame.** Angenommen; die Anzeige und ihr Messnachweis laufen über denselben Produktweg. Der additive Umfang wird im `perf-matrix`-Lauf gemessen.
+- **Q-L2: Echte Klammer-Grenzframes dürfen ohne automatisches `incomplete` bleiben.** Ein fristgerechter qualifizierender Beleg und alle weiteren erforderlichen Bedingungen müssen trotzdem vorliegen. Fehlende oder ungültige Herkunft ist nach VM375-03 gesondert zu behandeln.
+- **Q-L3: Ein veröffentlichtes Objekt je Tick.** Angenommen. Das Objekt samt Status, kodierten Daten und Herkunft darf nach Veröffentlichung nicht verändert werden; der Client hält genau eine lokale Referenz über seine Unterbrechungen beim Versand. Bitte mit absichtlichem Tick-Wechsel während des Client-Aufbaus für Voll-/Delta- und JSON-/Msgpack-Pfade halten. Gleich viele Frames allein belegt die konsistente Zusammensetzung noch nicht.
+- **1,0 s als feste Abnahmegrenze für diese Anzeigeprüfung:** als Ausgangspunkt angenommen, mit dem korrigierten Zeitvertrag. Die 15 bisherigen Läufe begründen die Größenordnung, beweisen die neue Frischegrenze aber noch nicht. Haupt- und `latch-delayed`-Lauf je dreimal sowie die benannten Gegenfälle sind ein sinnvoller Abnahmeumfang.
+- **Reset und HAL-Nachweise:** Die gesonderten Bedingungen bleiben bestehen. Das frühe Reset wird weiterhin ohne Warten auf eine erfolgreiche Trip-Anzeige angefragt. Seine Ablehnung muss die Trip-Sperre nennen; „Not armed“ bleibt `incomplete`. Prozessidentitätsprüfung, SIGCONT auch im Fehlerpfad und die Beschränkung der Quittierung auf den nachgewiesenen eigenen Trip bleiben erhalten.
+
+Nach Präzisierung dieser drei Punkte ist der Messvertrag erneut vorlegbar. Replay Schritt 5a, Paket 3a und Paket 3b Punkt 1 bleiben abgenommen.

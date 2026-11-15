@@ -1,0 +1,76 @@
+{
+  "source_revision": "d7431f199a510c662e5363035ea8e15d3656d787",
+  "source_sha256": {
+    "hal_bridge.py": "7ae90b1fcf459743e3b1aa68e1f8486b642310a98aa5369a17f5cbf0aec3fec0",
+    "gateway_util.py": "951e6be3bd7e6eba2ca12dee1a4b52b6bace240a0b8438b83459b48e834451fe",
+    "hal_reader.py": "42fe8a05d0a517822b51d25d17a313d3faa884e86a4311383c8acde32310f4a9",
+    "gateway.py": "0caa88fce979e49111cfa91a7237c600b720ded1074f5ec25df8e7494ae00bb9"
+  },
+  "stale_cache": {
+    "age": 3.0,
+    "stale_limit": 2.0,
+    "stale": true,
+    "actual_input": true,
+    "current_decision": {
+      "tripped": true,
+      "faulted_on_connect": false,
+      "last_latched": true,
+      "baseline_seen": true
+    },
+    "null_input_decision": {
+      "tripped": false,
+      "faulted_on_connect": false,
+      "last_latched": false,
+      "baseline_seen": true
+    }
+  },
+  "read_interval_counterexample": {
+    "snapshot_begin": 10.0,
+    "actual_latch_read": 10.25,
+    "snapshot_end": 10.26,
+    "cont_before": 10.1,
+    "cont_after": 10.11,
+    "R375_class_from_begin": "old",
+    "actual_read_position": "new",
+    "class_with_read_interval": "unresolved",
+    "cause": "reader descheduled between snapshot timestamp and latch read"
+  },
+  "interval_controls": [
+    {
+      "read_start": 9.9,
+      "read_end": 10.0,
+      "expected": "old",
+      "actual": "old"
+    },
+    {
+      "read_start": 10.2,
+      "read_end": 10.21,
+      "expected": "new",
+      "actual": "new"
+    }
+  ],
+  "judgement_order_counterexample": {
+    "reader_t": 1000.0,
+    "received_t": 10.4,
+    "latched": false,
+    "safety_trip": null,
+    "classified_before_validation": "new",
+    "B6_valid": false,
+    "R375_FAIL_rule_if_applied_first": "new frame without safety_trip",
+    "required_interpretation": "no proven new frame: invalid measurement time"
+  },
+  "resume_deadline_counterexample": {
+    "cont_before": 10.0,
+    "actual_SIGCONT": 10.01,
+    "cont_after": 10.4,
+    "first_new_read": 10.41,
+    "first_new_received": 11.2,
+    "limit_s": 1.0,
+    "delay_lower": 0.8,
+    "delay_upper": 1.2,
+    "actual_delay_in_this_witness": 1.19,
+    "R375_delay_test": "PASS",
+    "interval_verdict": "incomplete: bracket straddles deadline"
+  },
+  "all_assertions_passed": true
+}
