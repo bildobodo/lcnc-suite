@@ -4518,3 +4518,165 @@ Keine Produktänderung und kein Eingriff in die Live-Sim. Damit ist `latch-stick
   - Danach der Firefox-Kern.
   - Replay 5b (HTTP-Antwortwege) und 5c (Abdeckung gegen das Inventar).
   - Danach Paket 4.
+
+---
+
+## Claude · Paket 3b · Antasten live über `probe_run` · Plananfrage R380 · 15. November 2026
+
+`latch-sticky` ist abgenommen (R379) und mit development `cad9ac77` gemergt. Als Nächstes folgt der Antast-Live-Check. Er ist die letzte Live-Prüfung, die vor main noch geschuldet ist und keinen Runner hat (`live-checks.20261111.md`: „NOT RUNNABLE — no runner exists“).
+
+Der Vertrag ist TS248-06 aus R251, in der Fassung von VM349-01:
+- Der Fall läuft durch den **tatsächlichen `probe_run`-Handler**, mit gültiger Funktionsfreigabe und den Panelwerten.
+- Ein direkter MDI-Aufruf ersetzt diesen Nachweis nie.
+- Ein auf MDI zurückgebauter Treiber muss auffallen, auch wenn die Routine selbst korrekt fährt.
+
+Alle Stellen unten sind an `cad9ac77` nachgelesen.
+
+### 1 · Ort: die native Stufe statt eines eigenen Skripts
+
+TS248-06 stammt von vor der nativen Stufe und nannte ein eigenes Skript `probe_live_check.py`. Ich schlage vor, den Fall in der nativen Stufe zu bauen (`native_run.probe_cases`), neben dem bestehenden `probe-z`. Die Stufe bringt mit, was TS248-06 verlangt:
+
+| TS248-06 | in der nativen Stufe |
+|---|---|
+| Sim-Profil aus einer Erlaubnisliste, Code-Stand passend | `validate_sim_target`; Laufbaum und eingeschränkte Kopie aus dem Kopf |
+| Bewegungs-Opt-in, keine fremde scharfe Sim | die Übernahme der LAN-Sim mit Rückgabe-Beweis, der Heavy-Lock |
+| Platte und Werkzeug aus dem Profil, `#5400 == #3014`, positive Länge | `plate_from_hal` aus den gestarteten HAL-Dateien; T99 auf dem Weg der UI (`tool_change`), Tabellenlänge 50 mm gesetzt und zurückgelesen; `G43 H99` geprüft |
+| G21, G54 aktiv, G92 leer | die Vorbereitung von `probe-z` (`G54`, `G92.1`, `G10 L2 P1 X0 Y0 Z0`) |
+| ein WS-Client mit Heartbeat durch Ablauf und Aufräumen | der eine bewaffnete Client der Stufe |
+| Fehler oder Timeout: zuerst Abbruch | `_stop_copy` (Abbruch, Entwaffnen, Schließen); dazu neu im Fall: nach einem Fehler Abbruch und Stillstand (`inpos`, Interpreter idle) innerhalb von 15 s, bevor der Schritt endet |
+| Trip oder Verbindungsverlust: nie quittieren | die Trip-Regeln der Stufe |
+
+Die Kopie ist eingeschränkt: Var-Datei und Werkzeugtabelle des Laufs sind Kopien. Der Zustand der LAN-Sim bleibt unberührt und wird mit Beweis zurückgegeben.
+
+`probe-z` bleibt bestehen. Er belegt die Routine an der Platte über `mdi` mit `vars`; der neue Fall belegt den Weg der UI.
+
+### 2 · Vorbereitung, die Pflanzung P und die Reihenfolge
+
+**Position:** wie bei `probe-z` über `_to`, also `G49` und `G53 G0` auf die Platte, `PROBE_OVER` (8 mm) über dem Kontakt; danach `G43 H99`, angewendet und geprüft. Die Fahrt läuft im Maschinenrahmen, die Antastfahrt der Routine relativ (`G91`, `G38.2 Z-…`). Der gepflanzte G54-Wert verändert also keine Bewegung, nur das, was die Routine schreibt.
+
+**Die Pflanzung P**, nach der Position gesetzt, über rohe `mdi`-Zeilen (`_short`, jede unter 254 Bytes) und über `_vars` / `_read_params` zurückgelesen. Das sind die Werte im Interpreter, die eine Routine liest, nicht die Var-Datei:
+- **G54 Z bewusst abweichend:** Plattenhöhe + 12,345 mm (TS248-06 Schritt 2). Ein ausgebliebenes Schreiben fällt so auf.
+- **`#5070 = 0`**, wie `probe-z` es vor seinem Fehlschlag tut.
+- **Die Nummern von V auf andere, sichere Werte:**
+  - Die Werte, die `probe_z_minus_wco` liest, werden langsamer bzw. kürzer: `#3015` 40, `#3016` 150, `#3017` 800, `#3020` 9, `#3021` 1,5.
+  - `#3030` wird 1 (nur messen, `o130 if [#<probe_mode> EQ 0]`), wie in der ausgelieferten Var-Datei. Kommt V nicht an, schreibt die Routine G54 gar nicht.
+  - `#3014` wird 98. Kommt V nicht an, verweigert die Routine (`o100 if [#5400 NE #<probe_tool_number>]`).
+  - Die übrigen Nummern (`#3018`, `#3019`, `#3022`–`#3029`, `#3031`–`#3035`) bekommen V + 0,5.
+
+**Warum das Zurücklesen die Lieferung belegt:** Rohe `mdi`-Zeilen markieren die berührten Toolsetter-Nummern in der Buchung des Gateways als `assumed` (`_ts_mark_assumed`, aus `_cmd_blocking`). `_apply_probe_vars_detail` schreibt jede Nummer der Werte, ohne sie mit einer Buchung zu vergleichen. Steht nach `probe_run` jede Nummer auf V, hat der Handler sie geliefert. Jeder Wert von P weicht von V ab.
+
+**`#3116` wird weder gepflanzt noch zurückgelesen.** Der Treiber nennt die Nummer nie.
+- Eine `mdi`-Zeile, deren Text `3116` enthält, macht den Merker im Gateway unbekannt (`mdi`-Handler: `if "3116" in text: _skip_flag_unknown = True`). Das gilt auch für eine Lesezeile `(DEBUG,… P3116=#3116)`.
+- Die nächste einfache `mdi`-Zeile löscht ihn dann zuerst, über `_start_guard`, der `_apply_probe_vars({"3116": 0})` aufruft. Jedes Zurücklesen ist eine solche Zeile.
+- Ein gepflanztes `#3116 = 1` ließe sich also nie zurücklesen, und eine danach gelesene 0 belegte nichts.
+- Der Nachweis, dass der Handler den Merker mit seinen Werten löscht, steht deshalb im Trace-Fenster (§3): `probe.set_vars` und `probe.set_vars_result` mit `3116`.
+
+**Der Schnappschuss S**, vor und nach jedem Fall:
+- die Achsposition aus den Status-Frames;
+- G54 Z, `#5070`, alle Nummern von V;
+- `tool_number` und `tool_offset` Z.
+
+„Nichts geändert“ heißt: S danach gleich S davor, Position innerhalb 0,001 mm, Werte innerhalb `SAME` (10⁻⁶).
+
+**Reihenfolge:** P setzen und zurücklesen → `not-a-routine` → `feature-off` → Schalter wieder an → `probe-run` (von P aus) → P neu setzen und zurücklesen → `probe-run-miss`. Die beiden Ablehnungen laufen also auf P, bevor ein Treffer etwas überschreibt. Ihr „nichts geändert“ ist der Vergleich der Schnappschüsse.
+
+### 3 · Das Trace-Fenster
+
+Aus dem Trace des Gateways im Laufbaum (`<run>/logs/trace.ndjson`), unabhängig von der Liste des Treibers:
+- Vor jedem Auftrag hält der Treiber Inode und Größe der Datei fest. Das Fenster ist alles ab diesem Byte bis zum Lesen.
+- Gelesen wird nach der Antwort, bei Treffer und Fehlschlag nach dem Ende der Routine, und immer **bevor** der Treiber zurückliest. Das Fenster enthält also nur, was der eine Auftrag auslöste. `features.job` wird synchron vor dem `return` geschrieben (`_feature_job`, `gateway.py:5778`), steht also in der Datei, wenn die Antwort ankommt.
+- Ist die Datei nicht lesbar, hat sie eine andere Inode (Rotation) oder ist sie kürzer als der Startpunkt, ist die Zeile `incomplete`, nie PASS und nie „fehlt“. Der bestehende `_trace_events` schluckt `OSError`; der neue Leser tut das nicht.
+- **Verlangt bei `probe-run` und `probe-run-miss`:**
+  - **genau ein** `features.job` mit `cmd: probe_run` und `line: "O<probe_z_minus_wco> CALL"`;
+  - **genau ein** `probe.set_vars`, dessen `vars` genau die Nummern von V und `3116` tragen, `3116` mit 0. Es ist die eine Lieferung des Handlers: `_start_guard(clears_flag=True)` löscht nicht eigens;
+  - **genau ein** `probe.set_vars_result` mit `mdi_set: true`, `persisted: true` und `applied` gleich diesen Nummern.
+- **Verlangt bei `feature-off`:** genau ein `ws.command_feature_off` mit `cmd: probe_run` (die Ablehnung des Dispatchers, `gateway.py:7609`), kein `features.job` und kein `probe.set_vars` im Fenster.
+- **Verlangt bei `not-a-routine`:** kein `features.job` und kein `probe.set_vars` im Fenster.
+
+Rekursiv über den Baum gesucht, schreibt nur `gateway.py:5778` den Tag `features.job`, im gemeinsamen Handler der Jobs (`probe_run`, `surface_scan_run`, `tool_measure`, `tool_unload_measure`). `mdi` schreibt ihn nie. Weil das Fenster nur den einen Auftrag umfasst, bleibt die Regel gültig, wenn mit Q-P1 auch `surface_scan_run` in der Stufe läuft.
+
+### 4 · Der Fall `probe-run`
+
+**Start:** `probe_run {routine: "probe_z_minus_wco", vars: V}` als WS-Auftrag. Zwischen dem letzten Zurücklesen von P und dem Auftrag schickt der Treiber kein `mdi`. `_routine` bekommt dafür den Befehl und seine Nutzlast als Parameter, sonst bleibt das Warten auf das Ende (`RoutineEnd`, der Werkzeugwechsel-Helfer, der Fehlercursor) gleich.
+
+**Die Werte V:** genau die Karte, die das Panel aus seinem Ausgangspunkt baut: `probeVarMap(PROBE_FALLBACK, 0)` (#3014–#3035, `#3014 = 99`, `#3015 = 50`, `#3020 = 10`, `#3030 = 0`). Der Zweck `probe` lässt #3014–#3036 zu (`features.PURPOSE_VARS`).
+- Quelle ist eine Fixture `scripts/test_support/probe_panel_vars.json`. Ein Vitest-Wächter erzeugt die Karte mit derselben Funktion und scheitert, wenn die Fixture abweicht; `probeVars.ts` bleibt die eine Quelle.
+- Was davon schon geprüft ist:
+  - `probe-click.spec` verlangt, dass ein Antastknopf genau einen `probe_run` sendet: mit genau den Nummern dieser Karte, endlichen Werten, `#3030` ∈ {0, 1} und keinem `mdi`.
+  - Das Replay hält die Nummern gegen jede ausgelieferte Var-Datei (deklariert, außerhalb der gesperrten Bereiche, `VarNumbers`) und verlangt endliche Werte.
+  - Die Werte selbst prüft keines von beiden. Die Fixture belegt sie gegen die Funktion.
+- Siehe Q-P2.
+
+**Erwartet** (Zeile `probe-run`):
+- Antwort `ok: true`, `persisted: true`, `mdi_set: true`, `line: "O<probe_z_minus_wco> CALL"`.
+  - `persisted` heißt: Das Gateway schrieb die vom Interpreter übernommenen Nummern in die Var-Datei (`_apply_probe_vars_detail`). In einer Antwort mit `ok: true` ist es nur falsch ohne `PARAMETER_FILE` oder bei einem Schreibfehler. In der Kopie wäre beides ein Fehler des Aufbaus, also FAIL.
+- Das Trace-Fenster wie in §3, mit `3116` in der Lieferung.
+- Alle Nummern von V zurückgelesen gleich V.
+- Wie bei `probe-z`:
+  - `#5070 = 1`, keine Fehler;
+  - das Ende erst nach dem Start (`M50 P0` sperrt den Override), danach `feed_override_enabled` wieder wahr (`M50 P1`);
+  - G54 Z zurückgelesen gleich der Plattenhöhe innerhalb `PROBE_TOL` (0,003 mm). Das ist strenger als die 0,01 mm von TS248-06.
+    - Die Toleranz ist ein Modell für den langsamen Vorschub: (1,67 T)·v_slow + 1 µm (`native_cases.PROBE_TOL`). V bringt `#3015 = 50` mm/min, wie die Var-Datei des 3-Achs-Profils, aus der `probe-z` liest. Das ergibt 0,0024 mm ≤ 0,003.
+- **Gegenfall `probe-run.counter-plate-1`:** dieselbe Messung, beurteilt gegen eine um 1 mm versetzt eingesetzte Plattenhöhe → FAIL. Das ist dieselbe Form wie `probe-z.counter-plate-1` (`native_run.py`: `eval_probe_z(…, expected=plate["z"] + 1)`); bewegt wird dafür nichts.
+
+### 5 · Gegenfälle
+
+- **`probe-run.not-a-routine`:** `routine: "probe_nope"` → „Not a probe routine — reload the page“. Erwartet: S unverändert, im Fenster kein `features.job` und kein `probe.set_vars`. Der Handler lehnt vor `_start_guard` und vor jedem Schreiben ab.
+- **`probe-run.feature-off`:** Der Schalter `probing` wird im Abschnitt `features` des Servers ausgeschaltet und zurückgelesen. Das geht über `save_settings` mit der Revision des Abschnitts, wie der Treiber schon den Abschnitt `toolsetter` schreibt. Dann folgt derselbe Auftrag.
+  - Erwartet ist die Ablehnung „Probing is off — Settings › Features“.
+  - S bleibt unverändert, also auch G54 Z und `#5070 = 0`.
+    - Der Schnappschuss danach läuft bei ausgeschaltetem Schalter. Das geht, weil `_command_feature_refusal` freies MDI ohne `via` nicht prüft („Free MDI is no job“). Die Lesezeilen des Treibers sind solches MDI.
+  - Im Fenster: genau ein `ws.command_feature_off`, kein `features.job`, kein `probe.set_vars`.
+  - Belegt wird damit die Ablehnung des Dispatchers (`_command_feature_refusal`, `gateway.py:7609`), die vor dem Handler liegt. Die zweite Schicht, die Prüfung beim Schreiben (`admit()` mit `_feature_refusal`, ein Schalter, der zwischen Warteschlange und Schreiben umgelegt wird), bleibt bei `test_feature_switches` (`test_a_switch_turned_off_meanwhile_stops_the_job_at_its_write`). Mit dem einen Client der Stufe lässt sich dieses Fenster live nicht verlässlich treffen.
+  - Danach wird der Schalter wieder eingeschaltet und zurückgelesen.
+- **`probe-run-miss`:** von der neu gesetzten P aus, Start in `MISS_OVER` (15 mm, über `#3020 = 10` aus V).
+  - Die Zeile geht mit `wait=None` hinaus. Die Antwort ist also `ok: true`, und das Trace-Fenster verlangt genau ein `features.job`.
+  - Der Fehlschlag kommt über den Fehlerkanal, nicht in der Antwort: LinuxCNCs „without making contact“, wie bei `probe-z-miss` (`eval_probe_miss`; fehlt er, ist die Zeile `incomplete`, ein anderer Fehler ist FAIL).
+  - G54 Z bleibt der gepflanzte Wert, `#5070` bleibt 0.
+  - V ist zurückgelesen, und das Fenster trägt die Lieferung mit `3116` (§3): Auch ein abgebrochener Start lieferte die Werte.
+  - Das belegt, dass ein Abbruch der Routine über diesen Weg ankommt.
+- **Treiber-Mutant „auf MDI zurückgebaut“** (VM349-01): Der Schritt sendet `mdi` mit `vars` und `O<probe_z_minus_wco> CALL` statt `probe_run`.
+  - Die Routine fährt dann korrekt, und G54 Z stimmt.
+  - Die Zeile muss trotzdem FAIL sein: Im Fenster fehlt `features.job`.
+  - Ein Offline-Wächter in `test_native_stage.py` hält das ohne den Rest fest. Der Bewerter ist eine reine Funktion. Der Wächter gibt ihm einen Fall, in dem Antwort, Zurücklesen, G54 Z und Fehler alle bestehen, und ändert nur das Fenster:
+    - Eintrag fehlt;
+    - anderes `cmd`;
+    - andere Zeile;
+    - Eintrag nur vor dem Startpunkt;
+    - zwei Einträge.
+
+    Jeder dieser Fälle ist FAIL. Rotation, eine kürzere Datei oder eine unlesbare Datei ergeben `incomplete`. So hängt der Nachweis nicht daran, dass der Mutant schon an der Form der `mdi`-Antwort scheitert.
+  - Der Mutant selbst wird live rot geführt, mit seinem Skript.
+
+### 6 · Aufräumen auf jedem Ausgang
+
+Das Aufräumen steht in einem `finally` des Schritts. Es läuft also auch, wenn ein Fall wirft oder eine Frist abläuft (die Klasse von VM-I20). Jede fehlgeschlagene Wiederherstellung ist eine eigene Zeile `probe-run.restore`.
+
+Zuerst Abbruch und Stillstand (`inpos`, Interpreter idle) innerhalb von 15 s. Eine noch laufende Routine würde die Wiederherstellungen sonst ablehnen. Steht die Maschine danach nicht, unterbleiben sie; `probe-run.restore` sagt das, und die Stufe endet über `_stop_copy`.
+
+Dann in dieser Reihenfolge:
+1. **Der Abschnitt `features`**, ganz so, wie er zuerst gelesen wurde, nicht nur der eine Schalter, mit seiner aktuellen Revision, und zurückgelesen. Ein fehlender Abschnitt kommt als „jeder Schalter an“ zurück, so wie er wirkte (`features_of`). Dafür hält der Client auch `settings` aus `settings_init` / `settings_changed`, heute nur `revs`.
+2. **G54 Z** wie bei `probe-z` auf 0.
+3. **Die Nummern von V** auf die Werte vor dem Fall (die erste Ablesung), zurückgelesen. `#3116` fasst der Treiber nicht an (§2); das Gateway löscht den Merker vor dem nächsten Start selbst, wenn er unbekannt ist.
+
+Sonst liefen ein ausgeschalteter Schalter oder `#3014 = 98` in der Kopie in die folgenden Antast- und M600-Fälle und ließen sie aus dem falschen Grund scheitern.
+
+Position, Modalzustand und Werkzeug übernimmt der nächste Schritt so, wie `probe-z` sie hinterlässt. Die Rückgabe der LAN-Sim belegt die Stufe.
+
+### 7 · Was der Fall nicht belegt
+
+- **XY-Routinen:** Das Sim hat keine Wände, nur die Platte und das gekrümmte Werkstück, beide in Z. Eine Ecke, eine Bohrung oder ein Steg lösen im Sim nie aus. Sie bleiben auf der Checkliste für den Maschinentag (Paket 4).
+- **Kalibrierung** (`probe_cal_*`, `#3036`): ebenfalls XY, ebenfalls Maschinentag.
+- **Der Klick im Browser:** Den belegt `probe-click.spec` gegen den Mock, die Nummern das Replay. Der Firefox-Kern folgt danach.
+- **Der umgelegte Schalter beim Schreiben:** bleibt beim Unit-Test (§5).
+
+### Fragen
+
+- **Q-P1:** `surface_scan_run` hat dieselbe Lücke. Der native Scan (`surface-scan`, Paket G2) startet über `mdi` mit `vars` (`native_run.py`, `_routine(c, "O<surface_scan> CALL", vars=…)`).
+  - Vorschlag: Er startet stattdessen über `surface_scan_run` mit `surfaceVarMap` aus dem Fallback, mit `scanXProbes` usw. der Profilwerte. Das Trace-Fenster aus §3 gilt dann mit `cmd: surface_scan_run`.
+  - Als Gegenfall der Schalter `surfaceMap` aus.
+  - Die bisherige MDI-Form bleibt als Treiber-Mutant rot.
+  - Ich schlage ja vor.
+- **Q-P2:** Fixture mit Wächter (oben) oder die Werte aus einem Replay-Datensatz eines Gate-Laufs? Die native Stufe läuft ohne Browser-Lauf; ein Datensatz müsste mitgeführt werden. Ich schlage die Fixture vor.
+
+**Erbeten:** `agreement` oder `findings` zum Plan.
