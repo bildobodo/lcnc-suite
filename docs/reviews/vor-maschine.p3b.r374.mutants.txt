@@ -1,0 +1,47 @@
+Started rpmut5.service - [systemd-run] /home/cnc/lcnc-suite-rp/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-rp/scripts/test_support/heavy_lock.py --who replay-mutants --wait 7200 -- bash /home/cnc/claude-work/p3b/replay_mutants.sh.
+replay-mutants: waiting for the heavy lock — round_gate round 0815546d (pid 224759, since 2026-11-14T23:28:34)
+== replay mutants at 0815546d, /home/cnc/claude-work/p3b/replay-mutants-20261115T004004, 2026-11-15T00:40:04+01:00
+M0: mutated
+M0: playwright exit 0 —   123 passed (4.7m)
+PASS: 0 finding(s), 810 frames
+   frames 810, attempts 123, connections {'infra': 126, 'test': 124, 'no-cookie exception': 1}, http {'with origin': 1842}
+   findings by kind: {}
+M1: mutated
+M1: playwright exit 1 —   5 failed   118 passed (5.0m)
+FAIL: 5 finding(s), 858 frames
+   frames 858, attempts 123, connections {'infra': 131, 'test': 124, 'no-cookie exception': 1}, http {'with origin': 1862}
+   findings by kind: {'probe routine through MDI': 5}
+   · probe-click.spec.ts › Outside: a held probe button sends its routine with the panel's numbers [retry 0]: mdi a probe routine through MDI (VM349-01: probe_run is the probe's job)
+   · probe-click.spec.ts › Boss/Pocket: a held probe button sends its routine with the panel's numbers [retry 0]: mdi a probe routine through MDI (VM349-01: probe_run is the probe's job)
+   · probe-click.spec.ts › Ridge/Valley: a held probe button sends its routine with the panel's numbers [retry 0]: mdi a probe routine through MDI (VM349-01: probe_run is the probe's job)
+   · probe-click.spec.ts › Angle: a held probe button sends its routine with the panel's numbers [retry 0]: mdi a probe routine through MDI (VM349-01: probe_run is the probe's job)
+M2: mutated
+M2: playwright exit 0 —   123 passed (4.7m)
+FAIL: 28 finding(s), 804 frames
+   frames 804, attempts 123, connections {'infra': 126, 'test': 124, 'no-cookie exception': 1}, http {'with origin': 1841}
+   findings by kind: {'undeclared fields': 28}
+   · jog-buttons.spec.ts › every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]: jog_cont carries undeclared fields ['stray']
+   · jog-buttons.spec.ts › every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]: jog_cont carries undeclared fields ['stray']
+   · jog-buttons.spec.ts › every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]: jog_cont carries undeclared fields ['stray']
+   · jog-buttons.spec.ts › every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]: jog_cont carries undeclared fields ['stray']
+M3: mutated
+M3: playwright exit 0 —   123 passed (4.8m)
+FAIL: 12 finding(s), 803 frames
+   frames 803, attempts 123, connections {'infra': 126, 'test': 124, 'no-cookie exception': 1}, http {'with origin': 1844}
+   findings by kind: {'refused': 12}
+   · setup-layout.spec.ts › a chip change under a held fixture › 5 TCP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]: mdi refused: mdi: #4999 is not in this machine's var file — declare it there to mak
+   · setup-layout.spec.ts › a chip change under a held fixture › 5 TCP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]: mdi refused: mdi: #4999 is not in this machine's var file — declare it there to mak
+   · setup-layout.spec.ts › a chip change under a held fixture › 5 TCP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]: mdi refused: mdi: #4999 is not in this machine's var file — declare it there to mak
+   · setup-layout.spec.ts › a chip change under a held fixture › 5 TCP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]: mdi refused: mdi: #4999 is not in this machine's var file — declare it there to make
+M4: mutated
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M4: playwright exit 1 —   1 failed   122 passed (4.7m)
+FAIL: 1943 finding(s), 792 frames
+   frames 792, attempts 123, connections {'infra': 127, 'no origin': 122}, http {'without': 1815}
+   findings by kind: {'without an origin': 1937, 'no probe_run': 6}
+   · 31a12b8f-0418-49e0-a269-292f75c9035c: GET / without an origin of this run: None
+   · 31a12b8f-0418-49e0-a269-292f75c9035c: GET /static/index-DDnTv8e1.css without an origin of this run: None
+   · 31a12b8f-0418-49e0-a269-292f75c9035c: GET /static/msgpack-BkQaaVuN.js without an origin of this run: None
+   · 31a12b8f-0418-49e0-a269-292f75c9035c: GET /static/index-CuEUtbq9.js without an origin of this run: None
+== end 2026-11-15T01:04:52+01:00 (tree reset, dist rebuilt unmutated)
+rpmut5.service: Consumed 53min 16.978s CPU time, 1.9G memory peak.

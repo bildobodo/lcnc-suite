@@ -1,0 +1,36 @@
+R374: the new guards (test_replay.py at 0815546d) against the checker of 1fe5e274 (constant NO_COOKIE_FRAMES added for collection only).
+Red = the old checker misses the case; green = a control (optional fields, a retry on a new mock) or a value rule the old checker already had.
+        r = run(tmp_path, [m], [attempt(A, title="a"), attempt(B, title="b", status="passed")])
+FAILED scripts/test_select/test_replay.py::test_the_named_no_cookie_socket_only_inside_its_spec
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg0-hidden]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg1-id]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg2-section]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg3-base_rev]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg4-data]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg5-name]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg6-device]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg7-enable]
+FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg8-on]
+FAILED scripts/test_select/test_replay.py::test_a_reader_field_the_reader_refuses_fails[msg0-data]
+FAILED scripts/test_select/test_replay.py::test_a_reader_field_the_reader_refuses_fails[msg1-section]
+FAILED scripts/test_select/test_replay.py::test_a_reader_field_the_reader_refuses_fails[msg4-device]
+FAILED scripts/test_select/test_replay.py::test_a_device_on_a_machine_section_fails_and_on_a_device_section_passes
+FAILED scripts/test_select/test_replay.py::test_optional_reader_fields_stay_optional[msg3]
+FAILED scripts/test_select/test_replay.py::test_optional_reader_fields_stay_optional[msg5]
+FAILED scripts/test_select/test_replay.py::test_every_reader_rule_names_exactly_its_command_s_declared_fields
+FAILED scripts/test_select/test_replay.py::test_an_origin_of_another_project_fails_for_a_socket_and_a_request[o0-an origin naming project 'another', its attempt ran in 'e2e']
+FAILED scripts/test_select/test_replay.py::test_an_origin_of_another_project_fails_for_a_socket_and_a_request[o1-an origin naming project None, its attempt ran in 'e2e']
+FAILED scripts/test_select/test_replay.py::test_an_attempt_s_traffic_on_another_worker_s_mock_fails
+FAILED scripts/test_select/test_replay.py::test_a_frame_without_its_open_line_is_a_finding_and_counted[False]
+FAILED scripts/test_select/test_replay.py::test_a_frame_without_its_open_line_is_a_finding_and_counted[True]
+FAILED scripts/test_select/test_replay.py::test_a_close_without_its_open_line_fails
+FAILED scripts/test_select/test_replay.py::test_a_second_open_of_one_connection_fails_and_the_first_origin_stays
+FAILED scripts/test_select/test_replay.py::test_the_named_connection_is_recorded_with_its_frame
+FAILED scripts/test_select/test_replay.py::test_the_named_connection_sends_exactly_its_frame[frames0-exactly]
+FAILED scripts/test_select/test_replay.py::test_the_named_connection_sends_exactly_its_frame[frames1-exactly]
+FAILED scripts/test_select/test_replay.py::test_the_named_connection_sends_exactly_its_frame[frames2-exactly]
+FAILED scripts/test_select/test_replay.py::test_a_malformed_frame_on_the_named_connection_is_judged_like_any_frame
+FAILED scripts/test_select/test_replay.py::test_two_named_connections_in_one_attempt_fail
+FAILED scripts/test_select/test_replay.py::test_every_attempt_is_listed_one_without_a_page_too
+FAILED scripts/test_select/test_replay.py::test_two_attempts_of_one_file_and_title_keep_their_own_names
+32 failed, 73 passed in 0.25s

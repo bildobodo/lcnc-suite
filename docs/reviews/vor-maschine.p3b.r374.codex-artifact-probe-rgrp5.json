@@ -1,0 +1,84 @@
+{
+  "reviewed_head": "1fe5e274f423f32ae15ec7b7469cd109cdbef549",
+  "source": "/home/cnc/rgrp5/gate-round.logs",
+  "run": "gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e",
+  "worker_proof_findings": [],
+  "mutations_only_to_temporary_copies_of_replay": true,
+  "input_sha256": {
+    "mock-events.jsonl": "dabdb65fb7ebce85eb144bee4649f9c6a00c77a92e6ade9be25b0b6f97811e8c",
+    "playwright.json": "47665b2994870160031e3708ef7f0cc41b1609c745e53f8ea8ec289902ecb7dc",
+    "replay/gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e-d2670c69-5cbd-4355-9bb9-591800e597b3.jsonl": "ef609daf7a80c5d2d2f2324592460eaddc7879a0718e00741db56eef51e4c191",
+    "replay/gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e-4afe4091-2f11-4af8-8147-c39d442786d0.jsonl": "4f428e13111c59740be9f539c5216de071c924b8bbb96b31db618cb8e74ccf18",
+    "replay/gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e-78fb58d3-c793-4224-b938-fa81db9c475b.jsonl": "c3d9ad2bdb2df3c367c6f1bb198216a084cf8f5dc0ed3c75879ecaf6bf8e5b74"
+  },
+  "cases": [
+    {
+      "case": "baseline",
+      "required_verdict": "PASS",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 11087,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "missing enable",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "appearance.spec.ts \u203a a pulse moves the background, never the text: the banner stays fully opaque while it pulses [retry 0]: timing_log the reader refuses: missing ['enable']"
+      ],
+      "frames": 11088,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "wrong project",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "4afe4091-2f11-4af8-8147-c39d442786d0 conn 3: an origin naming project 'not-the-project-of-this-attempt', its attempt ran in 'e2e': {'run': 'gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e', 'test': '800c8f995c061dbbf429-8475a3e2fb4258157462', 'project': 'not-the-project-of-this-attempt', 'retry':",
+        "appearance.spec.ts \u203a a pulse moves the background, never the text: the banner stays fully opaque while it pulses [retry 0]: the page loaded and its replay shows no hello"
+      ],
+      "frames": 11087,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "wrong mock instance",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "78fb58d3-c793-4224-b938-fa81db9c475b conn 745: an origin of an attempt on mock 4afe4091-2f11-4af8-8147-c39d442786d0, here on mock 78fb58d3-c793-4224-b938-fa81db9c475b: {'run': 'gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e', 'test': '800c8f995c061dbbf429-8475a3e2fb4258157462', 'project': 'e2e', 'retry': 0}"
+      ],
+      "frames": 11088,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "frame without open",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "4afe4091-2f11-4af8-8147-c39d442786d0 conn 9999999 (no open): a frame that is no JSON object: 'not JSON, no open, silently lost'",
+        "4afe4091-2f11-4af8-8147-c39d442786d0 conn 9999999: 1 frame(s) on a connection with no open line"
+      ],
+      "frames": 11088,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "no-cookie exception with malformed payload",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]: hello carries undeclared fields ['unreviewed_field']",
+        "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]: hello the reader refuses ['resume_armed']",
+        "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]: the named connection without a cookie (conn 260) sent [{'cmd': 'hello', 'session': 'replay-origin:no-cookie', 'resume_armed': 'not a boolean', 'unreviewed_field': True}] \u2014 exactly [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}] is named"
+      ],
+      "frames": 11087,
+      "attempts": 922,
+      "per_attempt_count": 922
+    }
+  ]
+}

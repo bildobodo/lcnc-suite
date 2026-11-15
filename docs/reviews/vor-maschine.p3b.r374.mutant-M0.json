@@ -1,0 +1,2174 @@
+{
+  "verdict": "PASS",
+  "run": "mut-M0-1794699613",
+  "logs": 3,
+  "connections": {
+    "infra": 126,
+    "test": 124,
+    "no-cookie exception": 1
+  },
+  "http": {
+    "with origin": 1842
+  },
+  "frames": 810,
+  "frames_by_class": {
+    "no-cookie exception": 1,
+    "test": 809
+  },
+  "commands": {
+    "get_probe_results": 1,
+    "get_tool_table": 248,
+    "heartbeat": 240,
+    "hello": 125,
+    "jog_cont": 28,
+    "jog_stop": 28,
+    "mdi": 4,
+    "probe_run": 5,
+    "save_settings": 6,
+    "surface_scan_run": 1,
+    "tab_visibility": 124
+  },
+  "attempts": 123,
+  "per_attempt": {
+    "jog-buttons.spec.ts \u203a every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 6,
+      "hello": 1,
+      "jog_cont": 18,
+      "jog_stop": 18,
+      "tab_visibility": 1
+    },
+    "jog-buttons.spec.ts \u203a every jog button on XYZAC: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "jog_cont": 10,
+      "jog_stop": 10,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Angle: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "probe_run:probe_corner_x_plus_edge_angle": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Boss/Pocket: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "probe_run:probe_round_boss": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Calibrate: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "probe_run:probe_cal_round_pocket": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Outside: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "probe_run:probe_back_left_top_corner": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Ridge/Valley: a held probe button sends its routine with the panel's numbers [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "probe_run:probe_ridge_x": 1,
+      "save_settings:probe": 1,
+      "tab_visibility": 1
+    },
+    "probe-click.spec.ts \u203a Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers [retry 0]": {
+      "get_probe_results": 1,
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "save_settings:probe": 1,
+      "surface_scan_run": 1,
+      "tab_visibility": 1
+    },
+    "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]": {
+      "get_tool_table": 4,
+      "heartbeat": 6,
+      "hello": 2,
+      "tab_visibility": 2
+    },
+    "setup-layout.spec.ts \u203a 1 X, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 4,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 1 X, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 2 XZ, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 3 XYZ: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZA, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 4 XYZC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 TCP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 5 XYZBC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait: a long frame chip moves nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 TWP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 6 XYZABC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 7, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 8, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9 TWP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a 9: Tab walks the axis rows, the actions in order, then the WCS [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 5 TCP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 5 TCP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 6 TWP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 6 TWP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "mdi": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a a new axis set re-lays the section out [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a landscape touch: a title's \"?\" is centred on its line [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a landscape: a title's \"?\" is centred on its line [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a portrait touch 150 %, the keypad on an axis field: only the axis rows stay [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "setup-layout.spec.ts \u203a portrait touch: a title's \"?\" is centred on its line [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    }
+  },
+  "attempt_list": [
+    {
+      "name": "jog-buttons.spec.ts \u203a every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]",
+      "test": "a57de60456542798d899-7e89b4798488b65e2fab",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "c858a072-04be-4cc8-afbd-d181778b52eb",
+      "status": "passed",
+      "page": true,
+      "frames": 46,
+      "observed": "page loaded at its mock, 46 frame(s)"
+    },
+    {
+      "name": "jog-buttons.spec.ts \u203a every jog button on XYZAC: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [retry 0]",
+      "test": "a57de60456542798d899-095a4e67053caff7cae9",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "c858a072-04be-4cc8-afbd-d181778b52eb",
+      "status": "passed",
+      "page": true,
+      "frames": 28,
+      "observed": "page loaded at its mock, 28 frame(s)"
+    },
+    {
+      "name": "probe-click.spec.ts \u203a Angle: a held probe button sends its routine with the panel's numbers [retry 0]",
+      "test": "ac836fac29d06c9d06ef-22d92654e9dd33765974",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "f62f9e2d-2697-41b7-84fb-7d876ea974e5",
+      "status": "passed",
+      "page": true,
+      "frames": 9,
+      "observed": "page loaded at its mock, 9 frame(s)"
+    },
+    {
+      "name": "probe-click.spec.ts \u203a Boss/Pocket: a held probe button sends its routine with the panel's numbers [retry 0]",
+      "test": "ac836fac29d06c9d06ef-02ac4dccbc08e241c56a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "f62f9e2d-2697-41b7-84fb-7d876ea974e5",
+      "status": "passed",
+      "page": true,
+      "frames": 10,
+      "observed": "page loaded at its mock, 10 frame(s)"
+    },
+    {
+      "name": "probe-click.spec.ts \u203a Calibrate: a held probe button sends its routine with the panel's numbers [retry 0]",
+      "test": "ac836fac29d06c9d06ef-78091ea5f02833501689",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "f62f9e2d-2697-41b7-84fb-7d876ea974e5",
+      "status": "passed",
+      "page": true,
+      "frames": 10,
+      "observed": "page loaded at its mock, 10 frame(s)"
+    },
+    {
+      "name": "probe-click.spec.ts \u203a Outside: a held probe button sends its routine with the panel's numbers [retry 0]",
+      "test": "ac836fac29d06c9d06ef-96145fac9852dbf5827d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "f62f9e2d-2697-41b7-84fb-7d876ea974e5",
+      "status": "passed",
+      "page": true,
+      "frames": 10,
+      "observed": "page loaded at its mock, 10 frame(s)"
+    },
+    {
+      "name": "probe-click.spec.ts \u203a Ridge/Valley: a held probe button sends its routine with the panel's numbers [retry 0]",
+      "test": "ac836fac29d06c9d06ef-3ce64984b8610d99e10f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "f62f9e2d-2697-41b7-84fb-7d876ea974e5",
+      "status": "passed",
+      "page": true,
+      "frames": 10,
+      "observed": "page loaded at its mock, 10 frame(s)"
+    },
+    {
+      "name": "probe-click.spec.ts \u203a Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers [retry 0]",
+      "test": "ac836fac29d06c9d06ef-5f9f1043e2fdbb709e1b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "f62f9e2d-2697-41b7-84fb-7d876ea974e5",
+      "status": "passed",
+      "page": true,
+      "frames": 11,
+      "observed": "page loaded at its mock, 11 frame(s)"
+    },
+    {
+      "name": "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]",
+      "test": "a1a69ba6755417d039e2-d1be6511702aab950fcd",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 14,
+      "observed": "page loaded at its mock, 14 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 1 X, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-bcd09027ccc40ae32f91",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 1 X, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-7eb65e0271bc1caffbae",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 1 X, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-df058c1aea2a5b9b5880",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 8,
+      "observed": "page loaded at its mock, 8 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 1 X, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-5f2fdf2b244b41e8d72d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 1 X, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-0e6b7542a79fa04e0b40",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 1 X, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-74ab3901e60e97b79312",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 2 XZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-c19ce095a9bd79d17b87",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 2 XZ, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-69192e24a5beb18802de",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 2 XZ, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-cb30a322d5c21c815a71",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 2 XZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-4842f4e2f83cd5869443",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 2 XZ, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-d70adecc9c4b8707744d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 2 XZ, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-c95526f280745980e927",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-6691e1b749d6d348ca21",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-08941c0b331812c372a3",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-f3cbb1588de5a02b832e",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-6be6bdf3fa297584b4cc",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-07be2ad379716cd9c27d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-02a89806b6436016df5f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-bdc9dbfe904fb81748b6",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-1d3dd435bd8152efe9de",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 3 XYZ: Tab walks the axis rows, the actions in order, then the WCS [retry 0]",
+      "test": "39a3bb4de3990daa7741-690903df91ec6b7187ab",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZA, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-d12596d300429f424fc4",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZA, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-67e0112a70160b16d6da",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZA, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-c0bb100d7aa288cfbe42",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZA, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-d389be69b168fd8a5c3f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZA, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-896be6d4602f5744955f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZA, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-24256ef7b36b4d9411fe",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-2aa1cba377443373bf00",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-ebfa60bc6bf968864c11",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-c8c0182acebbd4e3cc34",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-aff09f9395484b3167cd",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-933ba426cc4c52deb154",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 4 XYZC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-53dd75ffb2cbfa3e9bee",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-cd50594904b9dc8b2067",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, landscape touch: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-143cd0a96d0e9c543a3b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-d010a5dfa94cf1ff3ae5",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, landscape: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-c70280c059d1920c3a57",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-acb292c684cd2616121c",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-faf07e152564ad093a51",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, portrait touch: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-b274e1fd58c97aefe3ed",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-2bffeed5d23762a651ba",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, portrait: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-5b4b0af459da7c91cc70",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-78ff01a66443e0263240",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 TCP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]",
+      "test": "39a3bb4de3990daa7741-987a7eff2336b9eaffab",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 XYZBC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-b8b8e67347144281944a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 XYZBC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-868cb22835e3f8d16e4c",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 XYZBC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-9d38c41c62d5b63299c1",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 XYZBC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-14b8d41368088ed3e96b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 XYZBC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-1a51e27014026054841f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 5 XYZBC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-eeccfc19851d09dde02a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-c9b048b34c5eb2bdf896",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-69bfaf67ba4b1d2d922f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, landscape touch: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-45e1885ddbc5c70d37e4",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-7be2f9784be74f984a12",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, landscape: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-784416e708d03aeccb5e",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-00db065e381eb3395110",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-0a8697a69e7914f8c4a8",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-52768c5493d9b663c20f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, portrait touch: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-599775859b48b869b67f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-29a0d6368c5394a9aee4",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, portrait: a long frame chip moves nothing [retry 0]",
+      "test": "39a3bb4de3990daa7741-87e417048f3e5463efd9",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-f18fcd42be8907b95ace",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 TWP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]",
+      "test": "39a3bb4de3990daa7741-e623a215fe1aac0383d7",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 XYZABC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-808d3e3477d90798bdee",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 XYZABC, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-d70deb65a080b83e570d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 XYZABC, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-f72ce002da647a3dd46a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 XYZABC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-bff55876056b1e1a5372",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 XYZABC, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-8a401889010c1f7e2f20",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 6 XYZABC, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-8eae9b5a787730ba0795",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-4b600c131fcaac0afda6",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-176f1d4928f74754ee1f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-a16da235be16c28cffea",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-309cc246c72159eab7e1",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-4508dd6e6d7186d27218",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-bcd78252dff24caf3851",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-dc8970f615ac41a6656d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-9b10ede84f41d4bbdb0a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-79ef97ca05b0a3c5e80e",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-d942a934a8be3e79939b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-80fd9a508667a23dba7d",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 7, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-18783f4dd0456c3a9e2b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 8, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-6b91a2fb3cf853fb6312",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 8, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-80d062747c9e80e7b9c1",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 8, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-e814ae320e736290a03e",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 8, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-a11d41423d8d676d3fcf",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 8, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-402c6f65cf31f003f6d4",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 8, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-c81266fad030523c3990",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-ac790680696483f0e26a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-281d33175c731660d155",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-7b1f16cd5aeeabc3e12a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-1ef2679b38a32e1a4595",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-54822ae6fd8d67a426c5",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-c5e3783ab07082391173",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-642eff788039d0c6a829",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-72fa0fc0995b93352cb9",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9 TWP: Tab walks the axis rows, the actions in order, then the WCS [retry 0]",
+      "test": "39a3bb4de3990daa7741-683a1e1b65b5fc7cc3ea",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, landscape touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-3e5f12c6e810c077ed7e",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-fe01ca61afa44b1f208b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, landscape touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-52f12092f972314cb90f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, landscape: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-9772525919b3d593fdaf",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, portrait touch 150 %: every Setup control is reachable beside Safety [retry 0]",
+      "test": "39a3bb4de3990daa7741-3167005e47f70eacff18",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-6f63326ff927b084dbb8",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, portrait touch: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-03f1dcb20987c6cd9ba1",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9, portrait: the arrangement, every action once, nothing outside or clipped [retry 0]",
+      "test": "39a3bb4de3990daa7741-38da471091963e027409",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a 9: Tab walks the axis rows, the actions in order, then the WCS [retry 0]",
+      "test": "39a3bb4de3990daa7741-918d9c0db803dd1ae91c",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 5 TCP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]",
+      "test": "39a3bb4de3990daa7741-13eaf5bff82cc772544a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 5 TCP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]",
+      "test": "39a3bb4de3990daa7741-e90b47d3e758bfc4ec87",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 6 TWP, landscape touch: G55 stays under the finger and is chosen on release [retry 0]",
+      "test": "39a3bb4de3990daa7741-60b4c7f53f27d057a767",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a a chip change under a held fixture \u203a 6 TWP, portrait touch: G55 stays under the finger and is chosen on release [retry 0]",
+      "test": "39a3bb4de3990daa7741-422a286a389c5d8b90ae",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a a new axis set re-lays the section out [retry 0]",
+      "test": "39a3bb4de3990daa7741-3ca65f36afe6f2b2d936",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a landscape touch: a title's \"?\" is centred on its line [retry 0]",
+      "test": "39a3bb4de3990daa7741-c62d7a80bb078c27b686",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a landscape: a title's \"?\" is centred on its line [retry 0]",
+      "test": "39a3bb4de3990daa7741-e7097c270d2864182ba0",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a portrait touch 150 %, the keypad on an axis field: only the axis rows stay [retry 0]",
+      "test": "39a3bb4de3990daa7741-5ba8cf5c842952b998ad",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "setup-layout.spec.ts \u203a portrait touch: a title's \"?\" is centred on its line [retry 0]",
+      "test": "39a3bb4de3990daa7741-9c2da9aa6cbb652ed4f9",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    }
+  ],
+  "no_cookie": [
+    {
+      "where": "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]",
+      "instance": "ab3940c4-57bf-4180-9a83-5860a58451d1",
+      "conn": 4,
+      "frames": [
+        {
+          "cmd": "hello",
+          "session": "replay-origin:no-cookie"
+        }
+      ]
+    }
+  ],
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP requests' payloads (step 5b) \u2014 recorded with their origin, not judged",
+    "coverage against the inventory (step 5c)"
+  ]
+}
