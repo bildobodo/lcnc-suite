@@ -1,4 +1,4 @@
-The checker at 0815546d over logs already recorded (python3 -I scripts/test_select/replay.py --dir … --events … --run …).
+The checker at d7431f19 over logs already recorded (python3 -I scripts/test_select/replay.py --dir … --events … --run …).
 
 == rgrp4 (round gate at 1fe5e274, three workers): run gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9
 verdict PASS, findings 0, logs 3
@@ -7,13 +7,25 @@ connections {'infra': 927, 'test': 990, 'no-cookie exception': 1}; http {'with o
 attempts 922, attempt_list 922, per_attempt 922
 observed: {'page loaded at its mock': 910, 'no page loaded at a mock': 12}
 attempts per mock: {'9de1f042-cab6-4cb1-8e94-a9181a6a1b2f': 302, '22460f71-f712-4dec-a6ac-6282cd5bf2b8': 234, '3419798e-9600-4aee-97bf-7d033fe1ea48': 386}
-no_cookie: [{'where': 'replay-origin.spec.ts › every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]', 'instance': '9de1f042-cab6-4cb1-8e94-a9181a6a1b2f', 'conn': 288, 'frames': [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}]}]
+retries: 0
+no_cookie: [('replay-origin.spec.ts › every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]', '9de1f042-cab6-4cb1-8e94-a9181a6a1b2f', 288, [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}])]
 
-== CI 43630215898 artifact (ac3c56e5, one worker, restarted after a failure): run 4551-1794683842343
+== rgrp5 (round gate at 0815546d, three workers): run gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e
+verdict PASS, findings 0, logs 3
+frames 11087 by class {'no-cookie exception': 1, 'test': 11086}
+connections {'infra': 927, 'test': 991, 'no-cookie exception': 1}; http {'with origin': 19944, 'ready probe (no cookie by construction)': 6}
+attempts 922, attempt_list 922, per_attempt 922
+observed: {'page loaded at its mock': 910, 'no page loaded at a mock': 12}
+attempts per mock: {'4afe4091-2f11-4af8-8147-c39d442786d0': 315, '78fb58d3-c793-4224-b938-fa81db9c475b': 367, 'd2670c69-5cbd-4355-9bb9-591800e597b3': 240}
+retries: 0
+no_cookie: [('replay-origin.spec.ts › every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]', '4afe4091-2f11-4af8-8147-c39d442786d0', 260, [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}])]
+
+== CI 43630215898 artifact (ac3c56e5, one worker, restarted after run-hold.spec.ts:128 failed; no retry): run 4551-1794683842343
 verdict PASS, findings 0, logs 2
 frames 8183 by class {'no-cookie exception': 1, 'test': 8182}
 connections {'infra': 926, 'test': 989, 'no-cookie exception': 1}; http {'with origin': 17721, 'ready probe (no cookie by construction)': 4}
 attempts 922, attempt_list 922, per_attempt 922
 observed: {'page loaded at its mock': 910, 'no page loaded at a mock': 12}
 attempts per mock: {'91745aba-aa6f-43fd-ad34-3d5a6d8a033a': 531, 'de31234b-fcd8-458f-a40c-ee3ab60e2a7e': 391}
-no_cookie: [{'where': 'replay-origin.spec.ts › every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]', 'instance': '91745aba-aa6f-43fd-ad34-3d5a6d8a033a', 'conn': 1118, 'frames': [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}]}]
+retries: 0
+no_cookie: [('replay-origin.spec.ts › every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]', '91745aba-aa6f-43fd-ad34-3d5a6d8a033a', 1118, [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}])]

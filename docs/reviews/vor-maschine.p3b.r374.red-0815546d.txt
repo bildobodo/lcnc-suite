@@ -1,0 +1,31 @@
+test_replay.py of the R374 head against the checker of 0815546d: 15 red, 106 green
+RED  test_a_line_of_unknown_kind_is_a_finding_never_read_past
+     assert ([] == ["run-1-m1.js...kind 'Frame'"]      Right contains one more item: "run-1-m1.jsonl:5: a line of unknown kind 'Frame'"   Use -v to get more diff)
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line0-a line of unknown kind '[]']
+     AssertionError: [] assert [] == ["run-1-m1.js...wn kind '[]'"]      Right contains one more item: "run-1-m1.jsonl:6: a line of unknown kind '[]'"   Use -v to get more diff
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line1-a line of kind frame without a connection number]
+     TypeError: unhashable type: 'list'
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line2-a line of kind open without a connection number]
+     TypeError: unhashable type: 'list'
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line3-a line of kind close without a connection number]
+     TypeError: unhashable type: 'dict'
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line4-a line of kind frame without a connection number]
+     AssertionError: [] assert [] == ['run-1-m1.js...ction number']      Right contains one more item: 'run-1-m1.jsonl:6: a line of kind frame without a connection number'   Use -v to get more diff
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line5-an open line without its time]
+     AssertionError: ['m1 conn 50: an app connection without an origin'] assert ['m1 conn 50:...ut an origin'] == ['run-1-m1.js...out its time']      At index 0 diff: 'm1 conn 50: an app connection without an origin' != 'run-1-m1.jsonl:6: an ope
+RED  test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash[o0]
+     TypeError: unhashable type: 'list'
+RED  test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash[o1]
+     TypeError: unhashable type: 'dict'
+RED  test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash[o3]
+     TypeError: unhashable type: 'list'
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[not json]
+     json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[[1, 2]]
+     AttributeError: 'list' object has no attribute 'get'
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[{"run": "run-1", "event": "test-start", "testId": ["x"], "retry": 0, "file": "x.spec.ts", "title": "t", "project": "e2e", "instance": "m1", "t": 0}]
+     TypeError: unhashable type: 'list'
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[{"run": "run-1", "event": "test-end", "testId": "tid-a", "retry": "0", "file": "x.spec.ts", "title": "t", "project": "e2e", "instance": "m1", "t": 5, "status": "passed"}]
+     AssertionError: [] assert ('PASS' == 'FAIL'      - FAIL   + PASS)
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[{"run": "run-1", "event": "bound", "instance": {}}]
+     AssertionError: ['run-1-{}.jsonl: no replay log for a mock the run bound'] assert ('FAIL' == 'FAIL'        FAIL and False)  +  where False = any(<generator object test_an_event_line_not_of_its_form_is_a_finding_not_a_crash.<locals>.<genexpr

@@ -1,36 +1,95 @@
-R374: the new guards (test_replay.py at 0815546d) against the checker of 1fe5e274 (constant NO_COOKIE_FRAMES added for collection only).
-Red = the old checker misses the case; green = a control (optional fields, a retry on a new mock) or a value rule the old checker already had.
-        r = run(tmp_path, [m], [attempt(A, title="a"), attempt(B, title="b", status="passed")])
-FAILED scripts/test_select/test_replay.py::test_the_named_no_cookie_socket_only_inside_its_spec
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg0-hidden]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg1-id]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg2-section]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg3-base_rev]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg4-data]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg5-name]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg6-device]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg7-enable]
-FAILED scripts/test_select/test_replay.py::test_a_reader_frame_without_a_required_field_fails[msg8-on]
-FAILED scripts/test_select/test_replay.py::test_a_reader_field_the_reader_refuses_fails[msg0-data]
-FAILED scripts/test_select/test_replay.py::test_a_reader_field_the_reader_refuses_fails[msg1-section]
-FAILED scripts/test_select/test_replay.py::test_a_reader_field_the_reader_refuses_fails[msg4-device]
-FAILED scripts/test_select/test_replay.py::test_a_device_on_a_machine_section_fails_and_on_a_device_section_passes
-FAILED scripts/test_select/test_replay.py::test_optional_reader_fields_stay_optional[msg3]
-FAILED scripts/test_select/test_replay.py::test_optional_reader_fields_stay_optional[msg5]
-FAILED scripts/test_select/test_replay.py::test_every_reader_rule_names_exactly_its_command_s_declared_fields
-FAILED scripts/test_select/test_replay.py::test_an_origin_of_another_project_fails_for_a_socket_and_a_request[o0-an origin naming project 'another', its attempt ran in 'e2e']
-FAILED scripts/test_select/test_replay.py::test_an_origin_of_another_project_fails_for_a_socket_and_a_request[o1-an origin naming project None, its attempt ran in 'e2e']
-FAILED scripts/test_select/test_replay.py::test_an_attempt_s_traffic_on_another_worker_s_mock_fails
-FAILED scripts/test_select/test_replay.py::test_a_frame_without_its_open_line_is_a_finding_and_counted[False]
-FAILED scripts/test_select/test_replay.py::test_a_frame_without_its_open_line_is_a_finding_and_counted[True]
-FAILED scripts/test_select/test_replay.py::test_a_close_without_its_open_line_fails
-FAILED scripts/test_select/test_replay.py::test_a_second_open_of_one_connection_fails_and_the_first_origin_stays
-FAILED scripts/test_select/test_replay.py::test_the_named_connection_is_recorded_with_its_frame
-FAILED scripts/test_select/test_replay.py::test_the_named_connection_sends_exactly_its_frame[frames0-exactly]
-FAILED scripts/test_select/test_replay.py::test_the_named_connection_sends_exactly_its_frame[frames1-exactly]
-FAILED scripts/test_select/test_replay.py::test_the_named_connection_sends_exactly_its_frame[frames2-exactly]
-FAILED scripts/test_select/test_replay.py::test_a_malformed_frame_on_the_named_connection_is_judged_like_any_frame
-FAILED scripts/test_select/test_replay.py::test_two_named_connections_in_one_attempt_fail
-FAILED scripts/test_select/test_replay.py::test_every_attempt_is_listed_one_without_a_page_too
-FAILED scripts/test_select/test_replay.py::test_two_attempts_of_one_file_and_title_keep_their_own_names
-32 failed, 73 passed in 0.25s
+test_replay.py of the R374 head against the checker of 1fe5e274: 47 red, 74 green
+RED  test_the_named_no_cookie_socket_only_inside_its_spec
+     AssertionError: ['m1 conn 2: an app connection without an origin'] assert False  +  where False = any(<generator object test_the_named_no_cookie_socket_only_inside_its_spec.<locals>.<genexpr> at 0xffff7f3d8ad0>)
+RED  test_a_reader_frame_without_a_required_field_fails[msg0-hidden]
+     assert [] == ["x.spec.ts ›...g ['hidden']"]      Right contains one more item: "x.spec.ts › t [retry 0]: tab_visibility the reader refuses: missing ['hidden']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg1-id]
+     assert [] == ["x.spec.ts ›...ssing ['id']"]      Right contains one more item: "x.spec.ts › t [retry 0]: safety_trip_ack the reader refuses: missing ['id']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg2-section]
+     assert [] == ["x.spec.ts ›... ['section']"]      Right contains one more item: "x.spec.ts › t [retry 0]: save_settings the reader refuses: missing ['section']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg3-base_rev]
+     assert [] == ["x.spec.ts ›...['base_rev']"]      Right contains one more item: "x.spec.ts › t [retry 0]: save_settings the reader refuses: missing ['base_rev']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg4-data]
+     assert [] == ["x.spec.ts ›...ing ['data']"]      Right contains one more item: "x.spec.ts › t [retry 0]: save_settings the reader refuses: missing ['data']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg5-name]
+     assert [] == ["x.spec.ts ›...ing ['name']"]      Right contains one more item: "x.spec.ts › t [retry 0]: device_rename the reader refuses: missing ['name']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg6-device]
+     assert [] == ["x.spec.ts ›...g ['device']"]      Right contains one more item: "x.spec.ts › t [retry 0]: device_delete the reader refuses: missing ['device']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg7-enable]
+     assert [] == ["x.spec.ts ›...g ['enable']"]      Right contains one more item: "x.spec.ts › t [retry 0]: timing_log the reader refuses: missing ['enable']"   Use -v to get more diff
+RED  test_a_reader_frame_without_a_required_field_fails[msg8-on]
+     assert [] == ["x.spec.ts ›...ssing ['on']"]      Right contains one more item: "x.spec.ts › t [retry 0]: halshow_live the reader refuses: missing ['on']"   Use -v to get more diff
+RED  test_a_reader_field_the_reader_refuses_fails[msg0-data]
+     assert [] == ["x.spec.ts ›...ses ['data']"]      Right contains one more item: "x.spec.ts › t [retry 0]: save_settings the reader refuses ['data']"   Use -v to get more diff
+RED  test_a_reader_field_the_reader_refuses_fails[msg1-section]
+     TypeError: unhashable type: 'list'
+RED  test_a_reader_field_the_reader_refuses_fails[msg4-device]
+     assert [] == ["x.spec.ts ›...s ['device']"]      Right contains one more item: "x.spec.ts › t [retry 0]: device_delete the reader refuses ['device']"   Use -v to get more diff
+RED  test_a_device_on_a_machine_section_fails_and_on_a_device_section_passes
+     assert [] == ["x.spec.ts ›...on 'machine'"]      Right contains one more item: "x.spec.ts › t [retry 0]: save_settings the reader refuses a device on the machine section 'machine'"   Use -v to get more diff
+RED  test_optional_reader_fields_stay_optional[msg3]
+     assert ["x.spec.ts ›...s ['device']"] == []      Left contains one more item: "x.spec.ts › t [retry 0]: device_rename the reader refuses ['device']"   Use -v to get more diff
+RED  test_optional_reader_fields_stay_optional[msg5]
+     assert ["x.spec.ts ›...s ['device']"] == []      Left contains one more item: "x.spec.ts › t [retry 0]: save_settings the reader refuses ['device']"   Use -v to get more diff
+RED  test_every_reader_rule_names_exactly_its_command_s_declared_fields
+     AssertionError: a rule for a frame the UI never sends assert {'client_diag...ow_live', ...} <= {'abort', 'ad...ure_g30', ...}      Extra items in the left set:   'halshow_refresh'   'get_settings'
+RED  test_an_origin_of_another_project_fails_for_a_socket_and_a_request[o0-an origin naming project 'another', its attempt ran in 'e2e']
+     AssertionError: [] assert (0 == 2)  +  where 0 = len([])
+RED  test_an_origin_of_another_project_fails_for_a_socket_and_a_request[o1-an origin naming project None, its attempt ran in 'e2e']
+     AssertionError: [] assert (0 == 2)  +  where 0 = len([])
+RED  test_an_attempt_s_traffic_on_another_worker_s_mock_fails
+     AssertionError: [] assert (0 == 2)  +  where 0 = len([])
+RED  test_a_frame_without_its_open_line_is_a_finding_and_counted[False]
+     AssertionError: [] assert 'm1 conn 999: 1 frame(s) on a connection with no open line' in []
+RED  test_a_frame_without_its_open_line_is_a_finding_and_counted[True]
+     AssertionError: [] assert 'm1 conn 999: 1 frame(s) on a connection with no open line' in []
+RED  test_a_close_without_its_open_line_fails
+     AssertionError: assert [] == ['m1 conn 77:...out its open']      Right contains one more item: 'm1 conn 77: a close line without its open'   Use -v to get more diff
+RED  test_a_second_open_of_one_connection_fails_and_the_first_origin_stays
+     AssertionError: assert [] == ['m1 conn 1: ...origin stays']      Right contains one more item: 'm1 conn 1: a second open line — the first origin stays'   Use -v to get more diff
+RED  test_the_named_connection_is_recorded_with_its_frame
+     KeyError: 'no_cookie'
+RED  test_the_named_connection_sends_exactly_its_frame[frames0-exactly]
+     AssertionError: [] assert (0 == 1)  +  where 0 = len([])
+RED  test_the_named_connection_sends_exactly_its_frame[frames1-exactly]
+     AssertionError: [] assert (0 == 1)  +  where 0 = len([])
+RED  test_the_named_connection_sends_exactly_its_frame[frames2-exactly]
+     AssertionError: ['m1 conn 2: an app connection without an origin'] assert (1 == 1 and 'the named connection without a cookie' in 'm1 conn 2: an app connection without an origin')  +  where 1 = len(['m1 conn 2: an app connection without an o
+RED  test_a_malformed_frame_on_the_named_connection_is_judged_like_any_frame
+     AssertionError: [] assert False  +  where False = any(<generator object test_a_malformed_frame_on_the_named_connection_is_judged_like_any_frame.<locals>.<genexpr> at 0xffff7f0e4860>)
+RED  test_two_named_connections_in_one_attempt_fail
+     AssertionError: assert [] == ['replay-orig...on names one']      Right contains one more item: 'replay-origin.spec.ts › t [retry 0]: 2 connections without a cookie — the exception names one'   Use -v to get more diff
+RED  test_every_attempt_is_listed_one_without_a_page_too
+     KeyError: 'x.spec.ts › b [retry 0]'
+RED  test_two_attempts_of_one_file_and_title_keep_their_own_names
+     AssertionError: assert {'x.spec.ts › t [retry 0]'} == {'x.spec.ts ›... [e2e tid-b]'}      Extra items in the left set:   'x.spec.ts › t [retry 0]'   Extra items in the right set:   'x.spec.ts › t [retry 0] [e2e tid-a]'   'x.spec.ts › t [ret
+RED  test_a_line_of_unknown_kind_is_a_finding_never_read_past
+     assert ([] == ["run-1-m1.js...kind 'Frame'"]      Right contains one more item: "run-1-m1.jsonl:5: a line of unknown kind 'Frame'"   Use -v to get more diff)
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line0-a line of unknown kind '[]']
+     AssertionError: [] assert [] == ["run-1-m1.js...wn kind '[]'"]      Right contains one more item: "run-1-m1.jsonl:6: a line of unknown kind '[]'"   Use -v to get more diff
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line1-a line of kind frame without a connection number]
+     TypeError: unhashable type: 'list'
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line2-a line of kind open without a connection number]
+     TypeError: unhashable type: 'list'
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line3-a line of kind close without a connection number]
+     AssertionError: [] assert [] == ['run-1-m1.js...ction number']      Right contains one more item: 'run-1-m1.jsonl:6: a line of kind close without a connection number'   Use -v to get more diff
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line4-a line of kind frame without a connection number]
+     AssertionError: [] assert [] == ['run-1-m1.js...ction number']      Right contains one more item: 'run-1-m1.jsonl:6: a line of kind frame without a connection number'   Use -v to get more diff
+RED  test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash[line5-an open line without its time]
+     AssertionError: ['m1 conn 50: an app connection without an origin'] assert ['m1 conn 50:...ut an origin'] == ['run-1-m1.js...out its time']      At index 0 diff: 'm1 conn 50: an app connection without an origin' != 'run-1-m1.jsonl:6: an ope
+RED  test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash[o0]
+     TypeError: unhashable type: 'list'
+RED  test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash[o1]
+     TypeError: unhashable type: 'dict'
+RED  test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash[o3]
+     TypeError: unhashable type: 'list'
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[not json]
+     json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[[1, 2]]
+     AttributeError: 'list' object has no attribute 'get'
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[{"run": "run-1", "event": "test-start", "testId": ["x"], "retry": 0, "file": "x.spec.ts", "title": "t", "project": "e2e", "instance": "m1", "t": 0}]
+     TypeError: unhashable type: 'list'
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[{"run": "run-1", "event": "test-end", "testId": "tid-a", "retry": "0", "file": "x.spec.ts", "title": "t", "project": "e2e", "instance": "m1", "t": 5, "status": "passed"}]
+     AssertionError: [] assert ('PASS' == 'FAIL'      - FAIL   + PASS)
+RED  test_an_event_line_not_of_its_form_is_a_finding_not_a_crash[{"run": "run-1", "event": "bound", "instance": {}}]
+     AssertionError: ['run-1-{}.jsonl: no replay log for a mock the run bound'] assert ('FAIL' == 'FAIL'        FAIL and False)  +  where False = any(<generator object test_an_event_line_not_of_its_form_is_a_finding_not_a_crash.<locals>.<genexpr

@@ -2,7 +2,7 @@
   "kind": "round",
   "note": "",
   "base": "533c71fc4e18337948ddfb3caeab7112e66cd1d8",
-  "head": "0815546d35e937f3e65f11b3a8b74f86e2fd6a89",
+  "head": "d7431f199a510c662e5363035ea8e15d3656d787",
   "uncommitted": 0,
   "plan": [
     "selection-guards",
@@ -81,258 +81,258 @@
   "browser_specs": [
     {
       "file": "layout.spec.ts",
-      "ms": 1501252
+      "ms": 1508280
     },
     {
       "file": "collisions.viewer.spec.ts",
-      "ms": 723477
+      "ms": 680882
     },
     {
       "file": "setup-layout.spec.ts",
-      "ms": 488267
+      "ms": 487257
     },
     {
       "file": "bake-hold.viewer.spec.ts",
-      "ms": 435217
+      "ms": 423902
     },
     {
       "file": "sim-panel.viewer.spec.ts",
-      "ms": 393528
+      "ms": 389784
     },
     {
       "file": "dialogs.spec.ts",
-      "ms": 386152
+      "ms": 355748
     },
     {
       "file": "contrast.spec.ts",
-      "ms": 335578
+      "ms": 322276
     },
     {
       "file": "safety-during-edit.spec.ts",
-      "ms": 198561
+      "ms": 195638
     },
     {
       "file": "touchoff.spec.ts",
-      "ms": 195997
+      "ms": 192234
     },
     {
       "file": "keyboard-guards.spec.ts",
-      "ms": 152050
-    },
-    {
-      "file": "scenes.viewer.spec.ts",
-      "ms": 148187
+      "ms": 154868
     },
     {
       "file": "input-session.spec.ts",
-      "ms": 147355
+      "ms": 148159
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 146309
     },
     {
       "file": "help-icons.spec.ts",
-      "ms": 129151
+      "ms": 128478
     },
     {
       "file": "macros.spec.ts",
-      "ms": 125786
+      "ms": 125190
     },
     {
       "file": "simulation-off.viewer.spec.ts",
-      "ms": 98129
+      "ms": 102385
     },
     {
       "file": "run-hold.spec.ts",
-      "ms": 97209
+      "ms": 96952
     },
     {
       "file": "choices.spec.ts",
-      "ms": 93735
+      "ms": 90485
     },
     {
       "file": "toolsetter.viewer.spec.ts",
-      "ms": 85897
+      "ms": 86494
     },
     {
       "file": "feedback-channels.spec.ts",
-      "ms": 84373
+      "ms": 84706
     },
     {
       "file": "editor-guards.spec.ts",
-      "ms": 82216
+      "ms": 74616
     },
     {
       "file": "forms.spec.ts",
-      "ms": 67876
-    },
-    {
-      "file": "disarmed.spec.ts",
-      "ms": 64355
-    },
-    {
-      "file": "visual.spec.ts",
-      "ms": 62474
-    },
-    {
-      "file": "feature-switches.spec.ts",
-      "ms": 61571
+      "ms": 67902
     },
     {
       "file": "viewer.spec.ts",
-      "ms": 59606
+      "ms": 61452
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 61369
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 59094
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 57081
     },
     {
       "file": "toolsetter-setup.spec.ts",
-      "ms": 53681
-    },
-    {
-      "file": "devices.spec.ts",
-      "ms": 46751
-    },
-    {
-      "file": "tool-geometry.spec.ts",
-      "ms": 46459
+      "ms": 54833
     },
     {
       "file": "g30.spec.ts",
-      "ms": 45451
+      "ms": 48799
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 46980
     },
     {
       "file": "strip-actions.spec.ts",
-      "ms": 42722
+      "ms": 42852
     },
     {
-      "file": "example-tool-library.spec.ts",
-      "ms": 42240
+      "file": "devices.spec.ts",
+      "ms": 41617
     },
     {
       "file": "tabs.spec.ts",
-      "ms": 39108
+      "ms": 40294
     },
     {
       "file": "viewcube.viewer.spec.ts",
-      "ms": 37331
+      "ms": 37332
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 36003
     },
     {
       "file": "select-writes.spec.ts",
-      "ms": 34674
+      "ms": 34548
     },
     {
       "file": "probe-click.spec.ts",
-      "ms": 30061
-    },
-    {
-      "file": "gcode-reference.spec.ts",
-      "ms": 28537
+      "ms": 30344
     },
     {
       "file": "offsets.spec.ts",
-      "ms": 27220
+      "ms": 27227
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 26924
     },
     {
       "file": "tool-table-read.spec.ts",
-      "ms": 26812
-    },
-    {
-      "file": "frames.spec.ts",
-      "ms": 26241
-    },
-    {
-      "file": "findings.viewer.spec.ts",
-      "ms": 24154
-    },
-    {
-      "file": "joint-jog.spec.ts",
-      "ms": 23987
+      "ms": 26282
     },
     {
       "file": "appearance.spec.ts",
-      "ms": 23340
+      "ms": 23831
     },
     {
-      "file": "compensation.spec.ts",
-      "ms": 22081
+      "file": "frames.spec.ts",
+      "ms": 23444
     },
     {
-      "file": "setup-gates.spec.ts",
-      "ms": 21910
+      "file": "findings.viewer.spec.ts",
+      "ms": 23424
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 23275
     },
     {
       "file": "messages.spec.ts",
-      "ms": 20984
+      "ms": 22073
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 21280
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 21272
     },
     {
       "file": "rapids.viewer.spec.ts",
-      "ms": 20318
+      "ms": 20660
     },
     {
       "file": "touch-hold.spec.ts",
-      "ms": 19873
-    },
-    {
-      "file": "tool-import.spec.ts",
-      "ms": 14061
+      "ms": 19097
     },
     {
       "file": "reach.viewer.spec.ts",
-      "ms": 13232
+      "ms": 12800
     },
     {
-      "file": "tool-marker.spec.ts",
-      "ms": 12650
+      "file": "tool-import.spec.ts",
+      "ms": 12743
     },
     {
       "file": "jog-buttons.spec.ts",
-      "ms": 12399
+      "ms": 12368
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 12073
     },
     {
       "file": "nine-axis.spec.ts",
-      "ms": 12370
+      "ms": 11823
     },
     {
       "file": "lifecycle.spec.ts",
-      "ms": 10608
-    },
-    {
-      "file": "touch-surface.spec.ts",
-      "ms": 9360
+      "ms": 11258
     },
     {
       "file": "tool-holder.spec.ts",
-      "ms": 9104
+      "ms": 9724
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 9469
     },
     {
       "file": "replay-origin.spec.ts",
-      "ms": 5847
-    },
-    {
-      "file": "freecad-import.spec.ts",
-      "ms": 4567
+      "ms": 5095
     },
     {
       "file": "fatpaths.viewer.spec.ts",
-      "ms": 4149
+      "ms": 4909
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 4168
     },
     {
       "file": "armed.spec.ts",
-      "ms": 3757
+      "ms": 3318
     },
     {
       "file": "smoke.spec.ts",
-      "ms": 2799
+      "ms": 2842
     },
     {
       "file": "layout-audit.spec.ts",
-      "ms": 1286
+      "ms": 1265
     },
     {
       "file": "mock-baseline.spec.ts",
-      "ms": 49
+      "ms": 56
     }
   ],
   "verdict": "PASS",
   "resources": {
-    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rgrp5.service",
-    "cpu_s": 11298,
-    "memory_peak_mb": 3464
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rgrp6.service",
+    "cpu_s": 11338,
+    "memory_peak_mb": 3647
   },
   "checks": [
     {
@@ -340,28 +340,28 @@
       "command": "/home/cnc/lcnc-suite-rp/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-rp/scripts/test_select/test_selector.py",
       "status": "PASS",
       "exit": 0,
-      "seconds": 3
+      "seconds": 4
     },
     {
       "name": "lint",
       "command": "npm run lint",
       "status": "PASS",
       "exit": 0,
-      "seconds": 7
+      "seconds": 12
     },
     {
       "name": "build",
       "command": "npm run build",
       "status": "PASS",
       "exit": 0,
-      "seconds": 14
+      "seconds": 22
     },
     {
       "name": "unit-light",
-      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rgrp5/gate-round.logs/unit-light.json",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rgrp6/gate-round.logs/unit-light.json",
       "status": "PASS",
       "exit": 0,
-      "seconds": 51,
+      "seconds": 96,
       "files": 165,
       "tests": 2654,
       "passed": 2654,
@@ -371,10 +371,10 @@
     },
     {
       "name": "backend",
-      "command": "/home/cnc/lcnc-suite-rp/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-rp/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rgrp5/gate-round.logs/backend",
+      "command": "/home/cnc/lcnc-suite-rp/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-rp/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rgrp6/gate-round.logs/backend",
       "status": "PASS",
       "exit": 0,
-      "seconds": 232
+      "seconds": 229
     },
     {
       "name": "ports-free",
@@ -385,7 +385,7 @@
       "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
       "status": "PASS",
       "exit": 0,
-      "seconds": 2486,
+      "seconds": 2450,
       "tests": 922,
       "passed": 922,
       "failed": 0,
@@ -400,14 +400,14 @@
     {
       "name": "browser-workers",
       "status": "PASS",
-      "run": "gate-a52b1076-2c6c-4750-803f-31d21d0f9a3e",
+      "run": "gate-e43231be-dc77-42ba-a7f8-cf68c92127a8",
       "mocks": 3
     },
     {
       "name": "browser-replay",
       "status": "PASS",
       "report": "replay.json",
-      "frames": 11087,
+      "frames": 10981,
       "attempts": 922,
       "outside": [
         "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",

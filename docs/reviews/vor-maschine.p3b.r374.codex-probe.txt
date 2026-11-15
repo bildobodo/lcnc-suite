@@ -1,0 +1,19 @@
+Codex's R373 probe (vor-maschine.p3b.r373.codex-probe.py) beside test_replay.py at d7431f19 (committed tree, copy removed after):
+scripts/test_select/r373_codex_probe.py::test_missing_reader_field_is_not_valid[msg0] PASSED
+scripts/test_select/r373_codex_probe.py::test_missing_reader_field_is_not_valid[msg1] PASSED
+scripts/test_select/r373_codex_probe.py::test_missing_reader_field_is_not_valid[msg2] PASSED
+scripts/test_select/r373_codex_probe.py::test_missing_reader_field_is_not_valid[msg3] PASSED
+scripts/test_select/r373_codex_probe.py::test_missing_reader_field_is_not_valid[msg4] PASSED
+scripts/test_select/r373_codex_probe.py::test_missing_reader_field_is_not_valid[msg5] PASSED
+scripts/test_select/r373_codex_probe.py::test_origin_project_is_checked[bad_origin0] PASSED
+scripts/test_select/r373_codex_probe.py::test_origin_project_is_checked[bad_origin1] PASSED
+scripts/test_select/r373_codex_probe.py::test_test_cannot_send_to_another_workers_mock PASSED
+scripts/test_select/r373_codex_probe.py::test_frame_without_open_is_never_silently_discarded[False] PASSED
+scripts/test_select/r373_codex_probe.py::test_frame_without_open_is_never_silently_discarded[True] PASSED
+scripts/test_select/r373_codex_probe.py::test_no_cookie_exception_is_exactly_one_valid_hello[extra-field] PASSED
+scripts/test_select/r373_codex_probe.py::test_no_cookie_exception_is_exactly_one_valid_hello[two-hellos] PASSED
+scripts/test_select/r373_codex_probe.py::test_control_valid_reader_fields_and_two_workers PASSED
+scripts/test_select/r373_codex_probe.py::test_control_current_reader_does_not_require_a_device_target PASSED
+scripts/test_select/r373_codex_probe.py::test_control_exact_named_no_cookie_exception PASSED
+scripts/test_select/r373_codex_probe.py::test_control_late_frame_keeps_original_attempt PASSED
+============================== 17 passed in 0.04s ==============================
