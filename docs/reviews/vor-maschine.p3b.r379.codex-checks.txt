@@ -1,0 +1,21 @@
+R379, Codex, 2026-11-15
+Source: cad9ac7798f65b39a5a17642d1f351cf15f30194 archived to /tmp/codex-r379.
+No live process/port access. Real SimulatorClient with fake socket; local threads only.
+Python: /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3
+
+13 new/modified functions in test_native_stage.py, parametrized to 17 cases:
+.................                                                        [100%]
+17 passed in 4.23s
+["test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement", "test_a_bad_frame_in_the_acknowledgements_send_path_before_its_mark_fails", "test_a_bad_frame_after_the_send_is_outside_the_section", "test_the_judgement_runs_only_after_the_acknowledgement_was_sent", "test_the_live_session_stamps_and_records_a_frame_in_one_step_with_the_mark", "test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement", "test_a_servo_end_failure_keeps_the_display_row_once", "test_the_recovery_entry_failing_keeps_the_display_row_once", "test_the_display_row_is_formed_once_on_every_exit", "test_the_outage_start_failing_keeps_both_rows_once", "test_the_first_frame_while_cont_writes_its_state_triggers_the_early_reset", "test_a_frame_before_the_bracket_ends_triggers_nothing", "test_a_continue_without_its_bracket_asks_no_reset"]
+
+7 relevant SimulatorClient tests (one overlaps the selection above):
+.......                                                                  [100%]
+7 passed in 0.68s
+["test_the_client_takes_only_status_frames_as_status", "test_the_client_harvests_every_frames_errors_and_the_envelope", "test_the_hold_counts_received_frames_never_reads_of_the_cache", "test_the_session_keeps_the_revisions_of_each_settings_view", "test_the_real_client_types_its_ends_at_the_boundary", "test_the_live_session_stamps_and_records_a_frame_in_one_step_with_the_mark", "test_the_acknowledgements_reply_without_a_cmd_is_its_own"]
+
+5 independent real-thread / callback / send-failure probes:
+.....                                                                    [100%]
+5 passed in 0.08s
+
+Two behavioral mutations: both FAIL by assertion; only the archive was modified and restored.
+The original R378 probe: 4 passed; 1 failed at its former precondition bad < ack because the evaluator now runs after the acknowledgement (expected correction, not a remaining defect). See codex-r378-recheck.txt.

@@ -1,0 +1,86 @@
+send_without_record_lock exit 1
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_receive_cannot_stamp_between_mark_and_send ________________
+
+    def test_receive_cannot_stamp_between_mark_and_send():
+        c = SimulatorClient('fake', auto_confirm=False)
+        c.take({'type': 'status', 'data': {}, 'trip_basis': {'gen': 1}})
+        c.record_lock = ObservedLock('R379-receive')
+        done = threading.Event()
+        observed = {}
+        def receive():
+            c.take({'type': 'status', 'data': {}, 'trip_basis': {'gen': 2}})
+            done.set()
+        rx = threading.Thread(target=receive, name='R379-receive', daemon=True)
+        class Socket:
+            def send(self, text):
+                assert json.loads(text)['cmd'] == 'safety_trip_ack'
+                rx.start()
+                assert c.record_lock.attempt.wait(1), 'receiver did not reach its record lock'
+                observed['completed_inside_send'] = done.wait(0.03)
+                observed['length_inside_send'] = len(c.basis_history)
+                c.replies.put({'ok': True})
+        c.ws = Socket()
+        try:
+            c.request('safety_trip_ack', id='own-1', mark=lambda m: observed.setdefault('mark', m))
+        finally:
+            rx.join(1)
+        assert not rx.is_alive()
+>       assert observed['completed_inside_send'] is False, observed
+E       AssertionError: {'completed_inside_send': True, 'length_inside_send': 2, 'mark': (1755848.459612722, 1)}
+E       assert True is False
+
+r379_probe.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED r379_probe.py::test_receive_cannot_stamp_between_mark_and_send - Asser...
+1 failed in 0.01s
+
+mark_without_record_lock exit 1
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_end_mark_waits_for_a_stamped_but_not_yet_appended_frame _________
+
+    def test_end_mark_waits_for_a_stamped_but_not_yet_appended_frame():
+        c = SimulatorClient('fake', auto_confirm=False)
+        c.record_lock = ObservedLock('R379-mark')
+        append_entered, allow_append, marked = threading.Event(), threading.Event(), threading.Event()
+        observed = {}
+        class PausedHistory(list):
+            def append(self, item):
+                observed['receipt'] = item[0]
+                append_entered.set()
+                assert allow_append.wait(3), 'probe release not received'
+                super().append(item)
+        c.basis_history = PausedHistory()
+        def receive():
+            c.take({'type': 'status', 'data': {}, 'trip_basis': {'gen': 1}})
+        def mark():
+            observed['mark'] = c.mark()
+            marked.set()
+        rx = threading.Thread(target=receive, name='R379-receive', daemon=True)
+        end = threading.Thread(target=mark, name='R379-mark', daemon=True)
+        rx.start()
+        try:
+            assert append_entered.wait(1)
+            end.start()
+            deadline = time.monotonic() + 1
+            while not (c.record_lock.attempt.is_set() or marked.is_set()):
+                assert time.monotonic() < deadline, 'mark thread made no progress'
+                time.sleep(0.001)
+            observed['marked_while_append_pending'] = marked.wait(0.03)
+        finally:
+            allow_append.set()
+            rx.join(1)
+            if end.ident is not None:
+                end.join(1)
+        assert not rx.is_alive() and not end.is_alive()
+>       assert observed['marked_while_append_pending'] is False, observed
+E       AssertionError: {'mark': (1755848.569747407, 0), 'marked_while_append_pending': True, 'receipt': 1755848.569654949}
+E       assert True is False
+
+r379_probe.py:93: AssertionError
+=========================== short test summary info ============================
+FAILED r379_probe.py::test_end_mark_waits_for_a_stamped_but_not_yet_appended_frame
+1 failed in 0.01s
+

@@ -4441,3 +4441,21 @@ Alle drei Befunde sind angenommen und im Treiber behoben: `feat/p3b-latch` an `c
 - `live_session.py` ist auch der Client von `live-twp`. Dessen PASS an `1e19b741` stammt von vor der Sperre. Die Klasse mit der Sperre lief in den sechs Läufen durch alle nativen Fälle, nicht nur durch den Latch-Fall; `live-twp` selbst habe ich nicht wiederholt.
 
 **Erbeten:** `agreement` oder `findings` zu den Korrekturen von VM-I19 bis VM-I21 an `cad9ac77`.
+
+---
+
+## Codex · Paket 3b · `latch-sticky` · Nachprüfung R379 · 15. November 2026
+
+**Urteil: `agreement` für den umgesetzten Messvertrag an `cad9ac77`.** VM-I19, VM-I20 und VM-I21 sind geschlossen. Kein weiterer Befund und keine offene Operatorfrage in diesem Umfang.
+
+Geprüft in einer eigenen Archivkopie: die Differenz seit R378, **17 neue/geänderte Repository-Fälle grün**, zusätzlich **7 SimulatorClient-Fälle grün** (ein Fall überschneidet sich) und **5 eigene Verhaltensproben grün**. Die eigenen Proben benutzen den echten `SimulatorClient` mit Fake-Socket und echten Threads; zwei gezielte Sperren-Mutationen sind durch Verhaltensassertions rot. Die sechs neuen nativen Laufberichte wurden gelesen und ihre Frame-Gültigkeit sowie Fristgrenzen nachgerechnet. [Belege, Sonden und Ausgaben](vor-maschine.p3b.r379.codex-evidence.md).
+
+- **VM-I19 geschlossen:** Empfangsstempel und Eintrag werden unter derselben Sperre ausgeführt wie Endmarke und Sendeversuch. Ein schon gestempelter, noch nicht eingetragener Frame wird vor der Endmarke fertig aufgenommen; während der markierten Senderegion kann kein neuer Empfangsstempel entstehen. Die Auswertung läuft anschließend über genau den bis zur Marke aufgenommenen Ausschnitt. Die bisherige Ein-Frame-Ausnahme entfällt. Meine originale R378-Sonde scheitert nun an ihrer früheren Vorbedingung `bad < ack`: Ihr während der Auswertung erzeugter Frame liegt bereits nach dem Quittierungsversuch. Das bestätigt die Korrektur. Die neuen Vor-/Nach-Sende-Gegenfälle halten beide Seiten der Grenze. Transportfehler geben die Sperre frei; ohne begonnenen Sendeversuch wird keine Sendemarke erfunden.
+- **VM-I20 geschlossen:** Der äußere Abschluss erfasst auch Servo-END-Fehler, Eigentumsverweigerung, scheiternden Recovery-Eintritt und die Warte-/Quittierungsfehler. Die Anzeigezeile entsteht einmal und behält unabhängig belegte Fehler. Die zusätzliche Verlagerung von `latch-same-cycle` in den Abschluss des Ausfallabschnitts nehme ich an: Ein aufgezeichneter HAL-Abschnitt verschwindet bei einem Fehler im Ablauf nicht mehr aus dem Bericht. Die Gegenfälle mit END-Fehler, mit/ohne Anzeigefehler sowie ohne begonnenen Abschnitt sind grün; unbewiesene fremde Trips werden weiterhin nicht quittiert.
+- **VM-I21 geschlossen:** Der erste Empfang nach dem Ende der gespeicherten SIGCONT-Klammer zählt auch dann, wenn `cont()` noch seine Zustandsdatei schreibt. Der gesamte Verlauf seit dem Start des Abschnitts wird berücksichtigt. Meine Ein-Frame-Sonde ist grün; Frames vor beziehungsweise innerhalb der Klammer lösen kein Reset aus. Herkunft und Trip-Wert werden nicht als zusätzliche Wartebedingung benutzt.
+
+Die Sperre umfasst weder den Status-Callback noch die automatische Werkzeugwechsel-Bestätigung. Das ist mit der gelesenen lokalen Implementierung von `websockets 16.0` vereinbar; zusätzlich prüfen die eigenen Threads die Aufzeichnungsgrenzen im Verhalten. Der unveränderte Produkt-/Versandpfad bleibt durch die angenommenen R378-Belege abgedeckt.
+
+Die sechs neuen Läufe nennen `cad9ac77`, PASS, keine Crashes und vollständige Rückgabe. Die aufgezeichneten neuen Frames kommen in den Hauptläufen nach etwa **35 ms**, in der verzögerten Variante nach etwa **201–203 ms**; die Intervallgrenzen stimmen mit den gespeicherten SIGCONT-Marken überein. Die informativen Jog-Statuszeilen bleiben ausdrücklich `incomplete`, ihre Servo-Zeilen PASS. Das vollständige Gate und die CI wurden hier nicht wiederholt; die angekündigte Installationsprobe bleibt im späteren Merge-Gate offen.
+
+Keine Produktänderung und kein Eingriff in die Live-Sim. Damit ist `latch-sticky` in diesem Umfang abgenommen; die bisherigen Agreements zu Paket 3a, Paket 3b Punkt 1 und Replay Schritt 5a bleiben bestehen.
