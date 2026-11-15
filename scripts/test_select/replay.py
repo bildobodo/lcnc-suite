@@ -15,8 +15,10 @@ requests' payloads (step 5b), the coverage against the inventory (5c).
 
 The checks:
   1. complete — every mock the run bound wrote its log: a head naming the
-     run and the instance, an end, every line JSON; no log of another
-     instance under this run.
+     run and the instance, an end, every line a JSON object of a kind the
+     mock writes (a connection's line with its number, an open with its
+     time); no log of another instance under this run. The fixture's event
+     lines are of their form too (R374: nothing the check keys on can end it).
   2. origin — every app connection carries an attempt of THIS run the
      fixture logged, its WHOLE origin (run, test id, retry, project) the
      attempt's, opened on the mock that attempt ran on (R373 VM-I17); or a
@@ -209,16 +211,52 @@ def _device_sections() -> frozenset:
 
 # ── the logs ─────────────────────────────────────────────────────────────────
 
-def read_events(path: Path, run: str) -> list[dict]:
+#: the line kinds a mock writes (e2e/mock-gateway.mjs replay()); any other
+#: kind is a finding, never a line read past (R374)
+KINDS = frozenset({"head", "open", "frame", "close", "http", "ctl", "end"})
+#: the kinds that name a connection: its number an integer
+CONN_KINDS = frozenset({"open", "frame", "close"})
+
+
+def _int(v: Any) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def _num(v: Any) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def read_events(path: Path, run: str) -> tuple[list[dict], list[str]]:
+    """This run's fixture events — or the problems: a line that is no JSON
+    object, an attempt event whose test id, retry, file, title or times are
+    not of their form (R374: a value the check keys on is never one it
+    cannot hash or compare)."""
     if not path.is_file():
-        return []
-    out = []
-    for line in path.read_text().splitlines():
-        if line.strip():
+        return [], []
+    out, problems = [], []
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
             e = json.loads(line)
-            if e.get("run") == run:
-                out.append(e)
-    return out
+        except ValueError:
+            problems.append(f"{path.name}:{n}: not JSON")
+            continue
+        if not isinstance(e, dict):
+            problems.append(f"{path.name}:{n}: not an object")
+            continue
+        if e.get("run") != run:
+            continue
+        if e.get("event") == "bound" and not isinstance(e.get("instance"), str):
+            problems.append(f"{path.name}:{n}: a bound event without an instance")
+            continue
+        if e.get("event") in ("test-start", "test-end") and not (
+                isinstance(e.get("testId"), str) and _int(e.get("retry", 0)) and isinstance(e.get("file"), str)
+                and isinstance(e.get("title"), str) and isinstance(e.get("instance"), str) and _num(e.get("t"))):
+            problems.append(f"{path.name}:{n}: an attempt event not of its form: {str(e)[:160]}")
+            continue
+        out.append(e)
+    return out, problems
 
 
 def read_logs(replay_dir: Path, run: str, instances: list[str]) -> tuple[dict[str, list[dict]], list[str]]:
@@ -239,6 +277,16 @@ def read_logs(replay_dir: Path, run: str, instances: list[str]) -> tuple[dict[st
                 continue
             if not isinstance(rec, dict) or "kind" not in rec:
                 problems.append(f"{f.name}:{n}: not a record")
+                continue
+            kind = rec["kind"]
+            if not (isinstance(kind, str) and kind in KINDS):
+                problems.append(f"{f.name}:{n}: a line of unknown kind {str(kind)[:40]!r}")
+                continue
+            if kind in CONN_KINDS and not _int(rec.get("conn")):
+                problems.append(f"{f.name}:{n}: a line of kind {kind} without a connection number")
+                continue
+            if kind == "open" and not _num(rec.get("t")):
+                problems.append(f"{f.name}:{n}: an open line without its time")
                 continue
             lines.append(rec)
         if not lines or lines[0].get("kind") != "head" or lines[0].get("run") != run or lines[0].get("instance") != inst:
@@ -318,9 +366,10 @@ def _attempt_of(o: Any, run: str, inst: str, attempts: dict) -> tuple[tuple[str,
     """The attempt a cookie origin names — its WHOLE origin (run, test id,
     retry, project) the attempt's, on the mock the attempt ran on (R373
     VM-I17) — or None and why not."""
-    if not isinstance(o, dict) or o.get("run") != run:
+    if not isinstance(o, dict) or o.get("run") != run \
+            or not isinstance(o.get("test"), str) or not _int(o.get("retry")):
         return None, "an origin of no attempt of this run"
-    key = (o.get("test"), o.get("retry"))
+    key = (o["test"], o["retry"])
     a = attempts.get(key)
     if a is None:
         return None, "an origin of no attempt of this run"
@@ -336,12 +385,12 @@ def _no_cookie_attempt(opened: dict, attempts: dict, inst: str) -> tuple[str, in
     was opened in, on this mock — or None: the ONE named exception."""
     hits = [k for k, a in attempts.items()
             if a["file"] == NO_COOKIE_SPEC and a.get("instance") == inst
-            and (a.get("start") or 0) <= opened.get("t", -1) <= (a.get("end") or float("inf"))]
+            and (a.get("start") or 0) <= opened["t"] <= (a.get("end") or float("inf"))]
     return hits[0] if len(hits) == 1 else None
 
 
 def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | None = None) -> dict:
-    events = read_events(events_path, run)
+    events, event_problems = read_events(events_path, run)
     instances = [e["instance"] for e in events if e.get("event") == "bound"]
     attempts: dict[tuple[str, int], dict] = {}
     for e in events:
@@ -352,7 +401,7 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
             a["start" if e["event"] == "test-start" else "end"] = e.get("t")
             if e["event"] == "test-end":
                 a["status"] = e.get("status")
-    findings: list[str] = []
+    findings: list[str] = list(event_problems)
     if not instances:
         findings.append(f"the event log names no mock of run {run}")
     logs, problems = read_logs(replay_dir, run, instances)
@@ -402,8 +451,8 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
                         findings.append(f"{inst} conn {c}: an app connection without an origin")
                 elif isinstance(o, dict) and "infra" in o:
                     origin_of[c] = ("infra", o["infra"])
-                    if o["infra"] not in INFRA:
-                        findings.append(f"{inst} conn {c}: an unnamed infrastructure origin {o['infra']!r}")
+                    if not (isinstance(o["infra"], str) and o["infra"] in INFRA):
+                        findings.append(f"{inst} conn {c}: an unnamed infrastructure origin {str(o['infra'])[:60]!r}")
                 else:
                     key, why = _attempt_of(o, run, inst, attempts)
                     if key is not None:
@@ -427,7 +476,7 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
                         loaded.add(key)
                 elif o is None and (rec.get("method"), rec.get("path")) == READY_PROBE:
                     http["ready probe (no cookie by construction)"] += 1
-                elif isinstance(o, dict) and o.get("infra") in INFRA:
+                elif isinstance(o, dict) and isinstance(o.get("infra"), str) and o["infra"] in INFRA:
                     http["infrastructure"] += 1
                 else:
                     # FI265-02: a request is the test's, a named infrastructure's

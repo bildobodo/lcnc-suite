@@ -571,3 +571,62 @@ def test_two_attempts_of_one_file_and_title_keep_their_own_names(tmp_path):
     assert r["verdict"] == "PASS", r["findings"]
     assert set(r["per_attempt"]) == {"x.spec.ts › t [retry 0] [e2e tid-a]", "x.spec.ts › t [retry 0] [e2e tid-b]"}
     assert r["per_attempt"]["x.spec.ts › t [retry 0] [e2e tid-b]"].get("abort") == 1
+
+
+# ── R374: no line the logs hold is read past, no value a key cannot hold ─────
+def _malformed(tmp_path, mutate):
+    m = Mock()
+    c = m.page(A)
+    m.frame(c, {"cmd": "abort"})
+    mutate(m)
+    return run(tmp_path, [m], [attempt(A)])
+
+
+def test_a_line_of_unknown_kind_is_a_finding_never_read_past(tmp_path):
+    def mutate(m):
+        m.lines[-1] = {**m.lines[-1], "kind": "Frame"}                     # the abort frame, misnamed
+    r = _malformed(tmp_path, mutate)
+    assert r["findings"] == ["run-1-m1.jsonl:5: a line of unknown kind 'Frame'"] and r["frames"] == 1
+
+
+@pytest.mark.parametrize("line, why", [
+    ({"kind": [], "t": 1}, "a line of unknown kind '[]'"),
+    ({"kind": "frame", "conn": [], "msg": {"cmd": "abort"}, "t": 1}, "a line of kind frame without a connection number"),
+    ({"kind": "open", "conn": [], "origin": None, "t": 1}, "a line of kind open without a connection number"),
+    ({"kind": "close", "conn": {}, "t": 1}, "a line of kind close without a connection number"),
+    ({"kind": "frame", "conn": True, "msg": {"cmd": "abort"}, "t": 1}, "a line of kind frame without a connection number"),
+    ({"kind": "open", "conn": 50, "origin": None, "t": "x"}, "an open line without its time"),
+])
+def test_a_line_whose_keys_are_not_of_their_form_is_a_finding_not_a_crash(tmp_path, line, why):
+    r = _malformed(tmp_path, lambda m: m.lines.append(line))
+    assert r["findings"] == [f"run-1-m1.jsonl:6: {why}"], r["findings"]
+
+
+@pytest.mark.parametrize("o", [
+    {**origin(A), "test": []}, {**origin(A), "retry": {}}, {**origin(A), "retry": True}, {"infra": []},
+])
+def test_an_origin_whose_values_cannot_name_an_attempt_is_a_finding_not_a_crash(tmp_path, o):
+    def mutate(m):
+        m.open(o)
+        m.http(o, path="/x")
+    f = _malformed(tmp_path, mutate)["findings"]
+    assert len(f) == 2 and ("an origin of no attempt of this run" in f[0] or "unnamed infrastructure" in f[0]) \
+        and "without an origin of this run" in f[1], f
+
+
+@pytest.mark.parametrize("bad", [
+    "not json",
+    "[1, 2]",
+    json.dumps({"run": RUN, "event": "test-start", "testId": ["x"], "retry": 0, "file": "x.spec.ts", "title": "t",
+                "project": "e2e", "instance": "m1", "t": 0}),
+    json.dumps({"run": RUN, "event": "test-end", "testId": "tid-a", "retry": "0", "file": "x.spec.ts", "title": "t",
+                "project": "e2e", "instance": "m1", "t": 5, "status": "passed"}),
+    json.dumps({"run": RUN, "event": "bound", "instance": {}}),
+])
+def test_an_event_line_not_of_its_form_is_a_finding_not_a_crash(tmp_path, bad):
+    m = Mock()
+    m.page(A)
+    d, ev = write(tmp_path, [m], [attempt(A)])
+    ev.write_text(ev.read_text() + bad + "\n")
+    r = replay.check(d, ev, RUN, [])
+    assert r["verdict"] == "FAIL" and any(ev.name in f for f in r["findings"]), r["findings"]

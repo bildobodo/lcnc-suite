@@ -11472,6 +11472,51 @@ unhashable, raised out of the run's completion and lost `report.json` (no
 false PASS, but no report). Whatever the check meets now, the report is
 written: a check that raises is itself a damaged record and fails the run.
 
+## 2026-11-15 — The replay: every frame the UI sends, judged offline (package 3b item 2, step 5a; Codex R251 TS248-04, FI265-02, VM349-01, R373–R374)
+
+**Why.** The e2e mocks accept any frame. A spec that checks its own command
+stays green while another field or a wrong value travels along: a stray field
+in `jog_cont` and an undeclared `#4999` in `mdi.vars` passed all 123 specs of
+their subset (mutants M2, M3) — only the replay saw them.
+
+**What.** Each mock instance writes a replay log (`MOCK_REPLAY`): every
+connection's open with its origin, every frame as received, every HTTP request
+without its query, the `/ctl` ops, a head and an end. `scripts/test_select/replay.py`
+judges the run offline; the round and merge gates run it as `browser-replay`.
+
+**Decided.**
+- **Origin by cookie, without a product change:** `e2e_origin` (run, test id,
+  retry, project) set through `storageState`, so a context a test makes itself
+  carries it. A connection or request belongs to an attempt only with its WHOLE
+  origin and on the mock that attempt ran on (R373 VM-I17). Every frame and
+  close line goes back to an open read before it. Named exceptions, each once:
+  `infra:baseline` (sends nothing), the worker's `GET /ready` probe
+  (`credentials: "omit"`), and replay-origin's cookie-less socket, which waives
+  the origin only and sends exactly its one hello (R373 VM-I18).
+- **One source for the fields:** `atoms.web.json` (WsCommand's members and the
+  worker frames). The reader's frames follow the reader's own rules, mirrored
+  with their source, each field required or optional as the reader takes it,
+  presence before value (R373 VM-I16). Every other command goes through 3a's
+  `validate_payload` (a stop: `widen_stop`) against each example var file; the
+  named data maps are held by that schema, not by a second copy.
+- **Probe:** no `mdi` calls a probe routine; a passed probe-click attempt sent
+  its `probe_run` / `surface_scan_run` (VM349-01).
+- **Nothing read past:** a line of an unknown kind, a connection line without
+  its number, an origin or event whose keys are not of their form is a finding,
+  never a crash or a skipped line (R374).
+- **Every attempt in the result** (`attempt_list`), the twelve that load no
+  page at a mock included; names unique by construction.
+
+**Not proven (named in every result, `outside`):** the profile's axis and
+velocity bounds, the gates and handlers, the HTTP payloads (step 5b), the
+coverage against the inventory (step 5c; 17 of 80 commands are never sent in
+the full run).
+
+**Found on the way:** a race in `run-hold.spec.ts` — the page's own tool-table
+read landed 32 ms after a test's `clearCmds` on the CI runner, read from that
+run's replay log; the spec now drops the page's own frames and reads, as
+`g30.spec.ts` and `toolsetter-setup.spec.ts` do.
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line
