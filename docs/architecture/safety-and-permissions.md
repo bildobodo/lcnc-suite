@@ -922,4 +922,8 @@ epoch, a boolean `latched`, ordered times, not stale — else a measurement gap)
 received before the stop, receipt − read0 ≤ 0.5 s), old / border / new by the read against the SIGCONT
 bracket, then the verdict: an evaluated TRUE without the trip or a new frame without it is FAIL, a gap is never
 PASS, the first new frame within 1.0 s as an interval (`t_pub − t_cont_after` the lower bound, valid only with
-no gap before it; receipt − `t_cont_before` the upper), the early reset refused by the trip gate.
+no gap before it; receipt − `t_cont_before` the upper), the early reset refused by the trip gate. The
+section runs from a frame received before the stop to a mark taken in the acknowledgement's send path, under
+the lock the receiver stamps and records each frame under (Codex R378 VM-I19); the row is judged after that
+mark and formed once on every way out of the step (VM-I20); the early reset is asked on the first frame
+received after the SIGCONT bracket's end (VM-I21).

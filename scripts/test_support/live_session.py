@@ -70,6 +70,10 @@ class SimulatorClient:
         # receipt is taken when this thread takes the frame, never before its
         # arrival (an upper bound of it)
         self.basis_history: list = []
+        # the receipt stamp and the record of a status frame are ONE step under
+        # this lock, and so is a section's end mark (`mark`): a frame stamped
+        # before the mark is in the record before it (Codex R378 VM-I19)
+        self.record_lock = threading.Lock()
         # each settings section's revision as the gateway last sent it
         # (settings_init after every hello, settings_changed on a change):
         # a save names the revision it was made on (settings split), as the
@@ -136,18 +140,19 @@ class SimulatorClient:
         if msg.get("type") in ("settings_init", "settings_changed") and isinstance(msg.get("revs"), dict):
             self.settings_revs = dict(msg["revs"])
         if msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict):
-            now = time.monotonic()
-            self.status.update(msg["data"])
-            for kind, text in msg.get("errors") or []:
-                self.errors.append((now, kind, text))
-            if "rfl_status" in msg and msg["rfl_status"] != self.rfl_status:
-                self.rfl_status = msg["rfl_status"]
-                self.rfl_history.append((now, msg["rfl_status"]))
-            if "preview_origin" in msg:
-                self.preview_origin = msg["preview_origin"]
-            self.safety_trip = msg.get("safety_trip")
-            self.trip_history.append((now, self.safety_trip))
-            self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))
+            with self.record_lock:
+                now = time.monotonic()
+                self.status.update(msg["data"])
+                for kind, text in msg.get("errors") or []:
+                    self.errors.append((now, kind, text))
+                if "rfl_status" in msg and msg["rfl_status"] != self.rfl_status:
+                    self.rfl_status = msg["rfl_status"]
+                    self.rfl_history.append((now, msg["rfl_status"]))
+                if "preview_origin" in msg:
+                    self.preview_origin = msg["preview_origin"]
+                self.safety_trip = msg.get("safety_trip")
+                self.trip_history.append((now, self.safety_trip))
+                self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))
             if isinstance(msg.get("toolsetter_booking"), dict):
                 self.toolsetter_booking = msg["toolsetter_booking"]
                 self.booking_history.append((now, msg["toolsetter_booking"]))
@@ -176,9 +181,22 @@ class SimulatorClient:
             if not self.stop.is_set():
                 self.error = str(exc)
 
-    def request(self, cmd, **kwargs):
+    def mark(self):
+        """A section's end: (t, n) under the record lock — every status frame
+        stamped before t is in basis_history[:n], every one stamped after it
+        is not (Codex R378 VM-I19)."""
+        with self.record_lock:
+            return time.monotonic(), len(self.basis_history)
+
+    def request(self, cmd, *, mark=None, **kwargs):
+        """`mark`: called with `self.mark()` right before the command is sent —
+        a section that ends at this send (the latch-sticky section ends at the
+        acknowledgement's, Codex R378 VM-I19); a request refused before the
+        send takes no mark."""
         if self.error:
             raise TransportLost(self.error)
+        if mark is not None:
+            mark(self.mark())
         self.send({"cmd": cmd, **kwargs})
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:

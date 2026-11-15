@@ -4477,8 +4477,15 @@ class LatchClient(FrameClient):
             self.basis_history.append((t, tb, trip))
             self.safety_trip = trip
 
-    def request(self, cmd, **kw):
+    def mark(self):
+        # as SimulatorClient.mark: under the lock the frames are stamped and recorded under
+        with self.lock:
+            return time.monotonic(), len(self.basis_history)
+
+    def request(self, cmd, *, mark=None, **kw):
         from test_support.live_session import Refused as SessionRefused
+        if mark is not None:
+            mark(self.mark())      # right before the send (SimulatorClient.request)
         self.sent.append((cmd, kw))
         if cmd == "estop_reset":
             if not self.acked and not self.early_reset:
@@ -4575,28 +4582,132 @@ def test_an_early_reset_accepted_fails_the_sticky_row(tmp_path, monkeypatch):
     assert by["latch-sticky"]["status"] == "FAIL" and "accepted" in by["latch-sticky"]["detail"]
 
 
-def test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement(tmp_path, monkeypatch):
-    """R375 VM375-03: the section runs to right before the acknowledgement —
-    no frame between the post-observation and the ack is left unjudged, no
-    frame after it counts."""
-    c = LatchClient()
-    sent_at = {}
+def _ack_hooks(c, before_mark=None, after_mark=None):
+    """Wrap the client's request: the acknowledgement's mark recorded; frames
+    planted in its send path right before the mark and right after it."""
+    seen = {}
     real = c.request
 
-    def request(cmd, **kw):
-        if cmd == "safety_trip_ack":
-            sent_at["ack"] = time.monotonic()
-        return real(cmd, **kw)
+    def request(cmd, *, mark=None, **kw):
+        if cmd != "safety_trip_ack":
+            return real(cmd, mark=mark, **kw)
+        if before_mark:
+            before_mark()
+
+        def take(m):
+            seen["mark"] = m
+            mark(m)
+            if after_mark:
+                after_mark()
+        return real(cmd, mark=take, **kw)
     c.request = request
+    return seen
+
+
+def _bad_frame(c):
+    """A valid NEW frame reading the latch TRUE that shows no trip."""
+    c.hide = True
+    c.frame()
+    bad = c.basis_history[-1]
+    c.hide = False
+    c.frame()                                  # and a correct one after it (Codex's probe 1)
+    return bad
+
+
+def test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement(tmp_path, monkeypatch):
+    """R375 VM375-03, R378 VM-I19: the section ends at the mark taken in the
+    acknowledgement's send path — EXACTLY the frames recorded before it, no
+    exception for one frame; none after it."""
+    c = LatchClient()
+    seen = _ack_hooks(c)
     ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
     rows = nr.latch_cases()[1](ctx)
     sticky = next(r for r in rows if r["case"] == "latch-sticky")
     assert sticky["status"] == "PASS", sticky
-    last = sticky["frame_list"][-1][0]
-    assert last < sent_at["ack"], "no frame after the acknowledgement"
-    before_ack = [t for t, _tb, _tr in c.basis_history if t < sent_at["ack"] and t >= sticky["frame_list"][0][0]]
-    assert len(sticky["frame_list"]) >= len(before_ack) - 1, "every frame up to the stamp right before the ack"
+    _t, n = seen["mark"]
+    first = next(k for k, f in enumerate(c.basis_history) if f[1]["gen"] == sticky["frame_list"][0][1]["gen"])
+    assert [f[1]["gen"] for f in sticky["frame_list"]] == [f[1]["gen"] for f in c.basis_history[first:n]]
+    assert len(c.basis_history) > n, "frames after the acknowledgement exist and are not judged"
     assert [r["case"] for r in rows] == ["latch-same-cycle", "latch-sticky", "latch-recovered"]
+
+
+def test_a_bad_frame_in_the_acknowledgements_send_path_before_its_mark_fails(tmp_path, monkeypatch):
+    """R378 VM-I19: the last frame before the mark — taken while the ack is
+    being sent — is in the section: TRUE without a trip fails the display."""
+    c = LatchClient()
+    bad = {}
+    _ack_hooks(c, before_mark=lambda: bad.setdefault("f", _bad_frame(c)))
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    rows = nr.latch_cases()[1](ctx)
+    sticky = next(r for r in rows if r["case"] == "latch-sticky")
+    assert sticky["status"] == "FAIL", sticky
+    assert bad["f"][1]["gen"] in [f[1]["gen"] for f in sticky["frame_list"]]
+
+
+def test_a_bad_frame_after_the_mark_is_outside_the_section(tmp_path, monkeypatch):
+    c = LatchClient()
+    bad = {}
+    _ack_hooks(c, after_mark=lambda: bad.setdefault("f", _bad_frame(c)))
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    rows = nr.latch_cases()[1](ctx)
+    sticky = next(r for r in rows if r["case"] == "latch-sticky")
+    assert sticky["status"] == "PASS", sticky
+    assert bad["f"][1]["gen"] not in [f[1]["gen"] for f in sticky["frame_list"]]
+
+
+def test_the_judgement_runs_only_after_the_acknowledgement_was_sent(tmp_path, monkeypatch):
+    """R378 VM-I19, Codex's probe 1: a frame received while the row is judged
+    can no longer fall between the section's copy and the ack — the judgement
+    starts after the send; its frames are the record before the mark."""
+    c = LatchClient()
+    seen = _ack_hooks(c)
+    order = []
+    real_judge = sc.eval_latch_sticky
+
+    def judge(*a, **kw):
+        order.append(("judge", "mark" in seen, [cmd for cmd, _ in c.sent]))
+        _bad_frame(c)                          # received during the judgement
+        return real_judge(*a, **kw)
+    monkeypatch.setattr(sc, "eval_latch_sticky", judge)
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    rows = nr.latch_cases()[1](ctx)
+    assert order == [("judge", True, ["estop_reset", "safety_trip_ack"])], order
+    sticky = next(r for r in rows if r["case"] == "latch-sticky")
+    assert sticky["status"] == "PASS", sticky
+
+
+def test_the_live_session_stamps_and_records_a_frame_in_one_step_with_the_mark():
+    """R378 VM-I19: SimulatorClient.take stamps the receipt and records the frame
+    under the record lock, mark() takes (t, n) under the same lock, and
+    request() takes the mark right before the send."""
+    import ast
+    import inspect
+    from test_support import live_session as ls
+    tree = ast.parse(inspect.getsource(ls.SimulatorClient))
+    fns = {f.name: f for f in ast.walk(tree) if isinstance(f, ast.FunctionDef)}
+
+    def locked_blocks(fn):
+        return [w for w in ast.walk(fn) if isinstance(w, ast.With)
+                and any(ast.unparse(i.context_expr) == "self.record_lock" for i in w.items)]
+    take = locked_blocks(fns["take"])
+    assert len(take) == 1
+    body = ast.unparse(take[0])
+    assert "time.monotonic()" in body and "self.basis_history.append" in body
+    inside = {id(n) for n in ast.walk(take[0])}
+    stray = [ast.unparse(n) for n in ast.walk(fns["take"]) if id(n) not in inside and (
+        (isinstance(n, ast.Attribute) and n.attr == "basis_history")
+        or (isinstance(n, ast.Call) and ast.unparse(n.func) == "time.monotonic"))]
+    assert stray == [], "the stamp and the record only under the lock"
+    mark = locked_blocks(fns["mark"])
+    assert len(mark) == 1 and "time.monotonic()" in ast.unparse(mark[0]) and "len(self.basis_history)" in ast.unparse(mark[0])
+    req = ast.unparse(fns["request"])
+    assert req.index("mark(self.mark())") < req.index("self.send(")
+    s = ls.SimulatorClient("t")
+    for k in range(3):
+        s.take({"type": "status", "data": {"k": k}, "trip_basis": {"gen": k}})
+    t, n = s.mark()
+    s.take({"type": "status", "data": {"k": 3}, "trip_basis": {"gen": 3}})
+    assert n == 3 and all(f[0] <= t for f in s.basis_history[:n]) and s.basis_history[n][0] >= t
 
 
 def test_a_trip_shown_by_no_frame_fails_the_display(tmp_path, monkeypatch):
@@ -4629,6 +4740,153 @@ def test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement(tmp
         nr.latch_cases()[1](ctx2)
     sticky = next(r for r in ctx2["rows"] if r["case"] == "latch-sticky")
     assert sticky["status"] == "incomplete", sticky
+
+
+def _sticky_rows(ctx):
+    return [r for r in ctx["rows"] if r["case"] == "latch-sticky"]
+
+
+@pytest.mark.parametrize("hide, status", [(True, "FAIL"), (False, "incomplete")])
+def test_a_servo_end_failure_keeps_the_display_row_once(tmp_path, monkeypatch, hide, status):
+    """R378 VM-I20 (Codex's probe 2): the outage section's END fails — the run
+    ends without an acknowledgement, and the display row is formed anyway,
+    exactly once: FAIL when no new frame showed the trip, its own verdict when
+    every frame did."""
+    c = LatchClient(hide=hide)
+    broken = {**_latch(after=200), "end_error": "injected end failure", "problems": ["end unconfirmed"]}
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [broken, _recovery()])
+    try:
+        with pytest.raises(nr.StepFailed, match="servo measurement failed"):
+            nr.latch_cases()[1](ctx)
+    finally:
+        c.until = 0
+    assert "safety_trip_ack" not in [cmd for cmd, _ in c.sent]
+    sticky = _sticky_rows(ctx)
+    assert [r["status"] for r in sticky] == [status], sticky
+    assert [r["case"] for r in ctx["rows"]] == ["latch-same-cycle", "latch-sticky"]
+
+
+def test_the_recovery_entry_failing_keeps_the_display_row_once(tmp_path, monkeypatch):
+    """R378 VM-I20: the recovery section cannot begin — the row ends there."""
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    real_begin, calls = ctx["servo"].begin, []
+
+    def begin():
+        calls.append(1)
+        if len(calls) == 2:
+            raise RuntimeError("the recovery's start mark not confirmed")
+        return real_begin()
+    ctx["servo"].begin = begin
+    try:
+        with pytest.raises(RuntimeError, match="start mark"):
+            nr.latch_cases()[1](ctx)
+    finally:
+        c.until = 0
+    assert "safety_trip_ack" not in [cmd for cmd, _ in c.sent]
+    assert [r["status"] for r in _sticky_rows(ctx)] == ["PASS"]
+
+
+def test_the_display_row_is_formed_once_on_every_exit(tmp_path, monkeypatch):
+    """Not the run's own trip, and the ack refused at its send: one row each."""
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()], own_instance=False)
+    with pytest.raises(nr.StepFailed):
+        nr.latch_cases()[1](ctx)
+    c.until = 0
+    assert len(_sticky_rows(ctx)) == 1
+    c2 = LatchClient()
+    real = c2.request
+
+    def request(cmd, *, mark=None, **kw):
+        if cmd == "safety_trip_ack":
+            from test_support.live_session import Refused as SessionRefused
+            if mark is not None:
+                mark(c2.mark())
+            raise SessionRefused("safety_trip_ack refused: Trip changed — acknowledge again")
+        return real(cmd, mark=mark, **kw)
+    c2.request = request
+    ctx2, _ = _latch_step(tmp_path, monkeypatch, c2, [_latch(after=200), _recovery()])
+    try:
+        with pytest.raises(Exception, match="Trip changed"):
+            nr.latch_cases()[1](ctx2)
+    finally:
+        c2.until = 0
+    assert [r["status"] for r in _sticky_rows(ctx2)] == ["PASS"]
+
+
+def test_the_first_frame_while_cont_writes_its_state_triggers_the_early_reset(tmp_path, monkeypatch):
+    """R378 VM-I21 (Codex's probe 3): ONE frame after the SIGCONT bracket and
+    before cont() returns, no frame after it — the early reset is asked on
+    it (the stored bracket is the anchor), whatever its provenance."""
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+
+    def cont(state, save, rec, **kw):
+        s0, s1 = time.monotonic(), time.monotonic()
+        c.latched = True
+        c.frame()                              # still paused: the one frame, during save(state)
+        state["stopped"] = []
+        state.setdefault("continued", []).append({**rec, "outcome": "continued", "sigcont": [s0, s1]})
+        time.sleep(0.01)
+        return "continued"
+    monkeypatch.setattr(tp, "cont", cont)
+    monkeypatch.setattr(nr, "LATCH_RESUME_WAIT_S", 0.06)
+    try:
+        nr.latch_cases()[1](ctx)
+    finally:
+        c.until = 0
+    cmds = [cmd for cmd, _ in c.sent]
+    assert cmds[:2] == ["estop_reset", "safety_trip_ack"], cmds
+
+
+@pytest.mark.parametrize("where", ["before", "inside"])
+def test_a_frame_before_the_bracket_ends_triggers_nothing(tmp_path, monkeypatch, where):
+    """The trigger is the bracket's END: a frame taken before it or inside it
+    — where the SIGCONT may not have been delivered yet — never asks the reset."""
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+
+    def cont(state, save, rec, **kw):
+        c.latched = True
+        if where == "before":
+            c.frame()
+            s0 = time.monotonic()
+        else:
+            s0 = time.monotonic()
+            c.frame()
+        s1 = time.monotonic()
+        state["stopped"] = []
+        state.setdefault("continued", []).append({**rec, "outcome": "continued", "sigcont": [s0, s1]})
+        return "continued"
+    monkeypatch.setattr(tp, "cont", cont)
+    monkeypatch.setattr(nr, "LATCH_RESUME_WAIT_S", 0.2)
+    try:
+        with pytest.raises(nr.Refused, match="no status frame after the gateway was continued"):
+            nr.latch_cases()[1](ctx)
+    finally:
+        c.until = 0
+    assert "estop_reset" not in [cmd for cmd, _ in c.sent]
+    assert [r["status"] for r in _sticky_rows(ctx)] == ["incomplete"]
+
+
+def test_a_continue_without_its_bracket_asks_no_reset(tmp_path, monkeypatch):
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+
+    def cont(state, save, rec, **kw):
+        c.latched, c.paused = True, False
+        state["stopped"] = []
+        state.setdefault("continued", []).append({**rec, "outcome": "continued"})
+        return "continued"
+    monkeypatch.setattr(tp, "cont", cont)
+    try:
+        with pytest.raises(nr.Refused, match="no SIGCONT bracket"):
+            nr.latch_cases()[1](ctx)
+    finally:
+        c.until = 0
+    assert "estop_reset" not in [cmd for cmd, _ in c.sent]
+    assert [r["status"] for r in _sticky_rows(ctx)] == ["incomplete"]
 
 
 def test_the_delayed_order_is_moved_through_the_gate_and_read_back():
