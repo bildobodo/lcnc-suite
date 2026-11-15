@@ -838,6 +838,10 @@
      "id": "status:safety_trip_acked"
     },
     {
+     "id": "status:trip_basis",
+     "unread": true
+    },
+    {
      "id": "status:type"
     }
    ],

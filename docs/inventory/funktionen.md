@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1182 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1183 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -26,7 +26,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 4 | 4 | 0 |
 | **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 5 | 5 | 0 |
-| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 7 | 4 | 4 | 0 |
+| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 8 | 5 | 5 | 0 |
 | **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 1 | 1 | 0 |
 | **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
 | **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 1 | 1 | 0 |
@@ -67,6 +67,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_trip_trace.py` — test_trip_and_ack_along_the_poller_and_the_reader
 - **S1d (Bedienbarkeit):** Das Meldungszentrum verzeichnet eine Auslösung und ihre bestätigte Quittung je einmal, nach ihrer Id: wiederholte Frames, der Klick, das bloße Fehlen der Auslösung und ein Neuladen fügen nichts hinzu (Betreiber Q323-1). — gilt für: alle
   - Beleg: browser: `feedback-channels.spec.ts` — a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1); unit: `ws/statusStore.test.ts` — one entry per trip and one per confirmed acknowledgement, whatever the frames repeat; unit: `ws/statusStore.test.ts` — an acknowledgement of a trip this tab did not record is not recorded; unit: `ws/statusStore.test.ts` — a cleared history in this page records the same trip no second time; unit: `ws/statusStore.test.ts` — a reload finds the events in the history and records none twice; gateway: `test_ws_fanout.py` — test_safety_trip_acked_attached_only_when_present
+- **S1e (Daten):** Jeder Status trägt die Herkunft der ausgewerteten Latch-Ablesung (trip_basis: Tick, Epoche, Wert, Reader-Nummer, eingeklammerte Ablesung, Ankunft, veraltet, Veröffentlichung); die Eingabe der Entscheidung bleibt die des Readers, auch ein veralteter Wert löst aus; ein Frame stammt immer aus einem Tick. — gilt für: alle
+  - Beleg: gateway: `test_trip_basis.py` — test_a_stale_true_still_trips_and_is_marked_stale; gateway: `test_trip_basis.py` — test_msgpack_delta_frames; gateway: `test_trip_basis.py` — test_a_tick_published_mid_build_msgpack_shared; gateway: `test_trip_basis.py` — test_seq_rises_and_the_read_is_bracketed_on_this_host_s_clock
 
 ### Maschine ein und aus
 

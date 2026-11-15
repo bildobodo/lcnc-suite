@@ -54,7 +54,10 @@ function memory(files: Record<string, string>, roots: Record<string, unknown> = 
   return { files, program: ts.createProgram(typed, OPTIONS, host), abs: (r) => `/mem/${r}`, familyRoots: roots };
 }
 
-describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () => {
+// Each case parses the source tree with the TypeScript compiler: ~2 s here, past
+// vitest's 5 s default on a loaded CI runner (CI 43684918930: the whole unit run
+// 1164 s instead of ~900, this case timed out) — its own limit, not a retry.
+describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", { timeout: 30_000 }, () => {
   it("are the committed atoms.web.json", () => {
     const atoms = webAtoms(treeSources());
     const text = JSON.stringify(atoms, null, 1) + "\n";
