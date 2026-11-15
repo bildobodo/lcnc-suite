@@ -3977,3 +3977,146 @@ Den Beobachtungsabschnitt bitte ausdrücklich von der sauberen Grundlinie **bis 
 - **Reset und HAL-Nachweise:** Die gesonderten Bedingungen bleiben bestehen. Das frühe Reset wird weiterhin ohne Warten auf eine erfolgreiche Trip-Anzeige angefragt. Seine Ablehnung muss die Trip-Sperre nennen; „Not armed“ bleibt `incomplete`. Prozessidentitätsprüfung, SIGCONT auch im Fehlerpfad und die Beschränkung der Quittierung auf den nachgewiesenen eigenen Trip bleiben erhalten.
 
 Nach Präzisierung dieser drei Punkte ist der Messvertrag erneut vorlegbar. Replay Schritt 5a, Paket 3a und Paket 3b Punkt 1 bleiben abgenommen.
+
+---
+
+## Claude · Paket 3b · `latch-sticky` · Antwort auf R375, Plananfrage R376 · 15. November 2026
+
+Die drei Präzisierungen sind eingearbeitet. Unten steht der ganze Vertrag in neuer Fassung, damit er für sich gilt. Was sich gegenüber R375 ändert, ist je Abschnitt markiert. Gelesen an `d7431f19`.
+
+### VM375-01 · Die Eingabe des Automaten bleibt, wie sie ist
+
+- `evaluate_trip_latch` bekommt **denselben Wert wie heute**: `trip_latched` aus dem neuesten Snapshot, ohne Altersprüfung (`HalBridge.reader_get`).
+- Der Poller liest das Tupel `_reader_state` einmal, und zwar **an der Stelle der Auswertung** (heute `gateway.py:2258`, `evaluate_trip_latch(_reader_get("trip_latched"), …)`), nicht am Anfang des Ticks. Er übergibt daraus `snapshot.get("trip_latched")`, also genau das, was `reader_get` dort liefert. So wertet ein Tick nie einen älteren Snapshot aus als heute.
+- Von dieser Stelle bis zur Veröffentlichung (heute `_shared_status = st`, Zeile 2286, und `_status_gen += 1`, Zeile 2370) liegt **kein `await`**, gelesen an `d7431f19`. Ein Quelltext-Wächter hält das: kein `await` zwischen dem Lesen des Tupels und der einen Neubindung.
+- `trip_basis.latched` nennt diese Eingabe.
+- **Alter und Herkunft sind eigene Felder** und ändern die Eingabe nie:
+  - `stale`: Die Ankunft ist älter als `READER_STALE_SEC`, gemessen zur Auswertung.
+  - `arrival`: der Ankunftsstempel des Gateways.
+- **Ein tatsächlich fehlendes Feld bleibt `null`,** auch in `latched`, wie heute die Eingabe `None`.
+- **Gegenwächter** (deiner): FALSE-Grundlinie, dann ein vorhandener TRUE-Snapshot jenseits von `READER_STALE_SEC`.
+  - Der Trip entsteht wie vor dem Umbau.
+  - `trip_basis` trägt `stale: true`.
+  - Der Treiber nutzt diesen Frame nie als Frischebeleg.
+
+### VM375-02 · Ablesung und Frist als Intervalle
+
+- **Die Latch-Ablesung eingeklammert:**
+  - Der Reader stempelt `t_mono` unmittelbar vor und nach `hal.get_value` des Pins `webui-hb-latch.fault-out` (`read0`, `read1`, beide `time.monotonic()`).
+  - Beide Grenzen reisen mit demselben Wert: Snapshot → Tupel → `trip_basis.read = [read0, read1]`.
+- **Einteilung:**
+  - `read1 < t_cont_before`: **alt**;
+  - `read0 > t_cont_after`: **neu**;
+  - überlappende Intervalle: **Grenzframe**.
+- **Die Frist seit SIGCONT als Intervall:**
+  - Die Frist gilt bis zum ersten **nachweislich neuen** Frame, nicht bis zur ersten Anzeige des Trips: Die kommt meist schon nach Millisekunden aus einem Stau-Snapshot.
+  - **Obergrenze** der Verzögerung: Empfangsstempel des ersten nachweislich neuen Frames minus `t_cont_before`.
+    - Der Empfangsstempel entsteht, wenn der Empfangsthread des Treibers den Rahmen aus der Warteschlange der Bibliothek nimmt.
+    - Er liegt also nie vor der Ankunft; die Obergrenze ist sicher.
+  - **Untergrenze:** `t_pub` des ersten nachweislich neuen Frames minus `t_cont_after`.
+    - `t_pub` ist der monotone Zeitpunkt, den der Poller unmittelbar vor der einen Neubindung stempelt. Er liegt im unveränderlichen Objekt des Ticks und steht neu in `trip_basis`.
+    - Frames kommen in Sendereihenfolge an, und ein Frame wird nie vor seiner Veröffentlichung gesendet. Also kam kein neuer Frame vor `t_pub` an.
+    - **Das gilt nur, wenn jeder vor diesem Frame empfangene Frame gültig und nicht neu ist.** Eine Messlücke davor hätte der frische Frame sein können. Dann ist die Überschreitung unbewiesen, `incomplete`, nicht FAIL.
+    - Der Empfangsstempel taugt als Untergrenze nicht: Eine Verzögerung im Treiber würde ihn später machen und eine Überschreitung vortäuschen.
+    - `t_pub` ist ausdrücklich ein Veröffentlichungsstempel, kein Ablesestempel (deine Bedingung 2 aus R370). Er dient nur der Untergrenze der Frist.
+    - **Ohne neuen Frame:** Ein gültiger, nicht neuer Frame mit `t_pub > t_cont_after + 1,0 s` belegt die Überschreitung ebenfalls. Das Gateway veröffentlichte nach Ablauf der Frist noch einen Tick ohne frische Ablesung. Kein früherer Tick kann neu gewesen sein: Ein späterer Tick wertet nie einen älteren Snapshot aus (`reader_seq` fällt nicht, Schritt 1).
+  - **Urteil:**
+    - Obergrenze ≤ 1,0 s: Frist belegt.
+    - Untergrenze > 1,0 s: Überschreitung belegt, FAIL.
+    - Dazwischen: Frist unbewiesen, `incomplete`; der Bericht nennt beide Werte.
+  - **Im Bericht je Lauf:** die Klammerbreite von SIGCONT (`t_cont_after − t_cont_before`) und die der Latch-Ablesung (`read1 − read0`).
+
+### VM375-03 · Erst die Gültigkeit, dann die Einteilung, dann das Urteil
+
+**Der Beobachtungsabschnitt** reicht von der sauberen Grundlinie **bis unmittelbar vor dem eigenen Quittierungsversuch**:
+- Die 1,5 s Nachbeobachtung liegen darin.
+- Zwischen ihrem Ende und dem Quittieren bleibt kein unbeurteilter Bereich. Der Treiber stempelt `t_ack` unmittelbar vor dem Senden der Quittierung und beurteilt jeden Frame, der davor empfangen wurde. Erst dann entsteht die Zeile `latch-sticky`; heute entsteht sie vor der Recovery-Sektion.
+- Quittiert der Treiber nicht, weil die Prüfung des eigenen Trips (`own_trip`) ablehnt, endet der Abschnitt bei dieser Entscheidung (eigener Stempel). Die Zeile entsteht dann dort.
+- Die Prüfung `before_trip` (kein wartender Trip vor dem Fall) bleibt.
+
+**Schritt 1 · Gültigkeit je Frame.** Gültig ist ein Frame nur, wenn alles zutrifft:
+- `trip_basis` vorhanden, mit der Epoche des Laufs;
+- `read0 ≤ read1` endlich, `arrival` und `t_pub` endlich, `gen` eine Ganzzahl;
+- `reader_seq` eine Ganzzahl, die über die gültigen Frames nie fällt;
+- `read1 ≤ arrival ≤ t_pub ≤` Empfangsstempel: die Konsistenz auf derselben monotonen Uhr des Hosts. Gateway, Reader und Treiber laufen durch Konstruktion auf demselben Host: SIGCONT geht an eine lokale PID, der Reader verbindet sich über einen Unix-Socket (`/tmp/webui-reader.sock`), der Treiber über `127.0.0.1`;
+- `stale` falsch.
+
+Sonst ist der Frame eine **Messlücke** und wird mit Grund genannt.
+
+**Schritt 2 · Grundlinie.**
+- Ein gültiger Frame vor dem Stopp mit `latched: false`.
+- Sein Abstand von der Ablesung zum Empfang (Empfangsstempel − `read1`) ist höchstens **0,5 s**. Das ist eine Vorabgrenze. Erwartet sind eine Reader-Periode, ein Poller-Tick (bei stehender Maschine bis 200 ms) und der Versand; gemessen ist es noch nicht, weil es den Ablesestempel noch nicht gibt. Lauf D berichtet den Wert.
+- Ohne eine solche Grundlinie ist der Lauf `incomplete`.
+
+**Schritt 3 · Einteilung der gültigen Frames:** alt, neu oder Grenzframe, nach VM375-02.
+
+**Schritt 4 · Urteil:**
+
+| Befund | Urteil |
+|---|---|
+| Ein gültiger Frame (alt, neu oder Grenze) mit `latched: true` ohne `safety_trip`, nach der Grundlinie | **FAIL** (Invariante) |
+| Ein gültiger neuer Frame ohne `safety_trip` | **FAIL** |
+| Untergrenze der Frist > 1,0 s | **FAIL** mit beiden Grenzen |
+| Das frühe Reset angenommen | **FAIL** |
+| Ein FAIL neben Messlücken | FAIL bleibt, die Lücken werden zusätzlich genannt. Ausnahme: Die Überschreitung über `t_pub` gilt nur ohne Messlücke vor dem ersten neuen Frame (VM375-02) |
+| Kein FAIL, aber Messlücken, keine Grundlinie, kein gültiger neuer Frame im Abschnitt oder die Frist unbewiesen | **`incomplete`**, nie PASS, kein erfundener Produktfehler |
+| Das frühe Reset aus einem anderen Grund als der Trip-Sperre abgelehnt (etwa „Not armed“) | **`incomplete`** mit dem Grund |
+| Nur Grenzframes als Besonderheit, sonst alles belegt | **PASS**; die Grenzframes werden genannt |
+| Alles belegt | **PASS** mit den Zählern alt, Grenze und neu, beiden Fristgrenzen, den Klammerbreiten und dem Reset-Grund |
+
+Messlücken aus einer fremden Epoche sind nie eine gültige Gegenbeobachtung für die Invariante.
+
+### Der ganze Vertrag in neuer Fassung
+
+**A · Produkt, ohne Verhaltensänderung**
+1. **Reader:** Jeder Snapshot trägt `seq` (Zähler je Prozess) und `read = [read0, read1]` um die Latch-Ablesung. Die Wanduhr `ts` bleibt. *(neu: die Klammer statt eines Anfangsstempels)*
+2. **Poller:**
+   - Er liest das Tupel einmal.
+   - Der Automat bekommt dieselbe Eingabe wie heute.
+   - `trip_basis = {gen, epoch, latched, reader_seq, read, arrival, stale, t_pub}`.
+   - Ohne Snapshot oder Feld steht `null`. *(neu: Eingabe unverändert, `stale` und `arrival` getrennt, `t_pub`)*
+3. **Ein veröffentlichtes Objekt je Tick:**
+   - Es enthält Status, Statusdaten, kodierte Bytes, `trip_basis` und `gen`, mit einer Neubindung.
+   - Nach der Veröffentlichung wird es nie verändert.
+   - Der Client-Loop hält genau eine lokale Referenz über alle Unterbrechungen seines Versands. *(Q-L3 angenommen, mit deinen Bedingungen)*
+4. **Frame:** `trip_basis` auf der Ebene des Umschlags, neben `safety_trip`, in vollen und in Delta-Frames, JSON und Msgpack. `safety_trip` bleibt die Anzeige.
+5. **Belegt ohne Verhaltensänderung:**
+   - gleich viele Frames je Tick, im Leerlauf und aktiv;
+   - ein absichtlicher Tick-Wechsel während des Client-Aufbaus für Voll- und Delta-Frames sowie JSON- und Msgpack-Pfade: Der Frame trägt Status und `trip_basis` desselben Ticks;
+   - `perf-matrix` als Abnahme.
+
+**B · Treiber**
+1. `tp.cont` stempelt `t_cont_before` und `t_cont_after` unmittelbar um `kill(SIGCONT)`, vor `state.json`. SIGCONT bleibt auch im Fehlerpfad, ebenso die Prüfung der Prozessidentität.
+2. Aufzeichnung jedes Frames im Abschnitt (VM375-03) mit Empfangsstempel, `trip_basis` und `safety_trip`; der Bericht enthält die Liste.
+3. Gültigkeit, Grundlinie, Einteilung und Urteil wie oben.
+4. Das frühe Reset wird gefragt wie heute: nach dem ersten nach dem Fortsetzen verarbeiteten Frame, unabhängig von dessen Herkunft und Trip-Wert. Seine Ablehnung muss die Trip-Sperre nennen.
+5. Quittiert wird nur der nachgewiesene eigene Trip, wie heute (`own_trip`).
+6. **Unverändert und eigenständig:** HAL-Latch und Freigabe im Sampler, Rückkehr des Heartbeats.
+
+**C · Gegenfälle** (synthetisch, offline; je ein eigener Grund):
+1. Stopp während des Client-Aufbaus: ein alter Frame ohne Trip mit `latched: false`, dann neue mit Trip. PASS.
+2. Stopp zwischen Latch-Ablesung und Veröffentlichung: `gen` größer, Ablesung alt. Nie neu.
+3. Ein alter Reader-Cache: ein späterer Tick mit demselben Snapshot (`reader_seq` gleich). Alt.
+4. Erster neuer Frame ohne Trip: FAIL.
+5. Kein neuer Frame im Abschnitt: `incomplete`. Mit einem gültigen nicht neuen Frame, dessen `t_pub` mehr als 1,0 s nach `t_cont_after` liegt: FAIL.
+
+Dazu:
+- **Deine Zeitbeispiele:**
+  - Ablesebeginn 10,00, SIGCONT [10,10; 10,11], Ablese-Ende 10,25: ein Grenzframe, nie alt.
+  - SIGCONT [10,00; 10,40], Empfang 11,20, `t_pub` 10,30: Die Obergrenze ist 1,20 s, die Untergrenze liegt unter 1,0 s. Die Frist ist unbewiesen, `incomplete`, nicht PASS.
+- Ein alter Stau-Frame mit `latched: true` ohne Trip: FAIL.
+- Ein veralteter TRUE-Snapshot nach FALSE-Grundlinie: Der Trip entsteht (Produkt), der Frame ist eine Messlücke (Treiber).
+- Ein Frame mit `read1 = 1000` und Empfang 10,40: eine Messlücke, kein FAIL. Steht daneben ein gültiger neuer Frame ohne Trip, bleibt FAIL, und die Lücke wird genannt.
+- Ein Frame ohne Herkunft zwischen zwei guten neuen: Messlücke, `incomplete`; nicht still ausgenommen.
+- Eine fremde Epoche: Messlücke, nie Gegenbeobachtung.
+- Vertauschte Trip-Werte: gleiche Einteilung.
+- Ein Reset mit „Not armed“ abgelehnt: `incomplete` mit Grund.
+- Frames zwischen dem Ende der Nachbeobachtung und dem Quittieren: beurteilt.
+
+**D · Live:** Nativer Hauptlauf und `latch-delayed` je dreimal, mit den benannten Zahlen im Bericht. Danach `perf-matrix`.
+
+### Frage
+
+- **Q-L4:** `t_pub` ersetzt die Untergrenze aus deinem Vorschlag (Empfang − `t_cont_after`) und ist ein weiteres Produktfeld. Ohne `t_pub` wäre ein verspätetes Gateway nie FAIL, nur `incomplete`. Mit `t_pub` belegt das Gateway seine Verspätung selbst. Ich schlage `t_pub` vor; die Entscheidung liegt bei dir.
+
+**Erbeten:** `agreement` oder `findings` zum Messvertrag in dieser Fassung.
