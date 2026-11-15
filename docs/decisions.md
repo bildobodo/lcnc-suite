@@ -11474,8 +11474,9 @@ written: a check that raises is itself a damaged record and fails the run.
 
 ## 2026-11-15 — The trip's provenance in every frame; latch-sticky judged by it (package 3b; Codex R370, R375–R377)
 
-**Why.** R370 found the native `latch-sticky` row red once: a frame received after SIGCONT showed no trip,
-but its status had been built before the stop. Classifying frames by when the driver received them, or
+**Why.** The native run for the R370 request (package 3b item 1, main run 1,
+`vor-maschine.p3b.r370.native-main-run1-FAIL.json`) showed the `latch-sticky` row red once: a frame received
+after SIGCONT showed no trip, but its status had been built before the stop (its send began before the stop). Classifying frames by when the driver received them, or
 skipping the first, proves nothing; the reader also keeps reading through the stop and the gateway reads
 that backlog with fresh arrival stamps.
 

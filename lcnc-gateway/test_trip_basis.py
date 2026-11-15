@@ -114,11 +114,23 @@ class ThePollerReadsOnceAndPublishesOnce(unittest.TestCase):
         assign = next(n for n in ast.walk(self.fn) if isinstance(n, ast.Assign) and n.value is call)
         self.assertIsInstance(ev.args[0], ast.Name, "the automaton takes a name bound from that read, no new read")
         self.assertEqual(ev.args[0].id, assign.targets[0].elts[0].id, "the automaton takes that read's input")
+        # every other read of the latch field — by name or as an attribute call —
+        # in its function: the ONE named exception is the safety chain's PRESENCE
+        # check (is the latch component loaded at all), never a trip decision
         module = ast.parse(inspect.getsource(gateway))
-        second = [n.lineno for n in ast.walk(module) if isinstance(n, ast.Call)
-                  and isinstance(n.func, ast.Name) and n.func.id in ("_reader_get", "_reader_fresh_get")
-                  and n.args and isinstance(n.args[0], ast.Constant) and n.args[0].value == "trip_latched"]
-        self.assertEqual(second, [], "no second read of the latch anywhere")
+        reads = []
+        for fn in ast.walk(module):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for n in ast.walk(fn):
+                if isinstance(n, ast.Call) and n.args and isinstance(n.args[0], ast.Constant) \
+                        and n.args[0].value == "trip_latched":
+                    name = n.func.id if isinstance(n.func, ast.Name) else getattr(n.func, "attr", "")
+                    if name in ("_reader_get", "_reader_fresh_get", "reader_get", "reader_fresh_get"):
+                        reads.append(fn.name)
+        self.assertEqual(sorted(set(reads)), ["_safety_chain_reason"],
+                         "no second read of the latch for the trip decision; the presence check is the one exception")
+        self.assertEqual(reads.count("_safety_chain_reason"), 1)
 
     def test_no_await_between_the_read_and_the_publication(self):
         [call] = _calls(self.fn, "trip_latch_input")
@@ -366,6 +378,57 @@ class EveryFrameCarriesItsTicksBasis(unittest.TestCase):
 
     def test_a_tick_published_mid_build_json_delta(self):
         self._a_tick_published_while_the_frame_is_built("json", True)
+
+    def _a_tick_published_while_a_delta_frame_is_built(self, wire):
+        """Q-L3 for a DELTA frame: a later frame whose build awaits (the tool
+        library read on a tool-meta tick, in a thread) while another tick is
+        published. Every frame is ONE tick: a frame of the switched tick
+        carries its trip_basis AND its data (the delta names its active_file);
+        a frame of a real tick carries neither — never a mix."""
+        self._path(wire, True)
+        stat = link_fixture.current().stat              # a tool in the spindle: the tool-meta read happens
+        had, old = hasattr(stat, "tool_in_spindle"), getattr(stat, "tool_in_spindle", None)
+        self.addCleanup(lambda: setattr(stat, "tool_in_spindle", old) if had else delattr(stat, "tool_in_spindle"))
+        stat.tool_in_spindle = 1
+        seen, marked = {}, {}
+        real = gateway.load_tool_library
+
+        def switching(*a, **k):
+            if marked.get("armed") and "pub" not in seen:
+                pub = gateway._published
+                seen["pub"] = pub
+                other = dict(pub.status_dict or {}, active_file="/SWITCHED.ngc")
+                gateway._published = ws_fanout.StatusPublication(
+                    gen=pub.gen + 1000, status=pub.status, status_dict=other, data_msgpack=None,
+                    errors=[], clients_list=[], probe_updates={},
+                    trip_basis={**pub.trip_basis, "gen": pub.gen + 1000, "reader_seq": 999})
+            return real(*a, **k)
+
+        self.addCleanup(setattr, gateway, "load_tool_library", real)
+        self.addCleanup(setattr, gateway, "_tool_meta_dirty", gateway._tool_meta_dirty)
+        gateway.load_tool_library = switching
+
+        def on_frame(msg):
+            if "armed" not in marked and msg["type"] == "status_delta":
+                marked["armed"] = True
+                gateway._tool_meta_dirty = True        # the next build reads the tool library
+        frames = self._frames(10, on_frame)
+        self.assertIn("pub", seen, f"the switch never happened; types {[f['type'] for f in frames]}")
+        fake = seen["pub"].gen + 1000
+        for f in frames:
+            tb, switched = f["trip_basis"], f["data"].get("active_file") == "/SWITCHED.ngc"
+            if tb["gen"] == fake:
+                self.assertEqual(tb["reader_seq"], 999)
+                self.assertTrue(switched or f["type"] == "status", f"the switched tick without its data: {f}")
+            else:
+                self.assertEqual(tb["reader_seq"], 41, f"a real tick's frame with the switched provenance: {tb}")
+                self.assertFalse(switched, f"a real tick's frame with the switched data: {tb}")
+
+    def test_a_tick_published_mid_build_of_a_delta_frame_json(self):
+        self._a_tick_published_while_a_delta_frame_is_built("json")
+
+    def test_a_tick_published_mid_build_of_a_delta_frame_msgpack(self):
+        self._a_tick_published_while_a_delta_frame_is_built("msgpack")
 
     def test_a_published_tick_stays_as_it_was_published(self):
         """Frames built from a tick (the copy for the delta, tool_meta at the
