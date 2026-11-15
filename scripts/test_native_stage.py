@@ -4760,6 +4760,9 @@ def test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement(tmp
         nr.latch_cases()[1](ctx2)
     sticky = next(r for r in ctx2["rows"] if r["case"] == "latch-sticky")
     assert sticky["status"] == "incomplete", sticky
+    # the outage's HAL section was recorded: its own row stays (the class of VM-I20)
+    assert [(r["case"], r["status"]) for r in ctx2["rows"]] == [("latch-same-cycle", "PASS"),
+                                                               ("latch-sticky", "incomplete")]
 
 
 def _sticky_rows(ctx):
@@ -4838,6 +4841,25 @@ def test_the_display_row_is_formed_once_on_every_exit(tmp_path, monkeypatch):
     assert [r["status"] for r in _sticky_rows(ctx2)] == ["PASS"]
 
 
+def test_the_outage_start_failing_keeps_both_rows_once(tmp_path, monkeypatch):
+    """The outage section cannot begin: no section — both rows formed once,
+    each naming it, and nothing stopped, continued or acknowledged."""
+    c = LatchClient()
+    ctx, stops = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+
+    def begin():
+        raise RuntimeError("the outage's start mark not confirmed")
+    ctx["servo"].begin = begin
+    try:
+        with pytest.raises(RuntimeError, match="start mark"):
+            nr.latch_cases()[1](ctx)
+    finally:
+        c.until = 0
+    assert stops == [] and c.sent == []
+    assert [r["case"] for r in ctx["rows"]] == ["latch-same-cycle", "latch-sticky"]
+    assert all(r["status"] != "PASS" for r in ctx["rows"]), ctx["rows"]
+
+
 def test_the_first_frame_while_cont_writes_its_state_triggers_the_early_reset(tmp_path, monkeypatch):
     """R378 VM-I21 (Codex's probe 3): ONE frame after the SIGCONT bracket and
     before cont() returns, no frame after it — the early reset is asked on
@@ -4910,6 +4932,8 @@ def test_a_continue_without_its_bracket_asks_no_reset(tmp_path, monkeypatch):
         c.until = 0
     assert "estop_reset" not in [cmd for cmd, _ in c.sent]
     assert [r["status"] for r in _sticky_rows(ctx)] == ["incomplete"]
+    # the outage's HAL section was recorded: its own row stays (the class of VM-I20)
+    assert [r["case"] for r in ctx["rows"]] == ["latch-same-cycle", "latch-sticky"]
 
 
 def test_the_delayed_order_is_moved_through_the_gate_and_read_back():

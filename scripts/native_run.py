@@ -2337,9 +2337,12 @@ def latch_cases(variant=None):
             finally:
                 box = held.get("box") or {}
                 sec_out = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
-            same = sc.eval_latch_same_cycle("latch-same-cycle.delayed-order" if delayed else "latch-same-cycle",
-                                            sec_out, delayed=delayed)
-            rows.append(tag(same))
+                # the HAL section's own row on EVERY way out of the outage — a
+                # body that raised (no frame after the continue, no bracket)
+                # recorded its section all the same (the class of R378 VM-I20)
+                same = sc.eval_latch_same_cycle("latch-same-cycle.delayed-order" if delayed else "latch-same-cycle",
+                                                sec_out, delayed=delayed)
+                rows.append(tag(same))
             _servo_failed(box, rows, "the latch outage")
             why = tp.own_trip(before_trip, same.get("edge_index"), same.get("latch_clear_before"),
                               same.get("latched_after"), same.get("section_complete"), inst_before,

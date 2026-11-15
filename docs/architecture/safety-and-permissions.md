@@ -926,5 +926,6 @@ no gap before it; receipt − `t_cont_before` the upper), the early reset refuse
 section runs from a frame received before the stop to a mark taken with the acknowledgement's send in one
 region under the lock the receiver stamps and records each frame under — no frame between the mark and the
 send (Codex R378 VM-I19); the row is judged after that
-mark and formed once on every way out of the step (VM-I20); the early reset is asked on the first frame
+mark and formed once on every way out of the step, and the outage's `latch-same-cycle` row from its recorded
+HAL section too (VM-I20); the early reset is asked on the first frame
 received after the SIGCONT bracket's end (VM-I21).
