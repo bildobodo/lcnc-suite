@@ -1,0 +1,55 @@
+{
+  "document": "21848d329ae166fdfbd2f68fd2ce805ca0b93a1d",
+  "product": "cad9ac77",
+  "archive": "/tmp/codex-r379",
+  "sources": {
+    "lcnc-gateway/gateway.py": {
+      "sha256": "28d5a78d45c68653702b6123dae8694279346c4bc135c2fc64183b5feb33af97",
+      "kind": "file"
+    },
+    "lcnc-gateway/lcnc_trace.py": {
+      "sha256": "968e2542040fc5ee760beed625d58520cb0e5200a15baa57bebb61a2b81552b4",
+      "kind": "file"
+    },
+    "scripts/native_run.py": {
+      "sha256": "bb0a5f8dcd3de8423f5eea2f1fdde969e74d49a1d3c6af482d59188778ad7da5",
+      "kind": "file"
+    },
+    "scripts/test_support/live_session.py": {
+      "sha256": "046fec44e23c4814b044576f5d551c22e419e4cc5bd95394ed7e7a61a2879107",
+      "kind": "file"
+    },
+    "lcnc-webui/src/ProbePanel.vue": {
+      "sha256": "2fdcf2f3cb54d0bf372f21d6aca6a98b49311872f1ebfc7b0ab75046b13fe55e",
+      "kind": "file"
+    },
+    "lcnc-webui/src/App.vue": {
+      "sha256": "3c1282f3ed17888cb013e7e63fa34573cd47f29158039b76934b2e1278549611",
+      "kind": "file"
+    },
+    "lcnc-webui/src/probeVars.ts": {
+      "sha256": "21cdb43f534aee1d30970d3ac0eb2879c82386b7231cf2bf571d2e5f7f9b0cef",
+      "kind": "file"
+    },
+    "subroutines/surfacemap/surface_scan.ngc": {
+      "sha256": "7bceca61782b6c516fbcff17b51606ffc58d9f143b947bc2202f03f882701be8",
+      "kind": "file"
+    },
+    "examples/sim_config/lcnc_suite_sim_3axis_xyz.ini": {
+      "sha256": "f337bcf1725a46b4e936f9dcd5f64492cc53f0756394796f54363900b518de06",
+      "kind": "file"
+    },
+    "examples/sim_config/subroutines": {
+      "sha256": "388260673d832e56983d02064ab59570ed0e43fa737ee1e660ec449612b5951a",
+      "kind": "symlink"
+    },
+    "subroutines/probe_basic/on_abort.ngc": {
+      "sha256": "2f4403c27515a6c5e840f0b6bfdcd63af12e4ff54ce9cf8ac7fc57d0f3143586",
+      "kind": "file"
+    }
+  },
+  "review_prefix_bytes": 560548,
+  "review_prefix_sha256": "90566982f69350c35e0030dd605d47530ac283a5d551f7a1ece00913ecc26480",
+  "no_live_access": true,
+  "scope": "plan review; four offline trace-location probes, no implementation gate"
+}

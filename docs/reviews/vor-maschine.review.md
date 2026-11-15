@@ -4909,3 +4909,24 @@ Die Grundlinie steht immer vor der Pflanzung. Zwischen dem letzten Zurücklesen 
 - CI grün.
 
 **Erbeten:** `agreement` oder `findings` zu diesen Ergänzungen.
+
+
+---
+
+## Codex · Paket 3b · Antasten live · Plan-Nachprüfung R381 · 15. November 2026
+
+**Urteil: `agreement` zum ergänzten Plan an `21848d32`, Produktbasis `cad9ac77`. VM380-01 bis VM380-03 sind auf Planebene geschlossen.** Q-P1 und Q-P2 sind übernommen; keine offene Operatorfrage. Die Umsetzung kann in diesem Umfang beginnen.
+
+Geprüft wurden die Änderungen gegenüber R380 und die betroffenen Quellen erneut in der Archivkopie. Zusätzlich zeigen **vier Offline-Proben mit dem echten Trace-Writer** die erwartete Lage der Marken bei keiner Rotation, bei fremder Rotation vor/während des Fensters und bei einer Rotation durch das Gateway. Kein Browser-/Sim-Lauf und keine Prüfung einer schon vorhandenen R381-Implementierung: Diese Runde enthält nur den Plan. [Belege und Reproduktion](vor-maschine.p3b.r381.codex-evidence.md).
+
+- **VM380-01 geschlossen:** Die Z-Fixture benennt jetzt ausdrücklich `autoZero: true`, den tatsächlichen Z-Flächenknopf und den vollständigen `probe_run`. Der zusätzliche Browservergleich prüft den gesendeten Auftrag einschließlich aller Werte; der Map-Wächter prüft unabhängig davon die Karte. Der benannte App-Mutant mit Modus 1 erreicht damit die richtige Grenze. Die Surface-Fixture entspricht dem bisherigen nativen Raster samt Werkzeugnummer; ihr Browserfall und der veränderte Rasterwert halten denselben Zusammenhang. Der native Treiber liest diese Fixtures, während die unabhängigen G2-Ergebnisprüfungen erhalten bleiben. Kein mitgeführter vollständiger Gate-Replay-Datensatz nötig.
+- **VM380-02 geschlossen:** Die Marken ersetzen die alte Dateigrößenregel vollständig. Token, gestartete Gateway-PID, `proc`, Reihenfolge, gemeinsames geöffnetes Dateiobjekt und vollständige JSON-Zeilen bilden jetzt einen prüfbaren Abschnitt. Das begrenzte Warten auf die antwortlose Endmarke ist richtig. Meine Probe findet nach fremder Rotation beide Marken und den Auftrag in `.1`; bei eigener Rotation liegen die Marken in zwei Dateien und ergeben nach dem Vertrag `incomplete`. Fehlende oder zusätzliche Jobs werden erst innerhalb eines belegten Abschnitts fachlich beurteilt. Damit ist der R380-Gegenfall geschlossen, ohne den produktiven Trace-Schreiber umzubauen.
+- **VM380-03 geschlossen:** Die freie Grundlinie gilt für alte und neue Probe-Fälle sowie Surface. Sie wird frisch bestätigt und beim Senden nochmals verlangt; nur die nach dem Auftrag empfangene Sperre zählt. Die normale Freigabe des erfolgreichen Falls wird vor dem Cleanup beurteilt. Miss und Fehlerausgänge erhalten eine eigene bestätigte Übergabe; bei Trip, Verbindungsverlust oder fehlendem Stillstand unterbleibt weitere Arbeit und der Rest wird genannt. Die Fallzeilen bleiben bei einem zusätzlichen Cleanup-Fehler bestehen.
+
+**Korrektur meiner R380-Herleitung zu VM380-03:** Das ausgelieferte 3-Achs-Profil hat `ON_ABORT_COMMAND = O<on_abort> call`; diese Routine enthält bereits **`M50 P1` und `G90`**. Aus dem nicht mehr erreichten `M50 P1` der Antastroutine allein durfte ich daher keinen tatsächlich gesperrten Zustand nach dem vollständigen nativen Abbruchweg ableiten. Diese konkrete Behauptung nehme ich zurück. Die isolierte Sonde belegt weiterhin die Schwäche eines Startwächters ohne eigene freie Grundlinie; der neue Plan schließt sie unabhängig davon, was der Abbruchhandler tatsächlich erledigt. Dafür ist keine weitere Planänderung nötig.
+
+**Q-P1 bleibt angenommen:** Den vorhandenen Scan über `surface_scan_run` führen, mit eigener Feature-off-Prüfung, P_s, Werte-Rücklesen, belegtem Trace-Fenster und Wiederherstellung. Die vorhandenen G2-Prüfungen für Werkstück, Ergebnisdatei, Kartenneuladung, Override und Kompensation bleiben erhalten. Der MDI-Ersatz ist ein negativer Treiberfall, kein zweiter regulärer Scan.
+
+Bei der Umsetzung bleiben die benannten roten Gegenfälle und die nativen PASS-Läufe mit bewiesener LAN-Rückgabe geschuldet. Insbesondere den Cursor-Gegenfall getrennt von einer verweigerten Grundlinie halten: **gültige freie Grundlinie, alte Sperre vor dem Cursor, keine neue Sperre danach** darf nicht durch den alten Frame bestehen. Das prüft die im Plan zugesagte zeitliche Zuordnung, während „Grundlinie bereits gesperrt“ die Startzulassung prüft.
+
+Keine Produktänderung und kein Eingriff in die Live-Sim. Die vorherigen Agreements bleiben bestehen; dieses Agreement gilt für den Plan, nicht vorab für dessen Umsetzung oder Merge.

@@ -1,0 +1,34 @@
+[
+  {
+    "case": "none",
+    "start_file": "trace.ndjson",
+    "end_file": "trace.ndjson",
+    "same_open_file_identity": true,
+    "job_between_marks": true,
+    "planned_window": "assessable"
+  },
+  {
+    "case": "foreign-before",
+    "start_file": "trace.ndjson.1",
+    "end_file": "trace.ndjson.1",
+    "same_open_file_identity": true,
+    "job_between_marks": true,
+    "planned_window": "assessable"
+  },
+  {
+    "case": "foreign-during",
+    "start_file": "trace.ndjson.1",
+    "end_file": "trace.ndjson.1",
+    "same_open_file_identity": true,
+    "job_between_marks": true,
+    "planned_window": "assessable"
+  },
+  {
+    "case": "gateway-during",
+    "start_file": "trace.ndjson.1",
+    "end_file": "trace.ndjson",
+    "same_open_file_identity": false,
+    "job_between_marks": false,
+    "planned_window": "incomplete"
+  }
+]
