@@ -6723,3 +6723,45 @@ def test_the_probe_run_case_restores_on_every_exit_and_never_after_a_trip(monkey
     by, f, first, error = _probe_run(monkeypatch, "hit raises", trip=True)
     assert by["probe-run.restore"]["status"] == "FAIL" and "trip" in by["probe-run.restore"]["detail"]
     assert f.sent == [] and f.g54 != 0.0                # nothing more was done, and the rest is named
+
+
+class _JobClient:
+    """A client for _probe_job itself: `course` = the frames a sent job
+    brings (override, interpreter, in position)."""
+
+    def __init__(self, base, course):
+        self.frames = [(0.0, {**_IDLE, "feed_override_enabled": base, "current_vel": 0.0})]
+        self.errors, self.error, self.sent, self.course = [], None, [], course
+
+    @property
+    def status(self):
+        return dict(self.frames[-1][1])
+
+    def request(self, cmd, **kw):
+        self.sent.append((cmd, kw))
+        t = self.frames[-1][0]
+        for i, (free, interp, inpos) in enumerate(self.course, 1):
+            self.frames.append((t + 0.033 * i, {**_IDLE, "feed_override_enabled": free, "interp_state": interp,
+                                                "inpos": inpos, "current_vel": 0.0 if inpos else 5.0}))
+        return {"ok": True, "persisted": True, "mdi_set": True, "line": "O<probe_z_minus_wco> CALL"}
+
+
+def test_a_probe_job_is_sent_only_from_a_free_override_and_starts_on_a_lock_after_it(monkeypatch):
+    """Codex R380 VM380-03 at the helper every probe start goes through: a
+    locked override at the send sends nothing; the start is a lock received
+    after the send, its end the interpreter idle in position after it; no
+    lock through an observed end is a FAIL of the start."""
+    from test_support import tool_change as tc
+    monkeypatch.setattr(tc.ToolChanges, "precheck", lambda self, st: None)
+    run = [(True, 2, False), (False, 2, False), (True, 1, True)]
+    c = _JobClient(True, run)
+    r = nr._probe_job(c, "probe-run", "probe_run", {"routine": "probe_z_minus_wco", "vars": {"3014": 99}}, deadline=1.0)
+    assert r["start"]["status"] == "PASS" and r["error"] is None and r["reply"]["ok"], r
+    assert c.sent == [("probe_run", {"routine": "probe_z_minus_wco", "vars": {"3014": 99}})]
+    locked = _JobClient(False, run)
+    with pytest.raises(nr.Refused, match="no free override baseline"):
+        nr._probe_job(locked, "probe-run", "probe_run", {"routine": "probe_z_minus_wco", "vars": {}}, deadline=1.0)
+    assert locked.sent == []
+    never = _JobClient(True, [(True, 2, False), (True, 1, True)])
+    r = nr._probe_job(never, "probe-run", "probe_run", {"routine": "probe_z_minus_wco", "vars": {}}, deadline=0.5)
+    assert r["error"] and r["start"]["status"] == "FAIL", r
