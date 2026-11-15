@@ -3268,6 +3268,31 @@ def test_a_plant_never_names_3116_as_the_gateway_reads_a_line(monkeypatch):
     assert all(abs(params[k] - v) < 1e-9 for k, v in values.items())
 
 
+def test_a_read_never_names_3116_whatever_the_clock(monkeypatch):
+    """The read's tag is a time counter, and the gateway marks its skip flag
+    unknown on any line whose TEXT holds "3116" — NATIVE3116000 did. The
+    clock pinned there: the tag is redrawn upward, the line never names it,
+    the value is still read; a read of #3116 itself is refused unsent."""
+    sent = []
+
+    class Client:
+        errors = []
+
+    c = Client()
+
+    def short(c_, text):
+        sent.append(text)
+        tag = text.split(",", 1)[1].split()[0]
+        c.errors.append((0.0, 13, f"{tag} P5070=1.000000"))
+    monkeypatch.setattr(nr, "_short", short)
+    monkeypatch.setattr(nr.time, "monotonic", lambda: 3116.0)      # int(3116000) — the naive tag names it
+    assert nr._read_params(c, [5070]) == {5070: 1.0}
+    assert len(sent) == 1 and "3116" not in sent[0] and sent[0].startswith("(DEBUG,NATIVE3117000 "), sent
+    with pytest.raises(ValueError, match="never names 3116"):
+        nr._read_params(c, [3115, 3116])
+    assert len(sent) == 1
+
+
 def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     """Live: a G38.2 that ends without contact aborts its routine and leaves
     #5070 as the LAST probe wrote it — 1 from the hit before; the miss was

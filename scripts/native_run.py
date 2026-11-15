@@ -936,10 +936,19 @@ def _read_params(c, nums, tries=3):
     DEBUG line through the error channel — a status tick a client skips
     loses its errors, so the read is repeated (it changes nothing)."""
     import re
+    body = " ".join(f"P{n}=#{n}" for n in nums)
+    if "3116" in body:
+        raise ValueError(f"a read never names 3116 for the gateway: {list(nums)}")
     for attempt in range(tries):
-        tag = f"NATIVE{int(time.monotonic() * 1000) % 10**9}"
+        # the tag is a time counter: redrawn UPWARD until the line does not
+        # name 3116 — the gateway's test is the text (`"3116" in text`), a
+        # tag like NATIVE123116789 made its skip flag unknown (R382)
+        k = int(time.monotonic() * 1000) % 10**9
+        while "3116" in f"(DEBUG,NATIVE{k} {body})":
+            k += 1
+        tag = f"NATIVE{k}"
         seen = len(c.errors)
-        _short(c, f"(DEBUG,{tag} " + " ".join(f"P{n}=#{n}" for n in nums) + ")")
+        _short(c, f"(DEBUG,{tag} {body})")
         end = time.monotonic() + DEBUG_WAIT
         while time.monotonic() < end:
             line = next((x for _, _, x in c.errors[seen:] if tag in x), None)
