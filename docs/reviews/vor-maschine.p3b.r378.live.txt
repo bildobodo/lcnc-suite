@@ -1,0 +1,42 @@
+live-twp at 1e19b741 (scratch install configs-latch):
+RUN  preview-goldens → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/preview-goldens.log
+PASS preview-goldens (0.17s)
+RUN  live-parity → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/live-parity.log
+PASS live-parity (189.0s)
+RUN  twp_buttons_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_buttons_check.log
+PASS twp_buttons_check (71.58s)
+RUN  twp_reorient_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_reorient_check.log
+PASS twp_reorient_check (11.46s)
+RUN  twp_capture_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_capture_check.log
+PASS twp_capture_check (45.85s)
+RUN  twp_touchoff_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_touchoff_check.log
+PASS twp_touchoff_check (12.34s)
+RUN  twp_touchoff_plane_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_touchoff_plane_check.log
+PASS twp_touchoff_plane_check (23.95s)
+RUN  twp_g683_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_g683_check.log
+PASS twp_g683_check (9.29s)
+RUN  twp_adverse_check → /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/twp_adverse_check.log
+PASS twp_adverse_check (39.13s)
+PASS: /home/cnc/lcnc-suite-latch/runlogs/test-suite/20261115T084113Z-live-twp/report.json
+
+perf-matrix at 1e19b741:
+── idle_baseline ──
+  lag: n=0 max=0ms (None) safety=[]
+── fanout ──
+  lag: n=0 max=0ms (None) safety=[]
+── reconnect_storm ──
+  lag: n=0 max=0ms (None) safety=[]
+── upload_during_stream ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── save_during_stream ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── fusion_near_limit ──
+  lag: n=1 max=81.0ms (reader_recv.readline) safety=[]
+── rss_gc_watch ──
+  lag: n=0 max=0ms (None) safety=[]
+── preview_publish ──
+  lag: n=0 max=0ms (None) safety=['safety.explicit_armed', 'safety.explicit_disarmed']
+── sigstop_trip ──
+  lag: n=2 max=898.9ms (reader_recv.readline) safety=['safety.explicit_armed', 'safety.explicit_disarmed', 'safety.trip_acknowledged', 'safety.trip_snapshot_done', 'safety.tripped']
+artifact: /home/cnc/lcnc-suite-latch/runlogs/perf-matrix/20261115T085103Z-1e19b741.json
+RESULT: PASS (run 5228d77e0e92)

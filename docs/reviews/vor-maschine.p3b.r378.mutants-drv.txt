@@ -1,0 +1,37 @@
+D1 old by the read's START: 1 red
+    test_codex_s_border_example_is_never_old: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+D2 new by the read's END: 1 red
+    test_codex_s_border_example_is_never_old: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+D3 baseline age by read1: 1 red
+    test_the_baseline_s_largest_possible_age_decides[read0-False]: AssertionError: {'baseline_age_s': [0.2, 1.0], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750), fa...eve
+D4 latched need not be boolean: 3 red
+    test_a_measurement_gap_is_named_and_never_a_pass[bad2-no boolean]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_a_measurement_gap_is_named_and_never_a_pass[bad3-no boolean]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_new_frames_without_a_boolean_latch_value_are_no_proof: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+D5 the invariant only for new frames: 1 red
+    test_an_old_backlog_frame_latched_true_without_the_trip_fails: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+D6 lower bound from the receipt: 2 red
+    test_codex_s_deadline_example_is_unproven: assert [0.8, 1.2] == [0.2 ± 2.0e-07, 1.2 ± 1.2e-06]
+    test_a_new_frame_published_past_the_deadline_fails_and_a_gap_before_it_leaves_it_unproven: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the first new frame was published 1.390 s 
+D7 a gap before never matters: 1 red
+    test_a_new_frame_published_past_the_deadline_fails_and_a_gap_before_it_leaves_it_unproven: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the first new frame was published 1.300 s 
+D8 any refusal of the reset will do: 1 red
+    test_the_latch_stays_through_the_resume_and_the_early_reset[sec7-reply7-frames7-incomplete-another reason]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+D9 gaps never incomplete: 10 red
+    test_a_measurement_gap_is_named_and_never_a_pass[bad0-no trip_basis]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_a_measurement_gap_is_named_and_never_a_pass[bad1-not the run's]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_a_measurement_gap_is_named_and_never_a_pass[bad2-no boolean]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_a_measurement_gap_is_named_and_never_a_pass[bad3-no boolean]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_a_measurement_gap_is_named_and_never_a_pass[bad4-stale]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    test_a_measurement_gap_is_named_and_never_a_pass[bad5-not in order]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+    … 4 more
+D10 stale frames valid: 1 red
+    test_a_measurement_gap_is_named_and_never_a_pass[bad4-stale]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
+D11 the row after the acknowledgement: 3 red
+    test_the_whole_latch_step_proves_the_trip_and_recovers: AssertionError: {'latch-recovered': {'case': 'latch-recovered', 'cleared_n': 910, 'detail': 'fault-out FALSE from sample 910 to the en...[1e
+    test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement: AssertionError: {'baseline_age_s': [0.0, 0.0], 'border': 0, 'case': 'latch-sticky', 'detail': 'frame 15 (new): no safety_trip after the resu
+    test_a_trip_shown_by_no_frame_fails_the_display: StopIteration
+D12 no row when the section ends early: 1 red
+    test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement: AssertionError: assert 'latch-sticky' in ['latch-same-cycle']
+D13 seq may fall: 1 red
+    test_a_measurement_gap_is_named_and_never_a_pass[bad8-reader_seq fell]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve

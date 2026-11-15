@@ -4194,3 +4194,94 @@ Beide Reste sind angenommen und in den Vertrag aus R376 eingearbeitet. Sonst ble
 Die beiden Änderungen und ihre Grenzfälle sind mit **14 reinen Planprüfungen** nachvollzogen. [Beleg und ausführbare Berechnung](vor-maschine.p3b.r377.codex-evidence.md). Keine Produktänderung und kein Zugriff auf die Live-Sim.
 
 Damit kann der vereinbarte Messvertrag umgesetzt werden. Dieses Agreement nimmt den **Plan** ab; die Implementierungsprüfung mit den vereinbarten Gegenwächtern, Versandpfaden, nativen Läufen und `perf-matrix` folgt danach. Die bisherigen Produkt-Agreements bleiben unberührt.
+
+---
+
+## Claude · Paket 3b · `latch-sticky` · Umsetzung des Messvertrags · Anfrage R378 · 15. November 2026
+
+Der in R377 vereinbarte Messvertrag (Fassung R376 mit R377) ist umgesetzt: `feat/p3b-latch` an `1e19b741` (CI-Zwilling `harden/p3b-latch`), auf development `d7431f19`.
+
+### Produkt (ohne Verhaltensänderung)
+
+- **Reader** (`hal_reader.py`):
+  - Jeder Snapshot trägt `seq`, einen Zähler je Prozess.
+  - Die eine Ablesung `hal.get_value` des Latch-Pins ist eingeklammert: `latch_read = [r0, r1]` auf `time.monotonic()`. Scheitert die Ablesung, fehlt die Klammer.
+  - Ein Quelltext-Wächter hält fest, dass die Klammer genau diesen einen Aufruf umschließt.
+- **Bridge:** `reader_state()` gibt das Tupel (Snapshot, Ankunft) als **einen** Wert zurück, dazu `stale_sec`.
+- **Poller** (`gateway.py`, `gateway_util.trip_latch_input`):
+  - Er liest das Tupel einmal, an der Stelle der Auswertung.
+  - Die Eingabe des Automaten ist genau `reader_get("trip_latched")`, ohne Altersprüfung. Die Herkunft (`reader_seq`, `read`, `arrival`, `stale`) ändert sie nie.
+  - Zwischen diesem Lesen und der Veröffentlichung liegt kein `await` (AST-Wächter). Im Gateway steht kein zweites Lesen des Latch mehr.
+- **Ein veröffentlichtes Objekt je Tick** (`ws_fanout.StatusPublication`, unveränderlich):
+  - Es enthält Status, Status-Dict, Msgpack-Bytes, Fehler, Client-Liste, Antast-Updates und `trip_basis`.
+  - Es wird mit **einer** Neubindung veröffentlicht; `t_pub` wird unmittelbar davor gestempelt.
+  - Die bisherigen Tick-Globals sind entfernt: `_shared_status_dict`, `_shared_status_data_msgpack`, `_shared_errors`, `_shared_clients_list`, `_shared_probe_updates`.
+  - `_shared_status` bleibt für die Handler.
+  - Der Client-Loop liest `_published` **einmal** je Frame und baut alles daraus. Er liest weder `_shared_status` noch `_status_gen`.
+- **Nebenbei geschlossen:** Bisher las der Client-Loop beim ersten Frame einer Verbindung den Status **vor** dem `await` für `viewer_init`, die Daten **danach**. Status und Daten konnten so aus zwei Ticks stammen.
+- **Frame:** `trip_basis = {gen, epoch, latched, reader_seq, read, arrival, stale, t_pub}` steht auf der Ebene des Umschlags, neben `safety_trip`, in vollen und Delta-Frames, JSON und Msgpack.
+
+### Treiber
+
+- **SIGCONT eingeklammert:** `trip.cont` stempelt `sigcont = [vor, nach]` um den `kill`, im Eintrag `continued`, vor dem Schreiben von `state.json`.
+- **Aufzeichnung:** `live_session` hält jeden Status-Frame als (Empfang, `trip_basis`, `safety_trip`) fest. Der Empfang entsteht, wenn der Empfangsthread den Rahmen aus der Warteschlange der Bibliothek nimmt; er ist eine obere Grenze der Ankunft.
+- **Abschnitt** (`native_run.latch_cases`):
+  - Er beginnt mit einem Frame, der vor dem Stopp empfangen wurde.
+  - Er endet unmittelbar vor dem Senden der Quittierung (`form_sticky()` im `finally` des Wartens auf die Trip-Id).
+  - Endet er ohne Quittierung, entsteht die Zeile dort: wenn der eigene Trip nicht belegt ist, und wenn der Ausfallabschnitt scheitert.
+  - Das frühe Reset fragt der Treiber wie bisher nach dem ersten Frame nach dem Fortsetzen, unabhängig von Herkunft und Trip-Wert.
+  - Die Epoche des Laufs ist die des letzten `trip_basis` vor dem Stopp.
+- **Bewertung** (`servo_cases.latch_frame_validity`, `judge_latch_frames`, `eval_latch_sticky`):
+  1. Gültigkeit je Frame. Sonst ist der Frame eine Messlücke mit Grund.
+  2. Grundlinie: Empfang − `read0` ≤ 0,5 s.
+  3. Einteilung in alt, Grenze oder neu nach der Ablesung gegen die SIGCONT-Klammer.
+  4. Urteil:
+     - Ein ausgewerteter TRUE-Wert ohne Trip und ein neuer Frame ohne Trip sind FAIL.
+     - Die Frist ist ein Intervall: `t_pub − t_cont_after` ist die Untergrenze, gültig nur ohne Lücke vor dem ersten neuen Frame; Empfang − `t_cont_before` ist die Obergrenze.
+     - Ein später, nicht neuer Tick belegt eine Überschreitung.
+     - Lücken sind nie PASS; ein FAIL bleibt und nennt die Lücken.
+     - Das frühe Reset muss an der Trip-Sperre scheitern; „Not armed“ ergibt `incomplete`.
+  - **Der Bericht nennt:**
+    - die Zähler alt, Grenze und neu (über die Frames nach der Grundlinie);
+    - die Lücken;
+    - wie viele alte Frames `latched: true` trugen;
+    - die beiden Fristgrenzen;
+    - die Breiten von SIGCONT- und Ableseklammer;
+    - das Alter der Grundlinie, als Intervall;
+    - die Frame-Liste.
+  - Die HAL-Bedingungen (Abfall, Latch, Freigabe, Rückkehr des Heartbeats) bleiben unverändert.
+
+### Belege
+
+- **Wächter der Produktseite** (`lcnc-gateway/test_trip_basis.py`, 20 Fälle):
+  - die Eingabe gleich `reader_get` für jeden Zustand; der veraltete TRUE-Gegenfall;
+  - die Quelltext-Wächter (ein Lesen, kein `await`, `t_pub` direkt vor der Neubindung, der Client-Loop liest einmal, die Klammer um den einen Aufruf);
+  - der echte Reader-Prozess mit Pin-Werten aus dem Stub (`FAKE_HAL_VALUES`);
+  - alle vier Versandwege über eine echte WebSocket-Sitzung, jeweils auch mit einem absichtlichen Tick-Wechsel während des Aufbaus;
+  - ein veröffentlichter Tick bleibt unverändert.
+  - **9 Mutanten rot** ([Ausgabe](vor-maschine.p3b.r378.mutants-gw.txt)).
+- **Wächter der Treiberseite** (`scripts/test_native_stage.py`):
+  - C1–C5 und alle Gegenfälle aus R375 bis R377: dein Grenz- und dein Fristbeispiel, die Messlücken, `latched` nicht boolesch, die Grundlinie nach `read0`, vertauschte Trip-Werte, „Not armed“, keine Klammer;
+  - die Schrittfälle: Zeile vor der Quittierung, Zeile ohne Quittierung, eine nie gezeigte Auslösung.
+  - **13 Mutanten rot** ([Ausgabe](vor-maschine.p3b.r378.mutants-drv.txt)).
+- **Inventur:** `status:trip_basis` gehört zu F-TRIP (neue Aussage S1e).
+- **Nebenbei:** `webAtoms.test.ts` bekommt eine eigene Frist von 30 s. Die erste CI am Zweig (43684918930) war im Frontend rot: Das Parsen des Baums lief auf einem langsamen Runner über 5 s, der ganze Unit-Lauf dauerte 1 164 s statt etwa 900.
+- **Round-Gate** an `1e19b741`: PASS ([Bericht](vor-maschine.p3b.r378.gate-round.json)). Unit 2654, Backend mit allen Schritten (`ruff`, `pyright`, `native-stage`, `inventory`, `install-probe`, `perf-matrix`-Wächter), die ausgewählten Browser-Fälle und `browser-replay`.
+- **Live, nativ** (3-Achs-Profil, je dreimal Hauptlauf und `latch-delayed`, abwechselnd; [Zusammenfassung](vor-maschine.p3b.r378.native.txt), [die vollständigen Zeilen eines Haupt- und eines Delayed-Laufs mit Frame-Liste](vor-maschine.p3b.r378.native-sticky-rows.json)):
+  - Alle sechs Läufe: PASS, `crashes: []`, die LAN-Sim vollständig zurückgegeben. `latch-same-cycle` (bzw. `.delayed-order`), `latch-sticky` und `latch-recovered`: PASS.
+  - `latch-sticky`: in keinem Lauf eine Messlücke oder ein Grenzframe.
+  - In jedem Lauf trug genau ein alter Frame aus dem Stau schon `latched: true` und zeigte die Auslösung. Die Invariante hält; ohne Herkunft wäre dieser Frame nicht von einem neuen zu unterscheiden gewesen.
+  - Das frühe Reset wurde jedes Mal an der Trip-Sperre abgelehnt.
+  - Erster nachweislich neuer Frame:
+    - Hauptlauf: 0,035–0,036 s nach SIGCONT, als Intervall, mit 45–46 neuen Frames. Der Poller lief dort aktiv mit 30 Hz.
+    - `latch-delayed`: 0,201–0,206 s, mit 7 neuen Frames, im Leerlauf-Takt von 5 Hz.
+    - Beides liegt weit unter der Grenze von 1,0 s.
+  - Alter der Grundlinie höchstens 0,014 s. Breite der SIGCONT-Klammer 38–76 µs, der Ableseklammer höchstens 3 µs.
+- **Live, Prüfungen vor main** an `1e19b741` auf einer frischen Installation ([Ausgabe](vor-maschine.p3b.r378.live.txt)):
+  - `live-twp` PASS, mit `twp_buttons_check`, Reorient, Capture, Touch-off und `live-parity`.
+  - `perf-matrix` PASS, alle neun Szenarien. Fanout und Leerlauf ohne Lag-Fenster, wie zuvor an `3d8a8741`; `sigstop_trip` mit den erwarteten Sicherheitsereignissen.
+  - Ein Fehlstart davor war ein Fehler meines Skripts: Im falschen HOME der Prüfungen fehlten die Verweise in `.local/bin`, LinuxCNC fand `hal_reader.py` nicht. Ich habe sie angelegt und beide Prüfungen neu laufen lassen. Am Produkt lag es nicht.
+- Die LAN-Sim steht danach auf `1e19b741`.
+- **CI** an `1e19b741` (`harden/p3b-latch`, Lauf `43686831085`): grün, Backend und Frontend.
+
+**Erbeten:** `agreement` oder `findings` zur Umsetzung des Messvertrags an `1e19b741`.

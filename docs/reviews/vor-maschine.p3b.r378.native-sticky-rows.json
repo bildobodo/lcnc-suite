@@ -1,0 +1,1032 @@
+{
+ "20261115T090003-latch": {
+  "case": "latch-sticky",
+  "status": "PASS",
+  "detail": "the heartbeat returned (sample 709250), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 46), the first new frame 0.036\u20130.036 s after SIGCONT",
+  "samples": 2462,
+  "reset_reply": {
+   "ok": false,
+   "error": "estop_reset refused: Acknowledge the safety trip first"
+  },
+  "frames": 48,
+  "sigcont_width_s": 7.6e-05,
+  "baseline_age_s": [
+   0.000692,
+   0.000695
+  ],
+  "old": 1,
+  "border": 0,
+  "new": 46,
+  "gaps": 0,
+  "old_latched": 1,
+  "latch_read_width_max_s": 3e-06,
+  "first_new_delay_s": [
+   0.035794,
+   0.036075
+  ],
+  "frame_list": [
+   [
+    1731751.175206,
+    {
+     "gen": 20235,
+     "epoch": "57251ac5",
+     "latched": false,
+     "reader_seq": 20769,
+     "read": [
+      1731751.174511274,
+      1731751.174513566
+     ],
+     "arrival": 1731751.174585316,
+     "stale": false,
+     "t_pub": 1731751.175033776
+    },
+    false
+   ],
+   [
+    1731752.099223,
+    {
+     "gen": 20236,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20794,
+     "read": [
+      1731752.070551225,
+      1731752.070553517
+     ],
+     "arrival": 1731752.097997847,
+     "stale": false,
+     "t_pub": 1731752.098931933
+    },
+    true
+   ],
+   [
+    1731752.13344,
+    {
+     "gen": 20237,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20795,
+     "read": [
+      1731752.105787787,
+      1731752.105790953
+     ],
+     "arrival": 1731752.105860704,
+     "stale": false,
+     "t_pub": 1731752.133234408
+    },
+    true
+   ],
+   [
+    1731752.169838,
+    {
+     "gen": 20238,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20796,
+     "read": [
+      1731752.139192384,
+      1731752.139194968
+     ],
+     "arrival": 1731752.139264843,
+     "stale": false,
+     "t_pub": 1731752.169695978
+    },
+    true
+   ],
+   [
+    1731752.205448,
+    {
+     "gen": 20239,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20797,
+     "read": [
+      1731752.173264239,
+      1731752.173266322
+     ],
+     "arrival": 1731752.17332728,
+     "stale": false,
+     "t_pub": 1731752.205317588
+    },
+    true
+   ],
+   [
+    1731752.240625,
+    {
+     "gen": 20240,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20799,
+     "read": [
+      1731752.240230945,
+      1731752.240232987
+     ],
+     "arrival": 1731752.240406946,
+     "stale": false,
+     "t_pub": 1731752.240490863
+    },
+    true
+   ],
+   [
+    1731752.274167,
+    {
+     "gen": 20241,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20800,
+     "read": [
+      1731752.273617215,
+      1731752.273619507
+     ],
+     "arrival": 1731752.273692257,
+     "stale": false,
+     "t_pub": 1731752.274049508
+    },
+    true
+   ],
+   [
+    1731752.30763,
+    {
+     "gen": 20242,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20801,
+     "read": [
+      1731752.307020235,
+      1731752.307022568
+     ],
+     "arrival": 1731752.307084985,
+     "stale": false,
+     "t_pub": 1731752.307442403
+    },
+    true
+   ],
+   [
+    1731752.340996,
+    {
+     "gen": 20243,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20802,
+     "read": [
+      1731752.340416005,
+      1731752.340418255
+     ],
+     "arrival": 1731752.340480255,
+     "stale": false,
+     "t_pub": 1731752.340850506
+    },
+    true
+   ],
+   [
+    1731752.374327,
+    {
+     "gen": 20244,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20803,
+     "read": [
+      1731752.373811858,
+      1731752.373814066
+     ],
+     "arrival": 1731752.373878858,
+     "stale": false,
+     "t_pub": 1731752.374194776
+    },
+    true
+   ],
+   [
+    1731752.407835,
+    {
+     "gen": 20245,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20804,
+     "read": [
+      1731752.407207544,
+      1731752.407209878
+     ],
+     "arrival": 1731752.407271461,
+     "stale": false,
+     "t_pub": 1731752.407667088
+    },
+    true
+   ],
+   [
+    1731752.441164,
+    {
+     "gen": 20246,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20805,
+     "read": [
+      1731752.440603606,
+      1731752.440605898
+     ],
+     "arrival": 1731752.440683523,
+     "stale": false,
+     "t_pub": 1731752.441022316
+    },
+    true
+   ],
+   [
+    1731752.474554,
+    {
+     "gen": 20247,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20806,
+     "read": [
+      1731752.474003376,
+      1731752.474005667
+     ],
+     "arrival": 1731752.474055584,
+     "stale": false,
+     "t_pub": 1731752.47439521
+    },
+    true
+   ],
+   [
+    1731752.507967,
+    {
+     "gen": 20248,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20807,
+     "read": [
+      1731752.507402562,
+      1731752.507404812
+     ],
+     "arrival": 1731752.507457146,
+     "stale": false,
+     "t_pub": 1731752.50779448
+    },
+    true
+   ],
+   [
+    1731752.541367,
+    {
+     "gen": 20249,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20808,
+     "read": [
+      1731752.540804832,
+      1731752.540807082
+     ],
+     "arrival": 1731752.540895166,
+     "stale": false,
+     "t_pub": 1731752.541237
+    },
+    true
+   ],
+   [
+    1731752.574812,
+    {
+     "gen": 20250,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20809,
+     "read": [
+      1731752.574203185,
+      1731752.574205477
+     ],
+     "arrival": 1731752.574274935,
+     "stale": false,
+     "t_pub": 1731752.574613603
+    },
+    true
+   ],
+   [
+    1731752.608228,
+    {
+     "gen": 20251,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20810,
+     "read": [
+      1731752.607598288,
+      1731752.607600497
+     ],
+     "arrival": 1731752.607676705,
+     "stale": false,
+     "t_pub": 1731752.608095748
+    },
+    true
+   ],
+   [
+    1731752.641559,
+    {
+     "gen": 20252,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20811,
+     "read": [
+      1731752.640997516,
+      1731752.64099985
+     ],
+     "arrival": 1731752.641078225,
+     "stale": false,
+     "t_pub": 1731752.641426684
+    },
+    true
+   ],
+   [
+    1731752.675006,
+    {
+     "gen": 20253,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20812,
+     "read": [
+      1731752.674384828,
+      1731752.67438712
+     ],
+     "arrival": 1731752.67446162,
+     "stale": false,
+     "t_pub": 1731752.674862079
+    },
+    true
+   ],
+   [
+    1731752.708552,
+    {
+     "gen": 20254,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20813,
+     "read": [
+      1731752.708187516,
+      1731752.708189891
+     ],
+     "arrival": 1731752.708338516,
+     "stale": false,
+     "t_pub": 1731752.7084241
+    },
+    true
+   ],
+   [
+    1731752.742324,
+    {
+     "gen": 20255,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20813,
+     "read": [
+      1731752.708187516,
+      1731752.708189891
+     ],
+     "arrival": 1731752.708338516,
+     "stale": false,
+     "t_pub": 1731752.742154537
+    },
+    true
+   ],
+   [
+    1731752.776624,
+    {
+     "gen": 20256,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20815,
+     "read": [
+      1731752.776095267,
+      1731752.776097517
+     ],
+     "arrival": 1731752.776172726,
+     "stale": false,
+     "t_pub": 1731752.77650506
+    },
+    true
+   ],
+   [
+    1731752.810236,
+    {
+     "gen": 20257,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20815,
+     "read": [
+      1731752.776095267,
+      1731752.776097517
+     ],
+     "arrival": 1731752.776172726,
+     "stale": false,
+     "t_pub": 1731752.81002333
+    },
+    true
+   ],
+   [
+    1731752.844211,
+    {
+     "gen": 20258,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20817,
+     "read": [
+      1731752.84356635,
+      1731752.843568684
+     ],
+     "arrival": 1731752.843639559,
+     "stale": false,
+     "t_pub": 1731752.844092852
+    },
+    true
+   ],
+   [
+    1731752.877952,
+    {
+     "gen": 20259,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20818,
+     "read": [
+      1731752.877463997,
+      1731752.87746633
+     ],
+     "arrival": 1731752.87752933,
+     "stale": false,
+     "t_pub": 1731752.877840789
+    },
+    true
+   ],
+   [
+    1731752.912571,
+    {
+     "gen": 20260,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20819,
+     "read": [
+      1731752.91211027,
+      1731752.912112645
+     ],
+     "arrival": 1731752.912213687,
+     "stale": false,
+     "t_pub": 1731752.912433688
+    },
+    true
+   ],
+   [
+    1731752.947526,
+    {
+     "gen": 20261,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20820,
+     "read": [
+      1731752.946785836,
+      1731752.946788127
+     ],
+     "arrival": 1731752.946855211,
+     "stale": false,
+     "t_pub": 1731752.947359212
+    },
+    true
+   ],
+   [
+    1731752.980974,
+    {
+     "gen": 20262,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20821,
+     "read": [
+      1731752.980477815,
+      1731752.980480231
+     ],
+     "arrival": 1731752.980526815,
+     "stale": false,
+     "t_pub": 1731752.980835274
+    },
+    true
+   ],
+   [
+    1731753.01438,
+    {
+     "gen": 20263,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20822,
+     "read": [
+      1731753.013878835,
+      1731753.013881168
+     ],
+     "arrival": 1731753.01393046,
+     "stale": false,
+     "t_pub": 1731753.014248877
+    },
+    true
+   ],
+   [
+    1731753.047805,
+    {
+     "gen": 20264,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20823,
+     "read": [
+      1731753.047281938,
+      1731753.047284146
+     ],
+     "arrival": 1731753.047345438,
+     "stale": false,
+     "t_pub": 1731753.047678897
+    },
+    true
+   ],
+   [
+    1731753.082207,
+    {
+     "gen": 20265,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20824,
+     "read": [
+      1731753.081797878,
+      1731753.081800169
+     ],
+     "arrival": 1731753.081871961,
+     "stale": false,
+     "t_pub": 1731753.082082879
+    },
+    true
+   ],
+   [
+    1731753.116622,
+    {
+     "gen": 20266,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20825,
+     "read": [
+      1731753.116269234,
+      1731753.116271526
+     ],
+     "arrival": 1731753.116441943,
+     "stale": false,
+     "t_pub": 1731753.11650736
+    },
+    true
+   ],
+   [
+    1731753.154203,
+    {
+     "gen": 20267,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20826,
+     "read": [
+      1731753.153726435,
+      1731753.153728768
+     ],
+     "arrival": 1731753.153809352,
+     "stale": false,
+     "t_pub": 1731753.154086019
+    },
+    true
+   ],
+   [
+    1731753.187731,
+    {
+     "gen": 20268,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20827,
+     "read": [
+      1731753.187132668,
+      1731753.187135002
+     ],
+     "arrival": 1731753.187195252,
+     "stale": false,
+     "t_pub": 1731753.187563753
+    },
+    true
+   ],
+   [
+    1731753.221468,
+    {
+     "gen": 20269,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20828,
+     "read": [
+      1731753.221032737,
+      1731753.22103507
+     ],
+     "arrival": 1731753.221097404,
+     "stale": false,
+     "t_pub": 1731753.221345863
+    },
+    true
+   ],
+   [
+    1731753.254959,
+    {
+     "gen": 20270,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20828,
+     "read": [
+      1731753.221032737,
+      1731753.22103507
+     ],
+     "arrival": 1731753.221097404,
+     "stale": false,
+     "t_pub": 1731753.25481718
+    },
+    true
+   ],
+   [
+    1731753.290256,
+    {
+     "gen": 20271,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20830,
+     "read": [
+      1731753.289766836,
+      1731753.289769127
+     ],
+     "arrival": 1731753.289808794,
+     "stale": false,
+     "t_pub": 1731753.290112587
+    },
+    true
+   ],
+   [
+    1731753.323759,
+    {
+     "gen": 20272,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20831,
+     "read": [
+      1731753.323180028,
+      1731753.323182319
+     ],
+     "arrival": 1731753.323224736,
+     "stale": false,
+     "t_pub": 1731753.323537654
+    },
+    true
+   ],
+   [
+    1731753.357652,
+    {
+     "gen": 20273,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20832,
+     "read": [
+      1731753.357161888,
+      1731753.35716418
+     ],
+     "arrival": 1731753.357211097,
+     "stale": false,
+     "t_pub": 1731753.357539098
+    },
+    true
+   ],
+   [
+    1731753.392406,
+    {
+     "gen": 20274,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20833,
+     "read": [
+      1731753.391728167,
+      1731753.391730626
+     ],
+     "arrival": 1731753.391804126,
+     "stale": false,
+     "t_pub": 1731753.392277336
+    },
+    true
+   ],
+   [
+    1731753.426409,
+    {
+     "gen": 20275,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20834,
+     "read": [
+      1731753.425880153,
+      1731753.425882487
+     ],
+     "arrival": 1731753.425955904,
+     "stale": false,
+     "t_pub": 1731753.426274946
+    },
+    true
+   ],
+   [
+    1731753.461289,
+    {
+     "gen": 20276,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20835,
+     "read": [
+      1731753.460772975,
+      1731753.460775225
+     ],
+     "arrival": 1731753.460862892,
+     "stale": false,
+     "t_pub": 1731753.461168268
+    },
+    true
+   ],
+   [
+    1731753.494775,
+    {
+     "gen": 20277,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20836,
+     "read": [
+      1731753.494176334,
+      1731753.494178751
+     ],
+     "arrival": 1731753.494232501,
+     "stale": false,
+     "t_pub": 1731753.494605377
+    },
+    true
+   ],
+   [
+    1731753.528305,
+    {
+     "gen": 20278,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20837,
+     "read": [
+      1731753.527580734,
+      1731753.527583068
+     ],
+     "arrival": 1731753.527670818,
+     "stale": false,
+     "t_pub": 1731753.528189611
+    },
+    true
+   ],
+   [
+    1731753.561559,
+    {
+     "gen": 20279,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20838,
+     "read": [
+      1731753.561077093,
+      1731753.561079468
+     ],
+     "arrival": 1731753.561150218,
+     "stale": false,
+     "t_pub": 1731753.561458428
+    },
+    true
+   ],
+   [
+    1731753.595,
+    {
+     "gen": 20280,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20839,
+     "read": [
+      1731753.59448416,
+      1731753.594486452
+     ],
+     "arrival": 1731753.59454116,
+     "stale": false,
+     "t_pub": 1731753.59486537
+    },
+    true
+   ],
+   [
+    1731753.629335,
+    {
+     "gen": 20281,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20840,
+     "read": [
+      1731753.628895231,
+      1731753.628897564
+     ],
+     "arrival": 1731753.628962064,
+     "stale": false,
+     "t_pub": 1731753.62921444
+    },
+    true
+   ],
+   [
+    1731753.66315,
+    {
+     "gen": 20282,
+     "epoch": "57251ac5",
+     "latched": true,
+     "reader_seq": 20841,
+     "read": [
+      1731753.662296048,
+      1731753.662298381
+     ],
+     "arrival": 1731753.662374589,
+     "stale": false,
+     "t_pub": 1731753.663014592
+    },
+    true
+   ]
+  ],
+  "resume_index": 910,
+  "heartbeat_edges_after": 46
+ },
+ "20261115T091236-latch-latch-delayed": {
+  "case": "latch-sticky",
+  "status": "PASS",
+  "detail": "the heartbeat returned (sample 1098), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 7), the first new frame 0.202\u20130.202 s after SIGCONT",
+  "samples": 2469,
+  "reset_reply": {
+   "ok": false,
+   "error": "estop_reset refused: Acknowledge the safety trip first"
+  },
+  "frames": 9,
+  "sigcont_width_s": 4.9e-05,
+  "baseline_age_s": [
+   0.013751,
+   0.013753
+  ],
+  "old": 1,
+  "border": 0,
+  "new": 7,
+  "gaps": 0,
+  "old_latched": 1,
+  "latch_read_width_max_s": 2e-06,
+  "first_new_delay_s": [
+   0.20176,
+   0.201983
+  ],
+  "frame_list": [
+   [
+    1731795.491471,
+    {
+     "gen": 4,
+     "epoch": "2218b4eb",
+     "latched": false,
+     "reader_seq": 24,
+     "read": [
+      1731795.477718334,
+      1731795.477720376
+     ],
+     "arrival": 1731795.47778046,
+     "stale": false,
+     "t_pub": 1731795.491302167
+    },
+    false
+   ],
+   [
+    1731796.4308,
+    {
+     "gen": 5,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 51,
+     "read": [
+      1731796.428738392,
+      1731796.428740559
+     ],
+     "arrival": 1731796.429922195,
+     "stale": false,
+     "t_pub": 1731796.43042045
+    },
+    true
+   ],
+   [
+    1731796.630759,
+    {
+     "gen": 6,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 56,
+     "read": [
+      1731796.598931426,
+      1731796.598933718
+     ],
+     "arrival": 1731796.599069219,
+     "stale": false,
+     "t_pub": 1731796.630585469
+    },
+    true
+   ],
+   [
+    1731796.831196,
+    {
+     "gen": 7,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 62,
+     "read": [
+      1731796.808609784,
+      1731796.808612034
+     ],
+     "arrival": 1731796.808677243,
+     "stale": false,
+     "t_pub": 1731796.831051116
+    },
+    true
+   ],
+   [
+    1731797.031807,
+    {
+     "gen": 8,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 68,
+     "read": [
+      1731797.010214733,
+      1731797.010216775
+     ],
+     "arrival": 1731797.010262484,
+     "stale": false,
+     "t_pub": 1731797.03166039
+    },
+    true
+   ],
+   [
+    1731797.241131,
+    {
+     "gen": 9,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 74,
+     "read": [
+      1731797.213559374,
+      1731797.213561374
+     ],
+     "arrival": 1731797.213636249,
+     "stale": false,
+     "t_pub": 1731797.240973547
+    },
+    true
+   ],
+   [
+    1731797.444506,
+    {
+     "gen": 10,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 80,
+     "read": [
+      1731797.413945877,
+      1731797.413947877
+     ],
+     "arrival": 1731797.414003252,
+     "stale": false,
+     "t_pub": 1731797.444384537
+    },
+    true
+   ],
+   [
+    1731797.644968,
+    {
+     "gen": 11,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 86,
+     "read": [
+      1731797.614386672,
+      1731797.614388922
+     ],
+     "arrival": 1731797.614451881,
+     "stale": false,
+     "t_pub": 1731797.644847958
+    },
+    true
+   ],
+   [
+    1731797.846949,
+    {
+     "gen": 12,
+     "epoch": "2218b4eb",
+     "latched": true,
+     "reader_seq": 92,
+     "read": [
+      1731797.819335802,
+      1731797.81933801
+     ],
+     "arrival": 1731797.819389261,
+     "stale": false,
+     "t_pub": 1731797.846802851
+    },
+    true
+   ]
+  ],
+  "resume_index": 916,
+  "heartbeat_edges_after": 46,
+  "variant": "latch-delayed"
+ }
+}
