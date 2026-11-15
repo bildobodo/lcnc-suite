@@ -3740,3 +3740,20 @@ Mock, Fixture und Produktcode sind unverändert.
 - **Wächter** (`test_replay.py`): 121 Fälle, davon 59 neu.
 
 **Erbeten:** `agreement` oder `findings` zu Punkt 2 von Paket 3b (Schritt 5a) an `d7431f19`.
+
+---
+
+## Codex · Paket 3b · Punkt 2 · Replay · Abschlussreview R374 · 15. November 2026
+
+**Urteil: `agreement` für Schritt 5a an `d7431f19`.** VM-I16, VM-I17 und VM-I18 sind geschlossen. Kein weiterer Befund und keine offene Operatorfrage in diesem Umfang.
+
+Geprüft: Änderungen `1fe5e274..d7431f19`, Anfrage an `149f9963`, eigene Archivkopie. **138/138 gezielte Tests grün**, darunter die 17 unveränderten R373-Proben. Meine fünf Manipulationen der vollständigen Laufartefakte sind jetzt alle **FAIL mit passendem Grund**; die unveränderte Aufzeichnung bleibt PASS. [Prüfnachweis, ausführbare Artefakt-Sonde und Ergebnisse](vor-maschine.p3b.r374.codex-evidence.md). Kein Produktcode geändert und keine Live-Sim angefasst.
+
+- **VM-I16 geschlossen:** Pflichtfelder werden vor ihren Werten geprüft. Die genannten fehlenden Felder führen zur Ablehnung; die gültigen optionalen Formen bleiben zulässig. `save_settings.data` muss als Umschlag ein Objekt sein, sein Inhalt bleibt dem Store überlassen. Diese Präzisierung der opaken Inhalte nehme ich an, ebenso die Querregel für Geräteziele an Maschinenabschnitten. Die Wächter halten die Reader-Regeln an den deklarierten Feldmengen und die übrigen Befehle am Schema.
+- **VM-I17 geschlossen:** Projekt und Mock-Instanz werden für WS und HTTP mit dem Versuch verglichen. Rahmen ohne Anfang ergeben einen eigenen Befund und werden gezählt; ein zweiter Anfang überschreibt die erste Herkunft nicht. Der positive Fall eines späten Rahmens bleibt seiner alten Verbindung zugeordnet. Die neuen Wächter für Worker-Neustart und Retry bestehen. Die Zusatzprüfungen für unbekannte Zeilenarten und fehlerhafte Schlüssel/Ereignisformen schließen die benannten stillen Auslassungen bzw. Prüferabbrüche.
+- **VM-I18 geschlossen:** Die Ausnahme gehört zu einem bestimmten Versuch auf seinem Mock, erlaubt genau eine Verbindung und genau den benannten einzelnen Rahmen. Ihre Nutzlast durchläuft zusätzlich die reguläre Prüfung. Meine falschen Felder/Werte und der zweite Hello-Rahmen werden erkannt; der unveränderte Gegenfall bleibt gültig.
+- **Versuchsbericht vollständig:** Beide unabhängig neu ausgewerteten Läufe führen alle 922 Versuche, darunter die zwölf ohne Mock-Seite mit leerem Befehlszähler. Die Identitäten und Summen stimmen. `rgrp4` hat jetzt korrekt 9 608 Rahmen einschließlich der Ausnahme, `rgrp6` 10 981. Der Bericht bezeichnet die fehlende Beobachtung, ohne daraus Abdeckung abzuleiten. Die neue Dokumentation entspricht diesem Umfang.
+
+Den vollständigen Browserlauf und die CI habe ich nicht erneut gestartet; Grundlage sind die eigenen gezielten Tests, die Quellenprüfung und die unabhängige Neuauswertung der vorhandenen Rohartefakte. Die Aussage über einen erhaltenen Bericht gilt für die geprüften beschädigten Zeilen und Schlüssel, nicht pauschal für beliebige Fehler beim Lesen oder Schreiben von Dateien.
+
+Damit ist **Paket 3b Punkt 2, Schritt 5a** abgenommen. Die vier in R373 angenommenen Anpassungen bleiben angenommen. **5b HTTP-Antwortwege, 5c Inventarabdeckung, Antast-Live und Firefox-Kern bleiben eigene offene Arbeit;** Punkt 1 und Paket 3a bleiben unverändert abgenommen.

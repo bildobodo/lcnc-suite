@@ -1,0 +1,84 @@
+{
+  "reviewed_head": "d7431f19",
+  "source": "/home/cnc/rgrp6/gate-round.logs",
+  "run": "gate-e43231be-dc77-42ba-a7f8-cf68c92127a8",
+  "worker_proof_findings": [],
+  "mutations_only_to_temporary_copies_of_replay": true,
+  "input_sha256": {
+    "mock-events.jsonl": "22c3b9d6bcc4ea4dfd79c6afdbfdce2520bf076c11d0ee059c3355e30324d8d0",
+    "playwright.json": "78ae49b28afd805998e10cbf2a7f5a9a2ab08961688adfa0c6b32ca0c715847d",
+    "replay/gate-e43231be-dc77-42ba-a7f8-cf68c92127a8-1aae6c93-c32d-4044-a934-4cf668cfcd7b.jsonl": "eb1687ee1399a9b94a626e837fffc0c906b4f2a534efda5b71303c0397cc0774",
+    "replay/gate-e43231be-dc77-42ba-a7f8-cf68c92127a8-6a350896-6428-4a00-a2b9-c7305fcfca06.jsonl": "e5b64f7306e0c115b4a872a4d5afa8a2231369f1bca28cb2d6a48da85104e02e",
+    "replay/gate-e43231be-dc77-42ba-a7f8-cf68c92127a8-78ad5058-7595-43ef-b455-868ea8b7975d.jsonl": "bf880423709c950532631246106b40e1fa2604a6e394ec125788768b631e76de"
+  },
+  "cases": [
+    {
+      "case": "baseline",
+      "required_verdict": "PASS",
+      "actual_verdict": "PASS",
+      "findings": [],
+      "frames": 10981,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "missing enable",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "armed.spec.ts \u203a connected + armed + ready lifts default-deny on machine controls [retry 0]: timing_log the reader refuses: missing ['enable']"
+      ],
+      "frames": 10982,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "wrong project",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "1aae6c93-c32d-4044-a934-4cf668cfcd7b conn 3: an origin naming project 'not-the-project-of-this-attempt', its attempt ran in 'e2e': {'run': 'gate-e43231be-dc77-42ba-a7f8-cf68c92127a8', 'test': 'a23ff54c9ee556408fa6-740e15731d1fc60e9d7c', 'project': 'not-the-project-of-this-attempt', 'retry':",
+        "armed.spec.ts \u203a connected + armed + ready lifts default-deny on machine controls [retry 0]: the page loaded and its replay shows no hello"
+      ],
+      "frames": 10981,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "wrong mock instance",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "6a350896-6428-4a00-a2b9-c7305fcfca06 conn 530: an origin of an attempt on mock 1aae6c93-c32d-4044-a934-4cf668cfcd7b, here on mock 6a350896-6428-4a00-a2b9-c7305fcfca06: {'run': 'gate-e43231be-dc77-42ba-a7f8-cf68c92127a8', 'test': 'a23ff54c9ee556408fa6-740e15731d1fc60e9d7c', 'project': 'e2e', 'retry': 0}"
+      ],
+      "frames": 10982,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "frame without open",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "1aae6c93-c32d-4044-a934-4cf668cfcd7b conn 9999999 (no open): a frame that is no JSON object: 'not JSON, no open, silently lost'",
+        "1aae6c93-c32d-4044-a934-4cf668cfcd7b conn 9999999: 1 frame(s) on a connection with no open line"
+      ],
+      "frames": 10982,
+      "attempts": 922,
+      "per_attempt_count": 922
+    },
+    {
+      "case": "no-cookie exception with malformed payload",
+      "required_verdict": "FAIL",
+      "actual_verdict": "FAIL",
+      "findings": [
+        "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]: hello carries undeclared fields ['unreviewed_field']",
+        "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]: hello the reader refuses ['resume_armed']",
+        "replay-origin.spec.ts \u203a every connection a test opens carries its attempt; a socket without the cookie has none [retry 0]: the named connection without a cookie (conn 319) sent [{'cmd': 'hello', 'session': 'replay-origin:no-cookie', 'resume_armed': 'not a boolean', 'unreviewed_field': True}] \u2014 exactly [{'cmd': 'hello', 'session': 'replay-origin:no-cookie'}] is named"
+      ],
+      "frames": 10981,
+      "attempts": 922,
+      "per_attempt_count": 922
+    }
+  ]
+}

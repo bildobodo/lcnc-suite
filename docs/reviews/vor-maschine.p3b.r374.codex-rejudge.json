@@ -1,0 +1,298 @@
+[
+  {
+    "source": "/home/cnc/rgrp4/gate-round.logs",
+    "run": "gate-2d68bc03-2789-4ec4-9504-619ae8a1dce9",
+    "verdict": "PASS",
+    "frames": 9608,
+    "frames_by_class": {
+      "no-cookie exception": 1,
+      "test": 9607
+    },
+    "attempts": 922,
+    "unique_attempt_ids": 922,
+    "no_page_attempts": [
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard catches clipping by an inner container and tolerates intentional page scrolling [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-4f5bd34082bf8c4fb948",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "22460f71-f712-4dec-a6ac-6282cd5bf2b8",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds a scroller with the browser's own scrollbar, scrolling or not [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-b7633efdb5cbad9f8a7b",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "22460f71-f712-4dec-a6ac-6282cd5bf2b8",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds a sliver scroll anywhere and any sideways scroll inside the strip [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-42fea2a4d76782f0b006",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "22460f71-f712-4dec-a6ac-6282cd5bf2b8",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds content spilling out of a fixed-height box and a control lying on a separator [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-2bb67656b8915ba359f1",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "22460f71-f712-4dec-a6ac-6282cd5bf2b8",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds injected overlaps, clipping, collapsed and missing controls [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-6f704c41d4893c494498",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "22460f71-f712-4dec-a6ac-6282cd5bf2b8",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard holds a locked value readout to its button's footprint [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-920db146bb7d821fcc04",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "22460f71-f712-4dec-a6ac-6282cd5bf2b8",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "mock-baseline.spec.ts \u203a a test leaves its worker's mock dirty [retry 0]",
+        "test": "4043cbbca746e21ef05a-94e9fb065f5d38ae8542",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "9de1f042-cab6-4cb1-8e94-a9181a6a1b2f",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "mock-baseline.spec.ts \u203a the next test of the worker starts on the baseline [retry 0]",
+        "test": "4043cbbca746e21ef05a-752a4f822cfdae007d88",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "9de1f042-cab6-4cb1-8e94-a9181a6a1b2f",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "scenes.viewer.spec.ts \u203a a half-mixed pixel reads as half the limit, not as the backplot [retry 0]",
+        "test": "ef6133d5688ca70a5503-aac8aa0efcacaca354c0",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "9de1f042-cab6-4cb1-8e94-a9181a6a1b2f",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "smoke.spec.ts \u203a Arm control stays reachable [retry 0]",
+        "test": "4219922fea2e2bd3c691-eef4d53444eecdae544f",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "3419798e-9600-4aee-97bf-7d033fe1ea48",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "smoke.spec.ts \u203a app shell mounts with no gateway connected [retry 0]",
+        "test": "4219922fea2e2bd3c691-d61291e870af9bf12c86",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "3419798e-9600-4aee-97bf-7d033fe1ea48",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "smoke.spec.ts \u203a default-deny: machine controls are closed while disconnected [retry 0]",
+        "test": "4219922fea2e2bd3c691-9e1ff1ab93eb76da442b",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "3419798e-9600-4aee-97bf-7d033fe1ea48",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      }
+    ],
+    "checked_frame_totals": true,
+    "one_exact_no_cookie_frame": true
+  },
+  {
+    "source": "/home/cnc/rgrp6/gate-round.logs",
+    "run": "gate-e43231be-dc77-42ba-a7f8-cf68c92127a8",
+    "verdict": "PASS",
+    "frames": 10981,
+    "frames_by_class": {
+      "no-cookie exception": 1,
+      "test": 10980
+    },
+    "attempts": 922,
+    "unique_attempt_ids": 922,
+    "no_page_attempts": [
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard catches clipping by an inner container and tolerates intentional page scrolling [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-4f5bd34082bf8c4fb948",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "6a350896-6428-4a00-a2b9-c7305fcfca06",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds a scroller with the browser's own scrollbar, scrolling or not [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-b7633efdb5cbad9f8a7b",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "6a350896-6428-4a00-a2b9-c7305fcfca06",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds a sliver scroll anywhere and any sideways scroll inside the strip [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-42fea2a4d76782f0b006",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "6a350896-6428-4a00-a2b9-c7305fcfca06",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds content spilling out of a fixed-height box and a control lying on a separator [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-2bb67656b8915ba359f1",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "6a350896-6428-4a00-a2b9-c7305fcfca06",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard finds injected overlaps, clipping, collapsed and missing controls [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-6f704c41d4893c494498",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "6a350896-6428-4a00-a2b9-c7305fcfca06",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "layout-audit.spec.ts \u203a layout guard holds a locked value readout to its button's footprint [retry 0]",
+        "test": "2e69b97b1ea14d1d3805-920db146bb7d821fcc04",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "6a350896-6428-4a00-a2b9-c7305fcfca06",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "mock-baseline.spec.ts \u203a a test leaves its worker's mock dirty [retry 0]",
+        "test": "4043cbbca746e21ef05a-94e9fb065f5d38ae8542",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "78ad5058-7595-43ef-b455-868ea8b7975d",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "mock-baseline.spec.ts \u203a the next test of the worker starts on the baseline [retry 0]",
+        "test": "4043cbbca746e21ef05a-752a4f822cfdae007d88",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "78ad5058-7595-43ef-b455-868ea8b7975d",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "scenes.viewer.spec.ts \u203a a half-mixed pixel reads as half the limit, not as the backplot [retry 0]",
+        "test": "ef6133d5688ca70a5503-aac8aa0efcacaca354c0",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "1aae6c93-c32d-4044-a934-4cf668cfcd7b",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "smoke.spec.ts \u203a Arm control stays reachable [retry 0]",
+        "test": "4219922fea2e2bd3c691-eef4d53444eecdae544f",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "1aae6c93-c32d-4044-a934-4cf668cfcd7b",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "smoke.spec.ts \u203a app shell mounts with no gateway connected [retry 0]",
+        "test": "4219922fea2e2bd3c691-d61291e870af9bf12c86",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "1aae6c93-c32d-4044-a934-4cf668cfcd7b",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      },
+      {
+        "name": "smoke.spec.ts \u203a default-deny: machine controls are closed while disconnected [retry 0]",
+        "test": "4219922fea2e2bd3c691-9e1ff1ab93eb76da442b",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "1aae6c93-c32d-4044-a934-4cf668cfcd7b",
+        "status": "passed",
+        "page": false,
+        "frames": 0,
+        "observed": "no page loaded at a mock, no frames"
+      }
+    ],
+    "checked_frame_totals": true,
+    "one_exact_no_cookie_frame": true
+  }
+]
