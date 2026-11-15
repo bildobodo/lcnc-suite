@@ -3757,3 +3757,45 @@ Geprüft: Änderungen `1fe5e274..d7431f19`, Anfrage an `149f9963`, eigene Archiv
 Den vollständigen Browserlauf und die CI habe ich nicht erneut gestartet; Grundlage sind die eigenen gezielten Tests, die Quellenprüfung und die unabhängige Neuauswertung der vorhandenen Rohartefakte. Die Aussage über einen erhaltenen Bericht gilt für die geprüften beschädigten Zeilen und Schlüssel, nicht pauschal für beliebige Fehler beim Lesen oder Schreiben von Dateien.
 
 Damit ist **Paket 3b Punkt 2, Schritt 5a** abgenommen. Die vier in R373 angenommenen Anpassungen bleiben angenommen. **5b HTTP-Antwortwege, 5c Inventarabdeckung, Antast-Live und Firefox-Kern bleiben eigene offene Arbeit;** Punkt 1 und Paket 3a bleiben unverändert abgenommen.
+
+---
+
+## Claude · Paket 3b · Punkt 2 (Replay, Schritt 5a) gemergt · 15. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R374 für `d7431f19`, nach R373 (findings VM-I16 bis VM-I18).
+  - Fables Zustimmung zum selben Kopf, unter vier Bedingungen:
+    - das Merge-Gate besteht;
+    - `browser-replay` steht in seiner Prüfliste, und ich lese dessen Ergebnis selbst;
+    - die Installationsprobe ist sauber;
+    - `origin/development` steht vor dem Push noch auf `533c71fc`.
+- **Merge-Gate PASS an `d7431f19`** ([Bericht](vor-maschine.p3b.replay.merge-gate.json)):
+  - Unit 2654 + 104, Backend einschließlich `ruff` und `pyright`, Browser 922/922, Installationsprobe 14/14 mit `crashes: []`.
+  - **Das erste Merge-Gate mit `browser-replay`:** PASS, 0 Befunde ([Ergebnis](vor-maschine.p3b.replay.merge-gate.replay.json)).
+  - Selbst gelesen:
+    - 922 Versuche, alle in `attempt_list`, 910 davon mit Seite am Mock.
+    - 10 882 Rahmen, nur in den Klassen `test` (10 881) und `no-cookie exception` (1).
+    - Die Ausnahme ist genau eine Verbindung mit genau ihrem `hello`.
+    - 991 Testverbindungen und 927 Infrastrukturverbindungen ohne Rahmen. HTTP: 19 875 Anfragen mit Herkunft und 6 Reconnect-Proben. 64 Befehle und Rahmen.
+  - Die Installationsprobe (Lauf `install-probe-abca43507cfd`) startete das Gateway aus diesem Kopf im Produktionsbetrieb und gab die LAN-Sim vollständig zurück (`restore: complete`).
+- **development** = `d7431f19`: Fast-Forward von `533c71fc` per SHA, gepusht. Vorher geprüft: `origin/development` stand noch auf `533c71fc`, `533c71fc` ist Vorfahr von `d7431f19`, und die CI an `d7431f19` (`harden/p3b-replay`, Lauf `43658206705`) war grün.
+- **CI auf development** an `d7431f19`: grün, Backend und Frontend (Lauf `43673514367`).
+- **Was die CI prüft:** Das Backend führt die 121 Replay-Wächter aus (Schritt `replay`). Der Frontend-Lauf schreibt die Replay-Protokolle der Mocks und lädt sie als Artefakt hoch. Den vollen Lauf beurteilen nur das Round- und das Merge-Gate (`browser-replay`).
+- **Produktcode im Bereich `533c71fc..d7431f19`:**
+  - `lcnc-gateway/gateway.py` und `gateway_util.py`: Das Lesen der deklarierten Parameternummern ist als `var_file_numbers` nach `gateway_util` verschoben, Wort für Wort dieselbe Schleife. So lesen Gateway und Replay eine Var-Datei auf dieselbe Weise; Codex nahm das in R373 an.
+    - Gehalten durch das Backend (die W3-Ablehnungen nicht deklarierter Nummern), durch den Replay über die drei Beispiel-Var-Dateien und durch die Installationsprobe, die das Gateway aus diesem Kopf im Produktionsbetrieb startet.
+    - Einen eigenen Unit-Test der Funktion gibt es nicht.
+  - `lcnc-webui/src/inventory/webAtoms.ts`: Der Rahmen-Adapter des Inventars liest jetzt auch die Felder der Worker-Rahmen. Das ist ein reines Testwerkzeug; die Regel `TEST_ONLY_GLOBS` hält es aus jedem Laufzeit-Import. Gehalten durch `webAtoms.test.ts`.
+  - Sonst nur Tests (`test_suite_runner.py`, `webAtoms.test.ts`).
+- **Commit-Geschichte:** Vier Commits tragen den Titel „WIP … (not reviewed)“: `3c30b9db`, `b1dd2394`, `adb5d732`, `ac3c56e5`. Ich habe sie nicht umbenannt, denn Codex, die Gates und die CI nennen diese SHAs. R373 und R374 decken sie ab.
+- **Verhaltensänderungen, die der Operator erfährt:**
+  - An der Maschine ändert sich nichts.
+  - Ein Round- oder Merge-Gate kann jetzt an `browser-replay` rot werden. Das geschieht, wenn die UI in einem Browsertest einen Rahmen sendet, den das Gateway verweigern, korrigieren oder nicht zuordnen würde.
+- **Grenzen, wie Codex sie nennt:** Der Bericht übersteht die geprüften beschädigten Zeilen und Schlüssel, nicht jeden Lese- oder Schreibfehler.
+- **Weiter offen:**
+  - 5b: HTTP-Antwortwege.
+  - 5c: die Abdeckung gegen das Inventar; 17 von 80 Befehlen werden im vollen Lauf nie gesendet.
+  - Antasten live, dann der Firefox-Kern.
+  - Als Nächstes der eigene Messvertrag für `latch-sticky` (Planrunde).
+  - Danach Paket 4.
+  - #36 bleibt offen; der Operator entscheidet. main nie ohne Hardware-Validierung.
