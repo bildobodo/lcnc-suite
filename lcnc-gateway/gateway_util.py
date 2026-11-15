@@ -17,7 +17,7 @@ import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 
 # File-upload allow-list. Lives here (not gateway.py) so validate_extension is
@@ -221,6 +221,27 @@ def finite_int(x, default=None, lo=None, hi=None) -> int:
     if hi is not None and v > hi:
         raise ValueError(f"integer {v} above maximum {hi}")
     return v
+
+
+def trip_latch_input(reader_state, now: float, stale_sec: float) -> Tuple[Any, Dict[str, Any]]:
+    """The trip latch's evaluation input and where it came from, from ONE
+    read of the reader's state (package 3b latch-sticky contract, Codex
+    R375 VM375-01 / R376 / R377).
+
+    `reader_state` is HalBridge.reader_state(): (snapshot, arrival) or None.
+    The INPUT is exactly what reader_get("trip_latched") gives — the newest
+    snapshot's field, no age check (a stale TRUE still trips, as before); a
+    missing snapshot or field is None. The PROVENANCE never changes the
+    input: the reader's `seq`, the bracketed latch read `latch_read`
+    ([before, after], monotonic), the gateway's `arrival` stamp, and `stale`
+    (the arrival older than `stale_sec` at `now`). Absent → None. Pure."""
+    if reader_state is None:
+        return None, {"latched": None, "reader_seq": None, "read": None, "arrival": None, "stale": None}
+    snap, arrival = reader_state
+    latched = snap.get("trip_latched") if isinstance(snap, dict) else None
+    get = snap.get if isinstance(snap, dict) else (lambda _k: None)
+    return latched, {"latched": latched, "reader_seq": get("seq"), "read": get("latch_read"),
+                     "arrival": arrival, "stale": (now - arrival) > stale_sec}
 
 
 def evaluate_trip_latch(fault_latched, last_latched, baseline_seen) -> dict:

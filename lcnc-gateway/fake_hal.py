@@ -5,7 +5,8 @@ Every pin/param write is appended as a JSON line to the file named by
 ``FAKE_HAL_JOURNAL`` so a test can assert what the helper did to HAL (e.g.
 "a rejected connect wrote nothing"). ``get_value`` raises for every pin,
 mirroring a config where the reader's snapshot pins are absent — the reader
-logs them missing and keeps serving, which is the behaviour under test here.
+logs them missing and keeps serving, which is the behaviour under test here;
+a pin named in the ``FAKE_HAL_VALUES`` file reads its value there.
 """
 import json
 import os
@@ -46,7 +47,21 @@ class component:
         pass
 
 
+#: A JSON file {pin: value} the test may rewrite at any time: a pin named there
+#: reads its value, every other pin raises as before (FAKE_HAL_VALUES unset:
+#: every pin raises).
+_VALUES = os.environ.get("FAKE_HAL_VALUES", "")
+
+
 def get_value(name: str):
+    if _VALUES:
+        try:
+            with open(_VALUES) as f:
+                values = json.load(f)
+        except (OSError, ValueError):
+            values = {}
+        if name in values:
+            return values[name]
     raise RuntimeError(f"Can't get value: pin / param {name} not found")
 
 

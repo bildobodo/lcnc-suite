@@ -97,6 +97,7 @@ from gateway_util import (
     finite_float,
     finite_int,
     evaluate_trip_latch,
+    trip_latch_input,
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift, evaluate_start_drift,
@@ -1218,6 +1219,7 @@ _reader_recv_loop = _hal_bridge.reader_recv_loop
 _reader_request = _hal_bridge.reader_request
 _reader_get = _hal_bridge.reader_get
 _reader_is_stale = _hal_bridge.reader_is_stale
+_reader_state_now = _hal_bridge.reader_state
 
 
 def _reader_fresh_get(field: str):
@@ -1515,27 +1517,23 @@ _shared_status: Optional["StatusPayload"] = None
 # with (button gates package E): the stop addresses exactly that jog, never a
 # target recomputed from a motion mode or map read later.
 _active_jogs: Dict[int, Tuple[int, int]] = {}
-_shared_status_dict: Optional[dict] = None  # cached asdict(_shared_status)
 
 # ---- Program-elapsed timer (server-authoritative) ----
 # Tracked across status polls so every connected client (including ones that
 # joined mid-program) sees the same elapsed time. Anchored to time.monotonic()
 # so wall-clock NTP corrections don't jump the counter.
-# Pre-encoded msgpack bytes of _shared_status_dict. When the wire format is
-# msgpack and no per-client mutation applies (tool_meta injection, delta), each
-# client's envelope encode splices these bytes verbatim via msgspec.Raw — one
-# encode per tick instead of one per client. None when JSON wire format or
-# when the poller has not run yet.
-_shared_status_data_msgpack: Optional[bytes] = None
-_shared_errors: list = []
 _errors_total: int = 0   # monotonic count of drained NML errors (RFL guard abort-detection)
-_shared_probe_updates: dict = {}
 _shared_timing: dict = {}  # poll_ms, errors_ms, parse_ms, poller_ts
-# Per-cycle snapshot of connected clients — rebuilt once by the poller so
-# every status_loop doesn't repeat the O(N) list-comp (avoids O(N²)/cycle).
-# Reference is swapped atomically before _status_event.set(), so readers
-# always see a consistent list for the duration of their iteration.
-_shared_clients_list: list = []
+# The poller's last tick, published as ONE object with ONE rebind (package 3b
+# latch-sticky contract, Codex R375 Q-L3; ws_fanout.StatusPublication): the
+# status, its dict, the msgpack bytes each client splices via msgspec.Raw when
+# the wire format is msgpack and no per-client change applies (None
+# otherwise — one encode per tick instead of one per client), the tick's
+# errors, the client list (rebuilt once, not per client), the probe updates
+# and the trip latch's provenance. A client loop reads it ONCE per frame:
+# whatever the frame awaits while it is built, it never mixes two ticks.
+# None until the first tick. (`_shared_status` stays for the handlers.)
+_published: Optional["_ws_fanout_mod.StatusPublication"] = None
 _tool_table_version: int = int(time.time())  # bumped after every CMD.load_tool_table(); per-client trackers in status_loop send a `tool_table_changed` ping so other clients refetch
 
 # Halshow live loop — pushes value deltas to clients viewing the Settings → Halshow tab.
@@ -1703,9 +1701,9 @@ async def _status_poller():
     synchronously. We do the same, yielding to the event loop between
     blocking sections so heartbeats and sends can proceed.
     """
-    global _shared_status, _shared_status_dict, _shared_errors, _shared_probe_updates, _errors_total
+    global _shared_status, _published, _errors_total
     global _status_gen, _reconnect_fails, _shared_timing
-    global _status_event, _shared_clients_list
+    global _status_event
     loop = asyncio.get_event_loop()
     _poll_fails = 0
     _last_pid_check = 0.0
@@ -2255,8 +2253,15 @@ async def _status_poller():
             # detects a clean FALSE→TRUE only after a known-good baseline, so a
             # boot-faulted latch doesn't spuriously banner.
             global _last_fault_latched, _trip_baseline_seen, _unacked_trip, _trip_seq
+            # ONE read of the reader's state, HERE at the evaluation (package 3b
+            # latch-sticky contract, Codex R375–R377): the input is exactly what
+            # _reader_get("trip_latched") gives (a stale TRUE still trips); the
+            # provenance rides the tick's publication as trip_basis. No await
+            # between this read and the publication below (a source guard).
+            _latch_in, _trip_basis_in = trip_latch_input(
+                _reader_state_now(), time.monotonic(), _hal_bridge.stale_sec)
             _tl = evaluate_trip_latch(
-                _reader_get("trip_latched"), _last_fault_latched, _trip_baseline_seen
+                _latch_in, _last_fault_latched, _trip_baseline_seen
             )
             _last_fault_latched = _tl["last_latched"]
             _trip_baseline_seen = _tl["baseline_seen"]
@@ -2282,9 +2287,8 @@ async def _status_poller():
                     asyncio.to_thread(_snapshot_trip, _trip_ts_ns)
                 )
 
-            # Cache results for per-client loops
+            # The handlers' latest status (the client loops read _published)
             _shared_status = st
-            _shared_status_dict = status_dict
             # Pre-encode the shared `data` dict into msgpack bytes once per tick so
             # each client's envelope encode can splice via msgspec.Raw instead of
             # re-encoding the identical payload N times. Only the `_use_shared`
@@ -2295,23 +2299,21 @@ async def _status_poller():
             if _WIRE_FORMAT == "msgpack" and not _STATUS_DELTA_ENABLED:
                 _set_phase("status_poller.shared_msgpack_encode")
                 _t_enc = time.monotonic()
-                _shared_status_data_msgpack = _msgpack_encoder.encode(status_dict)
+                _data_msgpack: Optional[bytes] = _msgpack_encoder.encode(status_dict)
                 shared_encode_ms = round((time.monotonic() - _t_enc) * 1000, 2)
             else:
-                _shared_status_data_msgpack = None
+                _data_msgpack = None
                 shared_encode_ms = 0.0
             _set_phase("status_poller.build_clients_list")
-            _shared_clients_list = [
+            _clients_list = [
                 {"ip": c.ip, "armed": c.armed} for c in _clients.values()
             ]
             t3 = time.monotonic()
-            _shared_errors = errs
             if errs:
                 # Monotonic error counter: lets long-running sequences (RFL guard)
                 # detect "did ANY error/abort surface during my window" even though
-                # _shared_errors itself is replaced per tick.
+                # each tick publishes only its own errors.
                 _errors_total += len(errs)
-            _shared_probe_updates = probe_updates
             poll_ms = round((t1 - t0) * 1000, 2)
             errors_ms = round((t2 - t1) * 1000, 2)
             parse_ms = round((t3 - t2) * 1000, 2)
@@ -2363,6 +2365,15 @@ async def _status_poller():
                         flush=True,
                     )
 
+            # Publish the tick: ONE object, ONE rebind, `t_pub` stamped right
+            # before it — the publish time, never a reading time (R370 2); the
+            # lower bound of a fresh display's delay (R376 Q-L4).
+            _gen = _status_gen + 1
+            _t_pub = time.monotonic()
+            _published = _ws_fanout_mod.StatusPublication(
+                gen=_gen, status=st, status_dict=status_dict, data_msgpack=_data_msgpack,
+                errors=errs, clients_list=_clients_list, probe_updates=probe_updates,
+                trip_basis={"gen": _gen, "epoch": _TRIP_EPOCH, **_trip_basis_in, "t_pub": _t_pub})
             # Broadcast: swap in a fresh unset event for future waiters, then
             # set the old one to wake all current waiters. This avoids the
             # clear/set race where a client checking _status_gen between set()
@@ -11410,7 +11421,11 @@ async def ws_endpoint(ws: WebSocket):
                     # actual poll rate (~30Hz). The 1s timeout is a safety net:
                     # if the poller stalls, we re-check and fall through to the
                     # "poller not running" branch above on the next iteration.
-                    if _status_gen == _last_gen:
+                    # The tick this frame is built from: read ONCE (package 3b
+                    # latch-sticky contract, Codex R375 Q-L3) — everything below
+                    # comes from `pub`, never from a global a later tick rebinds.
+                    pub = _published
+                    if pub is None or pub.gen == _last_gen:
                         evt = _status_event
                         if evt is None:
                             # Poller hasn't emitted its first event yet.
@@ -11421,7 +11436,7 @@ async def ws_endpoint(ws: WebSocket):
                         except asyncio.TimeoutError:
                             pass  # re-check on next iteration
                         continue
-                    _last_gen = _status_gen
+                    _last_gen = pub.gen
                     # Phase-mark the per-client build (#35 fanout): with delta on,
                     # _use_shared is False so each client copies the shared dict
                     # (6005) + runs _diff_status_data (6066) + encodes its own
@@ -11443,10 +11458,7 @@ async def ws_endpoint(ws: WebSocket):
                     ):
                         continue
 
-                    st = _shared_status
-                    if st is None:
-                        await asyncio.sleep(0.5)
-                        continue
+                    st = pub.status
 
                     # The ONE viewer_init per connection (WS-B): sent on the first
                     # successful poll, so it always carries live axis data. Also
@@ -11472,8 +11484,8 @@ async def ws_endpoint(ws: WebSocket):
                             )
 
                     # Merge shared probe updates into per-client results
-                    if _shared_probe_updates:
-                        client.probe_results.update(_shared_probe_updates)
+                    if pub.probe_updates:
+                        client.probe_results.update(pub.probe_updates)
 
                     # Build status message. When the wire format is msgpack and no
                     # delta is active, splice the poller's pre-encoded bytes via
@@ -11486,22 +11498,23 @@ async def ws_endpoint(ws: WebSocket):
                     _use_shared = (
                         _WIRE_FORMAT == "msgpack"
                         and not _STATUS_DELTA_ENABLED
-                        and _shared_status_data_msgpack is not None
+                        and pub.data_msgpack is not None
                     )
-                    if _use_shared and _shared_status_data_msgpack is not None:   # (_use_shared ⟹ the bytes)
-                        status_data: Any = _msgspec.Raw(_shared_status_data_msgpack)
+                    if _use_shared and pub.data_msgpack is not None:   # (_use_shared ⟹ the bytes)
+                        status_data: Any = _msgspec.Raw(pub.data_msgpack)
                     else:
-                        status_data = _shared_status_dict.copy() if _shared_status_dict else st.__dict__.copy()
+                        status_data = pub.status_dict.copy() if pub.status_dict else st.__dict__.copy()
                     # Envelope assembly moved to ws_fanout.build_status_envelope
                     # (M3): safety metadata is named in the call — when trip /
                     # stale / config-warning state rides the frame, it's visible
                     # right here, not implied by a bus subscription.
                     status_msg: dict = _ws_fanout_mod.build_status_envelope(
                         status_data=status_data,
-                        errors=_shared_errors,
-                        clients_list=_shared_clients_list,
+                        errors=pub.errors,
+                        clients_list=pub.clients_list,
                         armed=client.armed,
                         safety_trip=_unacked_trip,
+                        trip_basis=pub.trip_basis,
                         safety_trip_acked=_last_trip_ack,
                         reader_stale=_reader_is_stale(),
                         safety_chain=_safety_chain_reason(),

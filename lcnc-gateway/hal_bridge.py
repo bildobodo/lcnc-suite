@@ -694,6 +694,19 @@ class HalBridge:
             return None
         return state[0].get(field)
 
+    def reader_state(self) -> Optional[Tuple[dict, float]]:
+        """The latest snapshot WITH its arrival (monotonic), as ONE value —
+        or None before the first. A caller that needs a value and where it
+        came from reads this once (the trip latch's evaluation, package 3b
+        latch-sticky contract): two reader_get calls may straddle a new
+        snapshot."""
+        return self._reader_state
+
+    @property
+    def stale_sec(self) -> float:
+        """The window past which a snapshot's arrival is stale."""
+        return self._stale_sec
+
     def reader_is_stale(self) -> bool:
         """True if no snapshot has arrived within the stale window."""
         state = self._reader_state

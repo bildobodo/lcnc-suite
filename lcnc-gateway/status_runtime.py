@@ -1420,7 +1420,7 @@ class StatusRuntime:
 
         Combines poll_status() and the dataclass→dict conversion so neither
         touches the event loop. Returns (StatusPayload, dict) — the dict is
-        cached as _shared_status_dict and consumed (via .copy()) by every
+        published as the tick's status_dict (StatusPublication) and consumed (via .copy()) by every
         per-client status_loop.
 
         The conversion uses `__dict__.copy()` rather than dataclasses.asdict().

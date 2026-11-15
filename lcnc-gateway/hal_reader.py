@@ -203,12 +203,32 @@ def _note_pin_ok(key: str) -> None:
         _pin_fail_logged.discard(key)
 
 
+#: The field whose READ is bracketed (package 3b, latch-sticky contract, Codex
+#: R375–R377): `latch_read` = [monotonic before, monotonic after] the one
+#: hal.get_value of the trip latch — present only when that read succeeded.
+LATCH_FIELD = "trip_latched"
+#: Every snapshot's number, per reader process (never reset, never reused):
+#: the gateway carries it to the frame, the driver orders readings by it.
+_snap_seq = 0
+
+
 def _build_snapshot() -> dict:
-    global _pin_fail_last_reminder
-    snap = {"type": "snapshot", "ts": int(time.time() * 1000)}
+    global _pin_fail_last_reminder, _snap_seq
+    _snap_seq += 1
+    snap = {"type": "snapshot", "ts": int(time.time() * 1000), "seq": _snap_seq}
     for source, field, coerce in SNAPSHOT_PINS:
         try:
-            snap[field] = coerce(hal.get_value(source))
+            if field == LATCH_FIELD:
+                # the read itself, bracketed on CLOCK_MONOTONIC (the host's):
+                # its end before SIGCONT proves an old reading, its start after
+                # SIGCONT a new one — never the snapshot's start alone (R375)
+                r0 = time.monotonic()
+                raw = hal.get_value(source)
+                r1 = time.monotonic()
+                snap[field] = coerce(raw)
+                snap["latch_read"] = [r0, r1]
+            else:
+                snap[field] = coerce(hal.get_value(source))
             _note_pin_ok(source)
         except Exception as e:
             _note_pin_fail(source, f"'{source}' failed: {e}")

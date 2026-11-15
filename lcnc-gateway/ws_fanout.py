@@ -170,6 +170,26 @@ def diff_status_data(last: Dict[str, Any], current: Dict[str, Any]) -> Dict[str,
     return diff
 
 
+@dataclass(frozen=True)
+class StatusPublication:
+    """ONE poller tick, published with ONE rebind (package 3b latch-sticky
+    contract, Codex R375 Q-L3): the status, its dict, its msgpack bytes (or
+    None), the tick's errors, client list and probe updates, and the trip
+    latch's provenance (`trip_basis`). A client loop reads the published
+    reference ONCE per frame and builds the whole frame from it — a frame
+    never mixes two ticks, whatever it awaits while building. Never
+    mutated after publication (the client copies `status_dict` before any
+    change; the containers are the tick's own)."""
+    gen: int
+    status: Any
+    status_dict: Optional[dict]
+    data_msgpack: Optional[bytes]
+    errors: Any
+    clients_list: Any
+    probe_updates: Any
+    trip_basis: dict
+
+
 def build_status_envelope(
     *,
     status_data: Any,
@@ -188,6 +208,7 @@ def build_status_envelope(
     preview_tool_basis: Optional[dict] = None,
     preview_origin: Optional[dict] = None,
     run_basis: Optional[dict] = None,
+    trip_basis: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -206,6 +227,11 @@ def build_status_envelope(
     }
     if safety_trip is not None:
         msg["safety_trip"] = safety_trip
+    if trip_basis is not None:
+        # the trip latch's evaluated input and its provenance for THIS tick
+        # (package 3b latch-sticky contract): beside safety_trip, in every
+        # full and delta frame — what proves a shown or missing trip fresh
+        msg["trip_basis"] = trip_basis
     if safety_trip_acked is not None:
         # the last confirmed acknowledgement ({"id"}) — what a client records
         # as acknowledged (operator Q323-1), never a trip's mere absence
