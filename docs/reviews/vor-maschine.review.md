@@ -4297,3 +4297,45 @@ Die Live-Läufe liefen an `1e19b741`. Seither haben sich nur Tests und Doku geä
 - **CI** an `0acf2a2b` (`harden/p3b-latch`, Lauf `43697298758`): grün, Backend und Frontend. An `1e19b741` war sie es ebenfalls (Lauf `43686831085`).
 
 **Erbeten:** `agreement` oder `findings` zur Umsetzung des Messvertrags an `0acf2a2b`.
+
+---
+
+## Codex · Paket 3b · `latch-sticky` · Implementierungsreview R378 · 15. November 2026
+
+**Urteil: `findings` an `0acf2a2b` wegen VM-I19 bis VM-I21 im Messablauf.** Die neue Herkunft im Produkt und die reine Intervallauswertung sind in den geprüften Pfaden nachvollziehbar. Kein neuer Operatorentscheid erforderlich.
+
+Geprüft gegen den Vertrag R376 mit R377, in einer Archivkopie: **41 Gateway-Fälle und alle 40 neuen/geänderten Treiberfälle grün; eigene Ablaufsonde 3 rot, 2 grün.** Die sechs gespeicherten Live-Berichte samt SIGCONT-Klammern wurden gelesen und ihre Frame-Gültigkeit sowie Verzögerungsgrenzen nachgerechnet. Keine Produktänderung, keine Maschinenbefehle und kein Zugriff auf die Live-Ports. [Belege, ausführbare Sonde und Ausgaben](vor-maschine.p3b.r378.codex-evidence.md).
+
+### VM-I19 · P2 · Die Auswertung vor der Quittierung lässt noch einen unbeurteilten Abschnitt
+
+`native_run.py:2289–2295,2344–2346`: `form_sticky()` stempelt das Ende, kopiert die Frames und **berechnet bereits das Urteil**, bevor `c.request("safety_trip_ack", …)` aufgerufen wird. Der Empfangsthread läuft dabei weiter. Frames während dieser Berechnung gehören nach dem Vertrag noch zum Vor-Quittierungsabschnitt, kommen aber nicht in die Auswertung.
+
+**Gegenprobe:** Während des Eintritts in `eval_latch_sticky` wird ein gültiger neuer Frame mit `latched: true` und ohne Trip verarbeitet, danach wieder ein korrekter Frame. Beide liegen nachweislich vor dem Quittierungsaufruf. Der Bericht bleibt **PASS**, der falsche Frame fehlt. Wird er der reinen Auswertung übergeben, ergibt sie korrekt FAIL. Das Problem ist die Ausschnittbildung, nicht die Invariantenprüfung. Der vorhandene Wächter erlaubt zudem einen fehlenden Frame (`len(before_ack) - 1`) und trifft diesen Fall nicht.
+
+**Erbeten:** Die Endmarke an den tatsächlichen Sendepfad des Quittierungsversuchs binden, ohne die Auswertung dazwischen. Erst anschließend den vollständigen bis dahin empfangenen Abschnitt auswerten; Empfang/Endmarke so koordinieren, dass ein bereits gestempelter, noch nicht eingetragener Frame nicht verloren geht. Scheitert der Versuch, bleibt die Zeile trotzdem erhalten. Den Gegenfall mit einem während der bisherigen Auswertung eintreffenden Fehler halten; keine pauschale Ein-Frame-Ausnahme.
+
+### VM-I20 · P2 · Ein Servo-END-Fehler überspringt die unabhängige Anzeigezeile
+
+`native_run.py:2327–2338`: Nach dem Ausfallabschnitt ruft der Schritt `_servo_failed` auf, bevor `form_sticky()` erreicht wird. Der äußere Fehlerpfad endet bereits bei Zeile 2326. Ein in `_section` aufgefangener END-/Dateifehler lässt deshalb nur `latch-same-cycle` zurück und überspringt die Anzeigeprüfung. Auch der Eintritt in die Recovery-Sektion liegt vor deren `try/finally`.
+
+**Gegenprobe:** Die gültigen neuen Statusframes zeigen nie den Trip; der Sampler meldet zusätzlich einen END-Fehler. Der Schritt verweigert die Quittierung korrekt, aber in `ctx['rows']` steht ausschließlich `latch-same-cycle`. Der unabhängig belegte Anzeigefehler verschwindet, statt als `latch-sticky: FAIL` neben der Messlücke erhalten zu bleiben.
+
+**Erbeten:** Den Abschluss des begonnenen Beobachtungsabschnitts auf allen Ausgängen gewährleisten, einschließlich `_servo_failed`, Eigentumsprüfung und Recovery-Eintritt. Ohne Quittierungsversuch gilt die jeweilige Endmarke; die Anzeigezeile wird genau einmal gebildet. Die vorhandenen Fehler und das Verbot einer unbewiesenen Quittierung bleiben bestehen. Den END-Fehler einmal mit und einmal ohne unabhängig belegten Anzeigefehler halten.
+
+### VM-I21 · P2 · Der Auslöser des frühen Reset liegt noch hinter `cont()` und dessen Dateischreibung
+
+`native_run.py:2306–2318`: Zum Warten auf den ersten verarbeiteten Frame wird ein neuer `t_cont` **nach Rückkehr aus `tp.cont`** benutzt. `tp.cont` hat dann nicht nur SIGCONT gesendet, sondern auch `save(state)` ausgeführt. Ein währenddessen bereits verarbeiteter Frame wird ausgeschlossen. Das ist nicht der zugesagte erste Frame nach dem Fortsetzen.
+
+**Gegenprobe:** Genau ein Frame kommt nach der gespeicherten SIGCONT-Klammer und vor der Rückkehr aus `cont()` an. Ohne einen weiteren Frame läuft der Treiber in „no status frame after the gateway was continued“, fragt kein Reset und endet `incomplete`, obwohl sein eigener Verlauf den Frame enthält. Bei fortlaufenden Frames verschiebt er die Anfrage entsprechend auf einen späteren.
+
+**Erbeten:** Den vorhandenen SIGCONT-Anker beziehungsweise eine daran gebundene Empfangsmarke auch für diesen Auslöser verwenden. Bereits während der Zustandsdateischreibung verarbeitete Frames müssen zählen. Weiterhin weder auf gültige Herkunft noch auf eine gesetzte Trip-Anzeige warten; diese bestimmen erst das spätere Urteil. Den Gegenfall ohne zweiten Frame als Wächter halten.
+
+### Angenommene Teile und Grenzen der Belege
+
+- **VM375-01:** Ein Tupel an der Auswertestelle, unveränderte rohe Eingabe, getrennte Herkunft/Stale-Angabe; der veraltete TRUE-Fall löst weiter aus.
+- **Ablesung und Veröffentlichung:** Klammer um genau den Latch-Leseaufruf, Snapshot-Sequenz, eine Tick-Veröffentlichung und eine lokale Client-Referenz. Die Gegenwächter treffen den Wechsel während des ersten Vollframes und während späterer Delta-Frames in JSON und Msgpack.
+- **Reiner Auswerter:** Boolescher Latch-Wert, Grundlinienalter über `read0`, Zeitordnung, Messlücken, Grenzframes, beide Fristgrenzen und Vorrang unabhängig belegter Fehler werden in den vorgelegten Gegenfällen korrekt behandelt. Die offenen Punkte betreffen seine tatsächliche Eingabemenge und den Ablauf darum.
+- **Benannte Abweichungen:** Die gemessene zusätzliche Nutzlast statt der 80-Byte-Schätzung ist durch die vorgelegte `perf-matrix`-Abnahme abgedeckt. Die abgeschwächte Frame-Wache nehme ich für diesen Umbau zusammen mit der unveränderten Skip-Logik und der Perf-Abnahme an: Sie beweist höchstens einen Frame je Tick in Reihenfolge, nicht allgemein verlustfreien Versand. Die Unterscheidung muss in der Dokumentation erhalten bleiben.
+- **Live-Belege:** Die gespeicherten sechs Läufe und ihre Zahlen sind konsistent; seit ihrem Produktstand `1e19b741` änderten sich nur Test und Doku. Sie widerlegen die drei Ablaufgegenfälle nicht. Die Installationsprobe dieses Kopfes bleibt, wie angekündigt, Teil des späteren Merge-Gates.
+
+Paket 3a, Paket 3b Punkt 1 und Replay Schritt 5a bleiben abgenommen. Für `latch-sticky` ist die Nachprüfung der drei Treiberreste offen.

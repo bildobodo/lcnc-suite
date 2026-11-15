@@ -1,0 +1,107 @@
+before-ack {'actual': 'PASS', 'bad_frame_before_ack': True, 'bad_frame_in_report': False}
+Ffailed-end {'cases': ['latch-same-cycle'], 'ack_sent': False}
+Ffirst-frame {'post_cont_frames': 1, 'sent': []}
+F..
+=================================== FAILURES ===================================
+_____ test_a_frame_received_during_the_judgement_before_ack_is_not_dropped _____
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2561/test_a_frame_received_during_t0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff84a069e0>
+
+    def test_a_frame_received_during_the_judgement_before_ack_is_not_dropped(tmp_path, monkeypatch):
+        c = h.LatchClient()
+        ctx, _ = h._latch_step(tmp_path, monkeypatch, c, [h._latch(after=200), h._recovery()])
+        real_judge, real_request = sc.eval_latch_sticky, c.request
+        observed = {}
+        def judge(*args, **kwargs):
+            # A receiver can run while the evaluator processes the captured list.
+            # Both frames are before the acknowledgement, with valid provenance.
+            c.hide = True
+            c.frame()
+            observed['bad'] = c.basis_history[-1]
+            c.hide = False
+            c.frame()
+            return real_judge(*args, **kwargs)
+        def request(cmd, **kwargs):
+            if cmd == 'safety_trip_ack':
+                observed['ack'] = time.monotonic()
+            return real_request(cmd, **kwargs)
+        monkeypatch.setattr(sc, 'eval_latch_sticky', judge)
+        c.request = request
+        try:
+            result = row(h.nr.latch_cases()[1](ctx))
+        finally:
+            c.until = 0
+        assert observed['bad'][0] < observed['ack']
+        assert sc.latch_frame_validity([observed['bad']], 'e1') == [None]
+        assert observed['bad'][1]['latched'] is True and observed['bad'][2] is None
+        print('before-ack', {'actual': result['status'], 'bad_frame_before_ack': True,
+              'bad_frame_in_report': any(f[1]['gen'] == observed['bad'][1]['gen'] for f in result['frame_list'])})
+>       assert result['status'] == 'FAIL', 'A valid TRUE/no-trip frame before the ack must fail'
+E       AssertionError: A valid TRUE/no-trip frame before the ack must fail
+E       assert 'PASS' == 'FAIL'
+E         
+E         - FAIL
+E         + PASS
+
+r378_probe.py:47: AssertionError
+_____ test_a_servo_end_failure_still_keeps_the_independent_display_failure _____
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2561/test_a_servo_end_failure_still0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff84a06780>
+
+    def test_a_servo_end_failure_still_keeps_the_independent_display_failure(tmp_path, monkeypatch):
+        c = h.LatchClient(hide=True)
+        broken = {**h._latch(after=200), 'end_error': 'injected end failure', 'problems': ['end unconfirmed']}
+        ctx, _ = h._latch_step(tmp_path, monkeypatch, c, [broken, h._recovery()])
+        try:
+            with pytest.raises(h.nr.StepFailed, match='servo measurement failed'):
+                h.nr.latch_cases()[1](ctx)
+        finally:
+            c.until = 0
+        print('failed-end', {'cases': [r['case'] for r in ctx['rows']], 'ack_sent': any(x[0] == 'safety_trip_ack' for x in c.sent)})
+>       assert any(r['case'] == 'latch-sticky' and r['status'] == 'FAIL' for r in ctx['rows']), 'The display failure must survive the servo END error'
+E       AssertionError: The display failure must survive the servo END error
+E       assert False
+E        +  where False = any(<generator object test_a_servo_end_failure_still_keeps_the_independent_display_failure.<locals>.<genexpr> at 0xffff823e8ba0>)
+
+r378_probe.py:60: AssertionError
+______ test_first_post_cont_frame_during_state_save_still_triggers_reset _______
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2561/test_first_post_cont_frame_dur0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff84a3a690>
+
+    def test_first_post_cont_frame_during_state_save_still_triggers_reset(tmp_path, monkeypatch):
+        c = h.LatchClient()
+        ctx, _ = h._latch_step(tmp_path, monkeypatch, c, [h._latch(after=200), h._recovery()])
+        def cont(state, save, rec, **kwargs):
+            s0, s1 = time.monotonic(), time.monotonic()
+            c.latched = True
+            # Still paused, so exactly one receiver frame while cont() has not
+            # returned (representing arrival during save(state)).
+            c.frame()
+            state['stopped'] = []
+            state.setdefault('continued', []).append({**rec, 'outcome': 'continued', 'sigcont': [s0, s1]})
+            time.sleep(0.01)
+            return 'continued'
+        monkeypatch.setattr(h.tp, 'cont', cont)
+        monkeypatch.setattr(h.nr, 'LATCH_RESUME_WAIT_S', 0.06)
+        try:
+            try:
+                h.nr.latch_cases()[1](ctx)
+            except h.nr.Refused as exc:
+                assert 'no status frame after' in str(exc), str(exc)
+        finally:
+            c.until = 0
+        print('first-frame', {'post_cont_frames': len([f for f in c.basis_history if f[1]['latched']]), 'sent': c.sent})
+>       assert any(cmd == 'estop_reset' for cmd, _ in c.sent), 'A processed frame after SIGCONT already arrived'
+E       AssertionError: A processed frame after SIGCONT already arrived
+E       assert False
+E        +  where False = any(<generator object test_first_post_cont_frame_during_state_save_still_triggers_reset.<locals>.<genexpr> at 0xffff823ea5a0>)
+
+r378_probe.py:86: AssertionError
+=========================== short test summary info ============================
+FAILED r378_probe.py::test_a_frame_received_during_the_judgement_before_ack_is_not_dropped
+FAILED r378_probe.py::test_a_servo_end_failure_still_keeps_the_independent_display_failure
+FAILED r378_probe.py::test_first_post_cont_frame_during_state_save_still_triggers_reset
+3 failed, 2 passed in 0.92s

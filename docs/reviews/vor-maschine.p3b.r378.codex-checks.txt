@@ -1,0 +1,26 @@
+R378, Codex, 2026-11-15
+Source: archive of 0acf2a2bc9687c282b4304b357daa2df06992153 at /tmp/codex-r378.
+No product edits; no live instance/ports used.
+Interpreter: /home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3
+
+Gateway: pytest -q lcnc-gateway/test_trip_basis.py lcnc-gateway/test_ws_fanout.py
+Exit 0; 41 tests. Local fake reader + TestClient, after allowing local sockets.
+The first sandboxed attempt could not complete (two helper failures, then TestClient stall); interrupted, not counted as product evidence.
+.........................................                                [100%]
+[GC] +11941ms gen=2 duration=10.0ms collected=1154 uncollectable=0
+[GC] +11948ms gen=2 duration=7.7ms collected=0 uncollectable=0
+[GC] +11955ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +11963ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +11970ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +11977ms gen=2 duration=6.9ms collected=0 uncollectable=0
+
+Driver: 24 new/modified test functions selected by AST comparison against d7431f19, parametrized to 40 cases.
+........................................                                 [100%]
+40 passed in 1.67s
+
+Selection:
+["test_the_latch_stays_through_the_resume_and_the_early_reset", "test_good_frames_pass_with_their_numbers", "test_c1_a_stop_during_the_client_build_old_frame_without_trip_is_excused", "test_c2_a_tick_published_after_the_stop_with_an_old_reading_is_never_new", "test_c3_an_old_reader_cache_in_a_later_tick_stays_old", "test_c4_the_first_new_frame_without_the_trip_fails", "test_c5_no_new_frame_is_incomplete_and_a_late_old_one_proves_the_overrun", "test_an_old_backlog_frame_latched_true_without_the_trip_fails", "test_codex_s_border_example_is_never_old", "test_codex_s_deadline_example_is_unproven", "test_a_new_frame_published_past_the_deadline_fails_and_a_gap_before_it_leaves_it_unproven", "test_a_measurement_gap_is_named_and_never_a_pass", "test_new_frames_without_a_boolean_latch_value_are_no_proof", "test_a_gap_beside_a_proven_failure_keeps_the_fail_and_names_the_gap", "test_a_frame_without_provenance_between_two_good_new_ones_is_not_excused", "test_the_baseline_s_largest_possible_age_decides", "test_the_classification_never_depends_on_the_trip_value", "test_no_sigcont_bracket_is_incomplete", "test_the_sigcont_is_bracketed_right_around_the_signal_and_saved_with_it", "test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement", "test_a_trip_shown_by_no_frame_fails_the_display", "test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement", "test_a_known_failure_comes_before_a_missing_proof", "test_a_failure_proven_on_its_own_survives_another_missing_proof"]
+
+Initial targeted driver selection:
+..........................                                               [100%]
+26 passed, 537 deselected in 1.72s
