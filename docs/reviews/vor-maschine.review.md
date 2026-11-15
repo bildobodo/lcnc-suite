@@ -3799,3 +3799,126 @@ Damit ist **Paket 3b Punkt 2, Schritt 5a** abgenommen. Die vier in R373 angenomm
   - Als Nächstes der eigene Messvertrag für `latch-sticky` (Planrunde).
   - Danach Paket 4.
   - #36 bleibt offen; der Operator entscheidet. main nie ohne Hardware-Validierung.
+
+---
+
+## Claude · Paket 3b · `latch-sticky` · Plananfrage R375 (Messvertrag) · 15. November 2026
+
+Die vier Bedingungen und fünf Gegenfälle aus R370 setze ich als eigenen Punkt von 3b um. Das hier ist der Plan, noch ohne Code. Gelesen an `533c71fc`, unverändert an `d7431f19` (development).
+
+### Was heute fehlt
+
+- **Ablesezeit:** Der Reader-Snapshot trägt nur `ts` in Wanduhr-Millisekunden (`hal_reader._build_snapshot`), keine monotone Ablesezeit und keine Sequenz. Das Gateway stempelt nur die Ankunft (`hal_bridge._reader_dispatch`: `(msg, time.monotonic())`). Die Wanduhr ist kein Zeitanker: Ein NTP-Schritt von +2,9 s auf der VM ist belegt. Die `t_mono_ms` im Trace zählen je Prozess ab dessen Start und taugen ebenfalls nicht.
+- **Der Reader läuft durch den Ausfall weiter.** Der Treiber stoppt nur das Gateway; `hal_reader` liest weiter mit 30 Hz.
+  - Er sendet blockierend (`sendall`) in den Unix-Socket. Bei `LATCH_STOP_S` = 0,9 s stauen sich etwa 27 Snapshots, je einige hundert Bytes, weit unter dem Socket-Puffer. Es blockiert nichts, es geht nichts verloren.
+  - Nach SIGCONT liest `_reader_recv_loop` sie **zeilenweise in Reihenfolge** (`readline`, je Zeile ein `_reader_dispatch`). Jede Zeile bekommt dabei einen Ankunftsstempel von **jetzt**.
+  - Ein Snapshot, den der Reader während des Stopps las, trägt also oft schon `trip_latched: true`: Der Latch fällt 400 bis 430 ms nach dem Heartbeat-Abfall, also mitten im Stopp. Nach seiner Ablesezeit ist er trotzdem alt.
+  - Die Veraltungsregel (`READER_STALE_SEC` = 2,0 s, gemessen an der Ankunft) greift bei 0,9 s Stopp nicht. Nach dem Fortsetzen ist jede Ankunft frisch.
+- **Herkunft des Trip-Felds:** Der Poller wertet den Latch über `_reader_get("trip_latched")` aus, also den **jeweils neuesten** Snapshot. Er hält nicht fest, welchen er ausgewertet hat.
+- **`safety_trip` im Frame** kommt beim **Bau** aus dem Global `_unacked_trip` (`build_status_envelope(safety_trip=_unacked_trip)`), nicht aus dem ausgewerteten Tick.
+- **Der Treiber:**
+  - Er stempelt `t_cont` erst nach `tp.cont` (SIGCONT, dann `state.json`).
+  - Er zählt jeden Frame, den sein Client danach verarbeitet. Der Bericht behält davon nur die Wahrheitswerte, nicht die Empfangszeiten.
+  - Er akzeptiert **jede** Ablehnung des frühen Resets, auch „Not armed“. Der Grund steht im Bericht, wird aber nicht geprüft.
+
+### Gemessen (15 native Latch-Läufe vom 14. November, Traces der Laufordner)
+
+- Gateway fortgesetzt (Ende des `lag.window`, 851 bis 903 ms Stillstand) → `safety.tripped`: **1,0 bis 1,9 ms**.
+- `safety.tripped` → abgelehntes Reset (`ws.command_denied`, „Acknowledge the safety trip first“): **48,5 bis 50,7 ms**. Den Reset fragt der Treiber nach seinem ersten verarbeiteten Frame nach `t_cont`; dieser Frame kam also innerhalb dieser 50 ms.
+- Heartbeat-Abfall → `safety.tripped`: 400 bis 429 ms. Heartbeat zurück: 32 bis 36 ms nach dem Trip.
+- Erwartet bis zum ersten **nachweislich neuen** Frame:
+  - eine Reader-Periode (33 ms);
+  - ein Poller-Tick: Bei stehender Maschine (adaptiver Takt, `_IDLE_POLL_HZ`) sind es 5 Hz, also bis 200 ms;
+  - der Versand an den Client;
+  - zusammen etwa 0,25 s.
+- Daraus die Grenze **1,0 s**, gut das Vierfache. Der Bericht nennt je Lauf den gemessenen Abstand, damit die Grenze später enger werden kann.
+
+### Vorschlag
+
+**A · Herkunft im Produkt, ohne Verhaltensänderung**
+1. **Reader:**
+   - Jeder Snapshot trägt `t_mono` (`time.monotonic()` unmittelbar vor der ersten Pin-Ablesung) und `seq` (Zähler je Reader-Prozess).
+   - `CLOCK_MONOTONIC` gilt systemweit auf demselben Host; der Treiber prüft die Zeitbasis an den Daten (B6).
+   - Die Wanduhr `ts` bleibt.
+2. **Poller:**
+   - Er liest das Tupel `_reader_state` **einmal** und wertet genau diesen Snapshot aus, mit derselben Regel wie heute: abwesend bleibt abwesend (`None`), veraltet bleibt veraltet.
+   - Am Tick hält er `trip_basis = {gen, epoch, reader_seq, reader_t, latched}` fest. Dabei ist `gen` die Generation, die dieser Tick veröffentlicht, `epoch` ist `_TRIP_EPOCH`, und `latched` ist der ausgewertete Wert.
+   - **Ohne verwertbaren Snapshot** (keiner, Feld fehlt, veraltet) sind `reader_seq` und `reader_t` gleich `null` und `latched` ist der ausgewertete Wert, also `null`. Ein solcher Frame ist für den Treiber nie ein Nachweis.
+3. **Veröffentlichung durch Konstruktion:**
+   - Der Tick veröffentlicht **ein** Objekt: Status, kodierte Daten, `trip_basis` und `gen`, mit **einer** Neubindung, wie `_reader_state` es schon tut.
+   - Bisher halten mehrere Globals (`_shared_status`, `_shared_status_dict`, `_shared_status_data_msgpack`, `_status_gen`) nur durch die Reihenfolge zusammen.
+   - Der Client-Loop liest dieses eine Objekt. Ein Frame trägt so immer die Herkunft genau seines Status, ohne einen AST-Wächter für ein gemeinsames Lesen.
+4. **Frame:**
+   - `trip_basis` steht auf der Ebene des Umschlags, neben `safety_trip`, in vollen und in Delta-Frames.
+   - `safety_trip` bleibt, wie es ist: Das ist die Anzeige, die der Operator sieht, und die prüft der Treiber.
+   - Das Global ist mindestens so neu wie die Auswertung des Ticks und bewegt sich bis zur Quittierung nur von `None` zu gesetzt.
+5. **Ohne Verhaltensänderung, belegt:**
+   - ein Wächter, dass die Zahl der Frames je Tick gleich bleibt, im Leerlauf und aktiv;
+   - `perf-matrix` als Abnahme, weil ein Objekt je Frame dazukommt (etwa 80 Bytes).
+
+**B · Der Treiber**
+1. **SIGCONT einklammern:** `tp.cont` stempelt `t_cont_before` unmittelbar vor und `t_cont_after` unmittelbar nach `kill(SIGCONT)`, beide in `time.monotonic()` und vor dem Schreiben von `state.json`.
+2. **Aufzeichnen:** Jeder Frame ab dem Stopp wird mit Empfangszeit, `trip_basis` und `safety_trip` festgehalten, ebenso die Frames davor bis zur Grundlinie (B5). Der Bericht enthält die Liste.
+3. **Einteilen nur nach `trip_basis.reader_t`**, der Ablesung, die die Auswertung des Frames benutzt hat. Nie nach dem Trip-Wert, nie nach `gen`, nie nach der Empfangszeit:
+   - `reader_t < t_cont_before`: **nachweislich alt**. Das gilt auch für Ablesungen während des Stopps, die schon `latched: true` zeigen.
+   - `reader_t > t_cont_after`: **nachweislich neu**.
+   - Dazwischen, `null` oder ohne `trip_basis` (fremde Epoche, fehlendes Feld): **nicht auflösbar**. Das zählt nie als Nachweis und wird im Bericht genannt.
+4. **Die Invariante über jeden aufgezeichneten Frame, alt oder neu:** `trip_basis.latched` ist `true` ⇒ `safety_trip` ist gesetzt. Sie hängt an der ausgewerteten Eingabe, nie am gewünschten Ergebnis. So halten auch die alten Frames aus dem Stau, was der Operator sehen muss.
+5. **Grundlinie:** Ein Frame vor dem Stopp, derselben Epoche, mit `latched: false`. Ohne ihn ist der Lauf `incomplete`: Der Trip entsteht nur aus einer sauberen Flanke FALSE → TRUE nach einer bekannten Grundlinie (`evaluate_trip_latch`).
+6. **Die Zeitbasis an den Daten belegt:**
+   - Auf jedem Frame ist `reader_t` ≤ Empfangszeit.
+   - Vor dem Stopp ist der Abstand klein (Grenze im Bericht).
+   - `reader_seq` fällt nie.
+   - Sonst ist der Lauf `incomplete`.
+7. **Urteil `latch-sticky`,** in dieser Rangfolge:
+   - **FAIL:**
+     - die Invariante B4 verletzt;
+     - ein nachweislich neuer Frame ohne `safety_trip`;
+     - Frames mit Herkunft kamen an, aber der erste nachweislich neue erst nach mehr als **1,0 s** (gemessen als Empfangszeit des ersten Frames mit `reader_t > t_cont_after`, minus `t_cont_after`), oder bis zum Ende der Aufzeichnung keiner, obwohl die Aufzeichnung länger lief. Das FAIL nennt den gemessenen Abstand.
+     - das frühe Reset angenommen.
+   - **incomplete, nie PASS:**
+     - keine Herkunft auf den Frames;
+     - die Aufzeichnung endete vor der Grenze;
+     - Zeitbasis (B6) oder Grundlinie (B5) nicht belegt;
+     - das frühe Reset aus einem **anderen** Grund abgelehnt als der Trip-Sperre („Acknowledge the safety trip first“), etwa „Not armed“. Dann sagt die Zeile nichts über die Sperre und nennt den Grund.
+   - **PASS:** alles andere, mit den Zählern alt, Grenze und neu, dem Abstand bis zum ersten neuen Frame und dem Grund der Reset-Ablehnung.
+8. **Unverändert und eigenständig:** HAL-Latch und Freigabe im Sampler, Rückkehr des Heartbeats, das abgelehnte Reset. Das Reset fragt der Treiber wie heute nach dem ersten Frame, der nach dem Fortsetzen verarbeitet wird, **unabhängig** von dessen Herkunft und Trip-Wert. So hängt sein Zeitpunkt nicht an einer erfolgreichen Anzeige.
+9. **Die Grenze des Reader-Caches, benannt:** Ein neuer Poller-Tick mit einem Snapshot von vor dem Fortsetzen ist nachweislich alt. `reader_seq` und `reader_t` zeigen ihn; `gen` allein qualifiziert nie. Der Stau von etwa 27 Snapshots aus dem Stopp ist genau dieser Fall.
+
+**C · Gegenfälle** (synthetisch, offline; je ein eigener Grund):
+1. Stopp während des Client-Aufbaus: ein Frame mit `reader_t < t_cont_before` und ohne Trip, `latched: false`, dann neue Frames mit Trip. Ausgenommen, PASS.
+2. Stopp zwischen Latch-Ablesung und Tick-Veröffentlichung: `gen` größer als jede vor dem Stopp, `reader_t` alt. Ausgenommen, nie qualifiziert.
+3. Ein noch alter Reader-Cache: ein späterer Tick, der denselben alten Snapshot auswertet (`reader_seq` unverändert). Ausgenommen.
+4. Der erste nachweislich neue Frame ohne Trip: FAIL.
+5. Gar kein nachweislich neuer Frame: FAIL nach der Grenze, `incomplete`, wenn die Aufzeichnung vor ihr endet.
+
+Dazu:
+- Ein alter Frame aus dem Stau mit `latched: true` ohne Trip: FAIL (B4).
+- Ein Grenzframe zwischen den Klammern zählt nie.
+- Dieselben Frames mit vertauschten Trip-Werten werden **gleich** eingeteilt.
+- Die Grenze von 1,0 s überschritten: FAIL mit Abstand.
+- `reader_t` nach der Empfangszeit oder ein fallendes `reader_seq`: `incomplete`.
+- Ein frühes Reset, abgelehnt mit „Not armed“: `incomplete` mit Grund.
+- Gateway-seitig:
+  - Der Snapshot trägt `t_mono` und `seq`.
+  - Die Auswertung und `trip_basis` kommen aus **demselben** Tupel.
+  - Ohne verwertbaren Snapshot steht `null`.
+  - Ein Tick veröffentlicht ein Objekt mit einer Neubindung.
+  - Die Frames je Tick bleiben gleich viele.
+
+**D · Live**
+- Nativer Hauptlauf und `latch-delayed` mit dem neuen Vertrag, je dreimal.
+- Der Bericht nennt je Lauf:
+  - die alten, die Grenz- und die neuen Frames;
+  - wie viele alte Frames aus dem Stau `latched: true` trugen;
+  - den Abstand zum ersten neuen Frame;
+  - den Grund der Reset-Ablehnung.
+- Zeigt der Vertrag dann eine frische falsche Meldung oder eine verletzte Grenze, ist das ein eigener Produktbefund, wie du schreibst.
+
+### Fragen
+
+- **Q-L1:** `trip_basis` in jedem Frame, oder nur, wenn ein Client es beim `hello` verlangt? Ich schlage **jeden Frame** vor: Ein Feld, das es nur im Test gibt, wäre ein Messpfad, den das Produkt nicht geht.
+- **Q-L2:** Ist „nicht auflösbar: nie Nachweis, im Bericht genannt“ die richtige Behandlung der Grenzframes? Die Alternative wäre, das Urteil auf `incomplete` zu setzen, sobald einer vorkommt.
+- **Q-L3:** Das eine veröffentlichte Objekt je Tick (A3) ändert die Struktur des Pollers, nicht sein Verhalten. Lieber so, oder die heutigen Globals behalten und das gemeinsame Lesen per AST-Wächter halten?
+
+**Erbeten:** `agreement` oder `findings` zum Messvertrag für `latch-sticky`, vor der Umsetzung.
