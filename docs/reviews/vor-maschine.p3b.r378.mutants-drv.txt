@@ -1,3 +1,4 @@
+Driver-side mutants at 0acf2a2b (feat/p3b-latch), each alone, the latch tests of test_native_stage.py run, tree restored:
 D1 old by the read's START: 1 red
     test_codex_s_border_example_is_never_old: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
 D2 new by the read's END: 1 red
@@ -29,7 +30,7 @@ D10 stale frames valid: 1 red
     test_a_measurement_gap_is_named_and_never_a_pass[bad4-stale]: AssertionError: {'baseline_age_s': [0.049, 0.05], 'border': 0, 'case': 'latch-sticky', 'detail': 'the heartbeat returned (sample 750),...eve
 D11 the row after the acknowledgement: 3 red
     test_the_whole_latch_step_proves_the_trip_and_recovers: AssertionError: {'latch-recovered': {'case': 'latch-recovered', 'cleared_n': 910, 'detail': 'fault-out FALSE from sample 910 to the en...[1e
-    test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement: AssertionError: {'baseline_age_s': [0.0, 0.0], 'border': 0, 'case': 'latch-sticky', 'detail': 'frame 15 (new): no safety_trip after the resu
+    test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement: AssertionError: {'baseline_age_s': [1e-06, 1e-06], 'border': 0, 'case': 'latch-sticky', 'detail': 'frame 14 (new): no safety_trip after the 
     test_a_trip_shown_by_no_frame_fails_the_display: StopIteration
 D12 no row when the section ends early: 1 red
     test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement: AssertionError: assert 'latch-sticky' in ['latch-same-cycle']

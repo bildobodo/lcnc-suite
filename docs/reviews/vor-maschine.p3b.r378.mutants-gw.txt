@@ -1,22 +1,25 @@
+Gateway-side mutants at 0acf2a2b (feat/p3b-latch), each alone, test_trip_basis.py run, tree restored:
 M1 stale input dropped: 2 red
     test_a_stale_true_still_trips_and_is_marked_stale: AssertionError: None is not True
-    test_the_input_equals_reader_get_for_every_state: AssertionError: None != True : ({'type': 'snapshot', 'trip_latched': True, 'seq': 4}, 1725008.018206066)
+    test_the_input_equals_reader_get_for_every_state: AssertionError: None != True : ({'type': 'snapshot', 'trip_latched': True, 'seq': 4}, 1734539.116690625)
 M2 poller reads the latch again: 1 red
-    test_the_input_comes_from_one_read_at_the_evaluation: AttributeError: 'Call' object has no attribute 'id'
+    test_the_input_comes_from_one_read_at_the_evaluation: AssertionError: <ast.Call object at 0xffffac3c0190> is not an instance of <class 'ast.Name'> : the automaton takes a name bound from that read, no new
 M3 await before the publication: 1 red
     test_no_await_between_the_read_and_the_publication: AssertionError: Lists differ: [678] != []
 M4 trip_basis from the global: 5 red
     test_status_loop_reads_published_once_and_no_tick_global: AssertionError: 2 != 1 : ONE read per frame
     test_a_tick_published_mid_build_json_delta: AssertionError: 1020 != 20 : the frame's tick, not the one published meanwhile
-    test_a_tick_published_mid_build_json_full: AssertionError: 1035 != 35 : the frame's tick, not the one published meanwhile
-    test_a_tick_published_mid_build_msgpack_delta: AssertionError: 1036 != 36 : the frame's tick, not the one published meanwhile
-    test_a_tick_published_mid_build_msgpack_shared: AssertionError: 1050 != 50 : the frame's tick, not the one published meanwhile
+    test_a_tick_published_mid_build_json_full: AssertionError: 1034 != 34 : the frame's tick, not the one published meanwhile
+    test_a_tick_published_mid_build_msgpack_delta: AssertionError: 1048 != 48 : the frame's tick, not the one published meanwhile
+    test_a_tick_published_mid_build_msgpack_shared: AssertionError: 1049 != 49 : the frame's tick, not the one published meanwhile
 M5 data from the global: 4 red
     test_status_loop_reads_published_once_and_no_tick_global: AssertionError: 3 != 1 : ONE read per frame
     test_a_tick_published_mid_build_json_delta: AssertionError: '/SWITCHED.ngc' == '/SWITCHED.ngc' : data from the same tick
     test_a_tick_published_mid_build_json_full: AssertionError: '/SWITCHED.ngc' == '/SWITCHED.ngc' : data from the same tick
     test_a_tick_published_mid_build_msgpack_delta: AssertionError: '/SWITCHED.ngc' == '/SWITCHED.ngc' : data from the same tick
-M6 delta frames drop trip_basis: 2 red
+M6 delta frames drop trip_basis: 4 red
+    test_a_tick_published_mid_build_of_a_delta_frame_json: KeyError: 'trip_basis'
+    test_a_tick_published_mid_build_of_a_delta_frame_msgpack: KeyError: 'trip_basis'
     test_json_delta_frames: AssertionError: None is not an instance of <class 'dict'> : status_delta without trip_basis
     test_msgpack_delta_frames: AssertionError: None is not an instance of <class 'dict'> : status_delta without trip_basis
 M7 the stamp after the read: 1 red
@@ -26,3 +29,9 @@ M8 t_pub not right before the rebind: 1 red
 M9 the reader never numbers: 2 red
     test_a_latch_read_that_fails_carries_no_bracket: AssertionError: unexpectedly None
     test_seq_rises_and_the_read_is_bracketed_on_this_host_s_clock: AssertionError: 1 not greater than or equal to 6 : snapshots flowing
+M10 the delta from the global after the await: 3 red
+    test_status_loop_reads_published_once_and_no_tick_global: AssertionError: 2 != 1 : ONE read per frame
+    test_a_tick_published_mid_build_of_a_delta_frame_json: AssertionError: True is not false : a real tick's frame with the switched data: {'gen': 79, 'epoch': '763e7b1d', 'latched': False, 'reader_seq': 41, '
+    test_a_tick_published_mid_build_of_a_delta_frame_msgpack: AssertionError: True is not false : a real tick's frame with the switched data: {'gen': 101, 'epoch': '763e7b1d', 'latched': False, 'reader_seq': 41, 
+M11 a second latch read for the trip decision: 1 red
+    test_the_input_comes_from_one_read_at_the_evaluation: AssertionError: Lists differ: ['_safety_chain_reason', '_status_poller'] != ['_safety_chain_reason']

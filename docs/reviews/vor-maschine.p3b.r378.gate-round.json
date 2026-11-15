@@ -2,7 +2,7 @@
   "kind": "round",
   "note": "",
   "base": "d7431f199a510c662e5363035ea8e15d3656d787",
-  "head": "1e19b741a9aa352e0e8f9d03d64e34509a849d9f",
+  "head": "0acf2a2bc9687c282b4304b357daa2df06992153",
   "uncommitted": 0,
   "plan": [
     "selection-guards",
@@ -78,14 +78,14 @@
   "browser_specs": [
     {
       "file": "example-tool-library.spec.ts",
-      "ms": 19127
+      "ms": 14772
     }
   ],
   "verdict": "PASS",
   "resources": {
-    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rgl2.service",
-    "cpu_s": 764,
-    "memory_peak_mb": 2645
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rgl3.service",
+    "cpu_s": 443,
+    "memory_peak_mb": 2219
   },
   "checks": [
     {
@@ -93,28 +93,28 @@
       "command": "/home/cnc/lcnc-suite-latch/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-latch/scripts/test_select/test_selector.py",
       "status": "PASS",
       "exit": 0,
-      "seconds": 4
+      "seconds": 3
     },
     {
       "name": "lint",
       "command": "npm run lint",
       "status": "PASS",
       "exit": 0,
-      "seconds": 12
+      "seconds": 8
     },
     {
       "name": "build",
       "command": "npm run build",
       "status": "PASS",
       "exit": 0,
-      "seconds": 22
+      "seconds": 14
     },
     {
       "name": "unit-light",
-      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rgl2/gate-round.logs/unit-light.json",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rgl3/gate-round.logs/unit-light.json",
       "status": "PASS",
       "exit": 0,
-      "seconds": 97,
+      "seconds": 51,
       "files": 165,
       "tests": 2654,
       "passed": 2654,
@@ -124,10 +124,10 @@
     },
     {
       "name": "backend",
-      "command": "/home/cnc/lcnc-suite-latch/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-latch/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rgl2/gate-round.logs/backend",
+      "command": "/home/cnc/lcnc-suite-latch/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-latch/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rgl3/gate-round.logs/backend",
       "status": "PASS",
       "exit": 0,
-      "seconds": 241
+      "seconds": 222
     },
     {
       "name": "ports-free",
@@ -143,7 +143,7 @@
       "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
       "status": "PASS",
       "exit": 0,
-      "seconds": 22,
+      "seconds": 17,
       "tests": 7,
       "passed": 7,
       "failed": 0,
@@ -158,14 +158,14 @@
     {
       "name": "browser-workers",
       "status": "PASS",
-      "run": "gate-bc225d7a-3c56-45fb-b8f5-db4d05a2ac4b",
+      "run": "gate-087878da-cda2-47f3-8e21-5c3aeae3ac06",
       "mocks": 1
     },
     {
       "name": "browser-replay",
       "status": "PASS",
       "report": "replay.json",
-      "frames": 50,
+      "frames": 44,
       "attempts": 7,
       "outside": [
         "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
