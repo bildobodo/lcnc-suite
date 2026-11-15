@@ -3244,6 +3244,30 @@ def test_a_write_after_an_errored_routine_waits_for_the_released_start_claim(mon
         nr._set_tool_length(_claim_client(10 ** 6), 1, 48.9991)
 
 
+def test_a_plant_never_names_3116_as_the_gateway_reads_a_line(monkeypatch):
+    """The gateway marks its skip flag unknown on any MDI TEXT holding
+    "3116" (gateway.py `if "3116" in text`): the plant refuses the number and
+    any value whose written form holds it, before a line is sent; other
+    values go out in lines of at most 200 characters and are read back."""
+    sent, params = [], {}
+
+    def short(c, text):
+        sent.append(text)
+        for item in text.split():
+            k, v = item[1:].split("=")
+            params[int(k)] = float(v)
+    monkeypatch.setattr(nr, "_short", short)
+    monkeypatch.setattr(nr, "_vars", lambda c, nums: {n: params.get(n) for n in nums})
+    for bad in ({3116: 0.0}, {3015: 0.3116}, {3020: 3116.0}, {3014: 98.0, 3021: 13116.0}):
+        with pytest.raises(ValueError):
+            nr._plant(object(), bad)
+    assert sent == []
+    values = {k: 100.0 + k / 1000 for k in range(3014, 3060)}
+    nr._plant(object(), values)
+    assert all(len(line) <= 200 and "3116" not in line for line in sent) and len(sent) > 1
+    assert all(abs(params[k] - v) < 1e-9 for k, v in values.items())
+
+
 def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     """Live: a G38.2 that ends without contact aborts its routine and leaves
     #5070 as the LAST probe wrote it — 1 from the hit before; the miss was
@@ -3261,14 +3285,22 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
                 return {"vars": {str(k): 1.0 for k in kw["vars"]}}
             return {"ok": True}
 
+    events = []
+
     def short(c, text):
+        events.append(f"mdi:{text}")
         if text.startswith("#5070="):
             params[5070] = float(text.split("=")[1])
         if text == "G10 L2 P1 Z0":
             g54["z"] = 0.0
 
+    def read(c, nums, tries=3):
+        events.append("read")
+        return {n: params.get(n, 1.0) for n in nums}
+
     def job(c, case, cmd, payload, deadline=90.0):
         assert (cmd, payload["text"]) == ("mdi", "O<probe_z_minus_wco> CALL"), (cmd, payload)
+        events.append(f"job:{case}")
         probes.append(case)
         start = {"case": f"{case}.start", "status": "PASS", "detail": "free, then locked"}
         if case == "probe-z":                      # the hit: contact, G54 Z = the plate
@@ -3279,10 +3311,10 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     frees, runs = [], []
     for name, fn in {"plate_from_hal": lambda t: {"x": 10.0, "y": 10.0, "z": -180.0}, "_hal_texts": lambda ini: "",
                      "_set_tool_length": lambda c, t, l: None, "_short": short, "_probe_job": job,
-                     "_to": lambda c, x, y, z: None, "_g54_z": lambda st: g54["z"],
-                     "_override_free": lambda c: frees.append(len(probes)),
+                     "_to": lambda c, x, y, z: events.append("to"), "_g54_z": lambda st: g54["z"],
+                     "_override_free": lambda c: (events.append("free"), frees.append(len(probes))),
                      "_probe_run": lambda ctx, c, plate, rows: runs.append(len(frees)),
-                     "_read_params": lambda c, nums, tries=3: {n: params.get(n, 1.0) for n in nums}}.items():
+                     "_read_params": read}.items():
         monkeypatch.setattr(nr, name, fn)
     monkeypatch.setattr(tc, "serve", lambda *a, **k: [])
     monkeypatch.setattr(tc.ToolChanges, "precheck", lambda self, st: None)
@@ -3294,6 +3326,12 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     # the UI's own job (Codex R380 VM380-03)
     assert probes == ["probe-z", "probe-z-miss"] and frees == [0, 1, 2] and runs == [3]
     assert by["probe-z.start"]["status"] == by["probe-z-miss.start"]["status"] == "PASS"
+    # the baseline before the plant, the plant's read-back the last line
+    # before the job (R381 "Reihenfolge in der Stufe")
+    i, j = events.index("job:probe-z"), events.index("job:probe-z-miss")
+    assert events[i - 3:i] == ["to", f"mdi:G43 H{nr.PROBE_TOOL}", "free"], events
+    assert events[j - 6:j] == ["to", f"mdi:G43 H{nr.PROBE_TOOL}", "free", "mdi:G10 L2 P1 Z0",
+                               "mdi:#5070=0", "read"], events
 
 
 def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_judged(monkeypatch):

@@ -1233,11 +1233,17 @@ def _over_plate(c, plate, over):
 def _plant(c, values: dict) -> None:
     """Raw `mdi` lines under 254 bytes, then read back from the interpreter.
     Never #3116: a line naming it makes the gateway's skip flag unknown and
-    the next line clears it first (plan R380 §2)."""
+    the next line clears it first (plan R380 §2) — and the gateway's test is
+    the TEXT (`"3116" in text`), so a value written as `0.311600` names it
+    too: refused before anything is sent."""
     if 3116 in values:
         raise ValueError("#3116 is never planted — its delivery is proven from the trace")
+    items = [f"#{k}={v:.6f}" for k, v in sorted(values.items())]
+    named = [item for item in items if "3116" in item]
+    if named:
+        raise ValueError(f"a line with these would name 3116 for the gateway: {named}")
     line = ""
-    for item in (f"#{k}={v:.6f}" for k, v in sorted(values.items())):
+    for item in items:
         if line and len(line) + 1 + len(item) > 200:
             _short(c, line)
             line = item
@@ -1463,9 +1469,15 @@ def probe_cases():
         shipped = _vars(c, PROBE_VARS)
         probe_vars = {**shipped, 3030: 0}
 
-        def probe_from(case, over):
+        def probe_from(case, over, plant=()):
+            # the position, the free override, THEN the plant and its
+            # read-back — no mdi between that read-back and the job (R381)
             _over_plate(c, plate, over)
             _override_free(c)
+            for line in plant:
+                _short(c, line)
+            if plant and _read_params(c, [5070])[5070] != 0:
+                raise Refused(f"{case}: #5070 not planted 0")
             before = _g54_z(c.status)
             r = _probe_job(c, case, "mdi", {"text": "O<probe_z_minus_wco> CALL",
                                             "vars": {str(k): v for k, v in probe_vars.items()}})
@@ -1481,14 +1493,10 @@ def probe_cases():
         rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit), r["start"]]
         if r["error"]:
             raise Refused(f"probe-z: {r['error']}")
-        _short(c, "G10 L2 P1 Z0")
         # a G38.2 ending without contact aborts the routine and leaves #5070
         # as the LAST probe wrote it — 1 from the hit (live run 2026-11-05):
         # planted 0 and read back, its read after the miss is evidence again
-        _short(c, "#5070=0")
-        if _read_params(c, [5070])[5070] != 0:
-            raise Refused("#5070 not planted 0 before the miss")
-        contact, before, after, r = probe_from("probe-z-miss", MISS_OVER)
+        contact, before, after, r = probe_from("probe-z-miss", MISS_OVER, plant=("G10 L2 P1 Z0", "#5070=0"))
         rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, r["errors"]))
         rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
         rows.append(r["start"])
