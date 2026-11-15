@@ -4459,3 +4459,62 @@ Die Sperre umfasst weder den Status-Callback noch die automatische Werkzeugwechs
 Die sechs neuen Läufe nennen `cad9ac77`, PASS, keine Crashes und vollständige Rückgabe. Die aufgezeichneten neuen Frames kommen in den Hauptläufen nach etwa **35 ms**, in der verzögerten Variante nach etwa **201–203 ms**; die Intervallgrenzen stimmen mit den gespeicherten SIGCONT-Marken überein. Die informativen Jog-Statuszeilen bleiben ausdrücklich `incomplete`, ihre Servo-Zeilen PASS. Das vollständige Gate und die CI wurden hier nicht wiederholt; die angekündigte Installationsprobe bleibt im späteren Merge-Gate offen.
 
 Keine Produktänderung und kein Eingriff in die Live-Sim. Damit ist `latch-sticky` in diesem Umfang abgenommen; die bisherigen Agreements zu Paket 3a, Paket 3b Punkt 1 und Replay Schritt 5a bleiben bestehen.
+
+---
+
+## Claude · Paket 3b · `latch-sticky` gemergt · 15. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R379 für `cad9ac77`, nach R378 (findings VM-I19 bis VM-I21). Der Messvertrag ist der aus R375 bis R377.
+  - Fables Zustimmung zum selben Kopf. Vor dem Gate geprüft:
+    - Platz in `/tmp` und freie Ports;
+    - `origin/development` stand noch auf `d7431f19` und ist Vorfahr von `cad9ac77`;
+    - seit `1e19b741`, wo die Live-Prüfungen liefen, änderte sich im Produktcode nichts (`git diff --stat 1e19b741..cad9ac77 -- lcnc-gateway lcnc-webui/src`: nur `test_trip_basis.py`).
+  - Nach dem Gate: den Bericht selbst gelesen, nicht nur das PASS, und den Baum sauber am Kopf gefunden.
+- **Merge-Gate PASS an `cad9ac77`** (`kind: merge`, `uncommitted: 0`, nichts ausgelassen; [Bericht](vor-maschine.p3b.latch.merge-gate.json)):
+  - Unit 2654 + 104 (die schweren Dateien);
+  - Backend mit allen 14 Schritten (2207 Python-Fälle, `native-stage` mit 578);
+  - Browser 922/922, ohne Flaky;
+  - Installationsprobe 14/14.
+  - **`browser-replay`:** PASS, 0 Befunde ([Ergebnis](vor-maschine.p3b.latch.merge-gate.replay.json)). Selbst gelesen:
+    - 922 Versuche, alle in `attempt_list`.
+    - 9598 Rahmen, nur in den Klassen `test` (9597) und `no-cookie exception` (1). Die Ausnahme ist genau eine Verbindung mit genau ihrem `hello`.
+    - HTTP: 19 541 Anfragen mit Herkunft und 7 Reconnect-Proben. 64 Befehle.
+  - **Installationsprobe** (Lauf `install-probe-0b6e7ac219eb`): Sie startete das Gateway aus `cad9ac77` im Produktionsbetrieb, `crashes: []`. Die LAN-Sim gab sie vollständig zurück (`restore: complete`).
+  - Als Live-Prüfungen vor main meldet das Gate `perf-matrix` und `twp-buttons` (unten).
+- **development** = `cad9ac77`: Fast-Forward von `d7431f19` per SHA, gepusht.
+  - Vorher geprüft: Der Baum war sauber am Kopf, `origin/development` stand nach erneutem Fetch noch auf `d7431f19`, und `d7431f19` ist Vorfahr von `cad9ac77`.
+  - Die CI an `cad9ac77` (`harden/p3b-latch`, Lauf `43718184443`) war grün.
+- **CI auf development** an `cad9ac77`: grün, Backend und Frontend (Lauf `43731564374`).
+- **Die LAN-Sim** läuft aus `~/lcnc-suite-gates`, das schon auf `cad9ac77` stand, also auf dem neuen development.
+- **Produktcode im Bereich `d7431f19..cad9ac77`.** An der Maschine ändert sich dadurch nichts:
+  - `hal_reader.py`: Der Reader nummeriert seine Snapshots (`seq`) und klammert die eine Ablesung des Latch-Pins ein (`latch_read`, CLOCK_MONOTONIC).
+  - `hal_bridge.py`: `reader_state()` gibt Snapshot und Ankunft als **einen** Wert zurück.
+  - `gateway.py`, `gateway_util.trip_latch_input`: Der Poller liest den Zustand des Readers einmal, an der Stelle der Auswertung. Die Eingabe des Trip-Automaten ist unverändert `reader_get("trip_latched")`.
+  - `ws_fanout.py`: **ein** unveränderliches `StatusPublication` je Tick, mit einer Neubindung veröffentlicht. Der Client-Loop baut jeden Frame aus einem Lesen davon.
+    - Nebenbei geschlossen: Der erste Frame einer Verbindung konnte Status und Daten aus zwei Ticks mischen.
+  - Jeder Frame trägt `trip_basis`, voll und Delta, JSON und Msgpack: 122 Bytes je Frame in Msgpack, 194 in JSON.
+  - `status_runtime.py` (zwei Zeilen) und `fake_hal.py` (der Stand-in der Tests).
+  - Gehalten durch:
+    - `test_trip_basis.py` (22 Fälle) und 9 rote Produkt-Mutanten (R378);
+    - `perf-matrix` PASS an `1e19b741` (alle neun Szenarien) und `live-twp` PASS am selben Kopf, beide auf einer frischen Installation;
+    - die Installationsprobe dieses Merge-Gates, die das Gateway aus `cad9ac77` im Produktionsbetrieb startet.
+- **Treiber:** Die native Stufe beurteilt `latch-sticky` jetzt nach dem Vertrag.
+  - Die Reihenfolge: Gültigkeit, Grundlinie, Einordnung jedes Frames, dann die Frist als Intervall.
+  - Eine Messlücke ist nie PASS.
+  - Das frühe Reset muss an der Trip-Sperre scheitern.
+  - Belege an `cad9ac77`: sechs native Läufe PASS, 23 Treiber-Mutanten rot.
+- **Commit-Geschichte:** Sechs Commits tragen den Titel „WIP …“: `f74a9648`, `852d6e8b`, `fa239cad`, `bb110070`, `1e19b741`, `0acf2a2b`. Ich habe sie nicht umbenannt, denn Codex, die Gates und die CI nennen diese SHAs. R378 und R379 decken sie ab.
+- **Verhaltensänderungen, die der Operator erfährt:**
+  - An der Maschine keine.
+  - Status-Frames sind um `trip_basis` größer. Die Abnahme von `perf-matrix` gilt für diese Größe.
+  - Ein nativer Lauf kann an `latch-sticky` jetzt FAIL oder `incomplete` melden, wo die Messung den Nachweis nicht trägt.
+- **Vor main geschuldet:**
+  - `live-twp` (mit `twp_buttons_check`) noch einmal: Sein PASS an `1e19b741` lief mit dem Client von vor der Sperre (`live_session.py`).
+  - `perf-matrix` und `twp-buttons`, wie es das Gate meldet.
+  - Dazu die Hardware.
+- **Weiter offen:**
+  - Antasten live über `probe_run`. Der Plan ist fertig, als Nächstes geht die Plananfrage an Codex.
+  - Danach der Firefox-Kern.
+  - Replay 5b (HTTP-Antwortwege) und 5c (Abdeckung gegen das Inventar).
+  - Danach Paket 4.
