@@ -4137,21 +4137,204 @@ def test_the_edge_is_the_outages_not_the_last_true_of_the_section():
     assert sc.eval_latch_same_cycle("latch-same-cycle", sec)["status"] == "PASS"
 
 
-REFUSED = {"ok": False, "error": "Safety trip not acknowledged"}
+REFUSED = {"ok": False, "error": "estop_reset refused: Acknowledge the safety trip first"}
+
+# ── the latch-sticky measurement contract (package 3b, Codex R375–R377) ────
+# A synthetic timeline: the stop at T_STOP, SIGCONT bracketed [S0, S1]; the
+# baseline read before the stop, the backlog read DURING the stop (latched
+# TRUE, old), then readings after SIGCONT (new). Each frame (receipt,
+# trip_basis, safety_trip).
+EP, T_STOP, S0, S1 = "e1", 9.0, 10.00, 10.01
+TRIP = {"ts": 1, "id": "e1-1"}
+
+
+def _tb(read, latched=True, seq=1, arrival=None, t_pub=None, gen=1, epoch=EP, stale=False):
+    arrival = read[1] + 0.001 if arrival is None else arrival
+    t_pub = arrival + 0.001 if t_pub is None else t_pub
+    return {"gen": gen, "epoch": epoch, "latched": latched, "reader_seq": seq, "read": list(read),
+            "arrival": arrival, "stale": stale, "t_pub": t_pub}
+
+
+def _base(seq=1):
+    return (8.90, _tb([8.85, 8.851], latched=False, seq=seq, gen=seq), None)
+
+
+def _old(k=0, latched=True, trip=TRIP, read=None):
+    r = 9.5 + k * 0.03 if read is None else read
+    return (10.02 + k * 0.001, _tb([r, r + 0.001], latched=latched, seq=2 + k, arrival=10.012, t_pub=10.015,
+                                  gen=2 + k), trip)
+
+
+def _new(k=0, trip=TRIP, **kw):
+    r = 10.05 + k * 0.03
+    return (10.10 + k * 0.03, _tb([r, r + 0.001], seq=10 + k, gen=10 + k, **kw), trip)
+
+
+GOOD = [_base(), _old(0), _old(1), _new(0), _new(1)]
+
+
+def _sticky(frames, reply=REFUSED, sec=None, sigcont=(S0, S1), t_stop=T_STOP, epoch=EP):
+    return sc.eval_latch_sticky("latch-sticky", sec or _latch(), reply, frames, list(sigcont) if sigcont else None,
+                                t_stop, epoch)
 
 
 @pytest.mark.parametrize("sec, reply, frames, status, part", [
-    (_latch(), REFUSED, [{"ts": 1}] * 3, "PASS", "stayed TRUE"),
-    (_latch(release_at=60), REFUSED, [{"ts": 1}] * 3, "FAIL", "released before the reset"),
-    (_latch(), {"ok": True}, [{"ts": 1}] * 3, "FAIL", "accepted before"),
-    (_latch(resume=False), REFUSED, [{"ts": 1}] * 3, "incomplete", "did not return"),
-    (_latch(), REFUSED, [], "incomplete", "no frame"),
-    (_latch(), REFUSED, [{"ts": 1}, None], "FAIL", "no unacknowledged trip"),
-    (_latch(), None, [{"ts": 1}], "incomplete", "not asked"),
+    (_latch(), REFUSED, GOOD, "PASS", "stayed TRUE"),
+    (_latch(release_at=60), REFUSED, GOOD, "FAIL", "released before the reset"),
+    (_latch(), {"ok": True}, GOOD, "FAIL", "accepted before"),
+    (_latch(resume=False), REFUSED, GOOD, "incomplete", "did not return"),
+    (_latch(), REFUSED, [], "incomplete", "no baseline"),
+    (_latch(), REFUSED, [_base(), _old(0), _new(0, trip=None)], "FAIL", "no safety_trip after the resume"),
+    (_latch(), None, GOOD, "incomplete", "not asked"),
+    (_latch(), {"ok": False, "error": "Not armed — press Arm"}, GOOD, "incomplete", "another reason"),
 ])
 def test_the_latch_stays_through_the_resume_and_the_early_reset(sec, reply, frames, status, part):
-    r = sc.eval_latch_sticky("latch-sticky", sec, reply, frames)
+    r = _sticky(frames, reply, sec)
     assert r["status"] == status and part in r["detail"], r
+
+
+def test_good_frames_pass_with_their_numbers():
+    r = _sticky(GOOD)
+    assert r["status"] == "PASS", r
+    assert (r["old"], r["border"], r["new"], r["gaps"], r["old_latched"]) == (2, 0, 2, 0, 2)
+    assert r["first_new_delay_s"] == [pytest.approx(10.053 - S1), pytest.approx(10.10 - S0)]
+    assert r["baseline_age_s"] == [pytest.approx(8.90 - 8.851), pytest.approx(8.90 - 8.85)]
+    assert r["sigcont_width_s"] == pytest.approx(S1 - S0) and len(r["frame_list"]) == 5
+
+
+def test_c1_a_stop_during_the_client_build_old_frame_without_trip_is_excused():
+    """C1: a frame built from a reading before the stop, latched FALSE, without
+    the trip, arriving after SIGCONT — old, excused; the new ones show it."""
+    stale_build = (10.02, _tb([8.95, 8.951], latched=False, seq=2, arrival=8.96, t_pub=10.015, gen=5), None)
+    r = _sticky([_base(), stale_build, _new(0), _new(1)])
+    assert r["status"] == "PASS" and r["old"] == 1, r
+
+
+def test_c2_a_tick_published_after_the_stop_with_an_old_reading_is_never_new():
+    """C2: the stop fell between the latch read and the publication — a gen
+    above every one before, the reading old: old, never qualifying."""
+    late_pub = (10.02, _tb([8.95, 8.951], latched=False, seq=2, arrival=8.96, t_pub=10.012, gen=99), None)
+    r = _sticky([_base(), late_pub])
+    assert r["status"] == "incomplete" and r["new"] == 0 and r["old"] == 1, r
+    assert "no proven-new frame" in r["detail"]
+
+
+def test_c3_an_old_reader_cache_in_a_later_tick_stays_old():
+    """C3: a later tick evaluating the SAME snapshot (reader_seq unchanged)."""
+    a = _old(0)
+    again = (10.05, {**a[1], "gen": 50, "t_pub": 10.045}, TRIP)
+    r = _sticky([_base(), a, again, _new(0)])
+    assert r["status"] == "PASS" and r["old"] == 2, r
+
+
+def test_c4_the_first_new_frame_without_the_trip_fails():
+    r = _sticky([_base(), _old(0), _new(0, trip=None), _new(1)])
+    assert r["status"] == "FAIL" and "frame 2 (new)" in r["detail"], r
+
+
+def test_c5_no_new_frame_is_incomplete_and_a_late_old_one_proves_the_overrun():
+    r = _sticky([_base(), _old(0)])
+    assert r["status"] == "incomplete" and "no proven-new frame" in r["detail"], r
+    late = (11.30, _tb([9.9, 9.901], seq=3, arrival=11.0, t_pub=S1 + 1.2, gen=40), TRIP)
+    r = _sticky([_base(), _old(0), late])
+    assert r["status"] == "FAIL" and "without a fresh reading" in r["detail"], r
+
+
+def test_an_old_backlog_frame_latched_true_without_the_trip_fails():
+    """The invariant over every frame: an evaluated TRUE must show the trip,
+    old or new — the backlog read during the stop included."""
+    r = _sticky([_base(), _old(0, trip=None), _new(0)])
+    assert r["status"] == "FAIL" and "frame 1 (old): latched TRUE evaluated" in r["detail"], r
+
+
+def test_codex_s_border_example_is_never_old():
+    """R375: the read began at 10.00 — before SIGCONT [10.10; 10.11] — and
+    ended at 10.25: a border frame, never old; alone it is no fresh proof."""
+    border = (10.30, _tb([10.00, 10.25], seq=3, arrival=10.26, t_pub=10.27, gen=3), TRIP)
+    late_new = (10.40, _tb([10.31, 10.311], seq=4, gen=4), TRIP)
+    r = _sticky([_base(), border, late_new], sigcont=(10.10, 10.11))
+    assert r["status"] == "PASS" and (r["border"], r["new"]) == (1, 1), r
+    r = _sticky([_base(), border], sigcont=(10.10, 10.11))
+    assert r["status"] == "incomplete" and r["border"] == 1, r
+
+
+def test_codex_s_deadline_example_is_unproven():
+    """R376: SIGCONT [10.00; 10.40], read [10.41; 10.42], arrival 10.43,
+    t_pub 10.60, receipt 11.20 — the delay lies in 0.20–1.20 s: unproven."""
+    f = (11.20, _tb([10.41, 10.42], seq=5, arrival=10.43, t_pub=10.60, gen=5), TRIP)
+    r = _sticky([_base(), f], sigcont=(10.00, 10.40))
+    assert r["status"] == "incomplete" and "deadline unproven" in r["detail"], r
+    assert r["first_new_delay_s"] == [pytest.approx(0.20), pytest.approx(1.20)]
+
+
+def test_a_new_frame_published_past_the_deadline_fails_and_a_gap_before_it_leaves_it_unproven():
+    late_new = (11.40, _tb([11.20, 11.201], seq=5, arrival=11.21, t_pub=S1 + 1.3, gen=5), TRIP)
+    r = _sticky([_base(), _old(0), late_new])
+    assert r["status"] == "FAIL" and "published 1.300 s after SIGCONT" in r["detail"], r
+    gap = (10.5, None, TRIP)
+    r = _sticky([_base(), _old(0), gap, late_new])
+    assert r["status"] == "incomplete" and "a gap before it" in r["detail"], r
+
+
+@pytest.mark.parametrize("bad, why", [
+    ((10.08, None, TRIP), "no trip_basis"),
+    ((10.08, _tb([10.05, 10.051], seq=10, epoch="other"), TRIP), "not the run's"),
+    ((10.08, _tb([10.05, 10.051], seq=10, latched=None), TRIP), "no boolean"),
+    ((10.08, {**_tb([10.05, 10.051], seq=10), "latched": "true"}, TRIP), "no boolean"),
+    ((10.08, _tb([10.05, 10.051], seq=10, stale=True), TRIP), "stale"),
+    ((10.40, _tb([1000.0, 1000.001], seq=10), TRIP), "not in order"),
+    ((10.08, {**_tb([10.05, 10.051], seq=10), "read": None}, TRIP), "no bracketed latch read"),
+    ((10.08, {**_tb([10.05, 10.051], seq=10), "gen": True}, TRIP), "gen is no integer"),
+    ((10.08, _tb([10.05, 10.051], seq=0), TRIP), "reader_seq fell"),
+])
+def test_a_measurement_gap_is_named_and_never_a_pass(bad, why):
+    r = _sticky([_base(), _old(0), bad, _new(0)])
+    assert r["status"] == "incomplete" and "measurement gap" in r["detail"], r
+    assert any(why in g for g in r["gap_list"]), r["gap_list"]
+
+
+def test_new_frames_without_a_boolean_latch_value_are_no_proof():
+    """R377 rest B: after a valid baseline only frames with latched null and
+    the trip shown — incomplete, not PASS."""
+    nulls = [(10.10 + k * 0.03, _tb([10.05 + k * 0.03, 10.051 + k * 0.03], latched=None, seq=10 + k), TRIP)
+             for k in range(3)]
+    r = _sticky([_base()] + nulls)
+    assert r["status"] == "incomplete" and r["new"] == 0, r
+
+
+def test_a_gap_beside_a_proven_failure_keeps_the_fail_and_names_the_gap():
+    wrong_time = (10.40, _tb([1000.0, 1000.001], seq=10), TRIP)
+    r = _sticky([_base(), wrong_time, _new(1, trip=None)])
+    assert r["status"] == "FAIL" and "measurement gap" in r["detail"], r
+
+
+def test_a_frame_without_provenance_between_two_good_new_ones_is_not_excused():
+    r = _sticky([_base(), _new(0), (10.11, None, TRIP), _new(1)])
+    assert r["status"] == "incomplete", r
+
+
+@pytest.mark.parametrize("read, ok", [([9.00, 9.80], False), ([9.79, 9.80], True)])
+def test_the_baseline_s_largest_possible_age_decides(read, ok):
+    """R376 rest A: a bracket [9.00; 9.80] received at 10.00 may be 1.00 s
+    old — no baseline; [9.79; 9.80] at most 0.21 s — a baseline."""
+    base = (10.00, _tb(read, latched=False, seq=1), None)
+    later = [(11.05, _tb([11.02, 11.021], seq=10, gen=10), TRIP)]
+    r = _sticky([base] + later, sigcont=(11.00, 11.01), t_stop=10.5)
+    assert (r["status"] == "PASS") is ok, r
+    if not ok:
+        assert "no baseline" in r["detail"]
+    assert r["baseline_age_s" if ok else "frames"] is not None
+
+
+def test_the_classification_never_depends_on_the_trip_value():
+    flip = [(t, tb, None if tr else TRIP) for t, tb, tr in GOOD]
+    a, b = _sticky(GOOD), _sticky(flip)
+    assert [a[k] for k in ("old", "border", "new", "gaps")] == [b[k] for k in ("old", "border", "new", "gaps")]
+
+
+def test_no_sigcont_bracket_is_incomplete():
+    r = _sticky(GOOD, sigcont=None)
+    assert r["status"] == "incomplete" and "no SIGCONT bracket" in r["detail"], r
 
 
 def _recovery(cleared_at=10, again_at=None, n=40):
@@ -4202,6 +4385,22 @@ def test_a_stopped_process_is_continued_only_as_itself(now, signalled, outcome):
     assert (sent == [(4242, signal.SIGCONT)]) is signalled and outcome in out and state["stopped"] == []
 
 
+def test_the_sigcont_is_bracketed_right_around_the_signal_and_saved_with_it():
+    """The latch-sticky contract (R370 3, R375): the bracket is the kill's own
+    — one stamp right before, one right after — and is on disk with the
+    `continued` entry; a process not signalled gets none."""
+    import signal
+    clock, events = iter([10.0, 10.5]), []
+    state = {"stopped": [{"pid": 4242, "start": 77, "what": "gateway"}]}
+    tp.cont(state, lambda s: events.append(("save", [dict(e) for e in s["continued"]])), state["stopped"][0],
+            kill=lambda pid, sig: events.append(("kill", sig)), ticks=lambda pid: 77, clock=lambda: next(clock))
+    assert events[0] == ("kill", signal.SIGCONT)
+    assert events[1][1][-1]["sigcont"] == [10.0, 10.5]
+    state2 = {"stopped": [{"pid": 4242, "start": 77, "what": "gateway"}]}
+    tp.cont(state2, lambda s: None, state2["stopped"][0], kill=lambda *a: None, ticks=lambda pid: 78)
+    assert "sigcont" not in state2["continued"][-1]
+
+
 def test_the_restore_continues_the_recorded_stops_before_it_ends_the_test_instance(monkeypatch):
     """ExecStopPost's path: a stopped gateway still itself gets its SIGCONT, a
     record whose pid is now another process gets none — both before the
@@ -4237,28 +4436,53 @@ def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, clear, latched
 
 
 class LatchClient(FrameClient):
-    """The latch step against a scripted gateway: after the gateway is
-    continued, frames with the waiting trip; estop_reset refused while it
-    waits (or `early_reset`: accepted); the acknowledgement clears it."""
+    """The latch step against a scripted gateway that ticks on its own (every
+    10 ms, each frame with its trip_basis — the latch-sticky contract): before
+    the stop the latch reads FALSE; the stop pauses it; the continue (bracketed)
+    resumes it with the latch TRUE and the waiting trip shown; estop_reset
+    refused by the trip gate while it waits (or `early_reset`: accepted); the
+    acknowledgement clears it. `hide`: frames after the continue show no trip."""
 
-    def __init__(self, early_reset=False, trip_before=None):
+    def __init__(self, early_reset=False, trip_before=None, hide=False):
+        import threading
         super().__init__([(time.monotonic(), {**_IDLE, "is_estop": True, "is_enabled": False})])
-        self.trip_history = [(time.monotonic(), trip_before)]
-        self.safety_trip, self.early_reset, self.acked = trip_before, early_reset, False
+        self.trip_history, self.basis_history = [(time.monotonic(), trip_before)], []
+        self.safety_trip, self.early_reset, self.acked, self.hide = trip_before, early_reset, False, hide
+        self.trip_value = trip_before or {"ts": 1, "id": "e1-1"}     # the trip carries its id (package 3a)
+        self.latched, self.paused, self.seq, self.gen = bool(trip_before), False, 0, 0
+        self.lock = threading.Lock()
+        self.until = time.monotonic() + 20
+        threading.Thread(target=self._ticks, daemon=True).start()
+
+    def _ticks(self):
+        while time.monotonic() < self.until:
+            if not self.paused:
+                self.frame()
+            time.sleep(0.01)
 
     def frame(self, **st):
-        t = time.monotonic()
-        self.frames.append((t, {**self.status, **st}))
-        trip = None if self.acked else {"ts": 1, "id": "e1-1"}    # the trip carries its id (package 3a)
-        self.trip_history.append((t, trip))
-        self.safety_trip = trip
+        with self.lock:
+            r0 = time.monotonic()
+            latched = self.latched
+            r1 = time.monotonic()
+            self.seq += 1
+            self.gen += 1
+            arrival = time.monotonic()
+            tb = {"gen": self.gen, "epoch": "e1", "latched": latched, "reader_seq": self.seq, "read": [r0, r1],
+                  "arrival": arrival, "stale": False, "t_pub": time.monotonic()}
+            trip = self.trip_value if latched and not self.acked and not self.hide else None
+            t = time.monotonic()
+            self.frames.append((t, {**self.status, **st}))
+            self.trip_history.append((t, trip))
+            self.basis_history.append((t, tb, trip))
+            self.safety_trip = trip
 
     def request(self, cmd, **kw):
         from test_support.live_session import Refused as SessionRefused
         self.sent.append((cmd, kw))
         if cmd == "estop_reset":
             if not self.acked and not self.early_reset:
-                raise SessionRefused("Safety trip not acknowledged — press Acknowledge")
+                raise SessionRefused("estop_reset refused: Acknowledge the safety trip first")
             self.frame(is_estop=False)
         elif cmd == "safety_trip_ack":
             # only the current trip's id acknowledges it (package 3a, Q363-2)
@@ -4283,21 +4507,24 @@ def _latch_step(tmp_path, monkeypatch, client, sections, own_instance=True):
             return ("linuxcncsvr", 100, 5000) if own_instance or Host.n == 1 else ("linuxcncsvr", 101, 5001)
     monkeypatch.setattr(sh_mod, "SystemHost", Host)
     monkeypatch.setattr(nr, "_gateway_pid", lambda ctx: 4242)
-    monkeypatch.setattr(nr, "LATCH_STOP_S", 0.0)
-    monkeypatch.setattr(nr, "LATCH_POST_S", 0.0)
+    monkeypatch.setattr(nr, "LATCH_STOP_S", 0.05)
+    monkeypatch.setattr(nr, "LATCH_POST_S", 0.1)
     monkeypatch.setattr(nr, "RECOVERY_POST_S", 0.0)
 
     def stop(state, save, pid, what, **kw):
         stops.append(("stop", pid))
+        client.paused = True
         rec = {"pid": pid, "start": 1, "what": what}
         state.setdefault("stopped", []).append(rec)
         return rec
 
     def cont(state, save, rec, **kw):
         stops.append(("cont", rec["pid"]))
+        client.latched = True                      # the latch tripped while the gateway stood
+        t0 = time.monotonic()
+        client.paused = False
         state["stopped"] = []
-        import threading
-        threading.Timer(0.02, client.frame).start()   # the gateway answers again, after the continue
+        state.setdefault("continued", []).append({**rec, "outcome": "continued", "sigcont": [t0, time.monotonic()]})
         return "continued"
     monkeypatch.setattr(tp, "stop", stop)
     monkeypatch.setattr(tp, "cont", cont)
@@ -4346,6 +4573,62 @@ def test_an_early_reset_accepted_fails_the_sticky_row(tmp_path, monkeypatch):
     ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
     by = {r["case"]: r for r in nr.latch_cases()[1](ctx)}
     assert by["latch-sticky"]["status"] == "FAIL" and "accepted" in by["latch-sticky"]["detail"]
+
+
+def test_the_sticky_row_is_judged_over_every_frame_before_the_acknowledgement(tmp_path, monkeypatch):
+    """R375 VM375-03: the section runs to right before the acknowledgement —
+    no frame between the post-observation and the ack is left unjudged, no
+    frame after it counts."""
+    c = LatchClient()
+    sent_at = {}
+    real = c.request
+
+    def request(cmd, **kw):
+        if cmd == "safety_trip_ack":
+            sent_at["ack"] = time.monotonic()
+        return real(cmd, **kw)
+    c.request = request
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    rows = nr.latch_cases()[1](ctx)
+    sticky = next(r for r in rows if r["case"] == "latch-sticky")
+    assert sticky["status"] == "PASS", sticky
+    last = sticky["frame_list"][-1][0]
+    assert last < sent_at["ack"], "no frame after the acknowledgement"
+    before_ack = [t for t, _tb, _tr in c.basis_history if t < sent_at["ack"] and t >= sticky["frame_list"][0][0]]
+    assert len(sticky["frame_list"]) >= len(before_ack) - 1, "every frame up to the stamp right before the ack"
+    assert [r["case"] for r in rows] == ["latch-same-cycle", "latch-sticky", "latch-recovered"]
+
+
+def test_a_trip_shown_by_no_frame_fails_the_display(tmp_path, monkeypatch):
+    c = LatchClient(hide=True)
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    real_wait = nr._wait
+    monkeypatch.setattr(nr, "_wait", lambda cl, pred, t, what: real_wait(cl, pred, 0.5, what))
+    with pytest.raises(RuntimeError, match="trip's id"):
+        nr.latch_cases()[1](ctx)
+    sticky = next(r for r in ctx["rows"] if r["case"] == "latch-sticky")
+    assert sticky["status"] == "FAIL" and "no safety_trip after the resume" in sticky["detail"], sticky
+
+
+def test_the_row_is_formed_where_the_section_ends_without_an_acknowledgement(tmp_path, monkeypatch):
+    """Not the run's own trip: the section ends at that decision, its row is
+    there; and an outage whose gateway never answers again forms it too."""
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()], own_instance=False)
+    with pytest.raises(nr.StepFailed, match="not proven the run's own"):
+        nr.latch_cases()[1](ctx)
+    assert "latch-sticky" in [r["case"] for r in ctx["rows"]]
+    assert "safety_trip_ack" not in [cmd for cmd, _ in c.sent]
+    c2 = LatchClient()
+    ctx2, _ = _latch_step(tmp_path, monkeypatch, c2, [_latch(after=200), _recovery()])
+    # the gateway never answers again: the continue does not resume the ticks
+    monkeypatch.setattr(tp, "cont", lambda state, save, rec, **kw: state.setdefault("continued", []).append(
+        {**rec, "outcome": "continued", "sigcont": [time.monotonic(), time.monotonic()]}) or "continued")
+    monkeypatch.setattr(nr, "LATCH_RESUME_WAIT_S", 0.3)
+    with pytest.raises(nr.Refused, match="no status frame after the gateway was continued"):
+        nr.latch_cases()[1](ctx2)
+    sticky = next(r for r in ctx2["rows"] if r["case"] == "latch-sticky")
+    assert sticky["status"] == "incomplete", sticky
 
 
 def test_the_delayed_order_is_moved_through_the_gate_and_read_back():
@@ -4782,8 +5065,7 @@ def test_a_known_failure_comes_before_a_missing_proof():
     r = sc.eval_disconnect("disconnect-close", {**_disc(), "t0_ns": None}, W_MARK, EVENT,
                            [(1.0, {"interp_state": 1, "task_mode": 2})], lines)
     assert r["status"] == "FAIL" and "saw the program stop" in r["detail"], r
-    r = sc.eval_latch_sticky("latch-sticky", {**_latch(release_at=60), "problems": ["the end's integrity not read"]},
-                             REFUSED, [{"ts": 1}])
+    r = _sticky(GOOD, REFUSED, {**_latch(release_at=60), "problems": ["the end's integrity not read"]})
     assert r["status"] == "FAIL" and "released" in r["detail"], r
     r = sc.eval_latch_recovered("latch-recovered", {**_recovery(again_at=30), "problems": ["the end's integrity "
                                                                                            "not read"]},
@@ -4837,8 +5119,8 @@ def test_a_failure_proven_on_its_own_survives_another_missing_proof():
         assert r["status"] == "FAIL" and "at least" in r["detail"], r
     flawed = ["the end's integrity not read: overruns"]
     for problems in ([], flawed):
-        r = sc.eval_latch_sticky("latch-sticky", {**_latch(), "problems": problems}, REFUSED, [{"ts": 1}, None])
-        assert r["status"] == "FAIL" and "no unacknowledged trip" in r["detail"], (problems, r)
+        r = _sticky([_base(), _old(0), _new(0, trip=None)], REFUSED, {**_latch(), "problems": problems})
+        assert r["status"] == "FAIL" and "no safety_trip after the resume" in r["detail"], (problems, r)
         r = sc.eval_latch_recovered("latch-recovered", {**_recovery(), "problems": problems},
                                     [({"ts": 1}, False, True)])
         assert r["status"] == "FAIL" and "not clear" in r["detail"], (problems, r)

@@ -170,6 +170,8 @@ TS_DEADLINE = 240.0
 #: past the 0.5 s oneshot budget, then the post window; the recovery's own
 #: post window. A variant is a run of its own — one instance each (R313 point 2)
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
+#: how long the latch step waits for the first frame after the continue
+LATCH_RESUME_WAIT_S = 10.0
 VARIANTS = ("latch-delayed",)
 #: step 3, the disconnect (SYS-CONN.S4): X back and forth at F6000 in the
 #: machine frame (~20 s); a helper client A in its own process starts it and
@@ -2265,40 +2267,82 @@ def latch_cases(variant=None):
             raise Refused(f"a trip waits before the latch case ({before_trip}) — never acknowledged")
         inst_before = list((sh.unit_instance(unit) or ())[1:])
         pid = _gateway_pid(ctx)
-        reset_reply, trip_frames = None, []
-        with _section(ctx, "latch-outage") as box:
-            rec = tp.stop(state, save, pid, "the test instance's gateway")
-            try:
-                time.sleep(LATCH_STOP_S)
-            finally:
-                tp.cont(state, save, rec)
-            t_cont = time.monotonic()
-            end = t_cont + 10
-            while not any(t > t_cont for t, _ in c.trip_history[-20:]):
-                if time.monotonic() > end:
-                    raise Refused("no status frame after the gateway was continued")
-                time.sleep(0.05)
-            try:
-                reset_reply = c.request("estop_reset")
-            except SessionRefused as e:
-                reset_reply = {"ok": False, "error": str(e)}
-            time.sleep(LATCH_POST_S)
-            trip_frames = [tr for t, tr in c.trip_history if t > t_cont]
-        sec = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
-        same = sc.eval_latch_same_cycle("latch-same-cycle.delayed-order" if delayed else "latch-same-cycle", sec,
+        reset_reply = None
+        # The section the display is judged over (the latch-sticky contract,
+        # Codex R375–R377): from a frame received NOW, before the stop — the
+        # baseline candidate — to right before the acknowledgement is sent.
+        i_b = len(c.basis_history)
+        end = time.monotonic() + 5
+        while len(c.basis_history) <= i_b:
+            if time.monotonic() > end:
+                raise Refused("no status frame before the stop — no baseline for the display")
+            time.sleep(0.02)
+        t_stop, sigcont, sec_out, sticky = None, None, {"samples": [], "problems": ["no outage section"]}, {}
+
+        def form_sticky():
+            """The latch-sticky row over every frame received before NOW: called
+            right before the acknowledgement is sent, or where the section ends
+            without one (the trip not proven the run's own, the trip's id never
+            shown). The run's epoch: the last trip_basis received before the stop."""
+            if "row" in sticky:
+                return
+            t_end = time.monotonic()
+            frames = [f for f in c.basis_history[i_b:] if f[0] < t_end]
+            before = t_stop if t_stop is not None else float("-inf")
+            pre = [tb for t, tb, _ in frames if t < before and isinstance(tb, dict)]
+            epoch = pre[-1].get("epoch") if pre else None
+            sticky["row"] = tag(sc.eval_latch_sticky("latch-sticky", sec_out, reset_reply, frames, sigcont,
+                                                     before, epoch))
+            rows.append(sticky["row"])
+        held: dict = {}
+        try:
+            with _section(ctx, "latch-outage") as box:
+                held["box"] = box
+                t_stop = time.monotonic()
+                rec = tp.stop(state, save, pid, "the test instance's gateway")
+                try:
+                    time.sleep(LATCH_STOP_S)
+                finally:
+                    tp.cont(state, save, rec)
+                    sigcont = (state.get("continued") or [{}])[-1].get("sigcont")
+                t_cont = time.monotonic()
+                end = t_cont + LATCH_RESUME_WAIT_S
+                # the early reset is asked after the FIRST frame received after the
+                # continue, whatever its provenance or trip — never after a
+                # successful display (R370 4)
+                while not any(t > t_cont for t, _tb, _tr in c.basis_history[-20:]):
+                    if time.monotonic() > end:
+                        raise Refused("no status frame after the gateway was continued")
+                    time.sleep(0.05)
+                try:
+                    reset_reply = c.request("estop_reset")
+                except SessionRefused as e:
+                    reset_reply = {"ok": False, "error": str(e)}
+                time.sleep(LATCH_POST_S)
+        except BaseException:
+            # the section ended here, without an acknowledgement: its row too
+            sec_out = (held.get("box") or {}).get("section") or sec_out
+            form_sticky()
+            raise
+        sec_out = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
+        same = sc.eval_latch_same_cycle("latch-same-cycle.delayed-order" if delayed else "latch-same-cycle", sec_out,
                                         delayed=delayed)
-        rows += [tag(same), tag(sc.eval_latch_sticky("latch-sticky", sec, reset_reply, trip_frames))]
+        rows.append(tag(same))
         _servo_failed(box, rows, "the latch outage")
         why = tp.own_trip(before_trip, same.get("edge_index"), same.get("latch_clear_before"),
                           same.get("latched_after"), same.get("section_complete"), inst_before,
                           list((sh.unit_instance(unit) or ())[1:]))
         if why:
+            form_sticky()
             raise StepFailed(rows, f"the trip is not proven the run's own: {why} — not acknowledged")
         with _section(ctx, "latch-recovery") as box:
             i_f, i_t = len(c.frames), len(c.trip_history)
-            # the acknowledgement names ITS trip (package 3a, Codex R363 Q363-2)
-            _wait(c, lambda s: isinstance(c.safety_trip, dict) and bool(c.safety_trip.get("id")), 10,
-                  "the trip's id in the status")
+            try:
+                # the acknowledgement names ITS trip (package 3a, Codex R363 Q363-2)
+                _wait(c, lambda s: isinstance(c.safety_trip, dict) and bool(c.safety_trip.get("id")), 10,
+                      "the trip's id in the status")
+            finally:
+                form_sticky()      # right before the acknowledgement is sent
             c.request("safety_trip_ack", id=c.safety_trip["id"])
             c.request("arm", armed=True)
             c.request("estop_reset")

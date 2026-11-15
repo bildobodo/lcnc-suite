@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import signal
+import time
 from pathlib import Path
 
 from test_support.restore_lan import continue_stopped  # noqa: F401 — the one SIGCONT path
@@ -39,14 +40,21 @@ def stop(state: dict, save, pid: int, what: str, kill=os.kill, ticks=start_ticks
     return rec
 
 
-def cont(state: dict, save, rec: dict, kill=os.kill, ticks=start_ticks) -> str:
-    """SIGCONT the recorded process only if it is still the same one."""
+def cont(state: dict, save, rec: dict, kill=os.kill, ticks=start_ticks, clock=time.monotonic) -> str:
+    """SIGCONT the recorded process only if it is still the same one. The
+    signal is BRACKETED on CLOCK_MONOTONIC (`sigcont`: [right before, right
+    after] the kill, in the `continued` entry, before state.json is written —
+    the latch-sticky contract, Codex R370 3 / R375): a reading whose end lies
+    before it is old, one whose start lies after it is new."""
     same = ticks(rec["pid"]) == rec["start"]
+    bracket = None
     if same:
+        t0 = clock()
         kill(rec["pid"], signal.SIGCONT)
+        bracket = [t0, clock()]
     state["stopped"] = [r for r in state.get("stopped", []) if r != rec]
     outcome = "continued" if same else "gone or another process — no signal"
-    state.setdefault("continued", []).append({**rec, "outcome": outcome})
+    state.setdefault("continued", []).append({**rec, "outcome": outcome, **({"sigcont": bracket} if bracket else {})})
     save(state)
     return outcome
 

@@ -65,6 +65,11 @@ class SimulatorClient:
         # it waits (sparse: absent = none) — kept per frame (step 3)
         self.safety_trip = None
         self.trip_history: list = []      # (monotonic s, safety_trip or None) per status frame
+        # (receipt, trip_basis or None, safety_trip or None) per status frame —
+        # the latch-sticky contract's record (package 3b, Codex R375–R377): the
+        # receipt is taken when this thread takes the frame, never before its
+        # arrival (an upper bound of it)
+        self.basis_history: list = []
         # each settings section's revision as the gateway last sent it
         # (settings_init after every hello, settings_changed on a change):
         # a save names the revision it was made on (settings split), as the
@@ -142,6 +147,7 @@ class SimulatorClient:
                 self.preview_origin = msg["preview_origin"]
             self.safety_trip = msg.get("safety_trip")
             self.trip_history.append((now, self.safety_trip))
+            self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))
             if isinstance(msg.get("toolsetter_booking"), dict):
                 self.toolsetter_booking = msg["toolsetter_booking"]
                 self.booking_history.append((now, msg["toolsetter_booking"]))

@@ -430,38 +430,175 @@ def eval_latch_same_cycle(case: str, sec: dict, delayed: bool = False) -> dict:
                 **measured)
 
 
-def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
+#: The latch-sticky measurement contract (package 3b, Codex R375–R377): the
+#: first PROVEN-NEW frame within this many seconds of SIGCONT (an interval:
+#: its upper bound ≤ this proves it, its lower bound > this proves the overrun)
+LATCH_DEADLINE_S = 1.0
+#: the baseline's largest possible age at its receipt (receipt − read0)
+LATCH_BASELINE_MAX_S = 0.5
+#: the early reset's refusal must name the trip gate — any other refusal
+#: ("Not armed") says nothing about it
+TRIP_GATE_REASON = "Acknowledge the safety trip first"
+
+
+def _finite(*xs) -> bool:
+    return all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) for x in xs)
+
+
+def latch_frame_validity(frames, epoch) -> list:
+    """Step 1: each frame (receipt, trip_basis, safety_trip) → None when valid,
+    else why it is a MEASUREMENT GAP: trip_basis of the run's epoch, `latched`
+    a boolean, the latch read [r0 ≤ r1], arrival, t_pub and gen of their form,
+    `reader_seq` an integer never falling over the valid frames, r1 ≤ arrival
+    ≤ t_pub ≤ receipt (one monotonic clock on one host), not stale."""
+    out, last_seq = [], None
+    for receipt, tb, _trip in frames:
+        why = None
+        if not isinstance(tb, dict):
+            why = "no trip_basis"
+        elif epoch is None or tb.get("epoch") != epoch:
+            why = f"epoch {str(tb.get('epoch'))[:20]!r}, not the run's"
+        elif not isinstance(tb.get("latched"), bool):
+            why = f"latched {tb.get('latched')!r} is no boolean"
+        else:
+            rd = tb.get("read")
+            seq, gen = tb.get("reader_seq"), tb.get("gen")
+            if not (isinstance(rd, (list, tuple)) and len(rd) == 2 and _finite(*rd) and rd[0] <= rd[1]):
+                why = "no bracketed latch read"
+            elif not _finite(tb.get("arrival"), tb.get("t_pub"), receipt):
+                why = "arrival, t_pub or receipt not finite"
+            elif not (isinstance(gen, int) and not isinstance(gen, bool)):
+                why = "gen is no integer"
+            elif not (isinstance(seq, int) and not isinstance(seq, bool)):
+                why = "reader_seq is no integer"
+            elif last_seq is not None and seq < last_seq:
+                why = f"reader_seq fell ({last_seq} → {seq})"
+            elif not (rd[1] <= tb["arrival"] <= tb["t_pub"] <= receipt):
+                why = "the times are not in order (read ≤ arrival ≤ t_pub ≤ receipt)"
+            elif tb.get("stale") is not False:
+                why = "the reader's snapshot was stale"
+        if why is None:
+            last_seq = tb["reader_seq"]
+        out.append(why)
+    return out
+
+
+def judge_latch_frames(frames, sigcont, t_stop, epoch) -> dict:
+    """Steps 2–4 of the contract over the frames of the section (baseline to
+    right before the acknowledgement): validity, the baseline, old / border /
+    new by the latch read against the SIGCONT bracket, then the verdict of
+    the display: `fails` (proven), `gaps` and `incomplete` (unproven), and
+    the measured numbers."""
+    m = {"frames": len(frames)}
+    if not (isinstance(sigcont, (list, tuple)) and len(sigcont) == 2 and _finite(*sigcont)
+            and sigcont[0] <= sigcont[1]):
+        return {"fails": [], "gaps": [], "incomplete": ["no SIGCONT bracket — the process was not continued"],
+                "measured": m}
+    s0, s1 = sigcont
+    m["sigcont_width_s"] = round(s1 - s0, 6)
+    valid = latch_frame_validity(frames, epoch)
+    gaps = [f"frame {i}: {why}" for i, why in enumerate(valid) if why]
+    fails, incomplete = [], []
+    # step 2: the baseline — a valid frame received before the stop, latched
+    # FALSE, its largest possible age ≤ LATCH_BASELINE_MAX_S
+    base = None
+    for i, (receipt, tb, _t) in enumerate(frames):
+        if valid[i] is None and receipt < t_stop and tb["latched"] is False \
+                and receipt - tb["read"][0] <= LATCH_BASELINE_MAX_S:
+            base = i
+    if base is None:
+        incomplete.append(f"no baseline: no valid frame before the stop with latched FALSE read within "
+                          f"{LATCH_BASELINE_MAX_S} s")
+    else:
+        receipt, tb, _t = frames[base]
+        m["baseline_age_s"] = [round(receipt - tb["read"][1], 6), round(receipt - tb["read"][0], 6)]
+    # step 3: classify the valid frames
+    cls = []
+    for i, (receipt, tb, _t) in enumerate(frames):
+        if valid[i] is not None:
+            cls.append("gap")
+        elif tb["read"][1] < s0:
+            cls.append("old")
+        elif tb["read"][0] > s1:
+            cls.append("new")
+        else:
+            cls.append("border")
+    # the judged frames are those after the baseline; a gap anywhere in the section counts
+    after = range(base + 1, len(frames)) if base is not None else range(0)
+    judged = [cls[i] for i in after]
+    m.update(old=judged.count("old"), border=judged.count("border"), new=judged.count("new"),
+             gaps=cls.count("gap"), old_latched=sum(1 for i in after if cls[i] == "old" and frames[i][1]["latched"]))
+    widths = [frames[i][1]["read"][1] - frames[i][1]["read"][0] for i, c in enumerate(cls) if c != "gap"]
+    if widths:
+        m["latch_read_width_max_s"] = round(max(widths), 6)
+    # step 4: the verdict of the display
+    for i in after:
+        receipt, tb, trip = frames[i]
+        if cls[i] == "new" and not trip:
+            fails.append(f"frame {i} (new): no safety_trip after the resume")
+        elif cls[i] != "gap" and tb["latched"] is True and not trip:
+            fails.append(f"frame {i} ({cls[i]}): latched TRUE evaluated, no safety_trip shown")
+    first_new = next((i for i in after if cls[i] == "new"), None)
+    gap_before = lambda k: any(cls[j] == "gap" for j in range(base + 1 if base is not None else 0, k))  # noqa: E731
+    if first_new is not None:
+        receipt, tb, _t = frames[first_new]
+        lower, upper = tb["t_pub"] - s1, receipt - s0
+        m["first_new_delay_s"] = [round(lower, 6), round(upper, 6)]
+        if lower > LATCH_DEADLINE_S and not gap_before(first_new):
+            fails.append(f"the first new frame was published {lower:.3f} s after SIGCONT (> {LATCH_DEADLINE_S} s)")
+        elif upper > LATCH_DEADLINE_S:
+            incomplete.append(f"the deadline unproven: the first new frame {lower:.3f}–{upper:.3f} s after SIGCONT"
+                              + (" (a gap before it)" if gap_before(first_new) else ""))
+    late = next((i for i in after if cls[i] in ("old", "border") and frames[i][1]["t_pub"] > s1 + LATCH_DEADLINE_S
+                 and (first_new is None or i < first_new)), None)
+    if late is not None and not gap_before(late) and not any(f.startswith("the first new frame") for f in fails):
+        fails.append(f"frame {late} ({cls[late]}): published {frames[late][1]['t_pub'] - s1:.3f} s after SIGCONT "
+                     f"without a fresh reading (> {LATCH_DEADLINE_S} s)")
+    if first_new is None:
+        incomplete.append("no proven-new frame in the section")
+    if gaps:
+        incomplete.append(f"{len(gaps)} measurement gap(s)")
+    m["frame_list"] = [[round(r, 6), tb, bool(trip)] for r, tb, trip in frames]
+    return {"fails": fails, "gaps": gaps, "incomplete": incomplete, "measured": m}
+
+
+def eval_latch_sticky(case: str, sec: dict, reset_reply, frames, sigcont, t_stop, epoch) -> dict:
     """S4: after the falling edge the heartbeat returns — edges on
     oneshot.0.in again, oneshot.0.out TRUE again — while fault-out stays TRUE
     to the section's end (a FALSE after it latched is a premature release:
-    FAIL); the E-Stop Reset asked BEFORE the acknowledgement is refused
-    (`reset_reply`: the reply, or {"ok": False, …} from a refusal) — an
-    accepted one is a FAIL; a frame received after the resume shows the
-    unacknowledged trip (`trip_frames`: the safety_trip of each frame
-    received after the resume). No resume or no frame: incomplete."""
+    FAIL); the E-Stop Reset asked BEFORE the acknowledgement is refused BY THE
+    TRIP GATE (`reset_reply`; accepted: FAIL; another reason: incomplete); the
+    DISPLAY under the latch-sticky contract (judge_latch_frames: `frames` from
+    the baseline to right before the acknowledgement, each (receipt,
+    trip_basis, safety_trip); `sigcont` the bracket; `t_stop` before the
+    SIGSTOP; `epoch` the run's). A proven failure is FAIL whatever else is
+    missing (the gaps named with it); otherwise anything unproven is
+    incomplete, never PASS."""
     samples = sec.get("samples") or []
-    measured = {"samples": len(samples), "reset_reply": reset_reply,
-                "trip_frames": [bool(x) for x in trip_frames or []]}
+    disp = judge_latch_frames(frames, sigcont, t_stop, epoch)
+    measured = {"samples": len(samples), "reset_reply": reset_reply, **disp["measured"]}
+    if disp["gaps"]:
+        measured["gap_list"] = disp["gaps"][:20]
+    fails = list(disp["fails"])
     if isinstance(reset_reply, dict) and reset_reply.get("ok") is not False:
-        return _row(case, "FAIL", "E-Stop Reset was accepted before the trip was acknowledged", **measured)
+        fails.insert(0, "E-Stop Reset was accepted before the trip was acknowledged")
     e = falling_edge(samples)
-    if e is None:
-        why = "; ".join(sec.get("problems") or []) or "no falling edge of oneshot.0.out after a TRUE in the section"
-        return _row(case, "incomplete", why, **measured)
-    latched = next((i for i in range(e, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
+    latched = None if e is None else next((i for i in range(e, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
     released = None if latched is None else next(
         (samples[i][1] for i in range(latched, len(samples)) if _bit(samples[i][2], LATCH) == 0), None)
     if released is not None:
         # an observed FALSE after it latched is no artefact of what is unread (FI-I49)
-        return _row(case, "FAIL", f"fault-out released before the reset (sample {released})", **measured)
-    if trip_frames and not all(trip_frames):
-        # a frame received after the resume without the waiting trip: the
-        # status contradicts, whatever the HAL section lacks (R318 FI-I49 A)
-        return _row(case, "FAIL", "a frame after the resume showed no unacknowledged trip", **measured)
+        fails.insert(0, f"fault-out released before the reset (sample {released})")
+    if e is not None and latched is None and not sec.get("problems"):
+        fails.append("fault-out never TRUE after the expiry")
+    if fails:
+        return _row(case, "FAIL", "; ".join(fails)
+                    + (f" (also {len(disp['gaps'])} measurement gap(s))" if disp["gaps"] else ""), **measured)
+    if e is None:
+        why = "; ".join(sec.get("problems") or []) or "no falling edge of oneshot.0.out after a TRUE in the section"
+        return _row(case, "incomplete", why, **measured)
     if sec.get("problems"):
         return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
-    if latched is None:
-        return _row(case, "FAIL", "fault-out never TRUE after the expiry", **measured)
     hb_back = next((i for i in range(e + 1, len(samples)) if _bit(samples[i][2], HB_OK) == 1), None)
     in_edges = [i for i in range(max(e, 1), len(samples)) if samples[i][2][HB_IN] != samples[i - 1][2][HB_IN]]
     measured.update(resume_index=hb_back, heartbeat_edges_after=len(in_edges))
@@ -469,10 +606,16 @@ def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
         return _row(case, "incomplete", "the heartbeat did not return in the section", **measured)
     if not isinstance(reset_reply, dict):
         return _row(case, "incomplete", "the E-Stop Reset before the acknowledgement was not asked", **measured)
-    if not trip_frames:
-        return _row(case, "incomplete", "no frame after the resume", **measured)
+    if TRIP_GATE_REASON not in str(reset_reply.get("error") or ""):
+        return _row(case, "incomplete", f"the early reset was refused for another reason "
+                    f"({str(reset_reply.get('error'))[:80]!r}) — nothing said about the trip gate", **measured)
+    if disp["incomplete"]:
+        return _row(case, "incomplete", "the display: " + "; ".join(disp["incomplete"]), **measured)
+    d = measured.get("first_new_delay_s") or [None, None]
     return _row(case, "PASS", f"the heartbeat returned (sample {samples[hb_back][1]}), fault-out stayed TRUE, "
-                "the reset before the acknowledgement was refused", **measured)
+                f"the reset before the acknowledgement was refused by the trip gate; every frame showed the "
+                f"evaluated latch (old {measured['old']}, border {measured['border']}, new {measured['new']}), "
+                f"the first new frame {d[0]:.3f}–{d[1]:.3f} s after SIGCONT", **measured)
 
 
 def eval_latch_recovered(case: str, sec: dict, frames) -> dict:
