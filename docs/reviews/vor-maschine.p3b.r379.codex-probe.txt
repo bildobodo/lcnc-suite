@@ -1,0 +1,40 @@
+Ffailed-end {'cases': ['latch-same-cycle', 'latch-sticky'], 'ack_sent': False}
+.first-frame {'post_cont_frames': 4, 'sent': [('estop_reset', {}), ('safety_trip_ack', {'id': 'e1-1'}), ('arm', {'armed': True}), ('estop_reset', {}), ('machine_on', {})]}
+...
+=================================== FAILURES ===================================
+_____ test_a_frame_received_during_the_judgement_before_ack_is_not_dropped _____
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-2667/test_a_frame_received_during_t0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff9d576c40>
+
+    def test_a_frame_received_during_the_judgement_before_ack_is_not_dropped(tmp_path, monkeypatch):
+        c = h.LatchClient()
+        ctx, _ = h._latch_step(tmp_path, monkeypatch, c, [h._latch(after=200), h._recovery()])
+        real_judge, real_request = sc.eval_latch_sticky, c.request
+        observed = {}
+        def judge(*args, **kwargs):
+            # A receiver can run while the evaluator processes the captured list.
+            # Both frames are before the acknowledgement, with valid provenance.
+            c.hide = True
+            c.frame()
+            observed['bad'] = c.basis_history[-1]
+            c.hide = False
+            c.frame()
+            return real_judge(*args, **kwargs)
+        def request(cmd, **kwargs):
+            if cmd == 'safety_trip_ack':
+                observed['ack'] = time.monotonic()
+            return real_request(cmd, **kwargs)
+        monkeypatch.setattr(sc, 'eval_latch_sticky', judge)
+        c.request = request
+        try:
+            result = row(h.nr.latch_cases()[1](ctx))
+        finally:
+            c.until = 0
+>       assert observed['bad'][0] < observed['ack']
+E       assert 1755388.35414654 < 1755388.354138665
+
+r378_probe.py:42: AssertionError
+=========================== short test summary info ============================
+FAILED r378_probe.py::test_a_frame_received_during_the_judgement_before_ack_is_not_dropped
+1 failed, 4 passed in 1.25s

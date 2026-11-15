@@ -1,0 +1,49 @@
+Native runs at cad9ac77 (feat/p3b-latch, the driver after Codex R378 VM-I19..21), 3axis_xyz, the latch-sticky row under the R376/R377 contract.
+old/border/new over the frames after the baseline; delays [lower, upper] s after SIGCONT; ages [receipt−read1, receipt−read0] s.
+The six jog-* rows of each main run are `incomplete` (status frames give no lower bound of the braking travel) — as at 1e19b741; their .servo rows PASS.
+
+20261115T142309-latch2: commit cad9ac77, verdict PASS, crashes [], restore complete
+  latch rows {'latch-same-cycle': 'PASS', 'latch-sticky': 'PASS', 'latch-recovered': 'PASS'}
+  not PASS: [('jog-x+', 'incomplete'), ('jog-x-', 'incomplete'), ('jog-y+', 'incomplete'), ('jog-y-', 'incomplete'), ('jog-z+', 'incomplete'), ('jog-z-', 'incomplete')]
+  sticky PASS: frames 47, old 1, border 0, new 45, gaps 0, old latched TRUE 1
+  first new frame [0.034924, 0.035237], baseline age [0.000878, 0.00088], SIGCONT width 3.5e-05, latch read width max 2e-06
+  reset reply {'ok': False, 'error': 'estop_reset refused: Acknowledge the safety trip first'}
+  detail: the heartbeat returned (sample 709567), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 45), the first new frame 0.035–0.035 s after SIGCONT
+20261115T143543-latch2-latch-delayed: commit cad9ac77, verdict PASS, crashes [], restore complete
+  latch rows {'latch-same-cycle.delayed-order': 'PASS', 'latch-sticky': 'PASS', 'latch-recovered': 'PASS'}
+  not PASS: []
+  sticky PASS: frames 9, old 1, border 0, new 7, gaps 0, old latched TRUE 1
+  first new frame [0.203002, 0.20325], baseline age [0.029481, 0.029485], SIGCONT width 4.5e-05, latch read width max 4e-06
+  reset reply {'ok': False, 'error': 'estop_reset refused: Acknowledge the safety trip first'}
+  detail: the heartbeat returned (sample 1087), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 7), the first new frame 0.203–0.203 s after SIGCONT
+20261115T143636-latch2: commit cad9ac77, verdict PASS, crashes [], restore complete
+  latch rows {'latch-same-cycle': 'PASS', 'latch-sticky': 'PASS', 'latch-recovered': 'PASS'}
+  not PASS: [('jog-x+', 'incomplete'), ('jog-x-', 'incomplete'), ('jog-y+', 'incomplete'), ('jog-y-', 'incomplete'), ('jog-z+', 'incomplete'), ('jog-z-', 'incomplete')]
+  sticky PASS: frames 47, old 1, border 0, new 45, gaps 0, old latched TRUE 1
+  first new frame [0.035464, 0.035836], baseline age [0.000874, 0.000877], SIGCONT width 5.6e-05, latch read width max 3e-06
+  reset reply {'ok': False, 'error': 'estop_reset refused: Acknowledge the safety trip first'}
+  detail: the heartbeat returned (sample 709837), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 45), the first new frame 0.035–0.036 s after SIGCONT
+20261115T144909-latch2-latch-delayed: commit cad9ac77, verdict PASS, crashes [], restore complete
+  latch rows {'latch-same-cycle.delayed-order': 'PASS', 'latch-sticky': 'PASS', 'latch-recovered': 'PASS'}
+  not PASS: []
+  sticky PASS: frames 9, old 1, border 0, new 7, gaps 0, old latched TRUE 1
+  first new frame [0.202541, 0.202898], baseline age [0.000662, 0.000664], SIGCONT width 3.5e-05, latch read width max 2e-06
+  reset reply {'ok': False, 'error': 'estop_reset refused: Acknowledge the safety trip first'}
+  detail: the heartbeat returned (sample 1089), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 7), the first new frame 0.203–0.203 s after SIGCONT
+20261115T144952-latch2: commit cad9ac77, verdict PASS, crashes [], restore complete
+  latch rows {'latch-same-cycle': 'PASS', 'latch-sticky': 'PASS', 'latch-recovered': 'PASS'}
+  not PASS: [('jog-x+', 'incomplete'), ('jog-x-', 'incomplete'), ('jog-y+', 'incomplete'), ('jog-y-', 'incomplete'), ('jog-z+', 'incomplete'), ('jog-z-', 'incomplete')]
+  sticky PASS: frames 47, old 1, border 0, new 45, gaps 0, old latched TRUE 1
+  first new frame [0.034546, 0.034792], baseline age [0.003918, 0.00392], SIGCONT width 2.5e-05, latch read width max 3e-06
+  reset reply {'ok': False, 'error': 'estop_reset refused: Acknowledge the safety trip first'}
+  detail: the heartbeat returned (sample 709669), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 45), the first new frame 0.035–0.035 s after SIGCONT
+20261115T150226-latch2-latch-delayed: commit cad9ac77, verdict PASS, crashes [], restore complete
+  latch rows {'latch-same-cycle.delayed-order': 'PASS', 'latch-sticky': 'PASS', 'latch-recovered': 'PASS'}
+  not PASS: []
+  sticky PASS: frames 9, old 1, border 0, new 7, gaps 0, old latched TRUE 1
+  first new frame [0.200782, 0.201057], baseline age [0.0199, 0.019902], SIGCONT width 4.7e-05, latch read width max 3e-06
+  reset reply {'ok': False, 'error': 'estop_reset refused: Acknowledge the safety trip first'}
+  detail: the heartbeat returned (sample 1084), fault-out stayed TRUE, the reset before the acknowledgement was refused by the trip gate; every frame showed the evaluated latch (old 1, border 0, new 7), the first new frame 0.201–0.201 s after SIGCONT
+
+main ×3: first new frame 0.034546–0.035836 s, baseline age max 0.00392 s, SIGCONT width max 5.6e-05 s, latch read width max 3e-06 s, statuses ['PASS', 'PASS', 'PASS'], gaps 0, border 0
+delayed ×3: first new frame 0.200782–0.20325 s, baseline age max 0.029485 s, SIGCONT width max 4.7e-05 s, latch read width max 4e-06 s, statuses ['PASS', 'PASS', 'PASS'], gaps 0, border 0

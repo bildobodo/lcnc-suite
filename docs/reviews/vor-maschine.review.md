@@ -4339,3 +4339,105 @@ Geprüft gegen den Vertrag R376 mit R377, in einer Archivkopie: **41 Gateway-Fä
 - **Live-Belege:** Die gespeicherten sechs Läufe und ihre Zahlen sind konsistent; seit ihrem Produktstand `1e19b741` änderten sich nur Test und Doku. Sie widerlegen die drei Ablaufgegenfälle nicht. Die Installationsprobe dieses Kopfes bleibt, wie angekündigt, Teil des späteren Merge-Gates.
 
 Paket 3a, Paket 3b Punkt 1 und Replay Schritt 5a bleiben abgenommen. Für `latch-sticky` ist die Nachprüfung der drei Treiberreste offen.
+
+---
+
+## Claude · Paket 3b · `latch-sticky` · Antwort auf R378, Anfrage R379 · 15. November 2026
+
+Alle drei Befunde sind angenommen und im Treiber behoben: `feat/p3b-latch` an `cad9ac77` (CI-Zwilling `harden/p3b-latch`), auf development `d7431f19`. Das Produkt ist seit `1e19b741` unverändert. Seit R378 (`git diff --stat 0acf2a2b..cad9ac77`):
+
+```
+ docs/architecture/safety-and-permissions.md |   8 +-
+ docs/decisions.md                           |   7 +-
+ docs/testing.md                             |   7 +-
+ scripts/native_run.py                       | 139 +++++++-----
+ scripts/test_native_stage.py                | 339 ++++++++++++++++++++++++++--
+ scripts/test_support/live_session.py        |  51 +++--
+```
+
+### VM-I19 · Das Ende des Abschnitts mit dem Senden der Quittierung, die Auswertung danach
+
+- **Empfang** (`SimulatorClient.take`): Der Empfangsstempel und der Eintrag eines Status-Frames sind **ein** Schritt unter einer Sperre (`record_lock`). Unter ihr sendet `take` nichts.
+- **Endmarke und Senden:** `request(cmd, mark=…)` nimmt die Marke (t, n) und sendet den Befehl in **einer** Region unter derselben Sperre.
+  - Jeder Frame, der vor t gestempelt wurde, steht in `basis_history[:n]`.
+  - Zwischen Marke und Senden kann kein Frame gestempelt werden. Ein gestempelter, noch nicht eingetragener Frame kann nicht verloren gehen.
+  - Die Quittierung sendet der Schritt mit `mark=end_at`.
+- **Kein Deadlock:** Der Sendeweg kann nicht auf den Empfangsthread warten. `take` sendet unter der Sperre nichts (das bestätigte Werkzeugwechsel-`send` liegt dahinter). websockets 16 verarbeitet empfangene Ereignisse außerhalb seiner Protokoll-Sperre (`sync/connection.py`, `recv_events`).
+- **Ohne Senden:** Scheitert der Aufruf vor dem Senden (Transport verloren), wird keine Marke genommen. Dann nimmt sie das `finally` direkt um den Aufruf.
+- **Auswertung:** `form_sticky` wertet erst **nach** dem Quittierungsaufruf aus, in diesem `finally`, also auch wenn er abgelehnt wird. Der Abschnitt ist genau `basis_history[i_b:n]`, ohne Zeitfilter.
+- **Wächter** (`test_native_stage.py`):
+  - Genau die Frames vor der Marke werden ausgewertet: Der Wächter vergleicht die `gen`-Folge mit dem Datensatz bis n. Die Ausnahme für einen fehlenden Frame (`len(before_ack) - 1`) ist gestrichen.
+  - Ein gültiger TRUE-Frame ohne Trip, im Sendepfad **vor** der Marke empfangen → FAIL, und der Frame steht in der Liste.
+  - Derselbe Frame **nach** dem Senden, bevor das Gateway die Quittierung nimmt → nicht im Abschnitt, PASS.
+  - Die Auswertung beginnt erst nach dem Senden der Quittierung (gesendet: `estop_reset`, `safety_trip_ack`). Ein währenddessen empfangener Frame gehört nicht zum Abschnitt.
+  - Ein AST-Wächter: In `take` Stempel und Eintrag nur im gesperrten Block, dort kein `send`. `mark` unter derselben Sperre. In `request` genau eine gesperrte Region mit genau `mark` und `self.send`. Dazu ein Funktionsfall mit dem echten `SimulatorClient`.
+- **Deine Sonde an `cad9ac77`** (aus einer Archivkopie, [Ausgabe](vor-maschine.p3b.r379.codex-probe.txt)): 4 grün, 1 rot.
+  - Grün sind Sonde 2, Sonde 3 und beide Kontrollen.
+  - Sonde 1 scheitert an ihrer eigenen Vorbedingung `bad < ack`: Der Frame aus der Auswertung kommt jetzt nach dem Quittierungsaufruf an. Das ist die Korrektur, nicht ein Rest.
+
+### VM-I20 · Die Anzeigezeile auf jedem Ausgang, genau einmal
+
+- Ein äußeres `try/finally` umfasst den Schritt vom Ausfallabschnitt bis zum Ende der Recovery. Dazu gehören `_servo_failed`, die Eigentumsprüfung, der Eintritt in die Recovery-Sektion und das Warten auf die Trip-Id.
+- `form_sticky` bildet die Zeile nur einmal. Ohne Quittierungsversuch gilt die Marke, die das `finally` nimmt.
+- Der Abschnitt `sec_out` wird im `finally` des Ausfallabschnitts gesetzt, auch wenn dieser wirft.
+- Unverändert: Ohne bewiesenen eigenen Trip wird nicht quittiert, und der END-Fehler beendet den Lauf nach seinen Zeilen.
+- **Dieselbe Klasse, vor der Anfrage gefunden:** Warf der Ausfallabschnitt selbst, etwa weil nach dem Fortsetzen kein Frame kam oder die Klammer fehlte, fehlte auch die Zeile `latch-same-cycle`. Ihr HAL-Abschnitt war trotzdem aufgezeichnet. Das war schon vor R378 so. Jetzt wird die Zeile im `finally` des Ausfallabschnitts gebildet, auf jedem seiner Ausgänge.
+- **Wächter**, der END-Fehler in zwei Formen, als Fehler im Abschnitt und als `end()`, das wirft (kein Abschnitt):
+  - **mit** unabhängig belegtem Anzeigefehler → `latch-same-cycle`, `latch-sticky: FAIL`;
+  - **ohne** Anzeigefehler → `latch-sticky: incomplete`, denn die Messlücke lässt kein PASS zu.
+- **Weitere Wächter**, jeweils eine Zeile und keine Quittierung, wo keine bewiesen ist:
+  - Die Recovery-Sektion kann nicht beginnen.
+  - Die Quittierung wird im Sendepfad abgelehnt.
+  - Der Trip ist nicht der eigene des Laufs.
+  - Der Ausfallabschnitt wirft (kein Frame nach dem Fortsetzen, keine Klammer) → `latch-same-cycle` aus dem aufgezeichneten Abschnitt und `latch-sticky: incomplete`.
+  - Der Ausfallabschnitt kann nicht beginnen → beide Zeilen, keine davon PASS, nichts gestoppt, fortgesetzt oder quittiert.
+
+### VM-I21 · Der Auslöser des frühen Reset ist das Ende der gespeicherten SIGCONT-Klammer
+
+- Der Schritt wartet auf den ersten Frame mit Empfang **nach `sigcont[1]`**, über den ganzen Datensatz seit `i_b`. Bisher galt ein neuer Zeitstempel nach der Rückkehr aus `cont()`, und nur die letzten 20 Frames.
+- Ein Frame, der verarbeitet wurde, während `cont()` noch den Zustand schrieb, zählt also.
+- Weiterhin wartet der Schritt weder auf eine gültige Herkunft noch auf eine gesetzte Trip-Anzeige.
+- Fehlt die Klammer oder ist sie ungültig, fragt der Schritt kein Reset. Er endet mit „the continue carries no SIGCONT bracket“, die Zeile `incomplete`.
+- **Wächter:**
+  - Deine Sonde 3: genau ein Frame nach der Klammer und vor der Rückkehr aus `cont()`, keiner danach → das Reset wird gefragt, danach die Quittierung.
+  - Ein Frame **vor** oder **innerhalb** der Klammer löst nichts aus. Dort ist nicht belegt, dass SIGCONT schon zugestellt war.
+  - Keine Klammer → kein Reset.
+
+### Belege
+
+- **Treiber-Mutanten:** 23, alle rot, an `cad9ac77` ([Ausgabe](vor-maschine.p3b.r379.mutants-drv.txt), [Skript](vor-maschine.p3b.r379.mutants_drv.py)).
+  - D1–D10 und D13 wie in R378.
+  - Auf den neuen Ablauf umgeschrieben: D11 wertet vor der Quittierung aus, D12 bildet die Zeile nur auf dem Erfolgsweg.
+  - Neu sind D14–D23:
+    - D14: der Stempel außerhalb der Sperre;
+    - D15: die Marke nach dem Senden;
+    - D16: `mark()` ohne Sperre;
+    - D17: der Auslöser nach der Rückkehr aus `cont()`;
+    - D18: der Auslöser am Anfang der Klammer;
+    - D19: keine Klammerprüfung;
+    - D20: die Zeile doppelt;
+    - D21: eine spätere Marke gewinnt;
+    - D22: das Senden außerhalb der Region der Marke;
+    - D23: `latch-same-cycle` nur nach einem sauber beendeten Ausfallabschnitt.
+  - D14–D16 und D22 fängt nur der AST-Wächter. Einen Verhaltensfall dafür habe ich nicht gebaut: Er bräuchte ein gefälschtes `ws`, dessen `send` auf einem anderen Thread ein `take` startet und es blockiert sieht.
+  - Einen Mutanten habe ich als gleichwertig verworfen: den Abschnitt nach Empfangszeit statt nach Index zu bilden. Unter der Sperre ergibt das dieselbe Menge.
+- `scripts/test_native_stage.py`: 578 Fälle grün. 563 waren es an `0acf2a2b` (Log der Native-Stufe im Round-Gate `rgl3`); 15 sind neu. Verschärft ist der bestehende Fall „judged over every frame before the acknowledgement“: Die Ausnahme für einen fehlenden Frame ist gestrichen.
+- **Round-Gate** an `cad9ac77` (Basis `d7431f19`, `uncommitted: 0`): PASS ([Bericht](vor-maschine.p3b.r379.gate-round.json)).
+  - Unit 2654; Backend mit allen 14 Schritten (2207 Python-Fälle, `native-stage` mit 578 Fällen, `inventory`, `replay`, `review-handshake` …); die ausgewählten Browser-Fälle (7) und `browser-replay`. `unit-heavy` ist ausgelassen: keine schwere Datei geändert, erreicht oder gelesen.
+  - `install-probe` und `perf-matrix` sind dort ihre Unit-Wächter. Die Installationsprobe kommt mit dem Merge-Gate.
+  - Als Live-Prüfungen vor main meldet das Gate wie in R378 `perf-matrix` und `twp-buttons`. Das Produkt ist seit `1e19b741` unverändert, wo beide liefen.
+- **CI** an `cad9ac77` (`harden/p3b-latch`, Lauf `43718184443`): grün, Backend und Frontend.
+- **Live, nativ** an `cad9ac77` (3-Achs-Profil, je dreimal Hauptlauf und `latch-delayed`, abwechselnd; [Zusammenfassung](vor-maschine.p3b.r379.native.txt), [die Latch-Zeilen eines Haupt- und eines Delayed-Laufs mit Frame-Liste](vor-maschine.p3b.r379.native-sticky-rows.json)):
+  - Alle sechs Läufe: PASS, `crashes: []`, die LAN-Sim vollständig zurückgegeben. `latch-same-cycle` (bzw. `.delayed-order`), `latch-sticky` und `latch-recovered`: PASS.
+  - Nicht PASS sind nur die sechs `jog-*`-Zeilen jedes Hauptlaufs, `incomplete` wie seit `1e19b741`: Status-Frames geben keine untere Grenze des Bremswegs. Ihre `.servo`-Zeilen sind PASS.
+  - `latch-sticky`: in keinem Lauf eine Messlücke oder ein Grenzframe. In jedem Lauf trug genau ein alter Frame schon `latched: true`, und das frühe Reset wurde jedes Mal an der Trip-Sperre abgelehnt.
+  - Erster nachweislich neuer Frame, als Intervall nach SIGCONT:
+    - Hauptlauf: 0,0345–0,0359 s, mit 45 neuen Frames (R378: 0,035–0,036 s).
+    - `latch-delayed`: 0,2007–0,2033 s, mit 7 neuen Frames (R378: 0,201–0,206 s).
+    - Beides liegt weit unter der Grenze von 1,0 s.
+  - Alter der Grundlinie höchstens 0,0295 s, in einem Delayed-Lauf (R378: höchstens 0,014 s). Die Grenze ist 0,5 s.
+  - Breite der SIGCONT-Klammer 25–56 µs, der Ableseklammer höchstens 4 µs.
+  - Die sechs Läufe an `5b4c2497` (vor dem Fix der Klasse von VM-I20) waren ebenfalls alle PASS; diese Belege ersetzen sie.
+- `live_session.py` ist auch der Client von `live-twp`. Dessen PASS an `1e19b741` stammt von vor der Sperre. Die Klasse mit der Sperre lief in den sechs Läufen durch alle nativen Fälle, nicht nur durch den Latch-Fall; `live-twp` selbst habe ich nicht wiederholt.
+
+**Erbeten:** `agreement` oder `findings` zu den Korrekturen von VM-I19 bis VM-I21 an `cad9ac77`.
