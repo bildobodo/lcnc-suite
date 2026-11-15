@@ -26,7 +26,6 @@ import fake_linuxcnc
 
 linuxcnc = fake_linuxcnc.install()  # MUST precede `import gateway`
 
-import msgspec  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 import gateway  # noqa: E402
