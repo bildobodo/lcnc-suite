@@ -894,3 +894,32 @@ named exception, an older page's `mdi` with `vars` included (R336).
   during the mode switch → no home write; `strip-actions.spec.ts`: the axis
   on the wire, the state at the joint, a group closing the button with its
   reason. Live: `twp_buttons_check.py`.
+
+### The trip's provenance in every frame (package 3b, the latch-sticky contract, Codex R370, R375–R377)
+
+**Why.** The native latch case asks whether the operator sees the waiting trip after the gateway resumes.
+Without a provenance a frame received after SIGCONT can carry a reading from before it — a send begun before
+the stop (R370's run 1), a tick published with an old snapshot, or the ~27 snapshots the reader queued while
+the gateway stood (the reader keeps reading at 30 Hz; the gateway reads them line by line on resume, each
+stamped NOW). Neither "from the first TRUE" nor "skip the first frame" is a measurement.
+
+**What the product carries (no change of behaviour):**
+- The reader numbers each snapshot (`seq`) and brackets the ONE `hal.get_value` of the latch on
+  CLOCK_MONOTONIC (`latch_read` = [before, after]); a source guard holds the bracket around that read alone.
+- The poller reads the reader's state ONCE, at the evaluation (`gateway_util.trip_latch_input`): the
+  automaton's input is exactly what `reader_get("trip_latched")` gave before — a stale TRUE still trips; the
+  provenance (`reader_seq`, `read`, `arrival`, `stale`) never changes the input. No await lies between that
+  read and the publication.
+- The tick is published as ONE `ws_fanout.StatusPublication` (status, its dict, the msgpack bytes, the
+  errors, the client list, the probe updates, `trip_basis`) with ONE rebind, `t_pub` stamped right before it;
+  a client loop reads it ONCE per frame and builds the whole frame from it — a tick published while a frame is
+  built (an await in the build) never reaches it.
+- `trip_basis = {gen, epoch, latched, reader_seq, read, arrival, stale, t_pub}` rides every full and delta
+  frame, JSON and msgpack, beside `safety_trip` (`null` where the snapshot or its field is absent).
+
+**How the driver judges it** (docs/testing.md, `servo_cases.eval_latch_sticky`): validity first (the run's
+epoch, a boolean `latched`, ordered times, not stale — else a measurement gap), the baseline (latched FALSE,
+received before the stop, receipt − read0 ≤ 0.5 s), old / border / new by the read against the SIGCONT
+bracket, then the verdict: an evaluated TRUE without the trip or a new frame without it is FAIL, a gap is never
+PASS, the first new frame within 1.0 s as an interval (`t_pub − t_cont_after` the lower bound, valid only with
+no gap before it; receipt − `t_cont_before` the upper), the early reset refused by the trip gate.

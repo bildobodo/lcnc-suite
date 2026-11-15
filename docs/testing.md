@@ -35,6 +35,15 @@ stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client th
 preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
 `trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
 of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
+The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
+R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
+with its receipt, `trip_basis` and `safety_trip`; SIGCONT is bracketed (`trip.cont`); a frame is valid
+only with its epoch, a boolean `latched`, a bracketed read and ordered times (read ≤ arrival ≤ t_pub ≤
+receipt), not stale; it is old when its read ENDED before SIGCONT, new when it BEGAN after; every frame
+whose evaluated latch is TRUE must show the trip, every new one too; the first new frame within 1.0 s of
+SIGCONT as an interval (`t_pub` the lower, the receipt the upper bound); a gap is never PASS; the early
+reset must be refused by the trip gate. Offline: the C1–C5 cases and their siblings in
+`test_native_stage.py`; the product side in `lcnc-gateway/test_trip_basis.py`.
 Package 3b: a run's verdict (and the install probe's, the same `verdict`) is FAIL when its `logs/crash.log`
 or a rotation holds an error-level record or a line that is no classifiable record — no JSON object, no
 tag the crash filter admits, no known level (Codex R370 VM-I15; each field's type first, R371) — or when

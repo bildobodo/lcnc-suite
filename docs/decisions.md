@@ -11472,6 +11472,30 @@ unhashable, raised out of the run's completion and lost `report.json` (no
 false PASS, but no report). Whatever the check meets now, the report is
 written: a check that raises is itself a damaged record and fails the run.
 
+## 2026-11-15 — The trip's provenance in every frame; latch-sticky judged by it (package 3b; Codex R370, R375–R377)
+
+**Why.** R370 found the native `latch-sticky` row red once: a frame received after SIGCONT showed no trip,
+but its status had been built before the stop. Classifying frames by when the driver received them, or
+skipping the first, proves nothing; the reader also keeps reading through the stop and the gateway reads
+that backlog with fresh arrival stamps.
+
+**Decided** (plan rounds R375 → R376 → R377, agreed):
+- The automaton's input stays exactly as before (VM375-01); the provenance rides beside it in `trip_basis`.
+- The latch read is bracketed, SIGCONT is bracketed; old means the read ended before SIGCONT began, new
+  means it began after SIGCONT ended; anything else is a border frame (VM375-02).
+- The deadline is an interval: `t_pub` (a publish stamp, never a reading stamp) gives the lower bound, the
+  driver's receipt the upper; an overrun is proven only with no measurement gap before the first new frame.
+- Validity before verdict (VM375-03): the epoch, a boolean `latched` (R377 rest B), ordered times on one
+  host's monotonic clock, not stale; the baseline's largest possible age ≤ 0.5 s (R377 rest A); the section
+  ends right before the acknowledgement (or where the section ends without one).
+- ONE published object per tick, read ONCE per frame (Q-L3) — a frame never mixes two ticks; it also
+  closed a mixing that existed: the client loop read the status before its first frame's viewer_init await
+  and the data after it.
+- `trip_basis` in every frame, not on request (Q-L1); `t_pub` added (Q-L4).
+
+**Not decided here:** whether a slower first fresh display is a product defect — the contract measures it;
+a fresh false display or an overrun found live is its own finding.
+
 ## 2026-11-15 — The replay: every frame the UI sends, judged offline (package 3b item 2, step 5a; Codex R251 TS248-04, FI265-02, VM349-01, R373–R374)
 
 **Why.** The e2e mocks accept any frame. A spec that checks its own command
