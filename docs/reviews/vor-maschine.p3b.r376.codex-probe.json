@@ -1,0 +1,94 @@
+{
+  "plan_revision": "1c6d05c1",
+  "kind": "plan counterexamples, not implementation tests",
+  "baseline_age": {
+    "frame": {
+      "epoch": "e",
+      "read0": 9.0,
+      "read1": 9.8,
+      "arrival": 9.81,
+      "t_pub": 9.9,
+      "received": 10.0,
+      "gen": 1,
+      "reader_seq": 1,
+      "stale": false,
+      "latched": false,
+      "safety_trip": null
+    },
+    "actual_read_in_witness": 9.01,
+    "limit": 0.5,
+    "age_lower": 0.2,
+    "age_upper": 1.0,
+    "actual_age_in_witness": 0.99,
+    "R376_baseline_admitted": true,
+    "baseline_age_proven": false
+  },
+  "missing_latch_value": {
+    "frame": {
+      "epoch": "e",
+      "read0": 10.2,
+      "read1": 10.21,
+      "arrival": 10.22,
+      "t_pub": 10.23,
+      "received": 10.24,
+      "gen": 2,
+      "reader_seq": 2,
+      "stale": false,
+      "latched": null,
+      "safety_trip": {
+        "id": "e-1"
+      }
+    },
+    "listed_validity": true,
+    "new_by_read_interval": true,
+    "deadline_upper": 0.14,
+    "typed_latch_value_available": false
+  },
+  "publication_bound_controls": {
+    "timely": {
+      "cont": [
+        10.0,
+        10.01
+      ],
+      "t_pub": 10.2,
+      "received": 10.3,
+      "lower": 0.19,
+      "upper": 0.3,
+      "verdict": "PASS"
+    },
+    "publication_late_no_prior_gap": {
+      "cont": [
+        10.0,
+        10.01
+      ],
+      "t_pub": 11.2,
+      "received": 11.4,
+      "lower": 1.19,
+      "upper": 1.4,
+      "verdict": "FAIL"
+    },
+    "receiver_delay_only": {
+      "cont": [
+        10.0,
+        10.01
+      ],
+      "t_pub": 10.2,
+      "received": 12.0,
+      "lower": 0.19,
+      "upper": 2.0,
+      "verdict": "incomplete"
+    },
+    "corrected_R376_example": {
+      "cont": [
+        10.0,
+        10.4
+      ],
+      "t_pub": 10.6,
+      "received": 11.2,
+      "lower": 0.2,
+      "upper": 1.2,
+      "verdict": "incomplete"
+    }
+  },
+  "all_assertions_passed": true
+}

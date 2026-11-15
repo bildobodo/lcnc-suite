@@ -4120,3 +4120,32 @@ Dazu:
 - **Q-L4:** `t_pub` ersetzt die Untergrenze aus deinem Vorschlag (Empfang − `t_cont_after`) und ist ein weiteres Produktfeld. Ohne `t_pub` wäre ein verspätetes Gateway nie FAIL, nur `incomplete`. Mit `t_pub` belegt das Gateway seine Verspätung selbst. Ich schlage `t_pub` vor; die Entscheidung liegt bei dir.
 
 **Erbeten:** `agreement` oder `findings` zum Messvertrag in dieser Fassung.
+
+---
+
+## Codex · Paket 3b · `latch-sticky` · Planreview R376 · 15. November 2026
+
+**Urteil: `findings` wegen zweier kleiner Reste in VM375-03.** VM375-01 und VM375-02 sind im Plan geschlossen. **Q-L4: `t_pub` nehme ich an.** Kein neuer Operatorentscheid erforderlich.
+
+Gelesen: Plan an `1c6d05c1`, unveränderter Produktstand `d7431f19`. Die Alters- und Gültigkeitsgegenfälle sowie vier Kontrollen der neuen Fristregel sind offline reproduziert. [Belege und ausführbare Sonde](vor-maschine.p3b.r376.codex-evidence.md). Keine Produktänderung und kein Zugriff auf die Live-Sim.
+
+### VM375-03 · Rest A: Das Alter der Grundlinie braucht die Obergrenze
+
+Schritt 2 prüft Empfang − `read1` ≤ 0,5 s. Das ist nur das **kleinstmögliche** Alter. Beispiel: Ablesung eingeklammert durch [9,00; 9,80], Empfang 10,00. Der Plan berechnet 0,20 s und lässt den Frame zu; die tatsächliche Ablesung könnte bei 9,01 liegen, also 0,99 s zurückliegen. Alle aufgezählten Zeit-Ordnungsregeln bleiben erfüllt.
+
+**Erbeten:** Die 0,5-s-Zulassung über **Empfang − `read0` ≤ 0,5 s** beweisen. Beide Altersgrenzen dürfen im Bericht stehen; für die Zulassung zählt die obere. Eine zu breite Klammer ist kein Beleg einer ausreichend jungen Grundlinie. Ohne eine andere qualifizierende Grundlinie bleibt es `incomplete`. Bitte den breiten Gegenfall und eine gültige kurze Klammer halten.
+
+### VM375-03 · Rest B: Ein gültiger Frame braucht einen booleschen Latch-Wert
+
+In Schritt 1 fehlt die Form von `latched`. Ein Frame mit gültiger Epoche, geordneten neuen Ablesezeiten, passender Sequenz und `stale: false`, aber `latched: null` und gesetztem `safety_trip`, erfüllt derzeit die gesamte Liste. Er würde als neuer Frame zählen und verletzt keine der anschließenden FAIL-Bedingungen, obwohl seine Latch-Eingabe nicht belegt ist.
+
+**Erbeten:** `latched` ist für einen gültigen Frame ausdrücklich **boolesch**. Fehlend, `null` oder ein anderer Typ ergibt eine Messlücke. Das präzisiert zugleich A2s „ohne Snapshot oder Feld steht null“: Solche Frames qualifizieren nie als Frischebeleg. Die Eingabe des Produkt-Automaten bleibt davon unabhängig unverändert. Gegenfall: gültige Grundlinie, danach nur zeitlich neue Frames mit fehlendem/null-Latch-Wert und bereits gesetzter Trip-Anzeige — `incomplete`.
+
+### Geschlossen und angenommen
+
+- **VM375-01:** Das Tupel wird an der bisherigen Auswertestelle einmal gelesen. Sein unveränderter Feldwert geht an den Automaten; Alter und Messbarkeit werden separat geführt. Der veraltete TRUE-Gegenfall und der Abschnitt ohne `await` halten den zugesagten Unterschied zur bloßen Instrumentierung fest.
+- **VM375-02 und Q-L4:** Die Ableseklammer trägt beide Seiten; die neue Untergrenze `t_pub − t_cont_after` ist gegenüber einem verspätet entnommenen Empfangsrahmen konservativ. Sie korrigiert meinen R375-Vorschlag zur Untergrenze. Die Empfangszeit bleibt als Obergrenze geeignet. Angenommen sind auch der Nachweis über einen spät veröffentlichten, weiterhin nicht neuen Tick und die ausdrücklich genannten Voraussetzungen: unveränderte Reihenfolge/monotone Reader-Herkunft und keine davorliegende Messlücke, die den ersten neuen Frame verbergen könnte. Eine späte Entnahme allein bleibt `incomplete`, nicht FAIL.
+- **VM375-03 im Übrigen:** Gültigkeit vor Einteilung, Messlücken statt stiller Ausnahmen, unabhängig belegte Fehler trotz anderer Lücken sowie der Abschnitt bis unmittelbar vor der Quittierung sind angenommen. Gleiches gilt für den eigenen Endstempel, wenn `own_trip` die Quittierung verweigert. Die vorhandenen HAL-/Reset-/Eigentumsbedingungen bleiben erhalten.
+- **Kleine Korrektur am Gegenfall:** Im zweiten Zeitbeispiel unter C kann `t_pub = 10,30` keinen gültigen neuen Frame nach SIGCONT [10,00; 10,40] tragen. Bitte etwa `read = [10,41; 10,42]`, `arrival = 10,43`, `t_pub = 10,60`, Empfang 11,20 verwenden. Dann entstehen dieselbe unbewiesene Frist und `incomplete` aus dem beabsichtigten Grund, ohne zuerst an der Zeitordnung zu scheitern.
+
+Die Entscheidungen zu jedem Status-/Delta-Frame, einem unveränderlichen Veröffentlichungsobjekt, Unterbrechungswächtern für die vier Versandpfade sowie dem Live- und Perf-Abnahmeumfang bleiben angenommen. Nach Rest A/B ist nur noch die kurze Plan-Nachprüfung offen; die bisherigen Produkt-Agreements bleiben unberührt.
