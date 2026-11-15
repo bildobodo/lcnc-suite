@@ -5860,9 +5860,10 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
     params = {3014: 99.0, 3021: 2.0, **{n: 1.0 for n in range(3050, 3060)}}
     switches = {"probing": True, "toolsetter": True, "surfaceMap": True, "camera": True, "macros": True,
                 "gamepad": True}
-    sent = {}
+    sent, sim.events = {}, []
 
     def short(c, text):
+        sim.events.append(f"mdi:{text}")
         if text.startswith("G10 L2 P1"):
             sim.g54_z = float(text.split("Z")[1].split()[0])
         if text == "M50 P1":
@@ -5871,6 +5872,7 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
 
     def job(c, case, cmd, payload, deadline=90.0):
         assert (case, cmd) == ("surface-scan", "surface_scan_run"), (case, cmd)
+        sim.events.append(f"job:{case}")
         sent["vars"] = payload["vars"]
         if defect != "not delivered":
             params.update({int(k): float(v) for k, v in payload["vars"].items()})
@@ -5892,14 +5894,18 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
         return value, {"framed": True, "reason": None, "file": "trace.ndjson", "events": ev}
 
     def refused(c, cmd, **kw):
+        sim.events.append(f"refused:{cmd}")
         sim.tick(2)
         return None if switches["surfaceMap"] else f"{cmd} refused: Surface map is off — Settings › Features"
+
+    def read(c, nums):
+        sim.events.append("read")
+        return {n: params.get(n, 0.0) for n in nums}
     for name, fn in {"_probe_tool": lambda c: None, "_set_tool_length": lambda c, t, l: None, "_short": short,
                      "_routine": lambda c, text, **kw: sim.routine(text),
-                     "_vars": lambda c, nums: {n: params.get(n, 0.0) for n in nums},
-                     "_plant": lambda c, values: params.update(values),
+                     "_vars": read, "_plant": lambda c, values: (sim.events.append("plant"), params.update(values)),
                      "_switches": lambda ctx, c: dict(switches),
-                     "_save_features": lambda ctx, c, sw: switches.update(sw),
+                     "_save_features": lambda ctx, c, sw: (sim.events.append("save"), switches.update(sw)),
                      "_refused": refused, "_framed": framed, "_probe_job": job,
                      "_surface_fixture": lambda ctx, length: {}, "_limited": lambda ctx: False,
                      "_comp_python_versions": lambda ctx: {}}.items():
@@ -5953,6 +5959,42 @@ def test_the_surface_job_is_proven_from_the_trace_and_its_values(monkeypatch, tm
     sub.mkdir()
     by, ctx, sim, error = _surface_step(monkeypatch, sub, "not delivered")
     assert by["surface-scan.job"]["status"] == "FAIL" and "values" in by["surface-scan.job"]["detail"]
+
+
+def _no_line_between(events, i, j):
+    """No mdi, no M50 and no plant between events i and j (exclusive)."""
+    return [e for e in events[i + 1:j] if e.startswith(("mdi:", "plant", "free", "to"))]
+
+
+def test_every_probe_run_start_plants_after_its_baseline_and_reads_back_last(monkeypatch):
+    """R381 "Reihenfolge in der Stufe" for the UI's jobs, as for the old
+    cases (test_the_probe_miss_reads_a_planted_5070): the position, the free
+    override, THEN the plant and its read-back — no mdi between that
+    read-back and the job. The live runs cannot tell (1c894055 passed with
+    the miss's plant before its baseline); this is the guard."""
+    by, f, first, error = _probe_run(monkeypatch)
+    assert error is None
+    ev = f.events
+    for case in ("probe-run", "probe-run-miss"):
+        j = ev.index(f"job:{case}")
+        k = max(i for i in range(j) if ev[i] == "to")
+        assert ev[k + 1] == "free", (case, ev[k:j])
+        assert ev[k + 2].startswith("mdi:G10 L2 P1 Z") and ev[k + 3:k + 5] == ["mdi:#5070=0", "plant"], (case, ev[k:j])
+        assert ev[k + 5] == "read", (case, ev[k:j])                    # the snapshot: the plant read back
+        assert _no_line_between(ev, k + 5, j) == [], (case, ev[k:j])
+
+
+def test_the_scan_plants_after_its_baseline_and_reads_back_last(monkeypatch, tmp_path):
+    """The same order for the scan's job (R381 Q-P1): M50 P1 confirmed,
+    then P_s and its read-back, the refusal and the switch saved back — no
+    mdi between the last read-back and surface_scan_run."""
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path)
+    assert error is None
+    ev = sim.events
+    j = ev.index("job:surface-scan")
+    p = max(i for i in range(j) if ev[i] == "plant")
+    assert ev[p - 1] == "mdi:M50 P1" and ev[p + 1] == "read", ev[:j + 1]
+    assert _no_line_between(ev, p + 1, j) == [], ev[p - 2:j]
 
 
 def test_the_surface_step_names_each_planted_defect(monkeypatch, tmp_path):
@@ -6696,9 +6738,10 @@ class ProbeRunFake:
 
 def _probe_run(monkeypatch, defect=None, trip=False):
     f = ProbeRunFake(defect)
-    f.trip = trip
+    f.trip, f.events = trip, []
 
     def short(c, text):
+        f.events.append(f"mdi:{text}")
         if text.startswith("G10 L2 P1 Z"):
             f.g54 = float(text.split("Z")[1])
         elif text == "#5070=0":
@@ -6706,18 +6749,25 @@ def _probe_run(monkeypatch, defect=None, trip=False):
         f.tick()
 
     def refused(c, cmd, **kw):
+        f.events.append(f"refused:{cmd}")
         f.tick()
         if kw.get("routine") != "probe_z_minus_wco":
             return f"{cmd} refused: Not a probe routine — reload the page"
         return None if f.switches["probing"] else f"{cmd} refused: Probing is off — Settings › Features"
-    for name, fn in {"_over_plate": lambda c, plate, over: f.tick(),
-                     "_override_free": lambda c: f.tick(feed_override_enabled=True), "_short": short,
-                     "_plant": lambda c, values: f.params.update(values),
-                     "_vars": lambda c, nums: {n: f.params.get(n) for n in nums},
-                     "_g54_z": lambda st: f.g54, "_switches": lambda ctx, c: dict(f.switches),
-                     "_save_features": lambda ctx, c, sw: f.switches.update(sw), "_refused": refused,
-                     "_framed": lambda ctx, c, case, fn: (fn(), f.window(case)),
-                     "_probe_job": lambda c, case, cmd, payload, deadline=90.0: f.job(case, cmd, payload),
+    def read(c, nums):
+        f.events.append("read")
+        return {n: f.params.get(n) for n in nums}
+
+    def job(c, case, cmd, payload, deadline=90.0):
+        f.events.append(f"job:{case}")
+        return f.job(case, cmd, payload)
+    for name, fn in {"_over_plate": lambda c, plate, over: (f.events.append("to"), f.tick()),
+                     "_override_free": lambda c: (f.events.append("free"), f.tick(feed_override_enabled=True)),
+                     "_short": short, "_plant": lambda c, values: (f.events.append("plant"), f.params.update(values)),
+                     "_vars": read, "_g54_z": lambda st: f.g54, "_switches": lambda ctx, c: dict(f.switches),
+                     "_save_features": lambda ctx, c, sw: (f.events.append("save"), f.switches.update(sw)),
+                     "_refused": refused, "_framed": lambda ctx, c, case, fn: (fn(), f.window(case)),
+                     "_probe_job": job,
                      "_release_seen": lambda c, r: None, "_standstill": lambda c, timeout: True}.items():
         monkeypatch.setattr(nr, name, fn)
     first = dict(f.params)
