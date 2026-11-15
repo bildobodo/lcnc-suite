@@ -37,9 +37,9 @@ preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway
 of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
-with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken in the
-acknowledgement's send path, `SimulatorClient.request(mark=)`, under the record lock the receipt is stamped
-and recorded under — judged only after it; the row is formed ONCE on every way out of the step, VM-I20);
+with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together
+with the acknowledgement's send in ONE region under the record lock the receipt is stamped and recorded
+under, `SimulatorClient.request(mark=)` — no frame between the mark and the send — judged only after it; the row is formed ONCE on every way out of the step, VM-I20);
 SIGCONT is bracketed (`trip.cont`) and the early reset is asked on the first frame received after the
 bracket's end (VM-I21: a frame taken while `cont()` still writes the state counts); a frame is valid
 only with its epoch, a boolean `latched`, a bracketed read and ordered times (read ≤ arrival ≤ t_pub ≤

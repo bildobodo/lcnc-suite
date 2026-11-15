@@ -11489,7 +11489,8 @@ that backlog with fresh arrival stamps.
 - Validity before verdict (VM375-03): the epoch, a boolean `latched` (R377 rest B), ordered times on one
   host's monotonic clock, not stale; the baseline's largest possible age ≤ 0.5 s (R377 rest A); the section
   ends right before the acknowledgement (or where the section ends without one). R378 (VM-I19–VM-I21):
-  that end is a mark taken in the acknowledgement's send path under the receiver's record lock, the row is
+  that end is a mark taken with the acknowledgement's send in one region under the receiver's record lock
+  (no frame stamped between them), the row is
   judged after it and formed once on every exit, and the early reset's trigger is the stored SIGCONT bracket.
 - ONE published object per tick, read ONCE per frame (Q-L3) — a frame never mixes two ticks; it also
   closed a mixing that existed: the client loop read the status before its first frame's viewer_init await

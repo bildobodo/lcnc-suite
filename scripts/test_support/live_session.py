@@ -189,15 +189,20 @@ class SimulatorClient:
             return time.monotonic(), len(self.basis_history)
 
     def request(self, cmd, *, mark=None, **kwargs):
-        """`mark`: called with `self.mark()` right before the command is sent —
-        a section that ends at this send (the latch-sticky section ends at the
-        acknowledgement's, Codex R378 VM-I19); a request refused before the
-        send takes no mark."""
+        """`mark`: called with the section's end (t, n) and the command sent in
+        ONE region under the record lock — no frame is stamped between the mark
+        and the send (the latch-sticky section ends at the acknowledgement's
+        send, Codex R378 VM-I19); a request refused before the send takes no
+        mark. `take` sends nothing under the lock, so the send cannot wait on
+        the receiver."""
         if self.error:
             raise TransportLost(self.error)
-        if mark is not None:
-            mark(self.mark())
-        self.send({"cmd": cmd, **kwargs})
+        if mark is None:
+            self.send({"cmd": cmd, **kwargs})
+        else:
+            with self.record_lock:
+                mark((time.monotonic(), len(self.basis_history)))
+                self.send({"cmd": cmd, **kwargs})
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             if self.error:

@@ -2656,7 +2656,10 @@ class FakeMeasurement:
 
     def end(self, attempt):
         self.ended += 1
-        return self.sections.pop(0)
+        sec = self.sections.pop(0)
+        if isinstance(sec, BaseException):
+            raise sec                          # the END itself fails: no section, the box's error
+        return sec
 
 
 class MotionClient(FrameClient):
@@ -4451,6 +4454,7 @@ class LatchClient(FrameClient):
         self.trip_value = trip_before or {"ts": 1, "id": "e1-1"}     # the trip carries its id (package 3a)
         self.latched, self.paused, self.seq, self.gen = bool(trip_before), False, 0, 0
         self.lock = threading.Lock()
+        self.on_sent = None
         self.until = time.monotonic() + 20
         threading.Thread(target=self._ticks, daemon=True).start()
 
@@ -4484,9 +4488,14 @@ class LatchClient(FrameClient):
 
     def request(self, cmd, *, mark=None, **kw):
         from test_support.live_session import Refused as SessionRefused
-        if mark is not None:
-            mark(self.mark())      # right before the send (SimulatorClient.request)
-        self.sent.append((cmd, kw))
+        if mark is None:
+            self.sent.append((cmd, kw))
+        else:
+            with self.lock:        # the mark and the send in ONE region (SimulatorClient.request)
+                mark((time.monotonic(), len(self.basis_history)))
+                self.sent.append((cmd, kw))
+        if self.on_sent:
+            self.on_sent(cmd)      # sent, not yet taken by the gateway
         if cmd == "estop_reset":
             if not self.acked and not self.early_reset:
                 raise SessionRefused("estop_reset refused: Acknowledge the safety trip first")
@@ -4582,9 +4591,10 @@ def test_an_early_reset_accepted_fails_the_sticky_row(tmp_path, monkeypatch):
     assert by["latch-sticky"]["status"] == "FAIL" and "accepted" in by["latch-sticky"]["detail"]
 
 
-def _ack_hooks(c, before_mark=None, after_mark=None):
+def _ack_hooks(c, before_mark=None, after_send=None):
     """Wrap the client's request: the acknowledgement's mark recorded; frames
-    planted in its send path right before the mark and right after it."""
+    planted in its send path right before the mark, and right after the send
+    (before the gateway takes it)."""
     seen = {}
     real = c.request
 
@@ -4597,9 +4607,11 @@ def _ack_hooks(c, before_mark=None, after_mark=None):
         def take(m):
             seen["mark"] = m
             mark(m)
-            if after_mark:
-                after_mark()
-        return real(cmd, mark=take, **kw)
+        c.on_sent = (lambda sent: after_send() if sent == "safety_trip_ack" else None) if after_send else None
+        try:
+            return real(cmd, mark=take, **kw)
+        finally:
+            c.on_sent = None
     c.request = request
     return seen
 
@@ -4644,10 +4656,12 @@ def test_a_bad_frame_in_the_acknowledgements_send_path_before_its_mark_fails(tmp
     assert bad["f"][1]["gen"] in [f[1]["gen"] for f in sticky["frame_list"]]
 
 
-def test_a_bad_frame_after_the_mark_is_outside_the_section(tmp_path, monkeypatch):
+def test_a_bad_frame_after_the_send_is_outside_the_section(tmp_path, monkeypatch):
+    """The mark and the send are one region: a frame after it was received
+    after the acknowledgement left — outside the section."""
     c = LatchClient()
     bad = {}
-    _ack_hooks(c, after_mark=lambda: bad.setdefault("f", _bad_frame(c)))
+    _ack_hooks(c, after_send=lambda: bad.setdefault("f", _bad_frame(c)))
     ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
     rows = nr.latch_cases()[1](ctx)
     sticky = next(r for r in rows if r["case"] == "latch-sticky")
@@ -4698,10 +4712,16 @@ def test_the_live_session_stamps_and_records_a_frame_in_one_step_with_the_mark()
         (isinstance(n, ast.Attribute) and n.attr == "basis_history")
         or (isinstance(n, ast.Call) and ast.unparse(n.func) == "time.monotonic"))]
     assert stray == [], "the stamp and the record only under the lock"
+    assert "self.send" not in body, "take sends nothing under the lock: a send there could wait on the receiver"
     mark = locked_blocks(fns["mark"])
     assert len(mark) == 1 and "time.monotonic()" in ast.unparse(mark[0]) and "len(self.basis_history)" in ast.unparse(mark[0])
-    req = ast.unparse(fns["request"])
-    assert req.index("mark(self.mark())") < req.index("self.send(")
+    # the mark and the send in ONE locked region (Fable before R379): no frame between them
+    req = locked_blocks(fns["request"])
+    assert len(req) == 1, "one locked region in request"
+    region = req[0].body
+    calls = [ast.unparse(st.value.func) for st in region if isinstance(st, ast.Expr) and isinstance(st.value, ast.Call)]
+    assert calls == ["mark", "self.send"], calls
+    assert "time.monotonic()" in ast.unparse(region[0]) and "len(self.basis_history)" in ast.unparse(region[0])
     s = ls.SimulatorClient("t")
     for k in range(3):
         s.take({"type": "status", "data": {"k": k}, "trip_basis": {"gen": k}})
@@ -4746,14 +4766,17 @@ def _sticky_rows(ctx):
     return [r for r in ctx["rows"] if r["case"] == "latch-sticky"]
 
 
+@pytest.mark.parametrize("shape", ["end_error", "end_raises"])
 @pytest.mark.parametrize("hide, status", [(True, "FAIL"), (False, "incomplete")])
-def test_a_servo_end_failure_keeps_the_display_row_once(tmp_path, monkeypatch, hide, status):
-    """R378 VM-I20 (Codex's probe 2): the outage section's END fails — the run
-    ends without an acknowledgement, and the display row is formed anyway,
-    exactly once: FAIL when no new frame showed the trip, its own verdict when
-    every frame did."""
+def test_a_servo_end_failure_keeps_the_display_row_once(tmp_path, monkeypatch, hide, status, shape):
+    """R378 VM-I20 (Codex's probe 2): the outage section's END fails — in the
+    section (end_error) or by end() raising (no section at all) — the run ends
+    without an acknowledgement, and the display row is formed anyway, exactly
+    once: FAIL when no new frame showed the trip, incomplete when every frame
+    did (the section's gap allows no PASS)."""
     c = LatchClient(hide=hide)
-    broken = {**_latch(after=200), "end_error": "injected end failure", "problems": ["end unconfirmed"]}
+    broken = ({**_latch(after=200), "end_error": "injected end failure", "problems": ["end unconfirmed"]}
+              if shape == "end_error" else RuntimeError("injected: the END mark not read"))
     ctx, _ = _latch_step(tmp_path, monkeypatch, c, [broken, _recovery()])
     try:
         with pytest.raises(nr.StepFailed, match="servo measurement failed"):
