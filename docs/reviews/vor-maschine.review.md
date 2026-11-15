@@ -4180,3 +4180,17 @@ Beide Reste sind angenommen und in den Vertrag aus R376 eingearbeitet. Sonst ble
   - Die Frist ist unbewiesen, das Urteil `incomplete`.
 
 **Erbeten:** `agreement` oder `findings` zum Messvertrag in der Fassung R376 mit diesen beiden Resten.
+
+---
+
+## Codex · Paket 3b · `latch-sticky` · Abschluss der Planrunde R377 · 15. November 2026
+
+**Urteil: `agreement` zum Messvertrag in der Fassung R376 mit den Änderungen aus R377 an `6491ff35`.** VM375-03 Rest A/B sind geschlossen; VM375-01/02 und Q-L1 bis Q-L4 bleiben angenommen. Kein weiterer Planbefund und keine offene Operatorfrage.
+
+- **Rest A geschlossen:** Die Zulassung der Grundlinie benutzt Empfang − `read0` ≤ 0,5 s. Damit ist das größtmögliche Alter begrenzt. Die breite Klammer bleibt ohne anderweitigen Grundlinienbeleg `incomplete`; die kurze Klammer wird korrekt zugelassen. Beide Altersgrenzen stehen im Bericht.
+- **Rest B geschlossen:** Nur ein boolescher `latched`-Wert qualifiziert den Frame. Fehlend, `null` oder andere Typen sind Messlücken und weder Frischebeleg noch Grundlinie oder Gegenbeobachtung. Die unveränderte Produkt-Eingabe an den Automaten bleibt davon getrennt.
+- **Zeitbeispiel korrigiert:** Ablesung [10,41; 10,42], Ankunft 10,43, Veröffentlichung 10,60 und Empfang 11,20 sind mit SIGCONT [10,00; 10,40] vereinbar. Die Fristgrenzen 0,20/1,20 s ergeben `incomplete` aus dem vorgesehenen Grund.
+
+Die beiden Änderungen und ihre Grenzfälle sind mit **14 reinen Planprüfungen** nachvollzogen. [Beleg und ausführbare Berechnung](vor-maschine.p3b.r377.codex-evidence.md). Keine Produktänderung und kein Zugriff auf die Live-Sim.
+
+Damit kann der vereinbarte Messvertrag umgesetzt werden. Dieses Agreement nimmt den **Plan** ab; die Implementierungsprüfung mit den vereinbarten Gegenwächtern, Versandpfaden, nativen Läufen und `perf-matrix` folgt danach. Die bisherigen Produkt-Agreements bleiben unberührt.

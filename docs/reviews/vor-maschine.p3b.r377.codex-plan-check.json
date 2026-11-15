@@ -1,0 +1,100 @@
+{
+  "plan_revision": "6491ff35",
+  "product_revision_unchanged": "d7431f19",
+  "scope": "plan rules only; no product implementation exists in this round",
+  "cases": [
+    {
+      "name": "wide bracket",
+      "age_interval": [
+        0.2,
+        1.0
+      ],
+      "baseline_admitted": false,
+      "expected": false
+    },
+    {
+      "name": "short bracket",
+      "age_interval": [
+        0.2,
+        0.21
+      ],
+      "baseline_admitted": true,
+      "expected": true
+    },
+    {
+      "name": "age exactly 0.5",
+      "age_interval": [
+        0.2,
+        0.5
+      ],
+      "baseline_admitted": true,
+      "expected": true
+    },
+    {
+      "name": "age above 0.5",
+      "age_interval": [
+        0.2,
+        0.51
+      ],
+      "baseline_admitted": false,
+      "expected": false
+    },
+    {
+      "name": "latched false",
+      "valid_latch_input": true,
+      "expected": true
+    },
+    {
+      "name": "latched true",
+      "valid_latch_input": true,
+      "expected": true
+    },
+    {
+      "name": "latched missing",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "latched null",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "latched numeric zero",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "latched numeric one",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "latched string false",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "latched array",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "latched object",
+      "valid_latch_input": false,
+      "expected": false
+    },
+    {
+      "name": "corrected timing example",
+      "valid_time_order": true,
+      "class": "new",
+      "deadline_interval": [
+        0.2,
+        1.2
+      ],
+      "verdict": "incomplete",
+      "reason": "deadline unproven, not an invalid timestamp order"
+    }
+  ],
+  "all_assertions_passed": true
+}
