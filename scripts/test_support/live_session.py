@@ -79,6 +79,10 @@ class SimulatorClient:
         # a save names the revision it was made on (settings split), as the
         # page does — None until the first view arrived
         self.settings_revs = None
+        # and the sections themselves (the machine's and the device's), as the
+        # gateway last sent them: a step that switches a function off reads
+        # the `features` section back from here and restores it (plan R381)
+        self.settings = None
         # every status frame RECEIVED, in receipt order: (monotonic s, the
         # `keep` fields of the merged status) — a case reads frames, never
         # re-reads of `status` (R292 FI-I24: a cache read is no observation)
@@ -139,6 +143,8 @@ class SimulatorClient:
         last confirmed."""
         if msg.get("type") in ("settings_init", "settings_changed") and isinstance(msg.get("revs"), dict):
             self.settings_revs = dict(msg["revs"])
+            if isinstance(msg.get("settings"), dict):
+                self.settings = dict(msg["settings"])
         if msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict):
             with self.record_lock:
                 now = time.monotonic()

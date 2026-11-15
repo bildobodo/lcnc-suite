@@ -104,6 +104,9 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
              ("examples/sim_config/tool-libraries/**",)),
         Read('execFileSync("python3"', 1, ("lcnc-gateway/**", "examples/sim_config/tool-libraries/**"),
              "runs the gateway's import over the library")),
+    _E + "probe-click.spec.ts": (
+        Read('readFileSync(new URL("../../scripts/test_fixtures/probe_panel_jobs.json"', 1,
+             ("scripts/test_fixtures/probe_panel_jobs.json",)),),
     _E + "freecad-import.spec.ts": (
         Read('readFileSync(new URL("../../test-fixtures/freecad/custom-native.json"', 1, ("test-fixtures/freecad/**",)),),
     _E + "macroFolder.ts": (

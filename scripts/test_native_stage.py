@@ -3267,15 +3267,21 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
         if text == "G10 L2 P1 Z0":
             g54["z"] = 0.0
 
-    def routine(c, text, vars=None, **kw):
-        probes.append(text)
-        if len(probes) == 1:                       # the hit: contact, G54 Z = the plate
+    def job(c, case, cmd, payload, deadline=90.0):
+        assert (cmd, payload["text"]) == ("mdi", "O<probe_z_minus_wco> CALL"), (cmd, payload)
+        probes.append(case)
+        start = {"case": f"{case}.start", "status": "PASS", "detail": "free, then locked"}
+        if case == "probe-z":                      # the hit: contact, G54 Z = the plate
             params[5070], g54["z"] = 1.0, -180.0
-            return {"errors": []}
-        return {"errors": [(11, "G38.2 move finished without making contact.")]}   # #5070 untouched
+            return {"errors": [], "error": None, "start": start}
+        return {"errors": [(11, "G38.2 move finished without making contact.")], "error": None,
+                "start": start}                    # #5070 untouched
+    frees, runs = [], []
     for name, fn in {"plate_from_hal": lambda t: {"x": 10.0, "y": 10.0, "z": -180.0}, "_hal_texts": lambda ini: "",
-                     "_set_tool_length": lambda c, t, l: None, "_short": short, "_routine": routine,
+                     "_set_tool_length": lambda c, t, l: None, "_short": short, "_probe_job": job,
                      "_to": lambda c, x, y, z: None, "_g54_z": lambda st: g54["z"],
+                     "_override_free": lambda c: frees.append(len(probes)),
+                     "_probe_run": lambda ctx, c, plate, rows: runs.append(len(frees)),
                      "_read_params": lambda c, nums, tries=3: {n: params.get(n, 1.0) for n in nums}}.items():
         monkeypatch.setattr(nr, name, fn)
     monkeypatch.setattr(tc, "serve", lambda *a, **k: [])
@@ -3284,6 +3290,10 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     by = {r["case"]: r for r in rows}
     assert by["probe-z"]["status"] == "PASS", by["probe-z"]
     assert by["probe-z-miss"]["status"] == "PASS", by["probe-z-miss"]
+    # every start from a free override, the hand-over after the miss, then
+    # the UI's own job (Codex R380 VM380-03)
+    assert probes == ["probe-z", "probe-z-miss"] and frees == [0, 1, 2] and runs == [3]
+    assert by["probe-z.start"]["status"] == by["probe-z-miss.start"]["status"] == "PASS"
 
 
 def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_judged(monkeypatch):
@@ -5807,6 +5817,12 @@ class SurfaceSim:
 
 def _surface_step(monkeypatch, tmp_path, defect=None):
     sim = SurfaceSim(tmp_path, defect)
+    # the copy's numbers (its var file), the switches, the job's delivery and
+    # each trace window as the gateway would write them (plan R381 Q-P1)
+    params = {3014: 99.0, 3021: 2.0, **{n: 1.0 for n in range(3050, 3060)}}
+    switches = {"probing": True, "toolsetter": True, "surfaceMap": True, "camera": True, "macros": True,
+                "gamepad": True}
+    sent = {}
 
     def short(c, text):
         if text.startswith("G10 L2 P1"):
@@ -5814,8 +5830,39 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
         if text == "M50 P1":
             sim.free = True
         sim.tick(2)
+
+    def job(c, case, cmd, payload, deadline=90.0):
+        assert (case, cmd) == ("surface-scan", "surface_scan_run"), (case, cmd)
+        sent["vars"] = payload["vars"]
+        if defect != "not delivered":
+            params.update({int(k): float(v) for k, v in payload["vars"].items()})
+        r = sim.routine("O<surface_scan> CALL")
+        return {**r, "error": None, "reply": {"ok": True, "persisted": True, "mdi_set": True,
+                                              "line": "O<surface_scan> CALL"},
+                "start": {"case": f"{case}.start", "status": "PASS", "detail": "free, then locked"}}
+
+    def framed(ctx, c, case, fn):
+        value = fn()
+        ev = []
+        if case == "surface-scan.feature-off":
+            ev = [{"tag": "ws.command_feature_off", "cmd": "surface_scan_run"}]
+        elif case == "surface-scan.job" and defect != "mdi job":
+            delivered = {**{k: float(v) for k, v in sent["vars"].items()}, "3116": 0.0}
+            ev = [{"tag": "probe.set_vars", "vars": delivered},
+                  {"tag": "probe.set_vars_result", "mdi_set": True, "persisted": True, "applied": sorted(delivered)},
+                  {"tag": "features.job", "cmd": "surface_scan_run", "line": "O<surface_scan> CALL"}]
+        return value, {"framed": True, "reason": None, "file": "trace.ndjson", "events": ev}
+
+    def refused(c, cmd, **kw):
+        sim.tick(2)
+        return None if switches["surfaceMap"] else f"{cmd} refused: Surface map is off — Settings › Features"
     for name, fn in {"_probe_tool": lambda c: None, "_set_tool_length": lambda c, t, l: None, "_short": short,
-                     "_routine": lambda c, text, **kw: sim.routine(text), "_vars": lambda c, nums: {3014: 99.0},
+                     "_routine": lambda c, text, **kw: sim.routine(text),
+                     "_vars": lambda c, nums: {n: params.get(n, 0.0) for n in nums},
+                     "_plant": lambda c, values: params.update(values),
+                     "_switches": lambda ctx, c: dict(switches),
+                     "_save_features": lambda ctx, c, sw: switches.update(sw),
+                     "_refused": refused, "_framed": framed, "_probe_job": job,
                      "_surface_fixture": lambda ctx, length: {}, "_limited": lambda ctx: False,
                      "_comp_python_versions": lambda ctx: {}}.items():
         monkeypatch.setattr(nr, name, fn)
@@ -5827,13 +5874,15 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
         error = None
     except nr.StepFailed as e:
         rows, error = e.rows, str(e)
+    sim.params, sim.switches = params, switches
     return {r["case"]: r for r in rows}, ctx, sim, error
 
 
 def test_the_surface_step_passes_on_a_sim_that_does_what_it_should(monkeypatch, tmp_path):
     by, ctx, sim, error = _surface_step(monkeypatch, tmp_path)
     assert error is None
-    assert sorted(by) == sorted(["surface-scan", "surface-scan.counter-node+1", "surface-scan.counter-xy-swapped",
+    assert sorted(by) == sorted(["surface-scan.feature-off", "surface-scan.job", "surface-scan.start",
+                                 "surface-scan", "surface-scan.counter-node+1", "surface-scan.counter-xy-swapped",
                                  "surface-override-lock", "surface-scan.map", "comp-nearest",
                                  "comp-nearest.counter-linear", "comp-linear", "comp-linear.counter-cubic",
                                  "comp-cubic", "comp-cubic.counter-nearest", "comp-on-off",
@@ -5847,6 +5896,25 @@ def test_the_surface_step_passes_on_a_sim_that_does_what_it_should(monkeypatch, 
     assert sim.moves == ["G0 Z12", "G0 X538 Y550", "G0 X550 Y550", "G1 X518 Y582 F1000"], sim.moves
     after = ctx["report"]["surface_cleanup"]["after"]
     assert after["eoffset_enabled"] is False and after["comp_method"] == 2 and after["g54_z"] == 0.0
+    # the scan's job is the panel's (the fixture), the switch and the numbers
+    # restored as first read (plan R381)
+    job = nr.panel_jobs()["surface_scan"]["job"]
+    assert [(cmd, kw) for cmd, kw in sim.sent if cmd == "surface_scan_run"] == []   # through the job helper
+    assert sim.switches["surfaceMap"] is True
+    assert {k: sim.params[k] for k in (3014, 3054, 3055)} == {3014: 99.0, 3054: 1.0, 3055: 1.0}
+    assert ctx["report"]["surface_scan"]["vars"] == job["vars"]
+
+
+def test_the_surface_job_is_proven_from_the_trace_and_its_values(monkeypatch, tmp_path):
+    """The scan through surface_scan_run (plan R381 Q-P1): a job rebuilt on
+    `mdi` leaves no features.job in the window — FAIL whatever the scan
+    measured; a set never delivered leaves the plant P_s — FAIL."""
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path, "mdi job")
+    assert by["surface-scan.job"]["status"] == "FAIL" and "features.job" in by["surface-scan.job"]["detail"]
+    sub = tmp_path / "nd"
+    sub.mkdir()
+    by, ctx, sim, error = _surface_step(monkeypatch, sub, "not delivered")
+    assert by["surface-scan.job"]["status"] == "FAIL" and "values" in by["surface-scan.job"]["detail"]
 
 
 def test_the_surface_step_names_each_planted_defect(monkeypatch, tmp_path):
@@ -6318,3 +6386,340 @@ def test_the_home_step_driver_acts_on_a_proven_target(tmp_path):
                                             running=str(tmp_path / "target.ini"), target_ok=True)
     assert results[0][:2] == ("target", "PASS"), results
     assert events[0] == "connect ws://127.0.0.1:4188/ws" and "arm" in events, events
+
+
+# ── probe live through the UI's handlers (plan R380–R381) ────────────────
+# The trace window (Codex R380 VM380-02): written by the REAL lcnc_trace in
+# its own process (the gateway's role), rotated by another writer before or
+# during the window, or by the gateway itself.
+_WRITER = r"""
+import json, os, subprocess, sys
+sys.path.insert(0, sys.argv[1])
+import lcnc_trace as tr
+gw, folder, case, token = sys.argv[1:5]
+def rotate_foreign():
+    subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, sys.argv[1]); import lcnc_trace as tr; "
+                    "tr.init('hal_reader', log_dir=sys.argv[2]); "
+                    "h = next(h for h in tr._logger.handlers if getattr(h, '_lcnc_role', '') == 'trace'); "
+                    "h.doRollover(); tr.emit('helper.after_rotation')", gw, folder], check=True)
+tr.init("gateway", log_dir=folder)
+tr.emit("baseline")
+if case == "foreign-before":
+    rotate_foreign()
+tr.emit("client.diag", client_id=1, native_mark=token, edge="start")
+if case == "foreign-during":
+    rotate_foreign()
+elif case == "gateway-during":
+    h = next(h for h in tr._logger.handlers if getattr(h, "_lcnc_role", "") == "trace")
+    h.doRollover()
+tr.emit("probe.set_vars", vars={"3014": 99.0, "3116": 0.0})
+tr.emit("probe.set_vars_result", mdi_set=True, applied=["3014", "3116"], persisted=True, file_error=None)
+tr.emit("features.job", cmd="probe_run", line="O<probe_z_minus_wco> CALL")
+tr.emit("client.diag", client_id=1, native_mark=token, edge="end")
+print(os.getpid())
+"""
+
+
+def _written_window(tmp_path, case):
+    folder = tmp_path / case
+    folder.mkdir()
+    token = f"probe-run.{case}"
+    out = subprocess.run([sys.executable, "-c", _WRITER, str(HERE.parent / "lcnc-gateway"), str(folder), case, token],
+                         check=True, capture_output=True, text=True)
+    files, errors = nr._trace_files(folder)
+    return nc.frame_window(files, token, int(out.stdout.strip()), errors), files
+
+
+@pytest.mark.parametrize("case", ["none", "foreign-before", "foreign-during"])
+def test_the_window_is_the_gateways_stream_whatever_another_writer_rotated(tmp_path, case):
+    """Another writer's rotation renames the file the gateway keeps writing:
+    before the start mark the whole window lies in `.1` — a window by the
+    current file's size saw nothing there (R380). The marks are found in
+    whichever file holds them; the job between them is judged."""
+    frame, files = _written_window(tmp_path, case)
+    assert frame["framed"], frame["reason"]
+    assert frame["file"] == ("trace.ndjson" if case == "none" else "trace.ndjson.1")
+    row = nc.eval_job_window("probe-run", frame, "probe_run", "O<probe_z_minus_wco> CALL", {3014: 99.0})
+    assert row["status"] == "PASS", row
+
+
+def test_a_window_the_gateway_rotated_within_is_not_framed(tmp_path):
+    frame, files = _written_window(tmp_path, "gateway-during")
+    assert not frame["framed"] and "two files" in frame["reason"], frame
+    row = nc.eval_job_window("probe-run", frame, "probe_run", "O<probe_z_minus_wco> CALL", {3014: 99.0})
+    assert row["status"] == "incomplete", row
+
+
+def test_the_trace_files_name_lcnc_traces_own_rotations():
+    sys.path.insert(0, str(HERE.parent / "lcnc-gateway"))
+    import lcnc_trace
+    assert nr.TRACE_FILES == ("trace.ndjson",) + tuple(f"trace.ndjson.{i}" for i in
+                                                       range(1, lcnc_trace._TRACE_BACKUPS + 1))
+
+
+_PID, _TOKEN, _LINE = 4242, "probe-run.t", "O<probe_z_minus_wco> CALL"
+
+
+def _rec(tag, pid=_PID, proc="gateway", **kw):
+    return json.dumps({"t_wall_ns": 1, "t_mono_ms": 1.0, "proc": proc, "pid": pid, "tag": tag, "level": "info",
+                       **kw}).encode() + b"\n"
+
+
+def _mark(edge, **kw):
+    return _rec("client.diag", client_id=1, native_mark=_TOKEN, edge=edge, **kw)
+
+
+_JOB = [_rec("probe.set_vars", vars={"3014": 99.0, "3116": 0.0}),
+        _rec("probe.set_vars_result", mdi_set=True, applied=["3014", "3116"], persisted=True),
+        _rec("features.job", cmd="probe_run", line=_LINE)]
+
+
+def _frame(*chunks, files=None):
+    data = b"".join(chunks)
+    return nc.frame_window(files or [("trace.ndjson", 7, data)], _TOKEN, _PID)
+
+
+def test_a_window_is_framed_only_by_one_start_and_one_end_mark_of_this_gateway():
+    good = _frame(_rec("other"), _mark("start"), *_JOB, _rec("hal", pid=17, proc="hal_reader"), _mark("end"))
+    assert good["framed"] and [e["tag"] for e in good["events"]] == ["probe.set_vars", "probe.set_vars_result",
+                                                                       "features.job"]
+    cases = {
+        "no start mark": _frame(*_JOB, _mark("end")),
+        "no end mark": _frame(_mark("start"), *_JOB),
+        "a foreign pid": _frame(_mark("start"), *_JOB, _rec("client.diag", pid=99, native_mark=_TOKEN, edge="end")),
+        "a foreign proc": _frame(_mark("start"), *_JOB, _rec("client.diag", proc="launcher", native_mark=_TOKEN,
+                                                             edge="end")),
+        "a doubled mark": _frame(_mark("start"), _mark("start"), *_JOB, _mark("end")),
+        "the end first": _frame(_mark("end"), *_JOB, _mark("start")),
+        "a damaged line": _frame(_mark("start"), _JOB[0], b'{"tag": "features.jo\n', _JOB[2], _mark("end")),
+        "two files": _frame(files=[("trace.ndjson", 8, _mark("end")), ("trace.ndjson.1", 7, _mark("start") + _JOB[2])]),
+    }
+    for why, frame in cases.items():
+        assert not frame["framed"], why
+        assert nc.eval_job_window("c", frame, "probe_run", _LINE, {3014: 99.0})["status"] == "incomplete", why
+        assert nc.eval_no_job_window("c", frame)["status"] == "incomplete", why
+    unread = nc.frame_window([], _TOKEN, _PID, ["trace.ndjson.1: PermissionError: no"])
+    assert not unread["framed"] and "not read" in unread["reason"]
+    # a file read twice (a rotation between two opens) counts once, by its later read
+    twice = nc.frame_window([("trace.ndjson", 7, _mark("start")), ("trace.ndjson.1", 7, _mark("start") + _JOB[2]
+                                                                    + _mark("end"))], _TOKEN, _PID)
+    assert twice["framed"] and twice["file"] == "trace.ndjson.1"
+    # the line still being written after the end mark is no damage
+    assert _frame(_mark("start"), *_JOB, _mark("end"), b'{"tag": "late').get("framed")
+
+
+def test_the_job_window_needs_exactly_the_handlers_one_job_and_its_one_delivery():
+    """VM349-01: a driver rebuilt on `mdi` runs the routine right and still
+    fails — only the job handler writes features.job. Every other part of
+    the case passing, each wrong window alone is a FAIL (R380 §5)."""
+    ok = nc.eval_job_window("c", _frame(_mark("start"), *_JOB, _mark("end")), "probe_run", _LINE, {3014: 99.0})
+    assert ok["status"] == "PASS", ok
+    other = [_rec("features.job", cmd="surface_scan_run", line=_LINE), _rec("features.job", cmd="probe_run",
+                                                                           line="O<probe_x> CALL")]
+    wrong = {
+        "absent (the mdi driver)": (_mark("start"), *_JOB[:2], _mark("end")),
+        "another cmd": (_mark("start"), *_JOB[:2], other[0], _mark("end")),
+        "another line": (_mark("start"), *_JOB[:2], other[1], _mark("end")),
+        "only before the start mark": (_JOB[2], _mark("start"), *_JOB[:2], _mark("end")),
+        "two jobs": (_mark("start"), *_JOB, _JOB[2], _mark("end")),
+        "no delivery": (_mark("start"), _JOB[2], _mark("end")),
+        "two deliveries": (_mark("start"), *_JOB, _JOB[0], _mark("end")),
+        "#3116 not cleared": (_mark("start"), _rec("probe.set_vars", vars={"3014": 99.0}), *_JOB[1:], _mark("end")),
+        "another value": (_mark("start"), _rec("probe.set_vars", vars={"3014": 98.0, "3116": 0.0}), *_JOB[1:],
+                          _mark("end")),
+        "not persisted": (_mark("start"), _JOB[0], _rec("probe.set_vars_result", mdi_set=True,
+                                                         applied=["3014", "3116"], persisted=False), _JOB[2],
+                          _mark("end")),
+    }
+    for why, chunks in wrong.items():
+        row = nc.eval_job_window("c", _frame(*chunks), "probe_run", _LINE, {3014: 99.0})
+        assert row["status"] == "FAIL", (why, row)
+    assert "features.job" in nc.eval_job_window("c", _frame(*wrong["absent (the mdi driver)"]), "probe_run", _LINE,
+                                                {3014: 99.0})["detail"]
+
+
+def test_a_refused_job_acts_nowhere_and_the_switch_says_so():
+    off = [_rec("ws.command_feature_off", level="warn", cmd="probe_run", reason="Probing is off")]
+    assert nc.eval_no_job_window("c", _frame(_mark("start"), *off, _mark("end")), "probe_run")["status"] == "PASS"
+    assert nc.eval_no_job_window("c", _frame(_mark("start"), _mark("end")))["status"] == "PASS"
+    assert nc.eval_no_job_window("c", _frame(_mark("start"), _mark("end")), "probe_run")["status"] == "FAIL"
+    for acted in (_JOB[0], _JOB[2]):
+        assert nc.eval_no_job_window("c", _frame(_mark("start"), *off, acted, _mark("end")), "probe_run")[
+            "status"] == "FAIL"
+
+
+def _ovr(*seq):
+    """(t, override) frames: True free, False locked."""
+    return [(0.1 * i, {"feed_override_enabled": v}) for i, v in enumerate(seq)]
+
+
+def test_a_probe_start_is_a_lock_after_the_send_from_a_free_baseline():
+    """Codex R380 VM380-03, R381: the lock counts only when received after
+    the send AND the last frame before it showed the override free."""
+    assert nc.eval_probe_start("s", _ovr(True, True, False, True), 2, True)["status"] == "PASS"
+    # inherited: locked at the send → never PASS (Codex's course: locked → busy → free/idle)
+    inherited = nc.eval_probe_start("s", _ovr(False, False, False, True), 2, True)
+    assert inherited["status"] == "incomplete" and "baseline" in inherited["detail"]
+    # a valid free baseline, an OLD lock before the cursor, no new lock after
+    old = nc.eval_probe_start("s", _ovr(False, True, True, True), 2, True)
+    assert old["status"] == "FAIL", old
+    assert nc.eval_probe_start("s", _ovr(False, True, True, True), 2, False)["status"] == "incomplete"
+    assert nc.eval_probe_start("s", _ovr(True), 0, True)["status"] == "incomplete"     # no frame before the send
+
+
+def test_a_refusal_changes_nothing_and_one_case_keeps_every_proof():
+    s = {"joint_pos": [1.0, 2.0, 3.0], "g54_z": -167.655, "#5070": 0.0, "#3014": 98.0, "tool_number": 99,
+         "tool_offset_z": 50.0, "feed_override_enabled": True}
+    assert nc.eval_unchanged("u", s, dict(s))["status"] == "PASS"
+    assert nc.eval_unchanged("u", s, {**s, "joint_pos": [1.0, 2.0, 3.0005]})["status"] == "PASS"
+    for k, v in (("joint_pos", [1.0, 2.0, 3.01]), ("g54_z", -180.0), ("#3014", 99.0), ("tool_number", 98),
+                 ("feed_override_enabled", False)):
+        assert nc.eval_unchanged("u", s, {**s, k: v})["status"] == "FAIL", k
+    assert nc.eval_unchanged("u", s, {**s, "#5070": None})["status"] == "incomplete"
+    parts = {"a": {"status": "PASS", "detail": "x"}, "b": {"status": "incomplete", "detail": "y"},
+             "c": {"status": "FAIL", "detail": "z"}}
+    assert nc.combine("k", parts)["detail"] == "c: z" and nc.combine("k", parts)["status"] == "FAIL"
+    assert nc.combine("k", {k: parts[k] for k in "ab"})["status"] == "incomplete"
+    assert nc.eval_refusal_reply("r", "probe_run refused: Probing is off — Settings › Features",
+                                 "Probing is off — Settings › Features")["status"] == "PASS"
+    assert nc.eval_refusal_reply("r", None, "Probing is off — Settings › Features")["status"] == "FAIL"
+    assert nc.eval_job_reply("r", {"ok": True, "persisted": True, "mdi_set": True, "line": _LINE}, _LINE)[
+        "status"] == "PASS"
+    assert nc.eval_job_reply("r", {"ok": True, "persisted": False, "mdi_set": True, "line": _LINE}, _LINE)[
+        "status"] == "FAIL"
+
+
+class ProbeRunFake:
+    """The probe_run case's counterpart offline: a client whose interpreter
+    numbers, G54 Z, switches and override follow the commands, and a gateway
+    trace written as the handler writes it. `defect` plants one wrong
+    behaviour."""
+    PLATE = {"x": 100.0, "y": 100.0, "z": -180.0}
+
+    def __init__(self, defect=None):
+        self.defect = defect
+        self.params = {**{n: 1.0 for n in range(3014, 3036)}, 5070: 1.0}
+        self.g54, self.error, self.safety_trip, self.sent = 0.0, None, None, []
+        self.switches = {f: True for f in ("probing", "toolsetter", "surfaceMap", "camera", "macros", "gamepad")}
+        self.frames = []
+        self.tick(feed_override_enabled=True)
+
+    def tick(self, **over):
+        t = (self.frames[-1][0] if self.frames else 0.0) + 0.033
+        last = dict(self.frames[-1][1]) if self.frames else {
+            **_IDLE, "joint_pos": [100.0, 100.0, -122.0], "tool_number": 99, "tool_offset": [0.0, 0.0, 50.0],
+            "current_vel": 0.0, "g5x_index": 1}
+        self.frames.append((t, {**last, **over}))
+
+    @property
+    def status(self):
+        return dict(self.frames[-1][1])
+
+    def request(self, cmd, **kw):
+        self.sent.append(cmd)
+        return {"ok": True}
+
+    def job(self, case, cmd, payload):
+        assert cmd == "probe_run" and payload["routine"] == "probe_z_minus_wco", (cmd, payload)
+        if self.defect == "hit raises" and case == "probe-run":
+            if self.trip:
+                self.safety_trip = {"id": "e.1"}
+            raise RuntimeError("probe_run: the connection ended while waiting")
+        self.delivered = dict(payload["vars"])
+        if self.defect != "not delivered":
+            self.params.update({int(k): float(v) for k, v in payload["vars"].items()})
+        t0 = self.frames[-1][0]
+        errors = []
+        self.tick(feed_override_enabled=True, interp_state=2, inpos=False)
+        if self.params[3014] != 99:
+            errors = [(11, "Specified probe tool 98 not in spindle, aborting")]
+        else:
+            self.tick(feed_override_enabled=False, interp_state=2, current_vel=5.0, inpos=False)
+            if case == "probe-run":
+                self.params[5070], self.g54 = 1.0, self.PLATE["z"] + 0.0004
+            else:
+                errors = [(11, "G38.2 move finished without making contact.")]
+        self.tick(feed_override_enabled=True, interp_state=1, current_vel=0.0, inpos=True)
+        start = {"case": f"{case}.start", "status": "PASS", "detail": "free, then locked"}
+        return {"reply": {"ok": True, "persisted": True, "mdi_set": True, "line": "O<probe_z_minus_wco> CALL"},
+                "t0": t0, "t_done": self.frames[-1][0], "errors": errors, "start": start, "error": None, "cursor": 0}
+
+    def window(self, case):
+        ev = []
+        if case.endswith("feature-off"):
+            ev = [{"tag": "ws.command_feature_off", "cmd": "probe_run"}]
+        elif case in ("probe-run", "probe-run-miss") and self.defect != "mdi driver":
+            delivered = {**{k: float(v) for k, v in self.delivered.items()}, "3116": 0.0}
+            ev = [{"tag": "probe.set_vars", "vars": delivered},
+                  {"tag": "probe.set_vars_result", "mdi_set": True, "persisted": True, "applied": sorted(delivered)},
+                  {"tag": "features.job", "cmd": "probe_run", "line": "O<probe_z_minus_wco> CALL"}]
+        return {"framed": True, "reason": None, "file": "trace.ndjson", "events": ev}
+
+
+def _probe_run(monkeypatch, defect=None, trip=False):
+    f = ProbeRunFake(defect)
+    f.trip = trip
+
+    def short(c, text):
+        if text.startswith("G10 L2 P1 Z"):
+            f.g54 = float(text.split("Z")[1])
+        elif text == "#5070=0":
+            f.params[5070] = 0.0
+        f.tick()
+
+    def refused(c, cmd, **kw):
+        f.tick()
+        if kw.get("routine") != "probe_z_minus_wco":
+            return f"{cmd} refused: Not a probe routine — reload the page"
+        return None if f.switches["probing"] else f"{cmd} refused: Probing is off — Settings › Features"
+    for name, fn in {"_over_plate": lambda c, plate, over: f.tick(),
+                     "_override_free": lambda c: f.tick(feed_override_enabled=True), "_short": short,
+                     "_plant": lambda c, values: f.params.update(values),
+                     "_vars": lambda c, nums: {n: f.params.get(n) for n in nums},
+                     "_g54_z": lambda st: f.g54, "_switches": lambda ctx, c: dict(f.switches),
+                     "_save_features": lambda ctx, c, sw: f.switches.update(sw), "_refused": refused,
+                     "_framed": lambda ctx, c, case, fn: (fn(), f.window(case)),
+                     "_probe_job": lambda c, case, cmd, payload, deadline=90.0: f.job(case, cmd, payload),
+                     "_release_seen": lambda c, r: None, "_standstill": lambda c, timeout: True}.items():
+        monkeypatch.setattr(nr, name, fn)
+    first = dict(f.params)
+    rows, error = [], None
+    try:
+        nr._probe_run({"report": {}}, f, ProbeRunFake.PLATE, rows)
+    except nr.StepFailed as e:
+        error = str(e)
+    return {r["case"]: r for r in rows}, f, first, error
+
+
+def test_the_probe_run_case_passes_on_a_gateway_that_does_what_it_should(monkeypatch):
+    by, f, first, error = _probe_run(monkeypatch)
+    assert error is None
+    assert list(by) == ["probe-run.not-a-routine", "probe-run.feature-off", "probe-run", "probe-run.counter-plate-1",
+                        "probe-run.start", "probe-run-override-lock", "probe-run-miss", "probe-run-miss.start",
+                        "probe-run.restore"], list(by)
+    assert all(r["status"] == "PASS" for r in by.values()), {k: r["detail"] for k, r in by.items()
+                                                             if r["status"] != "PASS"}
+    # the job is the panel's whole job (the fixture), the restore put back the
+    # switches, G54 Z0 and every number as first read
+    assert f.delivered == nr.panel_jobs()["z_surface"]["job"]["vars"]
+    assert all(f.switches.values()) and f.g54 == 0.0 and "abort" in f.sent
+    assert {k: f.params[k] for k in range(3014, 3036)} == {k: first[k] for k in range(3014, 3036)}
+
+
+def test_the_probe_run_case_names_each_planted_defect(monkeypatch):
+    by, *_ = _probe_run(monkeypatch, "mdi driver")      # VM349-01: the routine ran right, the handler never did
+    assert by["probe-run"]["status"] == "FAIL" and "features.job" in by["probe-run"]["detail"], by["probe-run"]
+    assert by["probe-run.counter-plate-1"]["status"] == "PASS"                     # the measurement itself was right
+    by, *_ = _probe_run(monkeypatch, "not delivered")   # the plant stays: the routine refuses T98
+    assert by["probe-run"]["status"] == "FAIL", by["probe-run"]
+
+
+def test_the_probe_run_case_restores_on_every_exit_and_never_after_a_trip(monkeypatch):
+    by, f, first, error = _probe_run(monkeypatch, "hit raises")
+    assert error and "connection ended" in error
+    assert by["probe-run.restore"]["status"] == "PASS" and "probe-run" not in by
+    assert all(f.switches.values()) and f.g54 == 0.0 and f.sent == ["abort"]
+    assert by["probe-run.feature-off"]["status"] == "PASS"                         # the rows before are kept
+    by, f, first, error = _probe_run(monkeypatch, "hit raises", trip=True)
+    assert by["probe-run.restore"]["status"] == "FAIL" and "trip" in by["probe-run.restore"]["detail"]
+    assert f.sent == [] and f.g54 != 0.0                # nothing more was done, and the rest is named

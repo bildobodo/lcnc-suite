@@ -1,7 +1,9 @@
 import { test, expect, type Page } from "./test";
 import { ctl } from './ctl';
 import { PROFILES, VIEWPORTS, openLayout } from './layout-fixtures';
+import { readFileSync } from 'node:fs';
 import { PROBE_FALLBACK, calibrationVarMap, probeVarMap, surfaceVarMap } from '../src/probeVars';
+import type { ProbeDefaults } from '../src/defaults';
 
 // A probe button sends its routine with the panel's values (test strategy
 // step 2, Codex R251): no spec ever pressed one — every probe on every
@@ -80,3 +82,39 @@ test("Surface: a held Start Scan sends the surface_scan_run job with the panel's
   expect(job.vars!['3054'], 'X Probes from the panel').toBe(7);
   expect(Object.entries(job.vars!).filter(([, v]) => !Number.isFinite(v)), 'every value finite').toEqual([]);
 });
+
+// The native stage's two jobs (plan R380–R381, Codex VM380-01): with the
+// panel state the fixture names, the button sends EXACTLY the fixture's job —
+// every value, not only the numbers and the mode's range. The native stage
+// runs the same job on the real task, so the page and the stage cannot part:
+// a send site that rewrote #3030 to 1 (measure only) would still pass the
+// numbers check above and the map guard, and this comparison refuses it.
+type PanelJob = { view: string; button: string; panel: ProbeDefaults;
+                  job: { cmd: string; routine?: string; vars: Record<string, number> } };
+const PANEL_JOBS = JSON.parse(readFileSync(new URL("../../scripts/test_fixtures/probe_panel_jobs.json", import.meta.url),
+                                           "utf8")) as Record<string, PanelJob>;
+
+for (const key of ["z_surface", "surface_scan"]) {
+  test(`${key}: the job the button sends is the native stage's whole job`, async ({ page }) => {
+    const e = PANEL_JOBS[key]!;
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { probe: e.panel } } });
+    const side = page.locator('.sidePane');
+    await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+    await side.getByRole('tab', { name: e.view, exact: true }).click();
+    // the panel shows the fixture's state before the press
+    if (e.job.cmd === 'probe_run') {
+      const az = side.getByRole('checkbox', { name: 'Auto Zero', exact: true });
+      await (e.panel.autoZero ? expect(az).toBeChecked() : expect(az).not.toBeChecked());
+    } else {
+      await expect(side.getByLabel('X Probes', { exact: true })).toHaveValue(String(e.panel.scanXProbes));
+    }
+    await ctl({ op: 'clearCmds' });
+    await hold(page, side.getByRole('button', { name: e.button, exact: true }));
+    await expect.poll(async () => (await sent()).filter(c => c.cmd === e.job.cmd).length, { message: `one ${e.job.cmd}` }).toBe(1);
+    const job = (await sent()).find(c => c.cmd === e.job.cmd)!;
+    expect({ cmd: job.cmd, routine: job.routine, vars: job.vars }, `${key}: the whole job`).toEqual(
+      { cmd: e.job.cmd, routine: e.job.routine, vars: e.job.vars });
+    expect((await sent()).filter(c => c.cmd === 'mdi'), `${key}: no client-built line`).toEqual([]);
+  });
+}

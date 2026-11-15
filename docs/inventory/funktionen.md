@@ -388,9 +388,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 4 | 0 |
+| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 5 | 5 | 0 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
-| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 2 | 2 | 0 |
+| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 3 | 3 | 0 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
@@ -403,6 +403,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: unit: `probeVarFiles.test.ts` — are found: one per example profile
 - **S3 (Wirkung):** Auf echtem LinuxCNC setzt Z-Antasten (probe_z_minus_wco, #3030 = 0) G54 Z auf die Platte aus der HAL der Kopie (−180 ± 0,003 mm, Kontakt #5070 = 1); eine um 1 mm versetzte Erwartung fällt durch; ohne Kontakt in der Suchtiefe meldet es keinen Kontakt, setzt nichts, und LinuxCNC meldet den Fehler. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — probe-z; native: `native_run.py` — probe-z.counter-plate-1; native: `native_run.py` — probe-z-miss
+- **S4 (Wirkung):** Auf echtem LinuxCNC startet der Z-Flächenknopf seinen ganzen Auftrag (Auto Zero an: Modus 0) über den Handler probe_run: der Handler liefert die Panelwerte samt #3116 = 0 einmal (aus dem Trace des Gateways), G54 Z wird die Platte (± 0,003 mm); eine unbekannte Routine und der ausgeschaltete Schalter werden abgelehnt und ändern nichts; ohne Kontakt kommt der Fehler über diesen Weg an. Ein auf mdi zurückgebauter Treiber fällt durch. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — probe-run; native: `native_run.py` — probe-run.counter-plate-1; native: `native_run.py` — probe-run.not-a-routine; native: `native_run.py` — probe-run.feature-off; native: `native_run.py` — probe-run-miss; browser: `probe-click.spec.ts` — ${key}: the job the button sends is the native stage's whole job (je: z_surface)
 
 ### Taster kalibrieren
 
@@ -415,6 +417,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `probe-click.spec.ts` — Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers
 - **S2 (Wirkung):** Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation: 5 × 5 Punkte auf dem gewölbten Werkstück der 3-Achs-Sim in der Schlangenfolge, jeder auf der Fläche ± 0,005 mm; danach lädt die Kompensation die neue Karte. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — surface-scan; native: `native_run.py` — surface-scan.counter-node+1; native: `native_run.py` — surface-scan.counter-xy-swapped; native: `native_run.py` — surface-scan.map
+- **S2b (Wirkung):** Auf echtem LinuxCNC startet der Scan seinen ganzen Auftrag aus dem Panel über den Handler surface_scan_run: der Handler liefert die Werte samt #3116 = 0 einmal (aus dem Trace des Gateways), die Werte stehen danach im Interpreter; der ausgeschaltete Schalter lehnt den Auftrag ab und ändert nichts. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — surface-scan.job; native: `native_run.py` — surface-scan.feature-off; browser: `probe-click.spec.ts` — ${key}: the job the button sends is the native stage's whole job (je: surface_scan)
 
 ### Flächenkompensation ein/aus und Interpolation umschalten
 

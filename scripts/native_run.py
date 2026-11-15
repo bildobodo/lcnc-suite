@@ -93,10 +93,9 @@ TOOLSETTER_VARS = (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100,
 #: package G2 (Codex R326): the surface scan as the probe panel starts it —
 #: the grid #3050–#3059 over the workpiece (nc.SCAN_AXIS: 5 × 5, X/Y
 #: 518…582), fast 1500 / slow 50 mm/min, safe Z 15 and depth 25 in the WCS
-#: (G54 Z = nc.SURFACE_BASE), the retract #3021 1 mm; #3014 the copy's
-#: probe tool, checked
-SCAN_VARS = {3050: 518.0, 3051: 582.0, 3052: 518.0, 3053: 582.0, 3054: 5, 3055: 5, 3056: 1500.0, 3057: 50.0,
-             3058: 15.0, 3059: 25.0, 3021: 1.0}
+#: (G54 Z = nc.SURFACE_BASE), the retract #3021 1 mm, #3014 the probe tool —
+#: since plan R381 read from the panel's own job (probe_panel_jobs.json,
+#: `surface_scan`), the one number source the browser case holds the page to
 SCAN_FILE = "probe-results.txt"
 SCAN_DEADLINE = 600.0
 #: the compensation's readouts: program Z 12 under G43 H99 → the control
@@ -1086,10 +1085,373 @@ def _probe_tool(c):
     tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0, cursor=cursor)
 
 
+# ── probe live through the UI's handlers (plan R380–R381) ────────────────
+PANEL_JOBS = HERE / "test_fixtures" / "probe_panel_jobs.json"
+#: the trace files a run's gateway may write: lcnc_trace's file and its
+#: _TRACE_BACKUPS (5) rotations, newest first
+TRACE_FILES = ("trace.ndjson",) + tuple(f"trace.ndjson.{i}" for i in range(1, 6))
+MARK_WAIT_S = 5.0          # s for the end mark to show in the gateway's stream (client_diag has no reply)
+STAND_S = 15.0             # s for the abort's standstill before a restore (plan R380 §6)
+G54_PLANT = 12.345         # mm over the plate: a G54 Z the probe must overwrite (TS248-06 step 2)
+#: the plant P (plan R380 §2): slower and shorter where probe_z_minus_wco
+#: reads, measure only (#3030 = 1, as the shipped file), the wrong probe tool
+#: (98: the routine refuses an undelivered set); every other number V + 0.5
+PROBE_PLANT = {3014: 98.0, 3015: 40.0, 3016: 150.0, 3017: 800.0, 3020: 9.0, 3021: 1.5, 3030: 1.0}
+#: the plant P_s (plan R381 Q-P1): the wrong probe tool (surface_scan.ngc
+#: refuses before any motion) and a 3 × 3 grid a missed delivery would scan
+SCAN_PLANT = {3014: 98.0, 3054: 3.0, 3055: 3.0}
+PROBE_RUN_TEXT = {"not-a-routine": "Not a probe routine — reload the page",
+                  "probing-off": "Probing is off — Settings › Features",
+                  "surface-off": "Surface map is off — Settings › Features"}
+
+
+def panel_jobs() -> dict:
+    """The probe panel's jobs as the page sends them — the fixture the
+    browser case compares the sent job with (Codex VM380-01) and the stage's
+    one number source."""
+    data = json.loads(PANEL_JOBS.read_text())
+    return {k: v for k, v in data.items() if not k.startswith("_")}
+
+
+def _job_values(entry) -> dict:
+    return {int(k): float(v) for k, v in entry["job"]["vars"].items()}
+
+
+def _job_line(job) -> str:
+    return nc.JOB_LINES[job["cmd"]].format(routine=job.get("routine"))
+
+
+def _trace_files(log_dir: Path):
+    """Each trace file read through ONE descriptor: its inode and size from
+    fstat, then those bytes (Codex R380 VM380-02). A missing rotation is no
+    error; any other failure is named."""
+    files, errors = [], []
+    for name in TRACE_FILES:
+        try:
+            with open(log_dir / name, "rb") as f:
+                st = os.fstat(f.fileno())
+                files.append((name, st.st_ino, f.read(st.st_size)))
+        except FileNotFoundError:
+            continue
+        except OSError as e:
+            errors.append(f"{name}: {type(e).__name__}: {e}")
+    return files, errors
+
+
+def _window(ctx, token):
+    """The framed window of `token` in THIS run's gateway stream — the end
+    mark waited for (bounded): the gateway's reader writes it on its own
+    time, and only its absence after the wait is no frame."""
+    pid = ctx.get("gateway_pid") or ctx.setdefault("gateway_pid", _gateway_pid(ctx))
+    end = time.monotonic() + MARK_WAIT_S
+    while True:
+        files, errors = _trace_files(ctx["run"] / "logs")
+        frame = nc.frame_window(files, token, pid, errors)
+        if frame["framed"] or time.monotonic() > end:
+            return frame
+        time.sleep(0.1)
+
+
+def _framed(ctx, c, case, fn):
+    """`fn()` between a start and an end mark in the gateway's trace
+    (`client_diag`, the same connection as the command); the end mark is
+    sent on every way out. Returns (its value, the window)."""
+    import uuid
+    token = f"{case}.{uuid.uuid4().hex}"
+    c.send({"cmd": "client_diag", "data": {"native_mark": token, "edge": "start"}})
+    try:
+        value = fn()
+    finally:
+        c.send({"cmd": "client_diag", "data": {"native_mark": token, "edge": "end"}})
+    return value, _window(ctx, token)
+
+
+def _refused(c, cmd, **kw):
+    """The refusal's text — None when the command was taken."""
+    from test_support.live_session import Refused as SessionRefused
+    try:
+        _when_free(c, cmd, **kw)
+    except SessionRefused as e:
+        return str(e)
+    return None
+
+
+def _probe_job(c, case, cmd, payload, deadline=90.0):
+    """ONE probe start (Codex R380–R381 VM380-03), the four probe cases' and
+    the scan's: the override FREE in the last frame before the send (the
+    caller confirmed it with _override_free before its plant — never an M50
+    between the last read-back and the job), else nothing is sent; the
+    routine's start is a lock RECEIVED after the send, its end the
+    interpreter busy then idle in position after that start. Returns the
+    reply, the cursor, the trigger and end times, the errors received, the
+    start row and `error` (the deadline's, None when ended)."""
+    from test_support import tool_change as tc
+    changes = tc.ToolChanges([])
+
+    def bounds():
+        refusal = changes.precheck(c.status)
+        if refusal:
+            raise RuntimeError(f"{case}: {refusal}")
+        frames = c.frames
+        base = frames[-1][1].get("feed_override_enabled") if frames else None
+        if base is not True:
+            raise Refused(f"{case}: no free override baseline at the send ({base}) — nothing sent")
+        return len(c.errors), len(frames), time.monotonic()
+    reply, (seen, cursor, t0) = _when_free(c, cmd, before=bounds, **payload)
+    end = tc.RoutineEnd(require_busy=True, grace=SHORT_GRACE)
+    started = {"t": None}
+
+    def done(t, st):
+        # the start before the end, both from frames after the send — a
+        # lock before the cursor never counts (serve feeds from it)
+        if started["t"] is None and st.get("feed_override_enabled") is False:
+            started["t"] = t
+        return end(t, st) and started["t"] is not None
+    error = None
+    try:
+        tc.serve(c, changes, done, deadline, cursor=cursor)
+    except tc.ToolChangeError as e:
+        error = str(e)
+    frames = list(c.frames)
+    last = frames[-1][1] if frames else {}
+    ended = error is None or (last.get("interp_state") == tc.INTERP_IDLE and last.get("inpos") is True)
+    return {"reply": reply, "cursor": cursor, "t0": t0, "t_done": changes.ended_at, "error": error,
+            "errors": [(k, x) for _, k, x in c.errors[seen:]],
+            "start": nc.eval_probe_start(f"{case}.start", frames, cursor, ended)}
+
+
+def _over_plate(c, plate, over):
+    """The probe tool `over` mm above its contact (joint Z = plate + L0),
+    moved in G53 — no G54 value changes the motion — then G43 H99 checked."""
+    _to(c, plate["x"], plate["y"], plate["z"] + PROBE_L0 + over)
+    _short(c, f"G43 H{PROBE_TOOL}")
+    off = (c.status.get("tool_offset") or [None] * 3)[2]
+    if off is None or abs(off - PROBE_L0) > nc.SAME:
+        raise Refused(f"G43 H{PROBE_TOOL} applied {off}, not {PROBE_L0}")
+
+
+def _plant(c, values: dict) -> None:
+    """Raw `mdi` lines under 254 bytes, then read back from the interpreter.
+    Never #3116: a line naming it makes the gateway's skip flag unknown and
+    the next line clears it first (plan R380 §2)."""
+    if 3116 in values:
+        raise ValueError("#3116 is never planted — its delivery is proven from the trace")
+    line = ""
+    for item in (f"#{k}={v:.6f}" for k, v in sorted(values.items())):
+        if line and len(line) + 1 + len(item) > 200:
+            _short(c, line)
+            line = item
+        else:
+            line = f"{line} {item}".strip()
+    if line:
+        _short(c, line)
+    back = _vars(c, sorted(values))
+    wrong = {k: back[k] for k in values if abs(back[k] - values[k]) > nc.SAME}
+    if wrong:
+        raise Refused(f"planted values not read back: {wrong}")
+
+
+def _snapshot(c, numbers) -> dict:
+    """S (plan R380 §2): what a refused command must leave as it was — the
+    numbers and #5070 from the interpreter, then the status after them."""
+    vals = _vars(c, sorted(set(numbers) | {5070}))
+    st = c.status
+    return {"joint_pos": st.get("joint_pos"), "g54_z": _g54_z(st), "#5070": vals[5070],
+            **{f"#{k}": vals[k] for k in sorted(numbers)}, "tool_number": st.get("tool_number"),
+            "tool_offset_z": (st.get("tool_offset") or [None] * 3)[2],
+            "feed_override_enabled": st.get("feed_override_enabled")}
+
+
+def _features(ctx):
+    """The run tree's switches (features.py: FEATURES, features_of)."""
+    import importlib.util
+    gw = str(Path(ctx["tree"]) / "lcnc-gateway")
+    sys.path.insert(0, gw)
+    try:
+        spec = importlib.util.spec_from_file_location("features_run", Path(gw) / "features.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    finally:
+        sys.path.remove(gw)
+    return mod
+
+
+def _switches(ctx, c) -> dict:
+    """The switches as they act now — from the section the gateway sent."""
+    return _features(ctx).features_of((c.settings or {}).get("features"))
+
+
+def _save_features(ctx, c, switches: dict) -> None:
+    """The `features` section as the page saves it (all six switches, on its
+    revision), read back from the view the gateway pushes."""
+    rev = (c.settings_revs or {}).get("features")
+    if not isinstance(rev, int) or isinstance(rev, bool):
+        raise Refused(f"the features section's revision was not read from the gateway: {c.settings_revs}")
+    reply = _when_free(c, "save_settings", section="features", data=dict(switches), base_rev=rev)
+    if not reply or reply.get("ok") is False:
+        raise Refused(f"the features section was not saved: {reply}")
+    end = time.monotonic() + OVERRIDE_CONFIRM_S
+    while time.monotonic() < end:
+        if _switches(ctx, c) == switches:
+            return
+        time.sleep(0.05)
+    raise Refused(f"the features section not read back as {switches}: {(c.settings or {}).get('features')}")
+
+
+def _standstill(c, timeout) -> bool:
+    """A frame received after now: interpreter idle, in position, at rest."""
+    from test_support import tool_change as tc
+    i0, end = len(c.frames), time.monotonic() + timeout
+    while time.monotonic() < end:
+        new = c.frames[i0:]
+        st = new[-1][1] if new else {}
+        if (st.get("interp_state") == tc.INTERP_IDLE and st.get("inpos") is True
+                and nc._finite(st.get("current_vel")) and abs(st["current_vel"]) <= nc.STANDSTILL):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def _release_seen(c, r) -> None:
+    """Wait out the release window after the routine's end (as M600's)."""
+    if r["t_done"] is None:
+        return
+    until = r["t_done"] + nc.RELEASE_WITHIN + 0.1
+    while time.monotonic() < until and not any(t >= r["t_done"] and st.get("feed_override_enabled") is True
+                                                for t, st in c.frames[-50:]):
+        time.sleep(0.05)
+
+
+def _probe_run(ctx, c, plate, rows: list) -> None:
+    """The Z probe through the UI's handler (plan R380–R381, TS248-06 in the
+    form of VM349-01): on the plant P, the two refusals (not a routine, the
+    switch off), then `probe_run` with the panel's job — the hit and the miss.
+    Every row proves its job from the gateway's own trace window. Restored on
+    every exit, after abort and standstill (_probe_run_restore)."""
+    entry = panel_jobs()["z_surface"]
+    job = entry["job"]
+    values, line = _job_values(entry), _job_line(job)
+    numbers = sorted(values)
+    payload = {"routine": job["routine"], "vars": dict(job["vars"])}
+    switches0 = _switches(ctx, c)
+    first = _vars(c, numbers)
+    plant = {k: PROBE_PLANT.get(k, values[k] + 0.5) for k in numbers}
+    g54_plant = plate["z"] + G54_PLANT
+    ctx["report"]["probe_run"] = {"first": {str(k): v for k, v in first.items()}, "switches": switches0,
+                                  "plant": {str(k): v for k, v in plant.items()}, "g54_plant": g54_plant}
+    failure = None
+    try:
+        if switches0.get("probing") is not True:
+            raise Refused(f"probing is off before the case: {switches0}")
+
+        def prepare(over):
+            # the position, the free override (VM380-03), then the plant —
+            # the last read-back before the job is the snapshot's
+            _over_plate(c, plate, over)
+            _override_free(c)
+            _short(c, f"G10 L2 P1 Z{g54_plant:.6f}")
+            _short(c, "#5070=0")
+            _plant(c, plant)
+            s = _snapshot(c, numbers)
+            if s["g54_z"] is None or abs(s["g54_z"] - g54_plant) > nc.SAME or s["#5070"] != 0:
+                raise Refused(f"the plant not read back: G54 Z {s['g54_z']}, #5070 {s['#5070']}")
+            return s
+        s0 = prepare(PROBE_OVER)
+        err, frame = _framed(ctx, c, "probe-run.not-a-routine",
+                             lambda: _refused(c, "probe_run", routine="probe_nope", vars=dict(job["vars"])))
+        s1 = _snapshot(c, numbers)
+        rows.append(nc.combine("probe-run.not-a-routine", {
+            "reply": nc.eval_refusal_reply("reply", err, PROBE_RUN_TEXT["not-a-routine"]),
+            "window": nc.eval_no_job_window("window", frame), "state": nc.eval_unchanged("state", s0, s1)}))
+        _save_features(ctx, c, {**switches0, "probing": False})
+        err, frame = _framed(ctx, c, "probe-run.feature-off", lambda: _refused(c, "probe_run", **payload))
+        s2 = _snapshot(c, numbers)
+        rows.append(nc.combine("probe-run.feature-off", {
+            "reply": nc.eval_refusal_reply("reply", err, PROBE_RUN_TEXT["probing-off"]),
+            "window": nc.eval_no_job_window("window", frame, off_cmd="probe_run"),
+            "state": nc.eval_unchanged("state", s1, s2)}))
+        _save_features(ctx, c, switches0)
+        # the hit: no mdi since the snapshot (s2), the switch saved back on
+        r, frame = _framed(ctx, c, "probe-run", lambda: _probe_job(c, "probe-run", "probe_run", payload))
+        back = _vars(c, numbers + [5070])
+        g54 = _g54_z(c.status)
+        probe = nc.eval_probe_z("probe", back[5070], g54, expected=plate["z"], errors=r["errors"])
+        rows += [nc.combine("probe-run", {"reply": nc.eval_job_reply("reply", r["reply"], line),
+                                          "window": nc.eval_job_window("window", frame, "probe_run", line, values),
+                                          "values": nc.eval_values("values", back, values), "probe": probe}),
+                 nc.counter("probe-run.counter-plate-1",
+                            nc.eval_probe_z("probe", back[5070], g54, expected=plate["z"] + 1, errors=r["errors"]),
+                            probe),
+                 r["start"]]
+        # its own release (M50 P1), judged BEFORE any cleanup frees it
+        _release_seen(c, r)
+        rows.append(nc.eval_override_lock("probe-run-override-lock", [f for f in c.frames if f[0] >= r["t0"]], r["t0"]))
+        if r["error"]:
+            raise Refused(f"probe-run: {r['error']}")
+        s3 = prepare(MISS_OVER)
+        r, frame = _framed(ctx, c, "probe-run-miss", lambda: _probe_job(c, "probe-run-miss", "probe_run", payload))
+        back = _vars(c, numbers + [5070])
+        miss = nc.eval_probe_miss("miss", back[5070], s3["g54_z"], _g54_z(c.status), r["errors"])
+        rows += [nc.combine("probe-run-miss", {"reply": nc.eval_job_reply("reply", r["reply"], line),
+                                               "window": nc.eval_job_window("window", frame, "probe_run", line, values),
+                                               "values": nc.eval_values("values", back, values), "miss": miss}),
+                 r["start"]]
+        if r["error"]:
+            raise Refused(f"probe-run-miss: {r['error']}")
+    except Exception as e:  # noqa: BLE001 — the restore first, then the step ends with its rows
+        failure = e
+    rows.append(_probe_run_restore(ctx, c, switches0, first))
+    if failure is not None:
+        raise StepFailed(rows, f"{type(failure).__name__}: {failure}") from failure
+
+
+def _probe_run_restore(ctx, c, switches0, first) -> dict:
+    """Every exit of the probe_run case (plan R380 §6, R381 VM380-03): abort
+    and standstill first; then — connected, no trip, standing — the override
+    free, the switches as first read, G54 Z0, the numbers as before, each
+    read back. A trip, a lost connection or no standstill does nothing more
+    and names what is left."""
+    case = "probe-run.restore"
+
+    def left():
+        st = c.status
+        try:
+            switches = _switches(ctx, c)
+        except Exception as e:  # noqa: BLE001 — named in the row
+            switches = f"not read ({type(e).__name__})"
+        return f"left: override {st.get('feed_override_enabled')}, G54 Z {_g54_z(st)}, switches {switches}"
+    if c.error or c.safety_trip is not None:
+        why = "the connection is lost" if c.error else "a safety trip waits"
+        return {"case": case, "status": "FAIL", "detail": f"not restored — {why}; {left()}"}
+    try:
+        c.request("abort")
+        if not _standstill(c, STAND_S):
+            raise Refused(f"no standstill within {STAND_S} s after the abort")
+    except Exception as e:  # noqa: BLE001 — named, nothing more is done
+        return {"case": case, "status": "FAIL", "detail": f"not restored — {type(e).__name__}: {e}; {left()}"}
+    errors = []
+    for what, fn in (("override", lambda: _override_free(c)), ("features", lambda: _save_features(ctx, c, switches0)),
+                     ("g54", lambda: _short(c, "G10 L2 P1 Z0")), ("values", lambda: _plant(c, first))):
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001 — each named
+            errors.append(f"{what}: {type(e).__name__}: {e}")
+    g54 = _g54_z(c.status)
+    if g54 is None or abs(g54) > nc.SAME:
+        errors.append(f"G54 Z not back on 0: {g54}")
+    if errors:
+        return {"case": case, "status": "FAIL", "detail": "; ".join(errors) + f"; {left()}"}
+    return {"case": case, "status": "PASS",
+            "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before — read back"}
+
+
 def probe_cases():
     """F-PROBE.S3 on the real task: probe_z_minus_wco with #3030 = 0 writes
     G54 Z = the plate; started beyond the search depth it records no contact
-    and sets nothing; a planted plate 1 mm off is refused."""
+    and sets nothing; a planted plate 1 mm off is refused. Then the same
+    routine as the UI starts it — `probe_run` with the panel's job, its
+    refusals, the hit and the miss (plan R380–R381, _probe_run). Every probe
+    start from a confirmed free override (Codex R380 VM380-03)."""
     def step(ctx):
         c, rows = ctx["client"], ctx.setdefault("rows", [])
         plate = ctx["plate"] = plate_from_hal(_hal_texts(ctx["ini"]))
@@ -1101,32 +1463,24 @@ def probe_cases():
         shipped = _vars(c, PROBE_VARS)
         probe_vars = {**shipped, 3030: 0}
 
-        def probe_from(over):
-            contact_z = plate["z"] + PROBE_L0
-            _to(c, plate["x"], plate["y"], contact_z + over)
-            _short(c, f"G43 H{PROBE_TOOL}")
-            off = (c.status.get("tool_offset") or [None] * 3)[2]
-            if off is None or abs(off - PROBE_L0) > nc.SAME:
-                raise Refused(f"G43 H{PROBE_TOOL} applied {off}, not {PROBE_L0}")
+        def probe_from(case, over):
+            _over_plate(c, plate, over)
+            _override_free(c)
             before = _g54_z(c.status)
-            # its end only after it STARTED: its M50 P0 locks the override (a
-            # late frame from between the vars' MDIs and the call is no end)
-            started = {"seen": False}
-
-            def ran(st):
-                started["seen"] = started["seen"] or st.get("feed_override_enabled") is False
-                return started["seen"]
-            r = _routine(c, "O<probe_z_minus_wco> CALL", vars=probe_vars, deadline=90.0, extra=ran)
+            r = _probe_job(c, case, "mdi", {"text": "O<probe_z_minus_wco> CALL",
+                                            "vars": {str(k): v for k, v in probe_vars.items()}})
             p = _read_params(c, [5070, 5063])
-            return p[5070], before, _g54_z(c.status), r["errors"]
+            return p[5070], before, _g54_z(c.status), r
 
-        contact, _, g54, errors = probe_from(PROBE_OVER)
-        hit = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"], errors=errors)
+        contact, _, g54, r = probe_from("probe-z", PROBE_OVER)
+        hit = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"], errors=r["errors"])
         hit["vars_sent"] = {str(k): v for k, v in probe_vars.items()}
         # the same measurement against a plate planted 1 mm off: refused only
         # because of the plant — it passed against the true one (R292 FI-I27)
-        planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=errors)
-        rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit)]
+        planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=r["errors"])
+        rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit), r["start"]]
+        if r["error"]:
+            raise Refused(f"probe-z: {r['error']}")
         _short(c, "G10 L2 P1 Z0")
         # a G38.2 ending without contact aborts the routine and leaves #5070
         # as the LAST probe wrote it — 1 from the hit (live run 2026-11-05):
@@ -1134,9 +1488,15 @@ def probe_cases():
         _short(c, "#5070=0")
         if _read_params(c, [5070])[5070] != 0:
             raise Refused("#5070 not planted 0 before the miss")
-        contact, before, after, errors = probe_from(MISS_OVER)
-        rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, errors))
+        contact, before, after, r = probe_from("probe-z-miss", MISS_OVER)
+        rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, r["errors"]))
         rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
+        rows.append(r["start"])
+        if r["error"]:
+            raise Refused(f"probe-z-miss: {r['error']}")
+        # the hand-over: the override free whatever the miss's abort left
+        _override_free(c)
+        _probe_run(ctx, c, plate, rows)
         return rows
     return ("probe", step)
 
@@ -1418,12 +1778,33 @@ def surface_cases():
         if shipped != PROBE_TOOL:
             raise Refused(f"the copy's probe tool #3014 is {shipped}, not T{PROBE_TOOL}")
         method0 = nc.METHODS[basis["comp_method"]]
+        entry = panel_jobs()["surface_scan"]
+        values = _job_values(entry)
+        switches0 = _switches(ctx, c)
+        first = _vars(c, sorted(values))
+        ctx["report"]["surface_job"] = {"first": {str(k): v for k, v in first.items()}, "switches": switches0}
         failure = None
         try:
-            _scan_and_compensate(ctx, c, frames, method0, rows)
+            if switches0.get("surfaceMap") is not True:
+                raise Refused(f"the surface map is off before the scan: {switches0}")
+            # the free override (Codex R380 VM380-03), then the plant P_s —
+            # the snapshot after the refusal is the last read-back
+            _override_free(c)
+            _plant(c, SCAN_PLANT)
+            s0 = _snapshot(c, sorted(values))
+            _save_features(ctx, c, {**switches0, "surfaceMap": False})
+            err, frame = _framed(ctx, c, "surface-scan.feature-off",
+                                 lambda: _refused(c, "surface_scan_run", vars=dict(entry["job"]["vars"])))
+            s1 = _snapshot(c, sorted(values))
+            rows.append(nc.combine("surface-scan.feature-off", {
+                "reply": nc.eval_refusal_reply("reply", err, PROBE_RUN_TEXT["surface-off"]),
+                "window": nc.eval_no_job_window("window", frame, off_cmd="surface_scan_run"),
+                "state": nc.eval_unchanged("state", s0, s1)}))
+            _save_features(ctx, c, switches0)
+            _scan_and_compensate(ctx, c, frames, method0, rows, entry)
         except Exception as e:  # noqa: BLE001 — the cleanup first, then the step ends with its rows
             failure = e
-        cleanup = _surface_cleanup(ctx, c, method0)
+        cleanup = _surface_cleanup(ctx, c, method0, switches0, first)
         ctx["report"]["surface_cleanup"] = cleanup
         if failure is not None:
             raise StepFailed(rows, f"{type(failure).__name__}: {failure}") from failure
@@ -1433,15 +1814,18 @@ def surface_cases():
     return ("surface", step)
 
 
-def _surface_cleanup(ctx, c, method0) -> dict:
-    """Every path: off and drained, the method back, G54 Z0, the override free —
-    each read back; a failure is named (and ends the step)."""
+def _surface_cleanup(ctx, c, method0, switches0=None, first=None) -> dict:
+    """Every path: off and drained, the method back, G54 Z0, the override free,
+    the switches as first read and the scan's numbers as before the plant
+    (plan R381) — each read back; a failure is named (and ends the step)."""
     out, errors = {}, []
     for what, fn in (("off", lambda: _comp_off(ctx, c)),
                      ("method", lambda: c.status.get("comp_method") == nc.METHODS.index(method0)
                       or _comp_method(c, method0)),
                      ("g54", lambda: _short(c, "G10 L2 P1 Z0")),
-                     ("override", lambda: _override_free(c))):
+                     ("override", lambda: _override_free(c)),
+                     ("features", lambda: switches0 is None or _save_features(ctx, c, switches0)),
+                     ("values", lambda: first is None or _plant(c, first))):
         try:
             res = fn()
             out[what] = res if isinstance(res, dict) else "done"
@@ -1479,9 +1863,11 @@ def _override_free(c) -> dict:
                        f"(status {c.status.get('feed_override_enabled')})")
 
 
-def _scan_and_compensate(ctx, c, frames, method0, rows: list) -> None:
-    """The scan and the compensation, each row appended to the step's own
-    list as it is judged (kept on every path)."""
+def _scan_and_compensate(ctx, c, frames, method0, rows: list, entry) -> None:
+    """The scan — the panel's job through `surface_scan_run` (plan R381 Q-P1),
+    its handler proven from the gateway's trace — and the compensation, each
+    row appended to the step's own list as it is judged (kept on every
+    path)."""
     import hashlib
     results = ctx["config"] / SCAN_FILE
     aside = None
@@ -1489,12 +1875,18 @@ def _scan_and_compensate(ctx, c, frames, method0, rows: list) -> None:
         aside = results.with_name(f"probe-results.before-{int(time.time())}.txt")
         results.rename(aside)
     v_before = c.status.get("comp_grid_version")
-    started = {"seen": False}
-
-    def ran(st):
-        started["seen"] = started["seen"] or st.get("feed_override_enabled") is False
-        return started["seen"]
-    r = _routine(c, "O<surface_scan> CALL", vars={**SCAN_VARS, 3014: PROBE_TOOL}, deadline=SCAN_DEADLINE, extra=ran)
+    job = entry["job"]
+    values, line = _job_values(entry), _job_line(job)
+    r, frame = _framed(ctx, c, "surface-scan.job",
+                       lambda: _probe_job(c, "surface-scan", "surface_scan_run", {"vars": dict(job["vars"])},
+                                          deadline=SCAN_DEADLINE))
+    back = _vars(c, sorted(values))
+    rows += [nc.combine("surface-scan.job", {
+        "reply": nc.eval_job_reply("reply", r["reply"], line),
+        "window": nc.eval_job_window("window", frame, "surface_scan_run", line, values),
+        "values": nc.eval_values("values", back, values)}), r["start"]]
+    if r["error"]:
+        raise Refused(f"surface-scan: {r['error']}")
     points = _scan_points(results)
     text = results.read_bytes() if results.is_file() else None
     scan = nc.eval_surface_scan("surface-scan", points, r["errors"])
@@ -1518,7 +1910,7 @@ def _scan_and_compensate(ctx, c, frames, method0, rows: list) -> None:
         "file": str(results), "moved_aside": str(aside) if aside else None,
         "sha256": hashlib.sha256(text).hexdigest() if text is not None else None,
         "t0": r["t0"], "t_done": r["t_done"], "version_before": v_before,
-        "version_after": c.status.get("comp_grid_version"), "vars": {str(k): v for k, v in SCAN_VARS.items()},
+        "version_after": c.status.get("comp_grid_version"), "vars": dict(job["vars"]),
         "python": _comp_python_versions(ctx)}
     if scan["status"] != "PASS":
         raise StepFailed(rows, f"the scan did not pass ({scan['detail']}) — no compensation on its map")

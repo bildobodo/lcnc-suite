@@ -55,6 +55,20 @@ tag the crash filter admits, no known level (Codex R370 VM-I15; each field's typ
 the check itself raised (the report is still written) — (`native_run.run_crashes`, read after
 the restore — the processes' last words included): the instance-ended chain's BrokenPipeError sat in the
 crash.log of 28 of the 82 kept run folders (2026-11-06 to 3a) while every report said PASS.
+Package 3b, probe live (Codex R380–R381): the probe step also runs `probe_z_minus_wco` as the UI starts
+it — `probe_run` with the panel's whole job (`scripts/test_fixtures/probe_panel_jobs.json`: held to
+`probeVars.ts` by `probePanelJobs.test.ts` and to the job the page sends by `probe-click.spec`; Auto Zero on,
+mode 0) on a plant P that an undelivered set would show (`probe-run`, its refusals `.not-a-routine` and
+`.feature-off`, `probe-run-miss`) — and the surface scan runs through `surface_scan_run` (`surface-scan.job`,
+`surface-scan.feature-off`). Each such command is proven from the gateway's OWN trace: the driver brackets
+it with two `client_diag` marks, and only a window framed in the started gateway's stream (one start and
+one end mark of its pid in the same file, every line between them whole, the rotations searched —
+`native_cases.frame_window`) is judged; a driver rebuilt on `mdi` fails for the missing `features.job`.
+Every probe start, the old `probe-z` pair too, needs the override confirmed free before its plant and
+counts only a lock received after the send (`_probe_job`, VM380-03); `#3116` is never planted or read (a
+line naming it makes the gateway's skip flag unknown) — its clear is the window's `probe.set_vars`. The
+case restores on every exit after abort and standstill (the switches as first read, G54 Z0, the numbers),
+never after a trip or a lost connection.
 
 ## Round gate and merge gate (test strategy, Codex R248–R260)
 

@@ -10,6 +10,7 @@ Z keeps OFFSET_AV_RATIO 0.2 for external offsets → 600 mm/s² for a jog;
 servo period T = 1 ms."""
 from __future__ import annotations
 
+import json
 import math
 
 T = 0.001                     # the servo period, s
@@ -1106,3 +1107,232 @@ def eval_tool_reload(case: str, tool: int, written, applied_before, applied_afte
         return _row(case, "FAIL", f"G43 H{tool} applies {applied_after} after the save, the table holds {written} "
                     "— LinuxCNC did not take it", **measured)
     return _row(case, "PASS", f"G43 H{tool} applies the written length {written}", **measured)
+
+
+# ── probe live through the UI's handlers (plan R380–R381) ────────────────
+# The jobs `probe_run` / `surface_scan_run` are proven from the gateway's OWN
+# trace (Codex R380 VM380-02, R381): the driver marks the start and the end of
+# one command with `client_diag` — the gateway's reader writes `client.diag`
+# before it reads the next frame, and a command's records come before its
+# reply — and the window is the gateway's records between the two marks.
+MARK_PROC = "gateway"
+POS_SAME = 0.001              # mm: a refusal moves nothing (the plan's 0.001)
+JOB_LINES = {"probe_run": "O<{routine}> CALL", "surface_scan_run": "O<surface_scan> CALL"}
+
+
+def frame_window(files, token: str, pid, errors=()) -> dict:
+    """The trace window of ONE command. `files` = [(name, inode, bytes)], each
+    read through ONE descriptor (fstat, then its bytes), newest first; a file
+    read twice (a rotation between two opens) counts by its later read.
+    Framed only when exactly one start and one end mark carrying `token`
+    stand in the SAME file, both written by THIS gateway (`proc`, `pid`), the
+    start first, and every line between them is one whole JSON object — the
+    gateway writes through one descriptor, so its records between two marks
+    in one file are all there; a rotation by another writer only renames the
+    file. Anything else is not framed (never "absent"): a read error, a
+    missing, doubled or foreign mark, the marks in two files (the gateway
+    rotated within the window), a damaged line in the window. Returns
+    {"framed", "reason", "file", "events"}; events = the gateway's records
+    between the marks."""
+    def out(reason, **kw):
+        return {"framed": False, "reason": reason, "file": None, "events": [], **kw}
+    if errors:
+        return out(f"a trace file not read: {errors[0]}")
+    latest = {}
+    for name, ino, data in files:
+        latest[ino] = (name, data)
+    parsed, marks = {}, []
+    for ino, (name, data) in latest.items():
+        recs = []
+        for raw in data.split(b"\n")[:-1]:       # after the last newline: a line still being written
+            try:
+                rec = json.loads(raw)
+            except ValueError:
+                rec = None
+            recs.append(rec if isinstance(rec, dict) else None)
+        parsed[ino] = (name, recs)
+        marks += [(ino, i, r) for i, r in enumerate(recs) if r is not None and r.get("native_mark") == token]
+    foreign = [r for _, _, r in marks if (r.get("tag"), r.get("proc"), r.get("pid")) != ("client.diag", MARK_PROC, pid)]
+    if foreign:
+        f = foreign[0]
+        return out(f"a mark not of this gateway: tag {f.get('tag')}, proc {f.get('proc')}, pid {f.get('pid')} "
+                   f"(the gateway is pid {pid})")
+    starts = [(ino, i) for ino, i, r in marks if r.get("edge") == "start"]
+    ends = [(ino, i) for ino, i, r in marks if r.get("edge") == "end"]
+    if len(starts) != 1 or len(ends) != 1:
+        return out(f"{len(starts)} start and {len(ends)} end marks — one of each expected")
+    (si, s), (ei, e) = starts[0], ends[0]
+    if si != ei:
+        return out(f"the marks stand in two files ({parsed[si][0]}, {parsed[ei][0]}): the gateway's stream "
+                   "changed files within the window")
+    if e <= s:
+        return out("the end mark stands before the start mark")
+    name, recs = parsed[si]
+    damaged = sum(r is None for r in recs[s + 1:e])
+    if damaged:
+        return out(f"{damaged} damaged line(s) in the window — never read as absent")
+    events = [r for r in recs[s + 1:e] if r.get("proc") == MARK_PROC and r.get("pid") == pid]
+    return {"framed": True, "reason": None, "file": name, "events": events}
+
+
+def _window_of(frame) -> dict:
+    return {"framed": frame.get("framed"), "reason": frame.get("reason"), "file": frame.get("file")}
+
+
+def eval_job_window(case: str, frame: dict, cmd: str, line: str, values: dict) -> dict:
+    """The handler started the job, with its ONE delivery: in a framed window
+    exactly one `features.job` (this cmd, this line — only `_feature_job`
+    writes it, never `mdi`), exactly one `probe.set_vars` carrying exactly
+    `values` and #3116 = 0, exactly one `probe.set_vars_result` with every
+    number taken and persisted. Not framed: incomplete."""
+    measured = {"window": _window_of(frame)}
+    if not frame.get("framed"):
+        return _row(case, "incomplete", f"the trace window is not framed: {frame.get('reason')}", **measured)
+    ev = frame["events"]
+    jobs = [e for e in ev if e.get("tag") == "features.job"]
+    measured["jobs"] = [{"cmd": e.get("cmd"), "line": e.get("line")} for e in jobs]
+    if not jobs:
+        return _row(case, "FAIL", "no features.job in the window — the handler did not start it", **measured)
+    if len(jobs) > 1:
+        return _row(case, "FAIL", f"{len(jobs)} features.job in the window — one expected", **measured)
+    if jobs[0].get("cmd") != cmd or jobs[0].get("line") != line:
+        return _row(case, "FAIL", f"the job in the window is {jobs[0].get('cmd')} {jobs[0].get('line')!r}, not "
+                    f"{cmd} {line!r}", **measured)
+    want = {str(k): float(v) for k, v in values.items()}
+    want["3116"] = 0.0
+    sets = [e for e in ev if e.get("tag") == "probe.set_vars"]
+    if len(sets) != 1:
+        return _row(case, "FAIL", f"{len(sets)} probe.set_vars in the window — one delivery expected", **measured)
+    got = sets[0].get("vars")
+    if not isinstance(got, dict) or sorted(got) != sorted(want):
+        extra = sorted(set(got or {}) - set(want)) if isinstance(got, dict) else got
+        missing = sorted(set(want) - set(got)) if isinstance(got, dict) else sorted(want)
+        return _row(case, "FAIL", f"the delivery's numbers differ: missing {missing}, extra {extra}", **measured)
+    wrong = {k: got[k] for k in want if not (_finite(got[k]) and abs(got[k] - want[k]) <= SAME)}
+    if wrong:
+        return _row(case, "FAIL", f"the delivery's values differ: {wrong}", **measured)
+    results = [e for e in ev if e.get("tag") == "probe.set_vars_result"]
+    if len(results) != 1:
+        return _row(case, "FAIL", f"{len(results)} probe.set_vars_result in the window — one expected", **measured)
+    res = results[0]
+    if res.get("mdi_set") is not True or res.get("persisted") is not True or \
+            sorted(res.get("applied") or []) != sorted(want):
+        return _row(case, "FAIL", f"the delivery was not taken whole: mdi_set {res.get('mdi_set')}, persisted "
+                    f"{res.get('persisted')}, applied {res.get('applied')}", **measured)
+    return _row(case, "PASS", f"{cmd} started by its handler, its values and #3116 = 0 delivered once", **measured)
+
+
+def eval_no_job_window(case: str, frame: dict, off_cmd=None) -> dict:
+    """A refused job: in a framed window no `features.job` and no
+    `probe.set_vars`; refused by the switch (`off_cmd`), exactly one
+    `ws.command_feature_off` naming it. Not framed: incomplete."""
+    measured = {"window": _window_of(frame)}
+    if not frame.get("framed"):
+        return _row(case, "incomplete", f"the trace window is not framed: {frame.get('reason')}", **measured)
+    ev = frame["events"]
+    acted = [e.get("tag") for e in ev if e.get("tag") in ("features.job", "probe.set_vars")]
+    if acted:
+        return _row(case, "FAIL", f"the refused command acted: {acted}", **measured)
+    if off_cmd is not None:
+        offs = [e for e in ev if e.get("tag") == "ws.command_feature_off"]
+        if len(offs) != 1 or offs[0].get("cmd") != off_cmd:
+            return _row(case, "FAIL", f"{len(offs)} ws.command_feature_off in the window — one for {off_cmd} "
+                        "expected", offs=[e.get("cmd") for e in offs], **measured)
+    return _row(case, "PASS", "nothing started, nothing delivered" + (" — the switch refused it" if off_cmd else ""),
+                **measured)
+
+
+def eval_refusal_reply(case: str, error, expected: str) -> dict:
+    """The refusal's own words: exactly `expected` (None = not refused)."""
+    if error is None:
+        return _row(case, "FAIL", f"not refused — expected \"{expected}\"", error=None)
+    if expected not in str(error):
+        return _row(case, "FAIL", f"refused with \"{error}\", expected \"{expected}\"", error=str(error))
+    return _row(case, "PASS", f"refused: {expected}", error=str(error))
+
+
+def eval_job_reply(case: str, reply, line: str) -> dict:
+    """A job's reply: ok, its values persisted and taken over, its line."""
+    measured = {"reply": reply}
+    if not isinstance(reply, dict):
+        return _row(case, "incomplete", "no reply", **measured)
+    want = {"ok": True, "persisted": True, "mdi_set": True, "line": line}
+    wrong = {k: reply.get(k) for k, v in want.items() if reply.get(k) != v}
+    if wrong:
+        return _row(case, "FAIL", f"the reply differs: {wrong}", **measured)
+    return _row(case, "PASS", "ok, persisted, taken over, its line", **measured)
+
+
+def eval_values(case: str, read, values: dict) -> dict:
+    """The interpreter's values after the job (read back): every number the
+    job carried holds its value."""
+    measured = {"read": None if read is None else {str(k): v for k, v in read.items()}}
+    if read is None:
+        return _row(case, "incomplete", "the values not read back", **measured)
+    wrong = {str(k): read.get(k) for k, v in values.items() if _finite(read.get(k)) and abs(read[k] - v) > SAME}
+    if wrong:
+        return _row(case, "FAIL", f"not the job's values: {wrong}", **measured)
+    unread = [k for k in values if not _finite(read.get(k))]
+    if unread:
+        return _row(case, "incomplete", f"not read: {unread}", **measured)
+    return _row(case, "PASS", "every value of the job read back", **measured)
+
+
+def eval_unchanged(case: str, before: dict, after: dict) -> dict:
+    """The state S around a refusal: the position (joint_pos, within
+    POS_SAME), G54 Z, #5070, the job's numbers, the tool and its applied
+    length, the override — a known change is FAIL, an unread value incomplete."""
+    measured = {"before": before, "after": after}
+    changed, unread = [], []
+    for k in sorted(set(before) | set(after)):
+        a, b = before.get(k), after.get(k)
+        if k == "joint_pos":
+            if not (isinstance(a, list) and isinstance(b, list) and len(a) == len(b) and _finite(*a, *b)):
+                unread.append(k)
+            elif any(abs(x - y) > POS_SAME for x, y in zip(a, b)):
+                changed.append(f"{k} {a} → {b}")
+        elif isinstance(a, bool) or isinstance(b, bool) or k == "tool_number":
+            if a is None or b is None:
+                unread.append(k)
+            elif a != b:
+                changed.append(f"{k} {a} → {b}")
+        elif not _finite(a, b):
+            unread.append(k)
+        elif abs(a - b) > SAME:
+            changed.append(f"{k} {a} → {b}")
+    if changed:
+        return _row(case, "FAIL", "changed by a refused command: " + "; ".join(changed), **measured)
+    if unread:
+        return _row(case, "incomplete", f"not read before and after: {unread}", **measured)
+    return _row(case, "PASS", "nothing changed", **measured)
+
+
+def combine(case: str, parts: dict, **measured) -> dict:
+    """One case of several proofs: the first FAIL, else the first incomplete,
+    else PASS — every part kept."""
+    for status in ("FAIL", "incomplete"):
+        bad = [(k, p) for k, p in parts.items() if p["status"] == status]
+        if bad:
+            k, p = bad[0]
+            return _row(case, status, f"{k}: {p['detail']}", parts=parts, **measured)
+    return _row(case, "PASS", "; ".join(f"{k}: {p['detail']}" for k, p in parts.items()), parts=parts, **measured)
+
+
+def eval_probe_start(case: str, frames: list, cursor: int, ended: bool) -> dict:
+    """A probe routine's START, from the override (Codex R380 VM380-03): the
+    last frame received before the send (`cursor`) shows the override FREE —
+    the baseline — and a frame received after it shows it LOCKED (its own
+    M50 P0). A lock before the cursor never counts. No baseline: incomplete;
+    no lock through an observed end (`ended`): FAIL, else incomplete."""
+    base = frames[cursor - 1][1].get("feed_override_enabled") if 0 < cursor <= len(frames) else None
+    measured = {"baseline": base}
+    if base is not True:
+        return _row(case, "incomplete", f"no free override baseline at the send (the last frame before it: {base})",
+                    **measured)
+    t_send = frames[cursor - 1][0]
+    lock = next((t for t, st in frames[cursor:] if st.get("feed_override_enabled") is False), None)
+    if lock is not None:
+        return _row(case, "PASS", f"free at the send, locked {lock - t_send:+.3f} s after", **measured)
+    if ended:
+        return _row(case, "FAIL", "no lock after the send through the routine's end — its M50 P0 not seen", **measured)
+    return _row(case, "incomplete", "no lock after the send, and no end observed", **measured)
