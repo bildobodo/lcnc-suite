@@ -1,0 +1,29 @@
+Codex' vor-maschine.ff.r387.codex-worker-proof.py UNCHANGED against cd23f813 (the evaluators from 'git archive cd23f813 scripts', a clean export — the chain was running in the work tree), same input file:
+  python3 -I docs/reviews/vor-maschine.ff.r387.codex-worker-proof.py <archive cd23f813> docs/reviews/vor-maschine.ff.r387.codex-worker-input.json
+exit 1
+  File "~/lcnc-suite/docs/reviews/vor-maschine.ff.r387.codex-worker-proof.py", line 38, in <module>
+    problems = {'browser': firefox.check_browser(log, run, '160.0'),
+                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: check_browser() missing 1 required positional argument: 'workers'
+
+The adaptation (the only change, diff below): the checks now take the workers the report names; the guard is judged as firefox.core now calls it (its known run id, its report's workers). Run the same way:
+  python3 -I docs/reviews/vor-maschine.ff.r388.codex-worker-proof-adapted.py <archive cd23f813> docs/reviews/vor-maschine.ff.r387.codex-worker-input.json
+Its output's "product" field is copied from the input: it names the head of the saved ARTIFACTS (8dc5b6eb's pin run); the evaluators are cd23f813's.
+
+38,39c38,40
+<         problems = {'browser': firefox.check_browser(log, run, '160.0'),
+<                     'graphics': firefox.check_graphics(log, run),
+---
+>         # R388 adaptation (the only change): the checks now take the workers the report names
+>         problems = {'browser': firefox.check_browser(log, run, '160.0', set(expected)),
+>                     'graphics': firefox.check_graphics(log, run, set(expected)),
+44,47c45,48
+<             problems['graphics_as_core_calls_it_for_guard'] = [p for r in sorted(x for x in guard_runs if x)
+<                                                              for p in firefox.check_graphics(log, r)]
+<             if not guard_runs:
+<                 problems['graphics_as_core_calls_it_for_guard'].append('guard: no worker reported its started browser')
+---
+>             # R388 adaptation: what firefox.core now calls for the guard — its KNOWN run id and its report's workers
+>             _b, _g = firefox.browser_proofs([('guard', log, run, firefox.report_workers(report))], '160.0')
+>             problems['browser_as_core_calls_it_for_guard'] = _b
+>             problems['graphics_as_core_calls_it_for_guard'] = _g

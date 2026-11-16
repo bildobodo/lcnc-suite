@@ -1,0 +1,299 @@
+{
+  "product": "8dc5b6eb27f2fd5d022065fe203cf7ef26cd11e4",
+  "source": "/home/cnc/claude-work/ffcore/run-r387-pin-1794850509",
+  "cases": [
+    {
+      "phase": "core",
+      "case": "baseline",
+      "report_workers": [
+        0,
+        1,
+        2
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 0,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        },
+        {
+          "worker": 1,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        },
+        {
+          "worker": 2,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        }
+      ],
+      "problems": {
+        "browser": [],
+        "graphics": [],
+        "workers": []
+      }
+    },
+    {
+      "phase": "core",
+      "case": "one worker browser event missing",
+      "report_workers": [
+        0,
+        1,
+        2
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 0,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        },
+        {
+          "worker": 1,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        }
+      ],
+      "problems": {
+        "browser": [
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "workers": []
+      }
+    },
+    {
+      "phase": "core",
+      "case": "only first worker reports its browser",
+      "report_workers": [
+        0,
+        1,
+        2
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 0,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        }
+      ],
+      "problems": {
+        "browser": [
+          "worker 1: ran tests, recorded no started browser",
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 1: ran tests, recorded no started browser",
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "workers": []
+      }
+    },
+    {
+      "phase": "core",
+      "case": "one browser event attributed to nonexistent worker 99",
+      "report_workers": [
+        0,
+        1,
+        2
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 99,
+          "run": "firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+        }
+      ],
+      "problems": {
+        "browser": [
+          "worker 99: a browser record of a worker the report does not name",
+          "worker 0: ran tests, recorded no started browser",
+          "worker 1: ran tests, recorded no started browser",
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 99: a browser record of a worker the report does not name",
+          "worker 0: ran tests, recorded no started browser",
+          "worker 1: ran tests, recorded no started browser",
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "workers": []
+      }
+    },
+    {
+      "phase": "core",
+      "case": "no browser events (existing negative control)",
+      "report_workers": [
+        0,
+        1,
+        2
+      ],
+      "browser_witnesses": [],
+      "problems": {
+        "browser": [
+          "worker 0: ran tests, recorded no started browser",
+          "worker 1: ran tests, recorded no started browser",
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 0: ran tests, recorded no started browser",
+          "worker 1: ran tests, recorded no started browser",
+          "worker 2: ran tests, recorded no started browser"
+        ],
+        "workers": []
+      }
+    },
+    {
+      "phase": "guard",
+      "case": "baseline",
+      "report_workers": [
+        0
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 0,
+          "run": "firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1"
+        }
+      ],
+      "problems": {
+        "browser": [],
+        "graphics": [],
+        "workers": [],
+        "guard_judgment": [],
+        "browser_as_core_calls_it_for_guard": [],
+        "graphics_as_core_calls_it_for_guard": []
+      }
+    },
+    {
+      "phase": "guard",
+      "case": "one worker browser event missing",
+      "report_workers": [
+        0
+      ],
+      "browser_witnesses": [],
+      "problems": {
+        "browser": [
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "workers": [],
+        "guard_judgment": [],
+        "browser_as_core_calls_it_for_guard": [
+          "guard: worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics_as_core_calls_it_for_guard": [
+          "guard: worker 0: ran tests, recorded no started browser"
+        ]
+      }
+    },
+    {
+      "phase": "guard",
+      "case": "only first worker reports its browser",
+      "report_workers": [
+        0
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 0,
+          "run": "firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1"
+        }
+      ],
+      "problems": {
+        "browser": [],
+        "graphics": [],
+        "workers": [],
+        "guard_judgment": [],
+        "browser_as_core_calls_it_for_guard": [],
+        "graphics_as_core_calls_it_for_guard": []
+      }
+    },
+    {
+      "phase": "guard",
+      "case": "one browser event attributed to nonexistent worker 99",
+      "report_workers": [
+        0
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 99,
+          "run": "firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1"
+        }
+      ],
+      "problems": {
+        "browser": [
+          "worker 99: a browser record of a worker the report does not name",
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 99: a browser record of a worker the report does not name",
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "workers": [],
+        "guard_judgment": [],
+        "browser_as_core_calls_it_for_guard": [
+          "guard: worker 99: a browser record of a worker the report does not name",
+          "guard: worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics_as_core_calls_it_for_guard": [
+          "guard: worker 99: a browser record of a worker the report does not name",
+          "guard: worker 0: ran tests, recorded no started browser"
+        ]
+      }
+    },
+    {
+      "phase": "guard",
+      "case": "no browser events (existing negative control)",
+      "report_workers": [
+        0
+      ],
+      "browser_witnesses": [],
+      "problems": {
+        "browser": [
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "workers": [],
+        "guard_judgment": [],
+        "browser_as_core_calls_it_for_guard": [
+          "guard: worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics_as_core_calls_it_for_guard": [
+          "guard: worker 0: ran tests, recorded no started browser"
+        ]
+      }
+    },
+    {
+      "phase": "guard",
+      "case": "browser event from other run",
+      "report_workers": [
+        0
+      ],
+      "browser_witnesses": [
+        {
+          "worker": 0,
+          "run": "not-this-guard"
+        }
+      ],
+      "problems": {
+        "browser": [
+          "a browser record of another run ('not-this-guard'), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1",
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics": [
+          "a browser record of another run ('not-this-guard'), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1",
+          "worker 0: ran tests, recorded no started browser"
+        ],
+        "workers": [
+          "1 events of another run (not-this-guard), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1"
+        ],
+        "guard_judgment": [],
+        "browser_as_core_calls_it_for_guard": [
+          "guard: a browser record of another run ('not-this-guard'), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1",
+          "guard: worker 0: ran tests, recorded no started browser"
+        ],
+        "graphics_as_core_calls_it_for_guard": [
+          "guard: a browser record of another run ('not-this-guard'), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1",
+          "guard: worker 0: ran tests, recorded no started browser"
+        ]
+      }
+    }
+  ]
+}

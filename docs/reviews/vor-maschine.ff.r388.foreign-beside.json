@@ -1,0 +1,50 @@
+[
+  {
+    "phase": "core",
+    "case": "baseline",
+    "workers": [
+      0,
+      1,
+      2
+    ],
+    "firefox-browser": "PASS",
+    "firefox-graphics": "PASS"
+  },
+  {
+    "phase": "core",
+    "case": "another run's record beside the right ones",
+    "workers": [
+      0,
+      1,
+      2
+    ],
+    "firefox-browser": [
+      "core: a browser record of another run ('not-this-run'), not firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+    ],
+    "firefox-graphics": [
+      "core: a browser record of another run ('not-this-run'), not firefox-ac137e7a-f23f-4a51-8b93-6dddb70f8c72"
+    ]
+  },
+  {
+    "phase": "guard",
+    "case": "baseline",
+    "workers": [
+      0
+    ],
+    "firefox-browser": "PASS",
+    "firefox-graphics": "PASS"
+  },
+  {
+    "phase": "guard",
+    "case": "another run's record beside the right ones",
+    "workers": [
+      0
+    ],
+    "firefox-browser": [
+      "guard: a browser record of another run ('not-this-run'), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1"
+    ],
+    "firefox-graphics": [
+      "guard: a browser record of another run ('not-this-run'), not firefox-guard-f90e9676-4361-448d-a62b-d7f4181306a1"
+    ]
+  }
+]

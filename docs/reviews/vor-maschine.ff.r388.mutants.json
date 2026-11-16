@@ -1,0 +1,557 @@
+{
+  "F1": {
+    "what": "a touch call in a core spec",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "FAIL",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-static": [
+        "a touch call in the core (silent under BiDi): smoke.spec.ts:11: await page.locator(\"#app\").tap();"
+      ],
+      "firefox-core": [
+        "1 failed"
+      ],
+      "firefox-executed": [
+        "failed: smoke.spec.ts \u203a app shell mounts with no gateway connected [firefox-core, retry 0]"
+      ]
+    },
+    "red": true
+  },
+  "F2": {
+    "what": "a core test reaching tapMore",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-core": [
+        "2 failed"
+      ],
+      "firefox-executed": [
+        "failed: dialogs.spec.ts \u203a dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+        "failed: dialogs.spec.ts \u203a dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]"
+      ]
+    },
+    "red": true
+  },
+  "F3": {
+    "what": "a test.skip in a core test",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-core": [
+        "1 skipped"
+      ],
+      "firefox-executed": [
+        "skipped: smoke.spec.ts \u203a app shell mounts with no gateway connected [firefox-core, retry 0]"
+      ]
+    },
+    "red": true
+  },
+  "F4": {
+    "what": "a core title renamed",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "FAIL",
+      "firefox-core": "PASS",
+      "firefox-executed": "PASS",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-set": [
+        "a core test the config does not list (renamed, gone, a variant lost): smoke.spec.ts \u203a Arm control stays reachable"
+      ]
+    },
+    "red": true
+  },
+  "F5": {
+    "what": "a variant of the grid guard lost",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "FAIL",
+      "firefox-core": "PASS",
+      "firefox-executed": "PASS",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-set": [
+        "a core test the config does not list (renamed, gone, a variant lost): layout.spec.ts \u203a desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "a core test the config does not list (renamed, gone, a variant lost): layout.spec.ts \u203a touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes"
+      ]
+    },
+    "red": true
+  },
+  "F6": {
+    "what": "the started browser is not the pin",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "FAIL",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "FAIL",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-core": [
+        "86 failed"
+      ],
+      "firefox-executed": [
+        "failed: dialogs.spec.ts \u203a dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+        "failed: dialogs.spec.ts \u203a dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]",
+        "failed: dialogs.spec.ts \u203a dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]"
+      ],
+      "firefox-workers": [
+        "no worker event for: probe-click.spec.ts | firefox-core | Angle: a held probe button sends its routine with the panel's numbers | 0",
+        "no worker event for: probe-click.spec.ts | firefox-core | Boss/Pocket: a held probe button sends its routine with the panel's numbers | 0",
+        "no worker event for: probe-click.spec.ts | firefox-core | Calibrate: a held probe button sends its routine with the panel's numbers | 0"
+      ],
+      "firefox-unload-guard": [
+        "held: expected passed, outcome unexpected, results ['failed'] \u2014 the unload was not refused",
+        "held: not refused for its beacon: Error: the started Firefox is 160.0, the pin names 159.0\n\n   at test.ts:204\n\n  202 |                ...(webgl !== undefined ? { webgl } : {}) });\n  203 |     if (pinned !== undefined && version !== pi",
+        "held: no unload event"
+      ]
+    },
+    "red": true
+  },
+  "F9": {
+    "what": "the page not unloaded before its context closes",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "PASS",
+      "firefox-executed": "PASS",
+      "firefox-workers": "PASS",
+      "firefox-unload": "FAIL",
+      "firefox-unload-guard": "FAIL",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "FAIL"
+    },
+    "firefox_why": {
+      "firefox-unload": [
+        "58bda22211c26f1298af-397b9cd4d9b96094552c [retry 0]: its app loaded, no unload event",
+        "58bda22211c26f1298af-40b711c11a3a09e8237f [retry 0]: its app loaded, no unload event",
+        "58bda22211c26f1298af-5c1ebd0a3012bb33813c [retry 0]: its app loaded, no unload event"
+      ],
+      "firefox-unload-guard": [
+        "held: expected failed, outcome unexpected, results ['passed'] \u2014 the unload was not refused",
+        "held: not refused for its beacon: ",
+        "held: no unload event"
+      ],
+      "firefox-replay": [
+        "c056e228-d298-42e0-a546-fbdb72b9ab9b: POST /telemetry without an origin of this run: None",
+        "c056e228-d298-42e0-a546-fbdb72b9ab9b: POST /telemetry without an origin of this run: None",
+        "c056e228-d298-42e0-a546-fbdb72b9ab9b: POST /telemetry without an origin of this run: None"
+      ]
+    },
+    "red": true
+  },
+  "U1": {
+    "what": "the receipt a count of POSTs again",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "PASS",
+      "firefox-executed": "PASS",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "FAIL",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-unload-guard": [
+        "held: expected failed, outcome unexpected, results ['passed'] \u2014 the unload was not refused",
+        "held: not refused for its beacon: ",
+        "held: the event is not the counter-case (missing exactly the .2 mark, POSTs >= beacons): {'t': 1794865100373, 'run': 'firefox-guard-08f0dc9c-d26a-4d95-80ff-3e587166ba88', 'pid': 1121638, 'event': 'unload', 'testId': '83d93949be398eaa3b07-a48873d32caeb00cbbbd', 'title': \"held: the unload's second beacon never reaches the mock while an unrelated POST does\", 'retry': 0, 'nonce': 'b74ecf46-2202-4505-a4c4-cffbf84f21d1', 'beacons': 2, 'received': 2, 'missing': [], 'foreign': [], 'twice': [], 'posts': 2}"
+      ]
+    },
+    "red": true
+  },
+  "U3": {
+    "what": "every unload skipped as if the page were not the app",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "PASS",
+      "firefox-executed": "PASS",
+      "firefox-workers": "PASS",
+      "firefox-unload": "FAIL",
+      "firefox-unload-guard": "FAIL",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-unload": [
+        "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes [retry 0]: its app loaded, its unload skipped: mutant U3",
+        "Outside: a held probe button sends its routine with the panel's numbers [retry 0]: its app loaded, its unload skipped: mutant U3",
+        "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [retry 0]: its app loaded, its unload skipped: mutant U3"
+      ],
+      "firefox-unload-guard": [
+        "held: expected failed, outcome unexpected, results ['passed'] \u2014 the unload was not refused",
+        "held: not refused for its beacon: ",
+        "held: the event is not the counter-case (missing exactly the .2 mark, POSTs >= beacons): {'t': 1794865217672, 'run': 'firefox-guard-78ec8655-2d06-4780-8f27-d3ce201d598f', 'pid': 1133156, 'event': 'unload', 'testId': '83d93949be398eaa3b07-a48873d32caeb00cbbbd', 'title': \"held: the unload's second beacon never reaches the mock while an unrelated POST does\", 'retry': 0, 'skipped': 'mutant U3'}"
+      ]
+    },
+    "red": true
+  },
+  "U2": {
+    "what": "the receipt ignores the attempt's origin",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "\u001b[31m     \u001b[31m\u00d7\u001b[31m the right mark under another attempt's or no origin is foreign, not received\u001b[39m\u001b[32m 4\u001b[2mms\u001b[22m\u001b[39m",
+        "\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m src/unloadReceipts.test.ts\u001b[2m > \u001b[22mreceipts\u001b[2m > \u001b[22mthe right mark under another attempt's or no origin is foreign, not received"
+      ]
+    },
+    "red": true
+  },
+  "U4": {
+    "what": "the runner reads a skip as fine where the app loaded",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_firefox.py::test_an_attempt_whose_app_loaded_needs_its_complete_unload"
+      ]
+    },
+    "red": true
+  },
+  "S1": {
+    "what": "the selector decides the Firefox core as before R386",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_selector.py::test_a_core_spec_reached_by_any_path_selects_the_firefox_core[a helper two imports up-<lambda>-lcnc-webui/e2e/macroFolder.ts \\u2192 probe-click (a core spec)]",
+        "FAILED scripts/test_select/test_selector.py::test_a_core_spec_reached_by_any_path_selects_the_firefox_core[the data that helper reads-<lambda>-scripts/test_fixtures/macro_refusals.json \\u2192 probe-click (a core spec)]",
+        "FAILED scripts/test_select/test_selector.py::test_the_full_browser_run_holds_the_firefox_core[an unknown source-<lambda>]",
+        "FAILED scripts/test_select/test_selector.py::test_the_full_browser_run_holds_the_firefox_core[an import that resolves nowhere-<lambda>]",
+        "FAILED scripts/test_select/test_selector.py::test_the_full_browser_run_holds_the_firefox_core[an e2e helper no spec reaches-<lambda>]"
+      ]
+    },
+    "red": true
+  },
+  "D1": {
+    "what": "the browser keeps the caller's display",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "PASS",
+      "firefox-executed": "PASS",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "FAIL",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-graphics": [
+        "core: worker 0: WebGL answered \u2014 the browser had a display",
+        "core: worker 1: WebGL answered \u2014 the browser had a display",
+        "core: worker 2: WebGL answered \u2014 the browser had a display"
+      ]
+    },
+    "red": true,
+    "caller_display": ":0"
+  },
+  "U5": {
+    "what": "the graphics check takes a missing answer as none",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_firefox.py::test_every_worker_must_record_no_webgl"
+      ]
+    },
+    "red": true
+  },
+  "V1": {
+    "what": "a worker the report names may lack its browser record",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_firefox.py::test_the_started_browser_must_be_the_pin",
+        "FAILED scripts/test_select/test_firefox.py::test_every_worker_must_record_no_webgl",
+        "FAILED scripts/test_select/test_firefox.py::test_one_record_per_worker_the_report_names[one record missing, the others present-events1-workers1-expected1]",
+        "FAILED scripts/test_select/test_firefox.py::test_one_record_per_worker_the_report_names[only the first worker reports-events2-workers2-expected2]",
+        "FAILED scripts/test_select/test_firefox.py::test_one_record_per_worker_the_report_names[one record moved to a worker the report does not name-events3-workers3-expected3]",
+        "FAILED scripts/test_select/test_firefox.py::test_one_record_per_worker_the_report_names[a replacement worker needs its own record-events5-workers5-expected5]",
+        "FAILED scripts/test_select/test_firefox.py::test_the_guard_is_judged_under_its_known_run_id",
+        "FAILED scripts/test_select/test_firefox.py::test_the_runner_hands_the_guards_known_run_id_to_the_proofs[not-this-guard-False]"
+      ]
+    },
+    "red": true
+  },
+  "V2": {
+    "what": "a record of a worker the report does not name counts",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_firefox.py::test_one_record_per_worker_the_report_names[one record moved to a worker the report does not name-events3-workers3-expected3]"
+      ]
+    },
+    "red": true
+  },
+  "V3": {
+    "what": "the guard's run id read off its records again",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_firefox.py::test_the_runner_hands_the_guards_known_run_id_to_the_proofs[not-this-guard-False]"
+      ]
+    },
+    "red": true
+  },
+  "V4": {
+    "what": "another run's browser record beside the right ones ignored",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "unit": {
+      "exit": 1,
+      "named_guard_failed": true,
+      "failed_lines": [
+        "FAILED scripts/test_select/test_firefox.py::test_the_started_browser_must_be_the_pin",
+        "FAILED scripts/test_select/test_firefox.py::test_every_worker_must_record_no_webgl",
+        "FAILED scripts/test_select/test_firefox.py::test_one_record_per_worker_the_report_names[another run's record beside the right ones-events6-workers6-expected6]",
+        "FAILED scripts/test_select/test_firefox.py::test_the_guard_is_judged_under_its_known_run_id",
+        "FAILED scripts/test_select/test_firefox.py::test_the_runner_hands_the_guards_known_run_id_to_the_proofs[not-this-guard-False]"
+      ]
+    },
+    "red": true
+  },
+  "E": {
+    "what": "the old overlay: a radius on the backdrop itself",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-core": [
+        "50 failed"
+      ],
+      "firefox-executed": [
+        "failed: dialogs.spec.ts \u203a dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+        "failed: dialogs.spec.ts \u203a dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]",
+        "failed: dialogs.spec.ts \u203a dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]"
+      ]
+    },
+    "chromium": {
+      "passed": 7,
+      "failed": 50,
+      "failed_tests": [
+        "dialogs.spec.ts \u203a dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialogs.spec.ts \u203a dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialogs.spec.ts \u203a dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners"
+      ]
+    },
+    "red": true
+  },
+  "G": {
+    "what": "the glyph collapse: .gridWrap without width: 100%",
+    "head": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-graphics": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-core": [
+        "9 failed"
+      ],
+      "firefox-executed": [
+        "failed: layout.spec.ts \u203a desktop, homed: a probe grid's cells keep their size whatever the glyph contributes [firefox-core, retry 0]",
+        "failed: layout.spec.ts \u203a desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes [firefox-core, retry 0]",
+        "failed: layout.spec.ts \u203a touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes [firefox-core, retry 0]"
+      ]
+    },
+    "chromium": {
+      "passed": 137,
+      "failed": 4,
+      "failed_tests": [
+        "layout.spec.ts \u203a desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "layout.spec.ts \u203a desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "layout.spec.ts \u203a touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "layout.spec.ts \u203a touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes"
+      ]
+    },
+    "red": true,
+    "probe_visual_errors": {
+      "every procedure has its grid entry": {
+        "size": false,
+        "image": false
+      },
+      "Outside": {
+        "size": true,
+        "image": true
+      },
+      "Inside": {
+        "size": true,
+        "image": true
+      },
+      "Angle": {
+        "size": true,
+        "image": true
+      },
+      "Boss/Pocket": {
+        "size": true,
+        "image": true
+      },
+      "Ridge/Valley": {
+        "size": true,
+        "image": true
+      },
+      "Surface": {
+        "size": false,
+        "image": false
+      },
+      "Calibrate": {
+        "size": false,
+        "image": false
+      },
+      "Toolsetter": {
+        "size": false,
+        "image": false
+      }
+    }
+  }
+}

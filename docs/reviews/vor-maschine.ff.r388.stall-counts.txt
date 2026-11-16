@@ -1,0 +1,88 @@
+R388 — the stall's signature in every Firefox run at a head with the display pin (8dc5b6eb, 291ebcb5, cd23f813). stall-count.py's rule: a load = GET / 200 under a test attempt's origin; it has its hello when a connection opened under that origin after the load and before that origin's next load received a 'hello' frame.
+Runs: the mutants at 8dc5b6eb, 291ebcb5 and cd23f813, the P/D series at 8dc5b6eb, the three round gates, CI at 8dc5b6eb and cd23f813. A run = one Playwright run that left a replay file; core and guard each count as one (F6's guard left none: its fixture refused the started browser before any load; F6's core left 66 files without a load).
+
+-- by the browser's recorded WebGL answer (stall-by-webgl.py):
+webgl False        runs  93 loads  3654 without hello 0
+webgl True         runs  26 loads  1092 without hello 0
+
+-- the counter on R387's known hit (128d6821 F2; webgl was not recorded then):
+mutants-128d6821/F2                                                    files   7 loads    84 without hello 1  [('firefox-89eb0c92-7711-4165-81e6-b40c78770f11', '9f98fd8c8d1538f5ebbb-02196f6c59c977320c94', 0)]
+total                                                                            loads    84 without hello 1
+
+-- per directory, Firefox runs only (the round gates and CI are in the WebGL table above: their dirs also hold Chromium replays):
+mutants-8dc5b6eb/D1                                                    files   4 loads    84 without hello 0
+mutants-8dc5b6eb/E                                                     files  53 loads    84 without hello 0
+mutants-8dc5b6eb/F1                                                    files   5 loads    84 without hello 0
+mutants-8dc5b6eb/F2                                                    files   6 loads    84 without hello 0
+mutants-8dc5b6eb/F3                                                    files   4 loads    84 without hello 0
+mutants-8dc5b6eb/F4                                                    files   4 loads    84 without hello 0
+mutants-8dc5b6eb/F5                                                    files   4 loads    82 without hello 0
+mutants-8dc5b6eb/F6                                                    files  66 loads     0 without hello 0
+mutants-8dc5b6eb/F9                                                    files   5 loads    84 without hello 0
+mutants-8dc5b6eb/G                                                     files  13 loads    84 without hello 0
+mutants-8dc5b6eb/S1                                                    files   0 loads     0 without hello 0
+mutants-8dc5b6eb/U1                                                    files   5 loads    84 without hello 0
+mutants-8dc5b6eb/U2                                                    files   0 loads     0 without hello 0
+mutants-8dc5b6eb/U3                                                    files   5 loads    84 without hello 0
+mutants-8dc5b6eb/U4                                                    files   0 loads     0 without hello 0
+mutants-8dc5b6eb/U5                                                    files   0 loads     0 without hello 0
+series-8dc5b6eb/D01                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D02                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D03                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D04                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D05                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D06                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D07                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D08                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D09                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/D10                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P01                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P02                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P03                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P04                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P05                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P06                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P07                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P08                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P09                                                    files   4 loads    84 without hello 0
+series-8dc5b6eb/P10                                                    files   4 loads    84 without hello 0
+mutants-291ebcb5/D1                                                    files   4 loads    84 without hello 0
+mutants-291ebcb5/E                                                     files  53 loads    84 without hello 0
+mutants-291ebcb5/F1                                                    files   5 loads    84 without hello 0
+mutants-291ebcb5/F2                                                    files   6 loads    84 without hello 0
+mutants-291ebcb5/F3                                                    files   4 loads    84 without hello 0
+mutants-291ebcb5/F4                                                    files   4 loads    84 without hello 0
+mutants-291ebcb5/F5                                                    files   4 loads    82 without hello 0
+mutants-291ebcb5/F6                                                    files  66 loads     0 without hello 0
+mutants-291ebcb5/F9                                                    files   5 loads    84 without hello 0
+mutants-291ebcb5/G                                                     files  13 loads    84 without hello 0
+mutants-291ebcb5/S1                                                    files   0 loads     0 without hello 0
+mutants-291ebcb5/U1                                                    files   5 loads    84 without hello 0
+mutants-291ebcb5/U2                                                    files   0 loads     0 without hello 0
+mutants-291ebcb5/U3                                                    files   5 loads    84 without hello 0
+mutants-291ebcb5/U4                                                    files   0 loads     0 without hello 0
+mutants-291ebcb5/U5                                                    files   0 loads     0 without hello 0
+mutants-291ebcb5/V1                                                    files   0 loads     0 without hello 0
+mutants-291ebcb5/V2                                                    files   0 loads     0 without hello 0
+mutants-291ebcb5/V3                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/D1                                                    files   4 loads    84 without hello 0
+mutants-cd23f813/E                                                     files  53 loads    84 without hello 0
+mutants-cd23f813/F1                                                    files   5 loads    84 without hello 0
+mutants-cd23f813/F2                                                    files   6 loads    84 without hello 0
+mutants-cd23f813/F3                                                    files   4 loads    84 without hello 0
+mutants-cd23f813/F4                                                    files   4 loads    84 without hello 0
+mutants-cd23f813/F5                                                    files   4 loads    82 without hello 0
+mutants-cd23f813/F6                                                    files  66 loads     0 without hello 0
+mutants-cd23f813/F9                                                    files   5 loads    84 without hello 0
+mutants-cd23f813/G                                                     files  13 loads    84 without hello 0
+mutants-cd23f813/S1                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/U1                                                    files   5 loads    84 without hello 0
+mutants-cd23f813/U2                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/U3                                                    files   5 loads    84 without hello 0
+mutants-cd23f813/U4                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/U5                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/V1                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/V2                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/V3                                                    files   0 loads     0 without hello 0
+mutants-cd23f813/V4                                                    files   0 loads     0 without hello 0
+total                                                                            loads  4446 without hello 0
