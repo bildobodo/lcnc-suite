@@ -1,0 +1,46 @@
+{
+  "review": "R384",
+  "head": "39a7367909177eb800af21f6ad3c744def6089d9",
+  "previous": "be5dd91f550c115588520b132b6824077537dbf4",
+  "document_head": "aaf5c8eae49cc87aac7f78c2efc3a4ce77f155ca",
+  "archive": "/tmp/codex-r384",
+  "python": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3",
+  "live_access": false,
+  "sources": [
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "8f51aff2842189071d9b15c7c1d7a8caf8a6348386f2920b3cb6da260eb67e16",
+      "equals_39a73679": true
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "cf867d7485257a5781f98d9275c662da6c072ce0f2ec231e007e4a1bc67f1b3a",
+      "equals_39a73679": true
+    },
+    {
+      "path": "scripts/test_support/live_session.py",
+      "sha256": "29b3899f0479241b6fdc3ce5f54552b285fa357d3f871fb4a469890af4517f80",
+      "equals_39a73679": true
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "63e3ff554b3ee173fd3c8aabb87a8d740c28eb8022c0ee80af14049d2c1ab1bc",
+      "equals_39a73679": true
+    }
+  ],
+  "unchanged_earlier_probes_sha256": {
+    "r382": "dda2d17da8c85a863a575d443311840550a0f8d56e4a813273d9b5bc1790266f",
+    "r383": "728702344e7419c673cdf85555a37edb20ae182148629f9b73bb327a827454be"
+  },
+  "results": {
+    "native_suite_plus_r382_r383_probes": "651 passed in 54.55s",
+    "new_orchestrator_probes": "12 passed in 0.36s"
+  },
+  "evidence_sha256": {
+    "vor-maschine.p3b.r384.codex-probes.py": "e89da722134c0f119748c2dec686698739d80b49190f1e7b84b3da69b8267b50",
+    "vor-maschine.p3b.r384.codex-probes.txt": "7ddf902669c1b5b839000cc52807693cf8527cefdbf90c09106c0005990aa0fd",
+    "vor-maschine.p3b.r384.codex-tests.txt": "daa424ff3383aa64f9d86bd7817a08871d18f37ce4d603f02501c527cb462b84",
+    "vor-maschine.p3b.r384.codex-body-proof.json": "bbf77423ebc31e8082d02b16f66d4d5860ef596fba19d9ae95bc581b094ba014",
+    "vor-maschine.p3b.r384.codex-artifact-audit.json": "2b2e0d1b8516abcadba57918372586703494a7293ace53cd561863504b5882ea"
+  }
+}

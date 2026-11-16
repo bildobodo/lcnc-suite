@@ -1,0 +1,10 @@
+{
+  "probe_cases": {
+    "new_body": "_probe_steps",
+    "body_ast_unchanged": true
+  },
+  "surface_cases": {
+    "new_body": "_surface_steps",
+    "body_ast_unchanged": true
+  }
+}
