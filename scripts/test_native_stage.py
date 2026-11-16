@@ -6258,6 +6258,140 @@ def test_the_surface_cleanup_has_the_same_admission(monkeypatch, hazard, when):
     assert "not cleaned up" in out["error"], out
 
 
+def _plant_through_the_real_client(monkeypatch, hazard, at):
+    """Codex R383's probe as a guard: the real _finish → _plant → _short →
+    _routine → SimulatorClient, a local socket as the gateway (each `mdi`
+    busy, then idle; a DEBUG line answered through the error channel). The
+    hazard (a trip or a lost link) arrives with the send of the first plant
+    block (`at` "block") or of the first read line (`at` "read"). Returns
+    every send with whether the hazard was already received at it."""
+    import re
+    c = ls.SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+    idle = {"interp_state": 1, "inpos": True, "current_vel": 0.0, "tool_change_requested": False,
+            "tool_change_seq": None, "tool_number": 99}
+    state, sent = {"trip": None}, []
+    values = {n: float(n - 3000) for n in range(3014, 3036)}       # two blocks, two read lines
+
+    def take(**extra):
+        c.take({"type": "status", "data": {**idle, **extra}, "safety_trip": state["trip"]})
+    take()
+
+    class Socket:
+        def send(self, raw):
+            command = json.loads(raw)
+            sent.append((command, state["trip"] is not None or c.error is not None))
+            text = command.get("text", "")
+            hit = {"block": text.startswith("#"), "read": text.startswith("(DEBUG,")}.get(at, False)
+            if hazard and hit and not any(was for _, was in sent):
+                if hazard == "trip":
+                    state["trip"] = {"id": "r383.guard"}
+                else:
+                    c.error = "connection lost during the finish"
+            take(interp_state=2, inpos=False)
+            take()
+            if text.startswith("(DEBUG,"):
+                tag = re.search(r"NATIVE\d+", text).group()
+                nums = [int(x) for x in re.findall(r"P(\d+)=", text)]
+                c.errors.append((time.monotonic(), 0, tag + " " + " ".join(f"P{n}={values[n]}" for n in nums)))
+            c.replies.put({"cmd": command["cmd"], "ok": True})
+    c.ws = Socket()
+    monkeypatch.setattr(nr, "_standstill", lambda *a: True)   # the admission at each send is under test
+    out = nr._finish(c, [("values", lambda: nr._plant(c, values))])
+    return c, out, sent
+
+
+@pytest.mark.parametrize("hazard", ["trip", "disconnect"])
+@pytest.mark.parametrize("at", ["block", "read"])
+def test_a_finish_sends_nothing_more_once_its_admission_went(monkeypatch, hazard, at):
+    """Codex R383 VM-I23: a trip or a lost link received during one request of
+    a step — the first plant block or the first read line — and no further
+    block, read line or retry goes out; the step is named interrupted, not
+    done, and stays among what is left."""
+    c, out, sent = _plant_through_the_real_client(monkeypatch, hazard, at)
+    assert sent[0][0]["cmd"] == "abort"
+    assert not [cmd for cmd, known in sent if known], sent
+    texts = [cmd.get("text", "") for cmd, _ in sent[1:]]
+    assert texts[-1].startswith("#" if at == "block" else "(DEBUG,"), texts
+    assert len(texts) == (1 if at == "block" else 3), texts      # block 1 | blocks 1–2 and read 1
+    assert out["done"] == [] and out["left"] == ["values"], out
+    assert ("trip" if hazard == "trip" else "connection") in out["stopped"], out
+    assert "values interrupted" in out["stopped"], out
+    assert "request" not in vars(c)                              # the client as it was
+
+
+def test_a_finish_with_its_admission_restores_completely(monkeypatch):
+    """The control: no hazard — both blocks and both read lines go out and
+    the values step is done."""
+    c, out, sent = _plant_through_the_real_client(monkeypatch, None, "block")
+    texts = [cmd.get("text", "") for cmd, _ in sent]
+    assert sent[0][0]["cmd"] == "abort" and len(texts) == 5, texts
+    assert [t[:1] for t in texts[1:]] == ["#", "#", "(", "("], texts
+    assert out == {"done": ["values"], "results": {"values": None}, "errors": [], "stopped": None, "left": []}
+    assert "request" not in vars(c)
+
+
+def test_a_cut_step_stays_among_what_is_left_and_nothing_after_it_runs(monkeypatch):
+    """A trip received after the first of a step's two requests: the second
+    is not sent, nor the next step's; done holds only the step before."""
+    calls = []
+    c = _restore_client(calls)
+    plain = c.request
+
+    def first_then_trip():
+        c.request("b1")
+        c.safety_trip = {"id": "e.2"}
+        c.request("b2")
+    monkeypatch.setattr(nr, "_standstill", lambda *a: True)
+    out = nr._finish(c, [("a", lambda: c.request("a")), ("b", first_then_trip), ("c", lambda: c.request("c"))])
+    assert calls == ["abort", "a", "b1"], calls
+    assert out["done"] == ["a"] and out["left"] == ["b", "c"], out
+    assert "b interrupted" in out["stopped"] and "b2 not sent" in out["stopped"], out
+    assert c.request is plain                                     # an own request put back as it was
+
+
+def test_a_refused_attempt_is_not_asked_again_once_the_admission_went(monkeypatch):
+    """_when_free asks again after the start claim's refusal — never once a
+    trip came meanwhile: one attempt, no retry."""
+    calls = []
+    c = _restore_client(calls)
+
+    def request(cmd, **kw):
+        calls.append(cmd)
+        if cmd == "mdi":
+            c.safety_trip = {"id": "e.3"}
+            raise ls.Refused("mdi refused: A program or macro is starting or running — wait")
+        return {"ok": True}
+    c.request = request
+    monkeypatch.setattr(nr, "_standstill", lambda *a: True)
+    monkeypatch.setattr(nr, "CLAIM_WAIT_S", 5.0)
+    out = nr._finish(c, [("g54", lambda: nr._when_free(c, "mdi", text="G10 L2 P1 Z0"))])
+    assert calls == ["abort", "mdi"], calls
+    assert out["left"] == ["g54"] and "g54 interrupted" in out["stopped"], out
+
+
+@pytest.mark.parametrize("exit", ["done", "abort-fails", "step-raises"])
+def test_the_client_is_put_back_on_every_exit_of_a_finish(monkeypatch, exit):
+    """The admitted sends belong to the finish alone: after it — whatever its
+    exit — the client's request is its own again."""
+    class Client:
+        error, safety_trip = None, None
+
+        def request(self, cmd, **kw):
+            if exit == "abort-fails" and cmd == "abort":
+                raise RuntimeError("no reply")
+            return {"ok": True}
+    c = Client()
+    monkeypatch.setattr(nr, "_standstill", lambda *a: True)
+
+    def step():
+        if exit == "step-raises":
+            raise RuntimeError("the step failed")
+    nr._finish(c, [("s", step)])
+    assert "request" not in vars(c), vars(c)
+    c.safety_trip = {"id": "after"}
+    assert c.request("anything") == {"ok": True}                  # no admission outside a finish
+
+
 def test_a_frame_is_stamped_and_appended_under_the_record_lock():
     """Codex R382 VM-I24: a frame being built — stamped, not yet appended —
     holds the record lock, so a send mark (taken under it) cannot fall

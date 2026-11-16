@@ -198,6 +198,11 @@ class Refused(RuntimeError):
     """A precondition of the run does not hold — nothing of the machine was touched past it."""
 
 
+class NotAdmitted(RuntimeError):
+    """A finish's send refused at the send: a trip or a lost link was already
+    received — nothing is sent (Codex R383 VM-I23)."""
+
+
 class StepFailed(RuntimeError):
     """A step that ends the run after measuring: its rows stay in the report
     (a sequence that ends FAIL takes its instance down — R283 FI282-02)."""
@@ -1348,16 +1353,45 @@ def _lost(c):
     return None
 
 
+@contextmanager
+def _admitted_sends(c):
+    """Within a finish EVERY request is admitted at its send, not only between
+    the steps (Codex R383 VM-I23): a step is itself a sequence of requests —
+    `values` plants several blocks and reads them back over several DEBUG
+    lines, `_when_free` asks again — and a trip or a lost link received
+    before any of them sends nothing more: no further block, no read line,
+    no retry. Judged immediately before the request, on what the client has
+    received by then (`_lost`); the client is put back as it was on every
+    exit."""
+    plain, own = c.request, "request" in vars(c)
+
+    def request(cmd, *args, **kw):
+        why = _lost(c)
+        if why:
+            raise NotAdmitted(f"{why} — {cmd} not sent")
+        return plain(cmd, *args, **kw)
+    c.request = request
+    try:
+        yield
+    finally:
+        if own:
+            c.request = plain
+        else:
+            del c.request
+
+
 def _finish(c, steps) -> dict:
     """The agreed finish of a case, on EVERY exit (R381 VM380-03, Codex R382
-    VM-I22/VM-I23): admitted — connected, no trip — abort, then a standstill;
-    then each step, and the admission judged AGAIN after every blocking wait
-    and after every step (a trip or a lost link may come in the standstill
-    wait or in a step — a step may move: the compensation's drain); before
+    VM-I22/VM-I23, R383): admitted — connected, no trip — abort, then a
+    standstill; then each step, and the admission judged AGAIN after every
+    blocking wait and after every step (a trip or a lost link may come in
+    the standstill wait or in a step — a step may move: the compensation's
+    drain), and at EVERY request inside a step (`_admitted_sends`); before
     each step the standstill again. A lost admission or no standstill stops
-    it: the steps not run are named, never worked off blindly after a
-    failure. A step's own failure is named and the next is judged afresh.
-    Reaches the frames only through _standstill."""
+    it: the steps not run are named — a step it cut off among them, named
+    as interrupted — never worked off blindly after a failure. A step's own
+    failure is named and the next is judged afresh. Reaches the frames only
+    through _standstill."""
     out = {"done": [], "results": {}, "errors": [], "stopped": None, "left": []}
     names = [what for what, _ in steps]
 
@@ -1367,28 +1401,33 @@ def _finish(c, steps) -> dict:
     why = _lost(c)
     if why:
         return stop(f"nothing done — {why}", 0)
-    try:
-        c.request("abort")
-    except Exception as e:  # noqa: BLE001 — named, nothing more is done
-        return stop(_lost(c) or f"the abort failed: {type(e).__name__}: {e}", 0)
-    standing = _standstill(c, STAND_S)
-    why = _lost(c) or (None if standing else f"no standstill within {STAND_S} s after the abort")
-    if why:
-        return stop(why, 0)
-    for i, (what, fn) in enumerate(steps):
-        if i:
-            standing = _standstill(c, STAND_S)
-            why = _lost(c) or (None if standing else f"no standstill within {STAND_S} s before {what}")
-            if why:
-                return stop(why, i)
+    with _admitted_sends(c):
         try:
-            out["results"][what] = fn()
-            out["done"].append(what)
-        except Exception as e:  # noqa: BLE001 — named; the next step is judged afresh
-            out["errors"].append(f"{what}: {type(e).__name__}: {e}")
-        why = _lost(c)
+            c.request("abort")
+        except Exception as e:  # noqa: BLE001 — named, nothing more is done
+            return stop(_lost(c) or f"the abort failed: {type(e).__name__}: {e}", 0)
+        standing = _standstill(c, STAND_S)
+        why = _lost(c) or (None if standing else f"no standstill within {STAND_S} s after the abort")
         if why:
-            return stop(why, i + 1)
+            return stop(why, 0)
+        for i, (what, fn) in enumerate(steps):
+            if i:
+                standing = _standstill(c, STAND_S)
+                why = _lost(c) or (None if standing else f"no standstill within {STAND_S} s before {what}")
+                if why:
+                    return stop(why, i)
+            try:
+                out["results"][what] = fn()
+                out["done"].append(what)
+            except Exception as e:  # noqa: BLE001 — named; the next step is judged afresh
+                why = _lost(c)
+                if why:
+                    # cut off by the lost admission: not done, named as interrupted
+                    return stop(f"{why} — {what} interrupted ({type(e).__name__}: {e})", i)
+                out["errors"].append(f"{what}: {type(e).__name__}: {e}")
+            why = _lost(c)
+            if why:
+                return stop(why, i + 1)
     return out
 
 
