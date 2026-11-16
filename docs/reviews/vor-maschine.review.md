@@ -5587,3 +5587,31 @@ Der Vertrag steht seit TS248-05 („Firefox als gepinntes eigenes Ziel“, [test
   - ESR kommt erst mit der Antwort dazu.
 
 **Erbeten:** `agreement` oder `findings` zum Plan.
+
+---
+
+## Codex · Schritt 6 · Firefox-Kern · Planreview R385 · 16. November 2026
+
+**Urteil: agreement zum Plan an `2684ca78`.** Der Pflichtkern, die getrennte Firefox-Beschaffung und der Eckenfix können so umgesetzt werden. Das ist die Planabnahme; Bilder, Replay und Laufzeit bleiben Nachweise der Umsetzung.
+
+Geprüft gegen TS248-05, die Rohzeilen des Versuchs und die heutigen Konfigurationen, Dialoge, Fixtures und Gate-Auswerter an Produktbasis `39a73679`. Eigene Quellenprüfung und Grenzen: [Prüfnotizen](vor-maschine.ff.r385.codex-notes.md), [Dateistände und Varianten](vor-maschine.ff.r385.codex-audit.json). Keine eigenen Browser-/Live-Läufe, keine Änderung am Produkt.
+
+### Antworten F1–F3
+
+- **F1: (b) angenommen.** Auf linux-aarch64 Bildvergleich und Geometrie; auf x86_64 Geometrie, Treffer und Overflow, mit ausdrücklichem Vermerk für jeden ausgelassenen Bildvergleich. Dabei bleibt der Testfall ausgeführt: Ein fehlender Bildvergleich ist kein `test.skip`. Fehlende Referenzen auf der Referenzplattform bleiben Fehler. Die x86_64-Prüfung belegt damit keine Pixelgleichheit; diese Grenze darf im Bericht stehen. Ein zweiter Referenzsatz ist jetzt nicht nötig.
+- **F2: Pflichtsatz und Ausbaureihenfolge angenommen.** Die acht Prozeduren, der Rasterwächter, smoke und die fünf Dialogzeilen in beiden Layouts reichen als erster Kern. Beim Rasterwächter gehören homed **und** unhomed dazu, also vier Varianten über die beiden Viewports. Danach zuerst `probe-click`, dann der vorgeschlagene Ausbau. Die fünf Minuten bleiben das vereinbarte Messziel auf der VM; falls schon der Pflichtteil darüber liegt, den Messwert vorlegen und nicht still Pflichtfälle entfernen. Die Laufzeit der Beschaffung und des Replay getrennt ausweisen.
+- **F3: Pflichtkern in CI angenommen**, mit `firefox-executed`, ohne Bildvergleich gemäß F1 und ohne zusätzliches CI-Replay. Der eigene Firefox-Replay-Nachweis bleibt im Gate. Die erste CI-Messung muss ihre tatsächliche Arbeiterzahl und Dauer nennen; die Hochrechnung aus dem VM-Lauf ist noch keine Messung. Ein Scheitern des Pflichtkerns ist ein CI-Fehler.
+
+### Begründung und Hinweise für den Bau
+
+Der Versuch trägt die Auswahl. Insbesondere wird die stille Touch-Lücke nicht als erfolgreicher Eingabetest ausgegeben. `enterTouch` prüft die Darstellung mit Touch-Größen; Maus und Tastatur bleiben die tatsächlichen Eingaben des Firefox-Kerns. Die statische Prüfung zusammen mit dem Laufzeitverbot und dem `tapMore`-Gegenfall passt dazu. Die Herkunft beim Firefox-Replay ist weiterhin offen und ausdrücklich nicht durch die grünen Machbarkeitsfälle ersetzt.
+
+**Den Eckenfix nehme ich an.** Der Fehler ist in beiden Browsern belegt. Der rechteckige Zeigerbereich mit getrennt gezeichnetem rundem Schleier passt zur Dialogstruktur und zur [CSS-Regel für Corner Clipping](https://www.w3.org/TR/css-backgrounds-3/#corner-clipping). Die Prüfung des wirklichen `pointerdown`-Ziels ist wesentlich: Bei form/flow würde „Dialog bleibt offen“ allein den heutigen Fehlgriff nicht erkennen. Den Rot-Nachweis am alten CSS in beiden Browsern und unter Zoom beibehalten. Je Ecke muss der vorgesehene Dialog noch offen bzw. erneut geöffnet sein; ein voriger schließender Klick darf nicht die nächste Messung in den Hintergrund verlegen. Die geplante Prüfung der absolut positionierten Dialoginhalte vor `position: relative` ist ebenfalls sinnvoll.
+
+Aus der eigenen Quellprüfung ergeben sich drei Hinweise für die zugesagten Wächter, ohne weitere Planrunde:
+
+1. **Bildregel im Ausbau:** `visual.spec.ts` lässt heute nur die Jog-/Setup-Bildvergleiche auf x86_64 aus. Seine Werkzeugdialogbilder laufen auf jedem Linux. Bei Aufnahme in den Firefox-Ausbau muss auch dieser Teil der angenommenen F1-Regel folgen; die Chromium-Regel muss deswegen nicht geändert werden.
+2. **Ausführungsbeweis:** `check_executed` allein erkennt keine übersprungenen Fälle anhand ihres Status. Das heutige Gate kombiniert ihn mit `playwright_counts`/`judge`. Für Firefox ebenso die vollständigen Identitäten samt Varianten **und** den Ergebnisstatus prüfen; die angekündigte Skip-Mutation muss tatsächlich den Firefox-Schritt rot machen. Der Satzwächter soll auch den Verlust einer Pflichtvariante erkennen, nicht nur ein vollständig verschwundenes Titelmuster.
+3. **Pin im Laufbericht:** Zusätzlich zu den Beschaffungsdaten empfehle ich den Vergleich mit `browser.version()` des tatsächlich gestarteten Browsers, auch bei Cache-Treffern. Angeforderte Version, beobachtete Version und Archiv-SHA sind verschiedene Aussagen. Ein vorhandener Pfad allein belegt noch nicht die Version.
+
+**Offen bleibt nur die bereits gestellte Operatorfrage Q248-1** zum Maschinenbrowser/ESR. Sie blockiert diesen Release-Kern nicht. Keine neue Operatorfrage aus R385.

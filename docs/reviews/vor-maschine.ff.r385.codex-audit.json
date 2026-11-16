@@ -1,0 +1,144 @@
+{
+  "review": "R385",
+  "kind": "plan/source audit, no test or live run",
+  "document_head": "2684ca78e327d87bf196a62f373eaf04aa0636ea",
+  "product_basis": "39a73679",
+  "files": [
+    {
+      "path": "docs/reviews/vor-maschine.review.md",
+      "bytes": 641930,
+      "sha256": "a513aa0c7e61801390e6bce6614d12a2b154bca9650bb0b3e257a95723deb671"
+    },
+    {
+      "path": "docs/reviews/vor-maschine.ff.trial-160.txt",
+      "bytes": 22998,
+      "sha256": "0d8a7c2828492635b14c40280d1ef333c6309ded8ad7d63fa9fd21a3a474ff8c"
+    },
+    {
+      "path": "docs/reviews/test-strategy.review.md",
+      "bytes": 121117,
+      "sha256": "4fe1e3d0914431158b633ce9cdd28dd12dd54fe01eab47a392b31f5b525a974d"
+    },
+    {
+      "path": "lcnc-webui/playwright.config.ts",
+      "bytes": 2868,
+      "sha256": "f127b4884b96d081bc78aa35c83a5ac98a9e0f313551d7969cfcc0cdb26dafbc"
+    },
+    {
+      "path": "lcnc-webui/playwright.gate.config.ts",
+      "bytes": 910,
+      "sha256": "194b421da5c914d2fdf354e86c5f5f3cea2cc964f8c465880ad8bbbb2b33d73f"
+    },
+    {
+      "path": "lcnc-webui/e2e/smoke.spec.ts",
+      "bytes": 1725,
+      "sha256": "f0f81687ae80a5747b2a0c9cf24dca33062f6c4fa179b1b4f2d8cdf2fadc66b6"
+    },
+    {
+      "path": "lcnc-webui/e2e/layout.spec.ts",
+      "bytes": 179529,
+      "sha256": "3d2f2422f51362a3546f45de88652691bf36fd789b7b3be329caadb9b5aab1f5"
+    },
+    {
+      "path": "lcnc-webui/e2e/dialogs.spec.ts",
+      "bytes": 51869,
+      "sha256": "3621d0677fee17a76094f324b09ecb5f097deb96e9c74cf0f2b3ad69927f53e8"
+    },
+    {
+      "path": "lcnc-webui/e2e/visual.spec.ts",
+      "bytes": 4467,
+      "sha256": "2fd418d297a8d0836b61203de5bec8f2fa961d6504fb7064e09151d4718d1860"
+    },
+    {
+      "path": "lcnc-webui/e2e/touchMode.ts",
+      "bytes": 763,
+      "sha256": "35ebdb066fe9095604f9c49d17c9007c537573eef98f74cd06b27f2f040ea545"
+    },
+    {
+      "path": "lcnc-webui/e2e/more.ts",
+      "bytes": 1364,
+      "sha256": "c8009576102235fdec8c34ceb47a4bfb662192f7ca19437506465a850c6ffdba"
+    },
+    {
+      "path": "lcnc-webui/src/DialogFrame.vue",
+      "bytes": 9406,
+      "sha256": "6a085b036aaa8db36e3c00d03f8bbc5d6d23896458324d29b3b91c0170638098"
+    },
+    {
+      "path": "lcnc-webui/src/style.css",
+      "bytes": 99136,
+      "sha256": "873876feadc1ae4bc65d2b10ef4ef0c5b9d8373ced13457dd6146ee0d8c47566"
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "bytes": 150002,
+      "sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c"
+    },
+    {
+      "path": "scripts/test_select/proof.py",
+      "bytes": 13048,
+      "sha256": "5beecc146b056593484818d9ef8c5881f693a82fbca3d516449e49e1c68145be"
+    },
+    {
+      "path": "scripts/test_select/round_gate.py",
+      "bytes": 26145,
+      "sha256": "59dbfe3072f60750d3df0705c7492736de48d1363602874cd087ebcdc52462ac"
+    },
+    {
+      "path": "scripts/test_select/rules.py",
+      "bytes": 23064,
+      "sha256": "44ff74f791162ea983bcc6ddc90f671fcd9010bcef69786af52685fde55267d0"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 3373,
+      "sha256": "d08d9fbcaefb05319c05578f2d6cefde01e7b5d9100585624802b2e69f9f679e"
+    }
+  ],
+  "mandatory_matrix": {
+    "probe_procedures": [
+      "Outside",
+      "Inside",
+      "Angle",
+      "Boss/Pocket",
+      "Ridge/Valley",
+      "Calibrate",
+      "Surface",
+      "Toolsetter"
+    ],
+    "layout_grid": {
+      "viewports": [
+        "desktop",
+        "touch-fullhd"
+      ],
+      "states": [
+        "homed",
+        "unhomed"
+      ]
+    },
+    "smoke_count": 3,
+    "dialog_ids": [
+      1,
+      4,
+      14,
+      5,
+      15
+    ],
+    "dialog_layouts": [
+      "desktop",
+      "150 % portrait (synthetic touch layout, real mouse)"
+    ]
+  },
+  "observations": {
+    "visual_strip_comparison": "linux/arm64 only; geometry runs elsewhere, annotation",
+    "visual_tool_dialog_comparison": "all Linux arches; no compareImages branch at current source",
+    "execution_identity_helper": "check_executed compares listed/run identities and result counts; result status comes from playwright_counts + judge",
+    "content_container": "overflow hidden, position relative; no border radius in .content rule",
+    "dialog_close": "DialogFrame overlay @click.self; form/flow backdrop does not close",
+    "ci_timeout": "5400 seconds per test_suite step, not total frontend job",
+    "actual_browser_version": "recommended to record browser.version() separately from requested pin"
+  },
+  "live_access": false,
+  "tests_started": false,
+  "product_files_changed": false
+}
