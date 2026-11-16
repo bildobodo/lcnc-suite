@@ -1,0 +1,44 @@
+{
+  "review": "R383",
+  "base": "cad9ac7798f65b39a5a17642d1f351cf15f30194",
+  "previous": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+  "head": "be5dd91f550c115588520b132b6824077537dbf4",
+  "document_head": "68ba1bc19723f863fae46688ce9a9abff44096cb",
+  "archive": "/tmp/codex-r383",
+  "python": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3",
+  "live_access": false,
+  "sources": [
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "138f4ddd77c9cebdf9b8ac41b5877bb8c3f91878b2c9e4cbb90a0e527f8253cd",
+      "equals_be5dd91f": true
+    },
+    {
+      "path": "scripts/test_support/live_session.py",
+      "sha256": "29b3899f0479241b6fdc3ce5f54552b285fa357d3f871fb4a469890af4517f80",
+      "equals_be5dd91f": true
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "63e3ff554b3ee173fd3c8aabb87a8d740c28eb8022c0ee80af14049d2c1ab1bc",
+      "equals_be5dd91f": true
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "03b03fa6e390c4bbc9c569a64e66541fb9f6a4e4d9de4e4d8b2737826adf0fa3",
+      "equals_be5dd91f": true
+    }
+  ],
+  "r382_probe_unchanged_sha256": "dda2d17da8c85a863a575d443311840550a0f8d56e4a813273d9b5bc1790266f",
+  "results": {
+    "native_suite_plus_r382_probes": "628 passed in 54.47s",
+    "new_trip_probe": "1 intended assertion failure, 1 passing control"
+  },
+  "evidence_sha256": {
+    "vor-maschine.p3b.r383.codex-probes.py": "728702344e7419c673cdf85555a37edb20ae182148629f9b73bb327a827454be",
+    "vor-maschine.p3b.r383.codex-probes.txt": "5528c9710979c69f630ab76bfb1053b6ef15c1f042cc9c7efa7272e0cbfccfeb",
+    "vor-maschine.p3b.r383.codex-tests.txt": "0124db967dd2c78af968d3a2922edf458fb5efa5940098a71df1d6f4bcb1ba58",
+    "vor-maschine.p3b.r383.codex-test-selection.txt": "203eea4a10755104e3c71e55085f6db95725f8c0cfb2bc2432bc3618c9fc4a81",
+    "vor-maschine.p3b.r383.codex-artifact-audit.json": "4f2c23096dd1429e36030aa8ecfca92c14dc4acb0ef63c658cfb8698d8e308e7"
+  }
+}

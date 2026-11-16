@@ -1,0 +1,60 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+____ test_restore_does_not_send_more_chunks_after_trip_in_first_chunk[trip] ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffffb7a81480>
+event = 'trip'
+
+    @pytest.mark.parametrize('event', ['trip', 'no_trip'])
+    def test_restore_does_not_send_more_chunks_after_trip_in_first_chunk(monkeypatch, event):
+        """The real _finish/_plant/_short/_routine/client, no live connection.
+        A trip arrives before the first plant chunk has completed. A busy/idle
+        pair completes the short call, but must not authorize its sibling writes.
+        """
+        c = SimulatorClient('unused', auto_confirm=False, keep=nr.FRAME_KEYS)
+        idle = {'interp_state': 1, 'inpos': True, 'current_vel': 0.0,
+                'tool_change_requested': False, 'tool_change_seq': None, 'tool_number': 99}
+        trip = None
+        sent = []
+        values = {n: float(n - 3000) for n in range(3014, 3036)}
+    
+        def take(**extra):
+            c.take({'type': 'status', 'data': {**idle, **extra}, 'safety_trip': trip})
+    
+        take()
+    
+        class Socket:
+            def send(self, raw):
+                nonlocal trip
+                command = json.loads(raw)
+                sent.append((command, bool(trip)))
+                text = command.get('text', '')
+                if text.startswith('#') and event == 'trip':
+                    trip = {'id': 'r383.synthetic-trip'}
+                take(interp_state=2, inpos=False, current_vel=0.0)
+                take()
+                if text.startswith('(DEBUG,'):
+                    tag = re.search(r'NATIVE\d+', text).group()
+                    nums = [int(x) for x in re.findall(r'P(\d+)=', text)]
+                    c.errors.append((0.0, 0, tag + ' ' + ' '.join(f'P{n}={values[n]}' for n in nums)))
+                c.replies.put({'cmd': command['cmd'], 'ok': True})
+    
+        c.ws = Socket()
+        # Standstill itself is not under test here. All command operations and
+        # their busy/idle consumption use the real implementation.
+        monkeypatch.setattr(nr, '_standstill', lambda *a: True)
+        out = nr._finish(c, [('values', lambda: nr._plant(c, values))])
+        assert sent[0][0]['cmd'] == 'abort'
+        assert len([x for x, _ in sent if x.get('text', '').startswith('#')]) >= 1
+        if event == 'trip':
+            print(json.dumps({'sent': sent, 'finish': out}, ensure_ascii=False, sort_keys=True))
+>           assert not [x for x, was_tripped in sent if was_tripped], (sent, out)
+E           AssertionError: ([({'cmd': 'abort'}, False), ({'cmd': 'mdi', 'text': '#3014=14.000000 #3015=15.000000 #3016=16.000000 #3017=17.000000 ...3 P3034=#3034 P3035=#3035)'}, True)], {'done': ['values'], 'errors': [], 'left': [], 'results': {'values': None}, ...})
+E           assert not [{'cmd': 'mdi', 'text': '#3026=26.000000 #3027=27.000000 #3028=28.000000 #3029=29.000000 #3030=30.000000 #3031=31.0000...6=#3026 P3027=#3027 P3028=#3028 P3029=#3029 P3030=#3030 P3031=#3031 P3032=#3032 P3033=#3033 P3034=#3034 P3035=#3035)'}]
+
+r383_probe.py:57: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"finish": {"done": ["values"], "errors": [], "left": [], "results": {"values": null}, "stopped": "a safety trip waits"}, "sent": [[{"cmd": "abort"}, false], [{"cmd": "mdi", "text": "#3014=14.000000 #3015=15.000000 #3016=16.000000 #3017=17.000000 #3018=18.000000 #3019=19.000000 #3020=20.000000 #3021=21.000000 #3022=22.000000 #3023=23.000000 #3024=24.000000 #3025=25.000000"}, false], [{"cmd": "mdi", "text": "#3026=26.000000 #3027=27.000000 #3028=28.000000 #3029=29.000000 #3030=30.000000 #3031=31.000000 #3032=32.000000 #3033=33.000000 #3034=34.000000 #3035=35.000000"}, true], [{"cmd": "mdi", "text": "(DEBUG,NATIVE794652549 P3014=#3014 P3015=#3015 P3016=#3016 P3017=#3017 P3018=#3018 P3019=#3019 P3020=#3020 P3021=#3021 P3022=#3022 P3023=#3023 P3024=#3024 P3025=#3025)"}, true], [{"cmd": "mdi", "text": "(DEBUG,NATIVE794652549 P3026=#3026 P3027=#3027 P3028=#3028 P3029=#3029 P3030=#3030 P3031=#3031 P3032=#3032 P3033=#3033 P3034=#3034 P3035=#3035)"}, true]]}
+=========================== short test summary info ============================
+FAILED r383_probe.py::test_restore_does_not_send_more_chunks_after_trip_in_first_chunk[trip]
+1 failed, 1 passed in 0.04s

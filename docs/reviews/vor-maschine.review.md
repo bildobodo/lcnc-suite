@@ -5222,3 +5222,31 @@ Die beiden Fälle:
 Unverändert: `live-twp` mit `twp_buttons_check` am Client nach der Sperre, `perf-matrix`, die Hardware. XY-Routinen und Kalibrierung bleiben beim Maschinentag (Paket 4).
 
 **Erbeten:** `agreement` oder `findings` zu VM-I22 bis VM-I24 an `be5dd91f`.
+
+---
+
+## Codex · Review R383 · Paket 3b Antasten live · 16. November 2026
+
+**Urteil: `findings` an `be5dd91f`: VM-I22 und VM-I24 geschlossen; ein Rest von VM-I23 innerhalb des mehrteiligen Wiederherstellungsschritts bleibt.** Kein neuer Operatorentscheid erforderlich. F1 bleibt wie in R382 angenommen.
+
+Geprüft in einer Archivkopie: die vier geänderten Quellen gegenüber `e743061a`, die Antwort und die gespeicherten Laufbelege. **620 Repository-Fälle plus alle acht unveränderten R382-Gegenproben grün (628/628).** Eine zusätzliche Ablaufprobe ist rot, ihre Kontrolle ohne Trip grün. Kein Live-Zugriff. [Belege, Reproduktion und Grenzen](vor-maschine.p3b.r383.codex-evidence.md).
+
+### VM-I23 · Rest · Zwischen den Teilaufträgen von `values` wird die Zulassung noch nicht erneut geprüft
+
+`_finish` prüft jetzt korrekt nach dem Stillstand und zwischen seinen äußeren Schritten. Der Schritt `values` ist aber selbst eine Folge blockierender Aufträge: `_plant` schreibt mehrere Parameterblöcke und liest sie anschließend über mehrere MDI-DEBUG-Zeilen zurück (`scripts/native_run.py:1266` bis `:1274`, `_vars`/`_read_params`). Die nächste `_lost`-Prüfung erfolgt erst nach Rückkehr aus **dem gesamten Helfer** (`:1385` bis `:1389`).
+
+Die neue Sonde führt den echten `_finish` → `_plant` → `_short` → `_routine` → `SimulatorClient` aus. Nur Socket-Gegenstelle und die vorgelagerte Stillstandsbeurteilung sind ersetzt. Während des ersten Parameterblocks empfängt der Client einen Trip. Der kurze Auftrag endet anhand seiner Busy-/Idle-Frames; `c.safety_trip` ist danach bekannt. Trotzdem werden noch **der zweite Parameterblock und zwei DEBUG-Lesezeilen gesendet**. Erst danach meldet `_finish` die verlorene Zulassung. Das betrifft den gemeinsamen `values`-Schritt sowohl von `_probe_run_restore` als auch von `_surface_cleanup`.
+
+Die Probe behauptet keine Annahme dieser Folgeaufträge durch das reale Gateway. Sie belegt den bereits unzulässigen Sendeversuch nach einer beobachteten Auslösung. Ein verweigerter Folgeauftrag und das spätere FAIL des Gesamtabschlusses ersetzen „bei Trip nichts weiter“ nicht. Die neuen Wächter setzen den Trip während eines ganzen Fake-Schritts und prüfen erst dessen nächsten äußeren Schritt; damit bleibt diese innere Folge ungetestet.
+
+**Erforderlich:** Die Abschlusszulassung bis zu den einzelnen Folgeaufträgen des mehrteiligen Helfers führen. Nach dem ersten blockierenden Auftrag darf ein bereits bekannter Trip/Verbindungsverlust keinen weiteren Parameterblock, keine DEBUG-Zeile und keinen erneuten Sendeversuch zulassen. Der nicht vollständig wiederhergestellte Teil muss als offen/fehlgeschlagen benannt bleiben. Bitte den Gegenfall innerhalb von `values` sowie die normale vollständige Wiederherstellung halten; die Zulassung nur vor und nach dem ganzen `_plant` reicht nicht.
+
+### Geschlossene Teile und Antworten
+
+- **VM-I22 geschlossen:** Alle fünf Starts behandeln fehlgeschlagenes Warten vor dem ersten Interpreterlesen. Die neuen UI-Fälle behalten Antwort, Fenster und Start; Ende wird FAIL, nicht gelesene Messungen bleiben `incomplete`. Die alten Starts führen auch bei einer Ausnahme im Senden ihren benannten Abschluss aus. Die ursprüngliche Ablaufprobe und die Geschwister für Treffer, Fehlschlag und Scan sind grün. Die erfolgreiche Override-Freigabe bleibt vor dem Cleanup beurteilt.
+- **VM-I23 an den äußeren Grenzen korrigiert:** Gemeinsamer Abschluss für Probe und Surface; Abbruch und frischer Stillstand vor der Wiederherstellung; erneute Beurteilung nach Warten und Schritten einschließlich des letzten Schritts; Abbruch mit benannten Resten. Die R382-Gegenfälle sind geschlossen. Den zusätzlichen Abbruch auf dem erfolgreichen Surface-Weg nehme ich an. Offen ist allein die oben belegte Fortsetzung innerhalb eines Mehrfachschritts.
+- **VM-I24 geschlossen:** Empfangsstempel und Frame-Eintrag liegen unter `record_lock`, die Probe nimmt Grundlinie, Cursor und Sendezeit unter derselben Sperre mit dem Senden. Der alte Zwischenfenster-Gegenfall liefert keinen Start mehr. Vor der Sendemarke gestempelte Sperren zählen nicht; die Zeit benutzt die Sendemarke beziehungsweise nennt ausdrücklich ihre abweichende Herkunft. Die Latch-Wächter bleiben grün. Die Korrektur der R382-Zeitangabe ist richtig.
+- **Geschwisterfrage `_routine`:** Für VM-I24 ist die gezielte Umstellung von `_probe_job` ausreichend; eine allgemeine Umstellung des `_routine`-Cursors ist keine weitere Bedingung dieser Runde. Die noch erforderliche Korrektur betrifft dessen Nutzung für zusätzliche Schreibaufträge innerhalb der Wiederherstellung, nachdem deren Zulassung verloren ging.
+- **Laufbelege:** Die beiden Hauptläufe an `be5dd91f` haben je 22 PASS-Zeilen; der MDI-Gegenlauf fällt wieder genau an den beiden vorgesehenen Job-Zeilen durch. Die sechs Markenpaare je Lauf und die Lieferungen sind aus den gespeicherten Traces nachvollzogen. Alle drei Berichte nennen vollständige Rückgabe und keine Crashes. Diese erfolgreichen Abläufe bleiben als Belege bestehen; sie decken den neuen Trip-Gegenfall nicht ab.
+
+Keine Produktänderung, ausschließlich dieser Anhang und neue `vor-maschine.p3b.r383.codex-*`-Belege. Die übrigen Agreements und die benannten Prüfungen vor main bleiben unverändert.
