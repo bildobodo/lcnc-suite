@@ -1,0 +1,73 @@
+{
+  "review": "R388",
+  "verdict": "agreement",
+  "product": "cd23f813ea430038307fce026fb95a57c4de1b79",
+  "base": "39a73679",
+  "delta_from": "8dc5b6eb",
+  "request_document": "53906951815597972dbd1240c103705f25d1b02b",
+  "archive": "/tmp/codex-r388-6dedw9iv",
+  "product_source_changes_in_archive": false,
+  "own_checks": [
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS"
+    },
+    {
+      "name": "runner, selector, replay tests",
+      "command": "python -m pytest -q scripts/test_select",
+      "status": "PASS",
+      "passed": 218
+    },
+    {
+      "name": "adapted R387 artifact probe",
+      "status": "PASS",
+      "cases": 11,
+      "result": "vor-maschine.ff.r388.codex-worker-proof.json"
+    },
+    {
+      "name": "foreign witness beside correct witnesses",
+      "status": "PASS",
+      "cases": 4,
+      "result": "vor-maschine.ff.r388.codex-foreign-beside.json"
+    },
+    {
+      "name": "core and guard report boundaries",
+      "status": "PASS",
+      "cases": 4,
+      "result": "vor-maschine.ff.r388.codex-boundaries.json",
+      "method": "Real runner with external process calls replaced by saved reports"
+    },
+    {
+      "name": "full Firefox core",
+      "status": "PASS",
+      "passed": 86,
+      "skipped": 0,
+      "flaky": 0,
+      "seconds": 95,
+      "runner_checks_passed": 11,
+      "result": "vor-maschine.ff.r388.codex-firefox.json",
+      "evidence": "vor-maschine.ff.r388.codex-browser-witnesses.json",
+      "caller_display": ":0",
+      "webgl": false,
+      "mock_unloads": 82,
+      "non_mock_unload_skips": 3,
+      "replay_frames": 480,
+      "replay_attempts": 86,
+      "guard": "PASS: held .2 beacon refused with received=1/posts=2; control received=2/posts=2"
+    }
+  ],
+  "provided_evidence_reviewed": [
+    "vor-maschine.ff.r388.gate-round.json",
+    "vor-maschine.ff.r388.ci-firefox-core.json",
+    "vor-maschine.ff.r388.mutants.json",
+    "vor-maschine.ff.r388.series.txt",
+    "vor-maschine.ff.r388.stall-counts.txt"
+  ],
+  "scope_limits": [
+    "Page hang remains unexplained; no claim that no-display fixes it.",
+    "No Firefox acceptance of WebGL viewer, touch APIs or deferred machine browsers.",
+    "Only review appendix and new evidence in live tree; no live service or machine command."
+  ],
+  "heavy_lock": "Browser run held the shared lock as codex-r388-firefox; no competing load run."
+}

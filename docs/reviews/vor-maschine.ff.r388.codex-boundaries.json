@@ -1,0 +1,246 @@
+{
+  "evaluator": "cd23f813",
+  "method": "Saved R387 reports, run IDs rebound to the generated request; external commands not executed",
+  "results": [
+    {
+      "case": "baseline",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "proof"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-core",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 0,
+          "tests": 86,
+          "passed": 86,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "firefox-executed",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-workers",
+          "status": "PASS",
+          "run": "firefox-5805377e-0b38-4787-8021-221cfe68065a"
+        },
+        {
+          "name": "firefox-unload",
+          "status": "PASS",
+          "loaded": 0,
+          "unloads": 82,
+          "skipped": 3
+        },
+        {
+          "name": "firefox-unload-guard",
+          "status": "PASS",
+          "seconds": 0,
+          "run": "firefox-guard-d6e87846-026d-41f8-b7d5-c4f3fa1486b8"
+        },
+        {
+          "name": "firefox-browser",
+          "status": "PASS",
+          "version": "160.0"
+        },
+        {
+          "name": "firefox-graphics",
+          "status": "PASS",
+          "webgl": "none"
+        }
+      ],
+      "expected_result_observed": true,
+      "output": "/tmp/r388-boundary-oh1piaue"
+    },
+    {
+      "case": "missing core report",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "proof"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-core",
+          "status": "FAIL",
+          "exit": 0,
+          "seconds": 0,
+          "error": "no report firefox.json",
+          "why": [
+            "no report firefox.json"
+          ]
+        }
+      ],
+      "expected_result_observed": true,
+      "output": "/tmp/r388-boundary-qptsjg98"
+    },
+    {
+      "case": "missing guard report",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "proof"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-core",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 0,
+          "tests": 86,
+          "passed": 86,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "firefox-executed",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-workers",
+          "status": "PASS",
+          "run": "firefox-f0ea8f96-e51e-4cfc-8779-3fde47adbc90"
+        },
+        {
+          "name": "firefox-unload",
+          "status": "PASS",
+          "loaded": 0,
+          "unloads": 82,
+          "skipped": 3
+        },
+        {
+          "name": "firefox-unload-guard",
+          "status": "FAIL",
+          "exit": 0,
+          "seconds": 0,
+          "why": [
+            "no report of the guard run (exit 0)"
+          ]
+        },
+        {
+          "name": "firefox-browser",
+          "status": "FAIL",
+          "why": [
+            "guard: no report \u2014 its browsers are unproven"
+          ]
+        },
+        {
+          "name": "firefox-graphics",
+          "status": "FAIL",
+          "why": [
+            "guard: no report \u2014 its browsers are unproven"
+          ]
+        }
+      ],
+      "expected_result_observed": true,
+      "output": "/tmp/r388-boundary-ar4ot0ln"
+    },
+    {
+      "case": "guard report from other run",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "proof"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-core",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 0,
+          "tests": 86,
+          "passed": 86,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "firefox-executed",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-workers",
+          "status": "PASS",
+          "run": "firefox-158bb891-b515-4c7c-9309-cfc69671be4e"
+        },
+        {
+          "name": "firefox-unload",
+          "status": "PASS",
+          "loaded": 0,
+          "unloads": 82,
+          "skipped": 3
+        },
+        {
+          "name": "firefox-unload-guard",
+          "status": "FAIL",
+          "seconds": 0,
+          "run": "firefox-guard-146a8802-f91b-4066-be95-ec9213a65249",
+          "why": [
+            "the report names run not-the-requested-run, the gate ran firefox-guard-146a8802-f91b-4066-be95-ec9213a65249"
+          ]
+        },
+        {
+          "name": "firefox-browser",
+          "status": "PASS",
+          "version": "160.0"
+        },
+        {
+          "name": "firefox-graphics",
+          "status": "PASS",
+          "webgl": "none"
+        }
+      ],
+      "expected_result_observed": true,
+      "output": "/tmp/r388-boundary-v8yjz_cb"
+    }
+  ]
+}
