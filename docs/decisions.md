@@ -11632,11 +11632,13 @@ Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
   `firefox-core.json`);
 - Firefox sends a page's unload beacons without the context's cookie when
   they go out after the context closed — the replay would lose their test
-  attempt. Navigating away first still lost one in about four runs, and the
-  unload sends one or two telemetry beacons, not a fixed number: the fixture
-  counts the page's own beacons in sessionStorage, unloads into a neutral
-  document of the same origin and closes the context once the mock recorded
-  that many.
+  attempt. Navigating away first still lost one in about four runs, and a
+  wait for a fixed two beacons after navigating to about:blank found only one
+  at the mock in some cases (whether Firefox sent the second is not
+  established): the fixture counts the page's own beacons in sessionStorage,
+  unloads into a neutral document of the SAME origin and closes the context
+  once the mock recorded that many (two in each of 82 unloads, round gate at
+  4600d845).
 
 **Not done.** A second set of x86_64 references (R385 F1 a): images made
 where nobody reviews them. ESR and the machine PC's browser wait for the

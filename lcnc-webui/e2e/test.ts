@@ -98,15 +98,18 @@ function neutralDocument(): string {
  *  context's cookies — the replay would see a request without its test
  *  attempt (measured 2026-11-16: closing the context under the page lost
  *  them every time; navigating away first still lost one beacon in four
- *  runs; Chromium sends them with the cookie). How many the unload sends is
- *  the page's own count, not a rule: the beforeunload, page-hide settings
- *  and pagehide beacons (ws/telemetry.ts, defaults.ts) — Firefox fired one
- *  telemetry beacon, not two, in some dialog cases. So every successful
+ *  runs; Chromium sends them with the cookie). The unload sends the
+ *  beforeunload, the page-hide settings and the pagehide beacons
+ *  (ws/telemetry.ts, defaults.ts); how many is the page's own count, never
+ *  assumed: waiting for a fixed two after navigating to about:blank, the mock
+ *  had only one in some dialog cases (a probe saw Firefox report the second
+ *  as failed — whether it was sent is not established). So every successful
  *  `sendBeacon` from here on is counted in the tab's sessionStorage, the app
- *  unloads into a neutral document of the same origin, the count is read
+ *  unloads into a neutral document of the SAME origin, the count is read
  *  there, and the mock must have recorded that many POSTs before the
- *  context may close. Nothing is suppressed; a miss can only turn the
- *  replay red, never green. */
+ *  context may close (each unload's count is an event: two in each of the
+ *  82 unloads of the round gate at 4600d845). Nothing is suppressed; a miss
+ *  can only turn the replay red, never green. */
 async function unloadInContext(page: Page, instance: string, where: Record<string, unknown>): Promise<void> {
   const file = replayFile(instance);
   // a page the app is not loaded in (closed, the preview's smoke page,

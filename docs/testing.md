@@ -303,8 +303,9 @@ operator saw in 159; the pin shows it natively).
   unload beacons without the context's cookie when the context closes under
   the page; the fixture counts every beacon of the page's unload in the
   tab's sessionStorage, unloads into a neutral document of the same origin
-  and closes the context only once the mock recorded that many — one or two
-  telemetry beacons in Firefox, not a fixed number). The record names the
+  and closes the context only once the mock recorded that many — never an
+  assumed number: navigating to about:blank and waiting for two, the mock had
+  only one in some cases). The record names the
   pin, the arch, the archive SHA256, Playwright's version, the look-up, the
   worker count and each unload's count.
 - **Where it runs:** the merge gate always (a binary that cannot be fetched
