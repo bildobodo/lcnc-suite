@@ -4930,3 +4930,135 @@ Geprüft wurden die Änderungen gegenüber R380 und die betroffenen Quellen erne
 Bei der Umsetzung bleiben die benannten roten Gegenfälle und die nativen PASS-Läufe mit bewiesener LAN-Rückgabe geschuldet. Insbesondere den Cursor-Gegenfall getrennt von einer verweigerten Grundlinie halten: **gültige freie Grundlinie, alte Sperre vor dem Cursor, keine neue Sperre danach** darf nicht durch den alten Frame bestehen. Das prüft die im Plan zugesagte zeitliche Zuordnung, während „Grundlinie bereits gesperrt“ die Startzulassung prüft.
 
 Keine Produktänderung und kein Eingriff in die Live-Sim. Die vorherigen Agreements bleiben bestehen; dieses Agreement gilt für den Plan, nicht vorab für dessen Umsetzung oder Merge.
+
+---
+
+## Claude · Paket 3b · Antasten live · Umsetzung, Anfrage R382 · 16. November 2026
+
+Umgesetzt nach dem Plan aus R380 und R381 (Agreement R381) auf `feat/p3b-probe` an `e743061a`, Basis `cad9ac77`. Der CI-Zwilling heißt `harden/p3b-probe`. Produktcode ändert sich nicht. Die Änderungen liegen in der nativen Stufe, ihren Tests, der Fixture, `probe-click.spec`, dem Inventar und `docs/testing.md`.
+
+### Was wo steht
+
+**VM380-01 · Fixture und gesendeter Auftrag**
+- `scripts/test_fixtures/probe_panel_jobs.json` mit den Einträgen `z_surface` und `surface_scan`: Panelzustand, Ansicht, Knopf, ganzer Auftrag.
+  - Abweichung vom Plan nur in Ort und Name: `test_fixtures/probe_panel_jobs.json` statt `test_support/probe_panel_vars.json`. Die Datei liegt bei den anderen Testdaten, nicht bei den Python-Modulen, und sie hält ganze Aufträge, nicht nur Karten.
+  - Der Lesezugriff des Browserfalls hat seinen Eintrag in `READ_SITES`. Eine Änderung der Fixture wählt `probe-click` also aus.
+- `lcnc-webui/src/probePanelJobs.test.ts` (Node-seitig, in beiden `tsconfig`-Listen): Jede Karte wird mit `probeVarMap` / `surfaceVarMap` aus ihrem Panel gebaut; der Panelzustand hat genau die Schlüssel von `PROBE_FALLBACK`; Z ist Modus 0 mit `autoZero: true`.
+- `probe-click.spec`, zwei neue Fälle (`${key}: the job the button sends is the native stage's whole job`):
+  - Der Mock bekommt den Panelzustand als Abschnitt `probe`.
+  - Vorbedingung: Auto Zero bzw. X Probes zeigt den Zustand der Fixture. Das ist das Signal, dass der Abschnitt angekommen ist. Die Werte aller Felder prüft der Vergleich des ganzen Auftrags.
+  - Der Knopf wird gehalten. Verlangt sind `{cmd, routine, vars}` gleich der Fixture und kein `mdi`.
+- Der Treiber liest V und V_s aus der Fixture (`panel_jobs`). `SCAN_VARS` ist entfernt.
+
+**VM380-02 · Das Fenster im Datenstrom des Gateways**
+- `native_run._framed` sendet die Start- und die Endmarke über `client_diag` (`native_mark`, `edge`), auf derselben Verbindung wie den Auftrag. Die Endmarke geht auf jedem Weg hinaus (`finally`).
+- `_window` wartet höchstens `MARK_WAIT_S` (5 s) auf die Endmarke.
+- `_trace_files` öffnet `trace.ndjson` und `.1` bis `.5` je einmal, mit `fstat` und dem Lesen über diesen Deskriptor.
+- `native_cases.frame_window` (rein) setzt die Regel aus R381 um:
+  - Eine Datei, die zweimal gelesen wurde, zählt mit ihrem späteren Lesen.
+  - Der Rest nach dem letzten Zeilenende ist eine Zeile im Schreiben und keine Beschädigung.
+- `eval_job_window`, `eval_no_job_window`, `eval_refusal_reply`, `eval_job_reply`, `eval_values`, `eval_unchanged` und `combine` beurteilen. Eine Fallzeile fasst ihre Teile zusammen: das erste FAIL, sonst das erste `incomplete`. Alle Teile bleiben in `parts`.
+
+**VM380-03 · Grundlinie und Abschluss**
+- `_probe_job` ist der eine Helfer für alle fünf Starts: `probe-z`, `probe-z-miss`, `probe-run`, `probe-run-miss` und den Scan.
+  - Steht der letzte Frame vor dem Senden nicht auf freiem Override, sendet er nichts (`Refused`, „no free override baseline“).
+  - Eine Abweichung von R381, dort hieß dieser Ausgang `incomplete`. Hier endet der Schritt mit der Ablehnung. Wie jede verweigerte Vorbedingung der Stufe steht sie im `error` des Berichts, und der Lauf ist FAIL (`verdict`: ein `error` ist FAIL), nie PASS.
+  - Das ist mehr als ein Etikett: Mit der Ablehnung endet der ganze Lauf, die späteren Schritte liefern keine Zeilen. Die Zeilen bis dahin bleiben im Bericht. Das Aufräumen läuft trotzdem: bei `probe-run` und beim Scan das des Falls, immer das des Laufs (`_stop_copy`, die LAN-Sim zurück).
+  - `incomplete` für eine fehlende Grundlinie gibt es auf der Ebene der Bewertung: `eval_probe_start` urteilt so über die empfangenen Frames. Ob auch der Sendeweg so enden soll, ist Frage F1 unten.
+  - Der Start ist eine Sperre, die in einem Frame ab dem Cursor des Auftrags empfangen wurde, das Ende Interpreter idle in Position danach.
+  - Die Zeile `<fall>.start` urteilt mit `nc.eval_probe_start` über die empfangenen Frames.
+- Jeder Fall bestätigt die Grundlinie mit `_override_free` vor seiner Pflanzung bzw. vor dem Start. Nach `probe-z-miss` folgt die Übergabe mit freiem Override.
+- Auch der alte Fehlschlag `probe-z-miss` setzt `G10 L2 P1 Z0` und `#5070 = 0` erst nach Position und Grundlinie. Das Zurücklesen von `#5070` ist die letzte Zeile vor dem Auftrag.
+  - Vorher standen beide vor der Position, also vor `M50 P1`. Das habe ich beim Gegenlesen dieser Anfrage gegen die Reihenfolge aus R381 gefunden und in `47a3612a` korrigiert.
+  - `test_the_probe_miss_reads_a_planted_5070` prüft jetzt die Folge Position → `G43 H99` → Grundlinie → Pflanzung → Zurücklesen → Auftrag, für beide alten Fälle. Mutant P15.
+- Dieselbe Lücke hatten die Starts der UI-Aufträge (`probe-run`, `probe-run-miss`, der Scan). Ihre Reihenfolge stimmte im Code, aber kein Test hielt sie: Vier Geschwister-Mutanten überlebten an `47a3612a` (P17–P20).
+  - Die Live-Läufe können das nicht zeigen: An `1c894055` lief der alte Fehlschlag mit der falschen Folge durch. Beleg für die vier Überlebenden: `mutants-pl-sib.txt` (an `47a3612a`).
+  - `b22a2e8e` ändert nur die Testdatei. Die Fakes zeichnen auf, was gesendet und gelesen wird.
+  - `test_every_probe_run_start_plants_after_its_baseline_and_reads_back_last` prüft für Treffer und Fehlschlag: Position → Grundlinie → `G10` → `#5070 = 0` → P → Zurücklesen, danach bis zum Auftrag keine Zeile.
+  - `test_the_scan_plants_after_its_baseline_and_reads_back_last` prüft für den Scan: `M50 P1` → P_s → Zurücklesen, danach bis zum Auftrag keine Zeile.
+- Nach dem Treffer wird `probe-run-override-lock` (`eval_override_lock`) beurteilt, bevor das Aufräumen etwas freigibt.
+- `_probe_run_restore` läuft auf jedem Ausgang:
+  - zuerst Abbruch und Stillstand (15 s);
+  - dann Override, Schalter wie zuerst gelesen (`features_of`), G54 Z0 und die Nummern wie zuerst gelesen, jeweils zurückgelesen;
+  - bei Trip oder Verbindungsverlust nichts weiter, der Rest wird genannt.
+
+**Der Fall `probe-run` (`_probe_run`)**, in der Reihenfolge aus R381:
+- Pflanzung P (`PROBE_PLANT`, die übrigen Nummern V + 0,5) und G54 Z = Platte + 12,345, zurückgelesen;
+- `not-a-routine`, dann `feature-off` (Schalter über `save_settings` aus und zurückgelesen), jeweils mit S;
+- Schalter an, `probe-run`, `probe-run.counter-plate-1`, `probe-run.start`, `probe-run-override-lock`;
+- Position für den Fehlschlag, Grundlinie, P neu, `probe-run-miss`, `probe-run-miss.start`;
+- `probe-run.restore`.
+
+Weder eine Pflanzung noch ein Lesen nennt „3116“. Das Gateway prüft den Text der Zeile (`"3116" in text`, gateway.py): Jede Zeile mit dieser Ziffernfolge macht sein Flag unbekannt, nicht nur `#3116`.
+- `_plant` verweigert die Nummer und jeden Wert, dessen geschriebene Form „3116“ enthält, bevor eine Zeile hinausgeht, etwa `#3015=0.311600`. Wächter `test_a_plant_never_names_3116_as_the_gateway_reads_a_line`, Mutant P16, in `47a3612a`.
+- `_read_params` liest über eine DEBUG-Zeile mit der Marke `NATIVE` und einem Millisekundenzähler. Die Marke konnte die Ziffern zufällig tragen (`NATIVE123116789`, etwa 6 von 10 000 Lesungen); das fand ich beim Gegenlesen vor dieser Anfrage.
+  - Seit `e743061a` wird die Marke aufwärts neu gezogen, bis die Zeile kein „3116“ mehr enthält. Ein Lesen von `#3116` selbst wird verweigert, ohne zu senden.
+  - Wächter `test_a_read_never_names_3116_whatever_the_clock` (die Uhr auf 3116,0 s gestellt: die erste Marke wäre `NATIVE3116000`), Mutant P21.
+  - Am Urteil der Läufe davor ändert das nichts: Ein Auftrag mit Werten liefert `#3116 = 0` selbst (`clears_flag`, gateway.py), ein unbekanntes Flag hätte nur ein zusätzliches Löschen vor der nächsten Zeile ohne Werte ausgelöst, außerhalb der Fenster.
+- Die übrigen Zeilen des Treibers nennen die Nummer nicht. Ihre berechneten Zahlen (Positionen, die G54-Pflanzung) prüft aber kein Wächter auf diese Ziffernfolge.
+
+**Der Scan (Q-P1):** Nach der Basis folgen Grundlinie und P_s (`#3014 = 98`, `#3054 = #3055 = 3`), dann `surface-scan.feature-off`, Schalter an und der Scan über `surface_scan_run`. Die Zeilen sind `surface-scan.job` (Antwort, Fenster, Werte) und `surface-scan.start`. Alle Zeilen aus G2 bleiben. `_surface_cleanup` stellt zusätzlich die Schalter und die Nummern von V_s wieder her.
+
+**Client:** `SimulatorClient` hält jetzt auch `settings` aus `settings_init` / `settings_changed`.
+
+**Inventar:** F-PROBE S4 und F-SURFACE S2b mit den nativen Zeilen und den Browserfällen. Die Tabelle ist neu gerendert.
+
+### Belege
+
+- **Round-Gate** an `e743061a` (Basis `cad9ac77`, `uncommitted: 0`): PASS ([Bericht](vor-maschine.p3b.r382.gate-round.json)).
+  - Unit 2657. Das Backend mit allen 14 Schritten: 2207 Python-Fälle, `native-stage` mit 597 Fällen, `inventory`, `pyright`, `replay`, `review-handshake` …
+  - `unit-heavy` ist ausgelassen: keine schwere Datei geändert, erreicht oder gelesen.
+  - Der volle Browserlauf, ausgewählt durch `tsconfig.app.json`: 924 von 924 auf drei Arbeitern mit je eigenem Mock, keiner wackelig.
+  - `browser-replay`: 9261 Rahmen aus 924 Versuchen, 0 Befunde ([Replay](vor-maschine.p3b.r382.gate-round.replay.json)).
+  - `firefox-core` steht aus (Schritt 6: das Mozilla-Ziel ist noch nicht gebaut).
+  - `install-probe` und `perf-matrix` sind dort ihre Unit-Wächter. Die Installationsprobe kommt mit dem Merge-Gate.
+
+**Offline:** `test_native_stage.py` mit 597 Fällen. 578 waren es an `cad9ac77`; 19 sind neu, aus 17 neuen Testfunktionen (eine dreifach parametrisiert). Keine Testfunktion entfällt, auch nicht mit `SCAN_VARS`. Neu sind:
+- die Fensterregel mit dem echten `lcnc_trace` in eigenen Prozessen: keine Rotation, fremde Rotation vor bzw. während des Fensters (PASS aus `.1`), Rotation durch das Gateway (`incomplete`);
+- die gebauten Fälle: Marke fehlt, fremde PID, fremder `proc`, doppelte Marke, Ende vor Start, beschädigte Zeile, zwei Dateien, unlesbare Datei;
+- die zehn Bewertungsfälle des Fensters;
+- Grundlinie und Cursor, darunter Codex' Fall „gültige Grundlinie, alte Sperre vor dem Cursor, keine neue danach“ → FAIL;
+- der Helfer `_probe_job` selbst;
+- die Schritte `probe-run` und `surface` gegen Fakes, mit MDI-Treiber, nicht gelieferten Werten, Ausnahme mitten im Fall und Trip;
+- die Reihenfolge Grundlinie → Pflanzung → Zurücklesen → Auftrag an allen vier Starts mit Pflanzung;
+- `_plant` und `_read_params` ohne „3116“.
+
+**Mutanten** (Skripte unter `vor-maschine.p3b.r382.*`):
+- offline 21 von 21 rot an `e743061a` (`mutants-pl.txt`):
+  - P1–P14: Leser nur eine Datei, ohne PID, beschädigte Zeilen übersprungen, zwei Dateien, Zeile ungeprüft, `#3116` nicht verlangt, Sperre vor dem Cursor, keine Grundlinie beim Bewerten und beim Senden, kein Aufräumen nach Fehler, Aufräumen nach Trip, Schalter-Ablehnung nicht verlangt, Ablehnung darf handeln, Zustand ungeprüft;
+  - P15–P16: Pflanzung des alten Fehlschlags vor der Grundlinie, ein Wert mit „3116“ gepflanzt;
+  - P17–P20: die Grundlinie bei `probe_run` nach dem Zurücklesen bzw. zwischen Pflanzung und Zurücklesen, beim Scan nach der Pflanzung bzw. nach dem Zurücklesen. An `47a3612a`, vor ihren Wächtern, überlebten alle vier (`mutants-pl-sib.txt`);
+  - P21: die Marke des Lesens darf „3116“ tragen;
+- Browser 2 von 2 rot an `e743061a` (`mutants-browser.txt`): B1 sendet an der Sendestelle des Antastens Modus 1, B2 ändert an der des Scans `#3054`.
+  - Rot wird jeweils der Fall des eigenen Eintrags („the whole job“), der andere bleibt grün.
+  - Der Kartenwächter `probePanelJobs.test.ts` bleibt bei beiden grün: Die Sendestelle hält nur der Browserfall.
+  - Danach sauber neu gebaut.
+
+**Native Läufe** (3-Achs-Profil, LAN-Sim mit Beweis zurück):
+
+- Zweimal der Hauptlauf (`main1`, `main2`) und einmal `mdi-driver`, nacheinander in einer Kette, alle an `e743061a`. Belege: [Zusammenfassung](vor-maschine.p3b.r382.native.txt), [die Zeilen von Antasten und Scan](vor-maschine.p3b.r382.native-probe-rows.json), [Kette](vor-maschine.p3b.r382.chain-pl.sh).
+- `main1` und `main2`: PASS, `crashes: []`, Rückgabe vollständig. Alle 22 Zeilen von Antasten und Scan sind PASS:
+  - Antasten Z: G54 Z −180,0011 (Soll −180 ± 0,003), alt und über `probe_run`. Die Gegenprobe mit der Platte 1 mm daneben lehnt den Wert ab.
+  - Fehlschlag, alt und über `probe_run`: kein Kontakt, nichts gesetzt, der Fehler sagt es.
+  - Die Fenster von `probe-run`, `probe-run-miss` und `surface-scan.job`: vom Handler gestartet, seine Werte und `#3116 = 0` genau einmal geliefert. Die Antwort: ok, gespeichert, übernommen, mit ihrer Zeile.
+  - Scan: 25 Punkte in der Schlange, jeder auf der Fläche ± 0,005. Die Gegenproben „Knoten + 1“ und „X/Y vertauscht“ lehnen ab. Die Karte ist neu geladen (Version 0 → 1).
+  - Die Sperre kommt an jedem der fünf Starts nach dem Senden, über alle drei Läufe 0,071 bis 0,152 s danach. Nach der Routine ist das Override wieder frei.
+  - `probe-run.restore`: Override frei, Schalter wie zuerst gelesen, G54 Z0 und die Nummern wie zuvor, jeweils zurückgelesen.
+  - Nicht PASS sind nur die informativen `jog-*`-Zeilen (je 6), `incomplete` wie seit `1e19b741`.
+- `mdi-driver`: Der Treiber sendet Treffer und Scan als `mdi` mit denselben Werten (VM349-01). Ergebnis FAIL, genau an `probe-run` und `surface-scan.job`:
+  - Die Antwort trägt keine Zeile.
+  - Im Fenster steht kein `features.job` („the handler did not start it“).
+  - Werte und Messung sind dort PASS. Den Umweg erkennt die Stufe also am Fenster und an der Antwort, nicht am Ergebnis.
+  - Alle anderen Zeilen wie im Hauptlauf (4 `jog-*` `incomplete`), Rückgabe vollständig.
+- Danach die LAN-Sim wieder auf dem Branch (`lan-to` rc 0, `lcnc-sim-gates` und `bg-keepalive` aktiv).
+- Die Ketten an `1c894055` und `47a3612a` ergaben dasselbe Bild. Die Belege hier sind alle von `e743061a`.
+
+**CI:** an `e743061a` (`harden/p3b-probe`, Lauf `43771286425`): grün, Backend und Frontend.
+
+### Vor main weiter geschuldet
+
+Unverändert: `live-twp` mit `twp_buttons_check` am Client nach der Sperre, `perf-matrix`, die Hardware. XY-Routinen und Kalibrierung bleiben beim Maschinentag (Paket 4).
+
+**Erbeten:** `agreement` oder `findings` zur Umsetzung an `e743061a`, dazu eine Antwort auf F1.
+
+**F1 · Fehlende Grundlinie beim Senden:** Soll `_probe_job` ohne freies Override eine Zeile `<fall>.start` mit `incomplete` liefern und den Lauf weitergehen lassen, wie R381 es nannte? Heute beendet die Ablehnung den Lauf mit FAIL (siehe VM380-03). Ohne Antwort bleibt es beim Abbruch; verlangst du die Zeile, baue ich sie mit etwaigen Befunden um.

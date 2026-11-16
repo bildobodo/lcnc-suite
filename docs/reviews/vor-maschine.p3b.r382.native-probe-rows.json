@@ -1,0 +1,2330 @@
+{
+ "main1": {
+  "dir": "20261116T003246-pl-main1",
+  "commit": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+  "verdict": "PASS",
+  "rows": [
+   {
+    "case": "probe-z",
+    "status": "PASS",
+    "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+    "expected": -180.0,
+    "tol_mm": 0.003,
+    "contact": 1.0,
+    "g54_z": -180.0011166666662,
+    "errors": [],
+    "deviation_mm": -0.001117,
+    "vars_sent": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0
+    }
+   },
+   {
+    "case": "probe-z.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe-z",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-z.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.090 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-z-miss",
+    "status": "PASS",
+    "detail": "no contact, nothing set, the error said so",
+    "error": "G38.2 move finished without making contact.",
+    "contact": 0.0,
+    "g54_before": 0.0,
+    "g54_after": 0.0,
+    "errors": [
+     [
+      11,
+      "G38.2 move finished without making contact."
+     ]
+    ],
+    "vars_read_back": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0.0
+    }
+   },
+   {
+    "case": "probe-z-miss.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.087 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run.not-a-routine",
+    "status": "PASS",
+    "detail": "reply: refused: Not a probe routine \u2014 reload the page; window: nothing started, nothing delivered; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Not a probe routine \u2014 reload the page",
+      "error": "probe_run refused: Not a probe routine \u2014 reload the page"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "probe-run.feature-off",
+    "status": "PASS",
+    "detail": "reply: refused: Probing is off \u2014 Settings \u203a Features; window: nothing started, nothing delivered \u2014 the switch refused it; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Probing is off \u2014 Settings \u203a Features",
+      "error": "probe_run refused: Probing is off \u2014 Settings \u203a Features"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered \u2014 the switch refused it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "probe-run",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; probe: G54 Z -180.0011 within -180 \u00b1 0.003",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "probe_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<probe_z_minus_wco> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "probe_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "probe_run",
+        "line": "O<probe_z_minus_wco> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3015": 50.0,
+       "3016": 200.0,
+       "3017": 1000.0,
+       "3018": 10.0,
+       "3019": 2.0,
+       "3020": 10.0,
+       "3021": 2.0,
+       "3022": 0.0,
+       "3023": 5.0,
+       "3024": 0.5,
+       "3025": 0.0,
+       "3026": 0.0,
+       "3027": 0.0,
+       "3028": 0.0,
+       "3029": 0.0,
+       "3030": 0.0,
+       "3031": 0.0,
+       "3032": 0.0,
+       "3033": 0.0,
+       "3034": 0.0,
+       "3035": 0.0,
+       "5070": 1.0
+      }
+     },
+     "probe": {
+      "case": "probe",
+      "status": "PASS",
+      "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+      "expected": -180.0,
+      "tol_mm": 0.003,
+      "contact": 1.0,
+      "g54_z": -180.0011166666662,
+      "errors": [],
+      "deviation_mm": -0.001117
+     }
+    }
+   },
+   {
+    "case": "probe-run.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-run.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.123 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 5.36,
+    "locked_from_s": 0.113,
+    "done_s": 5.36
+   },
+   {
+    "case": "probe-run-miss",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; miss: no contact, nothing set, the error said so",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "probe_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<probe_z_minus_wco> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "probe_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "probe_run",
+        "line": "O<probe_z_minus_wco> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3015": 50.0,
+       "3016": 200.0,
+       "3017": 1000.0,
+       "3018": 10.0,
+       "3019": 2.0,
+       "3020": 10.0,
+       "3021": 2.0,
+       "3022": 0.0,
+       "3023": 5.0,
+       "3024": 0.5,
+       "3025": 0.0,
+       "3026": 0.0,
+       "3027": 0.0,
+       "3028": 0.0,
+       "3029": 0.0,
+       "3030": 0.0,
+       "3031": 0.0,
+       "3032": 0.0,
+       "3033": 0.0,
+       "3034": 0.0,
+       "3035": 0.0,
+       "5070": 0.0
+      }
+     },
+     "miss": {
+      "case": "miss",
+      "status": "PASS",
+      "detail": "no contact, nothing set, the error said so",
+      "error": "G38.2 move finished without making contact.",
+      "contact": 0.0,
+      "g54_before": -167.655,
+      "g54_after": -167.655,
+      "errors": [
+       [
+        11,
+        "G38.2 move finished without making contact."
+       ]
+      ]
+     }
+    }
+   },
+   {
+    "case": "probe-run-miss.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.152 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run.restore",
+    "status": "PASS",
+    "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before \u2014 read back"
+   },
+   {
+    "case": "surface-scan.feature-off",
+    "status": "PASS",
+    "detail": "reply: refused: Surface map is off \u2014 Settings \u203a Features; window: nothing started, nothing delivered \u2014 the switch refused it; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Surface map is off \u2014 Settings \u203a Features",
+      "error": "surface_scan_run refused: Surface map is off \u2014 Settings \u203a Features"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered \u2014 the switch refused it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -124.99999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -175.0,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3021": 2.0,
+       "#3050": 10.0,
+       "#3051": 200.0,
+       "#3052": 10.0,
+       "#3053": 200.0,
+       "#3054": 3.0,
+       "#3055": 3.0,
+       "#3056": 200.0,
+       "#3057": 50.0,
+       "#3058": 20.0,
+       "#3059": 24.0,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -124.99999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -175.0,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3021": 2.0,
+       "#3050": 10.0,
+       "#3051": 200.0,
+       "#3052": 10.0,
+       "#3053": 200.0,
+       "#3054": 3.0,
+       "#3055": 3.0,
+       "#3056": 200.0,
+       "#3057": 50.0,
+       "#3058": 20.0,
+       "#3059": 24.0,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "surface-scan.job",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: surface_scan_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "surface_scan_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<surface_scan> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "surface_scan_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "surface_scan_run",
+        "line": "O<surface_scan> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3021": 1.0,
+       "3050": 518.0,
+       "3051": 582.0,
+       "3052": 518.0,
+       "3053": 582.0,
+       "3054": 5.0,
+       "3055": 5.0,
+       "3056": 1500.0,
+       "3057": 50.0,
+       "3058": 15.0,
+       "3059": 25.0
+      }
+     }
+    }
+   },
+   {
+    "case": "surface-scan.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.084 s after",
+    "baseline": true
+   },
+   {
+    "case": "surface-scan",
+    "status": "PASS",
+    "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+    "tol_mm": 0.005,
+    "errors": [
+     [
+      13,
+      " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+     ],
+     [
+      13,
+      " Surface scan complete. Results saved to probe-results.txt"
+     ]
+    ],
+    "points": 25,
+    "worst_mm": -0.00165,
+    "worst_at": [
+     566.0,
+     566.0
+    ]
+   },
+   {
+    "case": "surface-scan.counter-node+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+    "counter": true,
+    "inner": {
+     "case": "surface-scan",
+     "status": "FAIL",
+     "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -1.001283,
+     "worst_at": [
+      550.0,
+      550.0
+     ]
+    }
+   },
+   {
+    "case": "surface-scan.counter-xy-swapped",
+    "status": "PASS",
+    "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+    "counter": true,
+    "inner": {
+     "case": "surface-scan",
+     "status": "FAIL",
+     "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -5.121083,
+     "worst_at": [
+      518.0,
+      582.0
+     ]
+    }
+   },
+   {
+    "case": "surface-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 81.145,
+    "locked_from_s": 0.057,
+    "done_s": 81.145
+   },
+   {
+    "case": "surface-scan.map",
+    "status": "PASS",
+    "detail": "the map reloaded (version 0 \u2192 1)",
+    "version_before": 0,
+    "version_after": 1
+   }
+  ]
+ },
+ "main2": {
+  "dir": "20261116T004721-pl-main2",
+  "commit": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+  "verdict": "PASS",
+  "rows": [
+   {
+    "case": "probe-z",
+    "status": "PASS",
+    "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+    "expected": -180.0,
+    "tol_mm": 0.003,
+    "contact": 1.0,
+    "g54_z": -180.0011166666662,
+    "errors": [],
+    "deviation_mm": -0.001117,
+    "vars_sent": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0
+    }
+   },
+   {
+    "case": "probe-z.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe-z",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-z.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.111 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-z-miss",
+    "status": "PASS",
+    "detail": "no contact, nothing set, the error said so",
+    "error": "G38.2 move finished without making contact.",
+    "contact": 0.0,
+    "g54_before": 0.0,
+    "g54_after": 0.0,
+    "errors": [
+     [
+      11,
+      "G38.2 move finished without making contact."
+     ]
+    ],
+    "vars_read_back": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0.0
+    }
+   },
+   {
+    "case": "probe-z-miss.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.073 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run.not-a-routine",
+    "status": "PASS",
+    "detail": "reply: refused: Not a probe routine \u2014 reload the page; window: nothing started, nothing delivered; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Not a probe routine \u2014 reload the page",
+      "error": "probe_run refused: Not a probe routine \u2014 reload the page"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "probe-run.feature-off",
+    "status": "PASS",
+    "detail": "reply: refused: Probing is off \u2014 Settings \u203a Features; window: nothing started, nothing delivered \u2014 the switch refused it; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Probing is off \u2014 Settings \u203a Features",
+      "error": "probe_run refused: Probing is off \u2014 Settings \u203a Features"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered \u2014 the switch refused it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "probe-run",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; probe: G54 Z -180.0011 within -180 \u00b1 0.003",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "probe_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<probe_z_minus_wco> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "probe_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "probe_run",
+        "line": "O<probe_z_minus_wco> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3015": 50.0,
+       "3016": 200.0,
+       "3017": 1000.0,
+       "3018": 10.0,
+       "3019": 2.0,
+       "3020": 10.0,
+       "3021": 2.0,
+       "3022": 0.0,
+       "3023": 5.0,
+       "3024": 0.5,
+       "3025": 0.0,
+       "3026": 0.0,
+       "3027": 0.0,
+       "3028": 0.0,
+       "3029": 0.0,
+       "3030": 0.0,
+       "3031": 0.0,
+       "3032": 0.0,
+       "3033": 0.0,
+       "3034": 0.0,
+       "3035": 0.0,
+       "5070": 1.0
+      }
+     },
+     "probe": {
+      "case": "probe",
+      "status": "PASS",
+      "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+      "expected": -180.0,
+      "tol_mm": 0.003,
+      "contact": 1.0,
+      "g54_z": -180.0011166666662,
+      "errors": [],
+      "deviation_mm": -0.001117
+     }
+    }
+   },
+   {
+    "case": "probe-run.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-run.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.147 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 5.386,
+    "locked_from_s": 0.124,
+    "done_s": 5.386
+   },
+   {
+    "case": "probe-run-miss",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; miss: no contact, nothing set, the error said so",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "probe_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<probe_z_minus_wco> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "probe_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "probe_run",
+        "line": "O<probe_z_minus_wco> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3015": 50.0,
+       "3016": 200.0,
+       "3017": 1000.0,
+       "3018": 10.0,
+       "3019": 2.0,
+       "3020": 10.0,
+       "3021": 2.0,
+       "3022": 0.0,
+       "3023": 5.0,
+       "3024": 0.5,
+       "3025": 0.0,
+       "3026": 0.0,
+       "3027": 0.0,
+       "3028": 0.0,
+       "3029": 0.0,
+       "3030": 0.0,
+       "3031": 0.0,
+       "3032": 0.0,
+       "3033": 0.0,
+       "3034": 0.0,
+       "3035": 0.0,
+       "5070": 0.0
+      }
+     },
+     "miss": {
+      "case": "miss",
+      "status": "PASS",
+      "detail": "no contact, nothing set, the error said so",
+      "error": "G38.2 move finished without making contact.",
+      "contact": 0.0,
+      "g54_before": -167.655,
+      "g54_after": -167.655,
+      "errors": [
+       [
+        11,
+        "G38.2 move finished without making contact."
+       ]
+      ]
+     }
+    }
+   },
+   {
+    "case": "probe-run-miss.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.101 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run.restore",
+    "status": "PASS",
+    "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before \u2014 read back"
+   },
+   {
+    "case": "surface-scan.feature-off",
+    "status": "PASS",
+    "detail": "reply: refused: Surface map is off \u2014 Settings \u203a Features; window: nothing started, nothing delivered \u2014 the switch refused it; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Surface map is off \u2014 Settings \u203a Features",
+      "error": "surface_scan_run refused: Surface map is off \u2014 Settings \u203a Features"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered \u2014 the switch refused it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -124.99999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -175.0,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3021": 2.0,
+       "#3050": 10.0,
+       "#3051": 200.0,
+       "#3052": 10.0,
+       "#3053": 200.0,
+       "#3054": 3.0,
+       "#3055": 3.0,
+       "#3056": 200.0,
+       "#3057": 50.0,
+       "#3058": 20.0,
+       "#3059": 24.0,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -124.99999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -175.0,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3021": 2.0,
+       "#3050": 10.0,
+       "#3051": 200.0,
+       "#3052": 10.0,
+       "#3053": 200.0,
+       "#3054": 3.0,
+       "#3055": 3.0,
+       "#3056": 200.0,
+       "#3057": 50.0,
+       "#3058": 20.0,
+       "#3059": 24.0,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "surface-scan.job",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: surface_scan_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "surface_scan_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<surface_scan> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "surface_scan_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "surface_scan_run",
+        "line": "O<surface_scan> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3021": 1.0,
+       "3050": 518.0,
+       "3051": 582.0,
+       "3052": 518.0,
+       "3053": 582.0,
+       "3054": 5.0,
+       "3055": 5.0,
+       "3056": 1500.0,
+       "3057": 50.0,
+       "3058": 15.0,
+       "3059": 25.0
+      }
+     }
+    }
+   },
+   {
+    "case": "surface-scan.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.083 s after",
+    "baseline": true
+   },
+   {
+    "case": "surface-scan",
+    "status": "PASS",
+    "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+    "tol_mm": 0.005,
+    "errors": [
+     [
+      13,
+      " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+     ],
+     [
+      13,
+      " Surface scan complete. Results saved to probe-results.txt"
+     ]
+    ],
+    "points": 25,
+    "worst_mm": -0.00165,
+    "worst_at": [
+     566.0,
+     566.0
+    ]
+   },
+   {
+    "case": "surface-scan.counter-node+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+    "counter": true,
+    "inner": {
+     "case": "surface-scan",
+     "status": "FAIL",
+     "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -1.001283,
+     "worst_at": [
+      550.0,
+      550.0
+     ]
+    }
+   },
+   {
+    "case": "surface-scan.counter-xy-swapped",
+    "status": "PASS",
+    "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+    "counter": true,
+    "inner": {
+     "case": "surface-scan",
+     "status": "FAIL",
+     "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -5.121083,
+     "worst_at": [
+      518.0,
+      582.0
+     ]
+    }
+   },
+   {
+    "case": "surface-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 81.137,
+    "locked_from_s": 0.057,
+    "done_s": 81.137
+   },
+   {
+    "case": "surface-scan.map",
+    "status": "PASS",
+    "detail": "the map reloaded (version 0 \u2192 1)",
+    "version_before": 0,
+    "version_after": 1
+   }
+  ]
+ },
+ "mdi-driver": {
+  "dir": "20261116T010147-pl-mdi-driver",
+  "commit": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+  "verdict": "FAIL",
+  "rows": [
+   {
+    "case": "probe-z",
+    "status": "PASS",
+    "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+    "expected": -180.0,
+    "tol_mm": 0.003,
+    "contact": 1.0,
+    "g54_z": -180.0011166666662,
+    "errors": [],
+    "deviation_mm": -0.001117,
+    "vars_sent": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0
+    }
+   },
+   {
+    "case": "probe-z.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe-z",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-z.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.099 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-z-miss",
+    "status": "PASS",
+    "detail": "no contact, nothing set, the error said so",
+    "error": "G38.2 move finished without making contact.",
+    "contact": 0.0,
+    "g54_before": 0.0,
+    "g54_after": 0.0,
+    "errors": [
+     [
+      11,
+      "G38.2 move finished without making contact."
+     ]
+    ],
+    "vars_read_back": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0.0
+    }
+   },
+   {
+    "case": "probe-z-miss.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.071 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run.not-a-routine",
+    "status": "PASS",
+    "detail": "reply: refused: Not a probe routine \u2014 reload the page; window: nothing started, nothing delivered; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Not a probe routine \u2014 reload the page",
+      "error": "probe_run refused: Not a probe routine \u2014 reload the page"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "probe-run.feature-off",
+    "status": "PASS",
+    "detail": "reply: refused: Probing is off \u2014 Settings \u203a Features; window: nothing started, nothing delivered \u2014 the switch refused it; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Probing is off \u2014 Settings \u203a Features",
+      "error": "probe_run refused: Probing is off \u2014 Settings \u203a Features"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered \u2014 the switch refused it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -122.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -167.655,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3015": 40.0,
+       "#3016": 150.0,
+       "#3017": 800.0,
+       "#3018": 10.5,
+       "#3019": 2.5,
+       "#3020": 9.0,
+       "#3021": 1.5,
+       "#3022": 0.5,
+       "#3023": 5.5,
+       "#3024": 1.0,
+       "#3025": 0.5,
+       "#3026": 0.5,
+       "#3027": 0.5,
+       "#3028": 0.5,
+       "#3029": 0.5,
+       "#3030": 1.0,
+       "#3031": 0.5,
+       "#3032": 0.5,
+       "#3033": 0.5,
+       "#3034": 0.5,
+       "#3035": 0.5,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "probe-run",
+    "status": "FAIL",
+    "detail": "reply: the reply differs: {'line': None}",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "FAIL",
+      "detail": "the reply differs: {'line': None}",
+      "reply": {
+       "type": "reply",
+       "cmd": "mdi",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "FAIL",
+      "detail": "no features.job in the window \u2014 the handler did not start it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": []
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3015": 50.0,
+       "3016": 200.0,
+       "3017": 1000.0,
+       "3018": 10.0,
+       "3019": 2.0,
+       "3020": 10.0,
+       "3021": 2.0,
+       "3022": 0.0,
+       "3023": 5.0,
+       "3024": 0.5,
+       "3025": 0.0,
+       "3026": 0.0,
+       "3027": 0.0,
+       "3028": 0.0,
+       "3029": 0.0,
+       "3030": 0.0,
+       "3031": 0.0,
+       "3032": 0.0,
+       "3033": 0.0,
+       "3034": 0.0,
+       "3035": 0.0,
+       "5070": 1.0
+      }
+     },
+     "probe": {
+      "case": "probe",
+      "status": "PASS",
+      "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+      "expected": -180.0,
+      "tol_mm": 0.003,
+      "contact": 1.0,
+      "g54_z": -180.0011166666662,
+      "errors": [],
+      "deviation_mm": -0.001117
+     }
+    }
+   },
+   {
+    "case": "probe-run.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-run.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.141 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 5.377,
+    "locked_from_s": 0.113,
+    "done_s": 5.377
+   },
+   {
+    "case": "probe-run-miss",
+    "status": "PASS",
+    "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; miss: no contact, nothing set, the error said so",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "ok, persisted, taken over, its line",
+      "reply": {
+       "type": "reply",
+       "cmd": "probe_run",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true,
+       "line": "O<probe_z_minus_wco> CALL"
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "probe_run started by its handler, its values and #3116 = 0 delivered once",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": [
+       {
+        "cmd": "probe_run",
+        "line": "O<probe_z_minus_wco> CALL"
+       }
+      ]
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3015": 50.0,
+       "3016": 200.0,
+       "3017": 1000.0,
+       "3018": 10.0,
+       "3019": 2.0,
+       "3020": 10.0,
+       "3021": 2.0,
+       "3022": 0.0,
+       "3023": 5.0,
+       "3024": 0.5,
+       "3025": 0.0,
+       "3026": 0.0,
+       "3027": 0.0,
+       "3028": 0.0,
+       "3029": 0.0,
+       "3030": 0.0,
+       "3031": 0.0,
+       "3032": 0.0,
+       "3033": 0.0,
+       "3034": 0.0,
+       "3035": 0.0,
+       "5070": 0.0
+      }
+     },
+     "miss": {
+      "case": "miss",
+      "status": "PASS",
+      "detail": "no contact, nothing set, the error said so",
+      "error": "G38.2 move finished without making contact.",
+      "contact": 0.0,
+      "g54_before": -167.655,
+      "g54_after": -167.655,
+      "errors": [
+       [
+        11,
+        "G38.2 move finished without making contact."
+       ]
+      ]
+     }
+    }
+   },
+   {
+    "case": "probe-run-miss.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.095 s after",
+    "baseline": true
+   },
+   {
+    "case": "probe-run.restore",
+    "status": "PASS",
+    "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before \u2014 read back"
+   },
+   {
+    "case": "surface-scan.feature-off",
+    "status": "PASS",
+    "detail": "reply: refused: Surface map is off \u2014 Settings \u203a Features; window: nothing started, nothing delivered \u2014 the switch refused it; state: nothing changed",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "PASS",
+      "detail": "refused: Surface map is off \u2014 Settings \u203a Features",
+      "error": "surface_scan_run refused: Surface map is off \u2014 Settings \u203a Features"
+     },
+     "window": {
+      "case": "window",
+      "status": "PASS",
+      "detail": "nothing started, nothing delivered \u2014 the switch refused it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      }
+     },
+     "state": {
+      "case": "state",
+      "status": "PASS",
+      "detail": "nothing changed",
+      "before": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -124.99999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -175.0,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3021": 2.0,
+       "#3050": 10.0,
+       "#3051": 200.0,
+       "#3052": 10.0,
+       "#3053": 200.0,
+       "#3054": 3.0,
+       "#3055": 3.0,
+       "#3056": 200.0,
+       "#3057": 50.0,
+       "#3058": 20.0,
+       "#3059": 24.0,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      },
+      "after": {
+       "joint_pos": [
+        10.0,
+        10.0,
+        -124.99999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+       ],
+       "g54_z": -175.0,
+       "#5070": 0.0,
+       "#3014": 98.0,
+       "#3021": 2.0,
+       "#3050": 10.0,
+       "#3051": 200.0,
+       "#3052": 10.0,
+       "#3053": 200.0,
+       "#3054": 3.0,
+       "#3055": 3.0,
+       "#3056": 200.0,
+       "#3057": 50.0,
+       "#3058": 20.0,
+       "#3059": 24.0,
+       "tool_number": 99,
+       "tool_offset_z": 50.0,
+       "feed_override_enabled": true
+      }
+     }
+    }
+   },
+   {
+    "case": "surface-scan.job",
+    "status": "FAIL",
+    "detail": "reply: the reply differs: {'line': None}",
+    "parts": {
+     "reply": {
+      "case": "reply",
+      "status": "FAIL",
+      "detail": "the reply differs: {'line': None}",
+      "reply": {
+       "type": "reply",
+       "cmd": "mdi",
+       "ok": true,
+       "persisted": true,
+       "mdi_set": true
+      }
+     },
+     "window": {
+      "case": "window",
+      "status": "FAIL",
+      "detail": "no features.job in the window \u2014 the handler did not start it",
+      "window": {
+       "framed": true,
+       "reason": null,
+       "file": "trace.ndjson"
+      },
+      "jobs": []
+     },
+     "values": {
+      "case": "values",
+      "status": "PASS",
+      "detail": "every value of the job read back",
+      "read": {
+       "3014": 99.0,
+       "3021": 1.0,
+       "3050": 518.0,
+       "3051": 582.0,
+       "3052": 518.0,
+       "3053": 582.0,
+       "3054": 5.0,
+       "3055": 5.0,
+       "3056": 1500.0,
+       "3057": 50.0,
+       "3058": 15.0,
+       "3059": 25.0
+      }
+     }
+    }
+   },
+   {
+    "case": "surface-scan.start",
+    "status": "PASS",
+    "detail": "free at the send, locked +0.076 s after",
+    "baseline": true
+   },
+   {
+    "case": "surface-scan",
+    "status": "PASS",
+    "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+    "tol_mm": 0.005,
+    "errors": [
+     [
+      13,
+      " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+     ],
+     [
+      13,
+      " Surface scan complete. Results saved to probe-results.txt"
+     ]
+    ],
+    "points": 25,
+    "worst_mm": -0.00165,
+    "worst_at": [
+     566.0,
+     566.0
+    ]
+   },
+   {
+    "case": "surface-scan.counter-node+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+    "counter": true,
+    "inner": {
+     "case": "surface-scan",
+     "status": "FAIL",
+     "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -1.001283,
+     "worst_at": [
+      550.0,
+      550.0
+     ]
+    }
+   },
+   {
+    "case": "surface-scan.counter-xy-swapped",
+    "status": "PASS",
+    "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+    "counter": true,
+    "inner": {
+     "case": "surface-scan",
+     "status": "FAIL",
+     "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -5.121083,
+     "worst_at": [
+      518.0,
+      582.0
+     ]
+    }
+   },
+   {
+    "case": "surface-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 81.141,
+    "locked_from_s": 0.068,
+    "done_s": 81.141
+   },
+   {
+    "case": "surface-scan.map",
+    "status": "PASS",
+    "detail": "the map reloaded (version 0 \u2192 1)",
+    "version_before": 0,
+    "version_after": 1
+   }
+  ]
+ }
+}

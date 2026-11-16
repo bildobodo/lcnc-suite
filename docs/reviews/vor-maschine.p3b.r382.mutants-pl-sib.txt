@@ -1,0 +1,4 @@
+P17 probe_run: the baseline after the plant's read-back: 0 red
+P18 probe_run: the baseline between plant and read-back: 0 red
+P19 the scan: the baseline after the plant: 0 red
+P20 the scan: the baseline after the read-back: 0 red
