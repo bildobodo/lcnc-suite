@@ -6056,3 +6056,46 @@ Schritt 6 ändert genau eine Stelle im Produkt (`style.css`, R385 E). Ein Druck 
 - Q248-1 bleibt beim Operator. Vor main bleiben die bekannten Live-Prüfungen und die Hardware geschuldet.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Schritt 6 · Firefox-Kern · Nachprüfung R387 · 16. November 2026
+
+**Urteil: findings. VM-I25 und VM-I26 sind geschlossen.** Geprüft sind die Änderungen `29db35ca..8dc5b6eb` innerhalb des angefragten Pakets `39a73679..8dc5b6eb` und die Antwort im Dokumentstand `2f95eba1`. Ein neuer P2-Befund betrifft die Zuordnung des Grafiknachweises zu Lauf und Worker, nicht den Dialog-Eckenfix.
+
+### R386 geschlossen
+
+- **VM-I25:** Die einzelne Marke, ihre Bindung an Lauf/Test/Projekt/Retry und der getrennte Wächter für einen zurückgehaltenen Beacon erfüllen die Korrektur. Ein gewöhnlicher POST füllt die fehlende Marke nicht mehr. Die Ereignisse machen auch eine übersprungene Abmeldung nach geladenem App-Dokument rot. Die Gegenfall-Auswertung verlangt den Fehler an Marke `.2` und ausreichend viele POSTs; irgendein erwarteter Testfehler genügt nicht. Die zehn Empfangstests sind in meiner Archivkopie grün. Die vorgelegten Wiederholungen meiner unveränderten R386-Browserprobe scheitern mit und ohne zusätzlichen POST an der fehlenden Marke; der separate Wächter bleibt dabei grün. Die Aufteilung der Fehlerartefakte nach Lauf ist ebenfalls angenommen.
+- **VM-I26:** Die Entscheidung aus der endgültigen Browserauswahl schließt die indirekten Wege und den Full-Rückfall ein. Meine unveränderte R386-Selektor-Sonde liefert jetzt in allen fünf Zeilen `needed: true`, mit den auslösenden Gründen. Der Repository-Gegenfall für einen Helfer ausschließlich außerhalb des Kerns bleibt ohne Firefox. [Eigene Wiederholung](vor-maschine.ff.r387.codex-selector-verify.json).
+
+### VM-I27 · P2 · Grafik- und Versionsnachweise sind nicht an die tatsächlich verwendeten Worker gebunden
+
+`scripts/test_select/firefox.py:136–159` prüft nur, ob **irgendein** `browser`-Ereignis dieses Laufs vorhanden ist und ob die vorhandenen Ereignisse die richtigen Werte tragen. Die Menge ihrer `workerIndex` wird weder gegen die Worker im Playwright-Bericht noch gegen die Lebenslaufereignisse geprüft. `proof.check_workers` prüft zwar die Zuordnung der Tests zu ihren Mocks, wertet die `browser`-Ereignisse aber nicht aus. Damit erfüllt ein einzelner fremder Worker die Aussage „jeder Worker hat kein WebGL gemeldet“ für alle anderen.
+
+Die [ausführbare Gegenprobe](vor-maschine.ff.r387.codex-worker-proof.py) liest die echten Auswerter an `8dc5b6eb` und die gespeicherten Originalartefakte des vorgelegten grünen Pin-Laufs. Sie verändert nur Kopien der `browser`-Ereignisse; Testbericht, Test-/Mock-Ereignisse und Abmeldeereignisse bleiben gleich. [Eingaben samt Quell-Hashes](vor-maschine.ff.r387.codex-worker-input.json), [Ergebnisse](vor-maschine.ff.r387.codex-worker-proof.json):
+
+| Ereignisbestand beim Kernlauf mit Workern 0, 1 und 2 | `check_browser` | `check_graphics` | `check_workers` |
+|---|---|---|---|
+| Unverändertes Original | PASS | PASS | PASS |
+| Browsermeldung für Worker 2 fehlt | PASS | PASS | PASS |
+| Nur Worker 0 meldet seinen Browser | PASS | PASS | PASS |
+| Nur eine Browsermeldung, umbenannt auf den nicht verwendeten Worker 99 | PASS | PASS | PASS |
+| Keine Browsermeldung (bestehende Negativkontrolle) | FAIL | FAIL | PASS |
+
+**Beim separaten Wächter kommt die Laufbindung hinzu:** `firefox.py:343–349` gewinnt die auszuwertenden Lauf-IDs aus den Browserereignissen selbst. Die Gegenprobe benennt ausschließlich dessen Browserereignis auf `run="not-this-guard"` um. `judge_unload_guard` bleibt grün, und die tatsächlich verwendete Grafik-Auswertung ebenfalls. Eine Prüfung mit der bekannten Wächter-Lauf-ID würde den fehlenden Nachweis erkennen, wird dort aber nicht verwendet. Auch Worker 99 wird im Wächter akzeptiert, obwohl dessen Bericht nur Worker 0 nennt.
+
+**Korrektur:** Die bekannte Lauf-ID und die tatsächlich verwendeten Worker aus dem jeweiligen Bericht an die Nachweisprüfung übergeben — für Kern **und** Wächter. Je verwendetem Worker muss eine zugehörige Browsermeldung mit gültiger Version und Grafikantwort vorliegen; fehlende, fremde oder widersprüchliche Zuordnungen müssen rot sein. Ersatzworker aus dem Bericht berücksichtigen, nicht nur `range(angeforderte_workerzahl)`. Die Gegenfälle „eine Meldung fehlt, andere bleiben“, „unbekannter Worker“ und „fremde Wächter-Lauf-ID“ als Wächter aufnehmen. Das ist ein Fehler des Nachweises; die unveränderten vorgelegten Originaldaten sind vollständig.
+
+### Grafikfestlegung und offener Hänger
+
+Die Festlegung des Kerns auf einen Browser ohne `DISPLAY`/`WAYLAND_DISPLAY` nehme ich für den benannten Testsatz an. Die Unterschiede zwischen Tool-Shell und User-Unit sind gemessen; der Aufrufer mit `DISPLAY=:0` und die gestarteten Browser ohne WebGL sind im vorgelegten Pin-Lauf nachvollziehbar. Das belegt weiterhin keine Firefox-Abnahme des 3D-Viewers, der Werkzeugvorschau oder der zurückgestellten Maschinenbrowser. VM-I27 betrifft die vollständige Zuordnung dieses Nachweises.
+
+Der wiederholte Hänger bleibt offen. Der erhaltene F2-Datensatz, der getrennte F2b-Lauf, die korrigierte Aussage zu beendeten HTTP-Anfragen und die ausdrücklich begrenzte statistische Aussage sind angenommen. Aus zwei Hängern mit Display und bisher keinem ohne Display folgt noch keine Ursache oder Behebung. Die Regel aus R386 bleibt: Ein Hänger macht seinen Lauf rot; bei Auftreten im Pflicht-/Merge-Lauf ist er vor Freigabe zu untersuchen. Die zusätzlichen Prozessaufnahmen sind dafür sinnvoll. Kein spekulativer Produktfix und keine neue Operatorfrage aus dieser Nachprüfung.
+
+### Eigene Prüfung und Grenzen
+
+Archivkopie `/tmp/codex-r387-s8i6hxqi`, eigene kopierte Abhängigkeiten: **Build PASS, 86 Selektor-/Runner-Tests, 121 Replay-Tests und 10 Empfangstests PASS**. Hinzu kommen die unveränderte Selektor-Sonde und die oben dokumentierte Artefakt-Gegenprobe. [Prüfprotokoll](vor-maschine.ff.r387.codex-evidence.json), [Laufausgaben](vor-maschine.ff.r387.codex-checks.txt).
+
+**Kein eigener neuer Browserlauf in R387:** Die gemeinsame Testsperre blieb bei Claudes Firefox-Wiederholungsserie. Meine drei Anläufe endeten nach 45/45/300 s mit Exit 4 vor dem Browserstart. Die vorgelegten 86/86 im vollen Kern und 26/26 in CI habe ich anhand ihrer Records geprüft; das sind Claudes Läufe, keine eigenen Wiederholungen. Kein konkurrierender Lastlauf wurde gestartet. Die vorhandenen Originalartefakte genügen für den deterministischen Nachweis von VM-I27.
+
+Nur Review und neue Belege im Live-Baum; keine Produktänderungen, Builds oder Tests dort und kein Zugriff auf die Live-Sim. Die Nachprüfung kann sich auf VM-I27 und seine Gegenwächter begrenzen.

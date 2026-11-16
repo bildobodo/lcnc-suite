@@ -1,0 +1,91 @@
+{
+  "review": "R387",
+  "product": "8dc5b6eb27f2fd5d022065fe203cf7ef26cd11e4",
+  "base": "39a7367909177eb800af21f6ad3c744def6089d9",
+  "archive": "/tmp/codex-r387-s8i6hxqi",
+  "review_document_head": "2f95eba15bb7737b0e67a44a8be11166330d4418",
+  "own_checks": [
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "source_log": "/tmp/r387-build.log"
+    },
+    {
+      "name": "selector + Firefox runner tests",
+      "command": "python -m pytest -q scripts/test_select/test_firefox.py scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "passed": 86,
+      "source_log": "/tmp/r387-python-final.log"
+    },
+    {
+      "name": "replay tests",
+      "command": "python -m pytest -q scripts/test_select/test_replay.py",
+      "status": "PASS",
+      "passed": 121,
+      "source_log": "/tmp/r387-replay-tests.log"
+    },
+    {
+      "name": "per-beacon receipt tests",
+      "command": "npx vitest run src/unloadReceipts.test.ts",
+      "status": "PASS",
+      "passed": 10,
+      "source_log": "/tmp/r387-vitest.log"
+    },
+    {
+      "name": "unchanged R386 selector probe",
+      "status": "PASS",
+      "cases": 5,
+      "result": "vor-maschine.ff.r387.codex-selector-verify.json"
+    },
+    {
+      "name": "browser proof negative cases",
+      "status": "FINDING VM-I27",
+      "method": "Read-only re-evaluation of original run artefacts; only browser events changed in memory",
+      "script": "vor-maschine.ff.r387.codex-worker-proof.py",
+      "input": "vor-maschine.ff.r387.codex-worker-input.json",
+      "result": "vor-maschine.ff.r387.codex-worker-proof.json"
+    },
+    {
+      "name": "own full Firefox run",
+      "status": "NOT RUN",
+      "reason": "The shared heavy lock stayed with Claude’s ff-series; no competing browser run started.",
+      "lock_wait_limits_seconds": [
+        45,
+        45,
+        300
+      ],
+      "exit_codes": [
+        4,
+        4,
+        4
+      ],
+      "logs": [
+        "/tmp/r387-firefox-run.log",
+        "/tmp/r387-firefox-run-2.log",
+        "/tmp/r387-firefox-run-3.log"
+      ]
+    }
+  ],
+  "provided_evidence_reviewed": [
+    "vor-maschine.ff.r387.pin-run.json",
+    "vor-maschine.ff.r387.gate-round.json",
+    "vor-maschine.ff.r387.ci-firefox-core.json",
+    "vor-maschine.ff.r387.mutants.json",
+    "vor-maschine.ff.r387.codex-unload-probe-extra-1.json",
+    "vor-maschine.ff.r387.codex-unload-probe-extra-0.json",
+    "vor-maschine.ff.r387.webgl-env.txt",
+    "vor-maschine.ff.r387.stall-f2.txt",
+    "vor-maschine.ff.r387.stall-counts.txt"
+  ],
+  "setup_attempts": [
+    "Initial pytest command named nonexistent test_round_gate.py and test_proof.py: exit 4, no tests. Corrected selection.",
+    "First actual pytest run in the plain archive: 82 passed; 3 Git-dependent failures because no repository and 1 socket sandbox failure. Created a local Git snapshot only in /tmp and ran with permission for the local socket probe: final 86/86."
+  ],
+  "limits": [
+    "No fresh browser execution in R387; provided browser records are explicitly not counted as an own run.",
+    "The missing-worker case mutates saved evidence in memory, not product or tests.",
+    "The page hang is unresolved. No claim that no-display fixes it."
+  ],
+  "live_tree": "Only new review evidence and the review appendix; no build, test, checkout, machine command or live service access."
+}
