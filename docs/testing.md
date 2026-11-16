@@ -308,10 +308,14 @@ operator saw in 159; the pin shows it natively).
   (its seconds apart), `firefox-static`, `firefox-set` (the listing IS the
   set, test for test), `firefox-core`, `firefox-executed` (every listed test
   ran once AND passed — a skip has the right count too), `firefox-workers`,
-  `firefox-browser` (each worker's STARTED browser, `browser.version()`, is
-  the pin), `firefox-unload`, `firefox-unload-guard`, `firefox-graphics`
+  `firefox-unload`, `firefox-unload-guard`, `firefox-browser` (each worker's
+  STARTED browser, `browser.version()`, is the pin), `firefox-graphics`
   (every worker's browser answered "no WebGL") and `firefox-replay` (its
-  own replay).
+  own replay). The browser and graphics proofs cover the core run AND the
+  guard, each bound to ITS known run id (the one the runner started it
+  with, never read off the records) and to the workers ITS report names —
+  replacement workers included: exactly one browser record per worker, none
+  missing, none of a worker the report does not name (Codex R387 VM-I27).
 - **The unload (Codex R386 VM-I25):** Firefox sends a page's unload beacons
   without the context's cookie when the context closes under the page. The
   page fixture (`e2e/test.ts`) therefore unloads the app inside its context:

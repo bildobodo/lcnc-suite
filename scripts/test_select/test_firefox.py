@@ -91,9 +91,9 @@ def test_the_started_browser_must_be_the_pin():
     ev = [{"event": "browser", "run": "r", "name": "firefox", "version": "160.0", "workerIndex": 0},
           {"event": "browser", "run": "r", "name": "firefox", "version": "159.0", "workerIndex": 1},
           {"event": "browser", "run": "other", "name": "firefox", "version": "1.0", "workerIndex": 2}]
-    assert firefox.check_browser(ev, "r", "160.0") == ["worker 1: firefox 159.0, the pin names firefox 160.0"]
-    assert firefox.check_browser([], "r", "160.0") == ["no worker reported its started browser"]
-    assert firefox.check_browser([{**ev[0], "name": "chromium"}], "r", "160.0") == [
+    assert firefox.check_browser(ev, "r", "160.0", {0, 1}) == ["worker 1: firefox 159.0, the pin names firefox 160.0"]
+    assert firefox.check_browser([], "r", "160.0", {0}) == ["worker 0: ran tests, recorded no started browser"]
+    assert firefox.check_browser([{**ev[0], "name": "chromium"}], "r", "160.0", {0}) == [
         "worker 0: chromium 160.0, the pin names firefox 160.0"]
 
 
@@ -202,13 +202,98 @@ def browser_ev(worker: int, run: str = "r", **kw) -> dict:
 
 
 def test_every_worker_must_record_no_webgl():
-    assert firefox.check_graphics([browser_ev(0, webgl=False), browser_ev(1, webgl=False)], "r") == []
+    W = {0, 1}
+    assert firefox.check_graphics([browser_ev(0, webgl=False), browser_ev(1, webgl=False)], "r", W) == []
     # a display gave WebGL: named per worker
-    assert firefox.check_graphics([browser_ev(0, webgl=False), browser_ev(1, webgl=True)], "r") == [
+    assert firefox.check_graphics([browser_ev(0, webgl=False), browser_ev(1, webgl=True)], "r", W) == [
         "worker 1: WebGL answered — the browser had a display"]
     # no record is no proof
-    assert firefox.check_graphics([browser_ev(0)], "r") == ["worker 0: no WebGL answer recorded"]
-    assert firefox.check_graphics([browser_ev(0, webgl=None)], "r") == ["worker 0: the WebGL answer is no boolean: None"]
-    # another run's workers are not this run's
-    assert firefox.check_graphics([browser_ev(0, run="other", webgl=False)], "r") == ["no worker reported its started browser"]
-    assert firefox.check_graphics([], "r") == ["no worker reported its started browser"]
+    assert firefox.check_graphics([browser_ev(0)], "r", {0}) == ["worker 0: no WebGL answer recorded"]
+    assert firefox.check_graphics([browser_ev(0, webgl=None)], "r", {0}) == ["worker 0: the WebGL answer is no boolean: None"]
+    # another run's record is not this run's
+    assert firefox.check_graphics([browser_ev(0, run="other", webgl=False)], "r", {0}) == [
+        "worker 0: ran tests, recorded no started browser"]
+    assert firefox.check_graphics([], "r", set()) == ["the report names no worker"]
+
+
+# ── Bound to the report's workers and the known run (Codex R387 VM-I27) ───
+OK = dict(webgl=False)
+
+
+@pytest.mark.parametrize("case,events,workers,expected", [
+    ("every worker its own record", [browser_ev(0, **OK), browser_ev(1, **OK), browser_ev(2, **OK)], {0, 1, 2}, []),
+    ("one record missing, the others present", [browser_ev(0, **OK), browser_ev(1, **OK)], {0, 1, 2},
+     ["worker 2: ran tests, recorded no started browser"]),
+    ("only the first worker reports", [browser_ev(0, **OK)], {0, 1, 2},
+     ["worker 1: ran tests, recorded no started browser", "worker 2: ran tests, recorded no started browser"]),
+    ("one record moved to a worker the report does not name", [browser_ev(99, **OK)], {0},
+     ["worker 99: a browser record of a worker the report does not name", "worker 0: ran tests, recorded no started browser"]),
+    ("a worker with two records", [browser_ev(0, **OK), browser_ev(0, **OK)], {0}, ["worker 0: more than one browser record"]),
+    ("a replacement worker needs its own record", [browser_ev(0, **OK), browser_ev(1, **OK)], {0, 1, 3},
+     ["worker 3: ran tests, recorded no started browser"]),
+])
+def test_one_record_per_worker_the_report_names(case, events, workers, expected):
+    assert firefox.check_graphics(events, "r", workers) == expected, case
+    assert firefox.check_browser(events, "r", "160.0", workers) == expected, case
+
+
+def test_the_guard_is_judged_under_its_known_run_id():
+    core = [browser_ev(0, **OK), browser_ev(1, **OK)]
+    guard = [browser_ev(0, run="g", **OK)]
+    assert firefox.browser_proofs([("core", core, "r", {0, 1}), ("guard", guard, "g", {0})], "160.0") == ([], [])
+    # the guard's record under another run id: its worker is unproven, never read off the record
+    moved = [browser_ev(0, run="not-this-guard", **OK)]
+    b, g = firefox.browser_proofs([("core", core, "r", {0, 1}), ("guard", moved, "g", {0})], "160.0")
+    assert b == g == ["guard: worker 0: ran tests, recorded no started browser"]
+    # no guard report: unproven, never green
+    b, g = firefox.browser_proofs([("core", core, "r", {0, 1}), ("guard", guard, "g", None)], "160.0")
+    assert b == g == ["guard: no report — its browsers are unproven"]
+
+
+def test_the_report_names_its_workers_replacements_included():
+    def res(w, retry=0):
+        return {"workerIndex": w, "parallelIndex": 0, "status": "passed", "retry": retry}
+    report = {"suites": [{"title": "a.spec.ts", "specs": [
+        {"file": "a.spec.ts", "title": "t1", "tests": [{"projectName": "p", "results": [res(0), res(3, 1)]}]},
+        {"file": "a.spec.ts", "title": "t2", "tests": [{"projectName": "p", "results": [res(1)]}]},
+        {"file": "a.spec.ts", "title": "t3", "tests": [{"projectName": "p", "results": [res(-1)]}]}], "suites": []}]}
+    assert firefox.report_workers(report) == {0, 1, 3}
+
+
+@pytest.mark.parametrize("guard_record_run,green", [("own", True), ("not-this-guard", False)])
+def test_the_runner_hands_the_guards_known_run_id_to_the_proofs(guard_record_run, green, tmp_path, monkeypatch):
+    """The wiring in firefox.core (Codex R387 VM-I27): the guard's browser
+    record under a run id other than the one the runner started it with
+    leaves its worker unproven — the run id is never read off the records."""
+    from test_select import round_gate
+    monkeypatch.setattr(round_gate, "output", lambda cmd, cwd: "Version x")
+    monkeypatch.setattr(firefox.fetch_firefox, "fetch",
+                        lambda pin, arch, *a, **k: {"sha256": "x", "binary": "/bin/false", "cache": "hit"})
+    monkeypatch.setattr(firefox.fetch_firefox, "check_newer", lambda pin, *a, **k: {"status": "current"})
+    monkeypatch.setattr(round_gate, "listing", lambda config, env, target: ({"suites": []}, None))
+    monkeypatch.setattr(round_gate, "listening", lambda port: False)   # a live run's servers are not this test's
+
+    def report(run: str, workers: list[int]) -> dict:
+        return {"config": {"metadata": {"run": run}}, "stats": {"expected": len(workers), "unexpected": 0, "flaky": 0, "skipped": 0},
+                "suites": [{"title": "x.spec.ts", "suites": [], "specs": [
+            {"file": "x.spec.ts", "title": f"t{w}", "tests": [{"projectName": firefox.PROJECT, "results": [
+                {"workerIndex": w, "parallelIndex": w, "status": "passed", "retry": 0}]}]} for w in workers]}]}
+
+    def fake_run(name, cmd, cwd, logs, env=None):
+        run = env["LCNC_E2E_RUN"]
+        guard = env.get("LCNC_FIREFOX_SET") == "unload-guard"
+        workers = [0] if guard else [0, 1]
+        Path(env["PLAYWRIGHT_JSON_OUTPUT_FILE"]).write_text(json.dumps(report(run, workers)))
+        rec_run = (run if guard_record_run == "own" else guard_record_run) if guard else run
+        Path(env["LCNC_E2E_EVENTS"]).write_text("".join(json.dumps(
+            {"event": "browser", "run": rec_run, "name": "firefox", "version": firefox.fetch_firefox.load_pin()["version"],
+             "workerIndex": w, "webgl": False}) + "\n" for w in workers))
+        return {"name": name, "command": "", "status": "PASS", "exit": 0, "seconds": 1}
+    monkeypatch.setattr(round_gate, "run", fake_run)
+    r = firefox.core(tmp_path, replay_on=False, missing="FAIL")
+    by = {c["name"]: c for c in r["checks"]}
+    assert "firefox-browser" in by, [(c["name"], c["status"], c.get("why")) for c in r["checks"]]
+    for name in ("firefox-browser", "firefox-graphics"):
+        assert (by[name]["status"] == "PASS") is green, (name, by[name])
+        if not green:
+            assert by[name]["why"] == ["guard: worker 0: ran tests, recorded no started browser"]

@@ -11633,7 +11633,10 @@ Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
   display and got none. The Firefox run now starts its browser without
   `DISPLAY` / `WAYLAND_DISPLAY` (one graphics path everywhere, CI's), each
   worker records the browser's own WebGL answer and `firefox-graphics`
-  requires none; the viewer and the tool preview stay empty, and the tool
+  requires none — per worker the report names and under the run id the
+  runner started, core and guard alike (Codex R387 VM-I27: a missing, a
+  single or a renamed record stayed green, the guard read its run id off
+  its own records); the viewer and the tool preview stay empty, and the tool
   dialog's reference image is left out of the core (named in
   `firefox-core.json`);
 - Firefox sends a page's unload beacons without the context's cookie when

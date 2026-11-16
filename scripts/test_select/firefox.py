@@ -14,7 +14,6 @@ In order, each a check of its own:
   firefox-executed  every listed test ran exactly once AND passed (a result
                     "skipped" has the right count too — Codex R385)
   firefox-workers   each test on its own worker's mock (proof.check_workers)
-  firefox-browser   every worker's STARTED browser is the pinned version
   firefox-unload    every attempt whose app loaded from its mock was unloaded
                     in its context, each beacon received by its own mark
                     (e2e/test.ts unloadInContext); a skip there is red
@@ -23,11 +22,15 @@ In order, each a check of its own:
                     that beacon's mark, the control must pass (Codex R386
                     VM-I25) — judged on the fixture's event, not only on
                     Playwright's expected failure
+  firefox-browser   every worker's STARTED browser is the pinned version
   firefox-graphics  every worker's started browser answered "no WebGL" — the
                     run has no display (playwright.firefox.config.ts drops
                     DISPLAY and WAYLAND_DISPLAY; a display gave WebGL through
-                    the VM's X server, none gave none — R387), the core
-                    run and the guard's
+                    the VM's X server, none gave none — R387)
+                    Both for the core run AND the guard, each bound to ITS
+                    known run id and to the workers ITS report names: one
+                    browser record per worker, none missing, none of a worker
+                    the report does not name (Codex R387 VM-I27)
   firefox-replay    the run's frames against the gateway's rules (gate only)
 Each Playwright run writes its failure artefacts into its own folder under
 the logs (--output): a later run never overwrites them (Codex R386).
@@ -133,30 +136,73 @@ def images_not_compared(report: dict) -> list[str]:
     return sorted(set(out))
 
 
-def check_browser(events: list[dict], run: str, pinned: str) -> list[str]:
-    """Every worker of this run started the pinned Firefox (e2e/test.ts
+def report_workers(report: dict) -> set[int]:
+    """The workers a Playwright report names: every result's workerIndex — a
+    replacement worker after a failure included, never range(asked)."""
+    return {r["workerIndex"] for r in proof.playwright_results(report).values()
+            if isinstance(r.get("workerIndex"), int) and r["workerIndex"] >= 0}
+
+
+def worker_browsers(events: list[dict], run: str, workers: set[int]) -> tuple[dict[int, dict], list[str]]:
+    """Each worker the report names, bound to ITS browser record of the KNOWN
+    run (Codex R387 VM-I27): exactly one per worker. A missing record, a
+    second one, one of a worker the report does not name — each a problem;
+    one worker's record never stands in for another's. Another run's records
+    are not this run's."""
+    problems = [] if workers else ["the report names no worker"]
+    by: dict[int, dict] = {}
+    for e in events:
+        if e.get("event") != "browser" or e.get("run") != run:
+            continue
+        w = e.get("workerIndex")
+        if w not in workers:
+            problems.append(f"worker {w!r}: a browser record of a worker the report does not name")
+        elif w in by:
+            problems.append(f"worker {w}: more than one browser record")
+        else:
+            by[w] = e
+    problems += [f"worker {w}: ran tests, recorded no started browser" for w in sorted(workers - by.keys())]
+    return by, problems
+
+
+def check_browser(events: list[dict], run: str, pinned: str, workers: set[int]) -> list[str]:
+    """Every worker the report names started the pinned Firefox (e2e/test.ts
     browserPin writes the started browser's own version)."""
-    seen = [e for e in events if e.get("event") == "browser" and e.get("run") == run]
-    if not seen:
-        return ["no worker reported its started browser"]
-    return [f"worker {e.get('workerIndex')}: {e.get('name')} {e.get('version')}, the pin names firefox {pinned}"
-            for e in seen if e.get("name") != "firefox" or e.get("version") != pinned]
+    by, problems = worker_browsers(events, run, workers)
+    return problems + [f"worker {w}: {e.get('name')} {e.get('version')}, the pin names firefox {pinned}"
+                       for w, e in sorted(by.items()) if e.get("name") != "firefox" or e.get("version") != pinned]
 
 
-def check_graphics(events: list[dict], run: str) -> list[str]:
-    """Every Firefox worker of this run recorded its browser's WebGL answer
+def check_graphics(events: list[dict], run: str, workers: set[int]) -> list[str]:
+    """Every worker the report names recorded its browser's WebGL answer
     (e2e/test.ts browserPin) and it is "none": one graphics path in every
     environment. No record is no proof."""
-    seen = [e for e in events if e.get("event") == "browser" and e.get("run") == run]
-    if not seen:
-        return ["no worker reported its started browser"]
+    by, problems = worker_browsers(events, run, workers)
+
     def why(e: dict) -> str:
         if "webgl" not in e:
             return "no WebGL answer recorded"
         if e["webgl"] is True:
             return "WebGL answered — the browser had a display"
         return f"the WebGL answer is no boolean: {e['webgl']!r}"
-    return [f"worker {e.get('workerIndex')}: {why(e)}" for e in seen if e.get("webgl") is not False]
+    return problems + [f"worker {w}: {why(e)}" for w, e in sorted(by.items()) if e.get("webgl") is not False]
+
+
+def browser_proofs(runs: list[tuple[str, list[dict], str, set[int] | None]], pinned: str) -> tuple[list[str], list[str]]:
+    """firefox-browser and firefox-graphics over the core run and the guard:
+    each (label, events, KNOWN run id, the workers ITS report names — None
+    when there is no report). Neither proof derives a run id from the
+    records it judges."""
+    browser: list[str] = []
+    graphics: list[str] = []
+    for label, events, run, workers in runs:
+        if workers is None:
+            browser.append(f"{label}: no report — its browsers are unproven")
+            graphics.append(f"{label}: no report — its browsers are unproven")
+            continue
+        browser += [f"{label}: {w}" for w in check_browser(events, run, pinned, workers)]
+        graphics += [f"{label}: {w}" for w in check_graphics(events, run, workers)]
+    return browser, graphics
 
 
 def _replay_lines(replay_dir: Path) -> list[dict]:
@@ -318,12 +364,8 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
         proof.check_workers(ran, log, run_id) if log else ["the fixture's event log is missing or empty"])
     checks.append({"name": "firefox-workers", "status": "FAIL" if owners else "PASS", "run": run_id,
                    **({"why": owners[:20]} if owners else {})})
-    started = check_browser(log, run_id, pin["version"])
     info["started"] = sorted({f"{e.get('name')} {e.get('version')}" for e in log
                               if e.get("event") == "browser" and e.get("run") == run_id})
-    checks.append({"name": "firefox-browser", "status": "FAIL" if started else "PASS",
-                   **({"why": started} if started else {"version": pin["version"]})})
-    graphics = check_graphics(log, run_id)
     # the caller's display, for the record: the config drops it either way
     info["caller_display"] = os.environ.get("DISPLAY")
     info["images_not_compared"] = images_not_compared(ran)
@@ -340,13 +382,16 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
     checks.append({"name": "firefox-unload", "status": "FAIL" if unload else "PASS",
                    **({"why": unload[:20]} if unload else {"loaded": len(loaded), "unloads": len(info["unloads"]),
                                                            "skipped": len(info["unloads_skipped"])})})
-    checks.append(unload_guard(logs / "guard", fetched["binary"], rg))
-    gd = logs / "guard" / "guard-events.jsonl"
-    guard_log = [json.loads(line) for line in gd.read_text().splitlines()] if gd.is_file() else []
-    guard_runs = {e.get("run") for e in guard_log if e.get("event") == "browser"}
-    graphics += [f"guard: {w}" for r in sorted(x for x in guard_runs if x) for w in check_graphics(guard_log, r)]
-    if not guard_runs:
-        graphics.append("guard: no worker reported its started browser")
+    guard_check, guard = unload_guard(logs / "guard", fetched["binary"], rg)
+    checks.append(guard_check)
+    # each run's browsers bound to ITS report's workers and ITS known run id
+    # (Codex R387 VM-I27): the core's and the guard's, never a run id read
+    # off the records judged
+    started, graphics = browser_proofs(
+        [("core", log, run_id, report_workers(ran)),
+         ("guard", guard["events"], guard["run"], guard["workers"])], pin["version"])
+    checks.append({"name": "firefox-browser", "status": "FAIL" if started else "PASS",
+                   **({"why": started[:20]} if started else {"version": pin["version"]})})
     checks.append({"name": "firefox-graphics", "status": "FAIL" if graphics else "PASS",
                    **({"why": graphics[:20]} if graphics else {"webgl": "none"})})
     if replay_on:
@@ -357,10 +402,12 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
     return {"checks": checks, "pending": None, "info": info}
 
 
-def unload_guard(d: Path, binary: str, rg) -> dict:
+def unload_guard(d: Path, binary: str, rg) -> tuple[dict, dict]:
     """The second Playwright run: e2e/firefox-unload.guard.ts alone, with its
     own output, events, replay logs and run id (Fable R386: a shared output
-    folder would erase the core run's failure artefacts)."""
+    folder would erase the core run's failure artefacts). Returns its check
+    and what the browser proofs judge it on: its KNOWN run id, its events and
+    the workers its report names (None without a report)."""
     import shutil
     shutil.rmtree(d, ignore_errors=True)
     d.mkdir(parents=True)
@@ -370,13 +417,16 @@ def unload_guard(d: Path, binary: str, rg) -> dict:
            "LCNC_E2E_REPLAY_DIR": str(d / "replay"), "LCNC_FIREFOX": binary, "LCNC_FIREFOX_SET": "unload-guard"}
     c = rg.run("firefox-unload-guard", ["npx", "playwright", "test", "-c", CONFIG, "--forbid-only", "--trace", "off",
                                         "--reporter=line,json", "--output", str(d / "test-results")], WEB, d, env)
-    if not (report.is_file() and report.stat().st_size):
-        return {**c, "status": "FAIL", "why": [f"no report of the guard run (exit {c.get('exit')})"]}
     log = [json.loads(line) for line in events.read_text().splitlines()] if events.is_file() else []
-    problems = judge_unload_guard(json.loads(report.read_text()), log, run_id)
+    if not (report.is_file() and report.stat().st_size):
+        return ({**c, "status": "FAIL", "why": [f"no report of the guard run (exit {c.get('exit')})"]},
+                {"run": run_id, "events": log, "workers": None})
+    ran = json.loads(report.read_text())
+    problems = proof.check_report_run(ran, run_id) + judge_unload_guard(ran, log, run_id)
     # the held case fails by design: the run's own exit code is not the verdict, the judgment is
-    return {"name": "firefox-unload-guard", "status": "FAIL" if problems else "PASS", "seconds": c.get("seconds"),
-            "run": run_id, **({"why": problems} if problems else {})}
+    return ({"name": "firefox-unload-guard", "status": "FAIL" if problems else "PASS", "seconds": c.get("seconds"),
+             "run": run_id, **({"why": problems} if problems else {})},
+            {"run": run_id, "events": log, "workers": report_workers(ran)})
 
 
 def main(argv: list[str] | None = None) -> int:
