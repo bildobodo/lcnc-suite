@@ -5403,3 +5403,187 @@ Das Agreement gilt für Paket 3b Antasten live an diesem Stand einschließlich d
   - der Firefox-Kern (Schritt 6): Der Machbarkeitsversuch ist gelaufen, die Plananfrage folgt;
   - Replay 5b (HTTP-Antwortwege) und 5c (Abdeckung gegen das Inventar);
   - danach Paket 4.
+
+---
+
+## Claude · Schritt 6 · Firefox-Kern · Plan, Anfrage R385 · 16. November 2026
+
+Der Vertrag steht seit TS248-05 („Firefox als gepinntes eigenes Ziel“, [test-strategy.review.md](test-strategy.review.md)). Er verlangt vor dem Kern einen Machbarkeitsversuch: `route`, `toHaveScreenshot`, Maus und Tastatur, Touch unter BiDi. Schritt 1 hatte das mit 159.0 vorgeprüft (`test-tiers.firefox-feasibility.txt`, fünf Fälle). Jetzt ist der Versuch mit dem Pin-Kandidaten 160.0 und einem echten Satz gelaufen. Hier steht der Plan, noch ohne Code. Erbeten ist ein Agreement oder Befunde zum Plan.
+
+### Der Machbarkeitsversuch
+
+**Ziel:** Firefox 160.0 linux-aarch64 aus Mozillas Releases, über Playwrights Kanal `moz-firefox` (BiDi) mit `executablePath`, Playwright 1.60.0.
+- Die Prüfsumme kommt aus `SHA256SUMS`. Die Signatur `SHA256SUMS.asc` ist mit Mozillas Release-Schlüssel geprüft: Fingerabdruck `14F2 6682 D091 6CDD 81E3 7B6D 61B7 B526 D98F 0353`, Unterschlüssel bis 2028-08-05 gültig.
+- Die Läufe liefen im Arbeitsbaum an `be5dd91f` mit einer Scratch-Konfiguration, gegen denselben Mock je Arbeiter wie Chromium ([Notizen und Rohzeilen](vor-maschine.ff.trial-160.txt)).
+
+**Ergebnisse:**
+1. **`route`, `toHaveScreenshot`, Maus und Tastatur tragen.**
+   - smoke, tabs und probe-click sind grün.
+   - `visual.spec` schreibt seine Bilder in einen eigenen Pfad. Seine zwölf Fehlschläge (6 Streifen, 6 Werkzeugdialog) sind alle „Referenz fehlt“, mehr nicht.
+   - `page.route` trägt: Die Dialogfälle, die ihr Programm über die Route auf `/gcode` laden (Program Stats, Editor discard, Run from line), öffnen ihren Dialog und kommen bis zum Hintergrundklick.
+   - Alle 25 Desktop-Zeilen von `dialogs.spec` blieben am Hintergrundklick stehen. Ihr Rest, die Fokusrückgabe, ist in Firefox also noch nie gelaufen.
+2. **Touch trägt unter BiDi nicht, und zwar still.** 160 bestätigt den Befund aus Schritt 1:
+   - `locator.tap()` und `touchscreen.tap()` melden Erfolg, auf der Seite kommt aber kein Ereignis an: kein `pointerdown`, kein `touchstart`, nicht einmal ein `click`. `maxTouchPoints` ist 0.
+   - Chromium liefert an derselben Stelle `pointerdown:touch`, `touchstart` und `click`.
+   - Ein Tap im Firefox-Kern wäre also ein grüner No-op.
+   - Der Touch-Modus der App über ein synthetisches `PointerEvent` (`enterTouch`, nur Layout) wirkt.
+3. **Der Glyphenfehler ist in 160 nativ rot.** Mit dem CSS vor `769760ce` (ohne `width: 100%` an `.gridWrap`) fallen die Zellen in Firefox 160 auf 10 px; in Chromium 148 bleiben sie bei 90 px.
+   - Betroffen sind die fünf Rasterprozeduren Outside, Inside, Angle, Boss/Pocket und Ridge/Valley.
+   - Calibrate behält 96 px in eigenem Layout. Surface und Toolsetter haben kein Raster. Gezählt sind alle acht.
+4. **Ein Produktbefund, in beiden Browsern:** Die Ecken des Dialog-Hintergrunds lassen Drücke durch.
+   - `.dialogOverlay` hat `border-radius: var(--radius-container)`, aufgelöst 12 px. Beide Browser geben die Fläche außerhalb der Rundung nicht dem Element (CSS Backgrounds 3, „Corner Clipping“).
+   - **Gemessen** mit `elementFromPoint`, d px innen auf der Diagonale jeder Ecke (Desktop 1280 breit, DPR 1, Dialog Messages):
+     - Chromium: bei d = 0 bis 2 an allen vier Ecken die Fläche darunter, ab d = 3 das Overlay.
+     - Firefox: bei d = 0 bis 2 an allen vier Ecken die Fläche darunter. Bei d = 3 gilt das noch an drei Ecken, unten rechts ist es schon das Overlay. Ab d = 4 überall das Overlay.
+     - Der alte Prüfpunkt (3, 3) liegt genau auf der Grenze: Chromium trifft das Overlay, Firefox nicht. Daher die 25 Timeouts des Versuchs.
+     - Nebenbei gesehen, nicht untersucht: Das Overlay ist in Chromium 310 px hoch, in Firefox 314 px, bei gleichem Viewport.
+   - **Ein echter Mausklick 1 px innen**, an allen vier Ecken und in beiden Browsern: Der `pointerdown` geht links an `.viewerWrapper`, rechts an `.content`; der Dialog bleibt offen.
+   - **Wirkung heute auf dem Desktop:** Kein Bedienelement reagiert.
+     - `.viewerWrapper` hat keinen Listener. OrbitControls hängt am Canvas, und den erreicht der Druck nicht.
+     - `.content` ist der Hintergrund des Bereichs.
+     - Aber ein Hintergrund, der schließen soll, schließt in den Zwickeln nicht, und der Zeigerbereich des Dialogs hat dort ein Loch.
+     - Andere Layouts (Hochformat, schmal, Touch-Größen) habe ich nicht gemessen; der Wächter in E deckt sie ab.
+5. **Laufzeit:** 89 Fälle auf drei Arbeitern in 14,5 min Wandzeit.
+   - Die 25 Klick-Timeouts zu je 30 s sind 12,5 min Testzeit, auf drei Arbeitern rund 4 min Wandzeit.
+   - Ohne sie bleiben rund 10 min. Das ist eine Untergrenze, denn der Rest der 25 Dialogzeilen fehlt darin. Der volle Satz aus dem Versuch passt also **nicht** in die ≤ 5 min. Der Kern wird kleiner, siehe C.
+
+### Plan
+
+**A · Pin und Beschaffung.**
+- `lcnc-webui/e2e/firefox.json` enthält:
+  - die Version;
+  - die Archive je Arch (`linux-aarch64`, `linux-x86_64`) mit SHA256 aus `SHA256SUMS`;
+  - die Quelle und den Fingerabdruck des Signaturschlüssels.
+- `scripts/fetch_firefox.py`:
+  - `--pin <version>` lädt `SHA256SUMS` und `.asc`, prüft die Signatur mit `gpg` gegen den Fingerabdruck und schreibt `firefox.json`. Das ist ein bewusster Commit mit neuen Referenzen.
+  - `fetch` lädt das Archiv der eigenen Arch nach `~/.cache/lcnc-suite/firefox/<version>-<arch>/`, prüft die SHA256 aus dem Pin und entpackt.
+  - `--path` nennt das Binary oder scheitert.
+  - `--check-newer` fragt `product-details.mozilla.org` mit festem Timeout und **meldet** nur; den Pin ändert er nie.
+    - Ergebnis `current`, `newer <version>` oder `unknown <Grund>`.
+    - Ein Netzfehler, ein Timeout oder eine unlesbare Antwort ist `unknown`, nie `current`.
+    - Die Abfrage lässt das Gate weder scheitern noch hängen.
+- Ein Python-Unit-Wächter hält die Prüfungen fest:
+  - falsche Prüfsumme;
+  - fehlende Arch;
+  - eine Signatur, die nicht passt;
+  - `--check-newer` bei Netzfehler, Timeout und kaputter Antwort, jeweils `unknown`.
+
+**B · Das Projekt.**
+- `playwright.firefox.config.ts` setzt auf der Gate-Konfiguration auf: dieselben Mocks je Arbeiter, Kanal `moz-firefox`, `executablePath` aus `fetch_firefox.py --path`.
+- `snapshotPathTemplate` lautet `e2e/__screenshots__/firefox-<version>-<arch>/{testFilePath}/{arg}{ext}`. Die Chromium-Referenzen bleiben, wo sie sind. Im Gate gilt `updateSnapshots: "none"`.
+- Fehlt das Binary, wirft die Konfiguration. Ein Rückfall auf den gebündelten Firefox ist nicht möglich: Der Kanal ist fest, und das Projekt hat keinen anderen Pfad.
+
+**C · Der Kernsatz.** Er hat einen Pflichtteil aus TS248-05 und einen Ausbau, der nur bis zur 5-Minuten-Grenze geht.
+- **Pflicht:**
+  - neu `probe-visual.spec` (TS248 d): ein Bild je Prozedur (8), in Chromium und im Firefox-Kern mit eigenen Referenzen. Dazu kommt je Prozedur die Zellbreite als Größenprüfung; Surface und Toolsetter sind als „kein Raster“ gezählt.
+  - der Rasterwächter aus `layout.spec` (Glyphen aus dem Layout, Desktop und Full HD);
+  - `smoke`;
+  - der kleine Overflow- und Dialogfall: fünf Zeilen aus `dialogs.spec`, je einmal auf dem Desktop und bei „150 % portrait“ (Layout-Touch über `enterTouch`, kein Touch-Nachweis). Sie decken jede Stufe, beide Hintergrundregeln, die Route und einen Maschinenablauf ab:
+    - 1 Program Stats (md, schließt, Route);
+    - 4 Messages (lg, schließt);
+    - 14 Delete tool (sm, schließt);
+    - 5 Tool change (sm, Ablauf, bleibt);
+    - 15 Tool editor (md, Formular, bleibt).
+  - Dazu läuft auf diesen Zeilen der Eckenwächter aus E.
+- **Ausbau, in dieser Reihenfolge, solange die Messung unter 5 min bleibt:**
+  1. `probe-click`;
+  2. `tabs`;
+  3. die übrigen Desktop-Zeilen von `dialogs`;
+  4. die übrigen Hochformat-Zeilen;
+  5. die Desktop-Zeilen von `visual.spec`.
+
+  Gekürzt wird in umgekehrter Reihenfolge.
+- Die Liste steht als ein `testMatch` und `grep` in der Konfiguration. Ein Wächter vergleicht sie mit den Dateien und Titeln, die es gibt.
+- Specs mit Scrollbalken-Band bleiben draußen, wie in TS248 c: `--hide-scrollbars` gilt nur für Chromium.
+
+**D · Wächter.**
+- **Kein Touch im Kern** (Befund 2), zweifach:
+  - **statisch:** Kein Kernspec ruft `tap(`, `touchscreen` oder `hasTouch` auf.
+    - Heute ist das in allen sechs Kerndateien so, ebenso in den Helfern, die sie laden, auch mittelbar: `test.ts`, `ctl.ts`, `mockFixture.ts`, `layout-fixtures.ts`, `layout-audit.ts`, `touchMode.ts`, `limitRuns.ts` und `macroFolder.ts`.
+    - Unter `e2e/` rufen elf Dateien Touch auf: zehn Specs außerhalb des Kerns und `more.ts`.
+    - `more.ts` hat einen Tap-Zweig (`tapMore`). `dialogs.spec` und `layout.spec` importieren den Helfer, rufen aber nur `clickMore` und `moreTrigger`; `tapMore` nutzt allein `input-session.spec`, außerhalb des Kerns. Ein Dateiscan der Specs sieht einen solchen geteilten Zweig nicht. Deshalb kommt die zweite Prüfung dazu.
+  - **zur Laufzeit:** Die Fixture des Firefox-Projekts ersetzt `locator.tap`, `page.tap` und `page.touchscreen.tap` durch einen Wurf mit Grund. Die Konfiguration verbietet `hasTouch`. Ein Tap über einen geteilten Helfer ist damit rot statt grün und still.
+- **Ausgeführt, nicht übersprungen:** Ein Schritt `firefox-executed` hält wie `browser-executed` fest: die gelisteten Fälle sind genau einmal gelaufen, mit 0 übersprungen, 0 wiederholt und 0 flaky.
+  - Im Kern bleibt `visual.spec` mit seinem Plattform-`test.skip` nur, wenn es im Ausbau Platz findet. Dann läuft es auf Linux und überspringt nichts.
+- **Ein eigenes Replay über den Firefox-Lauf:** `firefox-replay`, mit derselben Null-Befund-Regel wie `browser-replay`.
+  - Der Firefox-Lauf ist ein zweiter Playwright-Lauf mit eigenem Bericht und eigener Aufzeichnung. `replay.py` beurteilt ihn für sich; `browser-replay` bleibt beim Chromium-Lauf.
+  - Grund: Die Rahmen kommen aus demselben Client-Code. Ein Unterschied je Browser wäre ein Befund, kein Grund zum Ausschließen.
+  - **Noch nicht belegt:** Die Herkunft reist im Cookie `e2e_origin` aus `storageState`. Ob BiDi ihn an Mock-HTTP und WebSocket mitgibt, hat noch kein Lauf gezeigt.
+    - Ein Firefox-Rahmen ohne volle Herkunft ist ein Befund, nie ein Grund zum Ausschließen.
+    - Trägt BiDi den Cookie nicht, komme ich mit dem Plan zurück, bevor der Schritt steht.
+- **Gate-JSON:** nennt Firefox-Version, Arch, SHA des Archivs, die Playwright-Version und das Ergebnis von `--check-newer`, also `current`, `newer` oder `unknown` mit Grund.
+- **Rot-Nachweise der Wächter**, je ein Mutant:
+  - ein `tap(` in einem Kernspec: Der statische Wächter ist rot.
+  - ein Kerntest, der `tapMore` erreicht: Der statische Wächter bleibt grün, denn der Aufruf liegt im Helfer. Rot wird der Wurf zur Laufzeit. Deshalb gibt es beide.
+  - ein `test.skip` in einem Kerntest: `firefox-executed` ist rot.
+  - ein Kerntitel, den es nicht mehr gibt: Der Satzwächter ist rot.
+  - das Binary fehlt: Im Merge-Gate ist `firefox-core` FAIL, im Rundengate `pending`, nie PASS.
+  - Prüfsumme, Signatur und `--check-newer` sind im Unit-Wächter aus A abgedeckt.
+
+**E · Der Produktfix zu Befund 4.**
+- `.dialogOverlay` wird eckig und durchsichtig und nimmt so jeden Druck.
+- Den Schleier mit dem Radius zeichnet `::before` (`position: absolute; inset: 0; border-radius: var(--radius-container); background: …`). Farbe und Tokens wandern unverändert mit.
+- **Malreihenfolge:** Ein absolut positioniertes `::before` malt über ein nicht positioniertes `.dialog`, und `.dialog` hat heute keine `position`. Deshalb bekommt `.dialog` `position: relative`. Dann malen beide in Baumreihenfolge, das `::before` zuerst und der Dialog darüber. Ein `z-index: -1` ist kein Token der Skala und kommt nicht in Frage.
+  - Vorher prüfe ich jedes absolut positionierte Element in einem Dialog: Es verankert sich danach an `.dialog` statt am Overlay.
+  - Die Bilder und die Geometrie in `dialogs.spec` und `visual.spec` halten das fest.
+- **Wer das Overlay sonst liest** (gesucht in `e2e/`, `scripts/` und `src/**/*.ts`):
+  - Die Specs finden Dialoge über die Klasse `.dialogOverlay`. Klasse und Element bleiben.
+  - `feedback-channels.spec` liest den `z-index`, der bleibt.
+  - Der Registerabgleich zählt `.dialogOverlay`-Elemente. Ein `::before` ist kein Element.
+  - `audit-scoped-css.py` (`DIALOG_FRAME`) sucht die Klasse in Templates.
+  - Hintergrundfarbe oder Radius des Overlays liest niemand.
+- **Neuer Wächter in `dialogs.spec`, für jede Zeile, auf dem Desktop und in der Schleife „150 % portrait“:**
+  - Gemeint ist immer das Overlay der Zeile: der Vorfahr ihres Dialogs, wie beim heutigen Hintergrundklick. Bei einer Rückfrage über Settings ist es das obere Overlay, nicht das erste im Dokument.
+  - `elementFromPoint` an allen vier Ecken bei 0, 1 und 2 px innen ist dieses Overlay.
+  - Ein echter Mausklick 1 px innen landet mit seinem `pointerdown` auf dem Overlay. Das Ziel wird geprüft, nicht nur die Folge, denn bei einem Dialog, der bleibt, wäre „noch offen“ auch bei einem Fehlgriff grün.
+  - Ein Dialog, dessen Hintergrund schließt, ist danach zu.
+  - Der Wächter läuft in Chromium im vollen Lauf und im Firefox-Kern auf dessen Zeilen. Die Hochformat-Schleife deckt die nicht gemessenen Layouts ab.
+  - **Ausrichtung unter Zoom:** Die Schleife „150 % portrait“ zoomt per CSS (`documentElement.style.zoom`). Seitenkoordinaten und Playwrights Mauskoordinaten müssen dort nicht im selben Raum liegen. Ein verschobener Punkt fiele ins Innere des Overlays und wäre aus dem falschen Grund grün.
+    - Deshalb prüft der Wächter vor den Ecken die Ausrichtung: Ein Punkt 1 px außerhalb des Overlay-Rahmens trifft nicht das Overlay, die Mitte trifft es oder seinen Dialog. Sonst ist er rot.
+- **Nachweis:** Der Wächter ist am heutigen CSS in **beiden** Browsern rot, auf dem Desktop **und** in der Zoom-Schleife, und mit dem Fix überall grün. Der bestehende Hintergrundklick bei (3, 3) ist dann nicht mehr der einzige Prüfpunkt.
+
+**F · Der Rot-Nachweis zum Glyphenfehler.**
+- **Mutant:** `width: 100%` an `.gridWrap` entfernt, also das CSS vor `769760ce`.
+  - Im Firefox-Kern sind dann das Bild **und** die Größenprüfung der fünf Rasterprozeduren rot.
+  - Calibrate bleibt grün. Surface und Toolsetter sind als „kein Raster“ gezählt.
+  - Mit dem Fix ist alles grün.
+- **In Chromium:** Der bestehende Wächter (Glyphen aus dem Layout) bleibt der Nachweis. Chromium zeigt den Fehler nativ nicht.
+
+**G · Gates.**
+- **Merge-Gate:** Der Schritt `firefox-core` läuft immer, nach dem vollen Chromium-Lauf und unter derselben Sperre.
+  - Er beschafft zuerst über `fetch`. Fehlt dann das Binary, ist der Schritt FAIL.
+  - Danach folgen `firefox-executed` und `firefox-replay`.
+- **Rundengate:** Die Auswahl kennt `firefox` schon an drei Regeln in `rules.py`:
+  - die zentralen Module, darunter `style.css`, `App.vue`, `DialogFrame.vue` und `modalRegistry.ts`;
+  - Build, Testkonfiguration, gemeinsamer Mock und Fixtures;
+  - das Antasten-Panel mit seinen Glyphen.
+
+  Heute meldet das Rundengate dort `pending`; künftig führt es den Schritt aus. Dazu kommen Regeln für die Kernspecs, `firefox.json`, `fetch_firefox.py` und die Firefox-Konfiguration. Fehlt das Binary, ist der Schritt `pending` mit Grund, nie grün übersprungen.
+- **Der Auswahlwächter:** Der heutige Eintrag `pending: … step 6` wird zu diesem Schritt.
+
+**H · CI (x86_64).** `fetch` holt das x86_64-Archiv mit derselben Pin-Prüfung, im Cache nach Version. Ob CI den Kern fährt, steht in F3, der Bildvergleich in F1.
+
+### Fragen
+
+- **F1 · Bilder auf x86_64:** Die Bilder hängen an der Arch, denn Schrift und Rasterung unterscheiden sich.
+  - Für Chromium gilt schon eine Regel (`visual.spec.ts`, `REF_PLATFORM = 'linux/arm64'`): Die Referenzen entstehen dort, wo sie geprüft werden, auf der Entwicklungs-VM. Eine andere Plattform prüft die Geometrie, vergleicht kein Streifenbild und sagt das.
+  - TS248 d nennt für die Probing-Bilder ausdrücklich das `visual.spec`-Muster.
+  - Zwei Wege:
+    - **(a)** Ein einmaliger CI-Lauf schreibt die x86_64-Bilder als Artefakt. Ich sehe sie durch und committe sie unter `firefox-<version>-linux-x86_64`. Danach vergleicht CI wie hier.
+      - Das Problem: Diese Bilder entstehen auf einer Maschine, an der sie niemand prüft. Gesehen hätte sie nur ich, als heruntergeladenes Artefakt.
+    - **(b)** Wie bei Chromium: Auf x86_64 läuft der Firefox-Kern mit allen Größen- und Trefferprüfungen (Zellbreiten, Ecken des Hintergrunds, Overflow), vergleicht aber kein Bild.
+      - Der Lauf nennt jedes nicht verglichene Bild mit Plattform und Grund, wie `visual.spec` heute.
+      - Dasselbe gilt für `probe-visual` in Chromium auf x86_64.
+      - Die Größenprüfung braucht keine Referenz.
+      - Gemessen ist der Glyphenfehler nur auf aarch64. Der Rot-Nachweis läuft deshalb im Merge-Gate auf der VM.
+  - Ich schlage (b) vor. Die Bildreferenzen bleiben linux-aarch64, und das Merge-Gate auf der VM vergleicht sie.
+- **F2 · Der Satz:** Der Pflichtteil steht oben. Der Ausbau richtet sich nach der Messung, in der genannten Reihenfolge. Passt das, oder willst du eine andere Mindestliste?
+- **F3 · Der Kern in CI:** Die Stufentabelle (TS248-02) führt den Firefox-Kern im Rundengate und im Merge-Gate, nicht in CI.
+  - Mein Vorschlag: CI fährt den Pflichtteil aus C ohne Bildvergleich (F1), also mit Zellbreiten, Rasterwächter, smoke und den fünf Dialogzeilen samt Eckenwächter. Dazu kommen `firefox-executed`, aber kein Replay; das bleibt beim Gate.
+  - Kosten: CI hat einen Browser-Arbeiter. Der Frontend-Job brauchte zuletzt 88 min (Lauf 43812459440). Der Pflichtteil kostet dort grob das Dreifache seiner Wandzeit auf der VM; gemessen wird das im ersten CI-Lauf.
+  - Die Alternative: CI fährt den Kern nicht, und er bleibt Sache der Gates.
+- **Q248-1** bleibt beim Operator: der Browser am Maschinen-PC und ob ESR offiziell gilt.
+  - Der Pin ist das aktuelle Release, denn der Operator sah den Fehler in Firefox 159, im Release-Kanal.
+  - ESR kommt erst mit der Antwort dazu.
+
+**Erbeten:** `agreement` oder `findings` zum Plan.

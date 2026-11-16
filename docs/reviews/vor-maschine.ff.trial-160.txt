@@ -1,0 +1,164 @@
+# Firefox 160.0 aarch64 trial (BiDi, moz-firefox), worktree ~/lcnc-suite-ff at be5dd91f, 2026-11-16 ~04:00
+# specs smoke|tabs|dialogs|probe-click|visual, 3 workers, snapshots written as missing into scratch
+10) [firefox-core-trial] › e2e/visual.spec.ts:64:3 › compact: tool edit dialog reference image ───
+11) [firefox-core-trial] › e2e/visual.spec.ts:64:3 › touch-landscape: tool edit dialog reference image 
+12) [firefox-core-trial] › e2e/visual.spec.ts:64:3 › touch-portrait: tool edit dialog reference image 
+13) [firefox-core-trial] › e2e/visual.spec.ts:64:3 › touch-fullhd: tool edit dialog reference image 
+14) [firefox-core-trial] › e2e/visual.spec.ts:64:3 › touch-fullhd-window: tool edit dialog reference image 
+15) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+16) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+17) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+18) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+19) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+1) [firefox-core-trial] › e2e/visual.spec.ts:25:5 › 3axis-xyz desktop: Jog and Setup reference images 
+20) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+21) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+22) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+23) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+24) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+25) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+26) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+27) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+28) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+29) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+2) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+30) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+31) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+32) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+33) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+34) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+35) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+36) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+37 failed
+37) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+3) [firefox-core-trial] › e2e/visual.spec.ts:25:5 › 3axis-xyz touch-portrait: Jog and Setup reference images 
+4) [firefox-core-trial] › e2e/visual.spec.ts:25:5 › 5axis-xyzac desktop: Jog and Setup reference images 
+52 passed (14.5m)
+5) [firefox-core-trial] › e2e/visual.spec.ts:25:5 › 5axis-xyzac touch-portrait: Jog and Setup reference images 
+6) [firefox-core-trial] › e2e/visual.spec.ts:25:5 › 6axis-twp desktop: Jog and Setup reference images 
+7) [firefox-core-trial] › e2e/visual.spec.ts:25:5 › 6axis-twp touch-portrait: Jog and Setup reference images 
+8) [firefox-core-trial] › e2e/visual.spec.ts:64:3 › desktop: tool edit dialog reference image ────
+9) [firefox-core-trial] › e2e/dialogs.spec.ts:535:3 › dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return 
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-desktop-homed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-desktop-homed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-desktop-unhomed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-desktop-unhomed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-touch-portrait-homed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-touch-portrait-homed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-touch-portrait-unhomed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/3axis-xyz-touch-portrait-unhomed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-desktop-homed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-desktop-homed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-desktop-unhomed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-desktop-unhomed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-touch-portrait-homed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-touch-portrait-homed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-touch-portrait-unhomed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/5axis-xyzac-touch-portrait-unhomed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-desktop-homed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-desktop-homed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-desktop-plane-stale-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-desktop-plane-stale-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-desktop-unhomed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-desktop-unhomed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-touch-portrait-homed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-touch-portrait-homed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-touch-portrait-plane-stale-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-touch-portrait-plane-stale-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-touch-portrait-unhomed-jog.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/6axis-twp-touch-portrait-unhomed-setup.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/tool-edit-compact.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/tool-edit-desktop.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/tool-edit-touch-fullhd.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/tool-edit-touch-fullhd-window.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/tool-edit-touch-landscape.png, writing actual.
+Error: A snapshot doesn't exist at /tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/ffsnap/visual.spec.ts/tool-edit-touch-portrait.png, writing actual.
+Error: locator.click: Test timeout of 30000ms exceeded.
+test-results/dialogs-dialog-10-Probe-ca-93f8b--Stop-backdrop-focus-return-firefox-core-trial/test-failed-1.png
+test-results/dialogs-dialog-11-Editor-d-dadf5--Stop-backdrop-focus-return-firefox-core-trial/test-failed-1.png
+test-results/dialogs-dialog-12-Upload-c-ed24f--Stop-backdrop-focus-return-firefox-core-trial/test-failed-1.png
+test-results/dialogs-dialog-13-Run-from-ab2fd--Stop-backdrop-focus-return-firefox-core-trial/test-failed-1.png
+test-results/dialogs-dialog-14-Delete-t-9533d--Stop-backdrop-focus-return-firefox-core-trial/test-failed-1.png
+test-results/dialogs-dialog-15-Tool-edi-6501c--Stop-backdrop-focus-return-firefox-core-trial/test-failed-1.png
+
+# [SUPERSEDED in part by the 07:50 probe below: the corner finding is cross-browser (Chromium d ≤ 2, Firefox d ≤ 3);
+#  no stacking difference; the right-hand corners reach .content, not a control]
+# Analysis of the click timeouts (trace of dialogs "dialog 4 Messages", same pattern in the others):
+# the failing action is the BACKDROP click: dialogOverlay at position (3,3). Playwright's hit test says
+#   <div class="viewerWrapper"> from <div class="viewerColumn stack-controls"> subtree intercepts pointer events
+# i.e. in Firefox 160 the 3D viewer's wrapper lies ABOVE the dialog overlay at its top-left corner — a
+# stacking difference vs Chromium (where the same spec passes). Candidate PRODUCT finding (a backdrop
+# click at the viewer area reaches the viewer in Firefox) — to verify in the core package with a probe
+# (elementFromPoint at the overlay's corner in both browsers), not assumed.
+# visual.spec failures: to be read the same way (trace.zip in trial-160-results).
+# visual.spec: all 12 failures (6 strip, 6 tool-edit; 12 + 25 = 37) are "A snapshot doesn't exist … writing actual" (first run, references missing) — no
+# behaviour finding. So the trial's only real signal: the backdrop click (25 dialog cases, one pattern).
+
+# [SUPERSEDED in part by the 07:50 probe below: the corner finding is cross-browser (Chromium d ≤ 2, Firefox d ≤ 3);
+#  no stacking difference; the right-hand corners reach .content, not a control]
+# PROBE 2026-11-16 ~06:10 (scratch e2e/zzBackdropProbe.spec.ts + playwright.ffprobe.config.ts in ~/lcnc-suite-ff, both browsers,
+# Messages dialog, desktop 1280 wide; output ~/claude-work/ffcore/probe/backdrop-probe.txt):
+#   elementFromPoint at the overlay's (3,3): Chromium → .dialogOverlay; Firefox 160 → .viewerWrapper (the page BENEATH).
+#   Mid-left edge, bottom-right (−5,−5), bottom-left (3,−5): .dialogOverlay in both.
+#   A raw mouse click at (3,3): Chromium closes the dialog (0 left); Firefox leaves it open (1) — the press went to the viewer.
+#   Cause: .dialogOverlay has border-radius: var(--radius-container) (style.css ~1759, "match the rounded outer corners of
+#   the panes"). Per CSS Backgrounds 3 §5.3 the area outside the border curve takes no pointer events for the element —
+#   Firefox follows that, Chromium did not here. No stacking difference (overlay z 1000, viewer chain z auto, no contexts).
+#   PRODUCT FINDING (small): with any dialog open, a press in the four rounded corner wedges of the content area reaches
+#   what lies beneath — the 3D viewer (orbit) at the left, the side pane at the right (a tab or control there) — in
+#   Firefox. The modal scope (registry) covers focus/Tab, not this pointer path.
+#   Fix candidate (core package, plan first): the overlay square and transparent (it takes every press), the scrim drawn
+#   by a ::before with the radius (or the radius via an inner element); a guard: elementFromPoint at each corner (1,1)
+#   is the overlay in both browsers, for every dialog in dialogs.spec.
+
+# PROBE 2026-11-16 ~06:20 — the glyph bug at the OLD CSS (scratch e2e/zzGlyphProbe.spec.ts: `.gridWrap { width: auto
+# !important }` = before 769760ce; output ~/claude-work/ffcore/probe/glyph-probe.txt), cell width [first cell, count]:
+#   Chromium 148: now and old 90 px in Outside/Inside/Angle (9 cells), Boss/Pocket, Ridge/Valley (6), Calibrate 96 (4).
+#   Firefox 160:  now the same; OLD 10 px in Outside/Inside/Angle/Boss-Pocket/Ridge-Valley (the collapse, natively),
+#                 Calibrate 96 (its own layout). Surface + Toolsetter have no grid. → the red proof works on the 160 pin
+#   (5 of 8 procedures red, Calibrate green, 2 without a grid — all 8 counted).
+
+# PROBE 2026-11-16 ~06:25 — touch under BiDi (scratch e2e/zzTouchProbe.spec.ts, hasTouch: true; output probe/touch-probe.txt):
+#   Chromium: locator.tap() and touchscreen.tap() deliver pointerdown:touch, touchstart, click:touch; html.touch-device set;
+#             maxTouchPoints 1.
+#   Firefox 160 (BiDi, moz-firefox): both calls RESOLVE ("ok") but the page receives NO event at all (no pointerdown, no
+#             touchstart, not even a click); maxTouchPoints 0; touch-device not set. → a tap in the Firefox core is a SILENT
+#             no-op: forbid hasTouch / tap() / touchscreen in the core by a static guard; touch stays a Chromium proof
+#             (and the touchscreen at the machine). Mouse + keyboard only.
+# Feasibility summary for the plan: route ✓ (dialogs' ready routes /gcode), toHaveScreenshot ✓ (writes actuals, own path),
+#   mouse + keyboard ✓, touch ✗ (silent), the glyph red ✓ natively on 160, one product finding (backdrop corners).
+
+# PROBE 2026-11-16 ~07:50 — extended backdrop probe (Fable: the "Chromium doesn't show it" claim rested on one point);
+# output probe/backdrop-probe2.txt. Radius 12px (--radius-2xl), DPR 1, desktop 1280 wide, Messages dialog.
+#   The overlay's box: Chromium 1264 × 310, Firefox 1264 × 314 at the same viewport — seen, not examined.
+#   elementFromPoint at d px inward on the diagonal of each corner:
+#     Chromium: d = 0,1,2 → beneath (tl/bl .viewerWrapper, tr/br .content); d ≥ 3 → .dialogOverlay
+#     Firefox:  d = 0..2 → beneath at every corner, d = 3 → beneath at tl/tr/bl (br already the overlay); d ≥ 4 → .dialogOverlay
+#   A real mouse click at 1 px inward, each corner: BOTH browsers — pointerdown on .viewerWrapper (left) / .content (right),
+#   the dialog stays open (1 left).
+#   → CORRECTION: the finding is CROSS-BROWSER (both honour the radius in hit testing); the difference is rounding at the
+#   boundary — the old test point (3,3) sits on it (Chromium in, Firefox out) = the 25 trial timeouts.
+#   Effect today (desktop): no listener on .viewerWrapper (OrbitControls on the canvas, which the corner press does not reach),
+#   .content is the area's background — no control reacts; but the backdrop's close is not taken in the wedges and the modal
+#   pointer scope has a hole. Other layouts (portrait, narrow, touch sizes) not measured.
+
+# ---- Raw probe lines (scratch specs in ~/lcnc-suite-ff, playwright.ffprobe.config.ts: projects chromium + firefox-core, 1 worker) ----
+
+# backdrop-probe2.txt
+== chromium geometry {"rect":[8,102,1264,310],"radius":"12px","dpr":1,"hits":{"tl+0":"div.viewerWrapper","tl+1":"div.viewerWrapper","tl+2":"div.viewerWrapper","tl+3":"div.dialogOverlay","tl+4":"div.dialogOverlay","tl+6":"div.dialogOverlay","tr+0":"div.content","tr+1":"div.content","tr+2":"div.content","tr+3":"div.dialogOverlay","tr+4":"div.dialogOverlay","tr+6":"div.dialogOverlay","bl+0":"div.viewerWrapper","bl+1":"div.viewerWrapper","bl+2":"div.viewerWrapper","bl+3":"div.dialogOverlay","bl+4":"div.dialogOverlay","bl+6":"div.dialogOverlay","br+0":"div.content","br+1":"div.content","br+2":"div.content","br+3":"div.dialogOverlay","br+4":"div.dialogOverlay","br+6":"div.dialogOverlay"}}
+== chromium clicks at 1 px inward {"tl":{"at":[9,103],"down":["div.viewerWrapper"],"dialogsLeft":1},"tr":{"at":[1270,103],"down":["div.content"],"dialogsLeft":1},"bl":{"at":[9,410],"down":["div.viewerWrapper"],"dialogsLeft":1},"br":{"at":[1270,410],"down":["div.content"],"dialogsLeft":1}}
+== firefox geometry {"rect":[8,102,1264,314],"radius":"12px","dpr":1,"hits":{"tl+0":"div.viewerWrapper","tl+1":"div.viewerWrapper","tl+2":"div.viewerWrapper","tl+3":"div.viewerWrapper","tl+4":"div.dialogOverlay","tl+6":"div.dialogOverlay","tr+0":"div.content","tr+1":"div.content","tr+2":"div.content","tr+3":"div.content","tr+4":"div.dialogOverlay","tr+6":"div.dialogOverlay","bl+0":"div.viewerWrapper","bl+1":"div.viewerWrapper","bl+2":"div.viewerWrapper","bl+3":"div.viewerWrapper","bl+4":"div.dialogOverlay","bl+6":"div.dialogOverlay","br+0":"div.content","br+1":"div.content","br+2":"div.content","br+3":"div.dialogOverlay","br+4":"div.dialogOverlay","br+6":"div.dialogOverlay"}}
+== firefox clicks at 1 px inward {"tl":{"at":[9,103],"down":["div.viewerWrapper"],"dialogsLeft":1},"tr":{"at":[1270,103],"down":["div.content"],"dialogsLeft":1},"bl":{"at":[9,414],"down":["div.viewerWrapper"],"dialogsLeft":1},"br":{"at":[1270,414],"down":["div.content"],"dialogsLeft":1}}
+  2 passed (8.4s)
+
+# glyph-probe.txt
+== chromium Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36
+{"now Outside":[90,90,90,90,90,90,90,90,90],"now Inside":[90,90,90,90,90,90,90,90,90],"now Angle":[90,90,90,90,90,90,90,90,90],"now Boss/Pocket":[90,90,90,90,90,90],"now Ridge/Valley":[90,90,90,90,90,90],"now Calibrate":[96,96,96,96],"old Outside":[90,90,90,90,90,90,90,90,90],"old Inside":[90,90,90,90,90,90,90,90,90],"old Angle":[90,90,90,90,90,90,90,90,90],"old Boss/Pocket":[90,90,90,90,90,90],"old Ridge/Valley":[90,90,90,90,90,90],"old Calibrate":[96,96,96,96]}
+== firefox Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0
+{"now Outside":[90,90,90,90,90,90,90,90,90],"now Inside":[90,90,90,90,90,90,90,90,90],"now Angle":[90,90,90,90,90,90,90,90,90],"now Boss/Pocket":[90,90,90,90,90,90],"now Ridge/Valley":[90,90,90,90,90,90],"now Calibrate":[96,96,96,96],"old Outside":[10,10,10,10,10,10,10,10,10],"old Inside":[10,10,10,10,10,10,10,10,10],"old Angle":[10,10,10,10,10,10,10,10,10],"old Boss/Pocket":[10,10,10,10,10,10],"old Ridge/Valley":[10,10,10,10,10,10],"old Calibrate":[96,96,96,96]}
+  2 passed (10.4s)
+
+# touch-probe.txt
+== chromium {"tap":"ok","touchscreen":"ok","events":["pointerdown:touch","touchstart:","click:touch","pointerdown:touch","touchstart:","click:touch"],"touchDevice":true,"maxTouchPoints":1}
+== firefox {"tap":"ok","touchscreen":"ok","events":[],"touchDevice":false,"maxTouchPoints":0}
+  2 passed (6.3s)
