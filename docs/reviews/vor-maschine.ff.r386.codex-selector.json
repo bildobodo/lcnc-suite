@@ -1,0 +1,111 @@
+[
+  {
+    "case": "helper",
+    "browser": [
+      "probe-click"
+    ],
+    "firefox": {
+      "needed": false
+    },
+    "changed": [
+      {
+        "status": "M",
+        "path": "lcnc-webui/e2e/macroFolder.ts",
+        "decision": "an e2e helper: the specs reaching it: probe-click"
+      }
+    ]
+  },
+  {
+    "case": "source import",
+    "browser": [
+      "compensation",
+      "contrast",
+      "dialogs",
+      "disarmed",
+      "feature-switches",
+      "forms",
+      "help-icons",
+      "layout",
+      "layout-audit",
+      "probe-click",
+      "probe-visual",
+      "tabs",
+      "visual"
+    ],
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/src/probeVars.ts"
+      ]
+    },
+    "changed": [
+      {
+        "status": "M",
+        "path": "lcnc-webui/src/probeVars.ts",
+        "rules": [
+          "a component, or a module a component renders through: every rendered surface",
+          "the probing panel and its glyphs"
+        ],
+        "decision": "the rules: a component, or a module a component renders through: every rendered surface; the probing panel and its glyphs"
+      }
+    ]
+  },
+  {
+    "case": "read data",
+    "browser": [
+      "probe-click"
+    ],
+    "firefox": {
+      "needed": false
+    },
+    "changed": [
+      {
+        "status": "M",
+        "path": "scripts/test_fixtures/macro_refusals.json",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "reads": [
+          "lcnc-webui/e2e/macroFolder.ts"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      }
+    ]
+  },
+  {
+    "case": "unknown source",
+    "browser": "full",
+    "firefox": {
+      "needed": false
+    },
+    "changed": [
+      {
+        "status": "A",
+        "path": "lcnc-webui/src/brandNew.ts",
+        "rules": [
+          "a component, or a module a component renders through: every rendered surface"
+        ],
+        "decision": "NO RULE: the full frontend and backend runs"
+      }
+    ]
+  },
+  {
+    "case": "direct spec (control)",
+    "browser": [
+      "probe-click"
+    ],
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/e2e/probe-click.spec.ts"
+      ]
+    },
+    "changed": [
+      {
+        "status": "M",
+        "path": "lcnc-webui/e2e/probe-click.spec.ts",
+        "decision": "the spec itself: probe-click + the Firefox core"
+      }
+    ]
+  }
+]

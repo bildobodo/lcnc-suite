@@ -1,0 +1,214 @@
+
+=== Python units (local GPG allowed) ===
+.............................                                            [100%]
+29 passed in 0.14s
+
+=== Build ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2136 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-P733WBKL.js                     4.88 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-DigUCzo-.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-BfuNUijc.css                     100.08 kB │ gzip:  18.57 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-DSZ6LPGO.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CyOHk4ZX.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DsOXnQuy.js                280.69 kB │ gzip: 105.78 kB
+dist/static/index-Cw_Yo_8H.js                      695.26 kB │ gzip: 224.25 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.15s
+
+=== Firefox baseline ===
+PASS firefox-fetch
+PASS firefox-static
+PASS firefox-set
+PASS firefox-core
+PASS firefox-executed
+PASS firefox-workers
+PASS firefox-browser
+PASS firefox-replay
+firefox core: PASS (pin 160.0, started ['firefox 160.0'], newer: current)
+
+=== Unload counter-case ===
+[WebServer] (node:3646352) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+(node:3646378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:3646378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [firefox-core] › e2e/codex-unload.spec.ts:4:1 › R386: an unrelated POST can replace a missing unload beacon
+[firefox-core] › e2e/codex-unload.spec.ts:4:1 › R386: an unrelated POST can replace a missing unload beacon
+R386_FORWARDED: other telemetry
+
+R386_FORWARDED: ordinary fetch
+
+R386_HELD_PAGEHIDE: accepted by sendBeacon, never forwarded to the mock
+
+  1 passed (3.0s)
+
+=== Unload control ===
+[WebServer] (node:3648149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+(node:3648169) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:3648169) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [firefox-core] › e2e/codex-unload.spec.ts:4:1 › R386: an unrelated POST can replace a missing unload beacon
+[firefox-core] › e2e/codex-unload.spec.ts:4:1 › R386: an unrelated POST can replace a missing unload beacon
+R386_FORWARDED: other telemetry
+
+R386_HELD_PAGEHIDE: accepted by sendBeacon, never forwarded to the mock
+
+  1) [firefox-core] › e2e/codex-unload.spec.ts:4:1 › R386: an unrelated POST can replace a missing unload beacon 
+
+    Error: the 2 beacon(s) of the page's unload reached the mock while its context lives
+
+    the 2 beacon(s) of the page's unload reached the mock while its context lives
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 2
+    Received:    1
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+       at test.ts:139
+
+      137 |   await expect.poll(() => postsRecorded(file) - before, {
+      138 |     timeout: 5_000, message: `the ${sent} beacon(s) of the page's unload reached the mock while its context lives`,
+    > 139 |   }).toBeGreaterThanOrEqual(sent);
+          |      ^
+      140 |   logEvent({ event: "unload", ...where, beacons: sent, recorded: postsRecorded(file) - before });
+      141 |   await page.goto("about:blank").catch(() => {});
+      142 | }
+        at unloadInContext (/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts:139:6)
+        at Object.page (/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts:157:7)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-unload-R386-an-unrel-b54cb-ace-a-missing-unload-beacon-firefox-core/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-unload-R386-an-unrel-b54cb-ace-a-missing-unload-beacon-firefox-core/error-context.md
+
+
+  1 failed
+    [firefox-core] › e2e/codex-unload.spec.ts:4:1 › R386: an unrelated POST can replace a missing unload beacon 
+
+=== Chromium dialogs (npx; no retries) ===
+[WebServer] (node:3650128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 57 tests using 1 worker
+
+(node:3650162) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:3650162) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[2/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[3/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[4/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[5/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[6/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[7/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[8/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[9/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[10/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[11/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[12/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[13/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[14/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[15/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[16/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[17/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[18/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[19/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[20/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[21/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[22/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[23/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[24/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[25/57] [e2e] › e2e/dialogs.spec.ts:625:3 › dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return
+[26/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[27/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[28/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[29/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[30/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[31/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[32/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[33/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[34/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[35/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[36/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[37/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[38/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[39/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[40/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[41/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[42/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[43/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[44/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[45/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[46/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[47/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[48/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[49/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[50/57] [e2e] › e2e/dialogs.spec.ts:715:3 › dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners
+[51/57] [e2e] › e2e/dialogs.spec.ts:740:1 › UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter sends exactly abort, also stacked and with a helper open
+[52/57] [e2e] › e2e/dialogs.spec.ts:802:1 › UI-D06: a dialog over a field's keypad pauses it — the draft survives unreachable and comes back exact, nothing is applied
+[53/57] [e2e] › e2e/dialogs.spec.ts:863:1 › closing a whole stack returns focus once, to the control that opened the bottom dialog — Space sends nothing
+[54/57] [e2e] › e2e/dialogs.spec.ts:893:1 › UI-DI01: a machine flow stays the operating position whichever dialog opened first — layer, focus and Tab scope agree
+[55/57] [e2e] › e2e/dialogs.spec.ts:976:1 › UI-DI02: a lower dialog closing under a surviving top leaves focus in the top — typed text never reaches the hidden panel
+[56/57] [e2e] › e2e/dialogs.spec.ts:1033:1 › the initial focus never hides the beginning of a dialog: Run from line focuses its first option only while it is in view
+[57/57] [e2e] › e2e/dialogs.spec.ts:1060:1 › UI-DI04: after a disarm the focus fallback is a focusable target — the dialog's own, never body
+  57 passed (2.5m)

@@ -5817,3 +5817,50 @@ Die Läufe stehen in `vor-maschine.ff.r386.mutants.json`, das Skript in `vor-mas
 - Vor main bleiben die bekannten Live-Prüfungen und die Hardware geschuldet.
 
 **Erbeten:** `agreement` oder `findings` zur Umsetzung.
+
+---
+
+## Codex · Schritt 6 · Firefox-Kern · Implementierungsreview R386 · 16. November 2026
+
+**Urteil: findings.** Geprüft ist `39a73679..29db35ca`, Anfrage an `128011bb`. Der unveränderte Firefox-Kern läuft auch in meiner Archivkopie grün: **86/86**, 86 s, alle acht Runner-Prüfungen PASS, Replay mit 469 Rahmen und null Befunden. Die 29 Python-Tests für Beschaffung und Runner sowie der Build sind ebenfalls grün. Zwei eigene Gegenproben zeigen aber Lücken in der Abmeldung und in der Rundenauswahl.
+
+Alle eigenen Läufe fanden in `/tmp/codex-r386-04k8vfqm` statt, mit kopierten Abhängigkeiten und eigenen Mocks unter der gemeinsamen Testsperre. Kein Zugriff auf die Live-Sim und kein Produktcode im Live-Baum geändert. Belege: [Ergebnisse samt Gegenproben](vor-maschine.ff.r386.codex-evidence.json), [Laufausgaben](vor-maschine.ff.r386.codex-checks.txt).
+
+### VM-I25 · P2 · Ein fremder POST kann einen fehlenden Beacon verdecken, auch vor einem grünen Replay
+
+`lcnc-webui/e2e/test.ts:73–81, 131–140` zählt jeden HTTP-POST im Mock-Protokoll gegen die Zahl erfolgreich angenommener `sendBeacon`-Aufrufe. Das ist bereits als Grenze benannt. **Die Folgerung „dann Replay rot, nie grün“ stimmt jedoch nicht:** Ein ausstehender Request kann beim Kontextende ganz ausfallen. Das Replay sieht dann weder diesen Request noch eine fehlende Herkunft.
+
+Meine [Browser-Gegenprobe](vor-maschine.ff.r386.codex-unload.spec.ts) benutzt die unveränderte Fixture, den unveränderten Mock und den unveränderten Runner. Nur der Testsatz ist für die Sonde auf einen Fall begrenzt. Die zwei Beacon-URLs erhalten unterscheidbare Testmarken; den zweiten Request hält eine Route bis zum Kontextende zurück. Daneben läuft ein gewöhnlicher Telemetrie-POST per `fetch` während der Abmeldung.
+
+- **Mit zusätzlichem POST:** zwei Beacons gezählt, zwei POSTs aufgezeichnet, obwohl Beacon 2 nie zum Mock gelangt. Test **PASS**, `firefox-executed` **PASS**, `firefox-workers` **PASS**, `firefox-replay` **PASS**, Gesamturteil **PASS**. Die Route protokolliert ausdrücklich den zurückgehaltenen zweiten Beacon.
+- **Ohne zusätzlichen POST**, sonst dieselbe Sonde: Der Abschluss scheitert nach 5 s mit **„Expected >= 2, Received 1“**. Das Replay allein bleibt auch hier grün; der Fixture-Fehler macht das Gesamturteil rot.
+
+Das ist eine gezielte Verzögerungs-/Verlustprobe, keine Messung der natürlichen Verlusthäufigkeit. Sie widerlegt aber den behaupteten Empfangsnachweis und dessen vermeintliche Absicherung durch das Replay.
+
+**Korrektur:** Den Empfang jedem angenommenen Beacon zuordnen, gebunden an Lauf, Testversuch und einzelne Abmeldung. Ein normaler Fetch und ein weiterer Beacon dürfen keinen anderen offenen Beacon erfüllen. Beispielsweise kann eine reine Testmarkierung je Aufruf am Mock empfangsseitig bestätigt werden; nur nach vollständiger Zuordnung darf der Kontext schließen. Ausbleibender Empfang muss den Abschluss rot machen. Den Gegenfall mit zusätzlichem POST als Wächter behalten und die Aussage zum Replay berichtigen.
+
+### VM-I26 · P2 · Indirekt betroffene Kernspecs wählen Firefox nicht
+
+`scripts/test_select/selector.py:226–239, 261–278` erweitert bei Helfern, gelesenen Daten und nicht auflösbaren Abhängigkeiten nur die Chromium-Auswahl. Der neue Firefox-Zweig erfasst direkte Spec-/Referenzänderungen und explizite Regeln, aber nicht diese Wege. Eine Änderung an einem gemeinsam benutzten Kern-Helfer kann daher eine grüne Runde ohne Prüfung im anderen Browser erhalten.
+
+Die [ausführbare Sonde](vor-maschine.ff.r386.codex-selector.py) verwendet den ausgelieferten Selektor und dessen vorhandene Scratch-Repository-Fixture. Ihr Kern enthält `probe-click`; dessen Kette ist `probe-click → layout-fixtures → macroFolder`. [Ergebnis](vor-maschine.ff.r386.codex-selector.json):
+
+| Änderung | Browserauswahl | Firefox |
+|---|---|---|
+| `e2e/macroFolder.ts` | `probe-click` | `needed: false` |
+| dessen gelesene `scripts/test_fixtures/macro_refusals.json` | `probe-click` | `needed: false` |
+| neue, nicht eingeordnete Quelldatei | `full` | `needed: false` |
+| direkt `probe-click.spec.ts` (Positivkontrolle) | `probe-click` | `needed: true` |
+
+**Korrektur:** Bei der transitiven Spec-Auswahl und bei Dateilesungen auch den Schnitt mit den Kernspecs am Kopf auswerten und die auslösenden Pfade nennen. Der Rückfall bei unbekannten Quellen bzw. unaufgelösten Abhängigkeiten muss den vorhandenen Firefox-Kern ebenfalls einschließen. Ein Helfer nur für Specs außerhalb des Kerns darf weiter ohne Firefox bleiben. Diese Wege brauchen eigene Auswahlwächter; der Test nur auf eine direkt geänderte Kernspec hält sie nicht.
+
+### Entscheidungen zu den benannten Abweichungen
+
+- **Eckenwächter angenommen:** Alle vier Ecken werden je Dialog hit-getestet; bleibende Dialoge prüfen vier echte Drücke, schließende Dialoge je einen bei noch offenem Dialog. Die Verteilung über die Zeilen/Layoutvarianten und der Rot-Nachweis am alten CSS tragen die benannte Reduktion. Kein dreifaches Wiederöffnen jedes Maschinenablaufs verlangt.
+- **Werkzeugvorschau ohne WebGL:** Die ausdrücklich benannte Auslassung des zusätzlichen Bildfalls nehme ich an. Sie betrifft den Ausbau, keine heimliche Kürzung des Pflichtteils. Daraus folgt keine Firefox-Abnahme des Viewers oder der Werkzeugvorschau.
+- **Einzelner Seitenhänger:** Ursache weiterhin offen; weder die App noch Firefox sind damit als Ursache bewiesen oder ausgeschlossen. Ich verlange für diesen einzelnen roten Mutantenlauf keinen spekulativen Produktfix. Ein Hänger bleibt ein fehlgeschlagener Lauf. Ein vollständiger Wiederholungslauf darf mit eigenem Record vorgelegt werden, darf den ersten aber nicht ersetzen. Bei Wiederkehr im Pflicht-/Merge-Lauf muss die Ursache vor Freigabe untersucht werden. Beim nächsten Auftreten die vorhandenen Fehlerartefakte sofort in den jeweiligen Laufordner sichern; eine überschriebene `error-context.md` bleibt verlorene Evidenz.
+- **Kleine Berichtskorrektur:** „CI ohne Replay, also ohne Abmeldezählung“ ist falsch. Der vorgelegte CI-Record enthält **22** `unloads`, jeweils zwei Beacons und zwei POSTs. `--no-replay` lässt die Auswertung aus, der Runner setzt das Aufzeichnungsverzeichnis trotzdem. Das ist kein zusätzlicher Produktbefund, gehört aber richtig benannt.
+
+Keine neue Operatorfrage. Die Nachprüfung kann sich auf VM-I25/VM-I26 und ihre Wächter begrenzen.
+
+**Abgeschlossene ergänzende Prüfung:** Auch `dialogs.spec.ts` in Chromium ist in der Archivkopie grün: **57/57**, ohne Skip oder Retry, einschließlich Desktop, 150-%-Layout und Dialogstapel. Ergebnis und Lauftext sind in den oben verlinkten Belegen ergänzt.

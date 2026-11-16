@@ -1,0 +1,1746 @@
+{
+  "baseline": {
+    "result": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "hit"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-core",
+          "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 86,
+          "tests": 86,
+          "passed": 86,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "firefox-executed",
+          "status": "PASS",
+          "tests": 86
+        },
+        {
+          "name": "firefox-workers",
+          "status": "PASS",
+          "run": "firefox-dc855be4-a70b-40ab-affc-481257fd3940"
+        },
+        {
+          "name": "firefox-browser",
+          "status": "PASS",
+          "version": "160.0"
+        },
+        {
+          "name": "firefox-replay",
+          "status": "PASS",
+          "report": "firefox-replay.json",
+          "frames": 469,
+          "attempts": 86,
+          "outside": [
+            "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+            "the gates and the handlers (admission, effect)",
+            "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+            "coverage against the inventory (step 5c)"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "pending": null,
+      "info": {
+        "pinned": "160.0",
+        "playwright": "Version 1.60.0",
+        "arch": "linux-aarch64",
+        "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+        "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+        "cache": "hit",
+        "newer": {
+          "status": "current",
+          "latest": "160.0",
+          "pinned": "160.0"
+        },
+        "set": "required + build-up",
+        "started": [
+          "firefox 160.0"
+        ],
+        "images_not_compared": [],
+        "workers": {
+          "asked": 3,
+          "report": 3,
+          "seconds": 86
+        },
+        "unloads": [
+          {
+            "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Outside: a held probe button sends its routine with the panel's numbers",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Angle: a held probe button sends its routine with the panel's numbers",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Outside: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Inside: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Angle: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "z_surface: the job the button sends is the native stage's whole job",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Surface: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "surface_scan: the job the button sends is the native stage's whole job",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Calibrate: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Toolsetter: the procedure's grid cells and its reference image",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "arrows move focus, Enter selects; every navigation key stays in the list — no jog",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "3axis-xyz desktop: Jog and Setup reference images",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "5axis-xyzac desktop: Jog and Setup reference images",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "6axis-twp desktop: Jog and Setup reference images",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "a tab switch sends nothing — but a jog still running stops",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "a hidden panel is not focusable",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "the Run-from-line spindle preset is one option group: Rev, Stop, Fwd",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          },
+          {
+            "title": "dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+            "beacons": 2,
+            "recorded": 2
+          }
+        ]
+      }
+    },
+    "replay": {
+      "verdict": "PASS",
+      "run": "firefox-dc855be4-a70b-40ab-affc-481257fd3940",
+      "logs": 3,
+      "connections": {
+        "infra": 89,
+        "test": 82
+      },
+      "http": {
+        "with origin": 1521
+      },
+      "frames": 469,
+      "frames_by_class": {
+        "test": 469
+      },
+      "commands": {
+        "estop": 25,
+        "get_comp_grid": 1,
+        "get_probe_results": 7,
+        "get_tool_table": 192,
+        "halshow_live": 1,
+        "heartbeat": 52,
+        "hello": 82,
+        "jog_cont": 5,
+        "jog_stop": 14,
+        "probe_run": 6,
+        "surface_scan_run": 2,
+        "tab_visibility": 82
+      },
+      "attempts": 86,
+      "no_cookie": [],
+      "var_files": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var"
+      ],
+      "expected": [],
+      "findings": [],
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+        "coverage against the inventory (step 5c)"
+      ]
+    }
+  },
+  "unload_false_green": {
+    "result": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "hit"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 1
+        },
+        {
+          "name": "firefox-core",
+          "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 3,
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "firefox-executed",
+          "status": "PASS",
+          "tests": 1
+        },
+        {
+          "name": "firefox-workers",
+          "status": "PASS",
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122"
+        },
+        {
+          "name": "firefox-browser",
+          "status": "PASS",
+          "version": "160.0"
+        },
+        {
+          "name": "firefox-replay",
+          "status": "PASS",
+          "report": "firefox-replay.json",
+          "frames": 2,
+          "attempts": 1,
+          "outside": [
+            "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+            "the gates and the handlers (admission, effect)",
+            "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+            "coverage against the inventory (step 5c)"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "pending": null,
+      "info": {
+        "pinned": "160.0",
+        "playwright": "Version 1.60.0",
+        "arch": "linux-aarch64",
+        "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+        "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+        "cache": "hit",
+        "newer": {
+          "status": "current",
+          "latest": "160.0",
+          "pinned": "160.0"
+        },
+        "set": "required + build-up",
+        "started": [
+          "firefox 160.0"
+        ],
+        "images_not_compared": [],
+        "workers": {
+          "asked": 3,
+          "report": 3,
+          "seconds": 3
+        },
+        "unloads": [
+          {
+            "title": "R386: an unrelated POST can replace a missing unload beacon",
+            "beacons": 2,
+            "recorded": 2
+          }
+        ]
+      }
+    },
+    "replay": {
+      "verdict": "PASS",
+      "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+      "logs": 1,
+      "connections": {
+        "infra": 2,
+        "test": 1
+      },
+      "http": {
+        "with origin": 16
+      },
+      "frames": 2,
+      "frames_by_class": {
+        "test": 2
+      },
+      "commands": {
+        "hello": 1,
+        "tab_visibility": 1
+      },
+      "attempts": 1,
+      "no_cookie": [],
+      "var_files": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var"
+      ],
+      "expected": [],
+      "findings": [],
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+        "coverage against the inventory (step 5c)"
+      ]
+    },
+    "playwright_report": {
+      "config": {
+        "configFile": "/tmp/codex-r386-04k8vfqm/lcnc-webui/playwright.firefox.config.ts",
+        "rootDir": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e",
+        "forbidOnly": true,
+        "fullyParallel": false,
+        "globalSetup": null,
+        "globalTeardown": null,
+        "globalTimeout": 0,
+        "grep": {},
+        "grepInvert": null,
+        "maxFailures": 0,
+        "metadata": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "actualWorkers": 1
+        },
+        "preserveOutput": "always",
+        "projects": [
+          {
+            "outputDir": "/tmp/codex-r386-04k8vfqm/lcnc-webui/test-results",
+            "repeatEach": 1,
+            "retries": 0,
+            "metadata": {
+              "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+              "actualWorkers": 1
+            },
+            "id": "firefox-core",
+            "name": "firefox-core",
+            "testDir": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e",
+            "testIgnore": [],
+            "testMatch": [
+              "/\\/(codex-unload\\.spec\\.ts)$/"
+            ],
+            "timeout": 30000
+          }
+        ],
+        "quiet": false,
+        "reporter": [
+          [
+            "line"
+          ],
+          [
+            "json"
+          ]
+        ],
+        "reportSlowTests": {
+          "max": 5,
+          "threshold": 300000
+        },
+        "shard": null,
+        "tags": [],
+        "updateSnapshots": "none",
+        "updateSourceMethod": "patch",
+        "version": "1.60.0",
+        "workers": 3,
+        "webServer": null
+      },
+      "suites": [
+        {
+          "title": "codex-unload.spec.ts",
+          "file": "codex-unload.spec.ts",
+          "column": 0,
+          "line": 0,
+          "specs": [
+            {
+              "title": "R386: an unrelated POST can replace a missing unload beacon",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox-core",
+                  "projectName": "firefox-core",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 502,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "R386_FORWARDED: other telemetry\n"
+                        },
+                        {
+                          "text": "R386_FORWARDED: ordinary fetch\n"
+                        },
+                        {
+                          "text": "R386_HELD_PAGEHIDE: accepted by sendBeacon, never forwarded to the mock\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-16T14:20:12.281Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+              "file": "codex-unload.spec.ts",
+              "line": 4,
+              "column": 1
+            }
+          ]
+        }
+      ],
+      "errors": [],
+      "stats": {
+        "startTime": "2026-11-16T14:20:10.695Z",
+        "duration": 3010.753,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "mock_records": [
+      {
+        "t": 1794838812963,
+        "kind": "head",
+        "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+        "instance": "3ac49f51-5c34-45c3-9a5a-7ce6d47d9194",
+        "port": 4500,
+        "pid": 3646614
+      },
+      {
+        "t": 1794838812968,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838812970,
+        "kind": "open",
+        "conn": 1,
+        "origin": {
+          "infra": "infra:baseline"
+        }
+      },
+      {
+        "t": 1794838812970,
+        "kind": "close",
+        "conn": 1
+      },
+      {
+        "t": 1794838812973,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838812980,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838812981,
+        "kind": "ctl",
+        "op": "reset"
+      },
+      {
+        "t": 1794838812982,
+        "kind": "open",
+        "conn": 2,
+        "origin": {
+          "infra": "infra:baseline"
+        }
+      },
+      {
+        "t": 1794838812983,
+        "kind": "close",
+        "conn": 2
+      },
+      {
+        "t": 1794838812984,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838812985,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838813108,
+        "kind": "http",
+        "method": "GET",
+        "path": "/",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813149,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/index-Cw_Yo_8H.js",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813150,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/msgpack-BkQaaVuN.js",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813150,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/index-BfuNUijc.css",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813150,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/three-D_Nc9AAY.js",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813194,
+        "kind": "http",
+        "method": "GET",
+        "path": "/settings",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813207,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/ThreeViewer-DsOXnQuy.js",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813207,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/toolGeometry-CyOHk4ZX.js",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813208,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/ThreeViewer-DigUCzo-.css",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813228,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/InterVariable-DiVDrmQJ.woff2",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813246,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/wsWorker-P733WBKL.js",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813299,
+        "kind": "open",
+        "conn": 3,
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        }
+      },
+      {
+        "t": 1794838813304,
+        "kind": "http",
+        "method": "GET",
+        "path": "/macros",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813304,
+        "kind": "frame",
+        "conn": 3,
+        "msg": {
+          "cmd": "hello",
+          "session": "0c9d32ab-1fbb-47c2-9eec-c5ca6b09dcf7",
+          "resume_armed": false,
+          "device_token": "aed1cfd086b83770b16fa21a63aa34d3",
+          "device_storage": "ok"
+        }
+      },
+      {
+        "t": 1794838813304,
+        "kind": "frame",
+        "conn": 3,
+        "msg": {
+          "cmd": "tab_visibility",
+          "hidden": false
+        }
+      },
+      {
+        "t": 1794838813381,
+        "kind": "close",
+        "conn": 3
+      },
+      {
+        "t": 1794838813385,
+        "kind": "http",
+        "method": "POST",
+        "path": "/telemetry",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813386,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/ThreeViewer-DigUCzo-.css",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813386,
+        "kind": "http",
+        "method": "POST",
+        "path": "/telemetry",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813389,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/Inter-Regular-L-twW0ba.woff",
+        "origin": {
+          "run": "firefox-d0769672-24c6-4f51-9794-73aa43444122",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838813492,
+        "kind": "end"
+      }
+    ]
+  },
+  "unload_control": {
+    "result": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "firefox-fetch",
+          "status": "PASS",
+          "seconds": 0.0,
+          "cache": "hit"
+        },
+        {
+          "name": "firefox-static",
+          "status": "PASS"
+        },
+        {
+          "name": "firefox-set",
+          "status": "PASS",
+          "tests": 1
+        },
+        {
+          "name": "firefox-core",
+          "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json",
+          "status": "FAIL",
+          "exit": 1,
+          "seconds": 8,
+          "tests": 1,
+          "passed": 0,
+          "failed": 1,
+          "flaky": 0,
+          "skipped": 0,
+          "why": [
+            "1 failed"
+          ]
+        },
+        {
+          "name": "firefox-executed",
+          "status": "FAIL",
+          "why": [
+            "failed: codex-unload.spec.ts › R386: an unrelated POST can replace a missing unload beacon [firefox-core, retry 0]"
+          ]
+        },
+        {
+          "name": "firefox-workers",
+          "status": "PASS",
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13"
+        },
+        {
+          "name": "firefox-browser",
+          "status": "PASS",
+          "version": "160.0"
+        },
+        {
+          "name": "firefox-replay",
+          "status": "PASS",
+          "report": "firefox-replay.json",
+          "frames": 2,
+          "attempts": 1,
+          "outside": [
+            "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+            "the gates and the handlers (admission, effect)",
+            "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+            "coverage against the inventory (step 5c)"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "pending": null,
+      "info": {
+        "pinned": "160.0",
+        "playwright": "Version 1.60.0",
+        "arch": "linux-aarch64",
+        "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+        "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+        "cache": "hit",
+        "newer": {
+          "status": "current",
+          "latest": "160.0",
+          "pinned": "160.0"
+        },
+        "set": "required + build-up",
+        "started": [
+          "firefox 160.0"
+        ],
+        "images_not_compared": [],
+        "workers": {
+          "asked": 3,
+          "report": 3,
+          "seconds": 8
+        },
+        "unloads": []
+      }
+    },
+    "replay": {
+      "verdict": "PASS",
+      "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+      "logs": 1,
+      "connections": {
+        "infra": 2,
+        "test": 1
+      },
+      "http": {
+        "with origin": 14
+      },
+      "frames": 2,
+      "frames_by_class": {
+        "test": 2
+      },
+      "commands": {
+        "hello": 1,
+        "tab_visibility": 1
+      },
+      "attempts": 1,
+      "no_cookie": [],
+      "var_files": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var"
+      ],
+      "expected": [],
+      "findings": [],
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+        "coverage against the inventory (step 5c)"
+      ]
+    },
+    "playwright_report": {
+      "config": {
+        "configFile": "/tmp/codex-r386-04k8vfqm/lcnc-webui/playwright.firefox.config.ts",
+        "rootDir": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e",
+        "forbidOnly": true,
+        "fullyParallel": false,
+        "globalSetup": null,
+        "globalTeardown": null,
+        "globalTimeout": 0,
+        "grep": {},
+        "grepInvert": null,
+        "maxFailures": 0,
+        "metadata": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "actualWorkers": 1
+        },
+        "preserveOutput": "always",
+        "projects": [
+          {
+            "outputDir": "/tmp/codex-r386-04k8vfqm/lcnc-webui/test-results",
+            "repeatEach": 1,
+            "retries": 0,
+            "metadata": {
+              "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+              "actualWorkers": 1
+            },
+            "id": "firefox-core",
+            "name": "firefox-core",
+            "testDir": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e",
+            "testIgnore": [],
+            "testMatch": [
+              "/\\/(codex-unload\\.spec\\.ts)$/"
+            ],
+            "timeout": 30000
+          }
+        ],
+        "quiet": false,
+        "reporter": [
+          [
+            "line"
+          ],
+          [
+            "json"
+          ]
+        ],
+        "reportSlowTests": {
+          "max": 5,
+          "threshold": 300000
+        },
+        "shard": null,
+        "tags": [],
+        "updateSnapshots": "none",
+        "updateSourceMethod": "patch",
+        "version": "1.60.0",
+        "workers": 3,
+        "webServer": null
+      },
+      "suites": [
+        {
+          "title": "codex-unload.spec.ts",
+          "file": "codex-unload.spec.ts",
+          "column": 0,
+          "line": 0,
+          "specs": [
+            {
+              "title": "R386: an unrelated POST can replace a missing unload beacon",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox-core",
+                  "projectName": "firefox-core",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5348,
+                      "error": {
+                        "message": "Error: the 2 beacon(s) of the page's unload reached the mock while its context lives\n\nthe 2 beacon(s) of the page's unload reached the mock while its context lives\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m2\u001b[39m\nReceived:    \u001b[31m1\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate",
+                        "stack": "Error: the 2 beacon(s) of the page's unload reached the mock while its context lives\n\nthe 2 beacon(s) of the page's unload reached the mock while its context lives\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m2\u001b[39m\nReceived:    \u001b[31m1\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate\n    at unloadInContext (/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts:139:6)\n    at Object.page (/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts:157:7)",
+                        "location": {
+                          "file": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts",
+                          "column": 6,
+                          "line": 139
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mtest.ts:139\n\n  137 |   await expect.poll(() => postsRecorded(file) - before, {\n  138 |     timeout: 5_000, message: `the ${sent} beacon(s) of the page's unload reached the mock while its context lives`,\n> 139 |   }).toBeGreaterThanOrEqual(sent);\n      |      ^\n  140 |   logEvent({ event: \"unload\", ...where, beacons: sent, recorded: postsRecorded(file) - before });\n  141 |   await page.goto(\"about:blank\").catch(() => {});\n  142 | }"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts",
+                            "column": 6,
+                            "line": 139
+                          },
+                          "message": "Error: the 2 beacon(s) of the page's unload reached the mock while its context lives\n\nthe 2 beacon(s) of the page's unload reached the mock while its context lives\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m2\u001b[39m\nReceived:    \u001b[31m1\u001b[39m\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate\n\n   at test.ts:139\n\n  137 |   await expect.poll(() => postsRecorded(file) - before, {\n  138 |     timeout: 5_000, message: `the ${sent} beacon(s) of the page's unload reached the mock while its context lives`,\n> 139 |   }).toBeGreaterThanOrEqual(sent);\n      |      ^\n  140 |   logEvent({ event: \"unload\", ...where, beacons: sent, recorded: postsRecorded(file) - before });\n  141 |   await page.goto(\"about:blank\").catch(() => {});\n  142 | }\n    at unloadInContext (/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts:139:6)\n    at Object.page (/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts:157:7)"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "R386_FORWARDED: other telemetry\n"
+                        },
+                        {
+                          "text": "R386_HELD_PAGEHIDE: accepted by sendBeacon, never forwarded to the mock\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-16T14:21:33.807Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/tmp/codex-r386-04k8vfqm/lcnc-webui/test-results/codex-unload-R386-an-unrel-b54cb-ace-a-missing-unload-beacon-firefox-core/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/codex-r386-04k8vfqm/lcnc-webui/test-results/codex-unload-R386-an-unrel-b54cb-ace-a-missing-unload-beacon-firefox-core/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/tmp/codex-r386-04k8vfqm/lcnc-webui/e2e/test.ts",
+                        "column": 6,
+                        "line": 139
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+              "file": "codex-unload.spec.ts",
+              "line": 4,
+              "column": 1
+            }
+          ]
+        }
+      ],
+      "errors": [],
+      "stats": {
+        "startTime": "2026-11-16T14:21:32.229Z",
+        "duration": 7835.888000000001,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    "mock_records": [
+      {
+        "t": 1794838894508,
+        "kind": "head",
+        "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+        "instance": "045528eb-fb31-4b1d-bc0f-0f7da078641a",
+        "port": 4500,
+        "pid": 3648402
+      },
+      {
+        "t": 1794838894513,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838894515,
+        "kind": "open",
+        "conn": 1,
+        "origin": {
+          "infra": "infra:baseline"
+        }
+      },
+      {
+        "t": 1794838894516,
+        "kind": "close",
+        "conn": 1
+      },
+      {
+        "t": 1794838894518,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838894525,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838894527,
+        "kind": "ctl",
+        "op": "reset"
+      },
+      {
+        "t": 1794838894528,
+        "kind": "open",
+        "conn": 2,
+        "origin": {
+          "infra": "infra:baseline"
+        }
+      },
+      {
+        "t": 1794838894528,
+        "kind": "close",
+        "conn": 2
+      },
+      {
+        "t": 1794838894529,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838894531,
+        "kind": "ctl",
+        "op": "snapshot"
+      },
+      {
+        "t": 1794838894656,
+        "kind": "http",
+        "method": "GET",
+        "path": "/",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894704,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/index-Cw_Yo_8H.js",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894704,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/msgpack-BkQaaVuN.js",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894705,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/index-BfuNUijc.css",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894705,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/three-D_Nc9AAY.js",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894757,
+        "kind": "http",
+        "method": "GET",
+        "path": "/settings",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894775,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/ThreeViewer-DsOXnQuy.js",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894776,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/toolGeometry-CyOHk4ZX.js",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894776,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/ThreeViewer-DigUCzo-.css",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894799,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/InterVariable-DiVDrmQJ.woff2",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894814,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/wsWorker-P733WBKL.js",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894849,
+        "kind": "open",
+        "conn": 3,
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        }
+      },
+      {
+        "t": 1794838894874,
+        "kind": "http",
+        "method": "GET",
+        "path": "/macros",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894875,
+        "kind": "frame",
+        "conn": 3,
+        "msg": {
+          "cmd": "hello",
+          "session": "94020338-22ed-4ca5-8bc0-95eaa593b3a9",
+          "resume_armed": false,
+          "device_token": "1e9a9c8016359adb7e90dd5338c7de60",
+          "device_storage": "ok"
+        }
+      },
+      {
+        "t": 1794838894876,
+        "kind": "frame",
+        "conn": 3,
+        "msg": {
+          "cmd": "tab_visibility",
+          "hidden": false
+        }
+      },
+      {
+        "t": 1794838894937,
+        "kind": "close",
+        "conn": 3
+      },
+      {
+        "t": 1794838894940,
+        "kind": "http",
+        "method": "GET",
+        "path": "/static/ThreeViewer-DigUCzo-.css",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838894940,
+        "kind": "http",
+        "method": "POST",
+        "path": "/telemetry",
+        "origin": {
+          "run": "firefox-fb7f2326-d700-400a-9832-72166ca11e13",
+          "test": "1db6dca1f68f3d3a578d-af86823d7ed1f294a10f",
+          "project": "firefox-core",
+          "retry": 0
+        },
+        "req_id": null,
+        "status": 200
+      },
+      {
+        "t": 1794838899877,
+        "kind": "end"
+      }
+    ]
+  },
+  "scope": {
+    "review": "R386",
+    "product_head": "29db35ca",
+    "document_head": "128011bb",
+    "archive": "/tmp/codex-r386-04k8vfqm",
+    "live_access": false,
+    "own_product_changes": false
+  },
+  "probe_notes": {
+    "unload": "Only a review spec and firefox-core.json were added/replaced in the archive for two one-case runs; test.ts, runner, mock and replay checker unchanged. Beacon URLs receive distinct test query markers. The second accepted beacon remains routed/pending until context closure. Extra POST is an ordinary fetch. R386_EXTRA_POST=0 removes only that extra fetch.",
+    "preliminary_attempt": "A first route probe tried to distinguish the request body; BiDi did not expose it there, so no beacon was held. That preliminary green run is not evidence for the finding.",
+    "unit_environment": "System python lacked pytest. The repo test venv ran 26 PASS + 3 GPG setup errors in the sandbox, then all 29 PASS with local sockets allowed. No failed product assertion in that setup attempt.",
+    "chromium_environment": "First direct Playwright invocation failed before tests because vite was absent from PATH; rerun uses npx."
+  },
+  "chromium_dialogs": {
+    "stats": {
+      "startTime": "2026-11-16T14:23:04.203Z",
+      "duration": 150671.877,
+      "expected": 57,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "errors": [],
+    "workers": 3,
+    "test_file": "dialogs.spec.ts",
+    "result": "PASS"
+  },
+  "reproduction": {
+    "selector": "python <review>/vor-maschine.ff.r386.codex-selector.py <archive-root-at-29db35ca>; reads shipped selector and its scratch-repo fixture",
+    "browser": "Copy the review spec into the archive as lcnc-webui/e2e/codex-unload.spec.ts. In that archive only, replace firefox-core.json with required=[{file:codex-unload.spec.ts,titles:[the spec title]}], buildup=[]. Run scripts/test_select/firefox.py under the heavy lock with a fresh --out directory.",
+    "false_green": "R386_EXTRA_POST unset or 1. The second marked beacon is held; a fetch fills its count. All checks PASS.",
+    "negative_control": "R386_EXTRA_POST=0. Same held beacon, no extra fetch. firefox-core and firefox-executed FAIL after 5 seconds (received 1, expected >=2).",
+    "pristine_validation": "The original 86-case Firefox core was run before the probe. Original manifest was restored and probe spec removed before the Chromium dialog run."
+  }
+}
