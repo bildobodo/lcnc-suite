@@ -1,0 +1,10 @@
+head be5dd91f, the probe file unchanged (sha256 dda2d17da8c85a86), a slim copy of the tree
+r382_probe.py::test_wait_failure_aborts_before_reading_interpreter PASSED [ 12%]
+r382_probe.py::test_probe_restore_rechecks_after_wait[trip] PASSED       [ 25%]
+r382_probe.py::test_probe_restore_rechecks_after_wait[disconnect] PASSED [ 37%]
+r382_probe.py::test_surface_failure_does_not_write_before_admission[trip] PASSED [ 50%]
+r382_probe.py::test_surface_failure_does_not_write_before_admission[busy] PASSED [ 62%]
+r382_probe.py::test_only_a_lock_after_actual_send_is_a_start PASSED      [ 75%]
+r382_probe.py::test_control_actual_post_send_lock_passes PASSED          [ 87%]
+r382_probe.py::test_control_closed_baseline_sends_nothing PASSED         [100%]
+============================== 8 passed in 0.50s ===============================

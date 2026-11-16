@@ -1,0 +1,104 @@
+P1 the reader reads only trace.ndjson: 4 red
+    test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[foreign-before]: AssertionError: 0 start and 0 end marks — one of each expected
+    test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[foreign-during]: AssertionError: 0 start and 0 end marks — one of each expected
+    test_a_window_the_gateway_rotated_within_is_not_framed: AssertionError: {'events': [], 'file': None, 'framed': False, 'reason': '0 start and 1 end marks — one of each expected'}
+    test_the_trace_files_name_lcnc_traces_own_rotations: AssertionError: assert ('trace.ndjson',) == ('trace.ndjso...ace.ndjson.5')
+P2 a mark of any pid: 1 red
+    test_a_window_is_framed_only_by_one_start_and_one_end_mark_of_this_gateway: AssertionError: a foreign pid
+P3 damaged lines skipped: 1 red
+    test_a_window_is_framed_only_by_one_start_and_one_end_mark_of_this_gateway: AssertionError: a damaged line
+P4 marks in two files framed: 1 red
+    test_a_window_the_gateway_rotated_within_is_not_framed: AssertionError: {'events': [], 'file': 'trace.ndjson.1', 'framed': True, 'reason': None}
+P5 the job's line unchecked: 1 red
+    test_the_job_window_needs_exactly_the_handlers_one_job_and_its_one_delivery: AssertionError: ('another line', {'case': 'c', 'detail': 'probe_run started by its handler, its values and #3116 = 0 delivered once', 'jobs'
+P6 #3116 not required: 9 red
+    test_the_surface_step_passes_on_a_sim_that_does_what_it_should: AssertionError: {'surface-scan.job': "window: the delivery's numbers differ: missing [], extra ['3116']"}
+    test_the_surface_job_is_proven_from_the_trace_and_its_values: assert ('FAIL' == 'FAIL'
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run]: AssertionError: {'end': {'case': 'end', 'detail': "the routine's end not observed (injected wait deadline) — nothing read before the f...se'
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run-miss]: AssertionError: {'end': {'case': 'end', 'detail': "the routine's end not observed (injected wait deadline) — nothing read before the f...se'
+    test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[none]: AssertionError: {'case': 'probe-run', 'detail': "the delivery's numbers differ: missing [], extra ['3116']", 'jobs': [{'cmd': 'probe_run', '
+    test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[foreign-before]: AssertionError: {'case': 'probe-run', 'detail': "the delivery's numbers differ: missing [], extra ['3116']", 'jobs': [{'cmd': 'probe_run', '
+    … 3 more
+P7 a lock before the cursor counts: 1 red
+    test_a_probe_start_is_a_lock_after_the_send_from_a_free_baseline: AssertionError: {'baseline': True, 'case': 's', 'detail': 'free at the send, locked -0.100 s after the last frame before the send', 'status'
+P8 no baseline needed (evaluation): 1 red
+    test_a_probe_start_is_a_lock_after_the_send_from_a_free_baseline: AssertionError: assert ('PASS' == 'incomplete'
+P9 no baseline needed (the send): 1 red
+    test_a_probe_job_is_sent_only_from_a_free_override_and_starts_on_a_lock_after_it: Failed: DID NOT RAISE <class 'native_run.Refused'>
+P10 no restore after a failure: 3 red
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run]: IndexError: list index out of range
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run-miss]: IndexError: list index out of range
+    test_the_probe_run_case_restores_on_every_exit_and_never_after_a_trip: KeyError: 'probe-run.restore'
+P11 a restore after a trip: 7 red
+    test_the_probe_run_restore_stops_when_its_admission_goes[standstill-trip]: AssertionError: ['abort', 'standstill', 'override', 'standstill', 'features', 'standstill', ...]
+    test_the_probe_run_restore_stops_when_its_admission_goes[step-trip]: AssertionError: ['abort', 'standstill', 'override', 'standstill', 'features', 'standstill', ...]
+    test_the_probe_run_restore_stops_when_its_admission_goes[last-trip]: AssertionError: {'case': 'probe-run.restore', 'detail': 'aborted and standing, then the override free, the switches as first read, G54 Z0 an
+    test_the_surface_cleanup_has_the_same_admission[before-trip]: AssertionError: ['abort', 'standstill', 'off', 'standstill', 'standstill', 'g54', ...]
+    test_the_surface_cleanup_has_the_same_admission[standstill-trip]: AssertionError: ['abort', 'standstill', 'off', 'standstill', 'standstill', 'g54', ...]
+    test_the_surface_cleanup_has_the_same_admission[step-trip]: AssertionError: ['abort', 'standstill', 'off', 'standstill', 'standstill', 'g54', ...]
+    … 1 more
+P12 the switch's refusal not required: 1 red
+    test_a_refused_job_acts_nowhere_and_the_switch_says_so: AssertionError: assert 'PASS' == 'FAIL'
+P13 a refusal may act: 1 red
+    test_a_refused_job_acts_nowhere_and_the_switch_says_so: AssertionError: assert 'PASS' == 'FAIL'
+P14 the state around a refusal unchecked: 1 red
+    test_a_refusal_changes_nothing_and_one_case_keeps_every_proof: AssertionError: joint_pos
+P15 the miss plants before its baseline: 1 red
+    test_the_probe_miss_reads_a_planted_5070: AssertionError: ['mdi:G54', 'mdi:G92.1', 'mdi:G10 L2 P1 X0 Y0 Z0', 'read', 'to', 'mdi:G43 H99', ...]
+P16 a value naming 3116 planted: 1 red
+    test_a_plant_never_names_3116_as_the_gateway_reads_a_line: Failed: DID NOT RAISE <class 'ValueError'>
+P17 probe_run: the baseline after the plant's read-back: 1 red
+    test_every_probe_run_start_plants_after_its_baseline_and_reads_back_last: AssertionError: ('probe-run', ['to', 'mdi:G10 L2 P1 Z-167.655000', 'mdi:#5070=0', 'plant', 'read', 'free', ...])
+P18 probe_run: the baseline between plant and read-back: 1 red
+    test_every_probe_run_start_plants_after_its_baseline_and_reads_back_last: AssertionError: ('probe-run', ['to', 'mdi:G10 L2 P1 Z-167.655000', 'mdi:#5070=0', 'plant', 'free', 'read', ...])
+P19 the scan: the baseline after the plant: 1 red
+    test_the_scan_plants_after_its_baseline_and_reads_back_last: AssertionError: ['mdi:G21', 'mdi:G90', 'mdi:G94', 'mdi:G54', 'mdi:G92.1', 'mdi:G10 L2 P1 X0 Y0 Z-175 R0', ...]
+P20 the scan: the baseline after the read-back: 1 red
+    test_the_scan_plants_after_its_baseline_and_reads_back_last: AssertionError: ['mdi:G21', 'mdi:G90', 'mdi:G94', 'mdi:G54', 'mdi:G92.1', 'mdi:G10 L2 P1 X0 Y0 Z-175 R0', ...]
+P21 the read's tag may name 3116: 1 red
+    test_a_read_never_names_3116_whatever_the_clock: AssertionError: ['(DEBUG,NATIVE3116000 P5070=#5070)']
+P22 the hit reads before its failure finish: 1 red
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run]: assert (None)
+P23 the miss reads before its failure finish: 1 red
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run-miss]: assert (None)
+P24 an old start reads before its failure finish: 2 red
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-wait]: Failed: DID NOT RAISE <class 'Exception'>
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-miss-wait]: Failed: DID NOT RAISE <class 'Exception'>
+P25 an old start's raise without a finish: 2 red
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-raise]: AssertionError: []
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-miss-raise]: AssertionError: []
+P26 the scan reads before its failure finish: 1 red
+    test_a_scan_whose_wait_fails_aborts_before_any_read: assert ("TypeError: unsupported operand type(s) for +: 'NoneType' and 'float'" and 'wait deadline' in "TypeError: unsupported operand type(s
+P27 no admission after the standstill wait: 4 red
+    test_the_probe_run_restore_stops_when_its_admission_goes[standstill-trip]: AssertionError: ['abort', 'standstill', 'override']
+    test_the_probe_run_restore_stops_when_its_admission_goes[standstill-disconnect]: AssertionError: ['abort', 'standstill', 'override']
+    test_the_surface_cleanup_has_the_same_admission[standstill-trip]: AssertionError: ['abort', 'standstill', 'off']
+    test_the_surface_cleanup_has_the_same_admission[standstill-disconnect]: AssertionError: ['abort', 'standstill', 'off']
+P28 no admission after a step: 6 red
+    test_the_probe_run_restore_stops_when_its_admission_goes[step-trip]: AssertionError: ['abort', 'standstill', 'override', 'standstill']
+    test_the_probe_run_restore_stops_when_its_admission_goes[step-disconnect]: AssertionError: ['abort', 'standstill', 'override', 'standstill']
+    test_the_probe_run_restore_stops_when_its_admission_goes[last-trip]: AssertionError: {'case': 'probe-run.restore', 'detail': 'aborted and standing, then the override free, the switches as first read, G54 Z0 an
+    test_the_probe_run_restore_stops_when_its_admission_goes[last-disconnect]: AssertionError: {'case': 'probe-run.restore', 'detail': 'aborted and standing, then the override free, the switches as first read, G54 Z0 an
+    test_the_surface_cleanup_has_the_same_admission[step-trip]: AssertionError: ['abort', 'standstill', 'off', 'standstill']
+    test_the_surface_cleanup_has_the_same_admission[step-disconnect]: AssertionError: ['abort', 'standstill', 'off', 'standstill']
+P29 no standstill before each step: 3 red
+    test_the_probe_run_restore_stops_when_its_admission_goes[last-trip]: AssertionError: ['abort', 'standstill', 'override', 'features', 'g54', 'values']
+    test_the_probe_run_restore_stops_when_its_admission_goes[last-disconnect]: AssertionError: ['abort', 'standstill', 'override', 'features', 'g54', 'values']
+    test_a_restore_step_that_fails_is_named_and_the_next_judged_afresh: AssertionError: ['abort', 'standstill', 'override', 'features', 'g54', 'values']
+P30 the finish without its abort: 20 red
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-wait]: AssertionError: ['standstill']
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-raise]: AssertionError: ['standstill']
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-miss-wait]: AssertionError: ['standstill']
+    test_an_old_probe_start_that_fails_aborts_before_any_read[probe-z-miss-raise]: AssertionError: ['standstill']
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run]: AssertionError: ['free', 'save', 'mdi:G10 L2 P1 Z0', 'plant']
+    test_a_probe_run_start_whose_wait_fails_aborts_before_any_read[probe-run-miss]: AssertionError: ['free', 'save', 'mdi:G10 L2 P1 Z0', 'plant']
+    … 14 more
+P31 the cursor before the send: 2 red
+    test_only_a_lock_received_after_the_actual_send_is_a_start: AssertionError: {'baseline': True, 'case': 'probe-run.start', 'detail': 'free at the send, locked +0.000 s after the send', 'status': 'PASS'
+    test_a_probe_job_is_sent_only_from_a_free_override_and_starts_on_a_lock_after_it: AssertionError: {'cursor': 1, 'error': None, 'errors': [], 'reply': {'line': 'O<probe_z_minus_wco> CALL', 'mdi_set': True, 'ok': True, 'pers
+P32 frames appended outside the record lock: 1 red
+    test_a_frame_is_stamped_and_appended_under_the_record_lock: assert ([False] == [True]
+P33 a lock stamped before the send counts: 1 red
+    test_a_probe_start_is_timed_from_the_send_mark: AssertionError: {'baseline': True, 'case': 's', 'detail': 'free at the send, locked -0.050 s after the send', 'status': 'PASS', ...}
+P34 the time from the last frame, not the send: 1 red
+    test_a_probe_start_is_timed_from_the_send_mark: AssertionError: {'baseline': True, 'case': 's', 'detail': 'free at the send, locked +0.300 s after the send', 'status': 'PASS', ...}

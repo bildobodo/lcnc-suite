@@ -1,0 +1,10 @@
+B1 the probe send site sends mode 1: browser rc=1 (1 failed 1 passed), map guard rc=0 ()
+        Error: z_surface: the whole job
+        [32m- Expected  - 1[39m
+        [31m+ Received  + 1[39m
+B2 the scan send site changes #3054: browser rc=1 (1 failed 1 passed), map guard rc=0 ()
+        Error: surface_scan: the whole job
+        [32m- Expected  - 1[39m
+        [31m+ Received  + 1[39m
+rebuilt clean
+== end 2026-11-16T02:21:12+01:00

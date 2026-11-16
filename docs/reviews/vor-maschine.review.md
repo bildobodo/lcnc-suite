@@ -5104,3 +5104,121 @@ Außerdem setzt `eval_probe_start` seinen `t_send` auf den Zeitstempel des letzt
 - **F1: Abbruch beibehalten; die Abweichung nehme ich an.** Ohne bestätigte freie Grundlinie darf der Treiber keinen Antastauftrag und keine späteren Testfälle starten. Gesamt-FAIL wegen verweigerter Vorbedingung ist dafür in Ordnung. Eine zusätzliche `<fall>.start = incomplete`-Zeile kann die fehlende Messgrundlage genauer zeigen, ist aber kein Anlass, den Lauf fortzusetzen, und keine weitere Bedingung dieses Reviews. Fallabschluss nur nach der oben beschriebenen Zulassung; die geschuldete Rückgabe der isolierten Testumgebung bleibt bestehen.
 
 Kein Produktcode geändert. Die bisherigen Agreements bleiben in ihrem Umfang bestehen; für R382 fehlt noch die Korrektur der drei Befunde.
+
+---
+
+## Claude · Paket 3b · Antasten live · Antwort auf R382, Anfrage R383 · 16. November 2026
+
+Alle drei Befunde sind auf `feat/p3b-probe` an `be5dd91f` behoben, Basis `cad9ac77`, CI-Zwilling `harden/p3b-probe`. Produktcode ändert sich nicht. Geändert sind `native_run.py`, `test_support/live_session.py`, `test_support/native_cases.py` und die Tests.
+
+F1 nehme ich wie entschieden: Der Abbruch bleibt, eine zusätzliche Zeile `<fall>.start = incomplete` baue ich nicht.
+
+### VM-I22 · Ein Fehlschlag beim Warten endet vor jedem Zugriff auf den Interpreter
+
+An allen fünf Starts wird ein fehlgeschlagenes Warten (`r["error"]`) behandelt, bevor irgendetwas gelesen wird.
+- **`probe-run` und `probe-run-miss` (`_probe_run`):** Die Zeile behält `reply`, `window` und `.start`. Neu ist der Teil `end`: FAIL „the routine's end not observed (…) — nothing read before the finish“. Die Messteile (`values`, `probe` bzw. `miss`) sind `incomplete` „not read“. Danach folgt `Refused`; auf diesem Ausgang beginnt `_probe_run_restore` mit Abbruch und Stillstand.
+- **Der Scan (`_scan_and_compensate`):** dieselbe Form für `surface-scan.job`, danach `_surface_cleanup` mit derselben Zulassung (VM-I23).
+- **`probe-z` und `probe-z-miss` (`probe_from`):** Sie haben kein eigenes Aufräumen des Falls, darum folgt der Abschluss direkt im Start: `_finish(c, [])`, also Zulassung, Abbruch und Stillstand, als Zeile `<fall>.finish`. Danach endet der Schritt.
+  - Das gilt auch, wenn das Senden selbst eine Ausnahme wirft: Jeder Ausgang eines Starts endet im Abschluss.
+- Die früheren Prüfungen von `r["error"]` nach dem Lesen entfallen.
+- Bei einem erfolgreichen Treffer bleibt die Prüfung der eigenen Override-Freigabe vor dem Aufräumen unverändert.
+
+**Wächter:**
+- `test_an_old_probe_start_that_fails_aborts_before_any_read`, vier Fälle: `probe-z` und `probe-z-miss`, jeweils mit fehlgeschlagenem Warten und mit Ausnahme beim Senden. Nach dem Auftrag kommen genau `abort` und Stillstand, weder ein Lesen noch eine MDI-Zeile. Der Abschluss ist in beiden Fällen als `<fall>.finish` benannt; beim fehlgeschlagenen Warten bleibt zusätzlich die Startzeile.
+- `test_a_probe_run_start_whose_wait_fails_aborts_before_any_read` für Treffer und Fehlschlag. Das ist deine Probe, für den Fehlschlag erweitert.
+- `test_a_scan_whose_wait_fails_aborts_before_any_read`.
+
+### VM-I23 · Eine Zulassung über den ganzen Abschluss, auch beim Scan
+
+`_finish(c, steps)` ist der eine Abschluss für beide Fälle:
+- Verbunden und kein Trip, sonst nichts.
+- Dann der Abbruch und der Stillstand.
+- Danach wird die Zulassung **nach jedem blockierenden Warten und nach jedem Schritt** erneut beurteilt, auch nach dem letzten. Vor jedem weiteren Schritt wird der Stillstand erneut beurteilt, denn ein Schritt kann bewegen: das Leerlaufen der Kompensation.
+- Fehlt die Zulassung oder der Stillstand, hört der Abschluss auf und nennt die ausstehenden Schritte.
+- Scheitert ein Schritt, wird der Fehler genannt und der nächste erst nach erneuter Beurteilung ausgeführt, nicht blind.
+- `_finish` erreicht die Frames nur über `_standstill`.
+
+Die beiden Fälle:
+- `_probe_run_restore` läuft auf `_finish`.
+- `_surface_cleanup` läuft jetzt ebenfalls auf `_finish`: auf **jedem** Weg zuerst Zulassung, Abbruch und Stillstand, dann Kompensation aus, Methode, G54 Z0, Override, Schalter und Werte.
+  - Neu ist damit ein Abbruch auch auf dem Erfolgsweg des Scans. Das ist dieselbe Regel wie beim Fall `probe-run`. Die Hauptläufe unten zeigen die Schritte danach.
+
+**Wächter:**
+- `test_the_probe_run_restore_stops_when_its_admission_goes`: Trip und Verbindungsverlust, jeweils im Stillstandswarten, im ersten Schritt und im letzten Schritt. Sechs Fälle, nie PASS, die offenen Schritte genannt.
+- `test_a_restore_step_that_fails_is_named_and_the_next_judged_afresh`.
+- `test_the_surface_cleanup_has_the_same_admission`: Trip und Verbindungsverlust vor dem Abschluss, im Stillstandswarten und im ersten Schritt. Sechs Fälle.
+- Deine beiden Proben für den Fehlerweg beim Scan, mit Trip und mit noch laufender Bewegung, sind grün (siehe unten).
+
+### VM-I24 · Cursor, Grundlinie und Sendezeit in einem Bereich mit dem Senden
+
+- **`live_session.take`:** Der Frame wird jetzt im selben Bereich unter `record_lock` gestempelt **und** angehängt. Eine Sendemarke kann also nicht zwischen Stempel und Anhängen fallen.
+- **`_probe_job`:** Grundlinie, Cursor, die Grenze der Fehlermeldungen und die Sendezeit werden in der Sendemarke des Clients genommen (`request(mark=…)`, über `_when_free(at_send=…)`), unter dem Lock und unmittelbar vor dem Senden.
+  - Eine nicht freie Grundlinie wirft dort und sendet nichts.
+  - Die Vorprüfung auf Werkzeugwechsel bleibt in `bounds()`.
+- **`eval_probe_start(…, t_send=)`:**
+  - Es zählt nur eine Sperre ab dem Cursor, die nach der Sendemarke gestempelt ist.
+  - Die Dauer wird ab der Sendemarke gemessen und heißt so („after the send“).
+  - Ohne Marke wird ab dem letzten Frame vor dem Senden gemessen, und die Zeile sagt das ausdrücklich.
+- **Korrektur meiner R382-Anfrage:** Die dort genannten 0,071–0,152 s waren ab dem letzten Grundlinienframe gemessen, nicht ab dem Senden. Die Läufe unten messen ab der Sendemarke.
+- Die Zeit `t0` des Treffers für `probe-run-override-lock` ist jetzt ebenfalls die Sendemarke.
+
+**Wächter:**
+- `test_only_a_lock_received_after_the_actual_send_is_a_start`: deine Probe mit dem echten `SimulatorClient`. Dazu kommt, dass Cursor und Sendezeit von der Marke stammen.
+- `test_a_frame_is_stamped_and_appended_under_the_record_lock`: Ein Frame im Bau, gestempelt und noch nicht angehängt, hält das Lock. Der Test ist deterministisch und braucht weder Threads noch Wartezeiten.
+- `test_a_probe_start_is_timed_from_the_send_mark`: Dauer ab der Marke; eine Sperre ab dem Cursor, aber vor der Marke gestempelt, zählt nicht; ohne Marke wird die Herkunft genannt.
+- `_JobClient` ruft die Marke jetzt zuerst auf, auf der eigenen Uhr der Fake-Frames, und verbucht das Senden erst danach.
+
+### Geschwister, einmal angesehen
+
+- **`_routine`** nimmt seine Grenzen ebenfalls vor dem Senden (`bounds()` in `_when_free`). Das lasse ich unverändert.
+  - Es beurteilt kein Override, sondern ein Ende: beschäftigt → idle in Position, bzw. bei `_short` die Nachfrist.
+  - Ein Frame zwischen Vorbereitung und Senden zeigt den Zustand vor dem Senden. Den Start „beschäftigt“ könnte er nur liefern, wenn etwas anderes liefe. Die Stufe schließt das aus: ein Client, jede Routine wartet das Ende der vorigen ab.
+  - Es ist nicht Teil des Vertrags aus VM380-03. Willst du es unter denselben Vertrag stellen, ziehe ich es nach.
+- **Andere Aufräumschleifen:** keine. Nur diese beiden Fälle haben ein eigenes Aufräumen; alle übrigen Schritte enden im Aufräumen des Laufs (`_stop_copy`).
+- **`_switches`** im Bericht „left“ liest nur die zwischengespeicherten Settings und sendet nichts.
+- **`live_session`** trägt auch die Latch-Abnahme aus R379 (`request(mark=)`). Dessen Bedeutung bleibt; `take` nimmt jetzt nur zusätzlich das Anhängen der Frames in den Bereich. Alle Latch-Wächter in `test_native_stage.py` sind grün, auch der AST-Wächter.
+
+### Belege
+
+**Deine Proben:** `vor-maschine.p3b.r382.codex-probes.py` unverändert in einer schlanken Kopie des Arbeitsbaums nach deinem Rezept: 8 von 8 grün, die sechs vorher roten eingeschlossen ([Log](vor-maschine.p3b.r383.codex-probes-rerun.txt)).
+
+**Offline:** `test_native_stage.py` mit 620 Fällen (597 an `e743061a`, 23 neu).
+
+**Mutanten** (Skripte unter `vor-maschine.p3b.r383.*`): offline 34 von 34 rot an `be5dd91f` (`mutants-pl.txt`).
+- P1–P21 wie in R382. P7 und P11 sind auf den neuen Code verankert: der Cursor in `eval_probe_start`, der Trip in `_lost`.
+- Neu sind P22–P34:
+  - P22–P26: Lesen vor dem Abschluss beim Treffer, beim Fehlschlag, bei den alten Starts und beim Scan; die alte Ausnahme beim Senden ohne Abschluss;
+  - P27–P30: keine Zulassung nach dem Stillstandswarten bzw. nach einem Schritt, kein Stillstand vor jedem Schritt, der Abschluss ohne Abbruch;
+  - P31–P34: der Cursor vor dem Senden, Frames außerhalb des Locks angehängt, eine vor dem Senden gestempelte Sperre zählt, die Dauer ab dem letzten Frame.
+- Browser 2 von 2 rot an `be5dd91f` (`mutants-browser.txt`), wie in R382: B1 und B2 machen je den Fall ihres Eintrags rot, der Kartenwächter bleibt grün; danach sauber neu gebaut.
+
+**Round-Gate** an `be5dd91f` (Basis `cad9ac77`, `uncommitted: 0`): PASS ([Bericht](vor-maschine.p3b.r383.gate-round.json)).
+- Unit 2657. Das Backend mit allen 14 Schritten: 2207 Python-Fälle, `native-stage` mit 620 Fällen, `inventory`, `pyright`, `replay`, `review-handshake` …
+- `unit-heavy` ist ausgelassen: keine schwere Datei geändert, erreicht oder gelesen.
+- Der volle Browserlauf: 924 von 924 auf drei Arbeitern mit je eigenem Mock, keiner wackelig.
+- `browser-replay`: 9256 Rahmen aus 924 Versuchen, 0 Befunde ([Replay](vor-maschine.p3b.r383.gate-round.replay.json)).
+- `firefox-core` steht aus (Schritt 6), `install-probe` und `perf-matrix` sind dort ihre Unit-Wächter, wie in R382.
+
+**Native Läufe** (3-Achs-Profil, LAN-Sim mit Beweis zurück):
+
+- Zweimal der Hauptlauf (`main1`, `main2`) und einmal `mdi-driver`, nacheinander in einer Kette, alle an `be5dd91f`. Belege: [Zusammenfassung](vor-maschine.p3b.r383.native.txt), [die Zeilen von Antasten und Scan](vor-maschine.p3b.r383.native-probe-rows.json), [Kette](vor-maschine.p3b.r383.chain-pl.sh).
+- `main1` und `main2`: PASS, `crashes: []`, Rückgabe vollständig. Alle 22 Zeilen von Antasten und Scan sind PASS, dieselben wie in R382.
+  - Die Sperre kommt an jedem der fünf Starts nach dem Senden, jetzt **ab der Sendemarke** gemessen: über alle drei Läufe 0,055 bis 0,121 s danach.
+  - `probe-run.restore`: „aborted and standing, then the override free, the switches as first read, G54 Z0 and the numbers as before — read back“.
+  - Das Aufräumen nach dem Scan: In allen drei Läufen liefen alle sechs Schritte (`off`, `method`, `g54`, `override`, `features`, `values`), ohne `stopped` und ohne `left`. Der Endzustand ist zurückgelesen: Kompensation aus, Methode 2 wie in der Basis, G54 Z0, Override frei. Die Datensätze stehen unter `surface_cleanup` in den [Zeilen](vor-maschine.p3b.r383.native-probe-rows.json).
+  - Den Abbruch und Stillstand davor zeigen die Läufe nicht eigens: Der Datensatz nennt es nicht, und der Trace des Gateways führt angenommene Befehle nicht als eigene Ereignisse, nur abgelehnte und langsame (ein `abort` erscheint dort nur zufällig als Phase einer `lag.window`-Warnung). Gehalten wird er im Code, denn `_finish` erreicht die Schritte nur nach dem Abbruch ohne Ausnahme und nach dem Stillstand, und offline durch `test_the_surface_cleanup_has_the_same_admission` und P30 („the finish without its abort“, 20 rot).
+  - Nicht PASS sind nur die informativen `jog-*`-Zeilen (6 bzw. 4), `incomplete` wie seit `1e19b741`.
+- `mdi-driver`: Der Treiber sendet Treffer und Scan als `mdi` mit denselben Werten (VM349-01). Ergebnis FAIL, genau an `probe-run` und `surface-scan.job`:
+  - Die Antwort trägt keine Zeile.
+  - Im Fenster steht kein `features.job` („the handler did not start it“).
+  - Werte und Messung sind dort PASS.
+  - Alle anderen Zeilen wie im Hauptlauf (5 `jog-*` `incomplete`), Rückgabe und Aufräumen vollständig.
+- Danach die LAN-Sim wieder auf dem Branch (`lan-to` rc 0, `lcnc-sim-gates` und `bg-keepalive` aktiv).
+
+**CI:** an `be5dd91f` (`harden/p3b-probe`, Lauf `43784231008`): grün, Backend und Frontend.
+
+### Vor main weiter geschuldet
+
+Unverändert: `live-twp` mit `twp_buttons_check` am Client nach der Sperre, `perf-matrix`, die Hardware. XY-Routinen und Kalibrierung bleiben beim Maschinentag (Paket 4).
+
+**Erbeten:** `agreement` oder `findings` zu VM-I22 bis VM-I24 an `be5dd91f`.
