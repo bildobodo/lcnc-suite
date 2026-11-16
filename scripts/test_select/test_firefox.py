@@ -119,3 +119,78 @@ def test_a_binary_that_cannot_be_fetched_fails_a_merge_and_stands_pending_in_a_r
         assert "could not be fetched" in r["checks"][0]["why"][0]
     else:
         assert r["checks"] == [] and r["pending"]["status"].startswith("pending: the pinned Firefox")
+
+
+# ── The unload's receipt (Codex R386 VM-I25) ─────────────────────────────
+def unload(title: str, test: str, **kw) -> dict:
+    return {"event": "unload", "run": "r", "title": title, "testId": test, "retry": 0, **kw}
+
+
+DONE = {"nonce": "n", "beacons": 2, "received": 2, "missing": [], "foreign": [], "twice": [], "posts": 2}
+
+
+def test_an_attempt_whose_app_loaded_needs_its_complete_unload(tmp_path: Path):
+    d = tmp_path / "replay"
+    d.mkdir()
+    lines = [{"kind": "http", "method": "GET", "path": "/", "status": 200, "origin": {"run": "r", "test": t, "retry": 0}}
+             for t in ("a", "b", "c", "d")]
+    lines += [{"kind": "http", "method": "GET", "path": "/", "status": 200, "origin": {"run": "other", "test": "z", "retry": 0}},
+              {"kind": "http", "method": "GET", "path": "/static/x.js", "status": 200, "origin": {"run": "r", "test": "e", "retry": 0}}]
+    (d / "r-1.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    loaded = firefox.loaded_attempts(d, "r")
+    assert loaded == {("a", 0), ("b", 0), ("c", 0), ("d", 0)}
+    ev = [unload("A", "a", **DONE),
+          unload("B", "b", skipped="the page is closed"),                                 # loaded: red
+          unload("C", "c", **{**DONE, "received": 1, "missing": ["n.2"]}),                 # incomplete: red
+          unload("S", "s", skipped="the page is not the mock's app (http://localhost:4173/)"),  # not loaded: fine
+          unload("X", "a", run="other", skipped="x")]                                      # another run: not read
+    problems = firefox.check_unloads(ev, "r", loaded)
+    assert problems == ["B [retry 0]: its app loaded, its unload skipped: the page is closed",
+                        "C [retry 0]: 2 beacon(s), 1 received, missing ['n.2'], foreign [], twice []",
+                        "d [retry 0]: its app loaded, no unload event"]
+    assert firefox.check_unloads([unload("A", "a", **DONE)], "r", {("a", 0)}) == []
+
+
+def guard_report(held=("failed", "expected", "failed", "the unload's beacons not received while its context lives: …"),
+                 control=("passed", "expected", "passed", "")) -> dict:
+    def spec(title, case):
+        exp, outcome, status, msg = case
+        return {"title": title, "file": "firefox-unload.guard.ts", "tests": [{
+            "expectedStatus": exp, "status": outcome,
+            "results": [{"status": status, "errors": [{"message": msg}] if msg else []}]}]}
+    return {"suites": [{"title": "firefox-unload.guard.ts", "specs": [
+        spec("held: the unload's second beacon never reaches the mock while an unrelated POST does", held),
+        spec("control: every beacon of the unload reaches the mock", control)], "suites": []}]}
+
+
+HELD_EV = {"nonce": "n", "beacons": 2, "received": 1, "missing": ["n.2"], "foreign": [], "twice": [], "posts": 2}
+
+
+def guard_events(held=HELD_EV, control=DONE) -> list[dict]:
+    return [unload("held: the unload's second beacon never reaches the mock while an unrelated POST does", "h", **held),
+            unload("control: every beacon of the unload reaches the mock", "c", **control)]
+
+
+def test_the_unload_guard_passes_only_on_its_counter_case():
+    assert firefox.judge_unload_guard(guard_report(), guard_events(), "r") == []
+    # the held case PASSED (a count-based unload): red
+    assert any("not refused" in p for p in firefox.judge_unload_guard(
+        guard_report(held=("failed", "unexpected", "passed", "")), guard_events(), "r"))
+    # failed for another reason (the app never loaded): red
+    assert any("not refused for its beacon" in p for p in firefox.judge_unload_guard(
+        guard_report(held=("failed", "expected", "failed", "expect(locator).toBeVisible() failed")), guard_events(), "r"))
+    # the event is not the counter-case: fewer POSTs than beacons, the wrong mark, two marks missing
+    for ev in ({**HELD_EV, "posts": 1}, {**HELD_EV, "missing": ["n.1"]},
+               {**HELD_EV, "received": 0, "missing": ["n.1", "n.2"]}):
+        assert any("not the counter-case" in p for p in firefox.judge_unload_guard(guard_report(), guard_events(held=ev), "r")), ev
+    # no event for the held case
+    assert "held: no unload event" in firefox.judge_unload_guard(guard_report(), guard_events()[1:], "r")
+    # the control failed or lost a beacon
+    assert any(p.startswith("control: expected") for p in firefox.judge_unload_guard(
+        guard_report(control=("passed", "unexpected", "failed", "x")), guard_events(), "r"))
+    assert any(p.startswith("control: not every beacon") for p in firefox.judge_unload_guard(
+        guard_report(), guard_events(control={**DONE, "received": 1, "missing": ["n.2"]}), "r"))
+    # the wrong cases ran
+    r = guard_report()
+    r["suites"][0]["specs"] = r["suites"][0]["specs"][:1]
+    assert firefox.judge_unload_guard(r, guard_events(), "r")[0].startswith("the guard ran")

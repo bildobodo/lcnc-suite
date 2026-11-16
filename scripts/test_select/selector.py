@@ -187,6 +187,12 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
     deleted = {p for s, p in changes if s in ("D", "R-from")}
 
     browser: set[str] = set()
+    via: dict[str, set[str]] = {}   # spec → the changed paths that select it (the Firefox core's wording)
+
+    def pick(names, path: str) -> None:
+        for n in names:
+            browser.add(n)
+            via.setdefault(n, set()).add(path)
     browser_full: list[str] = []
     backend: list[str] = []
     heavy: list[str] = []          # reasons
@@ -206,7 +212,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
         if m_spec or m_shot:
             name = (m_spec or m_shot).group(1)
             if name in specs:
-                browser.add(name)
+                pick([name], path)
                 row["decision"] = f"the spec itself: {name}"
             else:
                 row["decision"] = "a spec that is gone at head: nothing to run"
@@ -231,7 +237,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
             if d.unmatched:     # no central rule: the specs reaching it through their imports
                 reaching = graph.specs_reaching(path)
                 if reaching:
-                    browser |= reaching
+                    pick(reaching, path)
                     row["decision"] = "an e2e helper: the specs reaching it: " + ", ".join(sorted(reaching))
                 else:
                     browser_full.append(f"{path}: an e2e helper no spec reaches")
@@ -248,7 +254,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
         owner = "no rule owns it (fail closed)" if d.unmatched else d.rules[0]
         if d.browser_full:
             browser_full.append(f"{path}: {owner}")
-        browser |= d.browser
+        pick(d.browser, path)
         if d.backend:
             backend.append(f"{path}: {owner}")
         if d.heavy:
@@ -265,11 +271,11 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
                 heavy.append(f"{path}: read by {f}")
                 heavy_files.add(f)
             elif m:
-                browser.add(m.group(1))
+                pick([m.group(1)], path)
             else:   # an e2e helper's read selects the specs reaching the helper
-                browser |= graph.specs_reaching(f)
+                pick(graph.specs_reaching(f), path)
         if path.startswith(S_SRC) and not gone:   # a src module the specs import themselves
-            browser |= graph.specs_reaching(path)
+            pick(graph.specs_reaching(path), path)
         if readers:
             row["reads"] = readers
         row.setdefault("decision", "the rules: " + "; ".join(d.rules))
@@ -280,6 +286,20 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
     if missing and not historical:
         raise SelectError(f"rules name specs that do not exist at head: {missing}")
     browser -= set(missing)   # a dry run on an older head: the rules are newer than it
+
+    # The Firefox core (Codex R386 VM-I26): decided ONCE, from the final sets —
+    # a path that selects it itself, a core spec in the browser selection by
+    # WHATEVER way (the spec, a helper, a read, a src import, a rule), or the
+    # full browser run on a head that has a core (an unknown source, an
+    # unresolved import). The recorded paths only word it: a core spec with
+    # none recorded is still needed.
+    in_core = sorted(browser & core_specs)
+    ff_needed = bool(firefox) or (bool(core_specs) and (bool(browser_full) or bool(in_core)))
+    ff_reasons = [f"{p}: selects the Firefox core itself" for p in firefox]
+    if core_specs:
+        ff_reasons += [f"the full browser run holds the core: {r}" for r in browser_full]
+        ff_reasons += [f"{p} → {n} (a core spec)" for n in in_core for p in sorted(via.get(n) or {"(no path recorded)"})]
+    ff_paths = sorted(set(firefox) | {p for n in in_core for p in via.get(n, ())})
 
     if vitest_files is None:
         heavy.append("vitest list --changed not asked: the whole heavy group (fail closed)")
@@ -309,7 +329,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
                           ["no path selects a browser spec"]}),
         "backend": ({"run": True, "reasons": backend} if backend else
                     {"run": False, "reasons": ["no path under a backend rule: a UI-only round"]}),
-        "firefox": ({"needed": True, "paths": firefox} if firefox else {"needed": False}),
+        "firefox": ({"needed": True, "paths": ff_paths, "reasons": ff_reasons} if ff_needed else {"needed": False}),
         "live": {k: sorted(set(v)) for k, v in sorted(live.items())},
     }
 

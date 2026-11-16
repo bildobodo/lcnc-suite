@@ -15,7 +15,17 @@ In order, each a check of its own:
                     "skipped" has the right count too — Codex R385)
   firefox-workers   each test on its own worker's mock (proof.check_workers)
   firefox-browser   every worker's STARTED browser is the pinned version
+  firefox-unload    every attempt whose app loaded from its mock was unloaded
+                    in its context, each beacon received by its own mark
+                    (e2e/test.ts unloadInContext); a skip there is red
+  firefox-unload-guard  a second run of e2e/firefox-unload.guard.ts: a held
+                    beacon beside an unrelated POST must fail the unload AT
+                    that beacon's mark, the control must pass (Codex R386
+                    VM-I25) — judged on the fixture's event, not only on
+                    Playwright's expected failure
   firefox-replay    the run's frames against the gateway's rules (gate only)
+Each Playwright run writes its failure artefacts into its own folder under
+the logs (--output): a later run never overwrites them (Codex R386).
 The record names the pin, the arch, the archive's SHA256, Playwright's
 version, the look-up for a newer release (current | newer | unknown) and
 every image NOT compared, with its reason (R385 F1 b: references are
@@ -127,6 +137,96 @@ def check_browser(events: list[dict], run: str, pinned: str) -> list[str]:
             for e in seen if e.get("name") != "firefox" or e.get("version") != pinned]
 
 
+def _replay_lines(replay_dir: Path) -> list[dict]:
+    out = []
+    for f in sorted(replay_dir.glob("*.jsonl")) if replay_dir.is_dir() else []:
+        for line in f.read_text().splitlines():
+            if line.strip():
+                out.append(json.loads(line))
+    return out
+
+
+def loaded_attempts(replay_dir: Path, run: str) -> set[tuple[str, int]]:
+    """The attempts (test id, retry) whose app loaded from their mock: a GET of
+    the app's page answered 200 with the attempt's cookie (replay.py's rule)."""
+    out = set()
+    for rec in _replay_lines(replay_dir):
+        o = rec.get("origin")
+        if (rec.get("kind") == "http" and rec.get("method") == "GET" and rec.get("path") in ("/", "/index.html")
+                and rec.get("status") == 200 and isinstance(o, dict) and o.get("run") == run):
+            out.add((o.get("test"), o.get("retry")))
+    return out
+
+
+def check_unloads(events: list[dict], run: str, loaded: set[tuple[str, int]]) -> list[str]:
+    """Every attempt whose app loaded has its unload event, every beacon of
+    it received; a skipped unload is red where the app loaded (Fable R386: the
+    early return was a silent skip of the proof)."""
+    unloads = [e for e in events if e.get("event") == "unload" and e.get("run") == run]
+    seen = {(e.get("testId"), e.get("retry")) for e in unloads}
+    problems = []
+    for e in unloads:
+        key = (e.get("testId"), e.get("retry"))
+        if e.get("skipped") is not None:
+            if key in loaded:
+                problems.append(f"{e.get('title')} [retry {e.get('retry')}]: its app loaded, its unload skipped: {e['skipped']}")
+        elif e.get("missing") or e.get("foreign") or e.get("twice") or e.get("received") != e.get("beacons"):
+            problems.append(f"{e.get('title')} [retry {e.get('retry')}]: {e.get('beacons')} beacon(s), {e.get('received')} received, "
+                            f"missing {e.get('missing')}, foreign {e.get('foreign')}, twice {e.get('twice')}")
+    problems += [f"{t} [retry {r}]: its app loaded, no unload event" for t, r in sorted(loaded - seen, key=str)]
+    return problems
+
+
+GUARD_HELD, GUARD_CONTROL = "held: ", "control: "
+
+
+def judge_unload_guard(report: dict, events: list[dict], run: str) -> list[str]:
+    """e2e/firefox-unload.guard.ts judged (Codex R386 VM-I25): the held case
+    failed as expected AT its second beacon — one mark missing, the one that
+    ends in `.2`, while the POSTs recorded meanwhile were at least as many as
+    the beacons (a count would have passed); the control passed with every
+    beacon received."""
+    results = {}
+
+    def walk(suite: dict):
+        for sp in suite.get("specs", []):
+            for t in sp.get("tests", []):
+                results[sp["title"]] = (t.get("expectedStatus"), t.get("status"),
+                                        [r.get("status") for r in t.get("results", [])],
+                                        " ".join(e.get("message", "") for r in t.get("results", []) for e in r.get("errors", [])))
+        for x in suite.get("suites", []):
+            walk(x)
+    for su in report.get("suites", []):
+        walk(su)
+    held = [k for k in results if k.startswith(GUARD_HELD)]
+    control = [k for k in results if k.startswith(GUARD_CONTROL)]
+    if len(results) != 2 or len(held) != 1 or len(control) != 1:
+        return [f"the guard ran {sorted(results)} — one held and one control case expected"]
+    ev = {e.get("title"): e for e in events if e.get("event") == "unload" and e.get("run") == run}
+    problems = []
+    exp, outcome, statuses, errors = results[held[0]]
+    if (exp, outcome, statuses) != ("failed", "expected", ["failed"]):
+        problems.append(f"held: expected {exp}, outcome {outcome}, results {statuses} — the unload was not refused")
+    if "not received while its context lives" not in errors:
+        problems.append(f"held: not refused for its beacon: {errors[:200]}")
+    e = ev.get(held[0])
+    if e is None:
+        problems.append("held: no unload event")
+    else:
+        miss = e.get("missing") or []
+        if not (len(miss) == 1 and str(miss[0]).endswith(".2") and e.get("received") == (e.get("beacons") or 0) - 1
+                and (e.get("beacons") or 0) >= 2 and (e.get("posts") or 0) >= e.get("beacons")):
+            problems.append(f"held: the event is not the counter-case (missing exactly the .2 mark, POSTs >= beacons): {e}")
+    exp, outcome, statuses, _ = results[control[0]]
+    if (exp, outcome, statuses) != ("passed", "expected", ["passed"]):
+        problems.append(f"control: expected {exp}, outcome {outcome}, results {statuses}")
+    e = ev.get(control[0])
+    if e is None or e.get("missing") or e.get("foreign") or e.get("twice") or not e.get("beacons") \
+            or e.get("received") != e.get("beacons"):
+        problems.append(f"control: not every beacon received: {e}")
+    return problems
+
+
 def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = False) -> dict:
     """The Firefox core's checks into `logs`. `missing` is what a binary
     that cannot be fetched makes of the step: "FAIL" (the merge gate, CI) or
@@ -182,7 +282,7 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
         return {"checks": checks, "pending": None, "info": info}
 
     c = rg.run("firefox-core", ["npx", "playwright", "test", "-c", CONFIG, "--forbid-only", "--trace", "off",
-                                "--reporter=line,json"], WEB, logs, env)
+                                "--reporter=line,json", "--output", str(logs / "test-results")], WEB, logs, env)
     rg.judge(c, rg.playwright_counts(report))
     checks.append(c)
     if not (report.is_file() and report.stat().st_size):
@@ -205,14 +305,45 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
     # the run's real worker count and duration (Codex R385 F3: CI names them)
     info["workers"] = {"asked": rg.WORKERS, "report": (ran.get("config") or {}).get("workers"),
                        "seconds": c.get("seconds")}
-    info["unloads"] = [{k: e.get(k) for k in ("title", "beacons", "recorded")} for e in log
-                       if e.get("event") == "unload" and e.get("run") == run_id]
+    unload_events = [e for e in log if e.get("event") == "unload" and e.get("run") == run_id]
+    info["unloads"] = [{k: e.get(k) for k in ("title", "beacons", "received", "posts")} for e in unload_events
+                       if e.get("skipped") is None]
+    info["unloads_skipped"] = [{"title": e.get("title"), "why": e.get("skipped")} for e in unload_events
+                               if e.get("skipped") is not None]
+    loaded = loaded_attempts(replay_dir, run_id)
+    unload = check_unloads(log, run_id, loaded)
+    checks.append({"name": "firefox-unload", "status": "FAIL" if unload else "PASS",
+                   **({"why": unload[:20]} if unload else {"loaded": len(loaded), "unloads": len(info["unloads"]),
+                                                           "skipped": len(info["unloads_skipped"])})})
+    checks.append(unload_guard(logs / "guard", fetched["binary"], rg))
     if replay_on:
         t1 = time.monotonic()
         r = rg.replay_check(replay_dir, events, run_id, logs / "firefox-replay.json")
         r["name"], r["seconds"] = "firefox-replay", round(time.monotonic() - t1, 1)
         checks.append(r)
     return {"checks": checks, "pending": None, "info": info}
+
+
+def unload_guard(d: Path, binary: str, rg) -> dict:
+    """The second Playwright run: e2e/firefox-unload.guard.ts alone, with its
+    own output, events, replay logs and run id (Fable R386: a shared output
+    folder would erase the core run's failure artefacts)."""
+    import shutil
+    shutil.rmtree(d, ignore_errors=True)
+    d.mkdir(parents=True)
+    report, events, run_id = d / "guard.json", d / "guard-events.jsonl", f"firefox-guard-{uuid.uuid4()}"
+    env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report),
+           "LCNC_E2E_EVENTS": str(events), "LCNC_E2E_RUN": run_id, "LCNC_E2E_WORKERS": str(rg.WORKERS),
+           "LCNC_E2E_REPLAY_DIR": str(d / "replay"), "LCNC_FIREFOX": binary, "LCNC_FIREFOX_SET": "unload-guard"}
+    c = rg.run("firefox-unload-guard", ["npx", "playwright", "test", "-c", CONFIG, "--forbid-only", "--trace", "off",
+                                        "--reporter=line,json", "--output", str(d / "test-results")], WEB, d, env)
+    if not (report.is_file() and report.stat().st_size):
+        return {**c, "status": "FAIL", "why": [f"no report of the guard run (exit {c.get('exit')})"]}
+    log = [json.loads(line) for line in events.read_text().splitlines()] if events.is_file() else []
+    problems = judge_unload_guard(json.loads(report.read_text()), log, run_id)
+    # the held case fails by design: the run's own exit code is not the verdict, the judgment is
+    return {"name": "firefox-unload-guard", "status": "FAIL" if problems else "PASS", "seconds": c.get("seconds"),
+            "run": run_id, **({"why": problems} if problems else {})}
 
 
 def main(argv: list[str] | None = None) -> int:

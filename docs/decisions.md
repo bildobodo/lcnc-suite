@@ -11635,10 +11635,22 @@ Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
   attempt. Navigating away first still lost one in about four runs, and a
   wait for a fixed two beacons after navigating to about:blank found only one
   at the mock in some cases (whether Firefox sent the second is not
-  established): the fixture counts the page's own beacons in sessionStorage,
-  unloads into a neutral document of the SAME origin and closes the context
-  once the mock recorded that many (two in each of 82 unloads, round gate at
-  4600d845).
+  established): the fixture unloads into a neutral document of the SAME
+  origin and closes the context only once each beacon the page handed off
+  reached the mock. First this was a COUNT of POSTs against the page's own
+  count of beacons — Codex R386 VM-I25 held the second beacon back while an
+  unrelated POST went through: the count was met, the test, every check and
+  the replay green. Now each beacon carries its own mark
+  (`e2e_beacon=<nonce>.<n>`) and is received only by a POST with that mark
+  and the attempt's cookie (`e2e/unloadReceipts.ts`); Codex's counter-case is
+  kept as `e2e/firefox-unload.guard.ts` (check `firefox-unload-guard`), and a
+  skipped unload where the app loaded is red (`firefox-unload`).
+
+**Selection (Codex R386 VM-I26).** A round runs the core when a core spec is
+in the browser selection by ANY path — first only a changed spec, a Firefox
+reference or a `firefox` rule did, so a shared helper of a core spec, the
+data it reads and the fail-closed full run went without the second browser.
+`selector.py` decides it once from the final sets and names each path.
 
 **Not done.** A second set of x86_64 references (R385 F1 a): images made
 where nobody reviews them. ESR and the machine PC's browser wait for the

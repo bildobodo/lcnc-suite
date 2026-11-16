@@ -229,12 +229,14 @@ RULES: tuple[Rule, ...] = (
           W + "tsconfig.json", W + "tsconfig.app.json", W + "playwright.config.ts",
           W + "playwright.select.config.ts", W + "playwright.gate.config.ts", W + "e2e/mock-gateway.mjs",
           W + "e2e/ctl.ts", W + "e2e/layout-fixtures.ts", W + "e2e/layout-audit.ts",
-          W + "e2e/test.ts", W + "e2e/mockFixture.ts", W + "e2e/mockSlot.mjs", W + "e2e/mockSlot.d.mts"),
+          W + "e2e/test.ts", W + "e2e/mockFixture.ts", W + "e2e/mockSlot.mjs", W + "e2e/mockSlot.d.mts",
+          W + "e2e/unloadReceipts.ts"),
          "build, test configuration or the shared mock and fixtures",
          browser=FULL, firefox=True),
-    Rule((W + "playwright.firefox.config.ts", W + "e2e/firefox.json", W + "e2e/firefox-core.json"),
-         "the Firefox core's config, pin and set: its own step (plan vor-maschine R385), no Chromium spec "
-         "reads them", firefox=True),
+    Rule((W + "playwright.firefox.config.ts", W + "e2e/firefox.json", W + "e2e/firefox-core.json",
+          W + "e2e/firefox-unload.guard.ts"),
+         "the Firefox core's config, pin, set and the unload guard (Codex R386 VM-I25): its own step "
+         "(plan vor-maschine R385), no Chromium spec reads them", firefox=True),
     Rule((W + "eslint.config.js",), "lint configuration: lint runs in every round",
          none="lint runs in every round"),
     Rule((W + "e2e-proof/**", W + "playwright.proof.config.ts"),

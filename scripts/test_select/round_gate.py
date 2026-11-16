@@ -79,7 +79,8 @@ def as_merge(sel: dict) -> dict:
             "unit": {**sel["unit"], "heavy": sorted(HEAVY_UNIT), "heavy_reasons": {f: [MERGE_REASON] for f in HEAVY_UNIT}},
             "backend": {"run": True, "reasons": [MERGE_REASON]},
             "browser": {"run": FULL, "reasons": [MERGE_REASON]},
-            "firefox": {**sel.get("firefox", {}), "needed": True, "reasons": [MERGE_REASON]}}
+            "firefox": {**sel.get("firefox", {}), "needed": True,
+                        "reasons": [MERGE_REASON, *sel.get("firefox", {}).get("reasons", [])]}}
 
 
 def plan(sel: dict) -> list[str]:

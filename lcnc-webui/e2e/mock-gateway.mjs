@@ -108,7 +108,12 @@ const server = createServer(async (req, res) => {
   const path = decodeURIComponent((req.url || "/").split("?")[0]);
   if (REPLAY) {
     const origin = originOf(req), reqId = req.headers["x-e2e-req"] ?? null;
-    res.on("finish", () => replay({ kind: "http", method: req.method, path, origin, req_id: reqId, status: res.statusCode }));
+    // a page's unload beacon carries its mark in the query (e2e/test.ts
+    // unloadInContext, Codex R386 VM-I25): the receipt is matched by it
+    const query = (req.url || "").includes("?") ? new URLSearchParams((req.url || "").split("?").slice(1).join("?")) : null;
+    const beacon = query?.get("e2e_beacon") ?? null;
+    res.on("finish", () => replay({ kind: "http", method: req.method, path, origin, req_id: reqId, status: res.statusCode,
+                                    ...(beacon !== null ? { beacon } : {}) }));
   }
   if (path === "/macros") {
     // Package 5: the macro folder of a configuration without one (specs that

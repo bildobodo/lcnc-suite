@@ -284,8 +284,8 @@ operator saw in 159; the pin shows it natively).
   5 min: `probe-click`, `tabs`, the other dialog rows on the desktop, then
   in portrait, the desktop strip rows of `visual.spec` (its tool dialog left
   out: headless Firefox under BiDi has no WebGL here — `getContext("webgl2")`
-  and `("webgl")` are null). Measured 2026-11-16: 86 tests in 101–138 s on
-  the VM's three workers; CI (x86_64, one worker): the required 26 in 42 s.
+  and `("webgl")` are null). Measured 2026-11-16: 86 tests in 95–140 s on
+  the VM's three workers; CI (x86_64, one worker): the required 26 in 42–63 s.
 - **Mouse and keyboard only:** touch under BiDi is a SILENT no-op (`tap()`
   resolves, the page receives nothing). No core spec calls a touch API (the
   runner's static scan), and `e2e/test.ts` makes every touch call throw in
@@ -299,21 +299,44 @@ operator saw in 159; the pin shows it natively).
   set, test for test), `firefox-core`, `firefox-executed` (every listed test
   ran once AND passed — a skip has the right count too), `firefox-workers`,
   `firefox-browser` (each worker's STARTED browser, `browser.version()`, is
-  the pin) and `firefox-replay` (its own replay; Firefox sends a page's
-  unload beacons without the context's cookie when the context closes under
-  the page; the fixture counts every beacon of the page's unload in the
-  tab's sessionStorage, unloads into a neutral document of the same origin
-  and closes the context only once the mock recorded that many — never an
-  assumed number: navigating to about:blank and waiting for two, the mock had
-  only one in some cases). The record names the
-  pin, the arch, the archive SHA256, Playwright's version, the look-up, the
-  worker count and each unload's count.
+  the pin), `firefox-unload`, `firefox-unload-guard` and `firefox-replay`
+  (its own replay).
+- **The unload (Codex R386 VM-I25):** Firefox sends a page's unload beacons
+  without the context's cookie when the context closes under the page. The
+  page fixture (`e2e/test.ts`) therefore unloads the app inside its context:
+  every `sendBeacon` call from the teardown on carries a mark
+  `e2e_beacon=<nonce>.<n>` (the nonce this unload's own), the handed-off
+  marks are listed in the tab's sessionStorage, the app unloads into a
+  neutral document of the same origin, and the context closes only once
+  EACH mark reached the mock once with this attempt's cookie
+  (`e2e/unloadReceipts.ts`, its table `src/unloadReceipts.test.ts`). A count
+  of POSTs proved nothing: an unrelated POST (the telemetry's own `fetch`)
+  filled it for a beacon that never arrived, and the replay sees nothing
+  ownerless in a request that never arrives. Every unload and every skip
+  (with its reason) is an event; `firefox-unload` fails an attempt whose app
+  loaded from its mock without a complete unload (today the three `smoke`
+  pages are skipped: they are the preview's, not the mock's).
+  `firefox-unload-guard` runs `e2e/firefox-unload.guard.ts` on its own (its
+  own output, events, replay and run id): a held second beacon beside an
+  unrelated POST must fail the unload at exactly that mark while the POSTs
+  were enough for a count; the control must pass. It is judged on the
+  fixture's event, not only on Playwright's expected failure.
+- **Artefacts:** each Playwright run writes its failure artefacts into its
+  own folder under the logs (`--output`), so a later run never overwrites
+  them (Codex R386: a lost `error-context.md` is lost evidence).
+- **The record** names the pin, the arch, the archive SHA256, Playwright's
+  version, the look-up, the worker count, each unload (beacons, received,
+  POSTs meanwhile) and each skipped one with its reason.
 - **Where it runs:** the merge gate always (a binary that cannot be fetched
-  FAILS); a round when a path selects it — the `firefox` rules, a core spec
-  or a Firefox reference (pending, with its reason, when the binary cannot
-  be fetched, never a green skip); CI (x86_64) the required part through
-  `test_suite.py` (`frontend-firefox-core`), without images and without the
-  replay.
+  FAILS); a round when a path selects it — the `firefox` rules, a Firefox
+  reference, a core spec in the browser selection by ANY path (the spec, a
+  helper, the data a helper reads, a src import, a rule) or the full browser
+  run on a head with a core (an unknown source, an unresolved import; Codex
+  R386 VM-I26 — decided once from the final sets, each reason named); the
+  step is pending, with its reason, when the binary cannot be fetched, never
+  a green skip. CI (x86_64) runs the required part through `test_suite.py`
+  (`frontend-firefox-core`), without images and without the replay's
+  judgment; the unload receipts and the guard run there too.
 
 ## The replay (step 5a; Codex R251 TS248-04, FI265-02, VM349-01, R373)
 

@@ -26,16 +26,19 @@
 //  page          (test)   — in Firefox (the pinned core, plan vor-maschine
 //                R385): every touch call throws (silent under BiDi) and the
 //                page is unloaded before its context closes, the context
-//                closed only once its unload beacons reached the mock (Firefox
-//                sends a beacon after the context's close without the cookie).
+//                closed only once EACH unload beacon reached the mock, matched
+//                by its own mark (Firefox sends a beacon after the context's
+//                close without the cookie; Codex R386 VM-I25).
 //  browserPin    (worker) — the started browser's own version in the event
 //                log; in Firefox it must be the pinned one.
+import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { test as base, expect, type Page } from "@playwright/test";
 import { appConnectFrames, ctl, MOCK } from "./ctl";
 import { logEvent, replayFile, RUN, startMock, stopMock, type MockHandle } from "./mockFixture";
 import { portOf, slotOf } from "./mockSlot.mjs";
+import { complete, parseMarks, receipts, type AttemptOrigin, type ReplayLine } from "./unloadReceipts";
 
 export * from "@playwright/test";
 
@@ -70,16 +73,12 @@ async function forbidTouch(page: Page): Promise<void> {
   }
 }
 
-/** The POSTs the mock recorded so far (its replay log). */
-function postsRecorded(file: string): number {
-  let n = 0;
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    if (!line) continue;
-    const l = JSON.parse(line) as { kind?: string; method?: string };
-    if (l.kind === "http" && l.method === "POST") n++;
-  }
-  return n;
+/** This mock's replay log so far, line by line (a line the mock is still
+ *  writing never shows: each is appended whole). */
+function replayLines(file: string): ReplayLine[] {
+  return readFileSync(file, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line) as ReplayLine);
 }
+const postsIn = (lines: ReplayLine[]) => lines.filter(l => l.kind === "http" && l.method === "POST").length;
 
 const BEACONS_KEY = "e2e.unloadBeacons";
 /** A document of the mock's origin that is not the app: a built stylesheet
@@ -93,51 +92,70 @@ function neutralDocument(): string {
 }
 
 /** Firefox: the page is UNLOADED while its context lives, and the context
- *  closes only once every beacon the unload sent reached the mock. Firefox
- *  sends a beacon that goes out after its context closed without the
- *  context's cookies — the replay would see a request without its test
+ *  closes only once EACH beacon the unload handed off reached the mock.
+ *  Firefox sends a beacon that goes out after its context closed without
+ *  the context's cookies — the replay would see a request without its test
  *  attempt (measured 2026-11-16: closing the context under the page lost
  *  them every time; navigating away first still lost one beacon in four
  *  runs; Chromium sends them with the cookie). The unload sends the
  *  beforeunload, the page-hide settings and the pagehide beacons
  *  (ws/telemetry.ts, defaults.ts); how many is the page's own count, never
- *  assumed: waiting for a fixed two after navigating to about:blank, the mock
- *  had only one in some dialog cases (a probe saw Firefox report the second
- *  as failed — whether it was sent is not established). So every successful
- *  `sendBeacon` from here on is counted in the tab's sessionStorage, the app
- *  unloads into a neutral document of the SAME origin, the count is read
- *  there, and the mock must have recorded that many POSTs before the
- *  context may close (each unload's count is an event: two in each of the
- *  82 unloads of the round gate at 4600d845). Nothing is suppressed; a miss
- *  can only turn the replay red, never green. */
-async function unloadInContext(page: Page, instance: string, where: Record<string, unknown>): Promise<void> {
+ *  assumed. So from here on every `sendBeacon` call carries a mark
+ *  `<nonce>.<n>` in its query (`e2e_beacon`, the nonce this unload's own),
+ *  every handed-off mark is listed in the tab's sessionStorage, the app
+ *  unloads into a neutral document of the SAME origin, the list is read
+ *  there, and each mark must have reached the mock ONCE with this attempt's
+ *  cookie before the context may close (e2e/unloadReceipts.ts). A count of
+ *  POSTs proved nothing: an unrelated POST (the telemetry's own fetch)
+ *  filled it for a beacon that never arrived, and a beacon that never
+ *  arrives leaves the replay nothing to call ownerless (Codex R386 VM-I25,
+ *  held by e2e/firefox-unload.guard.ts). Every unload — and every skip of
+ *  one, with its reason — is an event; a beacon not received fails the test
+ *  after its event is written. Nothing is suppressed. */
+async function unloadInContext(page: Page, instance: string, attempt: AttemptOrigin, where: Record<string, unknown>): Promise<void> {
   const file = replayFile(instance);
   // a page the app is not loaded in (closed, the preview's smoke page,
-  // about:blank) sends the mock nothing; without a replay log nothing judges
-  if (page.isClosed() || !page.url().startsWith(MOCK) || !file) {
+  // about:blank) sends the mock nothing; without a replay log nothing
+  // judges — named in the event: the runner fails a skip for an attempt
+  // whose app loaded from the mock (scripts/test_select/firefox.py)
+  const skipped = page.isClosed() ? "the page is closed" : !file ? "no replay log"
+    : !page.url().startsWith(MOCK) ? `the page is not the mock's app (${page.url().slice(0, 80)})` : null;
+  if (skipped !== null || !file) {
+    logEvent({ event: "unload", ...where, skipped });
     await page.goto("about:blank").catch(() => {});
     return;
   }
   const neutral = neutralDocument();
-  await page.evaluate((key) => {
+  const nonce = randomUUID();
+  await page.evaluate(([key, nonce]) => {
     const send = navigator.sendBeacon.bind(navigator);
-    sessionStorage.setItem(key, "0");
+    sessionStorage.setItem(key, "[]");
+    let n = 0;
     navigator.sendBeacon = (url: string | URL, data?: BodyInit | null) => {
-      const handedOff = send(url, data);
-      if (handedOff) sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key)) + 1));
+      const marked = new URL(String(url), location.href);
+      const mark = `${nonce}.${++n}`;
+      marked.searchParams.set("e2e_beacon", mark);
+      const handedOff = send(marked.href, data);
+      if (handedOff) sessionStorage.setItem(key, JSON.stringify([...JSON.parse(sessionStorage.getItem(key) ?? "[]"), mark]));
       return handedOff;
     };
-  }, BEACONS_KEY);
-  const before = postsRecorded(file);
+  }, [BEACONS_KEY, nonce] as const);
+  const before = postsIn(replayLines(file));
   await page.goto(neutral);
-  const raw = await page.evaluate((key) => sessionStorage.getItem(key), BEACONS_KEY);
-  // no count is no zero: the counter was not reached (another origin, a lost tab)
-  if (raw === null || !/^\d+$/.test(raw)) throw new Error(`the unload's beacon count was not readable (${raw}) — the wait would be skipped`);
-  const sent = Number(raw);
-  await expect.poll(() => postsRecorded(file) - before, {
-    timeout: 5_000, message: `the ${sent} beacon(s) of the page's unload reached the mock while its context lives`,
-  }).toBeGreaterThanOrEqual(sent);
-  logEvent({ event: "unload", ...where, beacons: sent, recorded: postsRecorded(file) - before });
+  const marks = parseMarks(await page.evaluate((key) => sessionStorage.getItem(key), BEACONS_KEY), nonce);
+  const deadline = Date.now() + 5_000;
+  let r = receipts(marks, replayLines(file), attempt, nonce);
+  while (!complete(r) && Date.now() < deadline) {
+    await new Promise(res => setTimeout(res, 50));
+    r = receipts(marks, replayLines(file), attempt, nonce);
+  }
+  const posts = postsIn(replayLines(file)) - before;
+  logEvent({ event: "unload", ...where, nonce, beacons: marks.length, received: r.received.length,
+             missing: r.missing, foreign: r.foreign, twice: r.twice, posts });
+  if (!complete(r))
+    throw new Error(`the unload's beacons not received while its context lives: ${marks.length} handed off, `
+      + `missing [${r.missing.join(", ")}], foreign [${r.foreign.join(", ")}], twice [${r.twice.join(", ")}] `
+      + `(${posts} POST(s) recorded meanwhile — a count proves no beacon)`);
   await page.goto("about:blank").catch(() => {});
 }
 
@@ -154,7 +172,9 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
     }
     await use(page);
     if (browserName === "firefox")
-      await unloadInContext(page, mock.instance, { testId: testInfo.testId, title: testInfo.title, retry: testInfo.retry });
+      await unloadInContext(page, mock.instance,
+        { run: RUN, test: testInfo.testId, project: testInfo.project.name, retry: testInfo.retry },
+        { testId: testInfo.testId, title: testInfo.title, retry: testInfo.retry });
   },
 
   // The browser that runs is the one asked for (Codex R385): its own

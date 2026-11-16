@@ -24,7 +24,10 @@ interface Core { required: CoreEntry[]; buildup: CoreEntry[] }
 const read = <T>(rel: string): T => JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf8")) as T;
 export const PIN = read<Pin>("./e2e/firefox.json");
 export const CORE = read<Core>("./e2e/firefox-core.json");
-// LCNC_FIREFOX_SET=required: the required part only (CI, R385 F3)
+// LCNC_FIREFOX_SET=required: the required part only (CI, R385 F3);
+// =unload-guard: the unload receipt's guard alone (e2e/firefox-unload.guard.ts,
+// Codex R386 VM-I25) — the runner's second invocation, never the core
+const GUARD = process.env.LCNC_FIREFOX_SET === "unload-guard";
 export const CORE_TESTS = process.env.LCNC_FIREFOX_SET === "required" ? CORE.required : [...CORE.required, ...CORE.buildup];
 
 const ARCH = { arm64: "linux-aarch64", x64: "linux-x86_64" }[process.arch as "arm64" | "x64"] ?? `${process.platform}-${process.arch}`;
@@ -38,9 +41,11 @@ const files = [...new Set(CORE_TESTS.map(t => t.file))];
 
 export default defineConfig({
   ...gate,
-  testMatch: new RegExp(`/(${files.map(escape).join("|")})$`),
-  // the exact titles: the gate compares the listing to firefox-core.json
-  grep: new RegExp(`(${CORE_TESTS.flatMap(t => t.titles).map(escape).join("|")})$`),
+  ...(GUARD ? { testMatch: /\/firefox-unload\.guard\.ts$/ } : {
+    testMatch: new RegExp(`/(${files.map(escape).join("|")})$`),
+    // the exact titles: the gate compares the listing to firefox-core.json
+    grep: new RegExp(`(${CORE_TESTS.flatMap(t => t.titles).map(escape).join("|")})$`),
+  }),
   snapshotPathTemplate: `{testDir}/__screenshots__/firefox-${PIN.version}-${ARCH}/{testFilePath}/{arg}{ext}`,
   updateSnapshots: "none",
   use: {

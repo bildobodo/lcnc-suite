@@ -323,7 +323,8 @@ def test_a_core_spec_a_firefox_reference_and_the_pin_select_the_firefox_core(rep
     commit_change(repo, core)
     base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/dialogs.spec.ts").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])
-    assert sel["browser"]["run"] == ["dialogs"] and sel["firefox"] == {"needed": True, "paths": ["lcnc-webui/e2e/dialogs.spec.ts"]}
+    assert sel["browser"]["run"] == ["dialogs"] and sel["firefox"]["needed"]
+    assert sel["firefox"]["paths"] == ["lcnc-webui/e2e/dialogs.spec.ts"]
     base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/smoke.spec.ts").write_text("v2\n"))
     assert selector.select(repo, base, "HEAD", vitest_files=[])["firefox"]["needed"], "a build-up spec too"
     base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/tabs.spec.ts").write_text("v3\n"))
@@ -340,6 +341,84 @@ def test_a_core_spec_a_firefox_reference_and_the_pin_select_the_firefox_core(rep
     base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/firefox.json").write_text("{}\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])
     assert sel["firefox"]["needed"] and sel["browser"]["run"] == [] and sel["unmatched"] == []
+
+
+def core_of(r: Path, specs: tuple[str, ...] = ("probe-click",)) -> None:
+    (r / "lcnc-webui/e2e/firefox-core.json").write_text(json.dumps(
+        {"required": [{"file": f"{n}.spec.ts", "titles": ["t"]} for n in specs], "buildup": []}))
+
+
+@pytest.mark.parametrize("case,edit,why", [
+    ("a helper two imports up", lambda r: (r / "lcnc-webui/e2e/macroFolder.ts").write_text("v2\n"),
+     "lcnc-webui/e2e/macroFolder.ts → probe-click (a core spec)"),
+    ("the data that helper reads", lambda r: (r / "scripts/test_fixtures/macro_refusals.json").write_text("v2\n"),
+     "scripts/test_fixtures/macro_refusals.json → probe-click (a core spec)"),
+    ("a src module the spec imports", lambda r: (r / "lcnc-webui/src/probeVars.ts").write_text("v2\n"),
+     "lcnc-webui/src/probeVars.ts → probe-click (a core spec)"),
+    ("the spec itself (control)", lambda r: (r / "lcnc-webui/e2e/probe-click.spec.ts").write_text("v2\n"),
+     "lcnc-webui/e2e/probe-click.spec.ts → probe-click (a core spec)"),
+])
+def test_a_core_spec_reached_by_any_path_selects_the_firefox_core(repo: Path, case, edit, why):
+    """Codex R386 VM-I26: a helper, the data it reads and a src import reach a
+    core spec as surely as the spec itself — each selects the Firefox core,
+    naming the path (their probe vor-maschine.ff.r386.codex-selector.py)."""
+    commit_change(repo, core_of)
+    base = commit_change(repo, edit)
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert "probe-click" in sel["browser"]["run"], case
+    assert sel["firefox"]["needed"] and why in sel["firefox"]["reasons"], (case, sel["firefox"])
+
+
+@pytest.mark.parametrize("case,edit", [
+    ("an unknown source", lambda r, v: (r / "lcnc-webui/src/brandNew.ts").write_text(f"{v}\n")),
+    ("an import that resolves nowhere",
+     lambda r, v: (r / "lcnc-webui/e2e/tabs.spec.ts").write_text(f'import {{ z }} from "./nowhere"; // {v}\n')),
+    ("an e2e helper no spec reaches", lambda r, v: (r / "lcnc-webui/e2e/orphanHelper.ts").write_text(f"// {v}\n")),
+])
+def test_the_full_browser_run_holds_the_firefox_core(repo: Path, case, edit):
+    """Codex R386 VM-I26: the fail-closed full run includes the core — on a
+    head that has one; a head without a core set has nothing to run."""
+    base = commit_change(repo, lambda r: edit(r, "v2"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == FULL and not sel["firefox"]["needed"], ("no core at head", case)
+    commit_change(repo, core_of)
+    base = commit_change(repo, lambda r: edit(r, "v3"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == FULL, case
+    assert sel["firefox"]["needed"] and any(w.startswith("the full browser run holds the core") for w in sel["firefox"]["reasons"]), \
+        (case, sel["firefox"])
+
+
+def test_a_helper_only_specs_outside_the_core_reach_selects_no_firefox(repo: Path):
+    commit_change(repo, core_of)
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/jogHelper.ts").write_text("v2\n"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == ["joint-jog"] and not sel["firefox"]["needed"]
+
+
+@pytest.mark.parametrize("path", [
+    "lcnc-webui/playwright.gate.config.ts", "lcnc-webui/playwright.firefox.config.ts", "lcnc-webui/e2e/test.ts",
+    "lcnc-webui/e2e/mock-gateway.mjs", "lcnc-webui/e2e/mockFixture.ts", "lcnc-webui/e2e/mockSlot.mjs",
+    "lcnc-webui/e2e/ctl.ts", "lcnc-webui/e2e/unloadReceipts.ts", "lcnc-webui/e2e/firefox-unload.guard.ts",
+    "lcnc-webui/e2e/firefox.json", "lcnc-webui/e2e/firefox-core.json",
+    "scripts/fetch_firefox.py", "scripts/test_select/firefox.py",
+])
+def test_what_the_firefox_run_is_built_on_selects_the_firefox_core(repo: Path, path):
+    """Fable R386: the config, the fixture, the mock, the receipt, the guard,
+    the pin, the set and the runner each select the core — with or without a
+    core spec in the selection."""
+    def edit(r: Path):
+        f = r / path
+        f.parent.mkdir(parents=True, exist_ok=True)
+        if path.endswith("firefox-core.json"):
+            core_of(r, ("dialogs", "probe-click"))
+        elif path.endswith(".json"):
+            f.write_text('{"v": 2}\n')
+        else:
+            f.write_text(f.read_text() + "// v2\n" if f.exists() else "// v1\n")
+    base = commit_change(repo, edit)
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["firefox"]["needed"] and path in sel["firefox"]["paths"], sel["firefox"]
 
 
 def test_vitest_is_asked_only_on_a_clean_tree(repo: Path):
