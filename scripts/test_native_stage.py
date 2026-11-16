@@ -3302,7 +3302,7 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     params, g54, probes = {5070: 0.0, 5063: 0.0}, {"z": 0.0}, []
 
     class Client:
-        frames = []
+        frames, error, safety_trip = [], None, None
         status = {"tool_offset": [0, 0, nr.PROBE_L0], "tool_number": nr.PROBE_TOOL}
 
         def request(self, cmd, **kw):
@@ -5843,6 +5843,8 @@ class SurfaceSim:
         elif cmd == "set_compensation_method":
             self.method, self.version = kw["method"], self.version + 1
             self.e = self._e()
+            if self.defect == "trip at the method":
+                self.safety_trip = {"id": "e.scan"}
         self.tick()
         return {"ok": True}
 
@@ -5952,6 +5954,20 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
         rows, error = e.rows, str(e)
     sim.params, sim.switches = params, switches
     return {r["case"]: r for r in rows}, ctx, sim, error
+
+
+def test_a_trip_in_the_scan_sends_nothing_more_and_ends_in_its_finish(monkeypatch, tmp_path):
+    """Codex R383 at the scan: a trip received with the first method switch —
+    nothing more goes out (no enable, no further switch, no cleanup abort);
+    the cleanup says nothing was done, the step ends with what it measured."""
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path, "trip at the method")
+    wire = [e for e in sim.events if e.startswith("wire:")]
+    assert wire[-1] == "wire:set_compensation_method" and wire.count("wire:set_compensation_method") == 1, wire
+    assert "wire:abort" not in wire, wire
+    assert error and "NotAdmitted" in error and "a safety trip waits" in error, error
+    cleanup = ctx["report"]["surface_cleanup"]
+    assert cleanup["stopped"].startswith("nothing done — a safety trip waits"), cleanup
+    assert not [k for k in by if k.startswith("comp-")], list(by)
 
 
 def test_the_surface_step_passes_on_a_sim_that_does_what_it_should(monkeypatch, tmp_path):
@@ -6390,6 +6406,86 @@ def test_the_client_is_put_back_on_every_exit_of_a_finish(monkeypatch, exit):
     assert "request" not in vars(c), vars(c)
     c.safety_trip = {"id": "after"}
     assert c.request("anything") == {"ok": True}                  # no admission outside a finish
+
+
+@pytest.mark.parametrize("when", ["before the request", "between the check and the send", "none"])
+def test_a_probe_start_sends_nothing_once_a_trip_was_received(when):
+    """Codex R383 at the start: under the case's admission a trip received
+    before the request — or after the wrapper's own check, while the request
+    waits for the record lock — sends no start: the send mark judges the
+    admission under the lock, in one region with the send. The control: no
+    trip, one start."""
+    c = ls.SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+    idle = {"interp_state": 1, "inpos": True, "current_vel": 0.0, "tool_change_requested": False,
+            "tool_change_seq": None, "tool_number": 99}
+    trip = {"id": "e.start"}
+
+    def take(tripped=False, **extra):
+        c.take({"type": "status", "data": {**idle, "feed_override_enabled": True, **extra},
+                "safety_trip": trip if tripped else None})
+    take(when == "before the request")
+    writes = []
+
+    class Socket:
+        def send(self, raw):
+            writes.append(json.loads(raw))
+            c.replies.put({"cmd": "probe_run", "ok": True, "mdi_set": True, "persisted": True,
+                           "line": "O<probe_z_minus_wco> CALL"})
+    c.ws = Socket()
+    real_request = c.request
+
+    def request(cmd, **kw):
+        if when == "between the check and the send":
+            take(True)                       # received after the wrapper's check, before the lock
+        return real_request(cmd, **kw)
+    c.request = request
+    payload = {"routine": "probe_z_minus_wco", "vars": {}}
+    with nr._admitted_sends(c):
+        if when == "none":
+            nr._probe_job(c, "probe-run", "probe_run", payload, deadline=0.05)
+        else:
+            with pytest.raises(nr.NotAdmitted, match="a safety trip waits"):
+                nr._probe_job(c, "probe-run", "probe_run", payload, deadline=0.05)
+    assert [w["cmd"] for w in writes] == (["probe_run"] if when == "none" else []), writes
+    assert c.request is request                                   # an own request put back as it was
+
+
+@pytest.mark.parametrize("cases, body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+def test_each_probe_and_scan_case_runs_under_its_admission(monkeypatch, cases, body):
+    """The wiring: the probe and the scan step run their whole body under the
+    case's admission — a trip received in it sends nothing more — and the
+    client is its own again after the step."""
+    calls = []
+    c = _restore_client(calls)
+    plain = c.request
+
+    def steps(ctx):
+        ctx["client"].request("first")
+        ctx["client"].safety_trip = {"id": "e.body"}
+        ctx["client"].request("second")
+    monkeypatch.setattr(nr, body, steps)
+    with pytest.raises(nr.NotAdmitted, match="second not sent"):
+        getattr(nr, cases)()[1]({"client": c})
+    assert calls == ["first"], calls
+    assert c.request is plain
+
+
+def test_a_finish_inside_a_case_leaves_the_case_admission_standing(monkeypatch):
+    """Nested: the finish's admission inside the case's — after the finish
+    the case's still holds, after the case the client is its own."""
+    calls = []
+    c = _restore_client(calls)
+    plain = c.request
+    monkeypatch.setattr(nr, "_standstill", lambda *a: True)
+    with nr._admitted_sends(c):
+        out = nr._finish(c, [("s", lambda: c.request("s"))])
+        assert out["done"] == ["s"] and not out["stopped"], out
+        c.safety_trip = {"id": "e.after"}
+        with pytest.raises(nr.NotAdmitted):
+            c.request("after the finish")
+    assert calls == ["abort", "s"], calls
+    assert c.request is plain
+    assert c.request("outside") == {"ok": True} and calls[-1] == "outside"
 
 
 def test_a_frame_is_stamped_and_appended_under_the_record_lock():
@@ -7201,11 +7297,23 @@ class ProbeRunFake:
         return {"framed": True, "reason": None, "file": "trace.ndjson", "events": ev}
 
 
-def _probe_run(monkeypatch, defect=None, trip=False):
+def _probe_run(monkeypatch, defect=None, trip=False, wire=False, trip_at=None):
+    """`wire`: each replaced helper first sends its request through the
+    client, and the case runs under its admission (_admitted_sends) — a
+    trip planted after the `trip_at` = (helper, n-th call) request."""
     f = ProbeRunFake(defect)
-    f.trip, f.events = trip, []
+    f.trip, f.events, calls = trip, [], {}
+
+    def sends(name):
+        if not wire:
+            return
+        f.request(name)
+        calls[name] = calls.get(name, 0) + 1
+        if trip_at == (name, calls[name]):
+            f.safety_trip = {"id": "e.case"}
 
     def short(c, text):
+        sends("mdi")
         f.events.append(f"mdi:{text}")
         if text.startswith("G10 L2 P1 Z"):
             f.g54 = float(text.split("Z")[1])
@@ -7214,23 +7322,32 @@ def _probe_run(monkeypatch, defect=None, trip=False):
         f.tick()
 
     def refused(c, cmd, **kw):
+        sends(f"refused {cmd}")
         f.events.append(f"refused:{cmd}")
         f.tick()
         if kw.get("routine") != "probe_z_minus_wco":
             return f"{cmd} refused: Not a probe routine — reload the page"
         return None if f.switches["probing"] else f"{cmd} refused: Probing is off — Settings › Features"
     def read(c, nums):
+        sends("read")
         f.events.append("read")
         return {n: f.params.get(n) for n in nums}
 
     def job(c, case, cmd, payload, deadline=90.0):
+        sends(cmd)
         f.events.append(f"job:{case}")
-        return f.job(case, cmd, payload)
-    for name, fn in {"_over_plate": lambda c, plate, over: (f.events.append("to"), f.tick()),
-                     "_override_free": lambda c: (f.events.append("free"), f.tick(feed_override_enabled=True)),
-                     "_short": short, "_plant": lambda c, values: (f.events.append("plant"), f.params.update(values)),
+        r = f.job(case, cmd, payload)
+        if wire and trip_at == ("after", case):
+            f.safety_trip = {"id": "e.case"}
+        return r
+    for name, fn in {"_over_plate": lambda c, plate, over: (sends("to"), f.events.append("to"), f.tick()),
+                     "_override_free": lambda c: (sends("free"), f.events.append("free"),
+                                                  f.tick(feed_override_enabled=True)),
+                     "_short": short, "_plant": lambda c, values: (sends("plant"), f.events.append("plant"),
+                                                                   f.params.update(values)),
                      "_vars": read, "_g54_z": lambda st: f.g54, "_switches": lambda ctx, c: dict(f.switches),
-                     "_save_features": lambda ctx, c, sw: (f.events.append("save"), f.switches.update(sw)),
+                     "_save_features": lambda ctx, c, sw: (sends("save"), f.events.append("save"),
+                                                           f.switches.update(sw)),
                      "_refused": refused, "_framed": lambda ctx, c, case, fn: (fn(), f.window(case)),
                      "_probe_job": job,
                      "_release_seen": lambda c, r: None, "_standstill": lambda c, timeout: True}.items():
@@ -7238,10 +7355,42 @@ def _probe_run(monkeypatch, defect=None, trip=False):
     first = dict(f.params)
     rows, error = [], None
     try:
-        nr._probe_run({"report": {}}, f, ProbeRunFake.PLATE, rows)
+        if wire:
+            with nr._admitted_sends(f):
+                nr._probe_run({"report": {}}, f, ProbeRunFake.PLATE, rows)
+        else:
+            nr._probe_run({"report": {}}, f, ProbeRunFake.PLATE, rows)
     except nr.StepFailed as e:
         error = str(e)
     return {r["case"]: r for r in rows}, f, first, error
+
+
+@pytest.mark.parametrize("at", [("plant", 1), ("save", 2), ("after", "probe-run")])
+def test_a_trip_in_the_probe_run_case_sends_nothing_more_and_ends_in_its_finish(monkeypatch, at):
+    """Codex R383 at the case (TS248-06: a trip — nothing more): a trip
+    received after the first plant, after the switch's save right before the
+    job, or with the hit's end — the next request is not sent, neither the
+    job nor a read nor the restore's abort; the restore says nothing was done
+    and the step ends; no row is written after the trip."""
+    by, f, first, error = _probe_run(monkeypatch, wire=True, trip_at=at)
+    last = {("plant", 1): "plant", ("save", 2): "save", ("after", "probe-run"): "probe_run"}[at]
+    assert f.sent[-1] == last and f.sent.count(last) == (1 if last == "plant" else
+                                                           2 if last == "save" else 1), f.sent
+    assert "abort" not in f.sent and (at == ("after", "probe-run") or "probe_run" not in f.sent), f.sent
+    assert error and "NotAdmitted" in error and "a safety trip waits" in error, error
+    restore = by["probe-run.restore"]
+    assert restore["status"] == "FAIL" and "nothing done — a safety trip waits" in restore["detail"], restore
+    assert "probe-run" not in by and "probe-run-miss" not in by, list(by)
+    assert list(by)[-1] == "probe-run.restore", list(by)
+
+
+def test_the_probe_run_case_on_the_wire_still_passes_without_a_trip(monkeypatch):
+    """The control: the same wire, no trip — every row PASS, the restore
+    after its abort."""
+    by, f, first, error = _probe_run(monkeypatch, wire=True)
+    assert error is None and all(r["status"] == "PASS" for r in by.values()), \
+        {k: r["detail"] for k, r in by.items() if r["status"] != "PASS"}
+    assert f.sent.count("probe_run") == 2 and f.sent.count("refused probe_run") == 2 and "abort" in f.sent, f.sent
 
 
 def test_the_probe_run_case_passes_on_a_gateway_that_does_what_it_should(monkeypatch):
@@ -7285,6 +7434,7 @@ class _JobClient:
     def __init__(self, base, course):
         self.frames = [(0.0, {**_IDLE, "feed_override_enabled": base, "current_vel": 0.0})]
         self.errors, self.error, self.sent, self.course = [], None, [], course
+        self.safety_trip = None
 
     @property
     def status(self):

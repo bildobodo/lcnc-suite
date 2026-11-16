@@ -1216,6 +1216,13 @@ def _probe_job(c, case, cmd, payload, deadline=90.0):
     at = {}
 
     def at_send(mark):
+        # under the client's record lock, in ONE region with the send: a
+        # trip or a lost link received before it sends no start (Codex R383 —
+        # the case's admission at its send; the wrapper's own check runs
+        # before the request waits for this lock)
+        why = _lost(c)
+        if why:
+            raise NotAdmitted(f"{case}: {why} — nothing sent")
         frames = c.frames
         base = frames[-1][1].get("feed_override_enabled") if frames else None
         if base is not True:
@@ -1583,62 +1590,70 @@ def probe_cases():
     and sets nothing; a planted plate 1 mm off is refused. Then the same
     routine as the UI starts it — `probe_run` with the panel's job, its
     refusals, the hit and the miss (plan R380–R381, _probe_run). Every probe
-    start from a confirmed free override (Codex R380 VM380-03)."""
+    start from a confirmed free override (Codex R380 VM380-03). Every
+    request of the case under its admission (_admitted_sends, Codex R383):
+    a trip or a lost link received sends nothing more."""
     def step(ctx):
-        c, rows = ctx["client"], ctx.setdefault("rows", [])
-        plate = ctx["plate"] = plate_from_hal(_hal_texts(ctx["ini"]))
-        ctx["report"]["plate"] = plate
-        _set_tool_length(c, PROBE_TOOL, PROBE_L0)
-        for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
-            _short(c, line)
-        _probe_tool(c)
-        shipped = _vars(c, PROBE_VARS)
-        probe_vars = {**shipped, 3030: 0}
-
-        def probe_from(case, over, plant=()):
-            # the position, the free override, THEN the plant and its
-            # read-back — no mdi between that read-back and the job (R381)
-            _over_plate(c, plate, over)
-            _override_free(c)
-            for line in plant:
-                _short(c, line)
-            if plant and _read_params(c, [5070])[5070] != 0:
-                raise Refused(f"{case}: #5070 not planted 0")
-            before = _g54_z(c.status)
-            try:
-                r = _probe_job(c, case, "mdi", {"text": "O<probe_z_minus_wco> CALL",
-                                                "vars": {str(k): v for k, v in probe_vars.items()}})
-            except Exception:
-                # every exit of a start ends in the finish (Codex R382 VM-I22)
-                rows.append(_finish_row(f"{case}.finish", _finish(c, [])))
-                raise
-            if r["error"]:
-                # the wait failed: nothing read — abort and standstill first
-                rows.extend([nc.eval_wait_failed(case, r["error"]), r["start"],
-                             _finish_row(f"{case}.finish", _finish(c, []))])
-                raise Refused(f"{case}: {r['error']}")
-            p = _read_params(c, [5070, 5063])
-            return p[5070], before, _g54_z(c.status), r
-
-        contact, _, g54, r = probe_from("probe-z", PROBE_OVER)
-        hit = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"], errors=r["errors"])
-        hit["vars_sent"] = {str(k): v for k, v in probe_vars.items()}
-        # the same measurement against a plate planted 1 mm off: refused only
-        # because of the plant — it passed against the true one (R292 FI-I27)
-        planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=r["errors"])
-        rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit), r["start"]]
-        # a G38.2 ending without contact aborts the routine and leaves #5070
-        # as the LAST probe wrote it — 1 from the hit (live run 2026-11-05):
-        # planted 0 and read back, its read after the miss is evidence again
-        contact, before, after, r = probe_from("probe-z-miss", MISS_OVER, plant=("G10 L2 P1 Z0", "#5070=0"))
-        rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, r["errors"]))
-        rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
-        rows.append(r["start"])
-        # the hand-over: the override free whatever the miss's abort left
-        _override_free(c)
-        _probe_run(ctx, c, plate, rows)
-        return rows
+        with _admitted_sends(ctx["client"]):
+            return _probe_steps(ctx)
     return ("probe", step)
+
+
+def _probe_steps(ctx):
+    """probe_cases' body, under the case's admission."""
+    c, rows = ctx["client"], ctx.setdefault("rows", [])
+    plate = ctx["plate"] = plate_from_hal(_hal_texts(ctx["ini"]))
+    ctx["report"]["plate"] = plate
+    _set_tool_length(c, PROBE_TOOL, PROBE_L0)
+    for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
+        _short(c, line)
+    _probe_tool(c)
+    shipped = _vars(c, PROBE_VARS)
+    probe_vars = {**shipped, 3030: 0}
+
+    def probe_from(case, over, plant=()):
+        # the position, the free override, THEN the plant and its
+        # read-back — no mdi between that read-back and the job (R381)
+        _over_plate(c, plate, over)
+        _override_free(c)
+        for line in plant:
+            _short(c, line)
+        if plant and _read_params(c, [5070])[5070] != 0:
+            raise Refused(f"{case}: #5070 not planted 0")
+        before = _g54_z(c.status)
+        try:
+            r = _probe_job(c, case, "mdi", {"text": "O<probe_z_minus_wco> CALL",
+                                            "vars": {str(k): v for k, v in probe_vars.items()}})
+        except Exception:
+            # every exit of a start ends in the finish (Codex R382 VM-I22)
+            rows.append(_finish_row(f"{case}.finish", _finish(c, [])))
+            raise
+        if r["error"]:
+            # the wait failed: nothing read — abort and standstill first
+            rows.extend([nc.eval_wait_failed(case, r["error"]), r["start"],
+                         _finish_row(f"{case}.finish", _finish(c, []))])
+            raise Refused(f"{case}: {r['error']}")
+        p = _read_params(c, [5070, 5063])
+        return p[5070], before, _g54_z(c.status), r
+
+    contact, _, g54, r = probe_from("probe-z", PROBE_OVER)
+    hit = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"], errors=r["errors"])
+    hit["vars_sent"] = {str(k): v for k, v in probe_vars.items()}
+    # the same measurement against a plate planted 1 mm off: refused only
+    # because of the plant — it passed against the true one (R292 FI-I27)
+    planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=r["errors"])
+    rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit), r["start"]]
+    # a G38.2 ending without contact aborts the routine and leaves #5070
+    # as the LAST probe wrote it — 1 from the hit (live run 2026-11-05):
+    # planted 0 and read back, its read after the miss is evidence again
+    contact, before, after, r = probe_from("probe-z-miss", MISS_OVER, plant=("G10 L2 P1 Z0", "#5070=0"))
+    rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, r["errors"]))
+    rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
+    rows.append(r["start"])
+    # the hand-over: the override free whatever the miss's abort left
+    _override_free(c)
+    _probe_run(ctx, c, plate, rows)
+    return rows
 
 
 # ── Package G2 (Codex R326): the workpiece, the scan, the compensation ─────
@@ -1890,68 +1905,76 @@ def surface_cases():
     reload; the override locked through the scan; then the compensation:
     each method at Q, ON/OFF at A, ON after the XY move A → B and OFF at B.
     Cleanup on every path: compensation off and drained, the method back,
-    G54 Z0, the override free."""
+    G54 Z0, the override free. Every request of the case under its admission
+    (_admitted_sends, Codex R383): a trip or a lost link received sends
+    nothing more."""
     def step(ctx):
-        c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
-        _probe_tool(c)
-        _set_tool_length(c, PROBE_TOOL, PROBE_L0)
-        for line in ("G21", "G90", "G94", "G54", "G92.1", f"G10 L2 P1 X0 Y0 Z{nc.SURFACE_BASE:g} R0",
-                     f"G43 H{PROBE_TOOL}"):
-            _short(c, line)
-        st = c.status
-        basis = {"g5x_index": st.get("g5x_index"), "g5x_offset": st.get("g5x_offset"),
-                 "g92_offset": st.get("g92_offset"), "rotation_xy": st.get("rotation_xy"),
-                 "tool_offset_z": (st.get("tool_offset") or [None] * 3)[2], "eoffset_z": st.get("eoffset_z"),
-                 "eoffset_enabled": st.get("eoffset_enabled"), "comp_method": st.get("comp_method")}
-        ctx["report"]["surface_basis"] = basis
-        if (basis["g5x_index"] != 1 or not isinstance(basis["g5x_offset"], list)
-                or any(not nc._finite(v) or abs(v) > nc.SAME for v in basis["g5x_offset"][:2])
-                or abs(basis["g5x_offset"][2] - nc.SURFACE_BASE) > nc.SAME
-                or any(abs(v) > nc.SAME for v in (basis["g92_offset"] or [1])[:3])
-                or basis["rotation_xy"] not in (0, 0.0) or basis["tool_offset_z"] is None
-                or abs(basis["tool_offset_z"] - PROBE_L0) > nc.SAME
-                or basis["eoffset_enabled"] is not False or basis["eoffset_z"] is None
-                or abs(basis["eoffset_z"]) >= nc.OFF_EOFFSET or basis["comp_method"] not in (0, 1, 2)):
-            raise Refused(f"the scan's basis is not the planned one: {basis}")
-        _surface_fixture(ctx, PROBE_L0)
-        shipped = _vars(c, [3014])[3014]
-        if shipped != PROBE_TOOL:
-            raise Refused(f"the copy's probe tool #3014 is {shipped}, not T{PROBE_TOOL}")
-        method0 = nc.METHODS[basis["comp_method"]]
-        entry = panel_jobs()["surface_scan"]
-        values = _job_values(entry)
-        switches0 = _switches(ctx, c)
-        first = _vars(c, sorted(values))
-        ctx["report"]["surface_job"] = {"first": {str(k): v for k, v in first.items()}, "switches": switches0}
-        failure = None
-        try:
-            if switches0.get("surfaceMap") is not True:
-                raise Refused(f"the surface map is off before the scan: {switches0}")
-            # the free override (Codex R380 VM380-03), then the plant P_s —
-            # the snapshot after the refusal is the last read-back
-            _override_free(c)
-            _plant(c, SCAN_PLANT)
-            s0 = _snapshot(c, sorted(values))
-            _save_features(ctx, c, {**switches0, "surfaceMap": False})
-            err, frame = _framed(ctx, c, "surface-scan.feature-off",
-                                 lambda: _refused(c, "surface_scan_run", vars=dict(entry["job"]["vars"])))
-            s1 = _snapshot(c, sorted(values))
-            rows.append(nc.combine("surface-scan.feature-off", {
-                "reply": nc.eval_refusal_reply("reply", err, PROBE_RUN_TEXT["surface-off"]),
-                "window": nc.eval_no_job_window("window", frame, off_cmd="surface_scan_run"),
-                "state": nc.eval_unchanged("state", s0, s1)}))
-            _save_features(ctx, c, switches0)
-            _scan_and_compensate(ctx, c, frames, method0, rows, entry)
-        except Exception as e:  # noqa: BLE001 — the cleanup first, then the step ends with its rows
-            failure = e
-        cleanup = _surface_cleanup(ctx, c, method0, switches0, first)
-        ctx["report"]["surface_cleanup"] = cleanup
-        if failure is not None:
-            raise StepFailed(rows, f"{type(failure).__name__}: {failure}") from failure
-        if cleanup.get("error"):
-            raise StepFailed(rows, f"the surface cleanup: {cleanup['error']}")
-        return rows
+        with _admitted_sends(ctx["client"]):
+            return _surface_steps(ctx)
     return ("surface", step)
+
+
+def _surface_steps(ctx):
+    """surface_cases' body, under the case's admission."""
+    c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
+    _probe_tool(c)
+    _set_tool_length(c, PROBE_TOOL, PROBE_L0)
+    for line in ("G21", "G90", "G94", "G54", "G92.1", f"G10 L2 P1 X0 Y0 Z{nc.SURFACE_BASE:g} R0",
+                 f"G43 H{PROBE_TOOL}"):
+        _short(c, line)
+    st = c.status
+    basis = {"g5x_index": st.get("g5x_index"), "g5x_offset": st.get("g5x_offset"),
+             "g92_offset": st.get("g92_offset"), "rotation_xy": st.get("rotation_xy"),
+             "tool_offset_z": (st.get("tool_offset") or [None] * 3)[2], "eoffset_z": st.get("eoffset_z"),
+             "eoffset_enabled": st.get("eoffset_enabled"), "comp_method": st.get("comp_method")}
+    ctx["report"]["surface_basis"] = basis
+    if (basis["g5x_index"] != 1 or not isinstance(basis["g5x_offset"], list)
+            or any(not nc._finite(v) or abs(v) > nc.SAME for v in basis["g5x_offset"][:2])
+            or abs(basis["g5x_offset"][2] - nc.SURFACE_BASE) > nc.SAME
+            or any(abs(v) > nc.SAME for v in (basis["g92_offset"] or [1])[:3])
+            or basis["rotation_xy"] not in (0, 0.0) or basis["tool_offset_z"] is None
+            or abs(basis["tool_offset_z"] - PROBE_L0) > nc.SAME
+            or basis["eoffset_enabled"] is not False or basis["eoffset_z"] is None
+            or abs(basis["eoffset_z"]) >= nc.OFF_EOFFSET or basis["comp_method"] not in (0, 1, 2)):
+        raise Refused(f"the scan's basis is not the planned one: {basis}")
+    _surface_fixture(ctx, PROBE_L0)
+    shipped = _vars(c, [3014])[3014]
+    if shipped != PROBE_TOOL:
+        raise Refused(f"the copy's probe tool #3014 is {shipped}, not T{PROBE_TOOL}")
+    method0 = nc.METHODS[basis["comp_method"]]
+    entry = panel_jobs()["surface_scan"]
+    values = _job_values(entry)
+    switches0 = _switches(ctx, c)
+    first = _vars(c, sorted(values))
+    ctx["report"]["surface_job"] = {"first": {str(k): v for k, v in first.items()}, "switches": switches0}
+    failure = None
+    try:
+        if switches0.get("surfaceMap") is not True:
+            raise Refused(f"the surface map is off before the scan: {switches0}")
+        # the free override (Codex R380 VM380-03), then the plant P_s —
+        # the snapshot after the refusal is the last read-back
+        _override_free(c)
+        _plant(c, SCAN_PLANT)
+        s0 = _snapshot(c, sorted(values))
+        _save_features(ctx, c, {**switches0, "surfaceMap": False})
+        err, frame = _framed(ctx, c, "surface-scan.feature-off",
+                             lambda: _refused(c, "surface_scan_run", vars=dict(entry["job"]["vars"])))
+        s1 = _snapshot(c, sorted(values))
+        rows.append(nc.combine("surface-scan.feature-off", {
+            "reply": nc.eval_refusal_reply("reply", err, PROBE_RUN_TEXT["surface-off"]),
+            "window": nc.eval_no_job_window("window", frame, off_cmd="surface_scan_run"),
+            "state": nc.eval_unchanged("state", s0, s1)}))
+        _save_features(ctx, c, switches0)
+        _scan_and_compensate(ctx, c, frames, method0, rows, entry)
+    except Exception as e:  # noqa: BLE001 — the cleanup first, then the step ends with its rows
+        failure = e
+    cleanup = _surface_cleanup(ctx, c, method0, switches0, first)
+    ctx["report"]["surface_cleanup"] = cleanup
+    if failure is not None:
+        raise StepFailed(rows, f"{type(failure).__name__}: {failure}") from failure
+    if cleanup.get("error"):
+        raise StepFailed(rows, f"the surface cleanup: {cleanup['error']}")
+    return rows
 
 
 def _surface_cleanup(ctx, c, method0, switches0=None, first=None) -> dict:
