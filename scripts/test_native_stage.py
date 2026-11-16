@@ -5789,7 +5789,8 @@ class SurfaceSim:
 
     def __init__(self, config: Path, defect=None):
         self.config, self.defect = config, defect
-        self._frames, self.errors, self.error, self.sent = [], [], None, []
+        self._frames, self.errors, self.error, self.sent, self.safety_trip = [], [], None, [], None
+        self.events = []
         self.t, self.xy, self.on, self.method, self.version = 0.0, (518.0, 518.0), False, 2, 1
         self.zj, self.moves = 0.0, []            # the control point's joint Z (G53 Z0 after the scan)
         self.g54_z, self.free, self.points, self.e = 0.0, True, None, 0.0
@@ -5828,6 +5829,7 @@ class SurfaceSim:
 
     def request(self, cmd, **kw):
         self.sent.append((cmd, kw))
+        self.events.append(f"wire:{cmd}")
         if cmd == "set_compensation":
             self.enables += kw["enable"] is True
             self.offs += kw["enable"] is False
@@ -5899,6 +5901,11 @@ def _surface_step(monkeypatch, tmp_path, defect=None):
         assert (case, cmd) == ("surface-scan", "surface_scan_run"), (case, cmd)
         sim.events.append(f"job:{case}")
         sent["vars"] = payload["vars"]
+        if defect == "wait fails":                 # still moving when the wait gives up (R382 VM-I22)
+            sim.tick(1, interp_state=2, inpos=False, current_vel=5.0)
+            return {"errors": [], "error": "injected wait deadline", "t_done": None, "t0": sim.t,
+                    "reply": {"ok": True, "persisted": True, "mdi_set": True, "line": "O<surface_scan> CALL"},
+                    "start": {"case": f"{case}.start", "status": "PASS", "detail": "free, then locked"}}
         if defect != "not delivered":
             params.update({int(k): float(v) for k, v in payload["vars"].items()})
         r = sim.routine("O<surface_scan> CALL")
@@ -6022,6 +6029,301 @@ def test_the_scan_plants_after_its_baseline_and_reads_back_last(monkeypatch, tmp
     assert _no_line_between(ev, p + 1, j) == [], ev[p - 2:j]
 
 
+# ── Codex R382: the failure finish, the restores' admission, the send cursor ──
+
+def _old_probe_failure(monkeypatch, fail, mode):
+    """probe_cases with the start `fail` failing its wait ("wait") or raising
+    in its send ("raise"); every wire command, read and line recorded."""
+    params, events = {5070: 0.0, 5063: 0.0}, []
+
+    class Client:
+        frames, error, safety_trip = [], None, None
+        status = {"tool_offset": [0, 0, nr.PROBE_L0], "tool_number": nr.PROBE_TOOL}
+
+        def request(self, cmd, **kw):
+            events.append(f"wire:{cmd}")
+            if cmd == "get_probe_vars":
+                return {"vars": {str(k): 1.0 for k in kw["vars"]}}
+            return {"ok": True}
+
+    def job(c, case, cmd, payload, deadline=90.0):
+        events.append(f"job:{case}")
+        start = {"case": f"{case}.start", "status": "PASS", "detail": "free, then locked"}
+        if case == fail and mode == "raise":
+            raise RuntimeError(f"{case}: no reply")
+        if case == fail:
+            return {"errors": [], "error": "injected wait deadline", "start": start, "t_done": None}
+        if case == "probe-z":
+            params[5070] = 1.0
+        return {"errors": [], "error": None, "start": start}
+
+    def read(c, nums, tries=3):
+        events.append("read")
+        return {n: params.get(n, 1.0) for n in nums}
+
+    def short(c, text):
+        events.append(f"mdi:{text}")
+        if text.startswith("#5070="):
+            params[5070] = float(text.split("=")[1])
+    for name, fn in {"plate_from_hal": lambda t: {"x": 10.0, "y": 10.0, "z": -180.0}, "_hal_texts": lambda ini: "",
+                     "_set_tool_length": lambda c, t, length: None,
+                     "_short": short, "_probe_job": job,
+                     "_to": lambda c, x, y, z: events.append("to"), "_g54_z": lambda st: -180.0,
+                     "_override_free": lambda c: events.append("free"),
+                     "_probe_run": lambda ctx, c, plate, rows: events.append("probe_run"), "_read_params": read,
+                     "_standstill": lambda c, timeout: (events.append("standstill"), True)[1]}.items():
+        monkeypatch.setattr(nr, name, fn)
+    from test_support import tool_change as tc
+    monkeypatch.setattr(tc, "serve", lambda *a, **k: [])
+    monkeypatch.setattr(tc.ToolChanges, "precheck", lambda self, st: None)
+    ctx = {"client": Client(), "ini": Path("x.ini"), "report": {}, "rows": []}
+    with pytest.raises(Exception) as raised:
+        nr.probe_cases()[1](ctx)
+    return {r["case"]: r for r in ctx["rows"]}, events, raised.value
+
+
+@pytest.mark.parametrize("mode", ["wait", "raise"])
+@pytest.mark.parametrize("fail", ["probe-z", "probe-z-miss"])
+def test_an_old_probe_start_that_fails_aborts_before_any_read(monkeypatch, fail, mode):
+    """Codex R382 VM-I22 at the old starts: a failed wait (or a send that
+    raised) is followed by abort and standstill BEFORE any read or line —
+    nothing measured after it, the start row kept, the finish named."""
+    by, events, error = _old_probe_failure(monkeypatch, fail, mode)
+    assert ("wait deadline" if mode == "wait" else "no reply") in str(error)
+    tail = events[events.index(f"job:{fail}") + 1:]
+    assert tail == ["wire:abort", "standstill"], tail
+    assert by[f"{fail}.finish"]["status"] == "PASS", by[f"{fail}.finish"]
+    if mode == "wait":
+        assert by[fail]["status"] == "FAIL" and "end not observed" in by[fail]["detail"], by[fail]
+        assert by[f"{fail}.start"]["status"] == "PASS"
+    assert "probe_run" not in events
+
+
+@pytest.mark.parametrize("fail", ["probe-run", "probe-run-miss"])
+def test_a_probe_run_start_whose_wait_fails_aborts_before_any_read(monkeypatch, fail):
+    """VM-I22 at the UI's job, hit and miss: after the failed wait the next
+    thing on the wire is the restore's abort — no read in between; reply,
+    window and start kept, the measured parts not read."""
+    original_job, original_request = ProbeRunFake.job, ProbeRunFake.request
+
+    def failed_wait(self, case, cmd, payload):
+        result = original_job(self, case, cmd, payload)
+        if case == fail:
+            self.tick(interp_state=2, inpos=False, current_vel=5.0)
+            result.update(error="injected wait deadline", t_done=None)
+        return result
+
+    def request(self, cmd, **kw):
+        self.events.append(f"wire:{cmd}")
+        return original_request(self, cmd, **kw)
+    monkeypatch.setattr(ProbeRunFake, "job", failed_wait)
+    monkeypatch.setattr(ProbeRunFake, "request", request)
+    by, f, first, error = _probe_run(monkeypatch)
+    assert error and "wait deadline" in error
+    tail = f.events[f.events.index(f"job:{fail}") + 1:]
+    assert tail[0] == "wire:abort", tail
+    parts = by[fail]["parts"]
+    assert by[fail]["status"] == "FAIL" and parts["end"]["status"] == "FAIL", by[fail]
+    assert parts["reply"]["status"] == parts["window"]["status"] == "PASS", parts
+    measured = ("values", "probe") if fail == "probe-run" else ("values", "miss")
+    assert all(parts[k]["status"] == "incomplete" for k in measured), parts
+    assert by[f"{fail}.start"]["status"] == "PASS" and by["probe-run.restore"]["status"] == "PASS"
+
+
+def test_a_scan_whose_wait_fails_aborts_before_any_read(monkeypatch, tmp_path):
+    """VM-I22 at the scan: after the failed wait the cleanup's abort comes
+    first — no read, nothing measured after it."""
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path, "wait fails")
+    assert error and "wait deadline" in error
+    tail = sim.events[sim.events.index("job:surface-scan") + 1:]
+    assert tail[0] == "wire:abort", tail
+    row = by["surface-scan.job"]
+    assert row["status"] == "FAIL" and row["parts"]["end"]["status"] == "FAIL", row
+    assert row["parts"]["values"]["status"] == "incomplete" and by["surface-scan.start"]["status"] == "PASS"
+    assert "surface-scan" not in by and "stopped" not in ctx["report"]["surface_cleanup"]
+
+
+def _hazard(c, hazard):
+    if hazard == "trip":
+        c.safety_trip = {"id": "e.1"}
+    else:
+        c.error = "connection lost during the finish"
+
+
+def _restore_client(calls):
+    from types import SimpleNamespace
+    c = SimpleNamespace(error=None, safety_trip=None,
+                        status={"feed_override_enabled": True, "g5x_index": 1, "g5x_offset": [0.0, 0.0, 0.0],
+                                "comp_method": 2, "eoffset_enabled": False, "eoffset_z": 0.0})
+    c.request = lambda cmd, **kw: calls.append(cmd) or {"ok": True}
+    return c
+
+
+@pytest.mark.parametrize("hazard", ["trip", "disconnect"])
+@pytest.mark.parametrize("when", ["standstill", "step", "last"])
+def test_the_probe_run_restore_stops_when_its_admission_goes(monkeypatch, hazard, when):
+    """Codex R382 VM-I23: a trip or a lost link in the standstill wait or in
+    a step — the last one too — stops the restore there: never PASS, the
+    steps not run are named."""
+    calls = []
+    c = _restore_client(calls)
+
+    def standstill(cl, timeout):
+        calls.append("standstill")
+        if when == "standstill":
+            _hazard(cl, hazard)
+        return True
+
+    def override(cl):
+        calls.append("override")
+        if when == "step":
+            _hazard(cl, hazard)
+    monkeypatch.setattr(nr, "_standstill", standstill)
+    monkeypatch.setattr(nr, "_switches", lambda ctx, cl: {"probing": True})
+    monkeypatch.setattr(nr, "_override_free", override)
+    monkeypatch.setattr(nr, "_save_features", lambda *a: calls.append("features"))
+    monkeypatch.setattr(nr, "_short", lambda *a: calls.append("g54"))
+
+    def values(*a):
+        calls.append("values")
+        if when == "last":
+            _hazard(c, hazard)
+    monkeypatch.setattr(nr, "_plant", values)
+    row = nr._probe_run_restore({}, c, {"probing": True}, {3014: 99})
+    want = {"standstill": ["abort", "standstill"], "step": ["abort", "standstill", "override"],
+            "last": ["abort", "standstill", "override", "standstill", "features", "standstill", "g54", "standstill",
+                     "values"]}[when]
+    assert calls == want, calls
+    assert row["status"] == "FAIL" and ("trip" if hazard == "trip" else "connection") in row["detail"], row
+    left = {"standstill": "['override', 'features', 'g54', 'values']", "step": "['features', 'g54', 'values']",
+            "last": "[]"}[when]
+    assert f"not done {left}" in row["detail"], row
+
+
+def test_a_restore_step_that_fails_is_named_and_the_next_judged_afresh(monkeypatch):
+    """Not worked off blindly (VM-I23): after a failed step the standstill
+    and the admission are judged again before the next."""
+    calls = []
+    c = _restore_client(calls)
+
+    def override(cl):
+        calls.append("override")
+        raise RuntimeError("the override not confirmed free")
+    monkeypatch.setattr(nr, "_standstill", lambda cl, timeout: calls.append("standstill") or True)
+    monkeypatch.setattr(nr, "_switches", lambda ctx, cl: {"probing": True})
+    monkeypatch.setattr(nr, "_override_free", override)
+    monkeypatch.setattr(nr, "_save_features", lambda *a: calls.append("features"))
+    monkeypatch.setattr(nr, "_short", lambda *a: calls.append("g54"))
+    monkeypatch.setattr(nr, "_plant", lambda *a: calls.append("values"))
+    row = nr._probe_run_restore({}, c, {"probing": True}, {3014: 99})
+    assert calls == ["abort", "standstill", "override", "standstill", "features", "standstill", "g54",
+                     "standstill", "values"], calls
+    assert row["status"] == "FAIL" and "override: RuntimeError" in row["detail"], row
+
+
+@pytest.mark.parametrize("hazard", ["trip", "disconnect"])
+@pytest.mark.parametrize("when", ["before", "standstill", "step"])
+def test_the_surface_cleanup_has_the_same_admission(monkeypatch, hazard, when):
+    """VM-I23 at the scan: abort and standstill first; a trip or a lost link
+    before, in the standstill wait or in a step stops it — named."""
+    calls = []
+    c = _restore_client(calls)
+    if when == "before":
+        _hazard(c, hazard)
+
+    def standstill(cl, timeout):
+        calls.append("standstill")
+        if when == "standstill":
+            _hazard(cl, hazard)
+        return True
+
+    def off(ctx, cl):
+        calls.append("off")
+        if when == "step":
+            _hazard(cl, hazard)
+        return {"settled": True}
+    monkeypatch.setattr(nr, "_standstill", standstill)
+    monkeypatch.setattr(nr, "_comp_off", off)
+    monkeypatch.setattr(nr, "_comp_method", lambda *a: calls.append("method"))
+    monkeypatch.setattr(nr, "_short", lambda *a: calls.append("g54"))
+    monkeypatch.setattr(nr, "_override_free", lambda *a: calls.append("override"))
+    monkeypatch.setattr(nr, "_save_features", lambda *a: calls.append("features"))
+    monkeypatch.setattr(nr, "_plant", lambda *a: calls.append("values"))
+    out = nr._surface_cleanup({}, c, nc.METHODS[2], {"surfaceMap": True}, {3014: 99})
+    want = {"before": [], "standstill": ["abort", "standstill"], "step": ["abort", "standstill", "off"]}[when]
+    assert calls == want, calls
+    assert ("trip" if hazard == "trip" else "connection") in out["stopped"], out
+    assert out["left"] == (["method", "g54", "override", "features", "values"] if when == "step" else
+                           ["off", "method", "g54", "override", "features", "values"]), out
+    assert "not cleaned up" in out["error"], out
+
+
+def test_a_frame_is_stamped_and_appended_under_the_record_lock():
+    """Codex R382 VM-I24: a frame being built — stamped, not yet appended —
+    holds the record lock, so a send mark (taken under it) cannot fall
+    between its stamp and its append and see it after its cursor."""
+    held = []
+    c = ls.SimulatorClient("unused", auto_confirm=False, keep=("feed_override_enabled",))
+
+    class Keep:
+        def __iter__(self):
+            held.append(c.record_lock.locked())
+            return iter(("feed_override_enabled",))
+    c.keep = Keep()                          # the frame's fields, read while it is built
+    c.take({"type": "status", "data": {"feed_override_enabled": True}})
+    assert held == [True] and len(c.frames) == 1
+
+
+def test_only_a_lock_received_after_the_actual_send_is_a_start():
+    """Codex R382 VM-I24 (its probe, the real client): a lock and a free frame
+    received between the preparation and the send, then only free frames —
+    no start. The cursor and the send time are the send mark's."""
+    c = ls.SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+    idle = {"interp_state": 1, "inpos": True, "current_vel": 0.0, "tool_change_requested": False,
+            "tool_change_seq": None, "tool_number": 99}
+
+    def take(free, **extra):
+        c.take({"type": "status", "data": {**idle, "feed_override_enabled": free, **extra}})
+    take(True)
+    writes = []
+
+    class Socket:
+        def send(self, raw):
+            command = json.loads(raw)
+            writes.append((time.monotonic(), command))
+            c.replies.put({"cmd": command["cmd"], "ok": True, "mdi_set": True, "persisted": True,
+                           "line": "O<probe_z_minus_wco> CALL"})
+    c.ws = Socket()
+    real_request = c.request
+
+    def request(cmd, **kw):
+        take(False)                          # received after the preparation, before the send
+        take(True)
+        reply = real_request(cmd, **kw)
+        take(True, interp_state=2, inpos=False, current_vel=5.0)
+        take(True)
+        return reply
+    c.request = request
+    r = nr._probe_job(c, "probe-run", "probe_run", {"routine": "probe_z_minus_wco", "vars": {}}, deadline=0.05)
+    locks = [t for t, st in c.frames if st["feed_override_enabled"] is False]
+    assert len(writes) == 1 and locks and max(locks) < writes[0][0]
+    assert r["start"]["status"] != "PASS" and r["t0"] < writes[0][0], r["start"]
+    assert r["cursor"] == 3, r["cursor"]     # the frames received before the send, the two in between too
+
+
+def test_a_probe_start_is_timed_from_the_send_mark():
+    """VM-I24: the start's time from the send mark, a lock stamped at or
+    before it never counts — without a mark the time says its origin."""
+    frames = [(1.0, {"feed_override_enabled": True}), (1.2, {"feed_override_enabled": False}),
+              (1.3, {"feed_override_enabled": False})]
+    r = nc.eval_probe_start("s", frames, 1, True, t_send=1.25)
+    assert r["status"] == "PASS" and r["detail"] == "free at the send, locked +0.050 s after the send", r
+    r = nc.eval_probe_start("s", frames[:2], 1, True, t_send=1.25)
+    assert r["status"] == "FAIL", r                         # its only lock stamped before the send
+    r = nc.eval_probe_start("s", frames, 1, True)
+    assert r["detail"] == "free at the send, locked +0.200 s after the last frame before the send", r
+
+
 def test_the_surface_step_names_each_planted_defect(monkeypatch, tmp_path):
     cases = {"method ignored": ("comp-nearest", "FAIL"), "frozen": ("comp-after-xy", "FAIL"),
              "no reload": ("surface-scan.map", "FAIL"), "early release": ("surface-override-lock", "FAIL"),
@@ -6138,12 +6440,16 @@ def test_the_cleanup_needs_the_override_free_in_a_status_after_the_write(monkeyp
         """Status frames keep arriving: each look brings the latest state again."""
 
         def __init__(self, st):
-            self.f, self.errors, self.error = [(0.0, dict(st))], [], None
+            self.f, self.errors, self.error, self.safety_trip, self.sent = [(0.0, dict(st))], [], None, None, []
 
         @property
         def frames(self):
             self.f.append((self.f[-1][0] + 0.033, dict(self.f[-1][1])))
             return self.f
+
+        def request(self, cmd, **kw):          # the finish's abort (Codex R382 VM-I23)
+            self.sent.append(cmd)
+            return {"ok": True}
 
         @property
         def status(self):
@@ -6151,7 +6457,7 @@ def test_the_cleanup_needs_the_override_free_in_a_status_after_the_write(monkeyp
 
     for after, ok in ((True, True), (False, False), (None, False)):
         c = Streaming({**_IDLE, "feed_override_enabled": False, "comp_method": 2, "g5x_index": 1,
-                       "g5x_offset": [0.0, 0.0, 0.0]})
+                       "g5x_offset": [0.0, 0.0, 0.0], "current_vel": 0.0})
 
         def short(cl, text, after=after):
             cl.f.append((cl.f[-1][0] + 0.1, {**cl.status, "feed_override_enabled": after}))
@@ -6850,9 +7156,13 @@ class _JobClient:
     def status(self):
         return dict(self.frames[-1][1])
 
-    def request(self, cmd, **kw):
-        self.sent.append((cmd, kw))
+    def request(self, cmd, *, mark=None, **kw):
+        # the send mark first, on the fake's own frame clock — a mark that
+        # raises sends nothing (live_session.request)
         t = self.frames[-1][0]
+        if mark is not None:
+            mark((t + 0.001, 0))
+        self.sent.append((cmd, kw))
         for i, (free, interp, inpos) in enumerate(self.course, 1):
             self.frames.append((t + 0.033 * i, {**_IDLE, "feed_override_enabled": free, "interp_state": interp,
                                                 "inpos": inpos, "current_vel": 0.0 if inpos else 5.0}))

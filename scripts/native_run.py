@@ -988,19 +988,22 @@ def _claim_refused(e) -> bool:
     return isinstance(e, SessionRefused) and "starting or running" in str(e)
 
 
-def _when_free(c, cmd, before=None, **kw):
+def _when_free(c, cmd, before=None, at_send=None, **kw):
     """A write or a start right after a routine: the gateway refuses it while
     the routine's start claim is held ("A program or macro is starting or
     running — wait") and releases the claim on its next status proof — asked
     again for CLAIM_WAIT_S; any other refusal ends it at once. A refused
     command was not sent, so asking again sends it once. `before()` runs
     right before EACH attempt and its value is the accepted attempt's
-    (a routine binds its frame and error bounds there — FI-I37)."""
+    (a routine binds its frame and error bounds there — FI-I37). `at_send`
+    is the client's send mark: called under its record lock in ONE region
+    with the send (a probe start binds its baseline and cursor there —
+    Codex R382 VM-I24); raising in it sends nothing."""
     end = time.monotonic() + CLAIM_WAIT_S
     while True:
         mark = before() if before else None
         try:
-            reply = c.request(cmd, **kw)
+            reply = c.request(cmd, **kw) if at_send is None else c.request(cmd, mark=at_send, **kw)
             return (reply, mark) if before else reply
         except RuntimeError as e:
             if not _claim_refused(e) or time.monotonic() >= end:
@@ -1187,13 +1190,17 @@ def _refused(c, cmd, **kw):
 
 def _probe_job(c, case, cmd, payload, deadline=90.0):
     """ONE probe start (Codex R380–R381 VM380-03), the four probe cases' and
-    the scan's: the override FREE in the last frame before the send (the
-    caller confirmed it with _override_free before its plant — never an M50
-    between the last read-back and the job), else nothing is sent; the
+    the scan's: the override FREE in the last frame received before the send
+    (the caller confirmed it with _override_free before its plant — never an
+    M50 between the last read-back and the job), else nothing is sent; the
     routine's start is a lock RECEIVED after the send, its end the
-    interpreter busy then idle in position after that start. Returns the
-    reply, the cursor, the trigger and end times, the errors received, the
-    start row and `error` (the deadline's, None when ended)."""
+    interpreter busy then idle in position after that start. The baseline,
+    the cursor, the errors' bound and the send time are taken in the
+    client's send mark — under its record lock, in one region with the send:
+    a frame received before the send is before the cursor, whatever came
+    between the preparation and the send (Codex R382 VM-I24). Returns the
+    reply, the cursor, the send and end times, the errors received, the
+    start row and `error` (the wait's, None when ended)."""
     from test_support import tool_change as tc
     changes = tc.ToolChanges([])
 
@@ -1201,12 +1208,16 @@ def _probe_job(c, case, cmd, payload, deadline=90.0):
         refusal = changes.precheck(c.status)
         if refusal:
             raise RuntimeError(f"{case}: {refusal}")
+    at = {}
+
+    def at_send(mark):
         frames = c.frames
         base = frames[-1][1].get("feed_override_enabled") if frames else None
         if base is not True:
             raise Refused(f"{case}: no free override baseline at the send ({base}) — nothing sent")
-        return len(c.errors), len(frames), time.monotonic()
-    reply, (seen, cursor, t0) = _when_free(c, cmd, before=bounds, **payload)
+        at.update(seen=len(c.errors), cursor=len(frames), t0=mark[0])
+    reply, _ = _when_free(c, cmd, before=bounds, at_send=at_send, **payload)
+    seen, cursor, t0 = at["seen"], at["cursor"], at["t0"]
     end = tc.RoutineEnd(require_busy=True, grace=SHORT_GRACE)
     started = {"t": None}
 
@@ -1226,7 +1237,7 @@ def _probe_job(c, case, cmd, payload, deadline=90.0):
     ended = error is None or (last.get("interp_state") == tc.INTERP_IDLE and last.get("inpos") is True)
     return {"reply": reply, "cursor": cursor, "t0": t0, "t_done": changes.ended_at, "error": error,
             "errors": [(k, x) for _, k, x in c.errors[seen:]],
-            "start": nc.eval_probe_start(f"{case}.start", frames, cursor, ended)}
+            "start": nc.eval_probe_start(f"{case}.start", frames, cursor, ended, t_send=t0)}
 
 
 def _over_plate(c, plate, over):
@@ -1327,6 +1338,68 @@ def _standstill(c, timeout) -> bool:
     return False
 
 
+def _lost(c):
+    """What withdraws a finish's admission: the connection lost, a safety
+    trip waiting (plan R380 §6, R381 VM380-03). None while admitted."""
+    if c.error:
+        return f"the connection is lost ({c.error})"
+    if c.safety_trip is not None:
+        return "a safety trip waits"
+    return None
+
+
+def _finish(c, steps) -> dict:
+    """The agreed finish of a case, on EVERY exit (R381 VM380-03, Codex R382
+    VM-I22/VM-I23): admitted — connected, no trip — abort, then a standstill;
+    then each step, and the admission judged AGAIN after every blocking wait
+    and after every step (a trip or a lost link may come in the standstill
+    wait or in a step — a step may move: the compensation's drain); before
+    each step the standstill again. A lost admission or no standstill stops
+    it: the steps not run are named, never worked off blindly after a
+    failure. A step's own failure is named and the next is judged afresh.
+    Reaches the frames only through _standstill."""
+    out = {"done": [], "results": {}, "errors": [], "stopped": None, "left": []}
+    names = [what for what, _ in steps]
+
+    def stop(why, i):
+        out["stopped"], out["left"] = why, names[i:]
+        return out
+    why = _lost(c)
+    if why:
+        return stop(f"nothing done — {why}", 0)
+    try:
+        c.request("abort")
+    except Exception as e:  # noqa: BLE001 — named, nothing more is done
+        return stop(_lost(c) or f"the abort failed: {type(e).__name__}: {e}", 0)
+    standing = _standstill(c, STAND_S)
+    why = _lost(c) or (None if standing else f"no standstill within {STAND_S} s after the abort")
+    if why:
+        return stop(why, 0)
+    for i, (what, fn) in enumerate(steps):
+        if i:
+            standing = _standstill(c, STAND_S)
+            why = _lost(c) or (None if standing else f"no standstill within {STAND_S} s before {what}")
+            if why:
+                return stop(why, i)
+        try:
+            out["results"][what] = fn()
+            out["done"].append(what)
+        except Exception as e:  # noqa: BLE001 — named; the next step is judged afresh
+            out["errors"].append(f"{what}: {type(e).__name__}: {e}")
+        why = _lost(c)
+        if why:
+            return stop(why, i + 1)
+    return out
+
+
+def _finish_row(case, f) -> dict:
+    """The finish of a start that ended without its case's restore (the old
+    probe cases): aborted and standing, or what stopped it."""
+    if f["stopped"]:
+        return {"case": case, "status": "FAIL", "detail": f"not finished — {f['stopped']}"}
+    return {"case": case, "status": "PASS", "detail": "aborted and standing — nothing read before it"}
+
+
 def _release_seen(c, r) -> None:
     """Wait out the release window after the routine's end (as M600's)."""
     if r["t_done"] is None:
@@ -1388,6 +1461,15 @@ def _probe_run(ctx, c, plate, rows: list) -> None:
         _save_features(ctx, c, switches0)
         # the hit: no mdi since the snapshot (s2), the switch saved back on
         r, frame = _framed(ctx, c, "probe-run", lambda: _probe_job(c, "probe-run", "probe_run", payload))
+        if r["error"]:
+            # the wait failed: nothing read — the restore's finish (abort,
+            # standstill) comes first (Codex R382 VM-I22)
+            rows += [nc.combine("probe-run", {"reply": nc.eval_job_reply("reply", r["reply"], line),
+                                              "window": nc.eval_job_window("window", frame, "probe_run", line, values),
+                                              "end": nc.eval_wait_failed("end", r["error"]),
+                                              "values": nc.not_read("values"), "probe": nc.not_read("probe")}),
+                     r["start"]]
+            raise Refused(f"probe-run: {r['error']}")
         back = _vars(c, numbers + [5070])
         g54 = _g54_z(c.status)
         probe = nc.eval_probe_z("probe", back[5070], g54, expected=plate["z"], errors=r["errors"])
@@ -1401,18 +1483,22 @@ def _probe_run(ctx, c, plate, rows: list) -> None:
         # its own release (M50 P1), judged BEFORE any cleanup frees it
         _release_seen(c, r)
         rows.append(nc.eval_override_lock("probe-run-override-lock", [f for f in c.frames if f[0] >= r["t0"]], r["t0"]))
-        if r["error"]:
-            raise Refused(f"probe-run: {r['error']}")
         s3 = prepare(MISS_OVER)
         r, frame = _framed(ctx, c, "probe-run-miss", lambda: _probe_job(c, "probe-run-miss", "probe_run", payload))
+        if r["error"]:
+            rows += [nc.combine("probe-run-miss", {"reply": nc.eval_job_reply("reply", r["reply"], line),
+                                                   "window": nc.eval_job_window("window", frame, "probe_run", line,
+                                                                                values),
+                                                   "end": nc.eval_wait_failed("end", r["error"]),
+                                                   "values": nc.not_read("values"), "miss": nc.not_read("miss")}),
+                     r["start"]]
+            raise Refused(f"probe-run-miss: {r['error']}")
         back = _vars(c, numbers + [5070])
         miss = nc.eval_probe_miss("miss", back[5070], s3["g54_z"], _g54_z(c.status), r["errors"])
         rows += [nc.combine("probe-run-miss", {"reply": nc.eval_job_reply("reply", r["reply"], line),
                                                "window": nc.eval_job_window("window", frame, "probe_run", line, values),
                                                "values": nc.eval_values("values", back, values), "miss": miss}),
                  r["start"]]
-        if r["error"]:
-            raise Refused(f"probe-run-miss: {r['error']}")
     except Exception as e:  # noqa: BLE001 — the restore first, then the step ends with its rows
         failure = e
     rows.append(_probe_run_restore(ctx, c, switches0, first))
@@ -1421,11 +1507,12 @@ def _probe_run(ctx, c, plate, rows: list) -> None:
 
 
 def _probe_run_restore(ctx, c, switches0, first) -> dict:
-    """Every exit of the probe_run case (plan R380 §6, R381 VM380-03): abort
-    and standstill first; then — connected, no trip, standing — the override
-    free, the switches as first read, G54 Z0, the numbers as before, each
-    read back. A trip, a lost connection or no standstill does nothing more
-    and names what is left."""
+    """Every exit of the probe_run case (plan R380 §6, R381 VM380-03, Codex
+    R382 VM-I23) through _finish: abort and standstill first; then — still
+    connected, no trip, standing, judged again after every wait and step —
+    the override free, the switches as first read, G54 Z0, the numbers as
+    before, each read back. A lost admission does nothing more and names
+    what is left."""
     case = "probe-run.restore"
 
     def left():
@@ -1435,29 +1522,20 @@ def _probe_run_restore(ctx, c, switches0, first) -> dict:
         except Exception as e:  # noqa: BLE001 — named in the row
             switches = f"not read ({type(e).__name__})"
         return f"left: override {st.get('feed_override_enabled')}, G54 Z {_g54_z(st)}, switches {switches}"
-    if c.error or c.safety_trip is not None:
-        why = "the connection is lost" if c.error else "a safety trip waits"
-        return {"case": case, "status": "FAIL", "detail": f"not restored — {why}; {left()}"}
-    try:
-        c.request("abort")
-        if not _standstill(c, STAND_S):
-            raise Refused(f"no standstill within {STAND_S} s after the abort")
-    except Exception as e:  # noqa: BLE001 — named, nothing more is done
-        return {"case": case, "status": "FAIL", "detail": f"not restored — {type(e).__name__}: {e}; {left()}"}
-    errors = []
-    for what, fn in (("override", lambda: _override_free(c)), ("features", lambda: _save_features(ctx, c, switches0)),
-                     ("g54", lambda: _short(c, "G10 L2 P1 Z0")), ("values", lambda: _plant(c, first))):
-        try:
-            fn()
-        except Exception as e:  # noqa: BLE001 — each named
-            errors.append(f"{what}: {type(e).__name__}: {e}")
+    f = _finish(c, [("override", lambda: _override_free(c)), ("features", lambda: _save_features(ctx, c, switches0)),
+                    ("g54", lambda: _short(c, "G10 L2 P1 Z0")), ("values", lambda: _plant(c, first))])
+    if f["stopped"]:
+        return {"case": case, "status": "FAIL", "detail": f"not restored — {f['stopped']}; done {f['done']}, "
+                f"not done {f['left']}" + "".join(f"; {e}" for e in f["errors"]) + f"; {left()}"}
+    errors = list(f["errors"])
     g54 = _g54_z(c.status)
     if g54 is None or abs(g54) > nc.SAME:
         errors.append(f"G54 Z not back on 0: {g54}")
     if errors:
         return {"case": case, "status": "FAIL", "detail": "; ".join(errors) + f"; {left()}"}
     return {"case": case, "status": "PASS",
-            "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before — read back"}
+            "detail": "aborted and standing, then the override free, the switches as first read, G54 Z0 and the "
+                      "numbers as before — read back"}
 
 
 def probe_cases():
@@ -1488,8 +1566,18 @@ def probe_cases():
             if plant and _read_params(c, [5070])[5070] != 0:
                 raise Refused(f"{case}: #5070 not planted 0")
             before = _g54_z(c.status)
-            r = _probe_job(c, case, "mdi", {"text": "O<probe_z_minus_wco> CALL",
-                                            "vars": {str(k): v for k, v in probe_vars.items()}})
+            try:
+                r = _probe_job(c, case, "mdi", {"text": "O<probe_z_minus_wco> CALL",
+                                                "vars": {str(k): v for k, v in probe_vars.items()}})
+            except Exception:
+                # every exit of a start ends in the finish (Codex R382 VM-I22)
+                rows.append(_finish_row(f"{case}.finish", _finish(c, [])))
+                raise
+            if r["error"]:
+                # the wait failed: nothing read — abort and standstill first
+                rows.extend([nc.eval_wait_failed(case, r["error"]), r["start"],
+                             _finish_row(f"{case}.finish", _finish(c, []))])
+                raise Refused(f"{case}: {r['error']}")
             p = _read_params(c, [5070, 5063])
             return p[5070], before, _g54_z(c.status), r
 
@@ -1500,8 +1588,6 @@ def probe_cases():
         # because of the plant — it passed against the true one (R292 FI-I27)
         planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=r["errors"])
         rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit), r["start"]]
-        if r["error"]:
-            raise Refused(f"probe-z: {r['error']}")
         # a G38.2 ending without contact aborts the routine and leaves #5070
         # as the LAST probe wrote it — 1 from the hit (live run 2026-11-05):
         # planted 0 and read back, its read after the miss is evidence again
@@ -1509,8 +1595,6 @@ def probe_cases():
         rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, r["errors"]))
         rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
         rows.append(r["start"])
-        if r["error"]:
-            raise Refused(f"probe-z-miss: {r['error']}")
         # the hand-over: the override free whatever the miss's abort left
         _override_free(c)
         _probe_run(ctx, c, plate, rows)
@@ -1832,26 +1916,34 @@ def surface_cases():
 
 
 def _surface_cleanup(ctx, c, method0, switches0=None, first=None) -> dict:
-    """Every path: off and drained, the method back, G54 Z0, the override free,
-    the switches as first read and the scan's numbers as before the plant
-    (plan R381) — each read back; a failure is named (and ends the step)."""
+    """Every path through _finish (Codex R382 VM-I23 — the same admission as
+    the probe case's restore): abort and standstill first; then, still
+    connected, no trip, standing — judged again after every wait and step —
+    off and drained, the method back, G54 Z0, the override free, the
+    switches as first read and the scan's numbers as before the plant (plan
+    R381), each read back. A lost admission does nothing more and names
+    what is left; a failure is named (and ends the step)."""
     out, errors = {}, []
-    for what, fn in (("off", lambda: _comp_off(ctx, c)),
-                     ("method", lambda: c.status.get("comp_method") == nc.METHODS.index(method0)
-                      or _comp_method(c, method0)),
-                     ("g54", lambda: _short(c, "G10 L2 P1 Z0")),
-                     ("override", lambda: _override_free(c)),
-                     ("features", lambda: switches0 is None or _save_features(ctx, c, switches0)),
-                     ("values", lambda: first is None or _plant(c, first))):
-        try:
-            res = fn()
-            out[what] = res if isinstance(res, dict) else "done"
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"{what}: {type(e).__name__}: {e}")
+    f = _finish(c, [("off", lambda: _comp_off(ctx, c)),
+                    ("method", lambda: c.status.get("comp_method") == nc.METHODS.index(method0)
+                     or _comp_method(c, method0)),
+                    ("g54", lambda: _short(c, "G10 L2 P1 Z0")),
+                    ("override", lambda: _override_free(c)),
+                    ("features", lambda: switches0 is None or _save_features(ctx, c, switches0)),
+                    ("values", lambda: first is None or _plant(c, first))])
+    for what in f["done"]:
+        res = f["results"].get(what)
+        out[what] = res if isinstance(res, dict) else "done"
+    errors += f["errors"]
     st = c.status
     out["after"] = {"eoffset_enabled": st.get("eoffset_enabled"), "eoffset_z": st.get("eoffset_z"),
                     "comp_method": st.get("comp_method"), "g54_z": _g54_z(st),
                     "feed_override_enabled": st.get("feed_override_enabled")}
+    if f["stopped"]:
+        out["stopped"], out["left"] = f["stopped"], f["left"]
+        out["error"] = "; ".join([f"not cleaned up — {f['stopped']}; done {f['done']}, not done {f['left']}"]
+                                 + errors)
+        return out
     if not (isinstance(out.get("off"), dict) and out["off"].get("settled")):
         errors.append(f"compensation not confirmed off and drained: {out.get('off')}")
     if st.get("comp_method") != nc.METHODS.index(method0):
@@ -1897,13 +1989,19 @@ def _scan_and_compensate(ctx, c, frames, method0, rows: list, entry) -> None:
     r, frame = _framed(ctx, c, "surface-scan.job",
                        lambda: _probe_job(c, "surface-scan", "surface_scan_run", {"vars": dict(job["vars"])},
                                           deadline=SCAN_DEADLINE))
+    if r["error"]:
+        # the wait failed: nothing read — the cleanup's finish (abort,
+        # standstill) comes first (Codex R382 VM-I22)
+        rows += [nc.combine("surface-scan.job", {
+            "reply": nc.eval_job_reply("reply", r["reply"], line),
+            "window": nc.eval_job_window("window", frame, "surface_scan_run", line, values),
+            "end": nc.eval_wait_failed("end", r["error"]), "values": nc.not_read("values")}), r["start"]]
+        raise Refused(f"surface-scan: {r['error']}")
     back = _vars(c, sorted(values))
     rows += [nc.combine("surface-scan.job", {
         "reply": nc.eval_job_reply("reply", r["reply"], line),
         "window": nc.eval_job_window("window", frame, "surface_scan_run", line, values),
         "values": nc.eval_values("values", back, values)}), r["start"]]
-    if r["error"]:
-        raise Refused(f"surface-scan: {r['error']}")
     points = _scan_points(results)
     text = results.read_bytes() if results.is_file() else None
     scan = nc.eval_surface_scan("surface-scan", points, r["errors"])

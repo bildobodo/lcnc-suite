@@ -159,13 +159,16 @@ class SimulatorClient:
                 self.safety_trip = msg.get("safety_trip")
                 self.trip_history.append((now, self.safety_trip))
                 self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))
+                # stamped AND appended in one region: a send's mark taken
+                # under this lock sees every frame stamped before it at an
+                # index before its cursor (Codex R382 VM-I24)
+                if self.keep is not None:
+                    self.frames.append((now, {k: self.status.get(k) for k in self.keep}))
             if isinstance(msg.get("toolsetter_booking"), dict):
                 self.toolsetter_booking = msg["toolsetter_booking"]
                 self.booking_history.append((now, msg["toolsetter_booking"]))
             if isinstance(msg.get("probe_results"), dict):
                 self.probe_results.update(msg["probe_results"])
-            if self.keep is not None:
-                self.frames.append((now, {k: self.status.get(k) for k in self.keep}))
             if self.on_status:
                 self.on_status(now, dict(self.status))
             requested = self.status.get("tool_change_requested", False)
@@ -198,9 +201,10 @@ class SimulatorClient:
         """`mark`: called with the section's end (t, n) and the command sent in
         ONE region under the record lock — no frame is stamped between the mark
         and the send (the latch-sticky section ends at the acknowledgement's
-        send, Codex R378 VM-I19); a request refused before the send takes no
-        mark. `take` sends nothing under the lock, so the send cannot wait on
-        the receiver."""
+        send, Codex R378 VM-I19; a probe start's cursor, R382 VM-I24); a
+        request refused before the send takes no mark, and a mark that raises
+        sends nothing. `take` sends nothing under the lock, so the send cannot
+        wait on the receiver."""
         if self.error:
             raise TransportLost(self.error)
         if mark is None:

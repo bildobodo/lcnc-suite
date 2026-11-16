@@ -1318,21 +1318,39 @@ def combine(case: str, parts: dict, **measured) -> dict:
     return _row(case, "PASS", "; ".join(f"{k}: {p['detail']}" for k, p in parts.items()), parts=parts, **measured)
 
 
-def eval_probe_start(case: str, frames: list, cursor: int, ended: bool) -> dict:
+def eval_wait_failed(case: str, error: str) -> dict:
+    """A probe start whose wait failed (Codex R382 VM-I22): its end not
+    observed — FAIL. Nothing is read from the interpreter before the finish
+    (abort and standstill), so the measured parts are `not_read`, never a
+    measurement taken after the failure."""
+    return _row(case, "FAIL", f"the routine's end not observed ({error}) — nothing read before the finish")
+
+
+def not_read(case: str) -> dict:
+    """A measured part of a start whose wait failed: not read (VM-I22)."""
+    return _row(case, "incomplete", "not read — the wait failed; nothing is read before the finish")
+
+
+def eval_probe_start(case: str, frames: list, cursor: int, ended: bool, t_send=None) -> dict:
     """A probe routine's START, from the override (Codex R380 VM380-03): the
-    last frame received before the send (`cursor`) shows the override FREE —
-    the baseline — and a frame received after it shows it LOCKED (its own
-    M50 P0). A lock before the cursor never counts. No baseline: incomplete;
-    no lock through an observed end (`ended`): FAIL, else incomplete."""
+    last frame received before the send (`cursor`, taken with the send under
+    the client's record lock) shows the override FREE — the baseline — and a
+    frame received after the send shows it LOCKED (its own M50 P0). A lock
+    before the cursor, or stamped before the send (`t_send`, the send mark),
+    never counts (Codex R382 VM-I24). The time is measured from the send
+    mark; without one, from the last frame before the send — and says so.
+    No baseline: incomplete; no lock through an observed end (`ended`):
+    FAIL, else incomplete."""
     base = frames[cursor - 1][1].get("feed_override_enabled") if 0 < cursor <= len(frames) else None
-    measured = {"baseline": base}
+    measured = {"baseline": base, "t_send": t_send}
     if base is not True:
         return _row(case, "incomplete", f"no free override baseline at the send (the last frame before it: {base})",
                     **measured)
-    t_send = frames[cursor - 1][0]
-    lock = next((t for t, st in frames[cursor:] if st.get("feed_override_enabled") is False), None)
+    since, origin = (t_send, "the send") if t_send is not None else (frames[cursor - 1][0], "the last frame before the send")
+    lock = next((t for t, st in frames[cursor:] if st.get("feed_override_enabled") is False
+                 and (t_send is None or t > t_send)), None)
     if lock is not None:
-        return _row(case, "PASS", f"free at the send, locked {lock - t_send:+.3f} s after", **measured)
+        return _row(case, "PASS", f"free at the send, locked {lock - since:+.3f} s after {origin}", **measured)
     if ended:
         return _row(case, "FAIL", "no lock after the send through the routine's end — its M50 P0 not seen", **measured)
     return _row(case, "incomplete", "no lock after the send, and no end observed", **measured)
