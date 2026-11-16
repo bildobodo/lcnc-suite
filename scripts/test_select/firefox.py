@@ -202,6 +202,11 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
     checks.append({"name": "firefox-browser", "status": "FAIL" if started else "PASS",
                    **({"why": started} if started else {"version": pin["version"]})})
     info["images_not_compared"] = images_not_compared(ran)
+    # the run's real worker count and duration (Codex R385 F3: CI names them)
+    info["workers"] = {"asked": rg.WORKERS, "report": (ran.get("config") or {}).get("workers"),
+                       "seconds": c.get("seconds")}
+    info["unloads"] = [{k: e.get(k) for k in ("title", "beacons", "recorded")} for e in log
+                       if e.get("event") == "unload" and e.get("run") == run_id]
     if replay_on:
         t1 = time.monotonic()
         r = rg.replay_check(replay_dir, events, run_id, logs / "firefox-replay.json")

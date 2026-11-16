@@ -11626,12 +11626,17 @@ Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
   each corner's wedge to what lay beneath (the hit test honours the
   radius) — a backdrop that closes did not close there. Fixed: a square,
   clear overlay with the rounded scrim as its `::before`;
-- headless Firefox under BiDi has no WebGL here — the viewer and the tool
-  preview stay empty; the tool dialog's reference image is left out of the
-  core (named in `firefox-core.json`);
+- headless Firefox under BiDi has no WebGL here (`getContext("webgl2")` and
+  `("webgl")` null) — the viewer and the tool preview stay empty; the tool
+  dialog's reference image is left out of the core (named in
+  `firefox-core.json`);
 - Firefox sends a page's unload beacons without the context's cookie when
-  the context closes under the page — the replay would lose their test
-  attempt; the fixture unloads the page first.
+  they go out after the context closed — the replay would lose their test
+  attempt. Navigating away first still lost one in about four runs, and the
+  unload sends one or two telemetry beacons, not a fixed number: the fixture
+  counts the page's own beacons in sessionStorage, unloads into a neutral
+  document of the same origin and closes the context once the mock recorded
+  that many.
 
 **Not done.** A second set of x86_64 references (R385 F1 a): images made
 where nobody reviews them. ESR and the machine PC's browser wait for the

@@ -283,8 +283,9 @@ operator saw in 159; the pin shows it natively).
   150 % portrait. `buildup` in the agreed order while the gate stays under
   5 min: `probe-click`, `tabs`, the other dialog rows on the desktop, then
   in portrait, the desktop strip rows of `visual.spec` (its tool dialog left
-  out: headless Firefox under BiDi has no WebGL here). Measured 2026-11-16:
-  86 tests in 117 s on the VM's three workers.
+  out: headless Firefox under BiDi has no WebGL here — `getContext("webgl2")`
+  and `("webgl")` are null). Measured 2026-11-16: 86 tests in 101–138 s on
+  the VM's three workers; CI (x86_64, one worker): the required 26 in 42 s.
 - **Mouse and keyboard only:** touch under BiDi is a SILENT no-op (`tap()`
   resolves, the page receives nothing). No core spec calls a touch API (the
   runner's static scan), and `e2e/test.ts` makes every touch call throw in
@@ -300,8 +301,12 @@ operator saw in 159; the pin shows it natively).
   `firefox-browser` (each worker's STARTED browser, `browser.version()`, is
   the pin) and `firefox-replay` (its own replay; Firefox sends a page's
   unload beacons without the context's cookie when the context closes under
-  the page, so the fixture unloads the page first). The record names the
-  pin, the arch, the archive SHA256, Playwright's version and the look-up.
+  the page; the fixture counts every beacon of the page's unload in the
+  tab's sessionStorage, unloads into a neutral document of the same origin
+  and closes the context only once the mock recorded that many — one or two
+  telemetry beacons in Firefox, not a fixed number). The record names the
+  pin, the arch, the archive SHA256, Playwright's version, the look-up, the
+  worker count and each unload's count.
 - **Where it runs:** the merge gate always (a binary that cannot be fetched
   FAILS); a round when a path selects it — the `firefox` rules, a core spec
   or a Firefox reference (pending, with its reason, when the binary cannot

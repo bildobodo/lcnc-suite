@@ -68,14 +68,17 @@ for (const view of PROBE_VIEWS) {
       const r = el.getBoundingClientRect();
       return [Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10];
     }));
-    expect(cells.length, `${view.label}: grid cells`).toBe(CELLS[view.id]);
+    // Soft: a failed size check does not stop the image — the glyph collapse
+    // is red in the image AND in the size check (TS248-05), each on its own.
+    expect.soft(cells.length, `${view.label}: grid cells`).toBe(CELLS[view.id]);
     // the collapse gave 10 px cells: every cell keeps a touch-size square
-    expect(cells.filter(([w, h]) => w < 44 || Math.abs(w - h) > 1), `${view.label}: square cells of at least 44 px ${JSON.stringify(cells)}`)
+    expect.soft(cells.filter(([w, h]) => w < 44 || Math.abs(w - h) > 1), `${view.label}: square cells of at least 44 px ${JSON.stringify(cells)}`)
       .toEqual([]);
 
     if (!compareImages) {
       const why = `references are ${REF_PLATFORM}, this is ${HERE_PLATFORM}`;
       info.annotations.push({ type: "images not compared", description: why });
+      console.log(`probe-visual: ${view.label} — the image is not compared (${why}); the cells are checked`);
       return;
     }
     await panel.evaluate(el => el.scrollTo(0, 0));

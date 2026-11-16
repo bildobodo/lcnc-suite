@@ -60,7 +60,8 @@ export const TOUCH_UNDER_BIDI = "touch is a silent no-op under WebDriver BiDi �
 async function forbidTouch(page: Page): Promise<void> {
   const refuse = () => { throw new Error(TOUCH_UNDER_BIDI); };
   const html = page.locator("html");
-  for (const proto of [Object.getPrototypeOf(html), Object.getPrototypeOf(page), Object.getPrototypeOf(page.touchscreen)])
+  for (const proto of [Object.getPrototypeOf(html), Object.getPrototypeOf(page), Object.getPrototypeOf(page.mainFrame()),
+                       Object.getPrototypeOf(page.touchscreen)])
     Object.defineProperty(proto, "tap", { value: refuse, configurable: true, writable: true });
   const handle = (await page.evaluateHandle(() => document.documentElement)).asElement();
   if (handle) {
@@ -82,11 +83,14 @@ function postsRecorded(file: string): number {
 
 const BEACONS_KEY = "e2e.unloadBeacons";
 /** A document of the mock's origin that is not the app: a built stylesheet
- *  (Firefox shows it as text) — the tab's sessionStorage is readable there. */
-const NEUTRAL = (() => {
+ *  (Firefox shows it as text) — the tab's sessionStorage is readable there.
+ *  Read when Firefox needs it, never at import (a Chromium spec loads this
+ *  file too, without needing a build). */
+function neutralDocument(): string {
   const css = readdirSync(new URL("../dist/static/", import.meta.url)).find(f => f.endsWith(".css"));
-  return css ? `${MOCK}static/${css}` : null;
-})();
+  if (!css) throw new Error("no built stylesheet in dist/static: no neutral document to unload the page into — npm run build");
+  return `${MOCK}static/${css}`;
+}
 
 /** Firefox: the page is UNLOADED while its context lives, and the context
  *  closes only once every beacon the unload sent reached the mock. Firefox
@@ -103,12 +107,15 @@ const NEUTRAL = (() => {
  *  there, and the mock must have recorded that many POSTs before the
  *  context may close. Nothing is suppressed; a miss can only turn the
  *  replay red, never green. */
-async function unloadInContext(page: Page, instance: string): Promise<void> {
+async function unloadInContext(page: Page, instance: string, where: Record<string, unknown>): Promise<void> {
   const file = replayFile(instance);
-  if (page.isClosed() || !page.url().startsWith(MOCK) || !file || !NEUTRAL) {
+  // a page the app is not loaded in (closed, the preview's smoke page,
+  // about:blank) sends the mock nothing; without a replay log nothing judges
+  if (page.isClosed() || !page.url().startsWith(MOCK) || !file) {
     await page.goto("about:blank").catch(() => {});
     return;
   }
+  const neutral = neutralDocument();
   await page.evaluate((key) => {
     const send = navigator.sendBeacon.bind(navigator);
     sessionStorage.setItem(key, "0");
@@ -119,11 +126,15 @@ async function unloadInContext(page: Page, instance: string): Promise<void> {
     };
   }, BEACONS_KEY);
   const before = postsRecorded(file);
-  await page.goto(NEUTRAL);
-  const sent = await page.evaluate((key) => Number(sessionStorage.getItem(key)), BEACONS_KEY);
+  await page.goto(neutral);
+  const raw = await page.evaluate((key) => sessionStorage.getItem(key), BEACONS_KEY);
+  // no count is no zero: the counter was not reached (another origin, a lost tab)
+  if (raw === null || !/^\d+$/.test(raw)) throw new Error(`the unload's beacon count was not readable (${raw}) — the wait would be skipped`);
+  const sent = Number(raw);
   await expect.poll(() => postsRecorded(file) - before, {
     timeout: 5_000, message: `the ${sent} beacon(s) of the page's unload reached the mock while its context lives`,
   }).toBeGreaterThanOrEqual(sent);
+  logEvent({ event: "unload", ...where, beacons: sent, recorded: postsRecorded(file) - before });
   await page.goto("about:blank").catch(() => {});
 }
 
@@ -131,13 +142,16 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
   // Firefox (the pinned core, R385): no touch — the context options carry
   // none, every touch call throws; and the page is unloaded inside its
   // context before the context closes (unloadInContext).
-  page: async ({ page, browserName, mock }, use, testInfo) => {
+  // `hasTouch` is the context option as the test resolves it — a file's
+  // test.use included, not only the project's.
+  page: async ({ page, browserName, mock, hasTouch }, use, testInfo) => {
     if (browserName === "firefox") {
-      if (testInfo.project.use.hasTouch) throw new Error(TOUCH_UNDER_BIDI);
+      if (hasTouch) throw new Error(TOUCH_UNDER_BIDI);
       await forbidTouch(page);
     }
     await use(page);
-    if (browserName === "firefox") await unloadInContext(page, mock.instance);
+    if (browserName === "firefox")
+      await unloadInContext(page, mock.instance, { testId: testInfo.testId, title: testInfo.title, retry: testInfo.retry });
   },
 
   // The browser that runs is the one asked for (Codex R385): its own
