@@ -1,0 +1,53 @@
+# [SUPERSEDED in part: the mitigation in (5) — navigate away in the page fixture — still lost one beacon in about four runs; see the 10:00 and 10:20 notes below. The current fixture counts the unload's beacons.]
+# PROBE 2026-11-16 ~09:00 — the replay origin under BiDi (plan D: "firefox-replay owed").
+#   (1) replay-origin.spec + smoke in Firefox (playwright.ffreplay.config.ts, 1 worker, replay logging on): replay-origin.spec
+#       GREEN — the page's HTTP requests, the worker's socket and a context the test made carry the attempt; the bare Node
+#       socket has none. replay.check: ONE finding, "POST /telemetry without an origin of this run".
+#   (2) tabs + probe-click (17 attempts, all with a page): 19 findings, all "POST /settings/probe" or "POST /telemetry" without
+#       an origin. Timeline: each comes 0–5 ms after the test's page socket closed, after test-end = the context's close.
+#   (3) Cookie per request kind INSIDE a live page (zzBeaconProbe, both browsers): plain fetch POST, keepalive POST,
+#       sendBeacon, text POST, GET — all carry the cookie in Chromium AND Firefox.
+#   (4) Unload by navigating away inside the test (zzUnloadProbe, both browsers): the pagehide beacons carry the cookie in
+#       Chromium AND Firefox (and an extra HTTP header too).
+#   → Cause: in Firefox a context CLOSED while its page is loaded sends the page's unload beacons (telemetry, the settings
+#     page-hide flush) WITHOUT the context's cookie; Chromium sends them with it. A harness artifact (one context, never closed
+#     under the operator), not a product finding.
+#   (5) Mitigation tried: the `page` fixture navigates the page to about:blank after the test, before Playwright closes the
+#       context (a first try in mockBaseline's teardown found no pages — Playwright had already closed the default context).
+#       tabs + probe-click + replay-origin, 18 attempts: 35 POSTs with origin, 1 without — the own context replay-origin.spec
+#       closes itself (own.close() with its page loaded). No core spec opens its own context (grep newContext/newPage: 0).
+
+# NOTE 2026-11-16 ~10:00 — the residual after "navigate away first" (mutant runs at a67ef5d5): one POST /telemetry
+#   without an origin in F1, F2, F4 and G (4 of 12 runs). F4's trace (dialog 3 Settings discard, mock d972e3d1):
+#   POST /telemetry WITH origin at -101 ms, the page socket closed at -7, POST /telemetry WITHOUT origin at 0 — the
+#   pagehide beacon went out ~100 ms after the beforeunload one, after Playwright had closed the context.
+#   Order of the app's unload requests: beforeunload → telemetry beacon; visibilitychange(hidden) → the settings
+#   page-hide beacons (pending saves only); pagehide → telemetry beacon (ws/telemetry.ts, defaults.ts).
+#   Playwright sees the beacons as requests in both browsers (zzUnloadSignal), but in Firefox as resourceType
+#   "document" and the second sometimes "failed NS_ERROR_UNEXPECTED" — no reliable browser-side signal.
+# NOTE 2026-11-16 ~10:10 — "wait for TWO telemetry beacons" (4 runs, uncommitted, between a67ef5d5 and d9f34863): 18-25 dialog cases per
+#   run timed out — e.g. dialog 12 Upload conflict: the socket closed at 1982 ms, ONE POST /telemetry at 1986, nothing in
+#   the next 5 s. The mock had ONE telemetry beacon there, not two. Whether Firefox sent only one or lost the second on the
+#   way to about:blank (a signal probe saw it reported "failed NS_ERROR_UNEXPECTED") is NOT established — the next note's
+#   counter (same-origin unload) counted two handed-off beacons in every one of 82 unloads (round gate at 4600d845) and
+#   the mock recorded both each time. The fixture never assumes the number: it waits for the page's own count.
+# NOTE 2026-11-16 ~10:20 — the counted unload (d9f34863): every successful sendBeacon from the teardown on counted in the
+#   tab's sessionStorage, the app unloaded into a neutral document of the same origin (a built stylesheet), the count read
+#   there, the context closed once the mock recorded that many POSTs. 4 runs: PASS, 101-109 s, replay 486-499 frames,
+#   0 findings; mutants at d9f34863: replay PASS in every mutant but F9 (the unload removed: 2 POSTs without origin).
+
+# ---- Raw probe lines ----
+# beacon-probe.txt
+== chromium document.cookie names ["e2e_origin"]
+== chromium ["GET /macros ORIGIN ","GET /g30 ORIGIN ","POST /telemetry ORIGIN ","POST /telemetry ORIGIN ","POST /telemetry ORIGIN ","POST /telemetry ORIGIN ","GET /settings ORIGIN ","GET /static/Inter-Regular-L-twW0ba.woff ORIGIN "]
+== chromium sample {"t":1794814347201,"kind":"http","method":"POST","path":"/telemetry","origin":{"run":"beaconprobe","test":"116e391e0a0db2f1cd82-237b036b605f90709c8d","project":"chromium","retry":0},"req_id":null,"status":200}
+== firefox document.cookie names ["e2e_origin"]
+== firefox ["POST /telemetry ORIGIN ","GET /macros ORIGIN ","POST /telemetry ORIGIN ","POST /telemetry ORIGIN ","POST /telemetry ORIGIN ","GET /settings ORIGIN ","GET /static/Inter-Regular-L-twW0ba.woff ORIGIN ","GET /g30 ORIGIN "]
+== firefox sample {"t":1794814349433,"kind":"http","method":"POST","path":"/telemetry","origin":{"run":"beaconprobe","test":"116e391e0a0db2f1cd82-d438388ee3c92429f419","project":"firefox-core","retry":0},"req_id":null,"status":200}
+  2 passed (5.8s)
+# unload-probe.txt
+== chromium cookie after navigating away: ["GET /macros {\"run\":\"unloadprobe\",\"test\":\"8aefca36320","POST /telemetry {\"run\":\"unloadprobe\",\"test\":\"8aefca36320","POST /telemetry {\"run\":\"unloadprobe\",\"test\":\"8aefca36320"]
+== chromium cookie+header after navigating away: ["POST /telemetry {\"infra\":\"hdr-probe\"}","POST /telemetry {\"infra\":\"hdr-probe\"}"]
+== firefox cookie after navigating away: ["GET /macros {\"run\":\"unloadprobe\",\"test\":\"8aefca36320","POST /telemetry {\"run\":\"unloadprobe\",\"test\":\"8aefca36320","POST /telemetry {\"run\":\"unloadprobe\",\"test\":\"8aefca36320"]
+== firefox cookie+header after navigating away: ["POST /telemetry {\"infra\":\"hdr-probe\"}","POST /telemetry {\"infra\":\"hdr-probe\"}"]
+  4 passed (8.3s)

@@ -1,0 +1,6 @@
+# Anchor scan 2026-11-16 (scratch, dialogs.spec in Chromium at today's CSS, before .dialog got position: relative):
+# per row and layout, every element in the dialog's overlay with position absolute whose offsetParent is the overlay, or position fixed.
+# counts of identical results over the 50 row × layout cases:
+     46 ANCHOR-SCAN []
+      2 ANCHOR-SCAN ["div.cm-announced fixed"]
+      2 ANCHOR-SCAN ["div.helpPopover fixed","div.helpPopover fixed","div.helpPopover fixed","div.helpPopover fixed","div.helpPopover fixed","div.helpPopover fixed","div.helpPopover fixed","div.helpPopover fixed"]

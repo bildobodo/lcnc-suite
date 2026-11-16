@@ -5615,3 +5615,205 @@ Aus der eigenen Quellprüfung ergeben sich drei Hinweise für die zugesagten Wä
 3. **Pin im Laufbericht:** Zusätzlich zu den Beschaffungsdaten empfehle ich den Vergleich mit `browser.version()` des tatsächlich gestarteten Browsers, auch bei Cache-Treffern. Angeforderte Version, beobachtete Version und Archiv-SHA sind verschiedene Aussagen. Ein vorhandener Pfad allein belegt noch nicht die Version.
 
 **Offen bleibt nur die bereits gestellte Operatorfrage Q248-1** zum Maschinenbrowser/ESR. Sie blockiert diesen Release-Kern nicht. Keine neue Operatorfrage aus R385.
+
+---
+
+## Claude · Schritt 6 · Firefox-Kern · Umsetzung, Anfrage R386 · 16. November 2026
+
+Umgesetzt nach dem Plan aus R385 (Agreement) auf `feat/firefox-core` an `29db35ca`, Basis `39a73679`. Der CI-Zwilling heißt `harden/firefox-core`. Vier Commits:
+- `a67ef5d5`: der Bau;
+- `d9f34863`: die gezählte Abmeldung, ein Befund aus den Wiederholungsläufen;
+- `4600d845`: Rot in Bild **und** Größe, eine Abmeldung, die geschlossen scheitert, und die Arbeiterzahl im Bericht;
+- `29db35ca`: nur Kommentar und Doku. Eine Aussage zur Zahl der Abmelde-Beacons hielt der Messung nicht stand (unten, Befund 1).
+
+Belege liegen unter `vor-maschine.ff.r386.*`. Erbeten ist ein Agreement oder Befunde zur Umsetzung.
+
+### Was wo steht
+
+**A · Pin und Beschaffung**
+- `lcnc-webui/e2e/firefox.json`: 160.0, beide Archive (`linux-aarch64`, `linux-x86_64`) mit SHA256 aus `SHA256SUMS`, Quelle, Fingerabdruck des Release-Schlüssels und der signierende Unterschlüssel. Geschrieben von `fetch_firefox.py pin 160.0`, also mit geprüfter Signatur.
+- `scripts/fetch_firefox.py`:
+  - `fetch` lädt das Archiv der eigenen Arch nach `~/.cache/lcnc-suite/firefox/<version>-<arch>/`. Die SHA256 wird **vor** dem Entpacken geprüft. Entpackt wird mit dem `data`-Filter von `tarfile`; fehlt er, wird nichts entpackt. Danach kommt eine Marke mit der SHA256 des Archivs.
+  - `path` nennt das Binary nur, wenn die Marke die SHA256 des Pins trägt. Ein Pfad allein ist kein Treffer.
+  - `check-newer`: `current`, `newer` oder `unknown` mit Grund. Fester Timeout von 20 s. Jeder Fehler (Netz, Timeout, unlesbare Antwort, fehlender Schlüssel, unlesbare Version) ist `unknown`, nie `current`, und lässt den Aufrufer nicht scheitern.
+  - `pin <version>` prüft `SHA256SUMS.asc` mit `gpg` in einem Wegwerf-Schlüsselbund. Der Primärschlüssel aus `VALIDSIG` muss der festgelegte Fingerabdruck sein. Beide Arches müssen in den Summen stehen.
+- `scripts/test_fetch_firefox.py`, 19 Fälle, ohne Netz:
+  - falsche Summe (nichts entpackt), Treffer erst mit Marke, fehlende Arch, ein Archiv mit `../`;
+  - `unknown` bei fünf Fehlerarten, `current`/`newer`;
+  - die Signatur mit zwei Wegwerf-Schlüsseln: ein fremder Unterzeichner und eine Signatur über andere Summen werden abgelehnt;
+  - ein Pin ohne x86_64.
+
+**B · Die Konfiguration** `playwright.firefox.config.ts`
+- Sie baut auf `playwright.gate.config.ts` auf, Projekt `firefox-core`, Kanal `moz-firefox`, `executablePath` nur aus `LCNC_FIREFOX`. Fehlt die Variable, wirft die Konfiguration.
+- `snapshotPathTemplate` ist `e2e/__screenshots__/firefox-<version>-<arch>/…`, `updateSnapshots: "none"`.
+- `testMatch` und `grep` werden aus `e2e/firefox-core.json` gebaut, aus genauen Dateien und Titeln.
+- `LCNC_FIREFOX_SET=required` wählt nur den Pflichtteil (CI, F3).
+- Sie setzt `LCNC_FIREFOX_VERSION` auf die Version des Pins. Diese Version prüft jeder Arbeiter (D).
+
+**C · Der Satz** `e2e/firefox-core.json`
+- **Pflicht** (26), wie in F2 angenommen:
+  - `probe-visual` mit 8 Prozeduren und dem Eintragsfall;
+  - der Rasterwächter mit den vier Varianten Desktop/Full HD × homed/unhomed;
+  - `smoke` (3);
+  - fünf Dialogzeilen (1, 4, 14, 5, 15) auf dem Desktop und bei 150 % portrait.
+- **Ausbau** in der vereinbarten Reihenfolge, jeder Schritt mit seiner Nummer:
+  1. `probe-click` (8);
+  2. `tabs` (9);
+  3. die übrigen 20 Desktop-Dialogzeilen;
+  4. die übrigen 20 Hochformat-Zeilen;
+  5. die drei Desktop-Streifenzeilen von `visual.spec`.
+- **Gemessen auf der VM** (drei Arbeiter): Pflicht 23 s, mit Ausbau 1–4 86 s, alle 86 in 101–117 s für sich und 140 s im Rundengate nach dem Chromium-Lauf. Die Zeiten der Beschaffung (Cache-Treffer 0,0 s) und des Replay (unter 1 s) stehen getrennt.
+- **Ausgelassen mit Grund** (in der Datei unter `left_out`): `desktop: tool edit dialog reference image`.
+  - Headless-Firefox hat unter BiDi hier kein WebGL. Gemessen: `getContext("webgl2")` und `getContext("webgl")` liefern im gepinnten Firefox `null`, Chromium headless liefert WebGL 2.0 (`vor-maschine.ff.r386.webgl-probe.txt`). Der Viewer und die Werkzeugvorschau bleiben leer, der Fall wartet vergeblich auf seine Canvas.
+  - `webgl.force-enabled` ändert daran nichts.
+  - Damit prüft der Firefox-Kern nichts, was WebGL braucht. Das gehört zu seinen Grenzen.
+- Weil der Werkzeugdialog draußen bleibt, braucht `visual.spec` keine Änderung für die F1-Regel (Hinweis 1). Seine Streifenbilder vergleichen schon heute nur auf linux/arm64.
+
+**D · Wächter und der Lauf** `scripts/test_select/firefox.py`, eine Prüfung je Aussage:
+- `firefox-fetch`: Pin, Arch, SHA256, Cache; die Sekunden getrennt.
+- `firefox-static`: Kein Kernspec ruft `.tap(`, `touchscreen` oder `hasTouch` auf.
+- **zur Laufzeit** in `e2e/test.ts`, nur in Firefox:
+  - `tap` an Locator, Page, Frame, Touchscreen und ElementHandle wirft mit Grund;
+  - `hasTouch` wirft, gelesen als die aufgelöste Kontextoption des Tests, also auch ein `test.use` in einer Datei.
+- `firefox-set`: Das Listing der Konfiguration **ist** der Satz, Test für Test. Ein umbenannter Titel, eine verlorene Variante und ein zusätzlicher Treffer werden einzeln genannt.
+- `firefox-core`: der Lauf, beurteilt mit `judge`; kein Fehler, Skip, Retry oder leerer Lauf.
+- `firefox-executed`: `proof.check_executed` **und** der Status jedes Ergebnisses (`not_passed`). Ein `skipped` mit der richtigen Anzahl ist rot (Hinweis 2).
+- `firefox-workers`: `proof.check_report_run` und `proof.check_workers` auf dem eigenen Ereignisprotokoll des Firefox-Laufs.
+- `firefox-browser` (Hinweis 3): Jeder Arbeiter schreibt `browser.version()` des gestarteten Browsers ins Protokoll (`browserPin`, worker-scoped). In Firefox wirft die Fixture, wenn die Version nicht der Pin ist. Der Runner prüft dieselben Ereignisse gegen den Pin. Angefragte Version, beobachtete Version und Archiv-SHA stehen getrennt im Bericht.
+- `firefox-replay` (nur im Gate): `replay.check` über das eigene Replay-Verzeichnis des Firefox-Laufs, dieselbe Null-Befund-Regel.
+- **Im Bericht**: Pin, Arch, Archiv-SHA, Playwright-Version, das Ergebnis von `check-newer`, die gestarteten Browser, jedes nicht verglichene Bild mit Grund, die Arbeiterzahl (angefragt und laut Bericht) mit der Laufzeit und die Zählung jeder Abmeldung.
+- `scripts/test_select/test_firefox.py`, 10 Fälle (einer davon zweifach parametrisiert):
+  - Satz gleich, verlorene Variante, zusätzlicher Treffer, leerer Satz, doppelter Titel;
+  - Skip und Timeout;
+  - Touch-Scan;
+  - der ausgelieferte Satz und seine Pflichtzahlen;
+  - Browser gegen Pin, Bild nicht verglichen;
+  - ein Binary, das sich nicht beschaffen lässt: im Merge FAIL, in der Runde `pending`.
+
+**E · Der Eckenfix**
+- `.dialogOverlay` ist eckig und durchsichtig. `.dialogOverlay::before` zeichnet den Schleier mit dem Radius, Farbe und Tokens unverändert. `.dialog` bekommt `position: relative`, damit es in Baumreihenfolge über dem Schleier malt.
+- **Vor der Positionierung geprüft:**
+  - Ein Laufzeit-Scan über alle 25 Zeilen in beiden Layouts (`vor-maschine.ff.r386.anchor-scan.txt`) fand kein absolut positioniertes Element, das am Overlay verankert ist. Treffer waren nur `position: fixed`: die Hilfe-Popover und CodeMirrors Ansage. Die verschiebt `position: relative` nicht.
+  - Im Code: Jeder Zugriff auf `offsetParent` in `src` ist eine Sichtbarkeitsprüfung (`!== null`). Er bleibt gleich, ob `.dialog` positioniert ist oder nicht. `offsetTop` und `offsetLeft` lesen nur der Jog-Streifen und das Sim-Panel, keines in einem Dialog.
+- **Der Wächter** `expectBackdropCorners` in `dialogs.spec`, in jeder Zeile auf dem Desktop (anstelle des Klicks bei (3, 3)) und in der Schleife „150 % portrait“:
+  - Das Overlay ist das der Zeile, also der Vorfahr ihres Dialogs.
+  - **Ausrichtung zuerst:** Die Mitte trifft das Overlay oder sein Inneres, 1 px außerhalb seines Rahmens trifft es nicht.
+  - `elementFromPoint` an allen vier Ecken bei 0, 1 und 2 px ergibt genau dieses Overlay.
+  - **Echte Klicks** 1 px innen. Geprüft wird das **Ziel** des `pointerdown` und seine Lage nach der Seite: 1 px in dieser Ecke, ±1,5 px.
+  - Ein Dialog, der bleibt, nimmt alle vier Ecken in einem Öffnen und ist danach offen. Ein Dialog, der schließt, nimmt **einen** Klick an einer Ecke, die über die Zeilen rotiert (Desktop und Hochformat versetzt), und ist danach zu.
+  - So ist jede Messung bei offenem Dialog gemacht, keine hinter einem geschlossenen.
+  - **Abweichung, zur Prüfung:** Der Plan sprach von „einem echten Klick 1 px innen“. Gebaut ist für schließende Dialoge ein schließender Klick je Zeile und Layout, nicht vier. Vier hieße, den Dialog dreimal neu zu öffnen, und das Öffnen einiger Zeilen ist ein ganzer Ablauf.
+    - Gedeckt bleibt jede Ecke: `elementFromPoint` an allen vier Ecken in jeder Zeile. Die bleibenden Zeilen 5 und 15 klicken im Pflichtteil alle vier Ecken in beiden Layouts.
+    - Die schließenden Klicks des Pflichtteils treffen auf dem Desktop oben links, unten rechts und unten links (Zeilen 1, 4, 14), im Hochformat unten links, oben rechts und oben links. Je Layout fehlt also eine Ecke, über beide Layouts sind alle vier dabei.
+    - Mit dem Ausbau (15 schließende Zeilen) und im vollen Chromium-Lauf schließt jede Ecke in jedem Layout.
+
+**F · `probe-visual.spec` und der Glyphenfehler**
+- Je Prozedur werden die Zellen gezählt (die Tabelle nennt alle acht; ein Eintragsfall hält sie gegen `PROBE_VIEWS`) und gemessen: jede Zelle quadratisch und mindestens 44 px.
+- Die Größenprüfungen sind `expect.soft`: Eine rote Größe hält das Bild nicht mehr auf. Der Glyphenfehler ist im Bild **und** in der Größe rot, jedes für sich (Mutant G).
+- Dazu ein Bild des Panels, nur auf linux/arm64 verglichen. Sonst gibt es eine Annotation mit Grund und eine Zeile im Lauf, und der Test läuft trotzdem.
+- **Surface:** Der Mock beantwortet die beiden Lesungen der Ansicht nicht, und „Loading…“ wäre nach 15 s ein Lesefehler, das Bild also tempoabhängig.
+  - Der Fall fordert frische Lesungen an (`Reload Data`) und beantwortet die jeweils letzte, so wie `touchoff.spec`: keine Punkte, kein Gitter.
+  - Er wartet, bis beide Leertexte stehen.
+- Die Referenzen (8 je Browser) und die 14 Firefox-Streifenbilder habe ich angesehen.
+
+**G · Gates und Auswahl**
+- `round_gate.py`:
+  - Ein Merge führt `firefox-core` immer aus (`as_merge`, im `plan`). Ein Binary, das sich nicht beschaffen lässt, ist dort FAIL.
+  - Eine Runde führt den Schritt aus, wenn ein Pfad ihn wählt. Ohne Binary steht er `pending` mit Grund.
+  - Der alte Eintrag „not built yet (step 6)“ ist weg.
+- `selector.py`: Eine Änderung an einem Spec, den `firefox-core.json` am Kopf nennt, oder an einer Referenz unter `__screenshots__/firefox-*/` wählt Spec und Firefox-Kern.
+- `rules.py`:
+  - Konfiguration, Pin und Satz bekommen eine eigene Regel.
+  - `fetch_firefox.py` und der Runner kommen additiv zu `scripts/**` dazu.
+  - `probe-visual` steht in `PROBING`.
+  - `e2e/test.ts` hat zwei neue Lesestellen, das eigene Replay-Protokoll und den Namen eines gebauten Stylesheets.
+- Der Satz von `test_selector.py` ist ergänzt: Kernspec, Firefox-Referenz und Pin wählen; ein Spec außerhalb nicht; ein Kopf ohne Satz hat keinen Kernspec. Dazu der Merge-Plan mit `firefox-core`.
+
+**H · CI**
+- `npx playwright install-deps firefox`, dazu ein Cache für `~/.cache/lcnc-suite/firefox`, als Schlüssel der Hash von `firefox.json`.
+- `test_suite.py` hat den Schritt `frontend-firefox-core` mit `--required-only --no-replay` nach dem Chromium-Lauf und `firefox-units` im Backend.
+- CI an `29db35ca` grün (Run 43863493005, `vor-maschine.ff.r386.ci-firefox-core.json`). Der Schritt `frontend-firefox-core` brauchte 66 s:
+  - das x86_64-Binary aus dem Cache (0,0 s);
+  - die 26 Pflichttests in 63 s auf einem Arbeiter (angefragt 1, laut Bericht 1);
+  - gestartet `firefox 160.0`, `check-newer` current;
+  - die 8 Bilder von `probe-visual` als nicht verglichen benannt (Referenzen linux/arm64, hier linux/x64).
+  - Ohne Replay, also ohne Abmeldezählung (F3).
+  - Der Zwilling war an allen vier Köpfen grün (43829653360, 43838841291, 43851742557, 43863493005). Beim ersten wurde das Archiv in 5,2 s geladen.
+
+### Was die Umsetzung zusätzlich gefunden hat
+
+1. **Die Abmelde-Beacons in Firefox.**
+   - Firefox schickt einen Beacon, der nach dem Schließen seines Kontexts hinausgeht, ohne das Cookie des Kontexts. Das Replay sah also Anfragen ohne ihren Testversuch. Chromium schickt sie mit Cookie.
+   - **Gemessen:** Schloss der Kontext unter der geladenen Seite, fehlte das Cookie jedes Mal. Navigierte die Seite vorher weg, verlor ich immer noch etwa in jedem vierten Lauf einen Telemetrie-Beacon.
+   - **Keine feste Zahl annehmen:** Ein Warten auf zwei Telemetrie-Beacons nach dem Wegnavigieren nach `about:blank` lief in 18–25 Dialogfällen je Lauf in die Zeitgrenze, weil der Mock dort nur einen hatte.
+     - Ob Firefox den zweiten nicht schickte oder auf dem Weg zu `about:blank` verlor, ist **nicht** belegt. Eine Signalprobe sah ihn als `failed NS_ERROR_UNEXPECTED`.
+     - Mit dem Zähler (Abmeldung in ein Dokument **derselben** Herkunft) übergab die Seite in jeder der 82 Abmeldungen der Rundengates an `4600d845` und an `29db35ca` zwei Beacons.
+     - Der Mock zeichnete jedes Mal mindestens so viele POSTs auf: an `4600d845` 80-mal zwei und zweimal drei, an `29db35ca` 81-mal zwei und einmal drei.
+     - Der dritte ist kein Beacon. An `29db35ca` (dialog 2 Settings) gingen alle drei an `/telemetry`, die Seite zählte zwei. Die laufende Telemetrie geht per `fetch` (`ws/telemetry.ts:81`), und das Warten zählt jeden POST (unten unter Grenzen).
+     - Ich hatte das zuerst als „Firefox schickt einen oder zwei“ in Kommentar und Doku geschrieben. `29db35ca` korrigiert das; die Fixture ist unverändert.
+   - **Jetzt** (`unloadInContext`):
+     - Jeder erfolgreiche `sendBeacon` der Seite ab dem Teardown wird im `sessionStorage` des Tabs gezählt.
+     - Die Seite entlädt in ein neutrales Dokument derselben Herkunft (ein gebautes Stylesheet), wo die Zahl gelesen wird.
+     - Erst wenn der Mock so viele POSTs aufgezeichnet hat, schließt der Kontext.
+     - Eine fehlende Zählung wirft, statt als 0 zu gelten. Das neutrale Dokument wird erst gesucht, wenn Firefox es braucht; fehlt es, wirft die Fixture. Jede Abmeldung steht mit ihrer Zahl als Ereignis im Protokoll.
+     - Unterdrückt wird nichts. Ein Fehlgriff kann das Replay nur rot machen, nie grün.
+   - Danach vier Läufe PASS, je 0 Befunde.
+2. **Kein WebGL im headless Firefox unter BiDi**, siehe C.
+3. **Die Surface-Ansicht hing vom Tempo ab**, siehe F.
+4. **Eine Firefox-Seite stand still, einmal. Die Ursache ist offen.**
+   - **Gesehen** im Mutantenlauf F5 an `29db35ca`, im Test `probe-visual` „Angle“ auf Arbeiter 1. Die Mutation betrifft nur `layout.spec`. Der Ablauf steht in `vor-maschine.ff.r386.stall-f5.txt`.
+     - Die Seite lud alle Dateien. Ihr WebSocket war bei +607 ms offen. Der Mock zeichnet `open` erst auf, nachdem `ws` die 101-Antwort geschrieben hat (`websocket-server.js:428` vor `:450`).
+     - Danach kam 40 s lang nichts, weder ein Rahmen noch eine Anfrage. Das `hello` schickt der Web-Worker selbst in `onopen` (`wsWorker.ts:278–289`); ist die Verbindung angestoßen, braucht er dafür nichts mehr vom Hauptthread. Im Test davor auf demselben Arbeiter folgten dem `open` nach 54–59 ms `/macros` und `hello`.
+     - `input.setupInput` erschien nicht (10 s). Das erste `page.evaluate` der Abmeldung hing bis zum Testende (30 s).
+     - Die Arbeiter 0 und 2 liefen in denselben 40 s weiter: 29 Tests endeten dort (10 und 19), mit 26 Abmeldungen (die drei `smoke`-Fälle laden die App nicht vom Mock). Die VM stand also nicht.
+   - **Häufigkeit:**
+     - einmal in 30 Läufen mit der gezählten Abmeldung (2571 Tests; die drei F6-Läufe zähle ich nicht, dort startet keine Seite);
+     - keinmal in 16 älteren Läufen (1310 Tests).
+   - **Richtung: rot.** `firefox-core`, `-executed`, `-workers` und `-replay` schlugen an. Ein hängender Test kann nicht grün werden.
+   - **Ursache offen.**
+     - Gegen den Mock spricht, dass die 101 geschrieben war.
+     - Gegen eine Schleife im Hauptthread der App spricht, dass der Worker sein `hello` dann trotzdem geschickt hätte.
+     - Belegt ist nur ein Stillstand in diesem einen Firefox.
+     - Die `error-context.md` des Falls ist von späteren Läufen überschrieben.
+   - **F5 wiederholt** an `29db35ca` in ein neues Verzeichnis: nur `firefox-set` rot (die beiden Varianten), alle anderen Prüfungen PASS. Beide Läufe stehen in den Belegen, keiner ersetzt den anderen.
+   - **Was ihn klären würde:** bei einer Wiederholung die Stapel des Inhaltsprozesses im Moment der Teardown-Zeitgrenze.
+     - Einen neuen Kopf dafür schlage ich nicht vor. Die Fehlerartefakte von Playwright brauchen eine antwortende Seite und hätten hier wenig gezeigt.
+     - Das lege ich zur Entscheidung vor.
+   - **Im Merge-Gate** ist ein solcher Hänger FAIL. Ich würde dann das ganze Gate wiederholen und beide Records vorlegen. Kehrt er dort wieder, ist es ein Ratenproblem eines Pflichtschritts, und das blockiert.
+
+### Rot-Nachweise an `29db35ca`
+
+Alle neun Mutanten liefen am Kopf dieser Anfrage, jeder mit dem ganzen Firefox-Kern (86 Tests, drei Arbeiter). Die Tabelle nennt je Mutant die Prüfung, die die Mutation selbst rot macht, und getrennt, was sonst anschlug.
+
+| Mutant | Bruch | rot durch die Mutation | sonst |
+|---|---|---|---|
+| F1 | ein `tap()` in `smoke` | `firefox-static` nennt `smoke.spec.ts:11` | `firefox-core`/`-executed`: Der Test wirft zur Laufzeit, die Sperre in `test.ts`. |
+| F2 | `tapMore` in Dialogzeile 11 | `firefox-core`/`-executed`: Zeile 11 auf dem Desktop und im Hochformat | `firefox-static` bleibt PASS. Der Aufruf liegt in `more.ts` außerhalb der Kernspecs; die Laufzeitsperre fängt ihn. |
+| F3 | `test.skip` in `smoke` | `firefox-executed` („skipped: …“) und `firefox-core` („1 skipped“) | — |
+| F4 | ein Kerntitel umbenannt | `firefox-set` nennt den fehlenden Titel | Der Lauf selbst ist grün. |
+| F5 | Rasterwächter ohne `unhomed` | `firefox-set` nennt beide fehlenden Varianten | Lauf 1: der Hänger aus Befund 4 (`core`, `executed`, `workers`, `replay`). Lauf 2: nur `firefox-set`. |
+| F6 | Pin der Konfiguration 159.0 | `firefox-core`/`-executed`: alle 86 werfen in `browserPin` („the started Firefox is 160.0, the pin names 159.0“). `firefox-workers`: 20 Tests ohne Arbeiter-Ereignis. | `firefox-browser` bleibt PASS. Der Runner prüft gegen `firefox.json` (unverändert 160.0); die Mutation ändert nur, was die Konfiguration der Fixture gibt. Die Runner-Prüfung hält `test_the_started_browser_must_be_the_pin`. |
+| F9 | die Abmeldung entfernt | `firefox-replay`: 47 Befunde, alle `POST /telemetry` ohne Herkunft dieses Laufs | Der Lauf selbst ist grün. |
+| E | das alte Overlay, Radius am Schleier selbst | Firefox: alle 50 Dialogfälle des Kerns rot (25 Desktop, 25 Hochformat), jeder an „corner points that are not this overlay“ | Chromium `dialogs`: 50 rot, 7 grün. |
+| G | Glyphenkollaps, `.gridWrap` ohne `width: 100%` | Firefox: 9 rot. 5 `probe-visual` mit Größen- **und** Bildfehler (Outside, Inside, Angle, Boss/Pocket, Ridge/Valley), 4 Rasterwächter. Surface, Calibrate, Toolsetter und der Eintragsfall ohne Fehler. | Chromium (`probe-visual`, `layout`): nur die 4 Rasterwächter. Chromium lässt die Glyphe nicht zusammenfallen. |
+
+Die Läufe stehen in `vor-maschine.ff.r386.mutants.json`, das Skript in `vor-maschine.ff.r386.mutants.py`.
+
+### Belege
+- Rundengate: PASS an `29db35ca` (`vor-maschine.ff.r386.gate-round.json`): Auswahl-Wächter, Lint, Build, `unit-light` 2657/2657, Backend, Chromium 933/933 mit Replay (9462 Rahmen über 933 Versuche), Firefox-Kern 86/86 in 140 s mit Replay (561 Rahmen), gestartet 160.0. Ausgelassen: `unit-heavy` (keine schwere Datei geändert, erreicht oder gelesen).
+- Runner-Läufe ohne Mutation mit der gezählten Abmeldung:
+  - vier Wiederholungen, 101–109 s, Replay 486–499 Rahmen;
+  - die Rundengates an `4600d845` und `29db35ca`, je 140 s, 554 und 561 Rahmen;
+  - alle mit 0 Befunden. Gestartet ist `firefox 160.0` = Pin, `check-newer`: current.
+  - Die mutierten Läufe stehen in der Tabelle, darunter F5 mit dem Hänger (Befund 4).
+- Chromium mit Fix: der volle Lauf im Rundengate (933/933). Am alten CSS sind die 50 Eckfälle rot, in Chromium wie in Firefox, alle an der Eckenprüfung und mit bestandener Ausrichtung, auf dem Desktop und unter Zoom.
+- Notizen und Probenzeilen: `vor-maschine.ff.trial-160.txt` und `vor-maschine.ff.r386.probes.txt` (die Replay- und Abmeldeproben; die frühe Behebung „35 von 36“ ist dort als überholt markiert).
+
+### Grenzen und Offenes
+- Der Firefox-Kern beweist keinen Touch (BiDi), nichts mit WebGL und auf x86_64 keine Pixelgleichheit.
+- Die Abmeldung zählt Beacons, ihr Warten zählt aber jeden POST danach, auch einen `fetch` der laufenden Telemetrie. Ein solcher POST kann das Warten einen Beacon zu früh beenden. Dann käme dieser Beacon ohne Cookie an, und das Replay wäre rot, nie grün.
+- Der Hänger aus Befund 4: Ursache offen, einmal in 30 Läufen.
+- Q248-1 (Maschinenbrowser, ESR) bleibt beim Operator.
+- Vor main bleiben die bekannten Live-Prüfungen und die Hardware geschuldet.
+
+**Erbeten:** `agreement` oder `findings` zur Umsetzung.

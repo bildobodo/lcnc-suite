@@ -1,0 +1,361 @@
+{
+  "note": "step 6 red proofs at 29db35ca: every mutant with the whole Firefox core (86 tests, three workers); F5 run twice — run 1 met the stall of finding 4, run 2 in a new directory; both kept",
+  "29db35ca": {
+    "F1": {
+      "what": "a touch call in a core spec",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "FAIL",
+        "firefox-set": "PASS",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-static": [
+          "a touch call in the core (silent under BiDi): smoke.spec.ts:11: await page.locator(\"#app\").tap();"
+        ],
+        "firefox-core": [
+          "1 failed"
+        ],
+        "firefox-executed": [
+          "failed: smoke.spec.ts › app shell mounts with no gateway connected [firefox-core, retry 0]"
+        ]
+      },
+      "red": true
+    },
+    "F2": {
+      "what": "a core test reaching tapMore",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "PASS",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-core": [
+          "2 failed"
+        ],
+        "firefox-executed": [
+          "failed: dialogs.spec.ts › dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+          "failed: dialogs.spec.ts › dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]"
+        ]
+      },
+      "red": true
+    },
+    "F3": {
+      "what": "a test.skip in a core test",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "PASS",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-core": [
+          "1 skipped"
+        ],
+        "firefox-executed": [
+          "skipped: smoke.spec.ts › app shell mounts with no gateway connected [firefox-core, retry 0]"
+        ]
+      },
+      "red": true
+    },
+    "F4": {
+      "what": "a core title renamed",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "FAIL",
+        "firefox-core": "PASS",
+        "firefox-executed": "PASS",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-set": [
+          "a core test the config does not list (renamed, gone, a variant lost): smoke.spec.ts › Arm control stays reachable"
+        ]
+      },
+      "red": true
+    },
+    "F5": {
+      "what": "a variant of the grid guard lost",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "FAIL",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "FAIL",
+        "firefox-browser": "PASS",
+        "firefox-replay": "FAIL"
+      },
+      "firefox_why": {
+        "firefox-set": [
+          "a core test the config does not list (renamed, gone, a variant lost): layout.spec.ts › desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+          "a core test the config does not list (renamed, gone, a variant lost): layout.spec.ts › touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes"
+        ],
+        "firefox-core": [
+          "1 failed"
+        ],
+        "firefox-executed": [
+          "failed: probe-visual.spec.ts › Angle: the procedure's grid cells and its reference image [firefox-core, retry 0]"
+        ],
+        "firefox-workers": [
+          "started, never ended: probe-visual.spec.ts | firefox-core | Angle: the procedure's grid cells and its reference image | 0",
+          "no worker event for: probe-visual.spec.ts | firefox-core | Angle: the procedure's grid cells and its reference image | 0"
+        ],
+        "firefox-replay": [
+          "probe-visual.spec.ts › Angle: the procedure's grid cells and its reference image [retry 0]: the page loaded and its replay shows no hello"
+        ]
+      },
+      "red": true
+    },
+    "F6": {
+      "what": "the started browser is not the pin",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "PASS",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "FAIL",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-core": [
+          "86 failed"
+        ],
+        "firefox-executed": [
+          "failed: dialogs.spec.ts › dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+          "failed: dialogs.spec.ts › dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]",
+          "failed: dialogs.spec.ts › dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]"
+        ],
+        "firefox-workers": [
+          "no worker event for: probe-click.spec.ts | firefox-core | Angle: a held probe button sends its routine with the panel's numbers | 0",
+          "no worker event for: probe-click.spec.ts | firefox-core | Boss/Pocket: a held probe button sends its routine with the panel's numbers | 0",
+          "no worker event for: probe-click.spec.ts | firefox-core | Calibrate: a held probe button sends its routine with the panel's numbers | 0"
+        ]
+      },
+      "red": true
+    },
+    "F9": {
+      "what": "the page not unloaded before its context closes",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "PASS",
+        "firefox-core": "PASS",
+        "firefox-executed": "PASS",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "FAIL"
+      },
+      "firefox_why": {
+        "firefox-replay": [
+          "7867def1-1347-4b6a-949e-006809ab8aa7: POST /telemetry without an origin of this run: None",
+          "7867def1-1347-4b6a-949e-006809ab8aa7: POST /telemetry without an origin of this run: None",
+          "7867def1-1347-4b6a-949e-006809ab8aa7: POST /telemetry without an origin of this run: None"
+        ]
+      },
+      "red": true
+    },
+    "E": {
+      "what": "the old overlay: a radius on the backdrop itself",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "PASS",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-core": [
+          "50 failed"
+        ],
+        "firefox-executed": [
+          "failed: dialogs.spec.ts › dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+          "failed: dialogs.spec.ts › dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]",
+          "failed: dialogs.spec.ts › dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]"
+        ]
+      },
+      "chromium": {
+        "passed": 7,
+        "failed": 50,
+        "failed_tests": [
+          "dialogs.spec.ts › dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "dialogs.spec.ts › dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "dialogs.spec.ts › dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners"
+        ]
+      },
+      "red": true
+    },
+    "G": {
+      "what": "the glyph collapse: .gridWrap without width: 100%",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "PASS",
+        "firefox-core": "FAIL",
+        "firefox-executed": "FAIL",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-core": [
+          "9 failed"
+        ],
+        "firefox-executed": [
+          "failed: layout.spec.ts › desktop, homed: a probe grid's cells keep their size whatever the glyph contributes [firefox-core, retry 0]",
+          "failed: layout.spec.ts › desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes [firefox-core, retry 0]",
+          "failed: layout.spec.ts › touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes [firefox-core, retry 0]"
+        ]
+      },
+      "chromium": {
+        "passed": 137,
+        "failed": 4,
+        "failed_tests": [
+          "layout.spec.ts › desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+          "layout.spec.ts › desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+          "layout.spec.ts › touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+          "layout.spec.ts › touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes"
+        ]
+      },
+      "red": true,
+      "probe_visual_errors": {
+        "every procedure has its grid entry": {
+          "size": false,
+          "image": false
+        },
+        "Outside": {
+          "size": true,
+          "image": true
+        },
+        "Inside": {
+          "size": true,
+          "image": true
+        },
+        "Angle": {
+          "size": true,
+          "image": true
+        },
+        "Boss/Pocket": {
+          "size": true,
+          "image": true
+        },
+        "Ridge/Valley": {
+          "size": true,
+          "image": true
+        },
+        "Surface": {
+          "size": false,
+          "image": false
+        },
+        "Calibrate": {
+          "size": false,
+          "image": false
+        },
+        "Toolsetter": {
+          "size": false,
+          "image": false
+        }
+      }
+    }
+  },
+  "29db35ca-f5-rerun": {
+    "F5": {
+      "what": "a variant of the grid guard lost",
+      "head": "29db35cae514d86690e8733bca548bbd7635ea11",
+      "firefox": {
+        "firefox-fetch": "PASS",
+        "firefox-static": "PASS",
+        "firefox-set": "FAIL",
+        "firefox-core": "PASS",
+        "firefox-executed": "PASS",
+        "firefox-workers": "PASS",
+        "firefox-browser": "PASS",
+        "firefox-replay": "PASS"
+      },
+      "firefox_why": {
+        "firefox-set": [
+          "a core test the config does not list (renamed, gone, a variant lost): layout.spec.ts › desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+          "a core test the config does not list (renamed, gone, a variant lost): layout.spec.ts › touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes"
+        ]
+      },
+      "red": true
+    }
+  }
+}

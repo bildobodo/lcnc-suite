@@ -1,0 +1,131 @@
+Finding 4 — the stall in mutant run F5 at 29db35ca (probe-visual 'Angle', worker 1, mock instance 15e170e6).
+t = ms relative to the test-start event of 'Angle' (1794831344817).
+
+== the failing test's errors (firefox.json) ==
+status failed, duration 40423 ms, start 2026-11-16T12:15:44.797Z
+  ERR Error: expect(locator).toBeVisible() failed / Locator: locator('input.setupInput').first() / Expected: visible / Timeout: 10000ms / Error: element(s) not found
+  ERR Tearing down "page" exceeded the test timeout of 30000ms.
+  ERR Error: page.evaluate: Test ended. / at test.ts:122 / 120 |   } / 121 |   const neutral = neutralDocument();
+
+== worker 1's mock: every replay record from the test before ('Inside') to the end ==
+  -2595 ctl    snapshot
+  -2592 ctl    reset
+  -2590 open       conn 9 infra:baseline
+  -2589 close      conn 9
+  -2586 ctl    snapshot
+  -2580 ctl    snapshot
+  -2412 ctl    reset
+  -2381 http    GET / 200  test …6c58b2cb
+  -2305 http    GET /static/msgpack-BkQaaVuN.js 200  test …6c58b2cb
+  -2305 http    GET /static/index-Cw_Yo_8H.js 200  test …6c58b2cb
+  -2305 http    GET /static/three-D_Nc9AAY.js 200  test …6c58b2cb
+  -2303 http    GET /static/index-BfuNUijc.css 200  test …6c58b2cb
+  -2200 http    GET /settings 200  test …6c58b2cb
+  -2163 http    GET /static/ThreeViewer-DigUCzo-.css 200  test …6c58b2cb
+  -2163 http    GET /static/toolGeometry-CyOHk4ZX.js 200  test …6c58b2cb
+  -2162 http    GET /static/ThreeViewer-DsOXnQuy.js 200  test …6c58b2cb
+  -2123 http    GET /static/InterVariable-DiVDrmQJ.woff2 200  test …6c58b2cb
+  -2097 http    GET /static/wsWorker-P733WBKL.js 200  test …6c58b2cb
+  -1859 open       conn 10 test …6c58b2cb
+  -1805 http    GET /macros 200  test …6c58b2cb
+  -1800 frame      conn 10  hello
+  -1799 frame      conn 10  tab_visibility
+  -1584 ctl    setAxes
+  -1577 ctl    setKins
+  -1574 ctl    status_delta
+  -1438 frame      conn 10  get_tool_table
+  -1288 frame      conn 10  get_tool_table
+  -1274 http    GET /static/Inter-Regular-L-twW0ba.woff 200  test …6c58b2cb
+   -807 frame      conn 10  heartbeat
+   -801 http    GET /g30 200  test …6c58b2cb
+   -240 close      conn 10
+   -237 http    GET /static/ThreeViewer-DigUCzo-.css 200  test …6c58b2cb
+   -225 http    POST /telemetry 200  test …6c58b2cb
+   -176 http    POST /telemetry 200  test …6c58b2cb
+   -134 http    GET /favicon.ico 200  test …6c58b2cb
+    -13 ctl    snapshot
+    -10 ctl    reset
+     -9 open       conn 11 infra:baseline
+     -7 close      conn 11
+     -5 ctl    snapshot
+     -2 ctl    snapshot
+    185 ctl    reset
+    222 http    GET / 200  test …b986f17d
+    270 http    GET /static/index-Cw_Yo_8H.js 200  test …b986f17d
+    272 http    GET /static/msgpack-BkQaaVuN.js 200  test …b986f17d
+    273 http    GET /static/three-D_Nc9AAY.js 200  test …b986f17d
+    274 http    GET /static/index-BfuNUijc.css 200  test …b986f17d
+    395 http    GET /settings 200  test …b986f17d
+    434 http    GET /static/toolGeometry-CyOHk4ZX.js 200  test …b986f17d
+    434 http    GET /static/ThreeViewer-DsOXnQuy.js 200  test …b986f17d
+    434 http    GET /static/ThreeViewer-DigUCzo-.css 200  test …b986f17d
+    486 http    GET /static/InterVariable-DiVDrmQJ.woff2 200  test …b986f17d
+    534 http    GET /static/wsWorker-P733WBKL.js 200  test …b986f17d
+    607 open       conn 12 test …b986f17d
+  40413 end
+
+== the other workers in the same window (firefox-mock-events.jsonl) ==
+    -28 w1 test-end   Inside: the procedure's grid cells and its reference image passed
+      0 w1 test-start Angle: the procedure's grid cells and its reference image 
+    280 w2 test-end   Angle: a held probe button sends its routine with the panel's numbers passed
+    309 w2 test-start Calibrate: a held probe button sends its routine with the panel's numbers 
+   2634 w0 test-end   dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape passed
+   2650 w0 test-start dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Sto 
+   3103 w2 test-end   Calibrate: a held probe button sends its routine with the panel's numbers passed
+   3125 w2 test-start Surface: a held Start Scan sends the surface_scan_run job with the panel's numbe 
+   5712 w2 test-end   Surface: a held Start Scan sends the surface_scan_run job with the panel's numbe passed
+   5730 w2 test-start z_surface: the job the button sends is the native stage's whole job 
+   6179 w0 test-end   dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Sto passed
+   6193 w0 test-start dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Esc 
+   8297 w2 test-end   z_surface: the job the button sends is the native stage's whole job passed
+   8322 w2 test-start surface_scan: the job the button sends is the native stage's whole job 
+   9699 w0 test-end   dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Esc passed
+   9721 w0 test-start dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E- 
+  11005 w2 test-end   surface_scan: the job the button sends is the native stage's whole job passed
+  11031 w2 test-start app shell mounts with no gateway connected 
+  11796 w2 test-end   app shell mounts with no gateway connected passed
+  11815 w2 test-start default-deny: machine controls are closed while disconnected 
+  12593 w2 test-end   default-deny: machine controls are closed while disconnected passed
+  12620 w2 test-start Arm control stays reachable 
+  13354 w2 test-end   Arm control stays reachable passed
+  13377 w2 test-start tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab 
+  13403 w0 test-end   dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E- passed
+  13422 w0 test-start dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape 
+  15551 w2 test-end   tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab passed
+  15593 w2 test-start arrows move focus, Enter selects; every navigation key stays in the list — no jo 
+  17921 w2 test-end   arrows move focus, Enter selects; every navigation key stays in the list — no jo passed
+  17945 w2 test-start a navigation key with a modifier on a focused tab never reaches the jog map (UI- 
+  18750 w0 test-end   dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape passed
+  18774 w0 test-start dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Sto 
+  22581 w2 test-end   a navigation key with a modifier on a focused tab never reaches the jog map (UI- passed
+  22599 w2 test-start Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down chang 
+  22973 w0 test-end   dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Sto passed
+  22992 w0 test-start dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E 
+  24429 w2 test-end   Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down chang passed
+  24461 w2 test-start a tab switch sends nothing — but a jog still running stops 
+  26579 w2 test-end   a tab switch sends nothing — but a jog still running stops passed
+  26610 w2 test-start a Probing procedure switch stops a running jog like a main tab — in the grid and 
+  26959 w0 test-end   dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E passed
+  26987 w0 test-start dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape 
+  28709 w2 test-end   a Probing procedure switch stops a running jog like a main tab — in the grid and passed
+  28727 w2 test-start a hidden panel is not focusable 
+  30404 w2 test-end   a hidden panel is not focusable passed
+  30428 w2 test-start the Run-from-line spindle preset is one option group: Rev, Stop, Fwd 
+  31595 w0 test-end   dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape passed
+  31613 w0 test-start dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope 
+  32266 w2 test-end   the Run-from-line spindle preset is one option group: Rev, Stop, Fwd passed
+  32282 w2 test-start narrow side pane (150 % portrait): the area and the procedure are two labelled s 
+  34088 w2 test-end   narrow side pane (150 % portrait): the area and the procedure are two labelled s passed
+  34116 w2 test-start 3axis-xyz desktop: Jog and Setup reference images 
+  35268 w0 test-end   dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope passed
+  35294 w0 test-start dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape  
+  36807 w2 test-end   3axis-xyz desktop: Jog and Setup reference images passed
+  36821 w2 test-start 5axis-xyzac desktop: Jog and Setup reference images 
+  39389 w0 test-end   dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape  passed
+  39410 w0 test-start dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape 
+  39536 w2 test-end   5axis-xyzac desktop: Jog and Setup reference images passed
+  39554 w2 test-start 6axis-twp desktop: Jog and Setup reference images 
+  40418 w1 stopped     
+
+Source reads: ws writes the 101 (node_modules/ws/lib/websocket-server.js:428) before it calls back (:450), where the mock records 'open' (e2e/mock-gateway.mjs:316);
+the worker sends hello itself in ws.onopen (src/wsWorker.ts:278-289).
