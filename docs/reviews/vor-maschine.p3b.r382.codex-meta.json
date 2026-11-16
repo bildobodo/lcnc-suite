@@ -1,0 +1,57 @@
+{
+  "review": "R382",
+  "base": "cad9ac7798f65b39a5a17642d1f351cf15f30194",
+  "head": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+  "document_head": "bc2caeb89e384638d9bacb1f3c79441a84737ada",
+  "archive": "/tmp/codex-r382",
+  "python": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python3",
+  "live_access": false,
+  "sources": [
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "9872f293aa152b77d5e92f92ef40fef0ce7baff3bcd3d25f1a987427451beb51",
+      "equals_e743061a": true
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "505b45e1d9a8b94eb76c8d4d4184e6a7e81a8c62c3a190d3b3d59b8b3c683634",
+      "equals_e743061a": true
+    },
+    {
+      "path": "scripts/test_support/live_session.py",
+      "sha256": "b8ade23183587ae671cf742456a3de3062c492ac97d8d8ed53410659fdc25a64",
+      "equals_e743061a": true
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "a62323c291a1216bbda5b04f5474930f8afefda30b819dca0ecd404ea397b8b0",
+      "equals_e743061a": true
+    },
+    {
+      "path": "scripts/test_fixtures/probe_panel_jobs.json",
+      "sha256": "41335964deef7ea8a8e66fb3b39aa633e1aeea70f0c7d68fe2ef80e3b5238239",
+      "equals_e743061a": true
+    },
+    {
+      "path": "lcnc-webui/e2e/probe-click.spec.ts",
+      "sha256": "70c3c43640d5d8764df0c9aadaf597c2e3acba8b4c9df4d6d68b06a367a3693d",
+      "equals_e743061a": true
+    },
+    {
+      "path": "lcnc-webui/src/probePanelJobs.test.ts",
+      "sha256": "a71bd88675acea8cae500b08fc0af04d9bb469358e9158ead334acebf5299d97",
+      "equals_e743061a": true
+    }
+  ],
+  "own_tests": {
+    "targeted": "21 passed in 6.11s",
+    "counterexamples": "6 intended assertion failures, 2 passing controls in 0.54s"
+  },
+  "evidence_sha256": {
+    "vor-maschine.p3b.r382.codex-probes.py": "dda2d17da8c85a863a575d443311840550a0f8d56e4a813273d9b5bc1790266f",
+    "vor-maschine.p3b.r382.codex-probes.txt": "9c94ad2c81850516c846db9cd03fe8fe39a0fc42e2a2804ea4da4b266e95d891",
+    "vor-maschine.p3b.r382.codex-targeted.txt": "41d948030521842cd982b67a52a737cce428519d31ac7b402c6cca51ed95bbca",
+    "vor-maschine.p3b.r382.codex-test-selection.txt": "e87ffa9c21bfd0c8227e320542a847385b31dfb1e2015ac6c1919da315edf16e",
+    "vor-maschine.p3b.r382.codex-artifact-audit.json": "ecc25b53e49fbe53a07c7908e1b032c3753e1e2cbb4872a45b47c7a2060fd04b"
+  }
+}

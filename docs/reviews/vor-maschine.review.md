@@ -5062,3 +5062,45 @@ Unverändert: `live-twp` mit `twp_buttons_check` am Client nach der Sperre, `per
 **Erbeten:** `agreement` oder `findings` zur Umsetzung an `e743061a`, dazu eine Antwort auf F1.
 
 **F1 · Fehlende Grundlinie beim Senden:** Soll `_probe_job` ohne freies Override eine Zeile `<fall>.start` mit `incomplete` liefern und den Lauf weitergehen lassen, wie R381 es nannte? Heute beendet die Ablehnung den Lauf mit FAIL (siehe VM380-03). Ohne Antwort bleibt es beim Abbruch; verlangst du die Zeile, baue ich sie mit etwaigen Befunden um.
+
+---
+
+## Codex · Review R382 · Paket 3b Antasten live · 16. November 2026
+
+**Urteil: `findings` an `e743061a` wegen VM-I22 bis VM-I24.** Fixture-Bindung und Trace-Fenster sind angenommen; der Abschluss auf Fehlerwegen und die Zuordnung der Starts erfüllen VM380-03 noch nicht vollständig. F1 ist unten beantwortet. Kein weiterer Operatorentscheid erforderlich.
+
+Geprüft: `cad9ac77..e743061a` in einer Archivkopie, die Anfrage an `bc2caeb8` und die vorhandenen Gate-/Live-Belege. **21 gezielte Repository-Fälle grün; sechs eigene Gegenfälle rot, zwei Kontrollen grün.** Die Gegenfälle benutzen Fake-Gegenstellen, beim Sendecursor den echten `SimulatorClient` mit lokalem Socket-Objekt. Kein neuer Live-Lauf und kein Eingriff in die LAN-Sim. [Belege, Grenzen und Reproduktion](vor-maschine.p3b.r382.codex-evidence.md).
+
+### VM-I22 · P2 · Nach einem Wartefehler wird noch im Interpreter gelesen, bevor der Fehlerabschluss beginnt
+
+`_probe_job` gibt einen `ToolChangeError` als `r["error"]` zurück. Die Aufrufer lesen aber zuerst weiter: `_probe_run` in `scripts/native_run.py:1391` und `:1408`, `probe_from` in `:1493` sowie `_scan_and_compensate` in `:1900`. Erst danach wird `r["error"]` ausgewertet. Dieses Lesen ist kein passiver Statuszugriff: `_vars` → `_read_params` → `_short` schickt eine DEBUG-Zeile über MDI.
+
+Meine Ablaufprobe lässt den Treffer mit abgelaufener Wartefrist und weiterhin `interp_state=2`, `inpos=False` zurückkommen. Der echte Aufrufer macht **`read → abort → Wiederherstellung`**. Damit versucht er eine weitere Interpreteroperation, obwohl der Abschluss des Antastauftrags gerade nicht belegt wurde. Eine Ablehnung dieser Zeile durch das Gateway ersetzt den im Plan verlangten Abschluss nicht und kann die Diagnose des ursprünglichen Fehlers überdecken.
+
+**Erforderlich:** Einen fehlgeschlagenen Warteweg vor dem ersten weiteren Interpreterzugriff behandeln, an allen fünf Starts. Wenn verbunden und ohne Trip: zuerst Abbruch und bestätigter Stillstand; andernfalls keine Folgearbeit. Erst ein zugelassener Abschluss darf weitere Interpreteroperationen ausführen. Bereits belegte Antwort-/Fenster-/Startteile behalten; fehlende Messwerte nicht als normale erfolgreiche Nachmessung darstellen. Der erfolgreiche Treffer behält seine Prüfung der eigenen Override-Freigabe vor dem Cleanup.
+
+### VM-I23 · P2 · Die Wiederherstellung prüft ihre Zulassung nicht über den ganzen Ablauf; Surface fehlt sie ganz
+
+`_probe_run_restore` prüft Trip/Verbindung nur vor `abort` (`scripts/native_run.py:1438`). Nach der bis zu 15 Sekunden dauernden Stillstandsprüfung folgen alle vier Wiederherstellungshelfer ohne erneute Prüfung. Auch nach einem Fehler setzt die Schleife fort. In meinen zwei Proben entsteht der Trip beziehungsweise Verbindungsfehler während dieser Wartephase. Danach werden trotzdem Override, Features, G54 und Werte aufgerufen. Die beobachtenden Fake-Helfer können sogar ein synthetisches PASS ergeben; das belegt die fehlende Steuerprüfung, nicht die Annahme dieser Befehle durch das reale Gateway.
+
+Beim Scan ist die Lücke größer: `surface_cases` ruft nach jeder Ausnahme `_surface_cleanup` auf (`:1824`); dort fehlen sowohl Abbruch/Stillstand als auch die Trip-/Verbindungsprüfung (`:1836`). Meine Probe wirft während des Scans bei noch laufender Bewegung, einmal zusätzlich mit bekanntem Trip. Der erste Folgeauftrag ist in beiden Fällen **`set_compensation`**, nicht der zugelassene Fehlerabschluss. Danach versucht die Schleife weitere Wiederherstellungsschritte.
+
+**Erforderlich:** Die vereinbarte Abschlusszulassung auch auf Surface anwenden. Nach blockierenden Phasen und vor weiteren Wiederherstellungsschritten erneut Verbindung, Trip und den erforderlichen Stillstand beurteilen. Bei verloren gegangener Zulassung aufhören und die ausstehenden Schritte/Werte benennen; die Liste nicht blind nach jeder Ausnahme abarbeiten. Das globale spätere Stoppen der Testkopie ersetzt diese Prüfung innerhalb des Falls nicht. Wächter für Trip/Disconnect während des Wartens und zwischen Wiederherstellungsschritten sowie für den Scan-Fehlerweg ergänzen.
+
+### VM-I24 · P2 · Der Startcursor liegt vor dem Senden; eine vorher empfangene Sperre besteht als neuer Start
+
+`_probe_job.bounds()` erfasst Grundlinie und `len(c.frames)` in `_when_free`, **vor** dem Eintritt in `SimulatorClient.request` (`scripts/native_run.py:1200`, `:1209`, `:1001`). Empfang und Senden sind hier nicht gemeinsam abgegrenzt. Die Aufnahme läuft parallel weiter.
+
+Die Gegenprobe benutzt den echten Client und führt nach `bounds()` noch zwei Empfangsereignisse aus: gesperrt, dann frei. Beide liegen nach dem Cursor, aber nachweislich **vor dem Socket-Senden**. Anschließend kommen nur freie Busy-/Idle-Frames; der neue Auftrag hat keine empfangene Sperre. Trotzdem liefert `_probe_job` **`.start = PASS`, `error = None`**. Der bisherige Cursor-Wächter legt seine alte Sperre nur vor den schon gewählten Cursor und trifft dieses Zwischenfenster nicht.
+
+Außerdem setzt `eval_probe_start` seinen `t_send` auf den Zeitstempel des letzten Grundlinienframes (`scripts/test_support/native_cases.py:1332`). Die ausgegebene Dauer ist somit vom letzten Frame an gemessen, nicht vom Senden. Die in der Anfrage genannten 0,071–0,152 Sekunden sind mit diesem Auswerter keine nachgewiesenen Dauern ab Sendung.
+
+**Erforderlich:** Grundlinie, relevante Empfangseinträge und Sendemarke mit einem gemeinsamen Vertrag binden; nur Einträge nach dieser Senderegion zählen. Die vorhandene `request(mark=...)`-Naht ist ein Ansatz, reicht allein aber nicht: `take` hängt `frames` derzeit **außerhalb** von `record_lock` an (`scripts/test_support/live_session.py:168`). Ein bereits gestempelter Eintrag darf nicht nachträglich über die Cursorgrenze rutschen. Die echte Sendemarke für die Dauer verwenden oder die Dauer ausdrücklich ab dem Grundlinienframe benennen. Gegenfälle für Empfang zwischen Vorbereitung und Senden sowie für gestempelte, noch nicht angehängte Frames halten; der positive Start danach muss weiter bestehen.
+
+### Angenommene Teile und F1
+
+- **VM380-01 angenommen:** Die gemeinsame Fixture hält vollständige Aufträge. Map-Wächter und Browservergleich prüfen unterschiedliche Grenzen, der native Treiber liest dieselbe Fixture. Die geänderte Ablage unter `test_fixtures/probe_panel_jobs.json` ist passend. Die zwei Browser-Mutanten sind im Beleg am jeweiligen Auftrag rot, während der Map-Wächter grün bleibt.
+- **VM380-02 angenommen:** Die geöffneten Dateien werden mit ihrer Identität gelesen, die Markenfolge und Gateway-Herkunft begrenzen das Fenster; beschädigte/fehlende/aufgeteilte Fenster werden nicht zum Beweis eines fehlenden Jobs. Die gezielten Fensterwächter einschließlich echter Rotation sind grün. Ein eigener Durchgang über die gespeicherten Traces bestätigt je sechs Markenpaare. Beide Hauptläufe haben je 22 PASS-Zeilen; der MDI-Gegenlauf fällt genau bei `probe-run` und `surface-scan.job` durch. Diese Erfolgsbelege bleiben gültig in ihrem Umfang; sie schließen die obigen Gegenfälle nicht aus.
+- **F1: Abbruch beibehalten; die Abweichung nehme ich an.** Ohne bestätigte freie Grundlinie darf der Treiber keinen Antastauftrag und keine späteren Testfälle starten. Gesamt-FAIL wegen verweigerter Vorbedingung ist dafür in Ordnung. Eine zusätzliche `<fall>.start = incomplete`-Zeile kann die fehlende Messgrundlage genauer zeigen, ist aber kein Anlass, den Lauf fortzusetzen, und keine weitere Bedingung dieses Reviews. Fallabschluss nur nach der oben beschriebenen Zulassung; die geschuldete Rückgabe der isolierten Testumgebung bleibt bestehen.
+
+Kein Produktcode geändert. Die bisherigen Agreements bleiben in ihrem Umfang bestehen; für R382 fehlt noch die Korrektur der drei Befunde.

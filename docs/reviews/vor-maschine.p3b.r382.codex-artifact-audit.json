@@ -1,0 +1,692 @@
+[
+  {
+    "run": "20261116T003246-pl-main1",
+    "report": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/report.json",
+    "report_sha256": "9cef423620642dde971534149acbca2dc730f71735b6cf246d701ffeafd81667",
+    "trace_sha256": "607f3129fb9c3be2634e01b85455c9d78de7a24f973fc3e03fafedf6b1f8971e",
+    "commit": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+    "verdict": "PASS",
+    "error": null,
+    "crashes": [],
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        1883625,
+        178389261
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "rows": [
+      {
+        "case": "probe-z",
+        "status": "PASS",
+        "detail": "G54 Z -180.0011 within -180 ± 0.003"
+      },
+      {
+        "case": "probe-z.counter-plate-1",
+        "status": "PASS",
+        "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003"
+      },
+      {
+        "case": "probe-z.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.090 s after"
+      },
+      {
+        "case": "probe-z-miss",
+        "status": "PASS",
+        "detail": "no contact, nothing set, the error said so"
+      },
+      {
+        "case": "probe-z-miss.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.087 s after"
+      },
+      {
+        "case": "probe-run.not-a-routine",
+        "status": "PASS",
+        "detail": "reply: refused: Not a probe routine — reload the page; window: nothing started, nothing delivered; state: nothing changed"
+      },
+      {
+        "case": "probe-run.feature-off",
+        "status": "PASS",
+        "detail": "reply: refused: Probing is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed"
+      },
+      {
+        "case": "probe-run",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; probe: G54 Z -180.0011 within -180 ± 0.003"
+      },
+      {
+        "case": "probe-run.counter-plate-1",
+        "status": "PASS",
+        "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003"
+      },
+      {
+        "case": "probe-run.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.123 s after"
+      },
+      {
+        "case": "probe-run-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine"
+      },
+      {
+        "case": "probe-run-miss",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; miss: no contact, nothing set, the error said so"
+      },
+      {
+        "case": "probe-run-miss.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.152 s after"
+      },
+      {
+        "case": "probe-run.restore",
+        "status": "PASS",
+        "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before — read back"
+      },
+      {
+        "case": "surface-scan.feature-off",
+        "status": "PASS",
+        "detail": "reply: refused: Surface map is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed"
+      },
+      {
+        "case": "surface-scan.job",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: surface_scan_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back"
+      },
+      {
+        "case": "surface-scan.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.084 s after"
+      },
+      {
+        "case": "surface-scan",
+        "status": "PASS",
+        "detail": "25 points in the snake, each on the surface within ± 0.005"
+      },
+      {
+        "case": "surface-scan.counter-node+1",
+        "status": "PASS",
+        "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (± 0.005)"
+      },
+      {
+        "case": "surface-scan.counter-xy-swapped",
+        "status": "PASS",
+        "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (± 0.005)"
+      },
+      {
+        "case": "surface-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine"
+      },
+      {
+        "case": "surface-scan.map",
+        "status": "PASS",
+        "detail": "the map reloaded (version 0 → 1)"
+      }
+    ],
+    "windows": [
+      {
+        "token": "probe-run.not-a-routine.edee4a860b5b4486a217c1780a31cc9a",
+        "file": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/logs/trace.ndjson",
+        "lines": [
+          1829,
+          1830
+        ],
+        "pid": 1869015,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": []
+      },
+      {
+        "token": "probe-run.feature-off.88fc029afa8b4137a4139fc5454db1ad",
+        "file": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/logs/trace.ndjson",
+        "lines": [
+          1863,
+          1865
+        ],
+        "pid": 1869015,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": [
+          "ws.command_feature_off"
+        ]
+      },
+      {
+        "token": "probe-run.5319ca06985749d993376da45b7844a8",
+        "file": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/logs/trace.ndjson",
+        "lines": [
+          1899,
+          1944
+        ],
+        "pid": 1869015,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "probe_run",
+            "line": "O<probe_z_minus_wco> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      },
+      {
+        "token": "probe-run-miss.fad74627e7184244b15fec058f5513dd",
+        "file": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/logs/trace.ndjson",
+        "lines": [
+          2152,
+          2182
+        ],
+        "pid": 1869015,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "probe_run",
+            "line": "O<probe_z_minus_wco> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      },
+      {
+        "token": "surface-scan.feature-off.429552d382dd417bbc0e35251fa2329a",
+        "file": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/logs/trace.ndjson",
+        "lines": [
+          2531,
+          2533
+        ],
+        "pid": 1869015,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": [
+          "ws.command_feature_off"
+        ]
+      },
+      {
+        "token": "surface-scan.job.89969c263b974516870a1618a3676816",
+        "file": "/home/cnc/claude-work/live-tier/20261116T003246-pl-main1/logs/trace.ndjson",
+        "lines": [
+          2567,
+          3135
+        ],
+        "pid": 1869015,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "surface_scan_run",
+            "line": "O<surface_scan> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      }
+    ]
+  },
+  {
+    "run": "20261116T004721-pl-main2",
+    "report": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/report.json",
+    "report_sha256": "dd4eda74b3fd0d53acfb5fce8ce895cc63ac79ee98a31c99ffc7978abadce8ed",
+    "trace_sha256": "783f3b58e577a05350338827fb233c73583983a3586f8aee6da1cd1e693b32a4",
+    "commit": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+    "verdict": "PASS",
+    "error": null,
+    "crashes": [],
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        1899198,
+        178476657
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "rows": [
+      {
+        "case": "probe-z",
+        "status": "PASS",
+        "detail": "G54 Z -180.0011 within -180 ± 0.003"
+      },
+      {
+        "case": "probe-z.counter-plate-1",
+        "status": "PASS",
+        "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003"
+      },
+      {
+        "case": "probe-z.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.111 s after"
+      },
+      {
+        "case": "probe-z-miss",
+        "status": "PASS",
+        "detail": "no contact, nothing set, the error said so"
+      },
+      {
+        "case": "probe-z-miss.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.073 s after"
+      },
+      {
+        "case": "probe-run.not-a-routine",
+        "status": "PASS",
+        "detail": "reply: refused: Not a probe routine — reload the page; window: nothing started, nothing delivered; state: nothing changed"
+      },
+      {
+        "case": "probe-run.feature-off",
+        "status": "PASS",
+        "detail": "reply: refused: Probing is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed"
+      },
+      {
+        "case": "probe-run",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; probe: G54 Z -180.0011 within -180 ± 0.003"
+      },
+      {
+        "case": "probe-run.counter-plate-1",
+        "status": "PASS",
+        "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003"
+      },
+      {
+        "case": "probe-run.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.147 s after"
+      },
+      {
+        "case": "probe-run-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine"
+      },
+      {
+        "case": "probe-run-miss",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; miss: no contact, nothing set, the error said so"
+      },
+      {
+        "case": "probe-run-miss.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.101 s after"
+      },
+      {
+        "case": "probe-run.restore",
+        "status": "PASS",
+        "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before — read back"
+      },
+      {
+        "case": "surface-scan.feature-off",
+        "status": "PASS",
+        "detail": "reply: refused: Surface map is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed"
+      },
+      {
+        "case": "surface-scan.job",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: surface_scan_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back"
+      },
+      {
+        "case": "surface-scan.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.083 s after"
+      },
+      {
+        "case": "surface-scan",
+        "status": "PASS",
+        "detail": "25 points in the snake, each on the surface within ± 0.005"
+      },
+      {
+        "case": "surface-scan.counter-node+1",
+        "status": "PASS",
+        "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (± 0.005)"
+      },
+      {
+        "case": "surface-scan.counter-xy-swapped",
+        "status": "PASS",
+        "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (± 0.005)"
+      },
+      {
+        "case": "surface-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine"
+      },
+      {
+        "case": "surface-scan.map",
+        "status": "PASS",
+        "detail": "the map reloaded (version 0 → 1)"
+      }
+    ],
+    "windows": [
+      {
+        "token": "probe-run.not-a-routine.cad01aaadc95404a8e568c88cffa0934",
+        "file": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/logs/trace.ndjson",
+        "lines": [
+          1831,
+          1832
+        ],
+        "pid": 1884587,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": []
+      },
+      {
+        "token": "probe-run.feature-off.bf9c3a3be6674fdcb73197483b6dfcba",
+        "file": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/logs/trace.ndjson",
+        "lines": [
+          1865,
+          1868
+        ],
+        "pid": 1884587,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": [
+          "ws.command_feature_off"
+        ]
+      },
+      {
+        "token": "probe-run.aae684c6273d46c49a95ab2533fc0835",
+        "file": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/logs/trace.ndjson",
+        "lines": [
+          1902,
+          1949
+        ],
+        "pid": 1884587,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "probe_run",
+            "line": "O<probe_z_minus_wco> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      },
+      {
+        "token": "probe-run-miss.1129954ab56848c8a43856f66260d3ba",
+        "file": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/logs/trace.ndjson",
+        "lines": [
+          2155,
+          2184
+        ],
+        "pid": 1884587,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "probe_run",
+            "line": "O<probe_z_minus_wco> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      },
+      {
+        "token": "surface-scan.feature-off.57dcb6c3def045b78aff3ff38fec38a9",
+        "file": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/logs/trace.ndjson",
+        "lines": [
+          2534,
+          2536
+        ],
+        "pid": 1884587,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": [
+          "ws.command_feature_off"
+        ]
+      },
+      {
+        "token": "surface-scan.job.ff078377676e45d7978ecf0b9db167f8",
+        "file": "/home/cnc/claude-work/live-tier/20261116T004721-pl-main2/logs/trace.ndjson",
+        "lines": [
+          2570,
+          3140
+        ],
+        "pid": 1884587,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "surface_scan_run",
+            "line": "O<surface_scan> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      }
+    ]
+  },
+  {
+    "run": "20261116T010147-pl-mdi-driver",
+    "report": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/report.json",
+    "report_sha256": "61fd7bbb3b470a7b0073ff255d9ec272786eedeec3005fb16653d5448e9064f0",
+    "trace_sha256": "f42de5d43f9a8bc6770a1b9412dec962bd57215408c05ffab60c0128f03e0d18",
+    "commit": "e743061a9bd70ffe84aaeb3112a7953524adcc07",
+    "verdict": "FAIL",
+    "error": null,
+    "crashes": [],
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        1914623,
+        178563060
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "rows": [
+      {
+        "case": "probe-z",
+        "status": "PASS",
+        "detail": "G54 Z -180.0011 within -180 ± 0.003"
+      },
+      {
+        "case": "probe-z.counter-plate-1",
+        "status": "PASS",
+        "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003"
+      },
+      {
+        "case": "probe-z.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.099 s after"
+      },
+      {
+        "case": "probe-z-miss",
+        "status": "PASS",
+        "detail": "no contact, nothing set, the error said so"
+      },
+      {
+        "case": "probe-z-miss.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.071 s after"
+      },
+      {
+        "case": "probe-run.not-a-routine",
+        "status": "PASS",
+        "detail": "reply: refused: Not a probe routine — reload the page; window: nothing started, nothing delivered; state: nothing changed"
+      },
+      {
+        "case": "probe-run.feature-off",
+        "status": "PASS",
+        "detail": "reply: refused: Probing is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed"
+      },
+      {
+        "case": "probe-run",
+        "status": "FAIL",
+        "detail": "reply: the reply differs: {'line': None}"
+      },
+      {
+        "case": "probe-run.counter-plate-1",
+        "status": "PASS",
+        "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003"
+      },
+      {
+        "case": "probe-run.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.141 s after"
+      },
+      {
+        "case": "probe-run-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine"
+      },
+      {
+        "case": "probe-run-miss",
+        "status": "PASS",
+        "detail": "reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job read back; miss: no contact, nothing set, the error said so"
+      },
+      {
+        "case": "probe-run-miss.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.095 s after"
+      },
+      {
+        "case": "probe-run.restore",
+        "status": "PASS",
+        "detail": "the override free, the switches as first read, G54 Z0 and the numbers as before — read back"
+      },
+      {
+        "case": "surface-scan.feature-off",
+        "status": "PASS",
+        "detail": "reply: refused: Surface map is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed"
+      },
+      {
+        "case": "surface-scan.job",
+        "status": "FAIL",
+        "detail": "reply: the reply differs: {'line': None}"
+      },
+      {
+        "case": "surface-scan.start",
+        "status": "PASS",
+        "detail": "free at the send, locked +0.076 s after"
+      },
+      {
+        "case": "surface-scan",
+        "status": "PASS",
+        "detail": "25 points in the snake, each on the surface within ± 0.005"
+      },
+      {
+        "case": "surface-scan.counter-node+1",
+        "status": "PASS",
+        "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (± 0.005)"
+      },
+      {
+        "case": "surface-scan.counter-xy-swapped",
+        "status": "PASS",
+        "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (± 0.005)"
+      },
+      {
+        "case": "surface-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine"
+      },
+      {
+        "case": "surface-scan.map",
+        "status": "PASS",
+        "detail": "the map reloaded (version 0 → 1)"
+      }
+    ],
+    "windows": [
+      {
+        "token": "probe-run.not-a-routine.94ea088118654b6ab60c28cffb190674",
+        "file": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/logs/trace.ndjson",
+        "lines": [
+          1825,
+          1826
+        ],
+        "pid": 1900051,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": []
+      },
+      {
+        "token": "probe-run.feature-off.27cd79348941408392c384b4a1766441",
+        "file": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/logs/trace.ndjson",
+        "lines": [
+          1859,
+          1861
+        ],
+        "pid": 1900051,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": [
+          "ws.command_feature_off"
+        ]
+      },
+      {
+        "token": "probe-run.eb381be448b340829b6a6e7a103c03c6",
+        "file": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/logs/trace.ndjson",
+        "lines": [
+          1897,
+          1942
+        ],
+        "pid": 1900051,
+        "jobs": [],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      },
+      {
+        "token": "probe-run-miss.da54e8ba58364fcc99d306365ba4a589",
+        "file": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/logs/trace.ndjson",
+        "lines": [
+          2150,
+          2179
+        ],
+        "pid": 1900051,
+        "jobs": [
+          {
+            "tag": "features.job",
+            "cmd": "probe_run",
+            "line": "O<probe_z_minus_wco> CALL"
+          }
+        ],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      },
+      {
+        "token": "surface-scan.feature-off.606998a4cfbe457faa0fa9a0689116d9",
+        "file": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/logs/trace.ndjson",
+        "lines": [
+          2531,
+          2533
+        ],
+        "pid": 1900051,
+        "jobs": [],
+        "parameter_batches": 0,
+        "writes": 0,
+        "refusals": [
+          "ws.command_feature_off"
+        ]
+      },
+      {
+        "token": "surface-scan.job.8c37bcc27fc444bc8d5278371150ede8",
+        "file": "/home/cnc/claude-work/live-tier/20261116T010147-pl-mdi-driver/logs/trace.ndjson",
+        "lines": [
+          2568,
+          3136
+        ],
+        "pid": 1900051,
+        "jobs": [],
+        "parameter_batches": 1,
+        "writes": 1,
+        "refusals": []
+      }
+    ]
+  }
+]
