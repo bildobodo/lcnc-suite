@@ -283,9 +283,19 @@ operator saw in 159; the pin shows it natively).
   150 % portrait. `buildup` in the agreed order while the gate stays under
   5 min: `probe-click`, `tabs`, the other dialog rows on the desktop, then
   in portrait, the desktop strip rows of `visual.spec` (its tool dialog left
-  out: headless Firefox under BiDi has no WebGL here — `getContext("webgl2")`
-  and `("webgl")` are null). Measured 2026-11-16: 86 tests in 95–140 s on
+  out: the core runs without WebGL, below — the case waits for its preview
+  canvas). Measured 2026-11-16: 86 tests in 95–140 s on
   the VM's three workers; CI (x86_64, one worker): the required 26 in 42–63 s.
+- **Without a display (R387):** headless Firefox renders WebGL in software
+  through an X display when the environment names one, and refuses WebGL
+  without one (measured on the VM: a user unit inherits `DISPLAY=:0` from
+  the X session and every load had WebGL; the tool shell and CI have none
+  and none had). The same tests ran on two graphics paths under one name.
+  `playwright.firefox.config.ts` therefore starts the browser with the
+  caller's environment minus `DISPLAY` and `WAYLAND_DISPLAY`; each worker
+  records its started browser's own WebGL answer (`e2e/test.ts`
+  `browserPin`, a context of its own) and `firefox-graphics` requires
+  "none" for the core run and the guard — no record is no proof.
 - **Mouse and keyboard only:** touch under BiDi is a SILENT no-op (`tap()`
   resolves, the page receives nothing). No core spec calls a touch API (the
   runner's static scan), and `e2e/test.ts` makes every touch call throw in
@@ -299,8 +309,9 @@ operator saw in 159; the pin shows it natively).
   set, test for test), `firefox-core`, `firefox-executed` (every listed test
   ran once AND passed — a skip has the right count too), `firefox-workers`,
   `firefox-browser` (each worker's STARTED browser, `browser.version()`, is
-  the pin), `firefox-unload`, `firefox-unload-guard` and `firefox-replay`
-  (its own replay).
+  the pin), `firefox-unload`, `firefox-unload-guard`, `firefox-graphics`
+  (every worker's browser answered "no WebGL") and `firefox-replay` (its
+  own replay).
 - **The unload (Codex R386 VM-I25):** Firefox sends a page's unload beacons
   without the context's cookie when the context closes under the page. The
   page fixture (`e2e/test.ts`) therefore unloads the app inside its context:
@@ -326,7 +337,8 @@ operator saw in 159; the pin shows it natively).
   them (Codex R386: a lost `error-context.md` is lost evidence).
 - **The record** names the pin, the arch, the archive SHA256, Playwright's
   version, the look-up, the worker count, each unload (beacons, received,
-  POSTs meanwhile) and each skipped one with its reason.
+  POSTs meanwhile), each skipped one with its reason and the caller's
+  display (dropped either way).
 - **Where it runs:** the merge gate always (a binary that cannot be fetched
   FAILS); a round when a path selects it — the `firefox` rules, a Firefox
   reference, a core spec in the browser selection by ANY path (the spec, a
@@ -336,7 +348,8 @@ operator saw in 159; the pin shows it natively).
   step is pending, with its reason, when the binary cannot be fetched, never
   a green skip. CI (x86_64) runs the required part through `test_suite.py`
   (`frontend-firefox-core`), without images and without the replay's
-  judgment; the unload receipts and the guard run there too.
+  judgment; the unload receipts, the guard and the graphics check run there
+  too.
 
 ## The replay (step 5a; Codex R251 TS248-04, FI265-02, VM349-01, R373)
 

@@ -23,6 +23,11 @@ In order, each a check of its own:
                     that beacon's mark, the control must pass (Codex R386
                     VM-I25) — judged on the fixture's event, not only on
                     Playwright's expected failure
+  firefox-graphics  every worker's started browser answered "no WebGL" — the
+                    run has no display (playwright.firefox.config.ts drops
+                    DISPLAY and WAYLAND_DISPLAY; a display gave WebGL through
+                    the VM's X server, none gave none — R387), the core
+                    run and the guard's
   firefox-replay    the run's frames against the gateway's rules (gate only)
 Each Playwright run writes its failure artefacts into its own folder under
 the logs (--output): a later run never overwrites them (Codex R386).
@@ -40,6 +45,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -135,6 +141,22 @@ def check_browser(events: list[dict], run: str, pinned: str) -> list[str]:
         return ["no worker reported its started browser"]
     return [f"worker {e.get('workerIndex')}: {e.get('name')} {e.get('version')}, the pin names firefox {pinned}"
             for e in seen if e.get("name") != "firefox" or e.get("version") != pinned]
+
+
+def check_graphics(events: list[dict], run: str) -> list[str]:
+    """Every Firefox worker of this run recorded its browser's WebGL answer
+    (e2e/test.ts browserPin) and it is "none": one graphics path in every
+    environment. No record is no proof."""
+    seen = [e for e in events if e.get("event") == "browser" and e.get("run") == run]
+    if not seen:
+        return ["no worker reported its started browser"]
+    def why(e: dict) -> str:
+        if "webgl" not in e:
+            return "no WebGL answer recorded"
+        if e["webgl"] is True:
+            return "WebGL answered — the browser had a display"
+        return f"the WebGL answer is no boolean: {e['webgl']!r}"
+    return [f"worker {e.get('workerIndex')}: {why(e)}" for e in seen if e.get("webgl") is not False]
 
 
 def _replay_lines(replay_dir: Path) -> list[dict]:
@@ -301,6 +323,9 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
                               if e.get("event") == "browser" and e.get("run") == run_id})
     checks.append({"name": "firefox-browser", "status": "FAIL" if started else "PASS",
                    **({"why": started} if started else {"version": pin["version"]})})
+    graphics = check_graphics(log, run_id)
+    # the caller's display, for the record: the config drops it either way
+    info["caller_display"] = os.environ.get("DISPLAY")
     info["images_not_compared"] = images_not_compared(ran)
     # the run's real worker count and duration (Codex R385 F3: CI names them)
     info["workers"] = {"asked": rg.WORKERS, "report": (ran.get("config") or {}).get("workers"),
@@ -316,6 +341,14 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
                    **({"why": unload[:20]} if unload else {"loaded": len(loaded), "unloads": len(info["unloads"]),
                                                            "skipped": len(info["unloads_skipped"])})})
     checks.append(unload_guard(logs / "guard", fetched["binary"], rg))
+    gd = logs / "guard" / "guard-events.jsonl"
+    guard_log = [json.loads(line) for line in gd.read_text().splitlines()] if gd.is_file() else []
+    guard_runs = {e.get("run") for e in guard_log if e.get("event") == "browser"}
+    graphics += [f"guard: {w}" for r in sorted(x for x in guard_runs if x) for w in check_graphics(guard_log, r)]
+    if not guard_runs:
+        graphics.append("guard: no worker reported its started browser")
+    checks.append({"name": "firefox-graphics", "status": "FAIL" if graphics else "PASS",
+                   **({"why": graphics[:20]} if graphics else {"webgl": "none"})})
     if replay_on:
         t1 = time.monotonic()
         r = rg.replay_check(replay_dir, events, run_id, logs / "firefox-replay.json")

@@ -11626,8 +11626,14 @@ Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
   each corner's wedge to what lay beneath (the hit test honours the
   radius) — a backdrop that closes did not close there. Fixed: a square,
   clear overlay with the rounded scrim as its `::before`;
-- headless Firefox under BiDi has no WebGL here (`getContext("webgl2")` and
-  `("webgl")` null) — the viewer and the tool preview stay empty; the tool
+- headless Firefox has WebGL exactly when its environment names a display
+  (R387, correcting R386's "no WebGL here", which was measured from the tool
+  shell): the user units the gates run in inherit `DISPLAY=:0` and rendered
+  WebGL in software through the VM's X server, the tool shell and CI have no
+  display and got none. The Firefox run now starts its browser without
+  `DISPLAY` / `WAYLAND_DISPLAY` (one graphics path everywhere, CI's), each
+  worker records the browser's own WebGL answer and `firefox-graphics`
+  requires none; the viewer and the tool preview stay empty, and the tool
   dialog's reference image is left out of the core (named in
   `firefox-core.json`);
 - Firefox sends a page's unload beacons without the context's cookie when

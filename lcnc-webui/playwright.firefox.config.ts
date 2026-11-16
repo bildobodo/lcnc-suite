@@ -14,6 +14,13 @@ import gate from "./playwright.gate.config";
 //   LCNC_FIREFOX=$(python3 scripts/fetch_firefox.py path) \
 //     npx playwright test -c playwright.firefox.config.ts
 //
+// WITHOUT A DISPLAY (R387): the browser gets the caller's environment
+// minus DISPLAY and WAYLAND_DISPLAY. Headless Firefox with the VM's X
+// display (a user unit inherits DISPLAY=:0) renders WebGL in software
+// through it; without one (the tool shell, CI) WebGL is refused. One run,
+// one graphics path: none, everywhere — e2e/test.ts browserPin records the
+// started browser's WebGL and the runner's firefox-graphics requires "none".
+//
 // Its own references, by version and arch: e2e/__screenshots__/firefox-
 // <version>-<arch>/…; the Chromium ones stay where they are. Reference
 // images are compared on linux/arm64 only (probe-visual.spec.ts, R385 F1 b).
@@ -36,6 +43,10 @@ if (!FIREFOX) throw new Error("LCNC_FIREFOX names no Firefox binary: run scripts
 // the started browser is checked against this in every worker (e2e/test.ts browserPin)
 process.env.LCNC_FIREFOX_VERSION = PIN.version;
 
+/** What the browser never inherits: a display would give it WebGL. */
+export const NO_DISPLAY = ["DISPLAY", "WAYLAND_DISPLAY"];
+const browserEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !NO_DISPLAY.includes(k)));
+
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const files = [...new Set(CORE_TESTS.map(t => t.file))];
 
@@ -51,7 +62,7 @@ export default defineConfig({
   use: {
     ...gate.use,
     // a Chromium-only argument (its scrollbars): Firefox shows its own
-    launchOptions: { executablePath: FIREFOX },
+    launchOptions: { executablePath: FIREFOX, env: browserEnv },
   },
   projects: [
     { name: "firefox-core", use: { browserName: "firefox", channel: "moz-firefox" } },

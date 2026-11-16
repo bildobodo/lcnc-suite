@@ -30,7 +30,8 @@
 //                by its own mark (Firefox sends a beacon after the context's
 //                close without the cookie; Codex R386 VM-I25).
 //  browserPin    (worker) — the started browser's own version in the event
-//                log; in Firefox it must be the pinned one.
+//                log; in Firefox it must be the pinned one, and its WebGL
+//                answer is recorded beside it (none: no display, R387).
 import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
@@ -181,10 +182,24 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
   // version, read from the started browser, against the pin the Firefox
   // config names (LCNC_FIREFOX_VERSION) — a cached path proves no version.
   // Every worker writes it to the event log; the gate reads it there.
+  // The Firefox core runs without a display (playwright.firefox.config.ts):
+  // the started browser's own answer to a WebGL context, read in a context of
+  // its own, is in the same event — the runner requires none (R387).
   browserPin: [async ({ browser, browserName }, use, workerInfo) => {
     const version = browser.version();
     const pinned = browserName === "firefox" ? process.env.LCNC_FIREFOX_VERSION : undefined;
-    logEvent({ event: "browser", name: browserName, version, pinned: pinned ?? null, workerIndex: workerInfo.workerIndex });
+    let webgl: boolean | undefined;
+    if (browserName === "firefox") {
+      const probe = await browser.newContext();
+      try {
+        webgl = await (await probe.newPage()).evaluate(() => {
+          const c = document.createElement("canvas");
+          return c.getContext("webgl2") !== null || c.getContext("webgl") !== null;
+        });
+      } finally { await probe.close(); }
+    }
+    logEvent({ event: "browser", name: browserName, version, pinned: pinned ?? null, workerIndex: workerInfo.workerIndex,
+               ...(webgl !== undefined ? { webgl } : {}) });
     if (pinned !== undefined && version !== pinned)
       throw new Error(`the started Firefox is ${version}, the pin names ${pinned}`);
     await use();

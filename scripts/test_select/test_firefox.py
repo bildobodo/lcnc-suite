@@ -194,3 +194,21 @@ def test_the_unload_guard_passes_only_on_its_counter_case():
     r = guard_report()
     r["suites"][0]["specs"] = r["suites"][0]["specs"][:1]
     assert firefox.judge_unload_guard(r, guard_events(), "r")[0].startswith("the guard ran")
+
+
+# ── The graphics path (R387) ─────────────────────────────────────────────
+def browser_ev(worker: int, run: str = "r", **kw) -> dict:
+    return {"event": "browser", "run": run, "name": "firefox", "version": "160.0", "workerIndex": worker, **kw}
+
+
+def test_every_worker_must_record_no_webgl():
+    assert firefox.check_graphics([browser_ev(0, webgl=False), browser_ev(1, webgl=False)], "r") == []
+    # a display gave WebGL: named per worker
+    assert firefox.check_graphics([browser_ev(0, webgl=False), browser_ev(1, webgl=True)], "r") == [
+        "worker 1: WebGL answered — the browser had a display"]
+    # no record is no proof
+    assert firefox.check_graphics([browser_ev(0)], "r") == ["worker 0: no WebGL answer recorded"]
+    assert firefox.check_graphics([browser_ev(0, webgl=None)], "r") == ["worker 0: the WebGL answer is no boolean: None"]
+    # another run's workers are not this run's
+    assert firefox.check_graphics([browser_ev(0, run="other", webgl=False)], "r") == ["no worker reported its started browser"]
+    assert firefox.check_graphics([], "r") == ["no worker reported its started browser"]

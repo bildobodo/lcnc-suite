@@ -139,7 +139,7 @@
         "6axis-twp desktop: Jog and Setup reference images"
       ],
       "left_out": {
-        "desktop: tool edit dialog reference image": "headless Firefox under BiDi has no WebGL here (the viewer and the tool preview stay empty, webgl.force-enabled does not change it): the case waits for its preview canvas — measured 2026-11-16"
+        "desktop: tool edit dialog reference image": "the Firefox core runs without a display and so without WebGL (playwright.firefox.config.ts, R387): the viewer and the tool preview stay empty and the case waits for its preview canvas — measured 2026-11-16"
       }
     }
   ]
