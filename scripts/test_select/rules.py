@@ -120,6 +120,11 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite")),
     _E + "replay-origin.spec.ts": (
         Read('readFileSync(file, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),),
+    _E + "test.ts": (
+        Read('readFileSync(file, "utf8")', 1, None,
+             "Firefox: this run's replay log its own worker's mock writes — the unload beacons arrived (R385)"),
+        Read('readdirSync(new URL("../dist/static/", import.meta.url))', 1, None,
+             "Firefox: a built stylesheet's name (dist/) — a neutral document of the mock's origin (R385)")),
     _E + "mockFixture.ts": (
         Read("spawn(process.execPath, [MOCK_SCRIPT]", 1, ("lcnc-webui/e2e/mock-gateway.mjs",),
              "starts the worker's own mock"),

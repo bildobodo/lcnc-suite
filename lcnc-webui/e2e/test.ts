@@ -25,15 +25,16 @@
 //                upgrade (e2e/mock-gateway.mjs).
 //  page          (test)   — in Firefox (the pinned core, plan vor-maschine
 //                R385): every touch call throws (silent under BiDi) and the
-//                page is unloaded before its context closes (Firefox sends
-//                the unload beacons of a page closed WITH its context without
-//                the cookie).
+//                page is unloaded before its context closes, the context
+//                closed only once its unload beacons reached the mock (Firefox
+//                sends a beacon after the context's close without the cookie).
 //  browserPin    (worker) — the started browser's own version in the event
 //                log; in Firefox it must be the pinned one.
+import { readdirSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { test as base, expect, type Page } from "@playwright/test";
 import { appConnectFrames, ctl, MOCK } from "./ctl";
-import { logEvent, RUN, startMock, stopMock, type MockHandle } from "./mockFixture";
+import { logEvent, replayFile, RUN, startMock, stopMock, type MockHandle } from "./mockFixture";
 import { portOf, slotOf } from "./mockSlot.mjs";
 
 export * from "@playwright/test";
@@ -68,21 +69,75 @@ async function forbidTouch(page: Page): Promise<void> {
   }
 }
 
+/** The POSTs the mock recorded so far (its replay log). */
+function postsRecorded(file: string): number {
+  let n = 0;
+  for (const line of readFileSync(file, "utf8").split("\n")) {
+    if (!line) continue;
+    const l = JSON.parse(line) as { kind?: string; method?: string };
+    if (l.kind === "http" && l.method === "POST") n++;
+  }
+  return n;
+}
+
+const BEACONS_KEY = "e2e.unloadBeacons";
+/** A document of the mock's origin that is not the app: a built stylesheet
+ *  (Firefox shows it as text) — the tab's sessionStorage is readable there. */
+const NEUTRAL = (() => {
+  const css = readdirSync(new URL("../dist/static/", import.meta.url)).find(f => f.endsWith(".css"));
+  return css ? `${MOCK}static/${css}` : null;
+})();
+
+/** Firefox: the page is UNLOADED while its context lives, and the context
+ *  closes only once every beacon the unload sent reached the mock. Firefox
+ *  sends a beacon that goes out after its context closed without the
+ *  context's cookies — the replay would see a request without its test
+ *  attempt (measured 2026-11-16: closing the context under the page lost
+ *  them every time; navigating away first still lost one beacon in four
+ *  runs; Chromium sends them with the cookie). How many the unload sends is
+ *  the page's own count, not a rule: the beforeunload, page-hide settings
+ *  and pagehide beacons (ws/telemetry.ts, defaults.ts) — Firefox fired one
+ *  telemetry beacon, not two, in some dialog cases. So every successful
+ *  `sendBeacon` from here on is counted in the tab's sessionStorage, the app
+ *  unloads into a neutral document of the same origin, the count is read
+ *  there, and the mock must have recorded that many POSTs before the
+ *  context may close. Nothing is suppressed; a miss can only turn the
+ *  replay red, never green. */
+async function unloadInContext(page: Page, instance: string): Promise<void> {
+  const file = replayFile(instance);
+  if (page.isClosed() || !page.url().startsWith(MOCK) || !file || !NEUTRAL) {
+    await page.goto("about:blank").catch(() => {});
+    return;
+  }
+  await page.evaluate((key) => {
+    const send = navigator.sendBeacon.bind(navigator);
+    sessionStorage.setItem(key, "0");
+    navigator.sendBeacon = (url: string | URL, data?: BodyInit | null) => {
+      const handedOff = send(url, data);
+      if (handedOff) sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key)) + 1));
+      return handedOff;
+    };
+  }, BEACONS_KEY);
+  const before = postsRecorded(file);
+  await page.goto(NEUTRAL);
+  const sent = await page.evaluate((key) => Number(sessionStorage.getItem(key)), BEACONS_KEY);
+  await expect.poll(() => postsRecorded(file) - before, {
+    timeout: 5_000, message: `the ${sent} beacon(s) of the page's unload reached the mock while its context lives`,
+  }).toBeGreaterThanOrEqual(sent);
+  await page.goto("about:blank").catch(() => {});
+}
+
 export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { pristine: Snapshot; pristineWire: Wire }; browserPin: void }>({
   // Firefox (the pinned core, R385): no touch — the context options carry
-  // none, every touch call throws; and the page is UNLOADED while its
-  // context lives. Firefox sends a page's unload beacons (telemetry, the
-  // settings page-hide flush) without the context's cookies when the context
-  // closes under a loaded page — the replay would see them without their
-  // test attempt (measured 2026-11-16; Chromium sends them with it, and a
-  // page navigated away inside its context sends them with it in both).
-  page: async ({ page, browserName }, use, testInfo) => {
+  // none, every touch call throws; and the page is unloaded inside its
+  // context before the context closes (unloadInContext).
+  page: async ({ page, browserName, mock }, use, testInfo) => {
     if (browserName === "firefox") {
       if (testInfo.project.use.hasTouch) throw new Error(TOUCH_UNDER_BIDI);
       await forbidTouch(page);
     }
     await use(page);
-    if (browserName === "firefox") await page.goto("about:blank").catch(() => {});
+    if (browserName === "firefox") await unloadInContext(page, mock.instance);
   },
 
   // The browser that runs is the one asked for (Codex R385): its own
