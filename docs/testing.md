@@ -315,7 +315,8 @@ operator saw in 159; the pin shows it natively).
   guard, each bound to ITS known run id (the one the runner started it
   with, never read off the records) and to the workers ITS report names —
   replacement workers included: exactly one browser record per worker, none
-  missing, none of a worker the report does not name (Codex R387 VM-I27).
+  missing, none of a worker the report does not name, none of another run —
+  beside the right ones too (Codex R387 VM-I27).
 - **The unload (Codex R386 VM-I25):** Firefox sends a page's unload beacons
   without the context's cookie when the context closes under the page. The
   page fixture (`e2e/test.ts`) therefore unloads the app inside its context:

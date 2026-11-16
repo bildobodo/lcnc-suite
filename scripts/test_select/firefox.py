@@ -147,12 +147,17 @@ def worker_browsers(events: list[dict], run: str, workers: set[int]) -> tuple[di
     """Each worker the report names, bound to ITS browser record of the KNOWN
     run (Codex R387 VM-I27): exactly one per worker. A missing record, a
     second one, one of a worker the report does not name — each a problem;
-    one worker's record never stands in for another's. Another run's records
-    are not this run's."""
+    one worker's record never stands in for another's. Another run's record
+    is not this run's and is itself a problem — beside the right ones too (a
+    foreign record in a run's own log; the core's check_workers says it as
+    well, the guard has no other check that would)."""
     problems = [] if workers else ["the report names no worker"]
     by: dict[int, dict] = {}
     for e in events:
-        if e.get("event") != "browser" or e.get("run") != run:
+        if e.get("event") != "browser":
+            continue
+        if e.get("run") != run:
+            problems.append(f"a browser record of another run ({e.get('run')!r}), not {run}")
             continue
         w = e.get("workerIndex")
         if w not in workers:

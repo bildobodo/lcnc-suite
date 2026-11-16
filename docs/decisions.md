@@ -11636,7 +11636,8 @@ Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
   requires none — per worker the report names and under the run id the
   runner started, core and guard alike (Codex R387 VM-I27: a missing, a
   single or a renamed record stayed green, the guard read its run id off
-  its own records); the viewer and the tool preview stay empty, and the tool
+  its own records; another run's record is red, beside the right ones too);
+  the viewer and the tool preview stay empty, and the tool
   dialog's reference image is left out of the core (named in
   `firefox-core.json`);
 - Firefox sends a page's unload beacons without the context's cookie when

@@ -91,7 +91,9 @@ def test_the_started_browser_must_be_the_pin():
     ev = [{"event": "browser", "run": "r", "name": "firefox", "version": "160.0", "workerIndex": 0},
           {"event": "browser", "run": "r", "name": "firefox", "version": "159.0", "workerIndex": 1},
           {"event": "browser", "run": "other", "name": "firefox", "version": "1.0", "workerIndex": 2}]
-    assert firefox.check_browser(ev, "r", "160.0", {0, 1}) == ["worker 1: firefox 159.0, the pin names firefox 160.0"]
+    assert firefox.check_browser(ev, "r", "160.0", {0, 1}) == [
+        "a browser record of another run ('other'), not r", "worker 1: firefox 159.0, the pin names firefox 160.0"]
+    assert firefox.check_browser(ev[:2], "r", "160.0", {0, 1}) == ["worker 1: firefox 159.0, the pin names firefox 160.0"]
     assert firefox.check_browser([], "r", "160.0", {0}) == ["worker 0: ran tests, recorded no started browser"]
     assert firefox.check_browser([{**ev[0], "name": "chromium"}], "r", "160.0", {0}) == [
         "worker 0: chromium 160.0, the pin names firefox 160.0"]
@@ -212,7 +214,7 @@ def test_every_worker_must_record_no_webgl():
     assert firefox.check_graphics([browser_ev(0, webgl=None)], "r", {0}) == ["worker 0: the WebGL answer is no boolean: None"]
     # another run's record is not this run's
     assert firefox.check_graphics([browser_ev(0, run="other", webgl=False)], "r", {0}) == [
-        "worker 0: ran tests, recorded no started browser"]
+        "a browser record of another run ('other'), not r", "worker 0: ran tests, recorded no started browser"]
     assert firefox.check_graphics([], "r", set()) == ["the report names no worker"]
 
 
@@ -231,6 +233,8 @@ OK = dict(webgl=False)
     ("a worker with two records", [browser_ev(0, **OK), browser_ev(0, **OK)], {0}, ["worker 0: more than one browser record"]),
     ("a replacement worker needs its own record", [browser_ev(0, **OK), browser_ev(1, **OK)], {0, 1, 3},
      ["worker 3: ran tests, recorded no started browser"]),
+    ("another run's record beside the right ones", [browser_ev(0, **OK), browser_ev(0, run="other", **OK)], {0},
+     ["a browser record of another run ('other'), not r"]),
 ])
 def test_one_record_per_worker_the_report_names(case, events, workers, expected):
     assert firefox.check_graphics(events, "r", workers) == expected, case
@@ -244,7 +248,12 @@ def test_the_guard_is_judged_under_its_known_run_id():
     # the guard's record under another run id: its worker is unproven, never read off the record
     moved = [browser_ev(0, run="not-this-guard", **OK)]
     b, g = firefox.browser_proofs([("core", core, "r", {0, 1}), ("guard", moved, "g", {0})], "160.0")
-    assert b == g == ["guard: worker 0: ran tests, recorded no started browser"]
+    assert b == g == ["guard: a browser record of another run ('not-this-guard'), not g",
+                      "guard: worker 0: ran tests, recorded no started browser"]
+    # a foreign record BESIDE the guard's own: red too, never ignored
+    beside = guard + [browser_ev(0, run="not-this-guard", **OK)]
+    b, g = firefox.browser_proofs([("core", core, "r", {0, 1}), ("guard", beside, "g", {0})], "160.0")
+    assert b == g == ["guard: a browser record of another run ('not-this-guard'), not g"]
     # no guard report: unproven, never green
     b, g = firefox.browser_proofs([("core", core, "r", {0, 1}), ("guard", guard, "g", None)], "160.0")
     assert b == g == ["guard: no report — its browsers are unproven"]
@@ -296,4 +305,6 @@ def test_the_runner_hands_the_guards_known_run_id_to_the_proofs(guard_record_run
     for name in ("firefox-browser", "firefox-graphics"):
         assert (by[name]["status"] == "PASS") is green, (name, by[name])
         if not green:
-            assert by[name]["why"] == ["guard: worker 0: ran tests, recorded no started browser"]
+            foreign, missing = by[name]["why"]
+            assert foreign.startswith("guard: a browser record of another run ('not-this-guard'), not firefox-guard-")
+            assert missing == "guard: worker 0: ran tests, recorded no started browser"
