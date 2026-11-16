@@ -1,0 +1,17 @@
+{
+  "version": "160.0",
+  "source": "https://archive.mozilla.org/pub/firefox/releases/160.0/",
+  "signing_key_fingerprint": "14F26682D0916CDD81E37B6D61B7B526D98F0353",
+  "signing_subkey": "827E658608679618CD349F93678E455D76767AA3",
+  "locale": "en-US",
+  "archives": {
+    "linux-aarch64": {
+      "path": "linux-aarch64/en-US/firefox-160.0.tar.xz",
+      "sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f"
+    },
+    "linux-x86_64": {
+      "path": "linux-x86_64/en-US/firefox-160.0.tar.xz",
+      "sha256": "fde774e9757c8878534c05ec210db592bf6a1b244c57941ffb2e364c04f35fcd"
+    }
+  }
+}

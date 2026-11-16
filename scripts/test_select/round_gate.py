@@ -14,10 +14,14 @@ when selected, the browser run: the ports free (no server already listening
 is ever tested in place of this tree's, TS256-05), the full or the select
 config, no focused test, its listing matched test for test to what ran
 (TS256-04) and the order against the full chain. Unit runs are matched to
-their listing the same way and refuse `.only`. The record names every check
-run and left out with its reason; the Firefox core and the live checks a path
-asks for stand as pending (an offline PASS is not an acceptance). PASS only
-when every check that ran passed, without a skip, a retry or an empty run.
+their listing the same way and refuse `.only`. Then the Firefox core in the
+pinned Mozilla Firefox (scripts/test_select/firefox.py, plan vor-maschine
+R385): a merge always, a round when a path selects it — a binary that cannot
+be fetched FAILS a merge and stands pending in a round, never a green skip.
+The record names every check run and left out with its reason; the live
+checks a path asks for stand as pending (an offline PASS is not an
+acceptance). PASS only when every check that ran passed, without a skip, a
+retry or an empty run.
 """
 from __future__ import annotations
 
@@ -74,7 +78,8 @@ def as_merge(sel: dict) -> dict:
     return {**sel,
             "unit": {**sel["unit"], "heavy": sorted(HEAVY_UNIT), "heavy_reasons": {f: [MERGE_REASON] for f in HEAVY_UNIT}},
             "backend": {"run": True, "reasons": [MERGE_REASON]},
-            "browser": {"run": FULL, "reasons": [MERGE_REASON]}}
+            "browser": {"run": FULL, "reasons": [MERGE_REASON]},
+            "firefox": {**sel.get("firefox", {}), "needed": True, "reasons": [MERGE_REASON]}}
 
 
 def plan(sel: dict) -> list[str]:
@@ -87,6 +92,8 @@ def plan(sel: dict) -> list[str]:
         steps.append("backend")
     if sel["browser"]["run"]:
         steps += ["ports-free", "browser"]
+    if sel.get("firefox", {}).get("needed"):
+        steps.append("firefox-core")
     return steps
 
 
@@ -521,6 +528,16 @@ def main(argv: list[str] | None = None) -> int:
         else:
             omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
 
+        firefox_pending = None
+        if sel["firefox"].get("needed"):
+            from test_select import firefox   # imports this module's helpers itself
+            ff = firefox.core(logs, replay_on=True, missing="FAIL" if a.merge else "pending")
+            checks += ff["checks"]
+            record["firefox"] = ff["info"]
+            firefox_pending = ff["pending"]
+        else:
+            omitted.append({"check": "firefox-core", "reason": "no path selects the Firefox core"})
+
     if a.merge:
         # the installer, from a fresh clone, and what it installed started
         # (package I) — a merge only; it takes the VM's one LinuxCNC. AFTER
@@ -528,9 +545,7 @@ def main(argv: list[str] | None = None) -> int:
         # restore, whatever happens to this process (Codex R330 FI-I60)
         checks.append(install_probe(logs, sel["head"]))
 
-    pending = []
-    if sel["firefox"].get("needed"):
-        pending.append({"check": "firefox-core", "status": sel["firefox"]["status"]})
+    pending = [firefox_pending] if firefox_pending else []
     for check, paths in sel["live"].items():
         pending.append({"check": check, "status": "pending: a live check, run before main", "paths": paths})
     return finish("PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",

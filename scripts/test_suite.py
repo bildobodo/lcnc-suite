@@ -121,7 +121,7 @@ def materialize_corpus(ini, out):
     return dest, programs / "twp_simple_example.ngc"
 
 
-def offline_commands(component):
+def offline_commands(component, out=None):
     commands = []
     if component in ("all", "backend"):
         # The Python lint FIRST, before the expensive suites (issue #36, Codex
@@ -145,6 +145,10 @@ def offline_commands(component):
         commands.append(("parity-compare", [python(), "-m", "pytest", str(ROOT / "scripts/test_parity_compare.py")], ROOT))
         commands.append(("test-select", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_selector.py")], ROOT))
         commands.append(("replay", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_replay.py")], ROOT))
+        # the Firefox core's fetch and runner (plan vor-maschine R385): the pin's
+        # checks, the core set, the touch scan, the result judgement
+        commands.append(("firefox-units", [python(), "-m", "pytest", str(ROOT / "scripts/test_fetch_firefox.py"),
+                                           str(ROOT / "scripts/test_select/test_firefox.py")], ROOT))
         commands.append(("inventory", [python(), "-m", "pytest", str(ROOT / "scripts/inventory/test_inventory.py")], ROOT))
         commands.append(("native-stage", [python(), "-m", "pytest", str(ROOT / "scripts/test_native_stage.py")], ROOT))
         commands.append(("install-probe", [python(), "-m", "pytest", str(ROOT / "scripts/test_install_probe.py")], ROOT))
@@ -155,6 +159,13 @@ def offline_commands(component):
                           ("unit", ["npm", "test"]),
                           ("browser", ["npm", "run", "test:e2e"])):
             commands.append(("frontend-" + name, cmd, ROOT / "lcnc-webui"))
+        # the Firefox core's REQUIRED part in the PINNED Mozilla Firefox, after the
+        # Chromium run (R385 F3: in CI without the replay — that stays with the gate; on a
+        # platform other than linux/arm64 every size check runs and no image
+        # is compared, each one named)
+        commands.append(("frontend-firefox-core",
+                         [python(), str(ROOT / "scripts/test_select/firefox.py"), "--no-replay", "--required-only",
+                          "--out", str((out or ROOT / "runlogs/test-suite") / "firefox-core")], ROOT))
     return commands
 
 
@@ -231,7 +242,7 @@ def main(argv=None):
     session = None
     try:
         if args.mode == "offline":
-            commands = offline_commands(args.component)
+            commands = offline_commands(args.component, out)
         else:
             import linuxcnc
             stat = linuxcnc.stat()

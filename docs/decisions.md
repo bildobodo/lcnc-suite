@@ -11605,3 +11605,34 @@ and Home where LinuxCNC homes a group (effective `ini.N.home_sequence`, held
 to the home write). The 5- and 6-axis profiles declare `WEBUI_JOINT_AXES`;
 an installed copy gets it from `install_examples`.
 
+
+## 2026-11-16 — The Firefox core (step 6; Codex R248 TS248-05, R385)
+
+**Decision.** A compact browser set in a PINNED Mozilla Firefox
+(`e2e/firefox.json`: version, archives by arch with their SHA256, the
+release key; `scripts/fetch_firefox.py`), never Playwright's bundled Firefox.
+Mouse and keyboard only. Reference images are compared on linux/arm64 only;
+CI (x86_64) runs the required part with every size check and no image. The
+merge gate always runs it, a round when a path selects it, CI its required
+part.
+
+**Why.** The operator saw the probing grid collapse to nine 10 px dots in
+Firefox 159; Playwright's bundled Firefox 150 does not show it, the pinned
+160 does natively. The trial (2026-11-16) found:
+- touch under WebDriver BiDi is a SILENT no-op (`tap()` resolves, the page
+  receives nothing) — a tap in the core would be a green press that never
+  happened; every touch call throws in Firefox (`e2e/test.ts`);
+- a product defect in BOTH browsers: the dialog overlay's 12 px radius left
+  each corner's wedge to what lay beneath (the hit test honours the
+  radius) — a backdrop that closes did not close there. Fixed: a square,
+  clear overlay with the rounded scrim as its `::before`;
+- headless Firefox under BiDi has no WebGL here — the viewer and the tool
+  preview stay empty; the tool dialog's reference image is left out of the
+  core (named in `firefox-core.json`);
+- Firefox sends a page's unload beacons without the context's cookie when
+  the context closes under the page — the replay would lose their test
+  attempt; the fixture unloads the page first.
+
+**Not done.** A second set of x86_64 references (R385 F1 a): images made
+where nobody reviews them. ESR and the machine PC's browser wait for the
+operator's Q248-1.

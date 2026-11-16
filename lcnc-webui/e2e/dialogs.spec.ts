@@ -81,6 +81,96 @@ async function expectRegistryMatchesDom(page: Page) {
   expect(registered, `registry ${registered} vs DOM overlays ${dom}`).toBe(dom);
 }
 
+const CORNERS = ["top-left", "top-right", "bottom-left", "bottom-right"] as const;
+type Corner = typeof CORNERS[number];
+
+/** The dialog's OWN overlay — the backdrop of this row's dialog, never the
+ *  first one in the document (a confirmation stacked over Settings). */
+const overlayOf = (dialog: Locator) =>
+  dialog.locator("xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' dialogOverlay ')][1]");
+
+/** The backdrop takes every press, its corners included (plan vor-maschine
+ *  R385 E). The overlay used to carry the panes' 12 px radius, and a press
+ *  in a corner's wedge reached what lies beneath — Chromium within 2 px of
+ *  the corner, Firefox within 3 (the hit test honours the radius, CSS
+ *  Backgrounds 3 "Corner Clipping"): a backdrop that closes did not close
+ *  there, and the dialog's pointer scope had a hole.
+ *
+ *  1. Alignment first: the page's own hit test at the overlay's centre is
+ *     the overlay or inside it, 1 px outside its box it is neither — the
+ *     150 % loop zooms by CSS, and a misplaced point would pass inside the
+ *     overlay for the wrong reason.
+ *  2. elementFromPoint at every corner, 0, 1 and 2 px inward: this overlay.
+ *  3. Real mouse clicks 1 px inward: the pointerdown's TARGET is this
+ *     overlay, where the page says the corner is (a dialog that stays would
+ *     look the same after a press that missed). A dialog that stays takes a
+ *     click at every corner and is still open; a dialog that closes takes
+ *     ONE click — at `closeAt`, rotated over the rows — and is closed: every
+ *     measurement is made with this dialog open, none behind a closed one.
+ */
+async function expectBackdropCorners(page: Page, dialog: Locator, backdrop: "closes" | "stays", closeAt: Corner) {
+  const overlay = overlayOf(dialog);
+  await expect(overlay).toHaveCount(1);
+  const hits = await overlay.evaluate((ov, corners) => {
+    const r = ov.getBoundingClientRect();
+    const at = (x: number, y: number) => {
+      const el = document.elementFromPoint(x, y);
+      return el === ov ? "overlay" : el && ov.contains(el) ? "inside" : `${el?.tagName.toLowerCase()}.${[...(el?.classList ?? [])].join(".")}`;
+    };
+    const outside = r.left >= 1 ? [r.left - 1, (r.top + r.bottom) / 2]
+      : r.right < innerWidth ? [r.right + 0.5, (r.top + r.bottom) / 2]
+      : r.top >= 1 ? [(r.left + r.right) / 2, r.top - 1]
+      : r.bottom < innerHeight ? [(r.left + r.right) / 2, r.bottom + 0.5] : null;
+    const corner: Record<string, string> = {};
+    for (const c of corners) for (const d of [0, 1, 2]) {
+      const x = c.endsWith("left") ? r.left + d : r.right - 1 - d;
+      const y = c.startsWith("top") ? r.top + d : r.bottom - 1 - d;
+      corner[`${c} +${d}`] = at(x, y);
+    }
+    return { centre: at((r.left + r.right) / 2, (r.top + r.bottom) / 2),
+             outside: outside ? at(outside[0]!, outside[1]!) : "no room beside the overlay", corner };
+  }, [...CORNERS]);
+  expect(["overlay", "inside"], `alignment: the overlay's centre hits ${hits.centre}`).toContain(hits.centre);
+  expect(["overlay", "inside", "no room beside the overlay"], "alignment: 1 px outside the overlay's box is not the overlay")
+    .not.toContain(hits.outside);
+  expect(Object.entries(hits.corner).filter(([, h]) => h !== "overlay"), "corner points that are not this overlay").toEqual([]);
+
+  const clicks = backdrop === "stays" ? [...CORNERS] : [closeAt];
+  for (const c of clicks) {
+    await expect(dialog, `the dialog is open before the ${c} press`).toBeVisible();
+    const box = (await overlay.boundingBox())!;
+    const x = c.endsWith("left") ? box.x + 1 : box.x + box.width - 2;
+    const y = c.startsWith("top") ? box.y + 1 : box.y + box.height - 2;
+    await overlay.evaluate(ov => {
+      const w = window as unknown as { __cornerDown?: unknown[]; __cornerOff?: () => void };
+      w.__cornerDown = [];
+      const on = (e: PointerEvent) => {
+        const r = ov.getBoundingClientRect();
+        w.__cornerDown!.push({ own: e.target === ov, x: e.clientX, y: e.clientY, left: r.left, top: r.top, right: r.right, bottom: r.bottom,
+          target: `${(e.target as Element).tagName.toLowerCase()}.${[...(e.target as Element).classList].join(".")}` });
+      };
+      addEventListener("pointerdown", on, true);
+      w.__cornerOff = () => removeEventListener("pointerdown", on, true);
+    });
+    await page.mouse.click(x, y);
+    await settle(page);
+    const downs = await page.evaluate(() => {
+      const w = window as unknown as { __cornerDown?: { own: boolean; x: number; y: number; left: number; top: number; right: number; bottom: number; target: string }[]; __cornerOff?: () => void };
+      w.__cornerOff?.();
+      return w.__cornerDown ?? [];
+    });
+    expect(downs.length, `one pointerdown for the ${c} press`).toBe(1);
+    const d = downs[0]!;
+    expect(d.own, `the ${c} press lands on this overlay, not ${d.target}`).toBe(true);
+    // where the page says the press was: 1 px inside that corner of the overlay
+    const wantX = c.endsWith("left") ? d.left + 1 : d.right - 2, wantY = c.startsWith("top") ? d.top + 1 : d.bottom - 2;
+    expect(Math.abs(d.x - wantX) <= 1.5 && Math.abs(d.y - wantY) <= 1.5,
+      `the ${c} press at (${d.x}, ${d.y}), the corner at (${wantX}, ${wantY}) by the page`).toBe(true);
+    if (backdrop === "stays") await expect(dialog, `the dialog stays after the ${c} press`).toBeVisible();
+  }
+  if (backdrop === "closes") await expect(dialog, `the backdrop press at ${closeAt} closes the dialog`).toHaveCount(0);
+}
+
 /** A plugged-in pad the Settings Gamepad tab can see (no button pressed). */
 async function fakeGamepad(page: Page) {
   await page.addInitScript((id: string) => {
@@ -600,14 +690,10 @@ for (const row of ROWS) {
     // Put focus back where a close by pointer starts from (the dialog).
     await row.focus(dialog, page).focus().catch(() => {});
 
-    // Backdrop: info / confirm close, forms and machine flows stay (N41).
-    const overlay = dialog.locator("xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' dialogOverlay ')][1]");
-    await overlay.click({ position: { x: 3, y: 3 } });
-    await settle(page);
-    if (row.backdrop === "closes") {
-      await expect(dialog).toHaveCount(0);
-    } else {
-      await expect(dialog).toBeVisible();
+    // Backdrop: info / confirm close, forms and machine flows stay (N41) —
+    // at every corner too (R385 E).
+    await expectBackdropCorners(page, dialog, row.backdrop, CORNERS[ROWS.indexOf(row) % 4]!);
+    if (row.backdrop === "stays") {
       await row.close(dialog, page);
       await expect(dialog).toHaveCount(0);
     }
@@ -626,7 +712,7 @@ for (const row of ROWS) {
 // desktop size (its way in is a desktop tab or button), then the window
 // turns portrait.
 for (const row of ROWS) {
-  test(`dialog ${row.id} at 150 % portrait (touch): nothing sideways, inside the content area`, async ({ page }) => {
+  test(`dialog ${row.id} at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners`, async ({ page }) => {
     await row.before?.(page);
     await ready(page, row.settings);
     await row.open(page);
@@ -645,6 +731,9 @@ for (const row of ROWS) {
     });
     expect(edges.left, "the dialog's left edge inside the content area").toBeGreaterThanOrEqual(-0.5);
     expect(edges.right, "the dialog's right edge inside the content area").toBeGreaterThanOrEqual(-0.5);
+    // the backdrop's corners in this layout (R385 E), the closing press at
+    // another corner than the desktop scan's
+    await expectBackdropCorners(page, dialog, row.backdrop, CORNERS[(ROWS.indexOf(row) + 2) % 4]!);
   });
 }
 

@@ -32,6 +32,17 @@ jobs:
           cache-dependency-path: lcnc-webui/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # The Firefox core (plan vor-maschine R385 F3): its REQUIRED part in the
+      # PINNED Mozilla Firefox (e2e/firefox.json) — never Playwright's bundled
+      # one. scripts/fetch_firefox.py fetches the x86_64 archive and checks its
+      # SHA256 against the pin; the cache is keyed by the pin. The system
+      # libraries are Playwright's list for Firefox. No image is compared here
+      # (references are linux/arm64, F1 b); every size check runs.
+      - run: npx playwright install-deps firefox
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/lcnc-suite/firefox
+          key: firefox-${{ runner.arch }}-${{ hashFiles('lcnc-webui/e2e/firefox.json') }}
       # --timeout is per step: the unit step takes ~19 min here, the browser
       # step ran out of the default 30 min at test 332 of ~550 (2026-10-21)
       # ONE browser worker here (the local default is 3, one per two cores of

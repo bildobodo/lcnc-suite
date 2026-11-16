@@ -1750,17 +1750,28 @@ label:has(input:disabled, select:disabled) {
 .detailsList dd { margin: 0; text-align: right; }
 
 /* ---- Dialogs ---- */
+/* The overlay is SQUARE and clear: it takes every press over the content
+   area, its corners included. The scrim with the panes' rounded corners is
+   its ::before — a radius on the overlay itself left each corner's wedge to
+   what lies beneath (the hit test honours border-radius, CSS Backgrounds 3
+   "Corner Clipping"): a backdrop that closes did not close there, in
+   Chromium and Firefox alike (plan vor-maschine R385 E). */
 .dialogOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+.dialogOverlay::before {
+  content: "";
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   /* Match the rounded outer corners of the panes underneath — a square
      scrim pokes past them at the content area's four corners. */
   border-radius: var(--radius-container);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
 }
 /* Per-dialog box sizes: global, because DialogFrame renders the box and a
    caller's scoped rule never reaches it (box-class). A min-width is capped
@@ -1778,6 +1789,9 @@ label:has(input:disabled, select:disabled) {
 .dialogOverlay.safetyDialog { z-index: var(--z-modal-top); }
 
 .dialog {
+  /* positioned, so it paints in tree order AFTER the overlay's scrim
+     (.dialogOverlay::before) — over it, never dimmed by it */
+  position: relative;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);

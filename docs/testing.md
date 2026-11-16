@@ -256,6 +256,59 @@ coverage, 8,000 poses against the compiled LinuxCNC C oracle and demo limits.
 A C compiler and Git LFS assets are required. Installer tests cover fresh
 installs, upgrades, state preservation and retirement outside the chooser.
 
+## The Firefox core (step 6; Codex R248 TS248-05, R385)
+
+A compact set of browser tests in a **pinned Mozilla Firefox** — never
+Playwright's bundled Firefox (150 did not show the probing glyph collapse the
+operator saw in 159; the pin shows it natively).
+
+- **Pin:** `lcnc-webui/e2e/firefox.json` — the version, the archive and its
+  SHA256 per arch (`linux-aarch64`, `linux-x86_64`) from Mozilla's
+  `SHA256SUMS`, the release key's fingerprint.
+  `scripts/fetch_firefox.py fetch` loads this arch's archive into
+  `~/.cache/lcnc-suite/firefox/<version>-<arch>/`, checks the SHA256 BEFORE
+  unpacking and marks it; `path` names the binary only with that marker;
+  `check-newer` REPORTS a newer release (`current` / `newer` / `unknown` —
+  a failed look-up is never `current`); `pin <version>` is a deliberate re-pin
+  (the signature checked with gpg against Mozilla's key, then new references
+  in the same commit).
+- **Config:** `playwright.firefox.config.ts` on the gate config — the
+  per-worker mocks, channel `moz-firefox` (BiDi), the binary from
+  `LCNC_FIREFOX` or it throws; its own references under
+  `e2e/__screenshots__/firefox-<version>-<arch>/`.
+- **Set:** `e2e/firefox-core.json`, exact files and titles. `required`
+  (TS248-05): `probe-visual.spec` (one image per procedure, all eight, and
+  each grid's cells counted and measured), the grid guard of `layout.spec`
+  (four variants), `smoke`, five `dialogs.spec` rows on the desktop and at
+  150 % portrait. `buildup` in the agreed order while the gate stays under
+  5 min: `probe-click`, `tabs`, the other dialog rows on the desktop, then
+  in portrait, the desktop strip rows of `visual.spec` (its tool dialog left
+  out: headless Firefox under BiDi has no WebGL here). Measured 2026-11-16:
+  86 tests in 117 s on the VM's three workers.
+- **Mouse and keyboard only:** touch under BiDi is a SILENT no-op (`tap()`
+  resolves, the page receives nothing). No core spec calls a touch API (the
+  runner's static scan), and `e2e/test.ts` makes every touch call throw in
+  Firefox — a tap through a shared helper is red. The touch-sized layout is
+  set the app's own way (`enterTouch`), which proves the layout only.
+- **Images:** compared on linux/arm64 only (where they are reviewed, the
+  `visual.spec` rule); another platform runs every size check and names each
+  image not compared (R385 F1 b).
+- **The runner** `scripts/test_select/firefox.py` — checks `firefox-fetch`
+  (its seconds apart), `firefox-static`, `firefox-set` (the listing IS the
+  set, test for test), `firefox-core`, `firefox-executed` (every listed test
+  ran once AND passed — a skip has the right count too), `firefox-workers`,
+  `firefox-browser` (each worker's STARTED browser, `browser.version()`, is
+  the pin) and `firefox-replay` (its own replay; Firefox sends a page's
+  unload beacons without the context's cookie when the context closes under
+  the page, so the fixture unloads the page first). The record names the
+  pin, the arch, the archive SHA256, Playwright's version and the look-up.
+- **Where it runs:** the merge gate always (a binary that cannot be fetched
+  FAILS); a round when a path selects it — the `firefox` rules, a core spec
+  or a Firefox reference (pending, with its reason, when the binary cannot
+  be fetched, never a green skip); CI (x86_64) the required part through
+  `test_suite.py` (`frontend-firefox-core`), without images and without the
+  replay.
+
 ## The replay (step 5a; Codex R251 TS248-04, FI265-02, VM349-01, R373)
 
 Every browser run of the gates ends with `browser-replay`

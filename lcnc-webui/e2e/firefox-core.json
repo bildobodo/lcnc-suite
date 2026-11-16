@@ -1,0 +1,146 @@
+{
+  "comment": "The Firefox core (plan vor-maschine R385 C): the exact tests the pinned Mozilla Firefox runs, file and full title. `required` is TS248-05's part and is never cut silently; `buildup` is added in the agreed order (probe-click, tabs, the other desktop dialog rows, the other portrait rows, visual.spec's desktop rows) while the merge gate's measurement stays under 5 min. playwright.firefox.config.ts runs exactly these; the gate compares its listing to them, test for test.",
+  "required": [
+    {
+      "file": "probe-visual.spec.ts",
+      "titles": [
+        "every procedure has its grid entry",
+        "Outside: the procedure's grid cells and its reference image",
+        "Inside: the procedure's grid cells and its reference image",
+        "Angle: the procedure's grid cells and its reference image",
+        "Boss/Pocket: the procedure's grid cells and its reference image",
+        "Ridge/Valley: the procedure's grid cells and its reference image",
+        "Surface: the procedure's grid cells and its reference image",
+        "Calibrate: the procedure's grid cells and its reference image",
+        "Toolsetter: the procedure's grid cells and its reference image"
+      ]
+    },
+    {
+      "file": "layout.spec.ts",
+      "titles": [
+        "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes"
+      ]
+    },
+    {
+      "file": "smoke.spec.ts",
+      "titles": [
+        "app shell mounts with no gateway connected",
+        "default-deny: machine controls are closed while disconnected",
+        "Arm control stays reachable"
+      ]
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "titles": [
+        "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners"
+      ]
+    }
+  ],
+  "buildup": [
+    {
+      "step": 1,
+      "file": "probe-click.spec.ts",
+      "titles": [
+        "Outside: a held probe button sends its routine with the panel's numbers",
+        "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+        "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+        "Angle: a held probe button sends its routine with the panel's numbers",
+        "Calibrate: a held probe button sends its routine with the panel's numbers",
+        "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+        "z_surface: the job the button sends is the native stage's whole job",
+        "surface_scan: the job the button sends is the native stage's whole job"
+      ]
+    },
+    {
+      "step": 2,
+      "file": "tabs.spec.ts",
+      "titles": [
+        "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
+        "arrows move focus, Enter selects; every navigation key stays in the list — no jog",
+        "a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)",
+        "Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row",
+        "a tab switch sends nothing — but a jog still running stops",
+        "a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)",
+        "a hidden panel is not focusable",
+        "the Run-from-line spindle preset is one option group: Rev, Stop, Fwd",
+        "narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row"
+      ]
+    },
+    {
+      "step": 3,
+      "file": "dialogs.spec.ts",
+      "titles": [
+        "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return"
+      ]
+    },
+    {
+      "step": 4,
+      "file": "dialogs.spec.ts",
+      "titles": [
+        "dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners"
+      ]
+    },
+    {
+      "step": 5,
+      "file": "visual.spec.ts",
+      "titles": [
+        "3axis-xyz desktop: Jog and Setup reference images",
+        "5axis-xyzac desktop: Jog and Setup reference images",
+        "6axis-twp desktop: Jog and Setup reference images"
+      ],
+      "left_out": {
+        "desktop: tool edit dialog reference image": "headless Firefox under BiDi has no WebGL here (the viewer and the tool preview stay empty, webgl.force-enabled does not change it): the case waits for its preview canvas — measured 2026-11-16"
+      }
+    }
+  ]
+}

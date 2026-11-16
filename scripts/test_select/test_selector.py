@@ -308,7 +308,38 @@ def test_a_changed_spec_and_a_reference_image_select_their_spec(repo: Path):
         shot.parent.mkdir(parents=True)
         shot.write_text("png")
     base = commit_change(repo, edit)
-    assert selector.select(repo, base, "HEAD", vitest_files=[])["browser"]["run"] == ["tabs", "visual"]
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == ["tabs", "visual"]
+    assert not sel["firefox"]["needed"], "a head without a Firefox core set has no core spec"
+
+
+def test_a_core_spec_a_firefox_reference_and_the_pin_select_the_firefox_core(repo: Path):
+    """Plan vor-maschine R385 G: the specs firefox-core.json names AT HEAD, a
+    reference under __screenshots__/firefox-<version>-<arch>/ and the pin,
+    set and config select the Firefox core; a spec outside the core does not."""
+    def core(r: Path):
+        (r / "lcnc-webui/e2e/firefox-core.json").write_text(json.dumps(
+            {"required": [{"file": "dialogs.spec.ts", "titles": ["t"]}], "buildup": [{"file": "smoke.spec.ts", "titles": ["s"]}]}))
+    commit_change(repo, core)
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/dialogs.spec.ts").write_text("v2\n"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == ["dialogs"] and sel["firefox"] == {"needed": True, "paths": ["lcnc-webui/e2e/dialogs.spec.ts"]}
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/smoke.spec.ts").write_text("v2\n"))
+    assert selector.select(repo, base, "HEAD", vitest_files=[])["firefox"]["needed"], "a build-up spec too"
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/tabs.spec.ts").write_text("v3\n"))
+    assert not selector.select(repo, base, "HEAD", vitest_files=[])["firefox"]["needed"]
+
+    def shot(r: Path):
+        p = r / "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-outside.png"
+        p.parent.mkdir(parents=True)
+        p.write_text("png")
+    base = commit_change(repo, shot)
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == ["probe-visual"] and sel["firefox"]["needed"]
+
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/firefox.json").write_text("{}\n"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["firefox"]["needed"] and sel["browser"]["run"] == [] and sel["unmatched"] == []
 
 
 def test_vitest_is_asked_only_on_a_clean_tree(repo: Path):
@@ -561,8 +592,10 @@ def test_a_merge_runs_what_a_round_may_leave_out():
     m = round_gate.as_merge(docs_only)
     assert m["unit"]["heavy"] == sorted(HEAVY_UNIT)
     assert m["backend"]["run"] is True and m["browser"]["run"] == FULL
+    # and the Firefox core, always (plan vor-maschine R385 G)
+    assert m["firefox"]["needed"] is True
     assert round_gate.plan(m) == ["selection-guards", "lint", "build", "unit-light", "unit-heavy", "backend",
-                                  "ports-free", "browser"]
+                                  "ports-free", "browser", "firefox-core"]
     assert docs_only["unit"]["heavy"] == [], "the round's selection itself is left as it was"
 
 

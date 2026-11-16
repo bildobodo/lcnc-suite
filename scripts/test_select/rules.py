@@ -8,8 +8,9 @@ frontend AND backend run, named in the gate record — never "the core only".
 A rule names:
   browser  spec names (file name without ".spec.ts") or FULL
   backend  the offline backend gate (scripts/test_suite.py --component backend)
-  firefox  the pinned Mozilla target's core set (step 6; until it exists the
-           record names it pending)
+  firefox  the Firefox core in the pinned Mozilla Firefox (step 6, plan
+           vor-maschine R385: scripts/test_select/firefox.py); a core spec
+           or a Firefox reference selects it too (selector.py)
   live     live checks owed before main (never run by the selector)
   none     a reason: the path carries no product test (documentation, agent
            configuration); with `final` it decides alone
@@ -150,7 +151,7 @@ PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
-PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs", "feature-switches")
+PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
@@ -226,6 +227,9 @@ RULES: tuple[Rule, ...] = (
           W + "e2e/test.ts", W + "e2e/mockFixture.ts", W + "e2e/mockSlot.mjs", W + "e2e/mockSlot.d.mts"),
          "build, test configuration or the shared mock and fixtures",
          browser=FULL, firefox=True),
+    Rule((W + "playwright.firefox.config.ts", W + "e2e/firefox.json", W + "e2e/firefox-core.json"),
+         "the Firefox core's config, pin and set: its own step (plan vor-maschine R385), no Chromium spec "
+         "reads them", firefox=True),
     Rule((W + "eslint.config.js",), "lint configuration: lint runs in every round",
          none="lint runs in every round"),
     Rule((W + "e2e-proof/**", W + "playwright.proof.config.ts"),
@@ -340,6 +344,8 @@ RULES: tuple[Rule, ...] = (
     Rule(("subroutines/**",), "the bundled routines", backend=True,
          live=("probe-live", "toolsetter-readback")),
     Rule(("scripts/**",), "scripts and their tests ride the backend gate", backend=True),
+    Rule(("scripts/fetch_firefox.py", "scripts/test_select/firefox.py"),
+         "the Firefox core's fetch and runner: the step itself too (R385)", firefox=True, additive=True),
     Rule(("ruff.toml",), "the Python lint's files and rules: the backend gate's ruff step (issue #36)",
          backend=True),
     Rule(("pyrightconfig.json", "typings/**"),

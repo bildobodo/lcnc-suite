@@ -34,6 +34,10 @@ E2E = W + "e2e/"
 S_SRC = W + "src/"
 SPEC_RE = re.compile(r"lcnc-webui/e2e/([^/]+)\.spec\.ts\Z")
 SHOT_RE = re.compile(r"lcnc-webui/e2e/__screenshots__/([^/]+)\.spec\.ts/")
+#: the Firefox core's own references (plan vor-maschine R385 B):
+#: __screenshots__/firefox-<version>-<arch>/<spec>.spec.ts/…
+SHOT_FF_RE = re.compile(r"lcnc-webui/e2e/__screenshots__/firefox-[^/]+/([^/]+)\.spec\.ts/")
+FIREFOX_CORE = W + "e2e/firefox-core.json"
 UNIT_RE = re.compile(r"lcnc-webui/.+\.test\.ts\Z")
 
 
@@ -163,11 +167,22 @@ def files_from_vitest_list(data: list[dict], repo: Path) -> list[str]:
     return sorted(files)
 
 
+def firefox_core_specs(repo: Path, head: str) -> set[str]:
+    """The specs the Firefox core runs at `head` (lcnc-webui/e2e/firefox-core.json);
+    a head before the core has none."""
+    try:
+        data = json.loads(git(repo, "show", f"{head}:{FIREFOX_CORE}"))
+    except SelectError:
+        return set()
+    return {e["file"].removesuffix(".spec.ts") for e in [*data["required"], *data.get("buildup", [])]}
+
+
 def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
            historical: bool = False) -> dict:
     base_c, head_c = commit(repo, base), commit(repo, head)
     changes = changed_paths(repo, base_c, head_c)
     specs = spec_files(repo, head_c)
+    core_specs = firefox_core_specs(repo, head_c)
     graph = E2EGraph(repo, head_c)
     deleted = {p for s, p in changes if s in ("D", "R-from")}
 
@@ -187,7 +202,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
         row = {"status": status, "path": path}
         rows.append(row)
         gone = path in deleted
-        m_spec, m_shot = SPEC_RE.match(path), SHOT_RE.match(path)
+        m_spec, m_shot = SPEC_RE.match(path), SHOT_RE.match(path) or SHOT_FF_RE.match(path)
         if m_spec or m_shot:
             name = (m_spec or m_shot).group(1)
             if name in specs:
@@ -195,6 +210,10 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
                 row["decision"] = f"the spec itself: {name}"
             else:
                 row["decision"] = "a spec that is gone at head: nothing to run"
+            # a core spec or a Firefox reference: the Firefox core too (R385 G)
+            if name in core_specs or SHOT_FF_RE.match(path):
+                firefox.append(path)
+                row["decision"] += " + the Firefox core"
             continue
         if UNIT_RE.match(path):
             if not gone:
@@ -290,9 +309,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
                           ["no path selects a browser spec"]}),
         "backend": ({"run": True, "reasons": backend} if backend else
                     {"run": False, "reasons": ["no path under a backend rule: a UI-only round"]}),
-        "firefox": ({"needed": True, "paths": firefox,
-                     "status": "pending: the pinned Mozilla target is not built yet (step 6)"}
-                    if firefox else {"needed": False}),
+        "firefox": ({"needed": True, "paths": firefox} if firefox else {"needed": False}),
         "live": {k: sorted(set(v)) for k, v in sorted(live.items())},
     }
 
