@@ -1,0 +1,247 @@
+{
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "firefox-fetch",
+      "status": "PASS",
+      "seconds": 0.0,
+      "cache": "hit"
+    },
+    {
+      "name": "firefox-static",
+      "status": "PASS"
+    },
+    {
+      "name": "firefox-set",
+      "status": "PASS",
+      "tests": 26
+    },
+    {
+      "name": "firefox-core",
+      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/runner/work/lcnc-suite/lcnc-suite/runlogs/test-suite/20261116T174000Z-offline/firefox-core/test-results",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 49,
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "firefox-executed",
+      "status": "PASS",
+      "tests": 26
+    },
+    {
+      "name": "firefox-workers",
+      "status": "PASS",
+      "run": "firefox-473c8e43-de65-4b86-a655-6775b76edbee"
+    },
+    {
+      "name": "firefox-browser",
+      "status": "PASS",
+      "version": "160.0"
+    },
+    {
+      "name": "firefox-unload",
+      "status": "PASS",
+      "loaded": 22,
+      "unloads": 22,
+      "skipped": 3
+    },
+    {
+      "name": "firefox-unload-guard",
+      "status": "PASS",
+      "seconds": 12,
+      "run": "firefox-guard-11d7fe7b-b76c-4c41-b492-6e3c4ffd0b88"
+    },
+    {
+      "name": "firefox-graphics",
+      "status": "PASS",
+      "webgl": "none"
+    }
+  ],
+  "pending": null,
+  "info": {
+    "pinned": "160.0",
+    "playwright": "Version 1.60.0",
+    "arch": "linux-x86_64",
+    "archive_sha256": "fde774e9757c8878534c05ec210db592bf6a1b244c57941ffb2e364c04f35fcd",
+    "binary": "/home/runner/.cache/lcnc-suite/firefox/160.0-linux-x86_64/firefox/firefox",
+    "cache": "hit",
+    "newer": {
+      "status": "current",
+      "latest": "160.0",
+      "pinned": "160.0"
+    },
+    "set": "required",
+    "started": [
+      "firefox 160.0"
+    ],
+    "caller_display": null,
+    "images_not_compared": [
+      "probe-visual.spec.ts › Angle: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Boss/Pocket: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Calibrate: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Inside: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Outside: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Ridge/Valley: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Surface: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64",
+      "probe-visual.spec.ts › Toolsetter: the procedure's grid cells and its reference image: references are linux/arm64, this is linux/x64"
+    ],
+    "workers": {
+      "asked": 1,
+      "report": 1,
+      "seconds": 49
+    },
+    "unloads": [
+      {
+        "title": "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Outside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Inside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Toolsetter: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      }
+    ],
+    "unloads_skipped": [
+      {
+        "title": "app shell mounts with no gateway connected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "default-deny: machine controls are closed while disconnected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "Arm control stays reachable",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      }
+    ]
+  }
+}

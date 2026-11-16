@@ -1,0 +1,28 @@
+{
+  "F2": {
+    "what": "a core test reaching tapMore",
+    "head": "128d6821fc95988eb4edcf6d7301d12cf26e1bf3",
+    "firefox": {
+      "firefox-fetch": "PASS",
+      "firefox-static": "PASS",
+      "firefox-set": "PASS",
+      "firefox-core": "FAIL",
+      "firefox-executed": "FAIL",
+      "firefox-workers": "PASS",
+      "firefox-browser": "PASS",
+      "firefox-unload": "PASS",
+      "firefox-unload-guard": "PASS",
+      "firefox-replay": "PASS"
+    },
+    "firefox_why": {
+      "firefox-core": [
+        "2 failed"
+      ],
+      "firefox-executed": [
+        "failed: dialogs.spec.ts \u203a dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners [firefox-core, retry 0]",
+        "failed: dialogs.spec.ts \u203a dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return [firefox-core, retry 0]"
+      ]
+    },
+    "red": true
+  }
+}

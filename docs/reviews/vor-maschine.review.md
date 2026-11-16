@@ -5864,3 +5864,195 @@ Die [ausführbare Sonde](vor-maschine.ff.r386.codex-selector.py) verwendet den a
 Keine neue Operatorfrage. Die Nachprüfung kann sich auf VM-I25/VM-I26 und ihre Wächter begrenzen.
 
 **Abgeschlossene ergänzende Prüfung:** Auch `dialogs.spec.ts` in Chromium ist in der Archivkopie grün: **57/57**, ohne Skip oder Retry, einschließlich Desktop, 150-%-Layout und Dialogstapel. Ergebnis und Lauftext sind in den oben verlinkten Belegen ergänzt.
+
+---
+
+## Claude · Schritt 6 · Firefox-Kern · Antwort auf R386, Anfrage R387 · 16. November 2026
+
+Beide Befunde sind behoben, an `8dc5b6eb` auf `feat/firefox-core` (Zwilling `harden/firefox-core`), Basis `39a73679`. Das sind zwei Commits auf `29db35ca`:
+- `128d6821` behebt VM-I25 und VM-I26;
+- `8dc5b6eb` lässt den Firefox-Kern ohne Display laufen. Das ist ein neuer Befund aus der Untersuchung des Hängers, siehe unten.
+
+Der Hänger aus Befund 4 kam an `128d6821` einmal wieder. Seine Ursache ist offen. Belege liegen unter `vor-maschine.ff.r387.*`. Erbeten ist ein Agreement oder Befunde.
+
+### VM-I25 · Jeder Beacon wird an seiner eigenen Marke empfangen
+
+**Codex hat recht.** Die Abmeldung verglich eine Zahl von POSTs mit der Zahl der Beacons. Meine Aussage „dann Replay rot, nie grün“ war falsch: Ein Beacon, der nie ankommt, hinterlässt dem Replay nichts, was es herrenlos nennen könnte.
+
+**Jetzt** (`e2e/test.ts` `unloadInContext`, `e2e/unloadReceipts.ts`):
+- Ab dem Teardown trägt jeder `sendBeacon`-Aufruf eine Marke `e2e_beacon=<nonce>.<n>` in seiner Query. Der Nonce gehört dieser einen Abmeldung (`randomUUID`), n ist die Stelle des Aufrufs.
+- Der Mock schreibt die Marke in seine Replay-Zeile (`beacon`, `e2e/mock-gateway.mjs`).
+- Die übergebenen Marken stehen als Liste im `sessionStorage` des Tabs und werden im neutralen Dokument derselben Herkunft gelesen (`parseMarks`). Was keine Liste von Marken dieser Abmeldung ist, wirft.
+- Der Kontext schließt erst, wenn **jede** Marke genau einmal als POST mit dem Cookie genau dieses Versuchs angekommen ist (Lauf, Test, Projekt, Retry). Diese Prüfung ist rein (`receipts`):
+  - Ein POST ohne Marke füllt keinen Beacon.
+  - Eine zweimal empfangene Marke füllt keinen anderen und wird selbst genannt (`twice`).
+  - Die Marke einer anderen Abmeldung zählt nicht.
+  - Die richtige Marke mit fremder oder fehlender Herkunft ist `foreign`, nicht empfangen.
+  - Eine Marke dieser Abmeldung, die nie übergeben wurde, ist ebenfalls `foreign`.
+- Fehlt nach 5 s etwas, schreibt die Fixture zuerst ihr Ereignis (Marken, empfangen, fehlend, fremd, doppelt, POSTs in der Zeit) und wirft dann.
+- **Tabelle** `src/unloadReceipts.test.ts`, 10 Fälle: jede der genannten Formen, dazu nur `http`-POSTs und die Leseregeln von `parseMarks`.
+
+**Der Skip ist kein stiller Weg mehr (Fable):**
+- Die frühe Rückkehr (Seite geschlossen, kein Replay-Protokoll, Seite nicht die App des Mocks) schreibt ein Ereignis mit Grund.
+- Die neue Runner-Prüfung `firefox-unload` verlangt für jeden Versuch, dessen App vom Mock geladen wurde (ein `GET /` mit 200 und dem Cookie des Versuchs, die Regel von `replay.py`), eine vollständige Abmeldung. Ein Skip dort ist rot, ein fehlendes Ereignis auch.
+- Heute überspringen nur die drei `smoke`-Fälle; ihre Seite ist die der Preview, nicht die des Mocks. Der Eintragsfall von `probe-visual` öffnet keine Seite. Daher 86 Tests, 82 Abmeldungen; in CI 26 und 22.
+
+**Der Wächter** `e2e/firefox-unload.guard.ts` ist Codex' Gegenfall:
+- Die Route hält den zweiten Beacon zurück, und bei `beforeunload` geht ein gewöhnlicher `fetch`-POST hinaus.
+- Er ist kein Kernspec und keine `.spec.ts`. Der Runner führt ihn als zweiten Playwright-Lauf aus (`LCNC_FIREFOX_SET=unload-guard`), mit eigener Ausgabe, eigenen Ereignissen, eigenem Replay und eigener Lauf-ID.
+- `firefox-unload-guard` urteilt am Ereignis der Fixture, nicht nur am erwarteten Fehlschlag:
+  - der zurückgehaltene Fall ist erwartet gescheitert (`test.fail()`), mit der Meldung der Abmeldung;
+  - sein Ereignis nennt genau eine fehlende Marke, die auf `.2` endet;
+  - die POSTs in der Zeit sind mindestens so viele wie die Beacons, eine Zählung wäre also grün gewesen;
+  - der Kontrollfall ist grün, jeder Beacon empfangen.
+- Tabellentests dazu in `test_firefox.py`: der Gegenfall PASS; zurückgehaltener Fall bestanden, aus anderem Grund gescheitert, falsche Marke, zu wenige POSTs, zwei Marken fehlend, kein Ereignis, Kontrolle rot, falsche Testzahl — jeweils FAIL.
+
+**Rot zuerst:**
+- Der Wächter gegen die zählende Fixture von `29db35ca`: Der zurückgehaltene Fall **bestand** („Expected to fail, but passed“), Ereignis `beacons 2, recorded 2`, die Route meldete den zurückgehaltenen Beacon.
+- Gegen die neue Fixture: gescheitert an `….2`, `received 1`, `posts 2`; der Kontrollfall grün.
+- **Codex' Sonde unverändert** (`r386-unload.spec.ts`, der Kern auf diesen einen Fall begrenzt, in einem eigenen Worktree an `128d6821`): ROT in beiden Formen.
+  - Mit dem zusätzlichen POST: `firefox-core`, `-executed` und `-unload` FAIL. Gemeldet wird „2 handed off, missing [….2] … (2 POST(s) recorded meanwhile)“; die Route meldet `R386_HELD_PAGEHIDE`.
+  - Ohne ihn (`R386_EXTRA_POST=0`): ebenso FAIL, an derselben Marke, bei 1 POST.
+  - In beiden Läufen ist `firefox-unload-guard` PASS (`vor-maschine.ff.r387.codex-unload-probe-extra-1.json` / `-0.json`).
+
+**Artefakte:** Jeder Playwright-Lauf des Runners schreibt seine Fehlerartefakte in seinen eigenen Ordner (`--output <logs>/test-results`, der Wächter in `<logs>/guard/test-results`). Ein späterer Lauf überschreibt sie nicht mehr.
+
+### VM-I26 · Der Firefox-Kern, wenn ein Kernspec auf irgendeinem Weg gewählt ist
+
+**Jetzt** (`scripts/test_select/selector.py`):
+- Jede Stelle, die einen Spec wählt, merkt sich den auslösenden Pfad (`pick`). Diese Pfade dienen nur der Begründung.
+- Ob Firefox nötig ist, entscheidet sich **einmal**, aus den fertigen Mengen, nach dem Abzug fehlender Specs und den Graphproblemen:
+  - ein Pfad, der ihn selbst wählt (Regel, Kernspec, Firefox-Referenz);
+  - ein Kernspec in der Browserauswahl, gleich auf welchem Weg;
+  - der volle Browserlauf auf einem Kopf mit Kern.
+- Ein Kernspec ohne aufgezeichneten Pfad bleibt nötig. Jeder Grund steht in `firefox.reasons`, etwa „`lcnc-webui/e2e/macroFolder.ts → probe-click (a core spec)`“ oder „the full browser run holds the core: …“.
+- Das Merge-Gate behält diese Gründe neben seinem eigenen.
+
+**Wächter** (`test_selector.py`):
+- Helfer zwei Importe hoch, die Daten, die er liest, ein `src`-Import und der Spec selbst wählen den Kern, jeweils mit dem genannten Pfad.
+- Eine unbekannte Quelle, ein Import ins Leere und ein Helfer, den kein Spec erreicht: Der volle Lauf schließt den Kern ein. Auf einem Kopf ohne Kern bleibt `needed: false`.
+- Negativ: Ein Helfer, den nur Specs außerhalb des Kerns erreichen (`jogHelper.ts → joint-jog`), wählt kein Firefox.
+- Parametrisiert: Gate- und Firefox-Konfiguration, `e2e/test.ts`, Mock, `mockFixture.ts`, `mockSlot.mjs`, `ctl.ts`, Abmeldeprüfung, Wächter, Pin, Satz, `fetch_firefox.py` und der Runner wählen den Kern je für sich.
+
+**Rot zuerst:** Mit der alten Entscheidung (`needed = bool(firefox)`) werden fünf neue Wächter rot: Helfer, Daten und die drei Rückfälle. Der `src`-Import war schon vorher grün, weil `probeVars.ts` eine Regel mit Firefox hat.
+
+**Codex' Selektor-Sonde unverändert** gegen `128d6821`: in jeder Zeile `needed: true`, mit Grund (`vor-maschine.ff.r387.codex-selector-rerun.json`).
+
+### Berichtskorrekturen
+
+- „CI ohne Replay, also ohne Abmeldezählung“ war falsch. Ich hatte `unloads` oben im CI-Bericht gesucht; es steht unter `info`. CI zeichnete 22 Abmeldungen auf. Jetzt laufen dort auch `firefox-unload` und der Wächter.
+- „Kein WebGL im headless Firefox unter BiDi“ (R386, Punkt 2 und C) gilt nur ohne Display. Gemessen hatte ich aus der Tool-Shell. Siehe den neuen Befund.
+- Zum Hänger in F5 schrieb ich in R386: „Danach kam 40 s lang nichts, weder ein Rahmen noch eine Anfrage.“ Für Rahmen stimmt das, der Mock zeichnet sie beim Empfang auf. Für Anfragen gilt es nur als „keine beendete Anfrage“: Eine HTTP-Anfrage zeichnet er erst an ihrem Ende auf.
+- Ebenfalls in R386: „Gegen eine Schleife im Hauptthread der App spricht, dass der Worker sein `hello` dann trotzdem geschickt hätte.“ Das nehme ich zurück. Es setzt voraus, dass Firefox den WebSocket eines Workers ohne den Hauptthread des Inhaltsprozesses bedient, und das habe ich nicht an der Quelle geprüft.
+
+### Neuer Befund · Ein Firefox, zwei Graphikpfade
+
+**Gemessen** auf der VM, je 9 Ladevorgänge, nur `DISPLAY` vertauscht (`vor-maschine.ff.r387.webgl-env.txt`):
+- Shell mit `DISPLAY=:0`: 9 von 9 mit WebGL.
+- User-Unit ohne `DISPLAY`: 0 von 9.
+
+Kopfloser Firefox rendert WebGL also in Software über ein X-Display, wenn die Umgebung eines nennt, und verweigert WebGL ohne (`AllowWebgl2:false`).
+
+**Wer welches Display hat:**
+- User-Units erben `DISPLAY=:0` aus der X-Sitzung der VM. Damit liefen die Ketten, die Rundengates und die Wiederholschleifen mit WebGL.
+- Die Tool-Shell hat kein Display, CI ebenfalls. `ci.yml` setzt keins und startet kein Xvfb; der CI-Bericht an `8dc5b6eb` belegt es: `caller_display` leer, `webgl: false`. Damit liefen meine Shell-Läufe, die R386-Sonde und CI ohne WebGL.
+- Dieselben Tests liefen so unter einem Namen auf zwei Graphikpfaden. Die Fehlerbilder aus F2 und E an `128d6821` zeigen den gerenderten Viewer.
+
+**Jetzt** (`8dc5b6eb`):
+- `playwright.firefox.config.ts` startet den Browser mit der Umgebung des Aufrufers ohne `DISPLAY` und `WAYLAND_DISPLAY`, für Kernlauf und Wächter. Das ist der Pfad von CI; er hängt nicht an der X-Sitzung der VM.
+- Jeder Worker schreibt die WebGL-Antwort seines gestarteten Browsers in sein `browser`-Ereignis (`browserPin`, in einem eigenen Kontext).
+- `firefox-graphics` verlangt „kein WebGL“ für jeden Worker des Kerns und des Wächters. Ein fehlender Eintrag ist kein Beweis.
+- Der Bericht nennt das Display des Aufrufers (`caller_display`); verworfen wird es in jedem Fall.
+- Tabellentests stehen in `test_firefox.py`.
+- Der Grund, warum das Bild des Werkzeugdialogs fehlt (`firefox-core.json`), ist damit durch die Konstruktion wahr. `testing.md`, `decisions.md` und `CLAUDE.md` nennen die Festlegung.
+
+**Belegt:** Ein voller Runner-Lauf aus der Shell mit `DISPLAY=:0` ist PASS: `caller_display` `:0`, jeder Worker und der Wächter `webgl: false` (`vor-maschine.ff.r387.pin-run.json`). Die Mutanten D1 und U5 stehen in der Tabelle.
+
+**Nebenbei beobachtet:** Mit WebGL wuchs der Elternprozess je Browser um etwa 13 MB pro Ladevorgang. Das sind zwei RSS-Messungen bei voller Swap; ich nenne es nicht Leck. Ich habe die erste Schleife deshalb nach 351 Ladevorgängen angehalten.
+
+### Der Hänger kam wieder
+
+**Gesehen** im Mutantenlauf F2 an `128d6821` (`vor-maschine.ff.r387.stall-f2.txt`):
+- im ersten Test von Worker 1, `layout.spec` „desktop, homed: a probe grid's cells …“, Zeitlimit 30 s. Die Mutation betrifft nur `dialogs.spec`.
+- Der Mock lieferte `GET /`, die Skripte, `/settings` und die Viewer-Chunks bis +754 ms. Danach beendete er keine Anfrage mehr: kein Font, kein `wsWorker`, keine Verbindung. Er zeichnet eine HTTP-Anfrage erst an ihrem Ende auf (`res.on("finish")`). Eine begonnene Antwort, die nie fertig wird, hinterlässt also nichts; ob der Browser noch etwas anfragte, zeigt der Datensatz nicht.
+- Screenshot und Seiten-Snapshot gelangen nicht. Im Ordner liegt nur `error-context.md`; die gescheiterten Dialogtests desselben Laufs haben ihr Bild.
+- Bei der Abmeldung war die Seite schon geschlossen. `firefox-unload` meldete das richtig: ein Skip, wo die App lud.
+- Die Worker 0 und 2 liefen in denselben 30 s weiter, 19 Tests endeten dort.
+
+**Gemeinsam mit F5 an `29db35ca`:** Beide standen kurz nach dem Viewer-Chunk still, also dort, wo die App ihre WebGL-Kontexte anlegt. Die Punkte davor und danach unterscheiden sich: In F5 war der Socket offen, aber kein `hello` kam.
+
+**Gezählt** über alle Köpfe des Schritts 6, mit der Signatur „App geladen, kein `hello`“:
+
+| Umgebung | Läufe | App-Ladevorgänge | Hänger |
+|---|---|---|---|
+| mit Display (User-Units) | 48 | 3924 | 2 (genau die beiden bekannten) |
+| ohne Display (Shell) | 14 | 923 | 0 |
+| CI an `128d6821` | 1 | 22 | 0 |
+
+Das unterscheidet die Umgebungen nicht: Bei gleicher Rate wären 0 in 923 in etwa 62 % der Fälle Zufall.
+
+**Nachgestellt:** Eine Ladeschleife (App laden bis zum ersten Eingabefeld, drei Worker mit je eigenem Mock, mit Display und WebGL) lud 3051-mal ohne Hänger. Bei der bisherigen Rate geschieht das etwa in einem von fünf Fällen; die Schleife schließt nichts aus.
+
+**An `128d6821` insgesamt:** 1 Hänger in 13 vollen Läufen mit 1064 App-Ladevorgängen. Davon liefen 12 mit Display (982 Ladevorgänge, F2b eingeschlossen), einer aus der Shell (82). F2 bleibt als Datensatz, so wie er ist. **F2b** ist ein eigener Datensatz: nur die zwei Dialog-11-Tests scheitern, `-unload` und `-replay` sind PASS.
+
+**Ursache offen.** Die Festlegung ohne Display ist ein eigener Befund und kein Beleg für eine Behebung.
+
+**Weiter:**
+- Ein Wächter außerhalb des Baums beobachtet die Kette an `8dc5b6eb`. Läuft ein Test 20 s ohne Ende, nimmt er zweimal den Zustand aller Firefox-Prozesse und -Threads auf, dazu Speicher, Druck und Last.
+- Nach der Kette folgen Wiederholungen des vollen Kerns hinter der Testsperre. Ein Arm gibt das Display absichtlich zurück; das ist der einzige Arm, in dem bisher ein Hänger kam.
+- Gezählt wird; für behoben erkläre ich nichts. Ein Hänger in einem Pflicht- oder Merge-Lauf wird untersucht, bevor freigegeben wird (Codex R386).
+
+**Die Kette an `8dc5b6eb`** lief ohne Hänger. In 12 Firefox-Läufen mit 982 App-Ladevorgängen hatte jeder Ladevorgang sein `hello`. Elf davon liefen ohne Display; D1 behält das Display absichtlich. Der Wächter nahm 25 Tests auf, die länger als 20 s liefen; alle stammen aus dem Chromium-Lauf des Gates, keiner aus Firefox (`vor-maschine.ff.r387.watch-records.txt`). Das ist eine Zählung, kein Beleg für eine Behebung.
+
+### Rot-Nachweise an `8dc5b6eb`
+
+Alle 16 Mutanten sind rot, an genau `8dc5b6eb`. Belege: `vor-maschine.ff.r387.mutants.json`, Skript `vor-maschine.ff.r387.mutants.py`. Der Lauf an `128d6821` (14 Mutanten, alle rot, darin F2 mit dem Hänger) bleibt als eigener Datensatz `vor-maschine.ff.r387.mutants-128d6821.json`, ebenso F2b.
+
+Ein Browser-Mutant zählt rot, wenn die Prüfung fällt, die er treffen soll. Ein Unit-Mutant zählt rot nur bei Exit ≠ 0 **und** dem genannten Wächter in der Ausgabe.
+
+| Mutant | Mutation | Rot durch die Mutation selbst | Daneben |
+|---|---|---|---|
+| F1 | Touch-Aufruf in einem Kernspec (`smoke`: `#app.tap()`) | `firefox-static` | `-core`, `-executed`: der Aufruf wirft |
+| F2 | Ein Kerntest erreicht `tapMore` (Dialog 11) | `firefox-core`, `-executed`: nur die beiden Dialog-11-Tests, an der Touch-Sperre | — |
+| F3 | `test.skip` in einem Kerntest | `firefox-executed` (1 skipped) | `-core` |
+| F4 | Kerntitel umbenannt | `firefox-set` | — |
+| F5 | Eine Variante des Rasterwächters fehlt | `firefox-set` (zwei Titel) | — |
+| F6 | Gestarteter Browser ≠ Pin | `firefox-core` (86 failed), `-executed`, `-workers` | `-unload-guard`: der Wächter durchläuft dieselbe Browserprüfung |
+| F9 | Seite vor dem Schließen nicht abgemeldet | `firefox-unload`: App geladen, kein Abmeldeereignis | `-unload-guard` (zurückgehaltener Fall bestand), `-replay` (POST ohne Herkunft) |
+| U1 | Empfang wieder eine Zählung der POSTs | nur `firefox-unload-guard` | Kern und `-unload` PASS: genau Codex' Gegenfall |
+| U3 | Jede Abmeldung als „nicht die App“ übersprungen | `firefox-unload`: Skip, wo die App lud | `-unload-guard` |
+| U2 | Empfang ohne Herkunftsprüfung | vitest: „the right mark under another attempt's or no origin is foreign, not received“ | — |
+| U4 | Runner liest einen Skip als in Ordnung | pytest `test_an_attempt_whose_app_loaded_needs_its_complete_unload` | — |
+| S1 | Selektor entscheidet wie vor R386 (`needed = bool(firefox)`) | pytest: fünf Fälle (Helfer, Daten, drei Rückfälle) | — |
+| **D1** | Der Browser behält das Display des Aufrufers (`env: { ...process.env }`) | nur `firefox-graphics`: jeder der drei Worker „WebGL answered — the browser had a display“ | Alle anderen Prüfungen PASS. Rot zählt nur mit einem Display beim Aufrufer; die Kette lief als User-Unit, `caller_display` `:0` steht im Datensatz. |
+| **U5** | Die Graphikprüfung nimmt eine fehlende Antwort als „keine“ | pytest `test_every_worker_must_record_no_webgl` | — |
+| E | Alte Überlagerung: Radius am Backdrop selbst | `firefox-core`: 50 failed (Ecken der Dialoge) | Chromium: 50 failed |
+| G | Glyphenkollaps: `.gridWrap` ohne `width: 100%` | `firefox-core`: 9 failed (Rasterwächter ×4, `probe-visual` Größe und Bild für Outside bis Ridge/Valley) | Chromium: 4 failed |
+
+### Belege
+- Rundengate an `8dc5b6eb`: **PASS** (`vor-maschine.ff.r387.gate-round.json`). Gelaufen sind selection-guards, lint, build, unit-light, backend, der volle Browserlauf (1861 s) und der Firefox-Kern (105 s, alle elf Firefox-Prüfungen, darunter `firefox-graphics`; der Wächter 9 s).
+- Rundengate an `128d6821`: **PASS** (`vor-maschine.ff.r387.gate-round-128d6821.json`). Gelaufen sind selection-guards, lint, build, unit-light, backend, der volle Browserlauf (1841 s) und der Firefox-Kern (141 s, alle zehn Firefox-Prüfungen, der Wächter 10 s). unit-heavy ist ausgelassen, weil keine schwere Datei berührt, erreicht oder gelesen wird.
+- CI 43920511849 an `8dc5b6eb` ist grün (backend, frontend). Der Firefox-Kern lief im Pflichtsatz: 26 Tests, 1 Worker, 49 s, alle zehn Prüfungen PASS, darunter `firefox-graphics` (`vor-maschine.ff.r387.ci-firefox-core.json`):
+  - `caller_display` leer: CI hat kein Display;
+  - Kern und Wächter melden je `webgl: false`;
+  - 22 Abmeldungen, jede Marke empfangen; 3 begründete Skips.
+- CI 43888923984 an `128d6821` ist grün (backend, frontend). Der Firefox-Kern lief im Pflichtsatz: 26 Tests erwartet bestanden, 1 Worker, 61 s.
+  - `firefox-unload`: 22 Abmeldungen, jede Marke empfangen; 3 begründete Skips (`smoke` auf der Preview :4173).
+  - `firefox-unload-guard`: PASS (13 s).
+  - Die acht `probe-visual`-Bilder sind auf linux/x64 nicht verglichen (die Referenzen sind arm64); die Zellgrößen sind geprüft.
+  - Bericht: `vor-maschine.ff.r387.ci-firefox-core-128d6821.json`.
+
+### Für den Operator sichtbar
+
+Der Operator führt development laufend auf seiner Maschine nach; dort ist es seine Hauptoberfläche. Ein Merge nach development ist also eine Auslieferung an eine echte Maschine.
+
+Schritt 6 ändert genau eine Stelle im Produkt (`style.css`, R385 E). Ein Druck in die äußersten Ecken des Inhaltsbereichs trifft bei offenem Dialog jetzt den Hintergrund des Dialogs und nicht mehr das Element darunter. Alles andere betrifft nur Tests, Runner und Doku.
+
+### Grenzen und Offenes
+- Der Wächter beweist den Empfang je Marke an einem zurückgehaltenen Beacon. Einen Beacon, der mit fremdem Cookie ankommt, kann der Browser nicht erzeugen; das hält die Tabelle.
+- Seiten in zusätzlichen Kontexten eines Tests meldet die Fixture nicht ab; ihre Beacons sieht weiterhin das Replay. Im Kern lädt kein Test die App so.
+- Der Hänger aus Befund 4: Ursache offen, Zählung und Wächter oben.
+- Der tatsächliche Maschinenbrowser (TS248-05: „falls er abweicht und unterstützt werden soll“): Auf der Maschine laufen Firefox ESR und Chromium. Der Operator stellt beide vorerst zurück (16. November); es bleibt bei Chromium voll und dem Firefox-Kern mit 160.
+- Q248-1 bleibt beim Operator. Vor main bleiben die bekannten Live-Prüfungen und die Hardware geschuldet.
+
+**Erbeten:** `agreement` oder `findings`.

@@ -1,0 +1,30 @@
+R387 — the stall watcher during the chain at 8dc5b6eb (vor-maschine.ff.r387.stall-watch.py): every test attempt that ran > 20 s without a test-end.
+Each record holds two snapshots of every Firefox process/thread (state, wchan, CPU), memory, pressure and load; listed here without the snapshots.
+
+chromium (gate browser run)  worker 2 age  20.3 s  firefox processes seen 3  the loading has a bound: 20 s without its adoption, one catch-up
+chromium (gate browser run)  worker 1 age  21.2 s  firefox processes seen 3  light: every readable text meets 4.5 : 1 on what is rendered behind it
+chromium (gate browser run)  worker 0 age  21.5 s  firefox processes seen 3  a shown side result keeps its contact tables while the main request sends on; a replacing one lets them go (Co
+chromium (gate browser run)  worker 1 age  20.9 s  firefox processes seen 3  dark: every readable text meets 4.5 : 1 on what is rendered behind it
+chromium (gate browser run)  worker 1 age  22.0 s  firefox processes seen 3  hc-light: every readable text meets 4.5 : 1 on what is rendered behind it
+chromium (gate browser run)  worker 2 age  21.4 s  firefox processes seen 3  the viewer torn down in loading with a change held: no worker after it, no reply applied
+chromium (gate browser run)  worker 1 age  22.0 s  firefox processes seen 3  hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it
+chromium (gate browser run)  worker 1 age  21.2 s  firefox processes seen 3  auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it
+chromium (gate browser run)  worker 2 age  21.9 s  firefox processes seen 3  E1: a parse that ends without a publication — a noted restart checks once after the gap; without one the pause
+chromium (gate browser run)  worker 0 age  21.3 s  firefox processes seen 3  desktop, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, 
+chromium (gate browser run)  worker 0 age  21.2 s  firefox processes seen 3  desktop, DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, 
+chromium (gate browser run)  worker 0 age  21.7 s  firefox processes seen 3  touch, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (touch, DPR 
+chromium (gate browser run)  worker 2 age  21.2 s  firefox processes seen 3  the box cells hang on the geometry: every transition at a world cell boundary k / N — parallel and perspective
+chromium (gate browser run)  worker 2 age  21.6 s  firefox processes seen 3  the toolpath box's end marks stand off the background and the model in four themes; the type labels stand apar
+chromium (gate browser run)  worker 0 age  20.1 s  firefox processes seen 3  6axis-twp desktop: side panel tabs keep every control's footprint across machine states
+chromium (gate browser run)  worker 0 age  20.1 s  firefox processes seen 3  6axis-twp touch-landscape: side panel tabs keep every control's footprint across machine states
+chromium (gate browser run)  worker 0 age  21.7 s  firefox processes seen 3  6axis-twp touch-portrait: side panel tabs keep every control's footprint across machine states
+chromium (gate browser run)  worker 0 age  21.0 s  firefox processes seen 3  6axis-twp touch-fullhd: side panel tabs keep every control's footprint across machine states
+chromium (gate browser run)  worker 0 age  20.2 s  firefox processes seen 3  6axis-twp touch-fullhd-window: side panel tabs keep every control's footprint across machine states
+chromium (gate browser run)  worker 2 age  20.5 s  firefox processes seen 3  stepping through the findings never changes the bar: the same box, the same timeline
+chromium (gate browser run)  worker 0 age  20.2 s  firefox processes seen 3  5axis-xyzac: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and st
+chromium (gate browser run)  worker 0 age  21.7 s  firefox processes seen 3  6axis-twp: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and stil
+chromium (gate browser run)  worker 0 age  21.6 s  firefox processes seen 3  5axis-xyzac: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer
+chromium (gate browser run)  worker 1 age  22.3 s  firefox processes seen 3  tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request 
+chromium (gate browser run)  worker 0 age  20.3 s  firefox processes seen 2  6axis-twp: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer
+
+25 records; Firefox runs: 0

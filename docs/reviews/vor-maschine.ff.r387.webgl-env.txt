@@ -1,0 +1,21 @@
+R387 — WebGL in the pinned headless Firefox 160.0 depends on the environment's display (measured on the VM, 2026-11-16).
+Loop spec: e2e/stall-repro.spec.ts (throwaway, vor-maschine.ff.r387.stall-repro.spec.ts); a load counts 'nogl' when THREE.WebGLRenderer logged 'A WebGL context could not be created'.
+
+== graphics-related environment ==
+tool shell:
+  XDG_SESSION_TYPE=tty
+  (no DISPLAY)
+user unit (systemd-run --user):
+  XDG_SESSION_TYPE=x11
+  DISPLAY=:0
+
+== nine loads each, only DISPLAY swapped (128d6821 config) ==
+  shell-with-display 9 {'gl': 9}
+  unit-without-display 9 {'nogl': 9}
+
+== the pin's env filter (the browser env without DISPLAY/WAYLAND_DISPLAY, as committed in 8dc5b6eb), shell with DISPLAY=:0 ==
+  pinned, shell DISPLAY=:0 6 {'nogl': 6}
+
+== the load loops (user units, DISPLAY=:0): WebGL per browser launch ==
+  stall-a: loads 351, browser launches by WebGL {'gl': 3}, hits 0
+  stall-b: loads 2700, browser launches by WebGL {'gl': 90}, hits 0

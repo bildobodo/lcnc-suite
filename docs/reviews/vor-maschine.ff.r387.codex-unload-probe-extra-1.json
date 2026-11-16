@@ -1,0 +1,112 @@
+{
+  "verdict": "FAIL",
+  "checks": [
+    {
+      "name": "firefox-fetch",
+      "status": "PASS",
+      "seconds": 0.0,
+      "cache": "hit"
+    },
+    {
+      "name": "firefox-static",
+      "status": "PASS"
+    },
+    {
+      "name": "firefox-set",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "name": "firefox-core",
+      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/claude-work/ffcore/r386-codex-probe/extra-1/test-results",
+      "status": "FAIL",
+      "exit": 1,
+      "seconds": 9,
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "flaky": 0,
+      "skipped": 0,
+      "why": [
+        "1 failed"
+      ]
+    },
+    {
+      "name": "firefox-executed",
+      "status": "FAIL",
+      "why": [
+        "failed: r386-unload.spec.ts › R386: an unrelated POST can replace a missing unload beacon [firefox-core, retry 0]"
+      ]
+    },
+    {
+      "name": "firefox-workers",
+      "status": "PASS",
+      "run": "firefox-5ccdd4aa-3600-4522-91aa-5d0f5faa398d"
+    },
+    {
+      "name": "firefox-browser",
+      "status": "PASS",
+      "version": "160.0"
+    },
+    {
+      "name": "firefox-unload",
+      "status": "FAIL",
+      "why": [
+        "R386: an unrelated POST can replace a missing unload beacon [retry 0]: 2 beacon(s), 1 received, missing ['581234bc-3419-4b73-8a44-96ce08cbca64.2'], foreign [], twice []"
+      ]
+    },
+    {
+      "name": "firefox-unload-guard",
+      "status": "PASS",
+      "seconds": 9,
+      "run": "firefox-guard-d1f0e987-e1e4-475a-a051-c1bdc5d2f7ee"
+    },
+    {
+      "name": "firefox-replay",
+      "status": "PASS",
+      "report": "firefox-replay.json",
+      "frames": 2,
+      "attempts": 1,
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+        "coverage against the inventory (step 5c)"
+      ],
+      "seconds": 0.0
+    }
+  ],
+  "pending": null,
+  "info": {
+    "pinned": "160.0",
+    "playwright": "Version 1.60.0",
+    "arch": "linux-aarch64",
+    "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+    "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+    "cache": "hit",
+    "newer": {
+      "status": "current",
+      "latest": "160.0",
+      "pinned": "160.0"
+    },
+    "set": "required + build-up",
+    "started": [
+      "firefox 160.0"
+    ],
+    "images_not_compared": [],
+    "workers": {
+      "asked": 3,
+      "report": 3,
+      "seconds": 9
+    },
+    "unloads": [
+      {
+        "title": "R386: an unrelated POST can replace a missing unload beacon",
+        "beacons": 2,
+        "received": 1,
+        "posts": 2
+      }
+    ],
+    "unloads_skipped": []
+  }
+}

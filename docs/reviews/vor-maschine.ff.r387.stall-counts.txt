@@ -1,0 +1,74 @@
+R387 — app loads without a hello (the stall's signature), per environment, every recorded Firefox run of step 6.
+environment by launch: user units (chains, round gates, F2b/F5b) inherit DISPLAY=:0 -> WebGL; the tool shell (run1-3, rep*, repb*, run-r387-a, the two Codex-probe runs) has none -> no WebGL; CI has none.
+a load = GET / 200 with a test attempt's origin; a hello = the first frame 'hello' on a connection opened under that origin.
+
+ci     runs   1  loads    22  without hello 0
+unit   runs  48  loads  3924  without hello 2
+shell  runs  14  loads   923  without hello 0
+pinned runs   1  loads    82  without hello 0
+pinned = 8dc5b6eb's runner from the shell with DISPLAY=:0, the browser without it (no WebGL)
+
+ci     ~/claude-work/ffcore/ci-128d6821/art/runlogs/test-suite/20261116T144528Z-offline/firefox-core loads  22 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821-f2b/F2                                     loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/E                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/F1                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/F2                                         loads  82 without hello 1
+unit   ~/claude-work/ffcore/mutants-128d6821/F3                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/F4                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/F5                                         loads  80 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/F9                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/G                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/U1                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-128d6821/U3                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca-f5b/F5                                     loads  80 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/E                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/F1                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/F2                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/F3                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/F4                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/F5                                         loads  80 without hello 1
+unit   ~/claude-work/ffcore/mutants-29db35ca/F9                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-29db35ca/G                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845/F1                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845/F2                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845/F3                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845/F4                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845/F5                                         loads  80 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845b/E                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845b/F9                                        loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-4600d845b/G                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/E                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/F1                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/F2                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/F3                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/F4                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/F5                                         loads  80 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/F9                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-a67ef5d5/G                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/E                                          loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/F1                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/F2                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/F3                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/F4                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/F5                                         loads  80 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/F9                                         loads  82 without hello 0
+unit   ~/claude-work/ffcore/mutants-d9f34863/G                                          loads  82 without hello 0
+shell  ~/claude-work/ffcore/r386-codex-probe/extra-0                                    loads   1 without hello 0
+shell  ~/claude-work/ffcore/r386-codex-probe/extra-1                                    loads   1 without hello 0
+shell  ~/claude-work/ffcore/rep1                                                        loads  82 without hello 0
+shell  ~/claude-work/ffcore/rep2                                                        loads  82 without hello 0
+shell  ~/claude-work/ffcore/rep3                                                        loads  82 without hello 0
+shell  ~/claude-work/ffcore/rep4                                                        loads  82 without hello 0
+shell  ~/claude-work/ffcore/repb1                                                       loads  82 without hello 0
+shell  ~/claude-work/ffcore/repb2                                                       loads  82 without hello 0
+shell  ~/claude-work/ffcore/repb3                                                       loads  82 without hello 0
+shell  ~/claude-work/ffcore/repb4                                                       loads  82 without hello 0
+shell  ~/claude-work/ffcore/run-r387-a                                                  loads  82 without hello 0
+pinned ~/claude-work/ffcore/run-r387-pin-1794850509                                     loads  82 without hello 0
+shell  ~/claude-work/ffcore/run1                                                        loads  22 without hello 0
+shell  ~/claude-work/ffcore/run2                                                        loads  79 without hello 0
+shell  ~/claude-work/ffcore/run3                                                        loads  82 without hello 0
+unit   ~/rgff-128d6821/gate-round.logs                                                  loads  82 without hello 0
+unit   ~/rgff-29db35ca/gate-round.logs                                                  loads  82 without hello 0
+unit   ~/rgff-4600d845/gate-round.logs                                                  loads  82 without hello 0
+unit   ~/rgff/gate-round.logs                                                           loads  82 without hello 0

@@ -1,0 +1,81 @@
+R387 — the stall in mutant run F2 at 128d6821 (layout 'desktop, homed' grid guard, worker 1, first test of the worker).
+t = ms relative to the test-start event; the mock's replay of that worker's instance, then the other workers' test events.
+Note: the mock records an HTTP request at its END (res 'finish'): a response begun and never finished leaves no line.
+
+stalled: desktop, homed: a probe grid's cells keep their size whatever the glyph contributes worker 1 instance 738f6132 t0=1794840509449
+previous test on the worker: None
+replay keys sample: ['instance', 'kind', 'pid', 'port', 'run', 't']
+    -70 head  None
+    -61 ctl snapshot  None
+    -55 open conn 1  infra:baseline
+    -51 close conn 1  None
+    -48 ctl snapshot  None
+    -23 ctl snapshot  None
+    -18 ctl reset  None
+    -15 open conn 2  infra:baseline
+    -14 close conn 2  None
+     -7 ctl snapshot  None
+     -4 ctl snapshot  None
+    302 ctl reset  None
+    383 http GET / 200  test …77320c94
+    471 http GET /static/index-Cw_Yo_8H.js 200  test …77320c94
+    472 http GET /static/msgpack-BkQaaVuN.js 200  test …77320c94
+    474 http GET /static/index-BfuNUijc.css 200  test …77320c94
+    474 http GET /static/three-D_Nc9AAY.js 200  test …77320c94
+    645 http GET /settings 200  test …77320c94
+    747 http GET /static/ThreeViewer-DigUCzo-.css 200  test …77320c94
+    753 http GET /static/ThreeViewer-DsOXnQuy.js 200  test …77320c94
+    754 http GET /static/toolGeometry-CyOHk4ZX.js 200  test …77320c94
+  29978 ctl reset  None
+  30006 end  None
+  29982 end timedOut
+== other workers ==
+    155 w2 test-start Outside: a held probe button sends its routine with the panel's number 
+   3632 w2 test-end Outside: a held probe button sends its routine with the panel's number passed
+   3669 w2 test-start Boss/Pocket: a held probe button sends its routine with the panel's nu 
+   3985 w0 test-end dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, passed
+   4011 w0 test-start dialog 2 Settings: role and name, tier, initial focus, Tab scope, Esca 
+   6350 w2 test-end Boss/Pocket: a held probe button sends its routine with the panel's nu passed
+   6373 w2 test-start Ridge/Valley: a held probe button sends its routine with the panel's n 
+   8274 w0 test-end dialog 2 Settings: role and name, tier, initial focus, Tab scope, Esca passed
+   8298 w0 test-start dialog 3 Settings discard: role and name, tier, initial focus, Tab sco 
+   8922 w2 test-end Ridge/Valley: a held probe button sends its routine with the panel's n passed
+   8939 w2 test-start Angle: a held probe button sends its routine with the panel's numbers 
+  11525 w2 test-end Angle: a held probe button sends its routine with the panel's numbers passed
+  11553 w2 test-start Calibrate: a held probe button sends its routine with the panel's numb 
+  12087 w0 test-end dialog 3 Settings discard: role and name, tier, initial focus, Tab sco passed
+  12105 w0 test-start dialog 4 Messages: role and name, tier, initial focus, Tab scope, Esca 
+  14193 w2 test-end Calibrate: a held probe button sends its routine with the panel's numb passed
+  14211 w2 test-start Surface: a held Start Scan sends the surface_scan_run job with the pan 
+  15725 w0 test-end dialog 4 Messages: role and name, tier, initial focus, Tab scope, Esca passed
+  15749 w0 test-start dialog 4a Clear all messages: role and name, tier, initial focus, Tab  
+  16797 w2 test-end Surface: a held Start Scan sends the surface_scan_run job with the pan passed
+  16816 w2 test-start z_surface: the job the button sends is the native stage's whole job 
+  19142 w0 test-end dialog 4a Clear all messages: role and name, tier, initial focus, Tab  passed
+  19160 w0 test-start dialog 5 Tool change: role and name, tier, initial focus, Tab scope, E 
+  19436 w2 test-end z_surface: the job the button sends is the native stage's whole job passed
+  19459 w2 test-start surface_scan: the job the button sends is the native stage's whole job 
+  22055 w2 test-end surface_scan: the job the button sends is the native stage's whole job passed
+  22081 w2 test-start every procedure has its grid entry 
+  22082 w2 test-end every procedure has its grid entry passed
+  22094 w2 test-start Outside: the procedure's grid cells and its reference image 
+  22768 w0 test-end dialog 5 Tool change: role and name, tier, initial focus, Tab scope, E passed
+  22798 w0 test-start dialog 6 Macro parameters: role and name, tier, initial focus, Tab sco 
+  24091 w2 test-end Outside: the procedure's grid cells and its reference image passed
+  24116 w2 test-start Inside: the procedure's grid cells and its reference image 
+  26036 w2 test-end Inside: the procedure's grid cells and its reference image passed
+  26058 w2 test-start Angle: the procedure's grid cells and its reference image 
+  26691 w0 test-end dialog 6 Macro parameters: role and name, tier, initial focus, Tab sco passed
+  26711 w0 test-start dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Esca 
+  28032 w2 test-end Angle: the procedure's grid cells and its reference image passed
+  28059 w2 test-start Boss/Pocket: the procedure's grid cells and its reference image 
+
+== artefacts of the run's failed tests (--output: nothing overwritten) ==
+dialogs-dialog-11-Editor-d-308f5-area-the-backdrop-s-corners-firefox-core: error-context.md test-failed-1.png 
+dialogs-dialog-11-Editor-d-dadf5--Stop-backdrop-focus-return-firefox-core: error-context.md test-failed-1.png 
+layout-desktop-homed-a-pro-f0b49-tever-the-glyph-contributes-firefox-core: error-context.md 
+
+== the stalled test in the report (firefox.json) and the fixture's events ==
+  {'t': 1794840509449, 'run': 'firefox-89eb0c92-7711-4165-81e6-b40c78770f11', 'event': 'test-start', 'slot': 1, 'workerIndex': 1, 'instance': '738f6132-72fd-46fa-8d93-2895aeafaa9e', 'file': 'layout.spec.ts', 'project': 'firefox-core', 'title': "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes", 'testId': '9f98fd8c8d1538f5ebbb-02196f6c59c977320c94', 'retry': 0}
+  {'t': 1794840539428, 'run': 'firefox-89eb0c92-7711-4165-81e6-b40c78770f11', 'event': 'unload', 'testId': '9f98fd8c8d1538f5ebbb-02196f6c59c977320c94', 'title': "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes", 'retry': 0, 'skipped': 'the page is closed'}
+  {'t': 1794840539431, 'run': 'firefox-89eb0c92-7711-4165-81e6-b40c78770f11', 'event': 'test-end', 'slot': 1, 'workerIndex': 1, 'instance': '738f6132-72fd-46fa-8d93-2895aeafaa9e', 'file': 'layout.spec.ts', 'project': 'firefox-core', 'title': "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes", 'testId': '9f98fd8c8d1538f5ebbb-02196f6c59c977320c94', 'retry': 0, 'status': 'timedOut'}
