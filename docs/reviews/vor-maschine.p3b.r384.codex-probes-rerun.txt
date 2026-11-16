@@ -1,0 +1,12 @@
+head 39a73679 (git archive), the probe files unchanged (sha256 r382 dda2d17da8c85a86, r383 728702344e7419c6)
+r382_probe.py::test_wait_failure_aborts_before_reading_interpreter PASSED [ 10%]
+r382_probe.py::test_probe_restore_rechecks_after_wait[trip] PASSED       [ 20%]
+r382_probe.py::test_probe_restore_rechecks_after_wait[disconnect] PASSED [ 30%]
+r382_probe.py::test_surface_failure_does_not_write_before_admission[trip] PASSED [ 40%]
+r382_probe.py::test_surface_failure_does_not_write_before_admission[busy] PASSED [ 50%]
+r382_probe.py::test_only_a_lock_after_actual_send_is_a_start PASSED      [ 60%]
+r382_probe.py::test_control_actual_post_send_lock_passes PASSED          [ 70%]
+r382_probe.py::test_control_closed_baseline_sends_nothing PASSED         [ 80%]
+r383_probe.py::test_restore_does_not_send_more_chunks_after_trip_in_first_chunk[trip] PASSED [ 90%]
+r383_probe.py::test_restore_does_not_send_more_chunks_after_trip_in_first_chunk[no_trip] PASSED [100%]
+============================== 10 passed in 0.60s ==============================

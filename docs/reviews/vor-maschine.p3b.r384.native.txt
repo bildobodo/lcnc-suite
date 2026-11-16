@@ -1,0 +1,92 @@
+native main1: /home/cnc/claude-work/live-tier/20261116T050647-pl-main1
+  verdict PASS, restore complete, crashes [], error None
+  PASS       probe-z — G54 Z -180.0011 within -180 ± 0.003
+  PASS       probe-z.counter-plate-1 — the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003
+  PASS       probe-z.start — free at the send, locked +0.086 s after the send
+  PASS       probe-z-miss — no contact, nothing set, the error said so
+  PASS       probe-z-miss.start — free at the send, locked +0.078 s after the send
+  PASS       probe-run.not-a-routine [reply PASS, window PASS, state PASS] — reply: refused: Not a probe routine — reload the page; window: nothing started, nothing delivered; state: nothing changed
+  PASS       probe-run.feature-off [reply PASS, window PASS, state PASS] — reply: refused: Probing is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed
+  PASS       probe-run [reply PASS, window PASS, values PASS, probe PASS] — reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job re
+  PASS       probe-run.counter-plate-1 — the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003
+  PASS       probe-run.start — free at the send, locked +0.089 s after the send
+  PASS       probe-run-override-lock — locked through the measuring phase, free after the routine
+  PASS       probe-run-miss [reply PASS, window PASS, values PASS, miss PASS] — reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job re
+  PASS       probe-run-miss.start — free at the send, locked +0.110 s after the send
+  PASS       probe-run.restore — aborted and standing, then the override free, the switches as first read, G54 Z0 and the numbers as before — read back
+  PASS       surface-scan.feature-off [reply PASS, window PASS, state PASS] — reply: refused: Surface map is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed
+  PASS       surface-scan.job [reply PASS, window PASS, values PASS] — reply: ok, persisted, taken over, its line; window: surface_scan_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the
+  PASS       surface-scan.start — free at the send, locked +0.064 s after the send
+  PASS       surface-scan — 25 points in the snake, each on the surface within ± 0.005
+  PASS       surface-scan.counter-node+1 — the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (± 0.005)
+  PASS       surface-scan.counter-xy-swapped — the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (± 0.005)
+  PASS       surface-override-lock — locked through the measuring phase, free after the routine
+  PASS       surface-scan.map — the map reloaded (version 0 → 1)
+  not PASS: incomplete jog-x+ — the braking travel from the reply is at most 3.992 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-x- — the braking travel from the reply is at most 2.292 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-y+ — the braking travel from the reply is at most 2.292 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-z+ — the braking travel from the reply is at most 3.208 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-z- — the braking travel from the reply is at most 3.808 mm by the frame before it; status frames give no lower bound (their capture time is not k
+native main2: /home/cnc/claude-work/live-tier/20261116T052122-pl-main2
+  verdict PASS, restore complete, crashes [], error None
+  PASS       probe-z — G54 Z -180.0011 within -180 ± 0.003
+  PASS       probe-z.counter-plate-1 — the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003
+  PASS       probe-z.start — free at the send, locked +0.062 s after the send
+  PASS       probe-z-miss — no contact, nothing set, the error said so
+  PASS       probe-z-miss.start — free at the send, locked +0.067 s after the send
+  PASS       probe-run.not-a-routine [reply PASS, window PASS, state PASS] — reply: refused: Not a probe routine — reload the page; window: nothing started, nothing delivered; state: nothing changed
+  PASS       probe-run.feature-off [reply PASS, window PASS, state PASS] — reply: refused: Probing is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed
+  PASS       probe-run [reply PASS, window PASS, values PASS, probe PASS] — reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job re
+  PASS       probe-run.counter-plate-1 — the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003
+  PASS       probe-run.start — free at the send, locked +0.098 s after the send
+  PASS       probe-run-override-lock — locked through the measuring phase, free after the routine
+  PASS       probe-run-miss [reply PASS, window PASS, values PASS, miss PASS] — reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job re
+  PASS       probe-run-miss.start — free at the send, locked +0.108 s after the send
+  PASS       probe-run.restore — aborted and standing, then the override free, the switches as first read, G54 Z0 and the numbers as before — read back
+  PASS       surface-scan.feature-off [reply PASS, window PASS, state PASS] — reply: refused: Surface map is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed
+  PASS       surface-scan.job [reply PASS, window PASS, values PASS] — reply: ok, persisted, taken over, its line; window: surface_scan_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the
+  PASS       surface-scan.start — free at the send, locked +0.075 s after the send
+  PASS       surface-scan — 25 points in the snake, each on the surface within ± 0.005
+  PASS       surface-scan.counter-node+1 — the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (± 0.005)
+  PASS       surface-scan.counter-xy-swapped — the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (± 0.005)
+  PASS       surface-override-lock — locked through the measuring phase, free after the routine
+  PASS       surface-scan.map — the map reloaded (version 0 → 1)
+  not PASS: incomplete jog-x+ — the braking travel from the reply is at most 3.392 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-x- — the braking travel from the reply is at most 2.392 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-y+ — the braking travel from the reply is at most 2.292 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-y- — the braking travel from the reply is at most 2.792 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-z+ — the braking travel from the reply is at most 3.908 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-z- — the braking travel from the reply is at most 3.808 mm by the frame before it; status frames give no lower bound (their capture time is not k
+native mdi-driver: /home/cnc/claude-work/live-tier/20261116T053548-pl-mdi-driver
+  verdict FAIL, restore complete, crashes [], error None
+  PASS       probe-z — G54 Z -180.0011 within -180 ± 0.003
+  PASS       probe-z.counter-plate-1 — the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003
+  PASS       probe-z.start — free at the send, locked +0.079 s after the send
+  PASS       probe-z-miss — no contact, nothing set, the error said so
+  PASS       probe-z-miss.start — free at the send, locked +0.074 s after the send
+  PASS       probe-run.not-a-routine [reply PASS, window PASS, state PASS] — reply: refused: Not a probe routine — reload the page; window: nothing started, nothing delivered; state: nothing changed
+  PASS       probe-run.feature-off [reply PASS, window PASS, state PASS] — reply: refused: Probing is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed
+  FAIL       probe-run [reply FAIL, window FAIL, values PASS, probe PASS] — reply: the reply differs: {'line': None}
+  PASS       probe-run.counter-plate-1 — the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003
+  PASS       probe-run.start — free at the send, locked +0.117 s after the send
+  PASS       probe-run-override-lock — locked through the measuring phase, free after the routine
+  PASS       probe-run-miss [reply PASS, window PASS, values PASS, miss PASS] — reply: ok, persisted, taken over, its line; window: probe_run started by its handler, its values and #3116 = 0 delivered once; values: every value of the job re
+  PASS       probe-run-miss.start — free at the send, locked +0.103 s after the send
+  PASS       probe-run.restore — aborted and standing, then the override free, the switches as first read, G54 Z0 and the numbers as before — read back
+  PASS       surface-scan.feature-off [reply PASS, window PASS, state PASS] — reply: refused: Surface map is off — Settings › Features; window: nothing started, nothing delivered — the switch refused it; state: nothing changed
+  FAIL       surface-scan.job [reply FAIL, window FAIL, values PASS] — reply: the reply differs: {'line': None}
+  PASS       surface-scan.start — free at the send, locked +0.064 s after the send
+  PASS       surface-scan — 25 points in the snake, each on the surface within ± 0.005
+  PASS       surface-scan.counter-node+1 — the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (± 0.005)
+  PASS       surface-scan.counter-xy-swapped — the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (± 0.005)
+  PASS       surface-override-lock — locked through the measuring phase, free after the routine
+  PASS       surface-scan.map — the map reloaded (version 0 → 1)
+  not PASS: incomplete jog-x- — the braking travel from the reply is at most 2.292 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-y+ — the braking travel from the reply is at most 2.892 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-z+ — the braking travel from the reply is at most 3.508 mm by the frame before it; status frames give no lower bound (their capture time is not k
+  not PASS: incomplete jog-z- — the braking travel from the reply is at most 3.958 mm by the frame before it; status frames give no lower bound (their capture time is not k
+39a73679 Before the machine: package 3b probe live — answer to R383, the case: every request of the probe and the scan case under its admission (probe_cases/surface_cases run their body in _admitted_sends), the start's send mark judging the admission under the record lock — a trip or a lost link received sends no further block, read, job or retry; the exits end in the finish's "nothing done"
+lan-to rc=0 2026-11-16T05:50:18+01:00
+active
+active
+== end 2026-11-16T05:50:18+01:00
