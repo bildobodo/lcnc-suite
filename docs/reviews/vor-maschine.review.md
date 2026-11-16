@@ -5362,3 +5362,44 @@ Geprüft: Änderungen seit `be5dd91f`, Anfrage und Belege, Ausführung ausschlie
 - **Laufbelege nachvollzogen:** Die gespeicherten Hauptläufe an `39a73679` liefern je 22 PASS-Zeilen; der MDI-Gegenlauf fällt genau an den beiden vorgesehenen Job-Zeilen durch. Markenpaare und Parameterlieferungen wurden aus den Trace-Dateien geprüft. Rückgabe und Surface-Abschluss sind in allen drei Berichten vollständig, Crashes fehlen. Diese nativen Läufe belegen den normalen Weg; die Verlustwege halten die Offline-Gegenfälle. Der vollständige Browserlauf wurde von mir nicht wiederholt.
 
 Das Agreement gilt für Paket 3b Antasten live an diesem Stand einschließlich der R382-/R383-Korrekturen. Die im Antrag weiterhin benannten Prüfungen vor main bleiben geschuldet. Keine Produktänderung und kein Eingriff in die Live-Sim; ausschließlich dieser Anhang und neue `vor-maschine.p3b.r384.codex-*`-Belege.
+
+---
+
+## Claude · Paket 3b · Antasten live gemergt · 16. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R384 für `39a73679`, nach R382 (findings VM-I22 bis VM-I24) und R383 (der Rest von VM-I23). Der Plan ist der aus R380 und R381.
+  - Fables Zustimmung zum selben Kopf, gebunden an ein Merge-Gate-PASS an genau diesem SHA. Vor dem Gate geprüft:
+    - `origin/development` stand noch auf `cad9ac77` und ist Vorfahr von `39a73679`;
+    - der Baum war sauber am Kopf, die Ports frei, keine Rückgabe der LAN-Sim offen.
+  - Codex' Prüfgrenzen, ohne Bedingung: kein Live-Abbruchversuch, Trip und Verbindungsverlust nur offline belegt (seine zwölf Ablaufprüfungen über `run`, `_stop_copy` und `close`), Browserlauf und Mutanten nicht wiederholt.
+  - Nach dem Gate: den Bericht selbst gelesen, nicht nur das PASS.
+- **Merge-Gate PASS an `39a73679`** (`kind: merge`, `uncommitted: 0`, nichts ausgelassen; [Bericht](vor-maschine.p3b.probe.merge-gate.json)):
+  - Unit 2657 + 104 (die schweren Dateien);
+  - Backend mit allen 14 Schritten (2207 Python-Fälle, `native-stage` mit 641);
+  - Browser 924/924, ohne Flaky;
+  - **`browser-replay`:** PASS, 0 Befunde ([Ergebnis](vor-maschine.p3b.probe.merge-gate.replay.json)). 924 Versuche, 9261 Rahmen (9260 `test`, 1 `no-cookie exception`), 19 459 HTTP-Anfragen mit Herkunft und 6 Reconnect-Proben. Darunter 7 `probe_run` und 2 `surface_scan_run`.
+  - **Installationsprobe** 14/14 (Lauf `install-probe-2dee2ced3bc7`): das Gateway aus `39a73679` im Produktionsbetrieb, `crashes: []`, die LAN-Sim vollständig zurück (`restore: complete`).
+  - Offen meldet das Gate nur `firefox-core` (Schritt 6).
+- **development** = `39a73679`: Fast-Forward von `cad9ac77` per SHA, gepusht. Vorher nach erneutem Fetch geprüft: `origin/development` stand noch auf `cad9ac77`.
+  - Die CI an `39a73679` (`harden/p3b-probe`, Lauf `43796820388`) war grün.
+- **CI auf development** an `39a73679`: Lauf 43812459440 grün (frontend und backend).
+- **Die LAN-Sim:** `lcnc-sim-gates` und `bg-keepalive` aktiv, nach dem letzten `lan-to` auf `39a73679`.
+- **Produktcode im Bereich `cad9ac77..39a73679`:** keiner. Unter `lcnc-webui/src` liegt nur der neue `probePanelJobs.test.ts`. Neu bzw. geändert sind:
+  - die native Stufe (`native_run.py`, `native_cases.py`, `live_session.py`): Antasten und Scan über die echten Handler `probe_run` und `surface_scan_run`, mit Fixture, Fenster, Startreihenfolge, Abschluss und Zulassung;
+  - `probe-click.spec.ts`, das Fixture `probe_panel_jobs.json` mit seinem Unit-Wächter, die Auswahlregeln und das Inventar.
+  - An der Maschine ändert sich dadurch nichts.
+- **Belege an `39a73679`:**
+  - 641 Offline-Fälle, 41/41 Offline- und 2/2 Browser-Mutanten rot;
+  - `main1` und `main2` PASS (22 Zeilen von Antasten und Scan, Rückgabe und Aufräumen vollständig, kein Trip);
+  - `mdi-driver` FAIL an genau seinen zwei Auftragszeilen.
+- **Nachzuholen im nächsten Paket, das `native_run.py` berührt:** Codex' zwölf Prüfungen zum Laufende (`vor-maschine.p3b.r384.codex-probes.py`) werden Wächter im Repository: Nach einem gescheiterten Schritt läuft kein späterer.
+- **Verhaltensänderungen, die der Operator erfährt:** keine an der Maschine. Die native Stufe hat neue Zeilen für Antasten und Scan.
+- **Vor main geschuldet:**
+  - `live-twp` mit `twp_buttons_check` am Client nach der Sperre;
+  - `perf-matrix`;
+  - die Hardware.
+- **Weiter offen:**
+  - der Firefox-Kern (Schritt 6): Der Machbarkeitsversuch ist gelaufen, die Plananfrage folgt;
+  - Replay 5b (HTTP-Antwortwege) und 5c (Abdeckung gegen das Inventar);
+  - danach Paket 4.
