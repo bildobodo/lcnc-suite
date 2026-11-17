@@ -7634,3 +7634,35 @@ Die angekündigte Trennung ist damit möglich: die zwei UI-Commits auf `43b1531a
 - Der separate Playwright-Statuslauf endet absichtlich rot und belegt VM-I34; er ist kein gescheiterter Produkt-Gate-Lauf.
 - Die vorgelegten Merge-/Rundengates und Mutantenbelege wurden berücksichtigt. Kein eigenes vollständiges Merge-Gate, kein zusätzlicher Firefox- oder nativer Lauf.
 - Alle eigenen Läufe sind beendet, die Testsperre ist frei. Im Live-Baum wurden ausschließlich dieser Anhang und neue `vor-maschine.rp5.r396.codex-*`-Belege geschrieben.
+
+---
+
+## Claude · Korrektur „Check basis“ gemergt · 17. November 2026
+
+- **Freigaben:**
+  - Codex R396, Teil 2: `agreement` zu `25c2fd32` + `1ec5e093`, ausdrücklich mit der Übertragung auf `43b1531a`. Das Agreement deckt die Änderung, nicht den Gate-Nachweis des neuen Kopfes.
+  - Fables Zustimmung zu `56e246ba`, gebunden an ein Merge-Gate-PASS an genau diesem SHA.
+  - Teil 1 (5c) hat Befunde (VM-I33 bis VM-I37) und ist nicht Teil dieses Merges.
+- **Die Übertragung auf `43b1531a`:** `fix/check-basis-dev` mit `25c2fd32` → `318c36b1` und `1ec5e093` → `56e246ba` (Cherry-Pick).
+  - Je Datei ist die Änderung dieselbe wie im vereinbarten Bereich `9d7d7c0e..1ec5e093`: `SimPanel.vue`, `sim-panel.viewer.spec.ts`, `CLAUDE.md`, `frontend-modules.md`, `decisions.md` (Vergleich der Diff-Zeilen).
+  - Der einzige Konflikt lag in `docs/decisions.md`: Beide Seiten fügen an derselben Stelle einen Eintrag ein. Gelöst, indem der 5c-Eintrag weggelassen wurde; er kommt mit 5c.
+- **Merge-Gate an `56e246ba`:** PASS (`kind: merge`, `uncommitted: 0`, nichts ausgelassen, nichts offen; [Bericht](vor-maschine.cb.merge-gate.json)):
+  - Unit 2675 + 104, Backend mit allen Schritten;
+  - Browser **950/950** (948 und die zwei Wächtertests), ohne Flaky. Beim ersten Versuch bestanden haben beide Wächtertests (desktop, touch-portrait) und der vorher in der development-CI rote Ablauf „a collision jump … across the entry move“;
+  - `browser-replay` PASS, 0 Befunde, 9868 Rahmen, ohne die Befundklasse `unknown`; der Firefox-Kern **86/86**, `firefox-replay` PASS mit 0 Befunden; 84 von 84 Firefox-Ladevorgängen mit `hello`;
+  - Installationsprobe 14/14, `crashes: []`, die LAN-Sim vollständig zurück (`restore: complete`); `lcnc-sim-gates` und `bg-keepalive` danach aktiv;
+  - Kein `coverage`-Schritt: Dieser Kopf trägt die Werkzeuge von 5b. Erwartet.
+- **development** = `56e246ba`: Fast-Forward von `43b1531a` per SHA, gepusht; unmittelbar davor nach erneutem Fetch geprüft.
+- **CI auf development an `56e246ba`:** Lauf 44178826861 **grün**, `backend` und `frontend`. Der rote Lauf 44098232396 an `43b1531a` bleibt sein eigener Datensatz.
+- **Sichtbar an der Maschine** (development ist dort die Hauptoberfläche): Im Sim-Tab stehen bei „Not checked“ und „Not checked yet“ das Symbol der Karte „Check basis“ und das „?“ am rechten Ende der Prüfzeile, dort, wo sie neben der Fortschrittsleiste schon stehen. Der Text „Not checked“ nimmt den Platz der Leiste ein. Sonst ändert sich nichts.
+- **Berichtigung einer Angabe in R396** (dort und im Commit `56e246ba` stehengelassen, hier richtiggestellt): „Das erste ‚Not checked‘ dauerte in einem Probenlauf nur 14 ms“ stimmt so nicht.
+  - In jenem Lauf an `cd23f813` bestand der Zustand rund 0,5 s (von 162 ms bis 683 ms).
+  - Sichtbar war er nur 14 ms, weil die Probe den Sim-Tab erst spät öffnete.
+  - Der MutationObserver des Wächters bleibt richtig als Absicherung: Er liest jeden DOM-Zustand unabhängig von der Bildrate. Belegt hat er aber keinen Zustand unter einem Bild.
+- **Was sich für die Maschine ändert:** nur `SimPanel.vue` (eine Klasse, eine Layoutregel, Kommentare). Dazu kommen der Wächter in `sim-panel.viewer.spec.ts` und die Doku.
+- **Weiter:** 5c ist auf `56e246ba` umgesetzt (`dbc3abb3`), und die Antwort auf VM-I33 bis VM-I37 ist gebaut.
+  - Das erste Merge-Gate von 5c an `dbc3abb3` war **rot** und bleibt ein eigener Datensatz. Gescheitert ist `touch-hold.spec.ts` („a short tap sends nothing …“): `unhome_all` ging hinaus.
+  - Untersucht. Gefunden ist dabei ein **Produktbefund**: Blockiert der Hauptthread über die Haltezeit, löst ein Halteknopf auch bei kurzem Tippen aus, nachgestellt in 3 von 10 Läufen.
+  - Für den roten Lauf selbst ist die Ursache gefolgert, nicht gezeigt.
+  - Eigene Planrunde nach R397; der Operator ist informiert. Danach Paket 4.
+- **Vor main geschuldet:** `live-twp` mit `twp_buttons_check` und `perf-matrix` (VM-Sim), die Hardware mit dem Touchscreen.
