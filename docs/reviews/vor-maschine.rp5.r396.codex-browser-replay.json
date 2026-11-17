@@ -1,0 +1,638 @@
+{
+  "verdict": "PASS",
+  "run": "codex-r396-ui",
+  "logs": 1,
+  "connections": {
+    "infra": 4,
+    "test": 3
+  },
+  "http": {
+    "with origin": 72
+  },
+  "frames": 21,
+  "frames_by_class": {
+    "test": 21
+  },
+  "commands": {
+    "get_tool_table": 6,
+    "heartbeat": 9,
+    "hello": 3,
+    "tab_visibility": 3
+  },
+  "attempts": 3,
+  "per_attempt": {
+    "collisions.viewer.spec.ts \u203a a collision jump on the real XYZAC model lands on its line and shows its move \u2014 across the entry move [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 5,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "sim-panel.viewer.spec.ts \u203a desktop: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "sim-panel.viewer.spec.ts \u203a touch-portrait: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    }
+  },
+  "attempt_list": [
+    {
+      "name": "collisions.viewer.spec.ts \u203a a collision jump on the real XYZAC model lands on its line and shows its move \u2014 across the entry move [retry 0]",
+      "test": "bbbb47f70077cd28aa48-8a3f67e146e6b0f57946",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "0868d886-3749-4685-bce5-d5b5a9f1a7f1",
+      "status": "passed",
+      "page": true,
+      "frames": 9,
+      "observed": "page loaded at its mock, 9 frame(s)"
+    },
+    {
+      "name": "sim-panel.viewer.spec.ts \u203a desktop: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396) [retry 0]",
+      "test": "f43c20e0ac8db9b0ef5c-e8d2ee836847807069ed",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "0868d886-3749-4685-bce5-d5b5a9f1a7f1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "sim-panel.viewer.spec.ts \u203a touch-portrait: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396) [retry 0]",
+      "test": "f43c20e0ac8db9b0ef5c-ceca4299b62e3f3103d7",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "0868d886-3749-4685-bce5-d5b5a9f1a7f1",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    }
+  ],
+  "no_cookie": [],
+  "per_attempt_expected": {},
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+    "coverage against the inventory (step 5c)"
+  ],
+  "http_paths": {
+    "requests": 109,
+    "contexts": 3,
+    "classes": {
+      "replaced": 36,
+      "served": 61,
+      "fallback": 11,
+      "closing": 1
+    },
+    "routes": {
+      "GET /": {
+        "served": 3
+      },
+      "GET /g30": {
+        "closing": 1,
+        "fallback": 7
+      },
+      "GET /gcode": {
+        "replaced": 3
+      },
+      "GET /macros": {
+        "served": 3
+      },
+      "GET /preview": {
+        "replaced": 3
+      },
+      "GET /settings": {
+        "served": 3
+      },
+      "POST /telemetry": {
+        "fallback": 4
+      }
+    },
+    "fallback_paths": {
+      "GET /g30": 7,
+      "POST /telemetry": 4
+    },
+    "idless_covered_by_synthetic_hops": 0,
+    "ws_handshakes_joined": 0,
+    "per_attempt": {
+      "collisions.viewer.spec.ts \u203a a collision jump on the real XYZAC model lands on its line and shows its move \u2014 across the entry move [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "closing",
+          "transport": "none",
+          "status": null,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 3
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/a_bearing_pedestals.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/a_bearing_rings.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/a_drive_covers.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/a_trunnion_shafts.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/a_yoke_casting.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/c_bearing_lip.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/c_faceplate.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/chip_pan.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/column_foot.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/fixture_blank.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/levelling_feet.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/machine_bed.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/rear_column.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/spindle_cartridge.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/spindle_head.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/spindle_motor_cover.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/spindle_nose.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/x_guide_blocks.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/x_guide_endcaps.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/x_guide_rails.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/x_saddle.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/y_guide_blocks.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/y_guide_endcaps.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/y_guide_rails.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/y_rail_seats.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/y_saddle.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/z_guide_blocks.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/z_guide_endcaps.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/z_guide_rails.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/xyzac-model/z_slide.stl",
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 20
+        }
+      ],
+      "sim-panel.viewer.spec.ts \u203a desktop: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396) [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 16
+        }
+      ],
+      "sim-panel.viewer.spec.ts \u203a touch-portrait: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396) [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 16
+        }
+      ]
+    },
+    "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+    "findings": []
+  }
+}

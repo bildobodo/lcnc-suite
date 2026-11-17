@@ -1,0 +1,731 @@
+{
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "code": "1ec5e093",
+  "cases": {
+    "control_actual_merge_artifacts": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "empty_browser_and_unit_listings": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "foreign_playwright_run": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "foreign_playwright_ids": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "foreign_replay_run_and_ids": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "failed_replay": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "expected_browser_failure": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "native_metadata_word_collected_as_case": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "native": [
+        {
+          "layer": "native",
+          "file": "native_run.py",
+          "title": "commit",
+          "profile": "3axis_xyz",
+          "variant": null,
+          "status": "not at this commit"
+        }
+      ],
+      "original_evidence": {
+        "layer": "native",
+        "file": "native_run.py",
+        "title": "latch-sticky",
+        "profile": "3axis_xyz"
+      }
+    },
+    "inventory_open_variants": {
+      "source": {
+        "complete": true,
+        "unresolved": [],
+        "excluded": 1,
+        "variantsOpen": 47
+      },
+      "output_inventoried": {
+        "atoms": 6,
+        "problems": []
+      },
+      "output_mentions_variantsOpen": false
+    },
+    "live_absent_control": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "live_report": {
+        "commit": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+        "dirty": false,
+        "run_id": "r396-synthetic",
+        "scenarios": {}
+      },
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "perf_matrix.py",
+          "title": "sigstop_trip",
+          "status": "not at this commit",
+          "why": "no report of this commit with a clean tree"
+        }
+      ]
+    },
+    "live_null_scenario": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "live_report": {
+        "commit": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+        "dirty": false,
+        "run_id": "r396-synthetic",
+        "scenarios": {
+          "sigstop_trip": null
+        }
+      },
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "perf_matrix.py",
+          "title": "sigstop_trip",
+          "status": "not at this commit",
+          "why": "no report of this commit with a clean tree"
+        }
+      ]
+    },
+    "live_missing_direct": {
+      "verdict": "FAIL",
+      "errors": [
+        "F-ESTOP.S4: script perf_matrix.py › sigstop_trip: sigstop_trip: no direct result"
+      ],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "live_report": {
+        "commit": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+        "dirty": false,
+        "run_id": "r396-synthetic",
+        "scenarios": {
+          "sigstop_trip": {}
+        }
+      },
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "perf_matrix.py",
+          "title": "sigstop_trip",
+          "status": "error",
+          "why": "sigstop_trip: no direct result"
+        }
+      ]
+    },
+    "live_pass_control": {
+      "verdict": "PASS",
+      "errors": [],
+      "gaps": 70,
+      "checked": 110,
+      "arm_s2": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_arming_waits_for_the_acknowledgement",
+            "bound": [
+              "test_button_gates_d.py::TestRecoveryOrder::test_arming_waits_for_the_acknowledgement"
+            ],
+            "status": "passed"
+          },
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+            "project": "e2e",
+            "bound": [
+              "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+            ],
+            "status": "passed"
+          }
+        ],
+        "checked": "passed"
+      },
+      "estop_triggers": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "live_report": {
+        "commit": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+        "dirty": false,
+        "run_id": "r396-synthetic",
+        "scenarios": {
+          "sigstop_trip": {
+            "direct": {
+              "sticky_ok": true,
+              "recovered_ok": true
+            }
+          }
+        }
+      },
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "perf_matrix.py",
+          "title": "sigstop_trip",
+          "status": "passed"
+        }
+      ]
+    }
+  }
+}

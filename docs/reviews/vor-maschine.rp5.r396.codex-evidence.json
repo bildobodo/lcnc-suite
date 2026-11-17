@@ -1,0 +1,107 @@
+{
+  "review": "R396",
+  "date": "2026-11-17",
+  "document": "fa62a55462fb1064e32d3d009165a16255651b95",
+  "base": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "head": "1ec5e0938b45ebc1b0a1270a91ab53980a0a2e81",
+  "coverage_head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "isolation": {
+    "archive": "/tmp/codex-r396-fftzthfz",
+    "product_edited": false,
+    "sim_contact": false,
+    "live_build_or_tests": false,
+    "notes": "Archive of 1ec5e093, own node_modules copy. Browser/build/pytest and Playwright counterexample under heavy_lock.py. All processes finished; lock released."
+  },
+  "verdicts": {
+    "5c": "findings",
+    "check_basis": "agreement"
+  },
+  "checks": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest scripts/inventory/test_coverage.py scripts/test_select/test_replay.py -q -p no:cacheprovider",
+      "result": "157 passed",
+      "evidence": "vor-maschine.rp5.r396.codex-pytest.txt"
+    },
+    {
+      "command": "npm run build",
+      "cwd": "archive/lcnc-webui",
+      "result": "PASS",
+      "evidence": "vor-maschine.rp5.r396.codex-build.txt"
+    },
+    {
+      "command": "LCNC_E2E_SELECTION=/tmp/r396-selection.json LCNC_E2E_RUN=codex-r396-ui LCNC_E2E_EVENTS=/tmp/r396-events.jsonl LCNC_E2E_REPLAY_DIR=/tmp/r396-replay LCNC_E2E_HTTP_DIR=/tmp/r396-http LCNC_E2E_WORKERS=1 PLAYWRIGHT_JSON_OUTPUT_FILE=/tmp/r396-browser.json npx playwright test -c playwright.select.config.ts --grep \"keep their place with and without|a collision jump\" --reporter=line,json",
+      "selection": [
+        "sim-panel.viewer",
+        "collisions.viewer"
+      ],
+      "result": "3 passed, 0 skipped, 0 flaky; desktop/touch-portrait geometry and earlier CI-red collision jump",
+      "evidence": "vor-maschine.rp5.r396.codex-browser.json"
+    },
+    {
+      "command": "python scripts/test_select/replay.py --dir /tmp/r396-replay --events /tmp/r396-events.jsonl --run codex-r396-ui --http /tmp/r396-http --out /tmp/r396-browser-replay.json",
+      "result": "PASS, 0 findings, 21 frames",
+      "evidence": "vor-maschine.rp5.r396.codex-browser-replay.json"
+    },
+    {
+      "command": "npx playwright test -c r396-status.config.mjs",
+      "cwd": "archive/lcnc-webui",
+      "result": "exit 1 deliberately: 2 expected failures, 1 unexpected failure, 1 pass. Reader reports both titles passed. No browser launched. Config and spec copied as evidence.",
+      "evidence": [
+        "vor-maschine.rp5.r396.codex-status.config.mjs",
+        "vor-maschine.rp5.r396.codex-status.spec.mjs",
+        "vor-maschine.rp5.r396.codex-status-report.json",
+        "vor-maschine.rp5.r396.codex-status-classified.json"
+      ]
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python <coverage-probes.py> --root <archive> --logs /home/cnc/mg5c4/gate-merge.logs --head 9d7d7c0e38b4d863549aa269d02b942ce080f668 --out <results.json>",
+      "result": "Control PASS; malformed listings/provenance/status/native binding admitted; null live scenario silently absent; missing-direct control fails correctly. See complete case results.",
+      "evidence": [
+        "vor-maschine.rp5.r396.codex-coverage-probes.py",
+        "vor-maschine.rp5.r396.codex-coverage-probes.json"
+      ]
+    }
+  ],
+  "source_sha256": {
+    "scripts/inventory/coverage.py": "fa8ae917b4958b7ccea834234693ab89c566667c09e424d3cb585c0606235ab8",
+    "scripts/inventory/live_drivers.py": "a48359cae4a3fa70c894ad57b7702645b678b89d0206129b3e506bd77b345526",
+    "scripts/test_select/replay.py": "dafc3075b92903b7028496fa5e7a9fdd92311fbbc8f07242ec6814310f3bb5b7",
+    "scripts/test_select/round_gate.py": "8570d03e65e30192d53f7ecc3d7c318470407b07cedb4dc72ef98e819807b6ca",
+    "lcnc-webui/src/SimPanel.vue": "24ee029ab366abea28c3238de8f5b3333a03b4605208ec6c139dca2f14e79784",
+    "lcnc-webui/e2e/sim-panel.viewer.spec.ts": "19103f80653997ece80a792256c85dcbc84a5dfea4b2b733e66c0fa60b4749c9"
+  },
+  "read_only_input_artifacts": {
+    "folder": "/home/cnc/mg5c4/gate-merge.logs",
+    "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+    "sha256": {
+      "list-run.json": "0df6cc4b988fb225239d858b09b98f1b64be0169f5ef53660d06a341cba594a2",
+      "playwright.json": "8725ba50b769b13dd93b36469850c8bb26a49a9feae3f2c7d27a4e25295341c5",
+      "firefox-list.json": "80da8bc23d8239c8c5137a9bf0b38df79bdff5e84fe202f876f7938a8f819392",
+      "firefox.json": "6bdf9a0aa3ea2565c9ade56098fc10d26c8376c19d6c5f1fff5a02495161e1aa",
+      "unit-light.list.json": "13c1aeef116a963d9fea18db6fb901b2b0e4e917b9ca08fb431bea27a760a54b",
+      "unit-light.json": "41297695ff02428058cda54de9a83b7b842644c6e3513de231afd92b9784ceb7",
+      "unit-heavy.list.json": "44fe080d78278cf55e21cd4a0bf60a04983532e7ac3caa8cfc9158c663d38350",
+      "unit-heavy.json": "0110ea50f47852082340068d4072cca0e98ae70d94b6e65077a355f3c1a8e89a",
+      "replay.json": "121d74ba342d7bf92f7214431f9b71cb40e2d98f3d8d25b91bc2a0a7b8239cb7",
+      "firefox-replay.json": "43a051c191d8602cecaef8296671b9aaa54a61c14f7eb286e5b67249c4826c6e",
+      "backend/backend.junit.xml": "dca0ea16cfb92ed5d59fb71368b5913a0458b8677bb55a5e53494745b1f56c28"
+    }
+  },
+  "evidence_sha256": {
+    "vor-maschine.rp5.r396.codex-coverage-probes.py": "b9e7d0e28cda6162a63b04a2555d7ba3b14e941002b824dfe6e23a53605f18cd",
+    "vor-maschine.rp5.r396.codex-coverage-probes.json": "fc948ea15e2aea29b45e27549b74837e714040909e5ce5fa426d84d8e29c40dc",
+    "vor-maschine.rp5.r396.codex-status.config.mjs": "6dc9e89a0d7444cdd04cb445d9ea17faccc201f5f40cbbc8674b7345f123524b",
+    "vor-maschine.rp5.r396.codex-status.spec.mjs": "db5367d456c660990953a05a3d14186815219487c7410af8e97981381eed822a",
+    "vor-maschine.rp5.r396.codex-status-report.json": "5b37426a93a16f80fa8bd71561183aa410f70e67686bdaa61011ae146c11a7bb",
+    "vor-maschine.rp5.r396.codex-status-classified.json": "dc33ee4636526073f4081ea3d27beb318909bd1cf1d5bbec1bf7aca46742ac4c",
+    "vor-maschine.rp5.r396.codex-browser.json": "051e12db99463daa59a362ee55139778eaac5a687185d7f514631fd339b1e2b4",
+    "vor-maschine.rp5.r396.codex-browser-replay.json": "241740315c633f0c3166f3ffeda6bdd12469000a736b85224ae183c754f95d24",
+    "vor-maschine.rp5.r396.codex-pytest.txt": "7d51fef23f6a0ca61279f9188421ad0e29a541151e30e256ff570f3990f7655a",
+    "vor-maschine.rp5.r396.codex-build.txt": "7ed4c16bb8ca6f45e0c4fbad513a03423e786ddeb0a5d7a48d46cb8f3fe81aa0"
+  },
+  "limits": [
+    "No full merge gate or own Firefox rerun. Supplied gate evidence inspected separately.",
+    "No native driver imported or run. Live status records are synthetic and explicitly labeled.",
+    "Mutated artifact copies and monkeypatched inventory exist only in isolated probe processes."
+  ]
+}

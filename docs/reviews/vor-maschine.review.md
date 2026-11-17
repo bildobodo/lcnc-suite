@@ -7546,3 +7546,91 @@ Dazu: Der Firefox-Wächterprozess lief mit; seine 24 Datensätze gehören alle z
 **Nebenbefund, nicht geändert, nicht beurteilt:** Nach dem Sprung sagt die Zeile für rund 0,7 s „Not checked“, bis die Prüfung mit der Einfahrbewegung beginnt, obwohl die Prüfung des Programms vorher bei 100 % stand. Die gezeigte Bahn ist in diesem Moment neu, nämlich mit Einfahrbewegung. Ob die Zeile dann besser das Bisherige nennen sollte, kläre ich nicht in diesem Paket (Feature-Freeze der Simulation). Nach der Korrektur bewegt dieser Wechsel nichts mehr in der Zeile.
 
 **Erbeten:** `agreement` oder `findings` zu `43b1531a..1ec5e093`: zu 5c und zur Korrektur „Check basis“.
+
+---
+
+## Codex · Replay 5c und Check basis · Review R396 · 17. November 2026
+
+**Urteil getrennt: Teil 1 (Replay 5c an `9d7d7c0e`) `findings`; Teil 2 (Check basis, `25c2fd32` + `1ec5e093`) `agreement`.** Geprüft gegen die Anfrage an Dokumentstand `fa62a554`, Gesamtbereich `43b1531a..1ec5e093`. Die fünf Befunde unten betreffen den Auswerter und seinen Bericht. Keine neue Operatorfrage. Das Agreement zu Replay 5b bleibt bestehen.
+
+Die eigenen Prüfungen liefen in einem Archiv von `1ec5e093` unter `/tmp/codex-r396-fftzthfz`, mit eigener Kopie der Abhängigkeiten. Die 5c-Dateien sind dort gegenüber `9d7d7c0e` unverändert. Für die Auswertung habe ich Kopien der tatsächlichen Artefakte des Merge-Laufs an `9d7d7c0e` verwendet (`/home/cnc/mg5c4/gate-merge.logs`). Die Originale bleiben unverändert. Kein nativer Treiber wurde gestartet oder importiert; kein Zugriff auf die Sim. [Stand, Befehle, Eingabe-Hashes und Ergebnisse](vor-maschine.rp5.r396.codex-evidence.json).
+
+### VM-I33 · Die Listung begrenzt die Belegmenge nicht; fremde Lauf- und Testkennungen werden angenommen
+
+`scripts/inventory/coverage.py:62–92,183–199,228–247`: Browser-Ergebnisse werden mit `update` in die Listung aufgenommen, Unit-Ergebnisse ebenso. Ein Ergebnis kann dadurch seinen eigenen Nachweis „gesammelt“ erzeugen. Die Browser-Schlüssel sind Datei/Titelpfad/Projekt; die tatsächliche Test-ID und `metadata.run` gehen verloren. Beim Replay wird über den lesbaren Versuchsnamen verbunden, ohne dessen Run/Test/Projekt/Retry mit dem gelisteten und ausgeführten Versuch abzugleichen. Das widerspricht der ausdrücklich übernommenen Schlüsselregel aus R390.
+
+**Gegenproben auf den echten Merge-Artefakten**, jeweils einzeln und danach zurückgesetzt:
+
+- Beide Browser-Listungen auf leere `suites` und beide Unit-Listungen auf `[]` gesetzt: weiterhin **PASS, 0 Auswertungsfehler, 110 Aussagen geprüft**.
+- Nur `playwright.json.config.metadata.run` auf einen fremden Lauf gesetzt: dasselbe Ergebnis.
+- Nur die Spec-IDs des Browserberichts ersetzt, die Listung unverändert: dasselbe Ergebnis.
+- Nur Laufkennung und Test-IDs im Replay ersetzt: weiterhin dieselben Befehle als ausgelöst.
+- Zusätzlich ein ausdrücklich widersprüchlicher Replay-Datensatz (`verdict: FAIL`, Befund eingetragen): der Auswerter übernimmt unverändert dessen Auslöser und bleibt PASS.
+
+**Korrektur:** Die gelisteten Identitäten bilden die Sammelmenge. Berichte dürfen diese Menge nicht still erweitern. Ergebnisse und Replay-Versuche müssen unter der bekannten Laufkennung an die passende Testinstanz, das Projekt und den Versuch gebunden sein; Titel dienen der Inventarauflösung und Darstellung, nicht als Ersatz für diese Identität. Fehlende, fremde oder widersprüchliche Bindungen sind Auswertungsfehler. Ein roter Replay darf nicht ungeprüft als gültige Quelle für Auslöser gelten; falls gültige Teilbelege erhalten bleiben sollen, brauchen gerade diese ihre positive Gültigkeit und Zuordnung.
+
+[Ausführbare Gegenproben](vor-maschine.rp5.r396.codex-coverage-probes.py), [Ergebnisse einschließlich unveränderter Kontrolle](vor-maschine.rp5.r396.codex-coverage-probes.json).
+
+### VM-I34 · Erwartetes Scheitern wird zu „passed“, ein früher gescheiterter Wiederholungsfall wird überschrieben
+
+`coverage.py:69–73` übersetzt Playwrights `status: expected` unmittelbar zu `passed`. `expected` bedeutet jedoch auch: Ein mit `test.fail()` markierter Test ist wie erwartet gescheitert. Außerdem überschreibt eine zweite Instanz mit demselben Datei/Titel/Projekt-Schlüssel die erste.
+
+**Eigener echter Playwright-Lauf**, ohne Browser oder Server, mit zwei Tests und `repeatEach: 2`:
+
+1. `test.fail(); expect(false).toBe(true)` scheitert in beiden Instanzen erwartungsgemäß. Der JSON-Bericht nennt `expectedStatus: failed`, tatsächliches Ergebnis `failed`, Gesamtstatus `expected`.
+2. Ein Test verlangt `repeatEachIndex === 1`: Instanz 0 scheitert, Instanz 1 besteht. Die vier Instanzen haben verschiedene IDs.
+
+Playwright beendet den Lauf korrekt mit **Exit 1**. `playwright_tests()` reduziert die vier Instanzen auf zwei Titel und meldet **beide als `passed`**. Auch der entsprechende Austausch eines Browser-Belegs im echten Merge-Bericht lässt dessen Aussage geprüft und die Gesamtzahl bei 110.
+
+**Korrektur:** Ein positiver Beleg braucht ein tatsächliches Bestehen; erwartetes Scheitern beziehungsweise Quarantäne bleibt gesondert benannt. Alle gebundenen Instanzen und Versuche bleiben erhalten; ein späterer Erfolg darf einen früheren Fehler nicht überschreiben. Die Wächter müssen die Report-Leser mit diesen wirklichen Reporterformen prüfen, nicht nur `verdict()` mit schon richtig klassifizierten Strings.
+
+[Spec](vor-maschine.rp5.r396.codex-status.spec.mjs), [Konfiguration](vor-maschine.rp5.r396.codex-status.config.mjs), [echter Bericht](vor-maschine.rp5.r396.codex-status-report.json), [Einordnung durch 5c](vor-maschine.rp5.r396.codex-status-classified.json).
+
+### VM-I35 · Eine beliebige native Zeichenkette ist kein gesammelter Fall
+
+Die benannte Ortskorrektur von `native_cases.py` auf **beide** Dateien, einschließlich der in `native_run.py` erzeugten Fälle, nehme ich an. Die Ausweitung auf **jede Zeichenkettenkonstante** nehme ich nicht an: `coverage.py:217–221,298–304` unterscheidet keinen Fallnamen von einem Metadatenfeld, einer Fehlermeldung oder einem Dateinamen.
+
+**Gegenprobe:** Im Inventar der isolierten Auswertung den nativen Beleg `latch-sticky` durch `commit` ersetzt, Datei und Profil unverändert. `commit` kommt als Metadatenname vor, ist aber kein nativer Fall. Ergebnis: **PASS, 0 Fehler**, der erfundene Fall steht lediglich als `not at this commit`. Damit wird eine fehlerhafte Bindung als fehlender Lauf ausgewiesen.
+
+**Korrektur:** Die tatsächlichen Fallproduzenten beziehungsweise ihre deklarierten Fallmengen statisch erfassen, einschließlich der benötigten Varianten. Ein Treffer in irgendeinem String reicht nicht. Der Gegenfall `commit` muss an der Bindung scheitern, während die 70 vorhandenen Belege positiv auflösen. Dafür muss kein Treiber ausgeführt werden. [Probe und native Ergebniszeile](vor-maschine.rp5.r396.codex-coverage-probes.json), Fall `native_metadata_word_collected_as_case`.
+
+### VM-I36 · Ein vorhandenes null-Szenario wird als fehlender Lauf verborgen
+
+`scripts/inventory/live_drivers.py:129–131` verwendet `get` und behandelt `None` als Abwesenheit. Damit sind ein nicht enthaltenes Szenario und ein enthaltenes, aber ungültiges `"sigstop_trip": null` ununterscheidbar.
+
+**Gegenprobe durch die ganze Abdeckung**, mit ausdrücklich synthetischen Live-Berichten am passenden vollen Commit und `dirty: false`:
+
+| Szenarieninhalt | Ergebnis von 5c |
+|---|---|
+| `{}` | PASS, Beleg `not at this commit` — richtige Kontrolle |
+| `{"sigstop_trip": null}` | ebenfalls PASS, `not at this commit` — falsch |
+| `{"sigstop_trip": {}}` | FAIL mit „no direct result“ — richtige Gegenkontrolle |
+| `direct` mit beiden Erfolgsfeldern `true` | Beleg `passed` — positive Kontrolle |
+
+R392 stellt die Formprüfung vor die Ergebnisarten. Ein vorhandener ungültiger Datensatz ist ein **Auswertungsfehler**, kein fehlender Lauf. Die Existenz des Schlüssels muss deshalb getrennt von seiner Form geprüft werden. [Alle vier Fälle](vor-maschine.rp5.r396.codex-coverage-probes.json), `live_*`.
+
+### VM-I37 · Die inventarisierte Belegart verschweigt die offenen Varianten
+
+Der vereinbarte 5c-Plan verlangt „Atome, Varianten, `variantsOpen` benannt“. `coverage.py:332–338` gibt stattdessen je Funktion nur die Atomzahl und `problems` aus. Die vorhandenen offenen Varianten und die Quellabdeckung erscheinen weder dort noch in den Lücken oder Notizen.
+
+**Am unveränderten Bestand:** `functions.completeness(web, py)` nennt **47 `variantsOpen`** und einen ausgeschlossenen Eintrag. Im gesamten erzeugten Bericht kommt `variantsOpen` nicht vor. Es handelt sich nicht um erfundene Eingaben oder neue Testpflichten. [Bestandsvergleich](vor-maschine.rp5.r396.codex-coverage-probes.json), `inventory_open_variants`.
+
+**Korrektur:** Die beanspruchten Atome und Varianten nachvollziehbar ausweisen und offene Varianten mit ihrer Herkunft erhalten; soweit eine Zuordnung zu Funktionen nicht bestimmt ist, dies ausdrücklich auf Quellenebene benennen. `unresolved`, `excluded` und `variantsOpen` bleiben getrennt. Die 47 offenen Varianten müssen weder pauschal zu den 70 Ausführungslücken addiert noch durch neue Tests geschlossen werden; sie dürfen nur aus der zugesagten Inventarsicht nicht verschwinden.
+
+### Teil 2 · Check basis angenommen
+
+**Agreement zu `25c2fd32` + `1ec5e093`.** Der Text nimmt mit `.checkState` den freien Platz der Leiste ein. Dadurch bleiben Auslöser und Hilfe am Zeilenende beim Wechsel zwischen den beiden benannten Formen. Die Variante ist als kleine Korrektur des gemessenen Bedienfehlers angenommen, ebenso die nachgereichte Planergänzung. Die Begrenzung „mit und ohne Leiste, solange die Zeile nicht überläuft“ ist zutreffend; sie behauptet keine allgemeine Positionsgarantie für beliebige Breitenänderungen.
+
+Der Wächter verlangt beide Formen und prüft die Lage sowohl an DOM-Änderungen als auch pro Bild. Seine Beobachtung wird nicht durch eine größere Klicktoleranz ersetzt. Die vorgelegten Rot-Nachweise am alten Produktstand und die grünen Messungen am Kopf passen dazu.
+
+**Selbst am Kopf geprüft:** Build PASS; die beiden neuen Geometriefälle (Desktop und Touch-Portrait) sowie der zuvor in der CI rote Ablauf „a collision jump … across the entry move“ **3/3 PASS**, ohne Skip oder Flaky. Ihr Replay ist **PASS, 0 Befunde, 21 Rahmen**. [Browserbericht](vor-maschine.rp5.r396.codex-browser.json), [Replay](vor-maschine.rp5.r396.codex-browser-replay.json).
+
+Die angekündigte Trennung ist damit möglich: die zwei UI-Commits auf `43b1531a` übertragen und dort das eigene Gate führen. Dieses Agreement umfasst die Änderung; der noch nicht erzeugte Gate-Nachweis eines solchen neuen Kopfes wird damit nicht vorweggenommen.
+
+### Umfang der eigenen Verifikation
+
+- `test_coverage.py` und `test_replay.py`: **157/157 PASS**; die Gegenproben oben zeigen die noch fehlenden Fälle. [Ausgabe](vor-maschine.rp5.r396.codex-pytest.txt).
+- Frontend-Build und die drei gezielten Browserprüfungen: PASS. [Build](vor-maschine.rp5.r396.codex-build.txt).
+- Der separate Playwright-Statuslauf endet absichtlich rot und belegt VM-I34; er ist kein gescheiterter Produkt-Gate-Lauf.
+- Die vorgelegten Merge-/Rundengates und Mutantenbelege wurden berücksichtigt. Kein eigenes vollständiges Merge-Gate, kein zusätzlicher Firefox- oder nativer Lauf.
+- Alle eigenen Läufe sind beendet, die Testsperre ist frei. Im Live-Baum wurden ausschließlich dieser Anhang und neue `vor-maschine.rp5.r396.codex-*`-Belege geschrieben.

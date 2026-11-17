@@ -1,0 +1,28 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T20:19:19.049Z",
+    "duration": 488.02700000000004,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "reader": [
+    {
+      "key": [
+        "status.spec.mjs",
+        "expected assertion failure is not a passing assertion",
+        "e2e"
+      ],
+      "status": "passed"
+    },
+    {
+      "key": [
+        "status.spec.mjs",
+        "both repeated instances must pass",
+        "e2e"
+      ],
+      "status": "passed"
+    }
+  ]
+}

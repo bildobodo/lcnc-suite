@@ -1,0 +1,187 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r396-fftzthfz/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/codex-r396-fftzthfz/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r396-ui",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r396-fftzthfz/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r396-ui",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r396-fftzthfz/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/codex-r396-fftzthfz\\/lcnc-webui\\/e2e\\/sim-panel\\.viewer\\.spec\\.ts|\\/tmp\\/codex-r396-fftzthfz\\/lcnc-webui\\/e2e\\/collisions\\.viewer\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5859,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:16:55.857Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-8a3f67e146e6b0f57946",
+          "file": "collisions.viewer.spec.ts",
+          "line": 61,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "sim-panel.viewer.spec.ts",
+      "file": "sim-panel.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "desktop: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2828,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:17:01.866Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-e8d2ee836847807069ed",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 1564,
+          "column": 3
+        },
+        {
+          "title": "touch-portrait: the check basis trigger and its \"?\" keep their place with and without the check's bar (dev CI 44098232396)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2768,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:17:04.699Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-ceca4299b62e3f3103d7",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 1564,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-17T20:16:53.792Z",
+    "duration": 13739.623,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
