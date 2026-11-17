@@ -1,0 +1,24 @@
+24c24
+<     def judge(name, rec, required):
+---
+>     def judge(name, rec, required, **kw):
+26c26
+<             r = rec.judge(Path(tmp))
+---
+>             r = rec.judge(Path(tmp), **kw)
+61c61,62
+<     judge('no_context_close_mark', rec, 'completed run must account for the close/service-worker check of each context')
+---
+>     # R394 adaptation: the test builder now closes every context by default — this case must not be closed
+>     judge('no_context_close_mark', rec, 'completed run must account for the close/service-worker check of each context', close=False)
+74a76,81
+>             # R394 adaptation: the real fixture writes each mock's workerIndex on its bound event
+>             ev = [json.loads(x) for x in Path(events).read_text().splitlines() if x.strip()]
+>             for x in ev:
+>                 if x.get('event') == 'bound':
+>                     x['workerIndex'] = 0
+>             Path(events).write_text(''.join(json.dumps(x) + '\n' for x in ev))
+99c106
+<     a.out.write_text(json.dumps({'review': 'R393', 'head': 'cccc94ea', 'cases': results}, indent=2) + '\n')
+---
+>     a.out.write_text(json.dumps({'review': 'R393', 'head': '964a6396 (R394 run; the probe adapted at two places)', 'cases': results}, indent=2) + '\n')

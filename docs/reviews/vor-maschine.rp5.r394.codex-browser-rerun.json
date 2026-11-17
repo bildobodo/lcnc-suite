@@ -1,0 +1,96 @@
+{
+ "head": "964a6396",
+ "spec": "vor-maschine.rp5.r393.codex-browser.spec.ts, unchanged",
+ "playwright": {
+  "startTime": "2026-11-17T09:55:37.426Z",
+  "duration": 2122.853,
+  "expected": 4,
+  "skipped": 0,
+  "unexpected": 0,
+  "flaky": 0
+ },
+ "replay_verdict": "PASS",
+ "findings": [],
+ "per_attempt": {
+  "codex-r393.spec.ts \u203a R393 a URL override does not serve the original gateway route [retry 0]": [
+   {
+    "what": "GET /g30",
+    "variant": null,
+    "path": null,
+    "class": "rewritten",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "codex-r393.spec.ts \u203a R393 a fetch of the SPA fallback remains a fallback contact [retry 0]": [
+   {
+    "what": "GET /g30",
+    "variant": null,
+    "path": null,
+    "class": "fetch-fallback",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "codex-r393.spec.ts \u203a R393 an encoded slash in a path parameter does not leak its value [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/settings/{section}",
+    "class": "fallback",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "codex-r393.spec.ts \u203a R393 reused handler can be unregistered from its first URL [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__codex/a",
+    "class": "fallback",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ]
+ }
+}

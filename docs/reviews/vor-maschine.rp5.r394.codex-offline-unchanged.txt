@@ -1,0 +1,15 @@
+direct_handler_control {"verdict": null, "classes": {"served": 1}, "findings": []}
+direct_fallback_control {"verdict": null, "classes": {"fallback": 1}, "findings": []}
+fetched_fallback {"verdict": null, "classes": {"fetch-fallback": 1}, "findings": []}
+fetched_closed_contact {"verdict": null, "classes": {"fetch-unknown": 1}, "findings": []}
+forwarded_closed_contact {"verdict": null, "classes": {"contact-closed": 1}, "findings": []}
+redirect_only_first_contact {"verdict": null, "classes": {"redirect-chain": 1, "redirect-hop": 1}, "findings": []}
+rewritten_url {"verdict": null, "classes": {"rewritten": 1}, "findings": ["request 1 GET /g30: its contact is GET /devices with no recorded rewrite"]}
+foreign_context_project {"verdict": null, "classes": {"served": 1}, "findings": ["context c1: names project 'foreign-project', its attempt ran in 'e2e'", "request 1 GET /devices: its contact carries another origin ({'run': 'run-1', 'test': 't1', 'project': 'e2e', 'retry': 0})"]}
+orphan_actions_and_end {"verdict": null, "classes": {}, "findings": ["a act line of a request the record never saw (lost)", "a act line of a request the record never saw (lost)", "a end line of a request the record never saw (lost)"]}
+duplicate_request_id {"verdict": null, "classes": {"served": 1}, "findings": ["request 1: a second request line \u2014 ids are unique"]}
+no_context_close_mark {"verdict": null, "classes": {"served": 1}, "findings": []}
+integrated_control {"verdict": "FAIL", "classes": null, "findings": ["run-1-w0.jsonl: a record of worker 0, which no mock of this run was bound to", "context c1: written by worker 0, its attempt ran on mock m1"]}
+integrated_foreign_context_project {"verdict": "FAIL", "classes": null, "findings": ["run-1-w0.jsonl: a record of worker 0, which no mock of this run was bound to", "context c1: names project 'foreign-project', its attempt ran in 'e2e'", "context c1: written by worker 0, its attempt ran on mock m1", "request p GET /: its contact carries another origin ({'run': 'run-1', 'test': 'tid-a', 'project': 'e2e', 'retry': 0})"]}
+integrated_orphan_actions_and_end {"verdict": "FAIL", "classes": null, "findings": ["run-1-w0.jsonl: a record of worker 0, which no mock of this run was bound to", "context c1: written by worker 0, its attempt ran on mock m1", "a act line of a request the record never saw (lost)", "a end line of a request the record never saw (lost)"]}
+integrated_foreign_worker_file {"verdict": "FAIL", "classes": null, "findings": ["run-1-w0.jsonl: a record of worker 0, which no mock of this run was bound to", "run-1-w999.jsonl: a record of worker 999, which no mock of this run was bound to", "context c1: written by worker 0, its attempt ran on mock m1", "context stray: a context of run 'foreign-run', not run-1"]}

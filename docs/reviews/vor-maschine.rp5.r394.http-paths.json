@@ -1,0 +1,499 @@
+{
+ "requests": 23301,
+ "contexts": 949,
+ "classes": {
+  "aborted": 2,
+  "rewritten": 1,
+  "replaced": 3783,
+  "fetched": 5,
+  "fetch-fallback": 1,
+  "fetch-unknown": 1,
+  "other-server": 34,
+  "redirect-chain": 1,
+  "served": 15656,
+  "fallback": 3199,
+  "redirect-hop": 2,
+  "closing": 585,
+  "held": 5,
+  "aborted-early": 26
+ },
+ "routes": {
+  "DELETE /macro": {
+   "replaced": 3
+  },
+  "GET /": {
+   "other-server": 3,
+   "served": 995
+  },
+  "GET /devices": {
+   "aborted": 1,
+   "closing": 1,
+   "fetched": 1,
+   "replaced": 3,
+   "served": 84
+  },
+  "GET /files": {
+   "replaced": 38
+  },
+  "GET /g30": {
+   "closing": 440,
+   "fallback": 1813,
+   "fetch-fallback": 1,
+   "replaced": 47,
+   "rewritten": 1
+  },
+  "GET /gcode": {
+   "fallback": 3,
+   "replaced": 356
+  },
+  "GET /macro": {
+   "replaced": 24
+  },
+  "GET /macros": {
+   "closing": 3,
+   "other-server": 1,
+   "replaced": 91,
+   "served": 938
+  },
+  "GET /preview": {
+   "held": 4,
+   "replaced": 280,
+   "served": 74
+  },
+  "GET /ready": {
+   "closing": 2,
+   "fallback": 4
+  },
+  "GET /settings": {
+   "other-server": 3,
+   "replaced": 3,
+   "served": 992
+  },
+  "GET /subfile": {
+   "fallback": 2,
+   "replaced": 2
+  },
+  "GET /surface_points": {
+   "replaced": 1
+  },
+  "GET /tool-library-file": {
+   "replaced": 7
+  },
+  "GET /tool-library-files": {
+   "replaced": 27
+  },
+  "GET /tool-table": {
+   "held": 1,
+   "replaced": 1
+  },
+  "POST /import-tool-library": {
+   "replaced": 24
+  },
+  "POST /import-tool-library/apply": {
+   "replaced": 3
+  },
+  "POST /import-tool-library/refresh": {
+   "replaced": 3
+  },
+  "POST /settings/{section}": {
+   "aborted": 1,
+   "aborted-early": 1,
+   "fallback": 2,
+   "replaced": 2
+  },
+  "POST /telemetry": {
+   "aborted-early": 25,
+   "closing": 124,
+   "fallback": 1372,
+   "replaced": 12
+  },
+  "POST /upload": {
+   "replaced": 8
+  },
+  "PUT /macro": {
+   "replaced": 10
+  },
+  "PUT /save": {
+   "replaced": 3
+  }
+ },
+ "fallback_paths": {
+  "GET /g30": 1814,
+  "POST /telemetry": 1372,
+  "GET /ready": 4,
+  "GET /gcode": 3,
+  "GET /subfile": 2,
+  "GET /settings/{section}": 2,
+  "GET /__e2e/a": 1,
+  "POST /settings/{section}": 1,
+  "POST /settings/viewer": 1
+ },
+ "idless_covered_by_synthetic_hops": 1,
+ "ws_handshakes_joined": 0,
+ "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+ "findings": [],
+ "per_attempt_counter_cases": {
+  "http-paths.spec.ts \u203a a 403 from the mock is served, with its status [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/..%2f..%2fe2e-outside",
+    "class": "served",
+    "transport": "failed",
+    "status": 403,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a fetch over the SPA fallback, then fulfill: a fallback stays a fallback (R393 VM-I28) [retry 0]": [
+   {
+    "what": "GET /g30",
+    "variant": null,
+    "path": null,
+    "class": "fetch-fallback",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a fetch through a server redirect, then fulfill: the replacement proven, the server contact not [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/redirect",
+    "class": "fetch-unknown",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a handler registered for two urls is unrouted from one of them alone (R393 VM-I31) [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/a",
+    "class": "fallback",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/b",
+    "class": "replaced",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a rewritten URL is credited to no route (R393 VM-I29) [retry 0]": [
+   {
+    "what": "GET /g30",
+    "variant": null,
+    "path": null,
+    "class": "rewritten",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a save and a rename of a macro in one test are two variants [retry 0]": [
+   {
+    "what": "PUT /macro",
+    "variant": "rename base=revision rename_base=revision",
+    "path": null,
+    "class": "replaced",
+    "transport": "none",
+    "status": null,
+    "n": 1
+   },
+   {
+    "what": "PUT /macro",
+    "variant": "save base=new",
+    "path": null,
+    "class": "replaced",
+    "transport": "none",
+    "status": null,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a server redirect: the first id carries both contacts, both hops stay unknown [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/redirect",
+    "class": "redirect-chain",
+    "transport": "finished",
+    "status": 302,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "redirect-hop",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a spec's own headers replace the request's on continue, fallback and fetch, as in Playwright (R394) [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/headers-continue",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/headers-fallback",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/headers-fetch",
+    "class": "fetched",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a synthetic 302: the follow-up reaches the mock without an id, covered by its hop and unassigned [retry 0]": [
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/synthetic",
+    "class": "replaced",
+    "transport": "finished",
+    "status": 302,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "redirect-hop",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a an aborted request and one a spec holds until its context closes [retry 0]": [
+   {
+    "what": "GET /devices",
+    "variant": null,
+    "path": null,
+    "class": "aborted",
+    "transport": "failed",
+    "status": null,
+    "n": 1
+   },
+   {
+    "what": "GET /tool-table",
+    "variant": null,
+    "path": null,
+    "class": "held",
+    "transport": "none",
+    "status": null,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a an invented token in a query, a header and a path parameter appears in no record [retry 0]": [
+   {
+    "what": "POST /settings/{section}",
+    "variant": "unknown section",
+    "path": null,
+    "class": "fallback",
+    "transport": "none",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 2
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/settings/{section}",
+    "class": "fallback",
+    "transport": "none",
+    "status": 200,
+    "n": 2
+   }
+  ],
+  "http-paths.spec.ts \u203a fetch then fulfill: the one server contact assigned, the answer replaced [retry 0]": [
+   {
+    "what": "GET /devices",
+    "variant": null,
+    "path": null,
+    "class": "fetched",
+    "transport": "none",
+    "status": null,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a the SPA fallback answers an API path: never a served route [retry 0]": [
+   {
+    "what": "GET /g30",
+    "variant": null,
+    "path": null,
+    "class": "fallback",
+    "transport": "none",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a two GET /devices: the late one replaced, the other served by the mock \u2014 assigned by id, not URL or order [retry 0]": [
+   {
+    "what": "GET /devices",
+    "variant": null,
+    "path": null,
+    "class": "replaced",
+    "transport": "none",
+    "status": null,
+    "n": 1
+   },
+   {
+    "what": "GET /devices",
+    "variant": null,
+    "path": null,
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ]
+ },
+ "per_attempt_note": "937 attempts in the gate log replay.json (local); here only the counter-case spec"
+}
