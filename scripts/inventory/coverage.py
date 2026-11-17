@@ -92,6 +92,13 @@ def vitest_tests(listing: list, report: dict | None) -> dict[tuple, str]:
     return out
 
 
+_RANK = {"passed": 0, "skipped": 1, "failed": 2}
+
+
+def _worst(a: str, b: str) -> str:
+    return a if _RANK.get(a, 3) >= _RANK.get(b, 3) else b
+
+
 def junit_tests(path: Path) -> dict[tuple, str]:
     """(test file, node id) → status from the backend step's JUnit XML."""
     out = {}
@@ -100,9 +107,10 @@ def junit_tests(path: Path) -> dict[tuple, str]:
         mod = cls.split(".")[0]
         node = "::".join([mod + ".py", *cls.split(".")[1:], name])
         st = "passed"
-        for child in tc:
-            st = {"failure": "failed", "error": "failed", "skipped": "skipped"}.get(child.tag, st)
-        out[(mod + ".py", node)] = st
+        for child in tc:            # the worst child: a failing subtest marks its parent test (probed)
+            st = _worst(st, {"failure": "failed", "error": "failed", "skipped": "skipped"}.get(child.tag, st))
+        key = (mod + ".py", node)
+        out[key] = _worst(out.get(key, "passed"), st)
     return out
 
 
@@ -141,12 +149,15 @@ def bind(e: dict, cands: list[tuple[Any, list[str]]]) -> tuple[list, str]:
 
 
 def verdict(statuses: list[str]) -> str:
+    """passed only when EVERY bound status is exactly passed — a status this
+    report does not know is never passed (R396 pre-bell)."""
     if not statuses:
         return "not collected"
     for s in ("failed", "flaky", "skipped", "listed"):
         if s in statuses:
             return {"listed": "not run", "flaky": "failed"}.get(s, s)
-    return "passed"
+    odd = sorted({s for s in statuses if s != "passed"})
+    return f"unknown status {odd}" if odd else "passed"
 
 
 # ── the report ─────────────────────────────────────────────────────────────
@@ -184,7 +195,8 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
     gw = junit_tests(junit) if junit.is_file() else {}
     if not junit.is_file():
         errors.append(f"{junit.name}: an artefact of the run is missing")
-    replays = [r for r in (_json(logs / "replay.json", errors), _json(logs / "firefox-replay.json", errors)) if r]
+    # each project's replay apart (R389: Chromium and Firefox stay distinguishable)
+    replays = {"e2e": _json(logs / "replay.json", errors), "firefox-core": _json(logs / "firefox-replay.json", errors)}
 
     natives = []
     for p in native_paths:
@@ -208,11 +220,14 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
             if isinstance(n, ast.Constant) and isinstance(n.value, str):
                 native_consts.add(n.value)
 
-    # triggered: commands and routes from PASSED attempts
-    sent: dict[str, Counter] = defaultdict(Counter)
+    # triggered: commands and routes from PASSED attempts, per project; the
+    # gap is judged on the full Chromium run (the Firefox core is a subset)
+    sent: dict[str, dict[str, Counter]] = {p: defaultdict(Counter) for p in replays}
     refused: dict[str, list] = defaultdict(list)
-    routes: dict[str, Counter] = defaultdict(Counter)
-    for r in replays:
+    routes: dict[str, dict[str, Counter]] = {p: defaultdict(Counter) for p in replays}
+    for project, r in replays.items():
+        if not r:
+            continue
         passed = {a["name"] for a in r.get("attempt_list", []) if a.get("status") == "passed"}
         exp = r.get("per_attempt_expected", {})
         for att, counts in r.get("per_attempt", {}).items():
@@ -221,7 +236,7 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
             for key, n in counts.items():
                 valid = n - exp.get(att, {}).get(key, 0)
                 if valid > 0:
-                    sent[key.split(":")[0]][key] += valid
+                    sent[project][key.split(":")[0]][key] += valid
         for x in r.get("expected", []):
             refused[x.get("cmd")].append(x)
         for att, rows in r.get("http_paths", {}).get("per_attempt", {}).items():
@@ -229,7 +244,7 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                 continue
             for row in rows:
                 if row.get("what", "").split(" ")[0] in ("GET", "POST", "PUT", "DELETE"):
-                    routes[row["what"]][row["class"]] += row["n"]
+                    routes[project][row["what"]][row["class"]] += row["n"]
 
     out_fns, gaps = [], []
     for f in fns["functions"]:
@@ -237,16 +252,15 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
         atoms = sorted(functions.claimed(f["atoms"], list(ids), f["id"], problems))
         cmds = [a[4:] for a in atoms if a.startswith("cmd:")]
         rts = [a[5:] for a in atoms if a.startswith("http:") and a[5:].split(" ")[0] in ("GET", "POST", "PUT", "DELETE")]
-        trig_c = {c: dict(sent[c]) if sent.get(c) else "not sent" for c in cmds}
-        trig_r = {}
-        for rt in rts:
-            got = dict(routes.get(rt, {}))
-            trig_r[rt] = {("served by the mock" if k == "served" else k): v for k, v in got.items()} if got else "not requested"
-        gaps += [{"function": f["id"], "kind": "triggered", "item": f"cmd:{c}", "why": "not sent in a passed attempt"}
-                 for c, v in trig_c.items() if v == "not sent"]
+        trig_c = {c: {p: dict(sent[p][c]) if sent[p].get(c) else "not sent" for p in replays} for c in cmds}
+        trig_r = {rt: {p: ({("served by the mock" if k == "served" else k): v for k, v in routes[p][rt].items()}
+                           if routes[p].get(rt) else "not requested") for p in replays} for rt in rts}
+        gaps += [{"function": f["id"], "kind": "triggered", "item": f"cmd:{c}", "why": "not sent in a passed Chromium attempt"}
+                 for c, v in trig_c.items() if v["e2e"] == "not sent"]
         gaps += [{"function": f["id"], "kind": "triggered", "item": f"http:{r}",
-                  "why": "not requested" if v == "not requested" else "never answered by a server (" + ", ".join(sorted(v)) + ")"}
-                 for r, v in trig_r.items() if v == "not requested" or not (set(routes.get(r, {})) & EVIDENCE)]
+                  "why": "not requested" if v["e2e"] == "not requested"
+                  else "never answered by a server (" + ", ".join(sorted(v["e2e"])) + ")"}
+                 for r, v in trig_r.items() if v["e2e"] == "not requested" or not (set(routes["e2e"].get(r, {})) & EVIDENCE)]
         stmts, counter_native, native = [], [], []
         for s in f.get("statements", []):
             ev_out = []
@@ -259,6 +273,12 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                         if not cands and project == "firefox-core":
                             continue
                         bound, why = bind(e, cands)
+                        if why and project == "firefox-core":
+                            # the core is a SUBSET of the full run by title: a title
+                            # or an instance outside it is named, never red
+                            ev_out.append({**row, "project": project, "bound": [f"{k[0]} › {k[1]}" for k in bound],
+                                           "status": "not in the Firefox core", "why": why})
+                            continue
                         st = verdict([tests[project][k] for k in bound]) if not why else "not collected"
                         ev_out.append({**row, "project": project, "bound": [f"{k[0]} › {k[1]}" for k in bound],
                                        "status": st, **({"why": why} if why else {})})
@@ -277,14 +297,19 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                     why = "" if bound else "not collected — no node of that name in the backend step"
                 elif e["layer"] == "native":
                     ok = e["title"] in native_consts
-                    hits = [rw["status"] for r in natives if r.get("commit") == head and r.get("profile") == e.get("profile")
+                    hits = [rw for r in natives if r.get("commit") == head and r.get("profile") == e.get("profile")
                             for rw in r.get("rows", []) if rw.get("case") == e["title"] and rw.get("variant") == e.get("variant")]
-                    st = hits[-1] if hits else "not at this commit"
+                    st = hits[-1].get("status") if hits else "not at this commit"
                     row |= {"profile": e.get("profile"), "variant": e.get("variant"), "status": st}
                     why = "" if ok else "no string constant of native_run names the case"
                     native.append(row)
-                    if ".counter-" in e["title"] or e["title"].endswith(".delayed-order"):
-                        counter_native.append(row)
+                    # a counter row: the report's own flag when this commit's report
+                    # has the row; without one, by its name — and said so
+                    if hits:
+                        if hits[-1].get("counter") is True:
+                            counter_native.append({**row, "basis": "the report's counter flag"})
+                    elif ".counter-" in e["title"] or e["title"].endswith(".delayed-order"):
+                        counter_native.append({**row, "basis": "by its name (no report of this commit)"})
                 elif e["layer"] == "script":
                     j = live_drivers.judge(e, root, lives, head)
                     row |= {"status": j["status"], **({"why": j["why"]} if j.get("why") else {})}
@@ -294,7 +319,8 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                 if why:
                     errors.append(f"{f['id']}.{s['id']}: {e['layer']} {e['file']} › {e['title'][:80]}: {why}")
                 ev_out.append(row)
-            in_gate = [x for x in ev_out if x["layer"] in ("browser", "unit", "gateway")]
+            in_gate = [x for x in ev_out if x["layer"] in ("browser", "unit", "gateway")
+                       and x.get("status") != "not in the Firefox core"]
             checked = bool(in_gate) and all(x["status"] == "passed" for x in in_gate)
             stmts.append({"id": s["id"], "kind": s["kind"], "text": s["text"], "evidence": ev_out,
                           "checked": "passed" if checked else "open"})
