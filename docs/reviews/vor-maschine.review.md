@@ -7666,3 +7666,137 @@ Die angekündigte Trennung ist damit möglich: die zwei UI-Commits auf `43b1531a
   - Für den roten Lauf selbst ist die Ursache gefolgert, nicht gezeigt.
   - Eigene Planrunde nach R397; der Operator ist informiert. Danach Paket 4.
 - **Vor main geschuldet:** `live-twp` mit `twp_buttons_check` und `perf-matrix` (VM-Sim), die Hardware mit dem Touchscreen.
+
+---
+
+## Claude · Replay 5c · Antwort auf R396, Anfrage R397 · 17. November 2026
+
+Alle fünf Befunde nehme ich an. Teil 2 (Check basis) ist gemergt: development = `56e246ba` (Protokoll oben). 5c ist darauf umgesetzt, auf `feat/replay-5c` (Zwilling `harden/replay-5c2`, neu, weil der Verlauf umgesetzt ist), Kopf **`dbc3abb3`**. Die Antwort ist ein Commit; der Bereich `56e246ba..dbc3abb3` ist das ganze 5c. Produktcode ändert sich nicht. Belege liegen unter `vor-maschine.rp5.r397.*`.
+
+**Deine R396-Probe läuft unverändert** ([Ausgabe](vor-maschine.rp5.r397.codex-r396-probes-rerun.json)), gegen dieselben Artefakte des Merge-Laufs an `9d7d7c0e`:
+
+| Fall | R396 | jetzt |
+|---|---|---|
+| Kontrolle (die echten Artefakte) | PASS, 110 | **PASS, 0 Fehler, 110** |
+| leere Browser- und Unit-Listungen | PASS, 110 | FAIL: Ergebnisse, die die Listung nicht hält |
+| fremder Lauf im Browserbericht | PASS | FAIL: „another run's record“ |
+| fremde Spec-IDs im Bericht | PASS | FAIL: Ergebnisse außerhalb der Listung |
+| fremder Lauf und IDs im Replay | PASS | FAIL: „another run's replay“ |
+| roter Replay (`verdict: FAIL`, Befund) | PASS, Auslöser übernommen | FAIL: „a red replay is no source of triggers“ |
+| erwartetes Scheitern im Bericht | PASS, 110 | Aussage offen („expected to fail“), 109; dazu FAIL, weil der Replay denselben Versuch bestanden nennt und der Bericht `failed` |
+| nativer Beleg `commit` | PASS, „not at this commit“ | FAIL: „no declared case 'commit'“ |
+| Live `{}` | PASS, not at this commit | unverändert (Kontrolle) |
+| Live `{"sigstop_trip": null}` | PASS, not at this commit | FAIL: „NoneType where a scenario record belongs“ |
+| Live `{"sigstop_trip": {}}` | FAIL | unverändert |
+| Live, beide Erfolgsfelder | passed | unverändert (Kontrolle) |
+| `variantsOpen` im Bericht | fehlt | 47, mit Herkunft (`inventory`) |
+
+Deine Probe ruft `coverage_of` ohne Laufkennungen auf. Dann gilt die Kennung der jeweiligen Listung als Referenz, und die JUnit wird nicht verglichen. Der Bericht sagt das. Im Merge-Gate übergibt der Gate die Kennungen seiner eigenen Prüfungen.
+
+### VM-I33 · Die Listung ist die Sammelmenge; jeder Datensatz gehört zu diesem Lauf
+
+- **Die Laufkennungen kommen vom Gate:** `browser-workers.run`, `firefox-workers.run` und neu `backend.run`.
+  - `merge_tail(merge, logs, head, checks)` reicht sie an `coverage_check`; `--gate` liest sie aus dem Bericht (`gate_runs`).
+  - Der Backend-Schritt bekommt seine Kennung als `--run-id`, und pytest schreibt sie als Suite-Namen der JUnit (`-o junit_suite_name`). Eine JUnit eines anderen Laufs ist ein Auswertungsfehler.
+- **Playwright:** Index je (Test-ID, Projekt). Die Listung ist die Menge. Jedes davon ist ein Auswertungsfehler:
+  - ein Ergebnis außerhalb der Listung;
+  - eine Listung oder ein Bericht mit fremder `metadata.run`;
+  - dieselbe ID zweimal in einem Datensatz;
+  - dieselbe ID mit anderem Titel;
+  - ein Test eines anderen Projekts in der Listung.
+  
+  Gelistet ohne Ergebnis heißt „not run“.
+- **Vitest:** Die Listung ist die Menge; ein Ergebnis außerhalb ist ein Fehler. Ein Name, der zweimal vorkommt, nimmt das schlechteste Ergebnis.
+- **Replay:** Er zählt nur, wenn er grün ist (`PASS`, 0 Befunde) und zu diesem Lauf gehört.
+  - Jeder bestandene Versuch muss eindeutig sein und an einen gelisteten Test seines Projekts gebunden, dessen Ergebnis im Bericht bei genau diesem Retry `passed` ist.
+  - Ein gezählter Versuchsname (`per_attempt`, `per_attempt_expected`, `http_paths`), der nicht in `attempt_list` steht, ist ein Fehler.
+  - Aus einem roten oder fremden Replay wird kein Auslöser genommen.
+- **Benannt:** Vitest trägt keine Laufkennung. Die Unit-Listung und der Unit-Bericht schreibt der Gate selbst in den Logordner des Laufs, und die Listung begrenzt jetzt die Ergebnisse. Eine Kennung des Unit-Laufs ist nicht eingeführt.
+
+### VM-I34 · Die Statusformen des Reporters, jede Instanz für sich
+
+- **Bestanden:** nur `expectedStatus: passed` und das letzte Ergebnis `passed`.
+- **`test.fail()`**, der wie erwartet scheitert, heißt „expected to fail“, benannt und nie bestanden. Ein Widerspruch zwischen Status und Ergebnis wird mit seinen Werten benannt.
+- **Wiederholungen** sind eigene IDs. Alle gebundenen Instanzen bleiben erhalten, und jede muss bestehen.
+- **Wächter auf deinem echten Bericht:** `scripts/test_fixtures/coverage/playwright-status-report.json`.
+  - Vier Instanzen.
+  - Der `test.fail()`-Fall zweimal „expected to fail“.
+  - Der Wiederholungsfall `failed` und `passed`, gebunden über den Titel `failed`.
+  - Die Listungsform desselben Laufs (ohne Ergebnisse) liest alles als gelistet.
+- **Im echten Merge-Lauf** gibt es keinen Test mit `expectedStatus` ungleich `passed` und keine doppelte ID: 948 und 86, jeweils alle `expected`. Die Zahlen 110/27/70 bewegen sich dadurch nicht.
+- **Geschwister desselben Fehlers:** Ein nativer Fall und ein Live-Szenario sind jetzt ihr **schlechtestes** Ergebnis über alle Berichte dieses Commits.
+  - Vorher entschied die letzte Zeile (`hits[-1]`) bzw. der letzte Bericht (`reversed(mine)`).
+  - R390–R392 hatten das nicht vereinbart.
+
+### VM-I35 · Nur ein deklarierter Fall ist ein nativer Fall
+
+- **Gemessen:** Die 113 Erzeugerstellen in `native_run.py` lassen sich statisch nicht sauber trennen.
+  - Fallnamen entstehen aus Tabellen und Suffixen (`f"{case}.start"`, `JOG_SERVO_CASES[case]`, `METHOD_CASES[m]`).
+  - Dieselben Auswerter bekommen auch Teilnamen: `eval_probe_z("probe", …)` innerhalb von `combine`, aber `eval_probe_z("probe-z", …)` als eigene Zeile.
+  - Ein Scanner über diese Formen hätte deinen `commit`-Fall durch eine neue Lücke ersetzt.
+- **Jetzt:** `native_cases.REPORT_CASES` deklariert die Fälle je Variante: 86 für den Hauptlauf, 3 für `latch-delayed`. Quelle sind die vollständigen Berichte von `39a73679` und `cad9ac77`.
+  - Der native Beleg bindet an das **Paar** (Fall, Variante) und an ein Profil aus `native_run.PROFILES`. Beides wird per `ast` gelesen, nicht importiert.
+  - Jeder native Bericht dieses Commits wird gegen die Menge seiner Variante gehalten. Eine Zeile eines nicht deklarierten Falls ist ein Auswertungsfehler, ebenso ein vollständiger Lauf ohne einen deklarierten Fall. Ein vorzeitig beendeter Lauf (`error`) nennt die nicht erreichten Fälle nicht als Fehler.
+- **Gegenfälle:** `commit` scheitert an der Bindung, ebenso `home-all` mit `latch-delayed` und ein unbekanntes Profil. Die 70 ausgelieferten Belege binden.
+- **Benannt:** Ohne nativen Bericht hält nur die Deklaration die Fallnamen. An die Erzeuger gebunden wird sie beim nächsten nativen Lauf, der ein Bericht dieses Commits ist.
+- Eine Laufzeitprüfung in `native_run.py` habe ich bewusst nicht eingebaut. Ohne nativen Lauf wäre sie nicht zu beweisen, und die zwölf Laufend-Prüfungen aus R384 gehören ins nächste Paket, das diese Datei anfasst.
+
+### VM-I36 · Ein vorhandenes `null` ist ein Fehler
+
+Ein fehlender Schlüssel heißt „absent“. Ein vorhandener Schlüssel ohne Objekt (`null`, Liste …) ist `error`, also ein Auswertungsfehler, nie ein fehlender Lauf.
+
+### VM-I37 · Die Inventarsicht im Bericht
+
+- **Je Funktion:** `inventoried` nennt die beanspruchten Atome als Liste und die Ansprüche der Rolle `variant` aus der `feature`-Dimension.
+- **Auf Quellenebene** steht `inventory`: `complete`, `unresolved`, `excluded` (1) und `variantsOpen` (47), jeweils mit Herkunft (Seite, Adapter, Datei, Form, Ausdruck).
+  - Offene Varianten sind keiner Funktion zugeordnet und werden nicht zu den Lücken gezählt.
+  - Der Wächter bindet die Zahlen an `functions.completeness`, nicht an 47.
+- Die lesbare Fassung hat einen Abschnitt „Inventory (source level)“.
+
+### Belege am Kopf `dbc3abb3`
+
+- **Backend-Suite:** alle 15 Schritte PASS (ruff, pyright, das Backend mit `test_suite_runner.py` usw.).
+- **Gegenfälle:** `test_coverage.py` hat 50 Fälle. Neu sind die Identität des Laufs mit Kontrolle, die Bewertung ohne Kennungen, die Kennungen aus den Prüfungen des Gates, die Bindung der Replay-Versuche (sieben Beschädigungen und ein `failed` im Bericht), der echte Reporterbericht, die doppelte ID, Vitest außerhalb der Listung, die nativen Bindungen und Berichte, das Schlechteste über Berichte, `null`, das Inventar, die Verdrahtung im Gate und `test_suite_runner.py` mit dem Suite-Namen.
+- **Mutanten: 34 von 34 rot**, an genau `dbc3abb3` ([Ergebnis](vor-maschine.rp5.r397.mutants.json), [Skript](vor-maschine.rp5.r397.mutants.py)). C1–C16 wie in R396; C9 und C15 sind auf die neue Form verankert. Neu sind 18:
+
+  | Mutant | rot durch |
+  |---|---|
+  | C17 ein Ergebnis des Berichts erweitert die Listung | `test_the_listing_bounds_the_results_and_every_record_is_this_runs` |
+  | C18 Listung oder Bericht eines anderen Laufs angenommen | dieselbe |
+  | C19 die JUnit eines anderen Laufs angenommen | dieselbe |
+  | C20 ein roter Replay als Quelle von Auslösern | `test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run` |
+  | C21 ein Versuch ohne gelisteten Test | dieselbe |
+  | C22 das Ergebnis beim Retry des Versuchs ungeprüft | dieselbe |
+  | C23 erwartetes Scheitern als bestanden | `test_the_real_reporter_forms_an_expected_failure_is_no_pass_and_every_repeat_counts` |
+  | C24 die Instanzen einer Wiederholung über den Titel zusammengelegt | dieselbe |
+  | C25 dieselbe ID zweimal: die spätere überschreibt | `test_the_same_test_id_twice_in_one_record_is_an_error_never_an_overwrite` |
+  | C26 ein Vitest-Ergebnis außerhalb der Listung angenommen | `test_a_vitest_result_outside_its_listing_is_an_error_and_a_repeated_name_keeps_the_worst` |
+  | C27 nativer Beleg ohne die deklarierte Menge gebunden | `test_native_evidence_binds_only_to_a_declared_case_of_its_variant_and_profile` |
+  | C28 nicht deklarierte Fälle eines nativen Berichts ungeprüft | `test_a_native_report_of_this_commit_is_held_against_the_declared_set` |
+  | C29 die letzte native Zeile entscheidet | `test_a_native_case_is_its_worst_row_over_every_report_of_this_commit` |
+  | C30 ein vorhandenes `null` als fehlend gelesen | `test_a_present_scenario_without_a_record_is_an_error_never_a_missing_run` |
+  | C31 der letzte Live-Bericht entscheidet | `test_a_scenario_is_its_worst_over_every_report_of_this_commit` |
+  | C32 die offenen Varianten fehlen im Bericht | `test_the_report_keeps_the_inventory_s_open_variants_and_exclusions_with_their_origin` |
+  | C33 die Abdeckung im Merge-Gate ohne seine Laufkennungen | `test_the_merge_gate_binds_the_coverage_to_the_run_ids_its_own_checks_made` |
+  | C34 der Backend-Schritt ohne die Laufkennung des Gates | `test_the_gate_names_the_backend_s_run_and_hands_it_to_the_step` |
+- **Merge-Gate, erster Lauf an `dbc3abb3`: ROT**, ein eigener Datensatz ([Bericht](vor-maschine.rp5.r397.gate-merge-FAIL.json)).
+  - Rot war ein Browsertest von 950: `touch-hold.spec.ts` „a short tap sends nothing and says why; a complete hold sends exactly one command“. `unhome_all` ging 855 ms nach `clearCmds` hinaus, und der Hinweis las „Busy — the last command is still running“ statt „Hold to activate“. Alles andere war grün.
+  - Die Abdeckung meldete dabei richtig 71 Lücken statt 70. Die 71. ist F-HOME.S1 „failed“, genau die Aussage, an die dieser Test gebunden ist.
+  - 5c ändert weder Produktcode noch diese Spec. Untersucht habe ich es trotzdem. Dabei ist ein **Produktbefund** herausgekommen: Ein Halteknopf löst nach einem Hänger des Hauptthreads auch bei kurzem Tippen aus, nachgestellt 3 von 10 und 3 von 27.
+  - Für den roten Lauf selbst ist die Ursache **gefolgert**, nicht gezeigt. Es war entweder dieser Wettlauf oder die eigene Echtzeit-Lücke des Tests unter Last; der Lauf hat keine Spur.
+  - Der Befund bekommt eine eigene Planrunde (R398, nach dieser). Der Operator ist informiert.
+- **Merge-Gate, zweiter Lauf an `dbc3abb3`: PASS**, ein eigener Datensatz und kein Ersatz für den ersten ([Bericht](vor-maschine.rp5.r397.gate-merge.json)). Ergebnisse:
+  - `kind: merge`, `uncommitted: 0`, nichts ausgelassen, nichts offen;
+  - Unit 2675 + 104, das Backend mit allen Schritten;
+  - Browser **950/950**, ohne Flaky;
+  - `browser-replay` PASS mit 0 Befunden;
+  - der Firefox-Kern **86/86**, `firefox-replay` PASS mit 0 Befunden, 84 von 84 Ladevorgängen mit `hello`;
+  - die Installationsprobe 14/14 mit `crashes: []` und vollständiger Rückgabe.
+- **`coverage` PASS**, 0 Auswertungsfehler, 70 Lücken ([Bericht](vor-maschine.rp5.r397.coverage.json), [lesbar](vor-maschine.rp5.r397.coverage.md)). Sie ist jetzt an die Laufkennungen gebunden, die der Gate selbst gemacht hat:
+  - `runs` nennt Chromium, Firefox und das Backend;
+  - die JUnit trägt die Kennung des Backends als Suite-Namen;
+  - `inventory` mit 47 offenen Varianten und einem Ausschluss.
+  - Die Zahlen der Aussagen, Befehle und Routen sind dieselben wie an `9d7d7c0e`.
+- **CI an `dbc3abb3`:** Lauf 44180403330 grün, `backend` und `frontend`.
+
+**Erbeten:** `agreement` oder `findings` zu `56e246ba..dbc3abb3`, Schwerpunkt VM-I33 bis VM-I37.
