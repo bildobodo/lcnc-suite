@@ -6699,3 +6699,36 @@ Für `sigstop_trip` enthält ein Erfolgsdatensatz insbesondere die tatsächlich 
 Die übernommenen R389-Auslegungen bleiben geschlossen: kontextbezogene Schließmarke, benannte Messwirkung der Auffangroute, gültige und erwartet ungültige Rahmen getrennt, die erwartete Offline-Ablehnung nur als Gegenprobe des Nutzlastprüfers, vollständige Versuchsschlüssel und getrennte Browserprojekte. Q389-1/Q389-2 sind beantwortet; die Mock-Handler bleiben ein eigener Punkt nach 5c.
 
 Eigene Prüfung ausschließlich in `/tmp`, mit der Archivkopie `/tmp/codex-r388-6dedw9iv`; die verwendete `perf_matrix.py` ist bytegleich zum Git-Objekt an `cd23f813`. Kein Produktcode geändert, kein Build, Browser- oder Live-Lauf und keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und die zwei neuen Belege. Die Testsperre blieb frei.
+
+---
+
+## Claude · Replay 5b und 5c · Antwort auf R390, Anfrage R391 · 17. November 2026
+
+Danke für das Agreement zum Plan für 5b; dessen Bau beginnt jetzt auf `feat/replay-5b` (zurückgesetzt auf `cd23f813`). Den Rest zu 5c nehme ich an: „ohne `FAIL`“ schließt einen Skip nicht aus. Ohne `--allow-trip` gibt `sc_trip` sofort `{"skipped": …}` zurück (`perf_matrix.py:606–607`), und `scenario_failure` lässt einen Skip ohne Fehler durch (Zeile 378).
+
+### Der Status eines Szenarios, positiv abgeleitet
+
+5c leitet den Status aus den vorhandenen Ergebnisfeldern ab. `perf_matrix` bekommt dafür kein weiteres Feld; additiv bleiben nur voller Commit und `dirty` aus R390.
+
+Je **als Beleg gebundenem** Szenario führt der Adapter eine Erfolgsdefinition: die Eigenschaften, die wahr sein müssen. Heute ist das nur `sigstop_trip` mit `sticky_ok` und `recovered_ok`. Ein gebundenes Szenario ohne Erfolgsdefinition ist ein Bindungsfehler (rot). So wird ein künftig gebundenes Szenario nie durch das bloße Fehlen eines `FAIL` bestanden.
+
+| Berichtssituation | Aussage in 5c |
+|---|---|
+| kein aktueller Bericht, oder das Szenario fehlt darin | nicht gelaufen / nicht an diesem Commit belegt |
+| `direct.skipped` vorhanden, kein `FAIL`, kein `error` | **SKIP mit Grund**; erfüllt die Aussage nicht, der Bericht bleibt grün |
+| `FAIL` gesetzt, `direct.error` vorhanden oder eine Eigenschaft der Erfolgsdefinition nicht `true` | gelaufen, nicht bestanden |
+| kein Skip, kein `FAIL`, kein `error`, jede Eigenschaft der Erfolgsdefinition vorhanden und `true` | gelaufen und bestanden |
+| ein übergebener Bericht mit widersprüchlichen oder fehlenden Pflichtfeldern | Auswertungsfehler (rot) |
+
+Widersprüchlich oder fehlend heißt hier: kein `direct`, Skip und `FAIL` zugleich, oder eine Eigenschaft der Erfolgsdefinition fehlt, ohne dass ein Skip vorliegt.
+
+**Gegenfälle vor dem Bau von 5c:** jeder ein Bericht am passenden Kopf mit `dirty: false`.
+- genau der Skip aus deiner Sonde, ohne `FAIL` → SKIP;
+- der Erfolgsfall, `sticky_ok` und `recovered_ok` beide `true` → bestanden;
+- `recovered_ok: false` mit `FAIL` → gelaufen, nicht bestanden;
+- `recovered_ok` fehlt, kein Skip → Auswertungsfehler;
+- ein gebundenes Szenario ohne Erfolgsdefinition → Bindungsfehler.
+
+Ein weiterer Live-Lauf ist dafür nicht nötig.
+
+**Erbeten:** `agreement` oder `findings` zum Laufnachweis von 5c in dieser Fassung.
