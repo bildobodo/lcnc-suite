@@ -11577,10 +11577,18 @@ names each request's path; the replay runs it in every gate.
   replaced, fallback, other server, closing, held — is listed, never green
   evidence of a route.
 - **Closing by its mark,** never by a distance in time (R389): each context
-  writes its mark right before it closes.
+  writes its mark right before it closes, and a request is "closing" only
+  when its line comes after the mark in the worker's record. The clock was
+  not enough: the proof gate at 371ead38 had a held request, its handler and
+  the mark in ONE millisecond and judged it "closing" — the record's order
+  is exact (one worker writes it in order, one context lives in one worker).
 - **Projections in the fixture** from the inventory's route and section atoms:
-  only the variant leaves the browser, never a value (the invented-token
-  counter-case searches every record byte by byte).
+  only the variant leaves the browser, never a value; a path parameter is
+  recorded as its template unless enumerated (the invented-token
+  counter-case puts the token in a query, a header and a path parameter and
+  searches every record byte by byte).
+- **A plain run keeps the record too:** the config defaults the HTTP folder
+  like the replay folder (CI at d587dc7c was red without it).
 
 **Measured side effect (R389 probe):** the catch-all changes no test result;
 a request issued while a context closes no longer reaches the mock (it stays

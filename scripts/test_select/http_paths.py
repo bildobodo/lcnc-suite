@@ -271,10 +271,12 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, ports: dict[str,
             for want in x["expect"]:
                 n = sum(1 for rid, r in req.items() if attempt_of(r["ctx"]) == key and r["method"] == want["method"]
                         and r["path"] == want["path"] and classes[rid] == want["class"]
-                        and ("status" not in want or status_of(rid) == want["status"]))
+                        and ("status" not in want or status_of(rid) == want["status"])
+                        and ("variant" not in want or r.get("variant") == want["variant"]))
                 if n != want["n"]:
                     findings.append(f"{name.get(key, '?')}: {want['method']} {want['path']} as {want['class']}"
-                                    f"{' ' + str(want['status']) if 'status' in want else ''} {n} time(s), expected {want['n']}")
+                                    f"{' ' + str(want['status']) if 'status' in want else ''}"
+                                    f"{' (' + want['variant'] + ')' if 'variant' in want else ''} {n} time(s), expected {want['n']}")
             if covered[key] != x.get("covered", 0):
                 findings.append(f"{name.get(key, '?')}: {covered[key]} id-less contact(s) covered by a synthetic hop, "
                                 f"expected {x.get('covered', 0)}")

@@ -48,6 +48,19 @@ function sectionOf(u: URL): string {
   return SECTIONS.has(s) ? `section=${s}` : "unknown section";
 }
 
+/** The path the record keeps: a route's path parameter appears as its
+ *  template name unless its value is enumerated (R268 Rest B) — today only
+ *  `/settings/{section}`: a section the inventory names stays, anything else
+ *  is the template. Every other path is kept as it is (no parameter). */
+export function recordedPath(url: URL): string {
+  // by the path alone, whatever the method: a value in a parameter's place
+  // is never kept (the mock logs it the same way)
+  const hit = ROUTES.find(r => r.template.includes("{") && r.re.test(url.pathname));
+  if (!hit) return url.pathname;
+  return hit.template === "/settings/{section}" && SECTIONS.has(decodeURIComponent(url.pathname.split("/")[2] ?? ""))
+    ? url.pathname : hit.template;
+}
+
 /** The route a request takes and its variant — or no route (a static file,
  *  the page, a path the gateway does not serve). */
 export function project(method: string, url: URL): Projection {

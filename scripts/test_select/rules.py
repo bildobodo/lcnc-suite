@@ -114,7 +114,7 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read('readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json"', 1,
              ("scripts/test_fixtures/macro_refusals.json",)),),
     _E + "http-paths.spec.ts": (
-        Read('readFileSync(replay, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),
+        Read('readFileSync(replay, "utf8")', 2, None, "this run's replay log its own worker's mock writes"),
         Read('readFileSync(f, "utf8")', 1, None, "that log and this worker's HTTP record (step 5b), searched for the invented token")),
     _E + "routeProjection.ts": (
         Read('readFileSync(new URL("../../scripts/inventory/atoms.py.json"', 1, ("scripts/inventory/atoms.py.json",),
@@ -123,7 +123,9 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read("readFileSync((await download.path())!", 1, None, "a file the test downloaded itself"),),
     _E + "mock-gateway.mjs": (
         Read("readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),
-        Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite")),
+        Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite"),
+        Read('readFileSync(new URL("../../scripts/inventory/atoms.py.json"', 1, ("scripts/inventory/atoms.py.json",),
+             "the settings sections: a route's path parameter logged as its template unless enumerated (step 5b)")),
     _E + "replay-origin.spec.ts": (
         Read('readFileSync(file, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),),
     _E + "test.ts": (

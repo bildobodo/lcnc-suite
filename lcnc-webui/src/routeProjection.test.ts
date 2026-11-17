@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { project, ROUTES, SECTIONS } from "../e2e/routeProjection";
+import { project, recordedPath, ROUTES, SECTIONS } from "../e2e/routeProjection";
 
 // The replay's projection (FI265-02 Rest B, replay step 5b): a request's
 // route template from the gateway's own route list and its variant — the
@@ -45,6 +45,13 @@ describe("route projection", () => {
     expect(project("GET", at("/g30"))).toEqual({ route: "GET /g30", variant: null });
     expect(project("GET", at("/static/index.js"))).toEqual({ route: null, variant: null });
     expect(project("POST", at("/g30"))).toEqual({ route: null, variant: null });
+  });
+
+  it("keeps a path parameter as its template unless the value is enumerated, for any method", () => {
+    expect(recordedPath(at("/settings/machine"))).toBe("/settings/machine");
+    expect(recordedPath(at("/settings/e2e-invented-token"))).toBe("/settings/{section}");
+    expect(recordedPath(at("/g30"))).toBe("/g30");
+    expect(recordedPath(at("/static/index.js"))).toBe("/static/index.js");
   });
 
   it("never returns a raw value: an invented token in every query slot appears in no projection", () => {

@@ -18,7 +18,7 @@
 // socket inside a Web Worker, which routeWebSocket intercepts only unreliably.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { appendFileSync, existsSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
@@ -104,6 +104,13 @@ const PREVIEW = msgpackEncode({
   },
 });
 
+// replay step 5b (R268 Rest B): a route's path parameter is logged as its
+// template unless enumerated — a settings section the inventory names stays,
+// anything else is /settings/{section} (the ONE parameter route of the gateway)
+const SECTIONS = new Set(JSON.parse(readFileSync(new URL("../../scripts/inventory/atoms.py.json", import.meta.url), "utf8"))
+  .adapters.sections.atoms.map(a => a.id.slice("section:".length)));
+const loggedPath = (p) => /^\/settings\/[^/]+$/.test(p) && !SECTIONS.has(p.slice("/settings/".length)) ? "/settings/{section}" : p;
+
 const server = createServer(async (req, res) => {
   const path = decodeURIComponent((req.url || "/").split("?")[0]);
   if (REPLAY) {
@@ -117,11 +124,11 @@ const server = createServer(async (req, res) => {
     // never a served API route —, or 403 / 404), the query's key NAMES (never
     // a value), and a request that ended without its answer (`closed`)
     const qkeys = query ? [...new Set(query.keys())].sort() : [];
-    res.on("finish", () => replay({ kind: "http", method: req.method, path, qkeys, origin, req_id: reqId, status: res.statusCode,
+    res.on("finish", () => replay({ kind: "http", method: req.method, path: loggedPath(path), qkeys, origin, req_id: reqId, status: res.statusCode,
                                     served: res.e2eServed ?? null, ...(beacon !== null ? { beacon } : {}) }));
     res.on("close", () => {
       if (!res.writableFinished)
-        replay({ kind: "http", method: req.method, path, qkeys, origin, req_id: reqId, status: null, served: null, closed: true });
+        replay({ kind: "http", method: req.method, path: loggedPath(path), qkeys, origin, req_id: reqId, status: null, served: null, closed: true });
     });
   }
   // replay step 5b's counter-cases (e2e/http-paths.spec.ts): a real server

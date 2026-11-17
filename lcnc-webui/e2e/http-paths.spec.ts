@@ -81,14 +81,28 @@ test("an aborted request and one a spec holds until its context closes", async (
   await held;                                               // its handler has it — then the context closes
 });
 
-test("an invented token in a query and a header appears in no record", async ({ page, mock }) => {
+test("a save and a rename of a macro in one test are two variants", async ({ page }) => {
+  await page.goto(NEUTRAL);
+  await page.route("**/macro?*", route => route.fulfill({ json: { ok: true } }));
+  const codes = await page.evaluate(async () => [
+    (await fetch("/macro?name=a.ngc&base=new", { method: "PUT", body: "o<a> sub\no<a> endsub\n" })).status,
+    (await fetch("/macro?name=b.ngc&base=r1&rename_from=a.ngc&rename_base=r1", { method: "PUT", body: "o<b> sub\no<b> endsub\n" })).status,
+  ]);
+  expect(codes).toEqual([200, 200]);
+});
+
+test("an invented token in a query, a header and a path parameter appears in no record", async ({ page, mock }) => {
   const token = `e2e-invented-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   await page.goto(NEUTRAL);
   await page.evaluate(async (t) => {
     await fetch(`/__e2e/target?token=${t}&e2e_case=token`, { headers: { "X-Auth-Token": t } });
+    // and in a route's path parameter: kept as its template (R268 Rest B)
+    await fetch(`/settings/${t}`, { method: "POST", body: "{}" });
+    await fetch(`/settings/${t}`);
   }, token);
   const replay = replayFile(mock.instance)!;
   // the mock writes its line when the answer finishes
   await expect.poll(() => readFileSync(replay, "utf8").includes('"qkeys":["e2e_case","token"]')).toBe(true);
+  await expect.poll(() => readFileSync(replay, "utf8").split("/settings/{section}").length - 1).toBeGreaterThanOrEqual(2);
   for (const f of [replay, httpRecordFile()!]) expect(readFileSync(f, "utf8").includes(token), f).toBe(false);
 });

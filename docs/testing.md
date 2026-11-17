@@ -423,9 +423,12 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
 - **Classes** (the order they are decided): aborted, replaced, fetched (one
   contact), fetch-unknown, ws-handshake (Firefox reports the upgrade), other-
   server (the preview server of `smoke`), served, fallback, several (a server
-  redirect keeps the header), redirect-hop, closing (issued at or after the
-  mark), held (a spec handler never acted), aborted-early, unknown. Only
-  served and fetched are a server's answer to a route.
+  redirect keeps the header), redirect-hop, closing (its request line comes
+  AFTER its context's mark in the worker's record — the record's order, never
+  the clock: two lines in one millisecond are ordered by the record alone),
+  held (a spec handler never acted), aborted-early (no contact, the transport
+  failed — forwarded, or before any route call), unknown. Only served and
+  fetched are a server's answer to a route.
 - **Findings** (R389 D4): an id first given at the route; a service worker; a
   `fulfill` and a contact under the same id without a fetch; a contact under
   an id the browser never recorded; an id-less contact of a test attempt —
@@ -440,15 +443,19 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   rename with its bases, `DELETE /macro`, `POST /macro-upload` create or
   replace, `POST /upload` overwrite, the settings section from the
   inventory's `section:` atoms — never a value; a route without one shows
-  its variant as not derived.
+  its variant as not derived. A route's path parameter is recorded as its
+  template unless its value is enumerated (`/settings/{section}` for any
+  section the inventory does not name — the record and the mock alike).
 - **What the catch-all changes, measured (R389):** no test result; a request
   a page issues while its context closes no longer reaches the mock (it is
   in the record, class closing); Firefox no longer asks for `/favicon.ico`.
 - **Counter-cases:** `e2e/http-paths.spec.ts` in the real browser (two
   `GET /devices` assigned by id with the replaced one ending last, fetch then
   fulfill, a mock 403, the fallback on an API path, the three redirect cases
-  of R268, abort and a held request, an invented token in a query and a
-  header found in no record) with `replay_http_expect.json`;
+  of R268, abort and a held request, a save and a rename of a macro in one
+  test as two variants, an invented token in a query and a
+  header and a path parameter found in no record) with
+  `replay_http_expect.json`;
   `test_http_paths.py` synthetic (every class, every finding, the four red
   counter-cases of the synthetic-redirect bound); `src/routeProjection.test.ts`.
 

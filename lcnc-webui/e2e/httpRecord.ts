@@ -27,7 +27,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { BrowserContext, Page, Request, Route } from "@playwright/test";
-import { project } from "./routeProjection";
+import { project, recordedPath } from "./routeProjection";
 
 const DIR = process.env.LCNC_E2E_HTTP_DIR;
 const RUN = process.env.LCNC_E2E_RUN ?? "local";
@@ -69,7 +69,7 @@ function idFor(ids: WeakMap<Request, string>, r: Request, ctx: string, at: "requ
   const from = r.redirectedFrom();
   let sw: boolean;
   try { sw = r.serviceWorker() !== null; } catch { sw = false; }
-  write({ k: "req", ctx, id, at, method: r.method(), host: u.host, path: u.pathname,
+  write({ k: "req", ctx, id, at, method: r.method(), host: u.host, path: recordedPath(u),
           qkeys: [...new Set(u.searchParams.keys())].sort(), type: r.resourceType(), sw,
           from: from ? idFor(ids, from, ctx, at) : null, ...project(r.method(), u) });
   return id;
