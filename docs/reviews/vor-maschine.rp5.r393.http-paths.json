@@ -1,19 +1,19 @@
 {
- "requests": 23422,
- "contexts": 944,
+ "requests": 23279,
+ "contexts": 945,
  "classes": {
   "aborted": 2,
-  "replaced": 3779,
+  "replaced": 3781,
   "fetched": 4,
   "fetch-unknown": 1,
-  "other-server": 34,
-  "served": 15652,
-  "fallback": 3324,
+  "other-server": 35,
+  "served": 15656,
+  "fallback": 3182,
   "several": 1,
   "redirect-hop": 2,
-  "closing": 594,
+  "closing": 582,
   "held": 5,
-  "aborted-early": 24
+  "aborted-early": 28
  },
  "routes": {
   "DELETE /macro": {
@@ -25,18 +25,19 @@
   },
   "GET /devices": {
    "aborted": 1,
+   "closing": 1,
    "fetched": 1,
    "replaced": 3,
-   "served": 85
+   "served": 84
   },
   "GET /files": {
    "replaced": 38
   },
   "GET /g30": {
    "aborted-early": 1,
-   "closing": 450,
+   "closing": 444,
    "fallback": 1807,
-   "replaced": 47
+   "replaced": 45
   },
   "GET /gcode": {
    "fallback": 3,
@@ -46,10 +47,10 @@
    "replaced": 24
   },
   "GET /macros": {
-   "closing": 3,
-   "other-server": 1,
+   "closing": 1,
+   "other-server": 2,
    "replaced": 91,
-   "served": 939
+   "served": 940
   },
   "GET /preview": {
    "held": 4,
@@ -57,7 +58,7 @@
    "served": 74
   },
   "GET /ready": {
-   "closing": 2,
+   "closing": 1,
    "fallback": 5
   },
   "GET /settings": {
@@ -93,20 +94,20 @@
   },
   "POST /settings/{section}": {
    "aborted": 1,
-   "fallback": 1,
+   "fallback": 3,
    "replaced": 2
   },
   "POST /telemetry": {
-   "aborted-early": 23,
+   "aborted-early": 27,
    "closing": 116,
-   "fallback": 1506,
-   "replaced": 11
+   "fallback": 1361,
+   "replaced": 13
   },
   "POST /upload": {
    "replaced": 8
   },
   "PUT /macro": {
-   "replaced": 8
+   "replaced": 10
   },
   "PUT /save": {
    "replaced": 3
@@ -114,11 +115,14 @@
  },
  "fallback_paths": {
   "GET /g30": 1807,
-  "POST /telemetry": 1506,
+  "POST /telemetry": 1361,
   "GET /ready": 5,
   "GET /gcode": 3,
   "GET /subfile": 2,
-  "POST /settings/macroBar": 1
+  "POST /settings/{section}": 1,
+  "GET /settings/{section}": 1,
+  "POST /settings/macroBar": 1,
+  "POST /settings/viewer": 1
  },
  "idless_covered_by_synthetic_hops": 1,
  "ws_handshakes_joined": 0,
@@ -151,6 +155,35 @@
     "variant": null,
     "path": "/__e2e/redirect",
     "class": "fetch-unknown",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/__e2e/target",
+    "class": "served",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   }
+  ],
+  "http-paths.spec.ts \u203a a save and a rename of a macro in one test are two variants [retry 0]": [
+   {
+    "what": "PUT /macro",
+    "variant": "rename base=revision rename_base=revision",
+    "path": null,
+    "class": "replaced",
+    "transport": "finished",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "PUT /macro",
+    "variant": "save base=new",
+    "path": null,
+    "class": "replaced",
     "transport": "finished",
     "status": 200,
     "n": 1
@@ -252,7 +285,16 @@
     "n": 1
    }
   ],
-  "http-paths.spec.ts \u203a an invented token in a query and a header appears in no record [retry 0]": [
+  "http-paths.spec.ts \u203a an invented token in a query, a header and a path parameter appears in no record [retry 0]": [
+   {
+    "what": "POST /settings/{section}",
+    "variant": "unknown section",
+    "path": null,
+    "class": "fallback",
+    "transport": "none",
+    "status": 200,
+    "n": 1
+   },
    {
     "what": "other",
     "variant": null,
@@ -267,6 +309,15 @@
     "variant": null,
     "path": "/__e2e/target",
     "class": "served",
+    "transport": "none",
+    "status": 200,
+    "n": 1
+   },
+   {
+    "what": "other",
+    "variant": null,
+    "path": "/settings/{section}",
+    "class": "fallback",
     "transport": "none",
     "status": 200,
     "n": 1
@@ -342,5 +393,5 @@
    }
   ]
  },
- "per_attempt_note": "932 attempts in the gate log replay.json (local); here only the counter-case spec"
+ "per_attempt_note": "933 attempts in the gate log replay.json (local); here only the counter-case spec"
 }

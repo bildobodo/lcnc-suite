@@ -1,8 +1,8 @@
 {
   "kind": "round",
-  "note": "replay 5b at 4b6bd4e8",
+  "note": "replay 5b at cccc94ea",
   "base": "cd23f813ea430038307fce026fb95a57c4de1b79",
-  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "head": "cccc94eaaf8581abada93a2786e6dc898c7cdd60",
   "uncommitted": 0,
   "plan": [
     "selection-guards",
@@ -107,259 +107,259 @@
   "browser_specs": [
     {
       "file": "layout.spec.ts",
-      "ms": 1147018
+      "ms": 1056772
     },
     {
       "file": "collisions.viewer.spec.ts",
-      "ms": 489775
+      "ms": 423344
     },
     {
       "file": "setup-layout.spec.ts",
-      "ms": 354610
+      "ms": 312864
     },
     {
       "file": "bake-hold.viewer.spec.ts",
-      "ms": 325523
+      "ms": 295802
     },
     {
       "file": "sim-panel.viewer.spec.ts",
-      "ms": 299463
-    },
-    {
-      "file": "dialogs.spec.ts",
-      "ms": 262284
+      "ms": 268492
     },
     {
       "file": "contrast.spec.ts",
-      "ms": 252098
+      "ms": 266501
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 225444
     },
     {
       "file": "touchoff.spec.ts",
-      "ms": 149142
+      "ms": 145588
     },
     {
       "file": "safety-during-edit.spec.ts",
-      "ms": 148851
+      "ms": 132149
     },
     {
       "file": "scenes.viewer.spec.ts",
-      "ms": 119686
+      "ms": 109817
     },
     {
       "file": "keyboard-guards.spec.ts",
-      "ms": 114772
+      "ms": 101333
     },
     {
       "file": "input-session.spec.ts",
-      "ms": 110881
+      "ms": 98404
     },
     {
       "file": "help-icons.spec.ts",
-      "ms": 95364
+      "ms": 84624
     },
     {
       "file": "macros.spec.ts",
-      "ms": 95163
+      "ms": 82943
     },
     {
       "file": "run-hold.spec.ts",
-      "ms": 78544
+      "ms": 71935
     },
     {
       "file": "simulation-off.viewer.spec.ts",
-      "ms": 74295
+      "ms": 64215
     },
     {
       "file": "feedback-channels.spec.ts",
-      "ms": 61866
+      "ms": 59024
     },
     {
       "file": "toolsetter.viewer.spec.ts",
-      "ms": 61329
+      "ms": 57449
     },
     {
       "file": "choices.spec.ts",
-      "ms": 59745
+      "ms": 51129
     },
     {
       "file": "editor-guards.spec.ts",
-      "ms": 55413
-    },
-    {
-      "file": "forms.spec.ts",
-      "ms": 47861
+      "ms": 48196
     },
     {
       "file": "disarmed.spec.ts",
-      "ms": 45709
+      "ms": 42819
     },
     {
       "file": "viewer.spec.ts",
-      "ms": 44959
+      "ms": 42278
     },
     {
-      "file": "feature-switches.spec.ts",
-      "ms": 43082
+      "file": "forms.spec.ts",
+      "ms": 42103
     },
     {
       "file": "visual.spec.ts",
-      "ms": 41584
+      "ms": 39192
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 37702
     },
     {
       "file": "toolsetter-setup.spec.ts",
-      "ms": 38956
+      "ms": 36575
     },
     {
       "file": "tool-geometry.spec.ts",
-      "ms": 34875
-    },
-    {
-      "file": "g30.spec.ts",
-      "ms": 33172
+      "ms": 31593
     },
     {
       "file": "strip-actions.spec.ts",
-      "ms": 32602
+      "ms": 30743
     },
     {
-      "file": "probe-click.spec.ts",
-      "ms": 31224
+      "file": "g30.spec.ts",
+      "ms": 30668
     },
     {
       "file": "viewcube.viewer.spec.ts",
-      "ms": 29325
+      "ms": 28800
     },
     {
-      "file": "tabs.spec.ts",
-      "ms": 27443
+      "file": "probe-click.spec.ts",
+      "ms": 27460
     },
     {
       "file": "devices.spec.ts",
-      "ms": 27165
+      "ms": 25283
     },
     {
-      "file": "example-tool-library.spec.ts",
-      "ms": 27007
-    },
-    {
-      "file": "probe-visual.spec.ts",
-      "ms": 26088
+      "file": "tabs.spec.ts",
+      "ms": 25250
     },
     {
       "file": "tool-table-read.spec.ts",
-      "ms": 24236
+      "ms": 23712
     },
     {
-      "file": "select-writes.spec.ts",
-      "ms": 22869
-    },
-    {
-      "file": "gcode-reference.spec.ts",
-      "ms": 21146
-    },
-    {
-      "file": "offsets.spec.ts",
-      "ms": 20804
+      "file": "probe-visual.spec.ts",
+      "ms": 23463
     },
     {
       "file": "frames.spec.ts",
-      "ms": 19779
+      "ms": 22668
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 22003
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 21267
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 18380
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 17035
     },
     {
       "file": "findings.viewer.spec.ts",
-      "ms": 18500
-    },
-    {
-      "file": "rapids.viewer.spec.ts",
-      "ms": 16035
-    },
-    {
-      "file": "joint-jog.spec.ts",
-      "ms": 15823
-    },
-    {
-      "file": "messages.spec.ts",
-      "ms": 15696
-    },
-    {
-      "file": "setup-gates.spec.ts",
-      "ms": 15674
-    },
-    {
-      "file": "appearance.spec.ts",
-      "ms": 15059
+      "ms": 16750
     },
     {
       "file": "touch-hold.spec.ts",
-      "ms": 14854
+      "ms": 14778
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 14153
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 14102
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 14047
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 13907
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 13451
     },
     {
       "file": "compensation.spec.ts",
-      "ms": 14372
+      "ms": 12607
     },
     {
       "file": "reach.viewer.spec.ts",
-      "ms": 10368
+      "ms": 9550
     },
     {
       "file": "tool-import.spec.ts",
-      "ms": 9536
-    },
-    {
-      "file": "jog-buttons.spec.ts",
-      "ms": 8808
-    },
-    {
-      "file": "nine-axis.spec.ts",
-      "ms": 8629
+      "ms": 8525
     },
     {
       "file": "tool-marker.spec.ts",
-      "ms": 7807
+      "ms": 8119
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 7820
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 7258
     },
     {
       "file": "lifecycle.spec.ts",
-      "ms": 7070
+      "ms": 6551
     },
     {
       "file": "tool-holder.spec.ts",
-      "ms": 6950
+      "ms": 6199
     },
     {
       "file": "touch-surface.spec.ts",
-      "ms": 6251
-    },
-    {
-      "file": "replay-origin.spec.ts",
-      "ms": 4107
+      "ms": 5930
     },
     {
       "file": "freecad-import.spec.ts",
-      "ms": 3496
+      "ms": 3209
+    },
+    {
+      "file": "replay-origin.spec.ts",
+      "ms": 3096
     },
     {
       "file": "fatpaths.viewer.spec.ts",
-      "ms": 3005
+      "ms": 2889
     },
     {
       "file": "smoke.spec.ts",
-      "ms": 2478
-    },
-    {
-      "file": "armed.spec.ts",
-      "ms": 1364
+      "ms": 1864
     },
     {
       "file": "http-paths.spec.ts",
-      "ms": 1341
+      "ms": 1352
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1056
     },
     {
       "file": "layout-audit.spec.ts",
-      "ms": 948
+      "ms": 904
     },
     {
       "file": "mock-baseline.spec.ts",
-      "ms": 31
+      "ms": 25
     }
   ],
   "firefox": {
@@ -383,14 +383,14 @@
     "workers": {
       "asked": 3,
       "report": 3,
-      "seconds": 105
+      "seconds": 102
     },
     "unloads": [
       {
         "title": "Outside: a held probe button sends its routine with the panel's numbers",
         "beacons": 2,
         "received": 2,
-        "posts": 2
+        "posts": 3
       },
       {
         "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
@@ -417,13 +417,13 @@
         "posts": 2
       },
       {
-        "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+        "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
         "beacons": 2,
         "received": 2,
         "posts": 2
       },
       {
-        "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -453,13 +453,13 @@
         "posts": 2
       },
       {
-        "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+        "title": "Outside: the procedure's grid cells and its reference image",
         "beacons": 2,
         "received": 2,
         "posts": 2
       },
       {
-        "title": "Outside: the procedure's grid cells and its reference image",
+        "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -489,19 +489,19 @@
         "posts": 2
       },
       {
-        "title": "z_surface: the job the button sends is the native stage's whole job",
-        "beacons": 2,
-        "received": 2,
-        "posts": 2
-      },
-      {
         "title": "Boss/Pocket: the procedure's grid cells and its reference image",
         "beacons": 2,
         "received": 2,
         "posts": 2
       },
       {
-        "title": "surface_scan: the job the button sends is the native stage's whole job",
+        "title": "z_surface: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: the procedure's grid cells and its reference image",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -513,7 +513,7 @@
         "posts": 2
       },
       {
-        "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+        "title": "surface_scan: the job the button sends is the native stage's whole job",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -537,6 +537,12 @@
         "posts": 2
       },
       {
+        "title": "Toolsetter: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
         "title": "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
         "beacons": 2,
         "received": 2,
@@ -549,7 +555,7 @@
         "posts": 2
       },
       {
-        "title": "Toolsetter: the procedure's grid cells and its reference image",
+        "title": "3axis-xyz desktop: Jog and Setup reference images",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -561,7 +567,7 @@
         "posts": 2
       },
       {
-        "title": "3axis-xyz desktop: Jog and Setup reference images",
+        "title": "5axis-xyzac desktop: Jog and Setup reference images",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -573,7 +579,7 @@
         "posts": 2
       },
       {
-        "title": "5axis-xyzac desktop: Jog and Setup reference images",
+        "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -585,7 +591,7 @@
         "posts": 2
       },
       {
-        "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "title": "6axis-twp desktop: Jog and Setup reference images",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -597,7 +603,7 @@
         "posts": 2
       },
       {
-        "title": "6axis-twp desktop: Jog and Setup reference images",
+        "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -610,12 +616,6 @@
       },
       {
         "title": "a hidden panel is not focusable",
-        "beacons": 2,
-        "received": 2,
-        "posts": 2
-      },
-      {
-        "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
         "beacons": 2,
         "received": 2,
         "posts": 2
@@ -896,9 +896,9 @@
   },
   "verdict": "PASS",
   "resources": {
-    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rp5-chain-4b6bd4e8.service",
-    "cpu_s": 9432,
-    "memory_peak_mb": 4486
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rp5-chain-cccc94ea.service",
+    "cpu_s": 8574,
+    "memory_peak_mb": 4572
   },
   "checks": [
     {
@@ -913,34 +913,34 @@
       "command": "npm run lint",
       "status": "PASS",
       "exit": 0,
-      "seconds": 9
+      "seconds": 8
     },
     {
       "name": "build",
       "command": "npm run build",
       "status": "PASS",
       "exit": 0,
-      "seconds": 17
+      "seconds": 16
     },
     {
       "name": "unit-light",
-      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rg5b-4b6bd4e8/gate-round.logs/unit-light.json",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rg5b-cccc94ea/gate-round.logs/unit-light.json",
       "status": "PASS",
       "exit": 0,
-      "seconds": 69,
+      "seconds": 61,
       "files": 168,
-      "tests": 2674,
-      "passed": 2674,
+      "tests": 2675,
+      "passed": 2675,
       "failed": 0,
       "skipped": 0,
-      "listed": 2674
+      "listed": 2675
     },
     {
       "name": "backend",
-      "command": "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-5b/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rg5b-4b6bd4e8/gate-round.logs/backend",
+      "command": "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-5b/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rg5b-cccc94ea/gate-round.logs/backend",
       "status": "PASS",
       "exit": 0,
-      "seconds": 238
+      "seconds": 234
     },
     {
       "name": "ports-free",
@@ -951,9 +951,9 @@
       "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
       "status": "PASS",
       "exit": 0,
-      "seconds": 1842,
-      "tests": 942,
-      "passed": 942,
+      "seconds": 1694,
+      "tests": 943,
+      "passed": 943,
       "failed": 0,
       "flaky": 0,
       "skipped": 0
@@ -961,33 +961,33 @@
     {
       "name": "browser-executed",
       "status": "PASS",
-      "tests": 942
+      "tests": 943
     },
     {
       "name": "browser-workers",
       "status": "PASS",
-      "run": "gate-c5539556-2631-4d4c-ba4c-63b714b2b7dd",
+      "run": "gate-5a7a1b30-1acc-418c-a1a5-d7ab2474dddf",
       "mocks": 3
     },
     {
       "name": "browser-replay",
       "status": "PASS",
       "report": "replay.json",
-      "frames": 9518,
-      "attempts": 942,
+      "frames": 9068,
+      "attempts": 943,
       "http": {
         "aborted": 2,
-        "replaced": 3779,
+        "replaced": 3781,
         "fetched": 4,
         "fetch-unknown": 1,
-        "other-server": 34,
-        "served": 15652,
-        "fallback": 3324,
+        "other-server": 35,
+        "served": 15656,
+        "fallback": 3182,
         "several": 1,
         "redirect-hop": 2,
-        "closing": 594,
+        "closing": 582,
         "held": 5,
-        "aborted-early": 24
+        "aborted-early": 28
       },
       "outside": [
         "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
@@ -1013,10 +1013,10 @@
     },
     {
       "name": "firefox-core",
-      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/rg5b-4b6bd4e8/gate-round.logs/test-results",
+      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/rg5b-cccc94ea/gate-round.logs/test-results",
       "status": "PASS",
       "exit": 0,
-      "seconds": 105,
+      "seconds": 102,
       "tests": 86,
       "passed": 86,
       "failed": 0,
@@ -1031,7 +1031,7 @@
     {
       "name": "firefox-workers",
       "status": "PASS",
-      "run": "firefox-95c22dd7-aed0-4e2c-b703-bf13045c8284"
+      "run": "firefox-ee087965-5181-49b1-8f0b-853105b02bda"
     },
     {
       "name": "firefox-unload",
@@ -1044,7 +1044,7 @@
       "name": "firefox-unload-guard",
       "status": "PASS",
       "seconds": 9,
-      "run": "firefox-guard-571a20bf-22ba-410e-ae3a-da921c24ed44"
+      "run": "firefox-guard-884db76f-0059-4563-ab99-adbbff63c4a5"
     },
     {
       "name": "firefox-browser",
@@ -1060,14 +1060,14 @@
       "name": "firefox-replay",
       "status": "PASS",
       "report": "firefox-replay.json",
-      "frames": 493,
+      "frames": 482,
       "attempts": 86,
       "http": {
         "replaced": 23,
-        "ws-handshake": 84,
+        "ws-handshake": 85,
         "other-server": 41,
         "served": 1230,
-        "fallback": 265
+        "fallback": 264
       },
       "outside": [
         "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",

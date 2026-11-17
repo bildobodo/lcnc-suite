@@ -3,10 +3,10 @@
  "contexts": 85,
  "classes": {
   "replaced": 23,
-  "ws-handshake": 84,
+  "ws-handshake": 85,
   "other-server": 41,
   "served": 1230,
-  "fallback": 265
+  "fallback": 264
  },
  "routes": {
   "GET /": {
@@ -17,7 +17,7 @@
    "served": 12
   },
   "GET /g30": {
-   "fallback": 84
+   "fallback": 85
   },
   "GET /gcode": {
    "replaced": 7
@@ -41,7 +41,7 @@
    "replaced": 4
   },
   "POST /telemetry": {
-   "fallback": 181,
+   "fallback": 179,
    "other-server": 6
   },
   "POST /upload": {
@@ -49,8 +49,8 @@
   }
  },
  "fallback_paths": {
-  "POST /telemetry": 181,
-  "GET /g30": 84
+  "POST /telemetry": 179,
+  "GET /g30": 85
  },
  "idless_covered_by_synthetic_hops": 0,
  "ws_handshakes_joined": 82,

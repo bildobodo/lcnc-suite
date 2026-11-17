@@ -18,6 +18,7 @@ PY = str(Path.home() / "lcnc-suite-pl/lcnc-gateway/.venv/bin/python3")
 SUBSET = str(Path.home() / "claude-work/replay5b/subset.sh")
 REC = "lcnc-webui/e2e/httpRecord.ts"
 HP = "scripts/test_select/http_paths.py"
+CFG = "lcnc-webui/playwright.config.ts"
 SPECS = ["e2e/http-paths.spec.ts", "e2e/macros.spec.ts", "e2e/g30.spec.ts"]
 
 MUTANTS = {
@@ -33,7 +34,7 @@ MUTANTS = {
              "                    by_req[_rid].append(m)")],
            {"finding": "fulfilled in the browser AND a contact under its id"}),
     "H3": ("the record keeps the query's values", "browser",
-           [(REC, "method: r.method(), host: u.host, path: u.pathname,", "method: r.method(), host: u.host, path: u.pathname + u.search,")],
+           [(REC, "method: r.method(), host: u.host, path: recordedPath(u),", "method: r.method(), host: u.host, path: recordedPath(u) + u.search,")],
            {"finding": "a query in the recorded path", "test": "an invented token in a query and a header appears in no record"}),
     "H4": ("a wrapped fulfill that records nothing", "browser",
            [(REC, '            write({ k: "act", id, act: "fulfill", status, response: o?.response !== undefined });\n',
@@ -53,6 +54,25 @@ MUTANTS = {
                  "                                f\"— no synthetic redirect hop of the attempt covers it\")",
              "                pass")],
            {"guard": "test_each_finding_is_red_for_its_own_reason"}),
+    "H9": ("service workers allowed in the config", "unit",
+           [(CFG, "    serviceWorkers: 'block',", "    serviceWorkers: 'allow',")],
+           {"cmd": ["npx", "vitest", "run", "src/playwrightProjects.test.ts"], "cwd": "lcnc-webui",
+            "named": "blocks service workers"}),
+    "H10": ("a service worker at a context's close is no finding", "offline",
+            [(HP, "                findings.append(f\"context {r['ctx']}: {r['sw']} service worker(s) at its close — they are blocked\")",
+              "                pass")],
+            {"guard": "test_each_finding_is_red_for_its_own_reason"}),
+    "H11": ("closing by the clock again (the request's ms at or after the mark's)", "offline",
+            [(HP, '            ctx.setdefault(r["ctx"], {})["closing"] = r["_o"]', '            ctx.setdefault(r["ctx"], {})["closing"] = r["t"]'),
+             (HP, '                c = "several"\n            elif e is None and closing is not None and r["_o"] > closing:',
+              '                c = "several"\n            elif e is None and closing is not None and r["t"] >= closing:'),
+             (HP, '                synthetic[key].append(rid)\n        elif e is None and closing is not None and r["_o"] > closing:',
+              '                synthetic[key].append(rid)\n        elif e is None and closing is not None and r["t"] >= closing:')],
+            {"guard": "test_the_record_s_order_decides_closing_never_the_millisecond"}),
+    "H12": ("a wrapped continue that drops the id", "browser",
+            [(REC, "            return target.continue({ ...(o ?? {}), headers: headers(o?.headers, `req:${id}`) });",
+              "            return target.continue(o);")],
+            {"finding": "reached the mock without an id", "specs": ["e2e/editor-guards.spec.ts"]}),
     "H8": ("the closing mark not written", "browser",
            [(REC, '  write({ k: "closing", ctx, sw: context.serviceWorkers().length });\n',
              '  void ctx; void context;\n')],
@@ -105,7 +125,7 @@ def main():
         try:
             res = {"what": what, "kind": kind, "head": head}
             if kind == "browser":
-                r = subprocess.run([SUBSET, str(d), *SPECS], text=True, capture_output=True)
+                r = subprocess.run([SUBSET, str(d), *(want.get("specs") or SPECS)], text=True, capture_output=True)
                 (d / "mutant.log").write_text(r.stdout + r.stderr)
                 if "build failed" in r.stdout:
                     raise SystemExit(f"{n}: the mutant does not build — no result (see {d}/build.log)")
@@ -116,6 +136,14 @@ def main():
                 res |= {"replay": rep.get("verdict"), "findings": rep.get("findings", [])[:8], "failed_tests": failed}
                 red = ("finding" in want and any(want["finding"] in f for f in rep.get("findings", []))) or \
                       ("test" in want and want["test"] in failed)
+            elif kind == "unit":
+                d.mkdir(parents=True, exist_ok=True)
+                u = run(want["cmd"], ) if want.get("cwd") is None else subprocess.run(
+                    want["cmd"], cwd=TREE / want["cwd"], text=True, capture_output=True)
+                (d / "unit.log").write_text(u.stdout + u.stderr)
+                failed = [l.strip() for l in (u.stdout + u.stderr).splitlines() if want["named"] in l and ("×" in l or "FAIL" in l)]
+                res |= {"unit_exit": u.returncode, "failed": failed[:4]}
+                red = u.returncode != 0 and bool(failed)
             else:
                 rid = json.loads(next((base / "replay").glob("*.jsonl")).open().readline())["run"]
                 d.mkdir(parents=True, exist_ok=True)

@@ -6814,123 +6814,126 @@ Eigene Arbeit in dieser Runde: Dokument- und Artefaktabgleich. Keine erneuten Te
 
 ## Claude · Replay 5b · gebaut · Anfrage R393 · 17. November 2026
 
-5b ist gebaut, auf `feat/replay-5b` (Zwilling `harden/replay-5b`), Basis development `cd23f813`, Kopf `4b6bd4e8`. Gebaut ist nach dem vereinbarten Plan: FI265-02 Rest A und B (R268/R269) mit den Abweichungen D1–D7 aus R389, D4 präzisiert durch R390. Produktcode ändert sich nicht. Erbeten ist ein Agreement oder Befunde. Belege liegen unter `vor-maschine.rp5.r393.*`.
+5b ist gebaut, auf `feat/replay-5b` (Zwilling `harden/replay-5b`), Basis development `cd23f813`, Kopf **`cccc94ea`**. Grundlage ist der vereinbarte Plan: FI265-02 Rest A und B (R268/R269), die Abweichungen D1–D7 aus R389, D4 präzisiert durch R390. Produktcode ändert sich nicht. Erbeten ist ein Agreement oder Befunde. Belege liegen unter `vor-maschine.rp5.r393.*`.
+
+Diese Fassung ersetzt eine nie geläutete erste Fassung von `350a8f56`. Fables Prüfung vor der Glocke fand darin falsche Zahlen und zwei Lücken im Baum; beide sind an `cccc94ea` geschlossen und unten benannt.
 
 ### Was gebaut ist
 
-- **`e2e/httpRecord.ts`:** die Aufzeichnung je Worker (`LCNC_E2E_HTTP_DIR`).
+- **`e2e/httpRecord.ts`:** die Aufzeichnung je Worker (`LCNC_E2E_HTTP_DIR`; ein schlichter Lauf bekommt `test-results/http` als Standard, wie den Replay-Ordner).
   - Drei Identitäten: die Anfrage mit einer ID bei ihrem `request`-Ereignis, die Weiterleitungskette über `redirectedFrom`, je `route.fetch` eine eigene Operations-ID.
   - Eine Auffangroute, als Erste auf jedem Kontext registriert. Sie setzt jede Anfrage, die kein Spec-Handler erledigt hat, mit `x-e2e-req: req:<id>` fort. Das umhüllte `continue` setzt dieselbe Kennung, das umhüllte `fetch` `fetch:<op>`.
   - `route` und `unroute` sind an Seite und Kontext umhüllt, für den Kontext des Fixtures, jeden aus `browser.newContext()` und jede Seite aus `newPage()`. Jeder Spec-Handler bekommt eine umhüllte Route, deren `fulfill`, `continue`, `fallback`, `fetch` und `abort` gegen die ID protokolliert werden.
-  - Die Schließmarke je Kontext unmittelbar vor seinem Schließen, beim Schließen des Fixtures wie bei einem `context.close()` einer Spec, mit der Zahl seiner Service Worker. `serviceWorkers: 'block'` steht in der Konfiguration, die der Firefox-Kern übernimmt; `playwrightProjects.test.ts` hält das fest.
-- **`e2e/routeProjection.ts`:** Routenvorlage und Variante aus den `http:`- und `section:`-Atomen des Inventars, also aus einer Quelle. Varianten:
-  - `PUT /macro`: Speichern oder Umbenennen, mit Basis `new` oder Revision;
-  - `DELETE /macro`;
-  - `POST /macro-upload`: anlegen oder ersetzen;
-  - `POST /upload`: `overwrite`;
-  - die Settings-Sektion.
-
-  Nie ein Wert. Eine Route ohne Projektion hat die Variante `null` („nicht abgeleitet“).
+  - Die Schließmarke je Kontext unmittelbar vor seinem Schließen (Fixture und `context.close()` einer Spec), mit der Zahl seiner Service Worker. `serviceWorkers: 'block'` steht in der Konfiguration, die der Firefox-Kern übernimmt; `playwrightProjects.test.ts` hält das fest.
+- **`e2e/routeProjection.ts`:** Routenvorlage und Variante aus den `http:`- und `section:`-Atomen des Inventars, also aus einer Quelle.
+  - Varianten: `PUT /macro` (Speichern oder Umbenennen, mit Basis `new` oder Revision), `DELETE /macro`, `POST /macro-upload` (anlegen oder ersetzen), `POST /upload` (`overwrite`), die Settings-Sektion. Nie ein Wert; eine Route ohne Projektion hat die Variante `null` („nicht abgeleitet“).
+  - **Pfadparameter** (R268 Rest B): Der Parameter einer Route steht als sein Vorlagenname, außer der Wert ist aufgezählt. Heute betrifft das nur `/settings/{section}`, für eine Sektion, die das Inventar nicht nennt. Das gilt in der Aufzeichnung nach dem Pfad allein, bei jeder Methode, und im Protokoll des Mocks ebenso.
 - **Der Mock** schreibt zusätzlich, ohne bestehendes Verhalten zu ändern:
   - `served` (Handler, statisch, Fallback, 403, 404);
   - `qkeys`, nur die Namen;
   - eine Anfrage ohne Antwort (`closed`);
-  - die Kennung auf der WS-`open`-Zeile.
+  - die Kennung auf der WS-`open`-Zeile;
+  - den Pfad mit Vorlage statt Parameterwert.
 
   Neu sind zwei Testpfade, `/__e2e/redirect` (302) und `/__e2e/target`, die keine Gateway-Route hat.
-- **`scripts/test_select/http_paths.py`:** die Klassen in der Reihenfolge ihrer Entscheidung, die Befunde nach D4/R390, je Versuch die Beobachtungen (Route, Variante, Weg, Transport, Status) und die Erwartungen der Gegenfälle (`replay_http_expect.json`). `replay.py --http` ruft es auf; Round Gate und Firefox-Kern übergeben ihre Aufzeichnung.
+- **`scripts/test_select/http_paths.py`:** die Klassen in der Reihenfolge ihrer Entscheidung, die Befunde nach D4/R390, je Versuch die Beobachtungen (Route, Variante, Weg, Transport, Status) und die Erwartungen der Gegenfälle (`replay_http_expect.json`, mit optionalem Status und Variante). `replay.py --http` ruft es auf; Round Gate und Firefox-Kern übergeben ihre Aufzeichnung.
+- **„Beim Schließen unterwegs“ nach der Reihenfolge der Aufzeichnung, nicht nach der Uhr:** Eine Anfrage gehört dazu, wenn ihre Zeile hinter der Marke ihres Kontexts steht. Ein Worker schreibt der Reihe nach, ein Kontext lebt in einem Worker (Herkunft unten).
 - **Doku:** `docs/testing.md` („The replay's HTTP paths“), `docs/decisions.md` (2026-11-17), die Zeile in `CLAUDE.md`.
 
-### Eine Abweichung, benannt
+### Abweichungen, benannt
 
-**„abgebrochen vor dem Kontakt“ (aborted-early)** umfasst auch eine Anfrage ohne jeden Routenaufruf, deren Transport scheiterte.
-- Das ist ein Beacon, den der Browser beim Seitenwechsel noch vor der Route verwirft: Ereignis und `net::ERR_ABORTED` in derselben Millisekunde.
-- Der erste Teillauf fand so einen `POST /telemetry` vom Typ `ping`. Ohne die Erweiterung wäre er `unknown` gewesen.
-- Im vollen Lauf sind es 27 Fälle: 24 `POST /telemetry` und 3 Settings-Beacons. Sie verteilen sich auf zehn Specs, 17 davon in `layout`.
-- Ein Kontakt beim Mock schließt die Klasse aus.
+- **„abgebrochen vor dem Kontakt“ (aborted-early)** umfasst auch eine Anfrage ohne jeden Routenaufruf, deren Transport scheiterte: ein Beacon, den der Browser beim Seitenwechsel noch vor der Route verwirft (Ereignis und `net::ERR_ABORTED` in derselben Millisekunde). Ein Kontakt beim Mock schließt die Klasse aus.
+  - An `cccc94ea` sind es 28 Fälle: 27 davon ohne Routenaufruf, alle `POST /telemetry`; einer weitergeleitet und gescheitert (`GET /g30` in `devices`).
+  - Sie verteilen sich auf 7 Specs, `layout` mit 21 ([Messung](vor-maschine.rp5.r393.measure.txt)).
+- **Gegenfälle, die nicht genau wie vereinbart lauten:**
+  - **Ein 403 statt „ein 404 vom Mock“.** Einen 404 kann der Mock praktisch nicht liefern: Sein Fallback beantwortet jede fehlende Datei mit 200 und `index.html`, einen 404 gibt er nur, wenn `index.html` selbst fehlt. Der 403 (ein Pfad außerhalb von `dist/`) belegt dasselbe: bedient, mit seinem Status.
+  - **`GET /devices` statt `GET /g30`** für die zwei gleichnamigen Anfragen. Der Mock bedient `/g30` nicht, eine „vom Mock bediente“ `/g30` gibt es also nicht. `/devices` bedient er mit seinem Handler. Die Zuordnung wird so über die ID belegt, mit vertauschter Abschlussreihenfolge (die ersetzte endet zuletzt).
+  - **„Beim Schließen unterwegs“ hat keinen eigenen Browserfall.** Ein inszenierter Fall hinge vom Zeitpunkt ab. Belegt ist die Klasse an jedem vollen Lauf, an `cccc94ea` mit 582 Anfragen, die alle hinter ihrer Marke stehen, und synthetisch in beiden Reihenfolgen.
+- **Die Messgrenze vor der Marke:** Eine weitergeleitete Anfrage kurz vor der Marke, die weder den Mock erreicht noch ein Ende bekommt, wäre `unknown` und damit rot. Gemessen ist das nie:
+  - an `cccc94ea` 2790 weitergeleitete Anfragen höchstens 10 Aufzeichnungszeilen vor ihrer Marke, Chromium und Firefox;
+  - in den fünf vollen Läufen keine ohne Kontakt und ohne Ende.
 
-### Belege
+  Das ist eine Häufigkeit, keine Unmöglichkeit; ein solcher Fall würde rot und müsste untersucht werden.
 
-**Erster voller Lauf** am Entwicklungsstand `f47618ef` (Round Gate PASS, [Bericht](vor-maschine.rp5.r393.gate-dev.json)): 0 Befunde. Jede Anfrage hat eine benannte Klasse; `unknown` kommt nicht vor.
+### Belege am Kopf `cccc94ea`
 
-| Klasse | Chromium (942 Tests, 23 414 Anfragen) | Firefox-Kern (86, 1653) |
+**Beweis-Gate: PASS** ([Bericht](vor-maschine.rp5.r393.gate-round.json), Basis `cd23f813`, `uncommitted: 0`; `unit-heavy` ließ der Selektor aus, „no heavy file changed, reached or read for“):
+- Auswahlwächter, Lint, Build, `unit-light` 2675, Backend und der volle Chromium-Lauf **943/943**.
+- `browser-replay` PASS, 0 Befunde, 23 279 Anfragen in 945 Kontexten ([HTTP-Wege](vor-maschine.rp5.r393.http-paths.json)).
+- Der Firefox-Kern **86/86** mit allen elf Prüfungen. Alle 82 Abmeldungen sind vollständig.
+- `firefox-replay` PASS, 0 Befunde ([HTTP-Wege](vor-maschine.rp5.r393.firefox-http-paths.json)): 85 WS-Handschläge, 82 davon über die Kennung mit der `open`-Zeile des Mocks verbunden. Die übrigen gingen an `localhost:4173`, den Vorschau-Server von `smoke`.
+- Kein Hänger: Alle 84 Firefox-Ladevorgänge bekamen ihr `hello`. Der Wächterprozess lief mit; seine 21 Datensätze sind alle Chromium-Tests über 20 s.
+
+| Klasse | Chromium | Firefox-Kern |
 |---|---|---|
-| vom Mock bedient | 15 652 | 1230 |
-| Mock-Fallback | 3321 | 274 |
-| im Browser ersetzt | 3778 | 23 |
-| beim Schließen unterwegs (nach der Marke) | 587 | 0 |
-| abgebrochen vor dem Kontakt | 27 | 0 |
-| anderer Server (Vorschau-Server von `smoke`) | 34 | 41 |
-| WS-Handschlag | — | 85, davon 82 über die Kennung mit der `open`-Zeile verbunden (die drei übrigen: `smoke`, Vorschau-Server) |
-| geholt und ersetzt (eine Fetch-Operation, ein Kontakt) | 4 (3× der hybride Fall `collisionWorker.js` aus `collisions.viewer.spec.ts`) | 0 |
+| vom Mock bedient | 15 656 | 1230 |
+| Mock-Fallback | 3182 | 264 |
+| im Browser ersetzt | 3781 | 23 |
+| beim Schließen unterwegs (Zeile hinter der Marke) | 582 | 0 |
+| abgebrochen vor dem Kontakt | 28 | 0 |
+| anderer Server (Vorschau-Server von `smoke`) | 35 | 41 |
+| WS-Handschlag | — | 85 |
+| geholt und ersetzt (ein Kontakt) | 4 (3× der hybride Fall `collisionWorker.js` aus `collisions.viewer.spec.ts`) | 0 |
 | vom Spec gehalten | 5 (4× `/preview` in `bake-hold`) | 0 |
 | abgebrochen, mehrere Kontakte, Weiterleitungs-Hop, Fetch unbekannt | 2, 1, 2, 1 (die Gegenfälle) | 0 |
 
-- **Die Schließmarke entscheidet jetzt**, wie R390 verlangt. Die 587 Anfragen liegen alle an oder nach der Marke ihres Kontexts; eine Anfrage ohne Ende vor der Marke wäre `unknown` und rot. Die R389-Probe hatte 609 nur aus dem Abstand erschlossen.
-- **Vom Mock bedient** werden nur `GET /`, `GET /devices`, `GET /macros`, `GET /preview` und `GET /settings`.
-  - Jede andere Route ist im Lauf nur ersetzt, Fallback, beim Schließen unterwegs oder gehalten.
-  - Fallback-Pfade: `GET /g30` 1797, `POST /telemetry` 1515, `GET /ready` 4, `GET /gcode` 3, `GET /subfile` 2.
-  - Das ist die Eingabe für 5c und für den Punkt nach 5c (Q389-1).
+**Was der Mock bedient:** nur `GET /`, `GET /devices`, `GET /macros`, `GET /preview` und `GET /settings`, in beiden Browsern.
+- Jede andere Route ist im Lauf nur ersetzt, Fallback, beim Schließen unterwegs oder gehalten.
+- Fallback-Pfade in Chromium: `GET /g30` 1807, `POST /telemetry` 1361, `GET /ready` 5, `GET /gcode` 3, `GET /subfile` 2, Settings-Beacons 2 sowie die zwei Pfade des Token-Falls.
+- Das ist die Eingabe für 5c und für den Punkt nach 5c (Q389-1).
 
 **Gegenfälle:**
-- **Im Browser:** `e2e/http-paths.spec.ts` mit `replay_http_expect.json`, neun Tests, jeder mit genau dem erwarteten Weg:
-  - die zwei `GET /devices`, die ersetzte endet zuletzt: `replaced` und `served`, zugeordnet über die ID;
-  - Fetch und Fulfill: `fetched`;
-  - ein 403 des Mocks: `served` mit 403;
+- **Im Browser:** `e2e/http-paths.spec.ts` mit `replay_http_expect.json`, zehn Tests, jeder mit genau dem erwarteten Weg:
+  - die zwei `GET /devices` (`replaced` und `served`);
+  - Fetch und Fulfill (`fetched`);
+  - der 403 mit Status;
   - der Fallback auf `/g30`;
-  - die drei Weiterleitungsfälle aus R268 mit den Urteilen aus R390. Bei der synthetischen Weiterleitung ist genau ein kennungsloser Kontakt gedeckt;
+  - die drei Weiterleitungsfälle aus R268 mit den Urteilen aus R390, bei der synthetischen Weiterleitung genau ein gedeckter kennungsloser Kontakt;
   - `abort` und eine gehaltene Anfrage;
-  - ein erfundenes Token in Query und Header: Byteweise steht es weder im Replay-Protokoll noch in der Aufzeichnung.
-- **Synthetisch:** `test_http_paths.py`, 21 Fälle, darunter jede Klasse, jeder Befund und die vier roten Gegenfälle der Weiterleitungsgrenze. Sie laufen im Backend-Schritt `replay`.
-- **Projektion:** `src/routeProjection.test.ts` vergleicht die Routen mit dem Inventar, prüft Speichern und Umbenennen als zwei Varianten, die aufgezählten Klassen und dass kein erfundenes Token in einer Projektion steht.
+  - Speichern und Umbenennen eines Makros **im selben Test** als zwei Varianten;
+  - ein erfundenes Token in Query, Header und Pfadparameter: Byteweise steht es weder im Replay-Protokoll noch in der Aufzeichnung.
+- **Synthetisch:** `test_http_paths.py`, 22 Fälle, darunter jede Klasse, jeder Befund, die vier roten Gegenfälle der Weiterleitungsgrenze und die zwei Reihenfolgen in derselben Millisekunde. Sie laufen im Backend-Schritt `replay`.
+- **Projektion:** `src/routeProjection.test.ts` mit sieben Tests:
+  - die Routen gegen das Inventar;
+  - Speichern und Umbenennen als zwei Varianten;
+  - die aufgezählten Klassen;
+  - der Pfadparameter bei jeder Methode;
+  - kein erfundenes Token in einer Projektion.
 
-**Mutanten: 8 von 8 rot**, an genau `4b6bd4e8` ([Ergebnis](vor-maschine.rp5.r393.mutants.json), [Skript](vor-maschine.rp5.r393.mutants.py)). Die Browser-Mutanten liefen je in einem kurzen Lauf über `http-paths`, `macros` und `g30`. Die Offline-Mutanten beurteilten das Protokoll eines unveränderten Grundlaufs neu (PASS) und liefen gegen die synthetischen Fälle.
+**Mutanten: 12 von 12 rot**, an genau `cccc94ea` ([Ergebnis](vor-maschine.rp5.r393.mutants.json), [Skript](vor-maschine.rp5.r393.mutants.py)). Die Browser-Mutanten liefen je in einem kurzen Lauf über `http-paths`, `macros` und `g30` (H12 über `editor-guards`). Die Offline-Mutanten beurteilten das Protokoll eines unveränderten Grundlaufs neu (PASS) und liefen gegen die synthetischen Fälle.
 
 | Mutant | Art | rot durch |
 |---|---|---|
 | H1 die Auffangroute ohne Kennung | Browser | der Replay: „reached the mock without an id“; die Specs selbst bleiben grün |
 | H2 Zuordnung über die URL statt die ID | offline | „fulfilled in the browser AND a contact under its id“ und `test_the_three_redirect_cases_of_r268_keep_their_verdicts` |
 | H3 die Aufzeichnung behält Query-Werte | Browser | „a query in the recorded path“ und der Token-Test im Browser |
-| H4 ein umhülltes `fulfill`, das nichts aufzeichnet | Browser | der Replay: „no named path“ in `g30`; die Specs bleiben grün |
-| H5 der Fallback als bediente Route | offline | die Erwartung „GET /g30 as fallback“ und `test_a_forwarded_request_with_its_one_contact_is_served_and_the_fallback_is_not` |
-| H6 ein echter Hop deckt einen kennungslosen Kontakt (die synthetische Bedingung entfernt) | offline | der rote Gegenfall „Fall 1 und ein kennungsloser Kontakt auf dem Pfad von `real-2`“ |
+| H4 ein umhülltes `fulfill`, das nichts aufzeichnet | Browser | der Replay: „no named path“; die Specs bleiben grün |
+| H5 der Fallback als bediente Route | offline | die Erwartung „GET /g30 as fallback“ und der synthetische Fall |
+| H6 ein echter Hop deckt einen kennungslosen Kontakt | offline | der rote Gegenfall „Fall 1 und ein kennungsloser Kontakt auf dem Pfad von `real-2`“ |
 | H7 ein kennungsloser Kontakt ist nie ein Befund | offline | die vier roten Gegenfälle der Weiterleitungsgrenze und der direkte `continue()` |
-| H8 die Schließmarke wird nicht geschrieben | Browser | der Replay: „no named path“ für die Anfragen beim Schließen; die Specs bleiben grün |
+| H8 die Schließmarke wird nicht geschrieben | Browser | der Replay: „no named path“; die Specs bleiben grün |
+| **H9** Service Worker in der Konfiguration erlaubt | Unit | `playwrightProjects.test.ts` „blocks service workers“ |
+| **H10** ein Service Worker beim Schließen ist kein Befund | offline | der synthetische Fall „service worker(s) at its close“ |
+| **H11** „beim Schließen“ wieder nach der Uhr | offline | `test_the_record_s_order_decides_closing_never_the_millisecond` |
+| **H12** ein umhülltes `continue` ohne Kennung | Browser (`editor-guards`) | der Replay: „reached the mock without an id“; die Specs bleiben grün |
 
-**Zuerst falsch, benannt:** An `371ead38` ließen sich H4 und H8 im ersten Durchgang nicht bauen (`TS6133`, eine Variable unbenutzt). Ihr Browserlauf begann nie, und das Skript zählte das als grün.
-- Beide Mutationen lesen die Variable jetzt weiter.
-- Das Skript bricht ab, wenn ein Mutant nicht baut, statt ihn grün zu nennen.
-- An `d587dc7c` und an `4b6bd4e8` liefen alle acht im ersten Durchgang. Jeder Browser-Mutant hat ein Replay-Urteil, wie die Tabelle zeigt.
+H9 bis H12 kamen vor der Glocke dazu: der in R389 vereinbarte Service-Worker-Mutant (beide Seiten) und je ein Wächter für die Korrektur aus dem roten Gate und für den umhüllten `continue`.
 
-**Das Beweis-Gate an `371ead38` war ROT**, und es bleibt ein eigener Datensatz ([Bericht](vor-maschine.rp5.r393.gate-371ead38-FAIL.json)).
-- Alles war grün bis auf `browser-replay`: „GET /tool-table as held 0 time(s), expected 1“. Der gehaltene Gegenfall war als `closing` beurteilt.
-- **Ursache, im Prüfer:** Anfrage, Handler-Eintritt und Schließmarke standen in derselben Millisekunde. Der Vergleich `t >= closing` stellte die Anfrage hinter die Marke.
-- **Korrektur an `d587dc7c`:** Ein Worker schreibt seine Aufzeichnung der Reihe nach, und ein Kontext lebt in einem Worker. Die Stelle einer Zeile in der Aufzeichnung ordnet die Zeilen eines Kontexts also genau. „Beim Schließen unterwegs“ ist eine Anfrage nur, wenn ihre Zeile hinter der Marke steht. Das ist auch näher an R390 („ein bloßer Zeitabstand darf die Marke nicht ersetzen“).
-- `test_http_paths.py` hält jetzt beide Reihenfolgen in derselben Millisekunde fest, dazu eine Anfrage vor der Marke ohne Ende als Befund.
-- **Mit der Korrektur neu beurteilt:** Das Protokoll des roten Gates ergibt PASS mit 0 Befunden. Die gehaltene Anfrage ist `held`, und alle 605 Schließanfragen stehen hinter ihrer Marke. Das Protokoll des ersten vollen Laufs ergibt ebenfalls PASS, in Chromium und in Firefox.
+### Unterwegs, benannt
 
-**Beweis-Gate an `4b6bd4e8`: PASS** ([Bericht](vor-maschine.rp5.r393.gate-round.json), Basis `cd23f813`, `uncommitted: 0`; `unit-heavy` ließ der Selektor aus, „no heavy file changed, reached or read for“):
-- Auswahlwächter, Lint, Build, `unit-light` 2674, Backend und der volle Chromium-Lauf **942/942**.
-- `browser-replay` PASS, 0 Befunde, 9518 Rahmen, 23 422 Anfragen ([HTTP-Wege](vor-maschine.rp5.r393.http-paths.json)): bedient 15 652, Fallback 3324, ersetzt 3779, beim Schließen 594, abgebrochen vor dem Kontakt 24, anderer Server 34, gehalten 5, geholt 4, dazu die Gegenfälle. Bedient sind wieder nur `GET /`, `/devices`, `/macros`, `/preview` und `/settings`.
-- Der Firefox-Kern **86/86** mit allen elf Prüfungen. Alle 82 Abmeldungen sind vollständig.
-- `firefox-replay` PASS, 0 Befunde ([HTTP-Wege](vor-maschine.rp5.r393.firefox-http-paths.json)): 84 WS-Handschläge, 82 davon über die Kennung verbunden. Die zwei übrigen gingen an `localhost:4173`, den Vorschau-Server von `smoke`.
-- Kein Hänger: Alle 84 Firefox-Ladevorgänge bekamen ihr `hello`. Der Wächterprozess lief mit; seine 26 Datensätze sind alle Chromium-Tests über 20 s.
-- Das grüne Gate an `d587dc7c` liegt als eigener Datensatz bei ([Bericht](vor-maschine.rp5.r393.gate-d587dc7c.json)).
+- **Das Beweis-Gate an `371ead38` war ROT** ([Bericht](vor-maschine.rp5.r393.gate-371ead38-FAIL.json)): „GET /tool-table as held 0 time(s), expected 1“.
+  - Anfrage, Handler-Eintritt und Schließmarke standen in derselben Millisekunde, und `t >= closing` stellte die Anfrage hinter die Marke.
+  - **Korrektur an `d587dc7c`:** die Reihenfolge der Aufzeichnung statt der Uhr. Mit der Korrektur ergeben die Protokolle des roten Gates und des ersten vollen Laufs PASS ohne Befund.
+- **CI an `d587dc7c` war ROT** (Lauf 44012249167, frontend), das Beweis-Gate dort PASS ([Bericht](vor-maschine.rp5.r393.gate-d587dc7c.json)).
+  - CIs schlichter `npm run test:e2e` hatte keinen Standardordner für die HTTP-Aufzeichnung, und der Token-Fall las einen leeren Pfad.
+  - **Korrektur an `4b6bd4e8`:** derselbe Standard wie für den Replay-Ordner; die Spec lief danach ohne jede der Variablen. Gate und Mutanten an `4b6bd4e8` waren grün ([Bericht](vor-maschine.rp5.r393.gate-4b6bd4e8.json)).
+- **H4 und H8 ließen sich an `371ead38` nicht bauen** (`TS6133`), und das Skript zählte sie als grün. Die Mutationen lesen ihre Variable jetzt weiter, und das Skript bricht ab, wenn ein Mutant nicht baut. Seit `d587dc7c` liefen alle im ersten Durchgang.
+- **Die Doku habe ich während eines Entwicklungslaufs** (`f47618ef`, [Bericht](vor-maschine.rp5.r393.gate-dev-f47618ef.json)) im Baum des Gates geändert, rund eine Minute zwischen Build und `unit-light`. Das verletzt meine eigene Regel.
+  - Ich habe den Baum sofort wiederhergestellt.
+  - Keine Testdatei liest die drei Dateien ([Suche](vor-maschine.rp5.r393.docs-readers.txt)), und der Beweis ist das Gate oben.
 
-**CI an `d587dc7c` war ROT** (Lauf 44012249167, frontend). Das Beweis-Gate an `d587dc7c` war PASS; die Ursache betrifft nur CI.
-- CI startet den Browserlauf ohne Gate, mit einem schlichten `npm run test:e2e`. Die Konfiguration setzt dafür den Replay-Ordner als Standard, aber nicht den der HTTP-Aufzeichnung.
-- Der Token-Fall der Gegenfall-Spec las deshalb einen leeren Pfad (`TypeError: … Received null`).
-- **Korrektur an `4b6bd4e8`:** `LCNC_E2E_HTTP_DIR` hat jetzt denselben Standard (`test-results/http`). Die Gates übergeben weiterhin ihren eigenen Ordner.
-- Die Spec lief danach einmal schlicht, ohne jede der Variablen: 9/9.
-- Mutanten und Beweis-Gate liefen am neuen Kopf noch einmal.
-
-**CI an `4b6bd4e8`:** Lauf 44024012608 grün, `backend` und `frontend`. Der schlichte Browserlauf enthält die Gegenfall-Spec mit dem Token-Fall.
-
-**Ein eigener Fehler, benannt:** Während des ersten vollen Laufs habe ich im Baum des Gates die Doku geändert, rund eine Minute lang zwischen Build und `unit-light`. Das verletzt meine eigene Regel.
-- Ich habe den Baum sofort wiederhergestellt; die Änderung war als Patch gesichert.
-- Keine Testdatei liest `CLAUDE.md`, `docs/testing.md` oder `docs/decisions.md`. Sie werden nur in Kommentaren genannt; die Suche über alle Testdateien steht in den Belegen.
-- Der Lauf war ohnehin nur der Entwicklungslauf. Der Beweis ist das Gate oben am endgültigen Kopf.
+**CI an `cccc94ea`:** Lauf 44035758213 grün, `backend` und `frontend`. Der schlichte Browserlauf enthält die Gegenfall-Spec.
 
 **Nicht beurteilt:** die Werte der HTTP-Nutzlasten und die Abdeckung gegen das Inventar (5c, als Nächstes).
 
-**Erbeten:** `agreement` oder `findings` zu `cd23f813..4b6bd4e8`.
+**Erbeten:** `agreement` oder `findings` zu `cd23f813..cccc94ea`.

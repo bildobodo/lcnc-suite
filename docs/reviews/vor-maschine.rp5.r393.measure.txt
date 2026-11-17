@@ -1,0 +1,68 @@
+R393 measurements (measure.py) on the proof gate at cccc94ea — Chromium full run:
+aborted-early: 28
+   1 ('forwarded', 'GET GET /g30', 'devices.spec.ts')
+   1 ('never routed', 'POST POST /telemetry', 'choices.spec.ts')
+   1 ('never routed', 'POST POST /telemetry', 'devices.spec.ts')
+   1 ('never routed', 'POST POST /telemetry', 'dialogs.spec.ts')
+   1 ('never routed', 'POST POST /telemetry', 'input-session.spec.ts')
+   21 ('never routed', 'POST POST /telemetry', 'layout.spec.ts')
+   1 ('never routed', 'POST POST /telemetry', 'lifecycle.spec.ts')
+   1 ('never routed', 'POST POST /telemetry', 'toolsetter-setup.spec.ts')
+  by branch {'never routed': 27, 'forwarded': 1}
+  by spec {'input-session.spec.ts': 1, 'lifecycle.spec.ts': 1, 'choices.spec.ts': 1, 'toolsetter-setup.spec.ts': 1, 'devices.spec.ts': 2, 'dialogs.spec.ts': 1, 'layout.spec.ts': 21} specs 7
+attempts with PUT /macro: 6 with save AND rename: 1 ['http-paths.spec.ts']
+forwarded within 10 record lines before the mark (lines between, contact, end):
+   57 (1, 'contact', 'end')
+   2 (1, 'contact', 'no end')
+   2 (1, 'no contact', 'end')
+   621 (2, 'contact', 'end')
+   1 (2, 'contact', 'no end')
+   1 (2, 'no contact', 'end')
+   63 (3, 'contact', 'end')
+   1 (3, 'contact', 'no end')
+   58 (4, 'contact', 'end')
+   1 (4, 'contact', 'no end')
+   1 (4, 'no contact', 'end')
+   564 (5, 'contact', 'end')
+   1 (5, 'contact', 'no end')
+   168 (6, 'contact', 'end')
+   1 (6, 'contact', 'no end')
+   2 (6, 'no contact', 'end')
+   131 (7, 'contact', 'end')
+   1 (7, 'no contact', 'end')
+   475 (8, 'contact', 'end')
+   2 (8, 'no contact', 'end')
+   261 (9, 'contact', 'end')
+   1 (9, 'no contact', 'end')
+   118 (10, 'contact', 'end')
+   2 (10, 'no contact', 'end')
+forwarded before the mark with neither contact nor end: 0
+
+Firefox core:
+aborted-early: 4
+   4 ('forwarded', 'POST POST /telemetry', 'smoke.spec.ts')
+  by branch {'forwarded': 4}
+  by spec {'smoke.spec.ts': 4} specs 1
+attempts with PUT /macro: 0 with save AND rename: 0 []
+forwarded within 10 record lines before the mark (lines between, contact, end):
+   81 (2, 'contact', 'end')
+   1 (3, 'contact', 'end')
+   2 (3, 'no contact', 'end')
+   1 (4, 'no contact', 'end')
+   2 (5, 'no contact', 'end')
+   82 (6, 'contact', 'end')
+   1 (6, 'no contact', 'end')
+   81 (8, 'contact', 'end')
+   3 (8, 'no contact', 'end')
+   1 (9, 'contact', 'end')
+forwarded before the mark with neither contact nor end: 0
+
+The race margin over the four earlier full runs (forwarded before the mark with neither contact nor end):
+  rg5b-1 http: forwarded before the mark with neither contact nor end: 0
+  rg5b-1 firefox-http: forwarded before the mark with neither contact nor end: 0
+  rg5b-371 http: forwarded before the mark with neither contact nor end: 0
+  rg5b-371 firefox-http: forwarded before the mark with neither contact nor end: 0
+  rg5b-d587dc7c http: forwarded before the mark with neither contact nor end: 0
+  rg5b-d587dc7c firefox-http: forwarded before the mark with neither contact nor end: 0
+  rg5b-4b6bd4e8 http: forwarded before the mark with neither contact nor end: 0
+  rg5b-4b6bd4e8 firefox-http: forwarded before the mark with neither contact nor end: 0
