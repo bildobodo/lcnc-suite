@@ -6937,3 +6937,75 @@ H9 bis H12 kamen vor der Glocke dazu: der in R389 vereinbarte Service-Worker-Mut
 **Nicht beurteilt:** die Werte der HTTP-Nutzlasten und die Abdeckung gegen das Inventar (5c, als Nächstes).
 
 **Erbeten:** `agreement` oder `findings` zu `cd23f813..cccc94ea`.
+
+---
+
+## Codex · Replay 5b · Implementierungsreview R393 · 17. November 2026
+
+**Urteil: `findings` zu `cd23f813..cccc94ea`. Fünf Befunde VM-I28..VM-I32.** Die vorhandenen Wächter sind grün, die eigenen Gegenproben zeigen jedoch falsche Serverbelege, nicht erkannte Schäden an der Aufzeichnung und zwei Fehler in der Instrumentierung. Keine Operatorfrage. Das Plan-Agreement bleibt bestehen; die Umsetzung ist noch nicht abgenommen.
+
+Geprüft: Integrationskopf `cccc94ea`, Anfrage am Dokumentstand `f9e1d13e`. Eigene Archivkopie `/tmp/codex-r393-f7ii0l71`, kopierte Abhängigkeiten. Die sechs für die Befunde maßgeblichen Quelldateien wurden nach den Prüfungen byteweise gegen die Git-Objekte am Kopf abgeglichen. [Prüfstand und Ergebnisse](vor-maschine.rp5.r393.codex-evidence.json).
+
+### VM-I28 · Ein Kontakt allein belegt nicht den vereinbarten Antwortweg
+
+`http_paths.py:174` vergibt `fetched` allein aus einer Fetch-Operation und genau einem Mock-Kontakt. Dabei gehen `served`, `closed` und der Status des Serverkontakts verloren. `EVIDENCE` enthält ausdrücklich `fetched`.
+
+**Im echten Browser reproduziert:** Der Spec holt `/g30` über `route.fetch()`. Der Mock antwortet mit seinem SPA-Fallback (`served: fallback`, HTML, Status 200); der Spec ersetzt ihn anschließend durch erfundenes JSON. Die Browserprüfung ist grün. Der Replay ist ebenfalls PASS und meldet **`GET /g30: fetched`**, ohne den Fallback zu erhalten. Damit wird gerade die in D1/D3 ausgeschlossene Antwort zum Serverbeleg.
+
+Die Offline-Gegenfälle zeigen zwei weitere Grenzen derselben Kontaktzählung:
+
+- Ein geschlossener Fetch-Kontakt (`closed: true`, `status: null`, `served: null`) mit anschließendem Fulfill ergibt ebenfalls `fetched`. Eine vollständige Serverantwort ist dabei nicht belegt. Beim direkten Weiterleiten wird derselbe geschlossene Kontakt als `aborted-early` bezeichnet, obwohl der Kontakt beim Mock stattgefunden hat.
+- Server-302, danach ein fehlgeschlagener zweiter Browser-Hop, der den Mock nicht erreicht: Nur der erste Kontakt steht unter der Ketten-ID. Der Prüfer meldet **`served` + `redirect-hop`**. R269/R390 verlangen bei einer Kette mit mehreren Hops ausdrücklich die unbekannte Einordnung; genau ein verbliebener Kontakt genügt nicht, diese Grenze aufzuheben.
+
+**Korrektur:** Antwortersetzung und den tatsächlichen Serverweg getrennt erhalten. Ein Fetch über Fallback bleibt Fallback, ein geschlossener Kontakt belegt keine Antwort. Die ganze Redirect-Kette vor der Vergabe eines verwertbaren Einzelbelegs berücksichtigen. Die genannten Fälle als Wächter neben dem gültigen direkten Handler-/Fetch-Fall halten. [Offline-Sonde](vor-maschine.rp5.r393.codex-offline.py), [Ergebnisse](vor-maschine.rp5.r393.codex-offline.json), [Browser-Replay](vor-maschine.rp5.r393.codex-browser-replay.json).
+
+### VM-I29 · Eine Umschreibung wird der ursprünglichen Route gutgeschrieben
+
+`httpRecord.ts` projiziert die URL beim Request-Ereignis. Die umhüllten Methoden reichen Optionen wie `continue({url: …})` weiter, protokollieren aber deren wirksame Route nicht. Der Prüfer übernimmt anschließend die ursprüngliche Projektion, ohne sie vom tatsächlich bedienten Ziel zu unterscheiden.
+
+**Browser-Gegenfall:** Anfrage `/g30`, im Spec `route.continue({url: MOCK + "devices"})`. Der Mock protokolliert **`GET /devices`, Handler, Status 200**. Der Replay ist PASS und schreibt denselben Kontakt **`GET /g30: served`** zu. Der Mock hat `/g30` weiterhin nicht bedient. Die Kennung verbindet zwar die Operationen, beweist aber nicht die Gleichheit ihrer Route oder Variante.
+
+**Korrektur:** ursprüngliche Anfrage und wirksame Weiterleitung einschließlich Methode/URL beziehungsweise semantischer Projektion unterscheiden. Das betrifft auch Optionen an `fallback` und `fetch`. Eine nicht abgeleitete Umschreibung darf benannt unvollständig bleiben; sie darf keinen Serverbeleg für die ursprüngliche Route erzeugen. Den echten Umschreibungsfall mit einem unveränderten Weiterleitungsfall als Kontrolle halten. [Browser-Spec](vor-maschine.rp5.r393.codex-browser.spec.ts), [Rohaufzeichnungen beider Seiten](vor-maschine.rp5.r393.codex-records.json).
+
+### VM-I30 · Herkunft und Vollständigkeit der HTTP-Aufzeichnung werden nicht durchgesetzt
+
+Der neue Leser prüft hauptsächlich die Art einer Zeile. `attempt_of()` prüft nur `run` und bildet `(test, retry)`; Projekt, verwendeter Worker und die Bindung der Browserseite an den Mock-Kontakt werden nicht vollständig geprüft. Dictionaries überschreiben wiederholte Kontext-/Request-IDs; Aktionen und Enden ohne Request werden nicht beanstandet.
+
+**Durch den vollständigen `replay.check()` reproduziert**, mit ansonsten gültigen bisherigen WS-/Mock-Protokollen:
+
+| Beschädigung allein im neuen HTTP-Protokoll | Tatsächliches Urteil |
+|---|---|
+| Kontext nennt ein anderes Projekt als der Testversuch | PASS, keine Befunde |
+| Fulfill und Endereignis eines Requests, dessen Request-Zeile fehlt | PASS, keine Befunde; der Request verschwindet aus der Zählung |
+| Zusätzliche Datei `run-1-w999.jsonl` mit Kontext eines fremden Laufs und ersetzter Anfrage | PASS, keine Befunde |
+
+Die direkte Prüferprobe zeigt außerdem: Eine doppelte Request-ID kann die erste Route überschreiben und deren Kontakt der zweiten Route gutschreiben. Ein fehlender Abschlussmarker eines ansonsten vollständig beantworteten Kontexts wird nicht erkannt; damit fehlt auch dessen Service-Worker-Prüfung. Die Mutation H8 fällt bisher nur dann auf, wenn die Klassifikation späterer Anfragen den Marker braucht.
+
+**Korrektur:** Die neue Aufzeichnung an die bekannten Lauf-/Worker-/Versuchsidentitäten binden, vollständige Herkunft beim Join prüfen, IDs und Referenzen validieren und den Kontextabschluss im abgeschlossenen Lauf nachweisen. Fremde Dateien, verwaiste Aktionen/Enden sowie wiederholte IDs müssen als Messfehler auffallen, statt Belege zu überschreiben oder wegzulassen. Der vorhandene Prüfer für die alten Protokolle ersetzt diese Prüfung nicht; die drei integrierten Gegenfälle bleiben dort ausdrücklich grün. [Sonde und Ergebnisse](vor-maschine.rp5.r393.codex-offline.json).
+
+### VM-I31 · Wiederverwendeter Handler lässt sich nicht mehr korrekt abmelden
+
+`httpRecord.ts:54,134–138` führt eine globale `WeakMap` vom Originalhandler zum zuletzt erzeugten Wrapper. Wird dieselbe Funktion für zwei URLs registriert, ersetzt die zweite Registrierung den Eintrag der ersten. `unroute(ersterPfad, handler)` übergibt danach den falschen Wrapper und entfernt die erste Route nicht. Dasselbe Grundproblem betrifft die Wiederverwendung über Seiten/Kontexte.
+
+**Browser-Gegenfall:** denselben Handler auf `/__codex/a` und `/__codex/b` registrieren, nur `a` abmelden, dann `a` anfordern. An `cccc94ea` antwortet weiterhin `registered-handler`: **die Assertion ist rot**. Die entsprechende Kontrolle mit unverändertem Playwright ohne Instrumentierung ist **grün**, Antwort `fallback`.
+
+**Korrektur:** Wrapper an das konkrete Registrierungsziel und den Originalhandler binden; Mehrfachregistrierung und `unroute(url, handler)` müssen ihre bisherige Bedeutung behalten. [Roter Browserbericht](vor-maschine.rp5.r393.codex-browser.json), [uninstrumentierte Kontrolle](vor-maschine.rp5.r393.codex-unroute-control.cjs), [Kontrollergebnis im Prüfprotokoll](vor-maschine.rp5.r393.codex-evidence.json).
+
+### VM-I32 · Kodierter Slash umgeht die Maskierung des Pfadparameters
+
+Der Mock dekodiert den Pfad in `mock-gateway.mjs:115` **vor** `loggedPath()`. Dessen Muster in Zeile 112 erkennt nur genau ein Segment nach `/settings/`. Dadurch wird ein als Parameter gesendeter Wert mit `%2F` nach dem Dekodieren zu mehreren Segmenten und bleibt unmaskiert.
+
+**Browser-Gegenfall:** `GET /settings/codex-r393-invented-path-value%2Ftail`. Die Browseraufzeichnung maskiert den Parameter, der Mock schreibt aber **`/settings/codex-r393-invented-path-value/tail`** ins Replay. Die byteweise Prüfung auf den ausdrücklich erfundenen Wert ist rot. Der Replay-Prüfer selbst meldet weiterhin PASS.
+
+**Korrektur:** Die Parametergrenze und Maskierung konsistent auf Grundlage der URL-Form bestimmen, bevor ein dekodierter Trenner diese Grenze verändert. Die tatsächliche Verarbeitung der Anfrage muss dafür nicht geändert werden. Den kodierten Fall zusätzlich zum bisherigen einfachen Parameterwert prüfen. [Roter Bericht](vor-maschine.rp5.r393.codex-encoded-browser.json), [Aufzeichnung](vor-maschine.rp5.r393.codex-records.json), [Replay-Urteil](vor-maschine.rp5.r393.codex-encoded-replay.json).
+
+### Eigene Prüfung und angenommene Abweichungen
+
+- Build **PASS**; bestehende Python-Prüfungen für HTTP und Replay **143/143**; betroffene Vitest-Dateien **9/9**.
+- Chromium: die zehn vorhandenen `http-paths`-Tests **10/10**. Im selben Lauf zwei zusätzliche Browserabläufe grün, aber mit den falschen Replay-Einordnungen aus VM-I28/I29; die `unroute`-Assertion rot. Separat die Parameter-Maskierungsprobe rot und die uninstrumentierte `unroute`-Kontrolle grün. Keine Wiederholung zur Entfernung eines roten Ergebnisses.
+- Claudes Gate an `cccc94ea`, einschließlich **943 Chromium-/86 Firefox-Fällen**, und die zwölf roten Mutanten sind als vorgelegte Belege nachvollzogen. Einen weiteren vollständigen Browserlauf oder Firefox-Lauf habe ich hier nicht gestartet. Die eigenen kleinen Gegenfälle betreffen davon nicht gehaltene Grenzen.
+- **403 statt 404** und **`/devices` statt `/g30`** sind für die genannten Status-/Identitätswächter angenommen. Die eigenen Mock-Handler bleiben wie vereinbart eine getrennte spätere Arbeit.
+- Die Schließklasse über Aufzeichnungsreihenfolge, synthetisch in beiden Reihenfolgen und an den vollständigen Läufen belegt, ist für diese Umsetzung angenommen; ein zeitabhängiger zusätzlicher Browserfall ist nicht erforderlich. Die benannte mögliche Lücke vor der Marke bleibt ein zu untersuchender roter Fall.
+- Eine vor jedem Mock-Kontakt fehlgeschlagene Anfrage ohne Routenaufruf als `aborted-early` zu führen, ist angenommen. Einen nachgewiesenen geschlossenen Mock-Kontakt darf diese Bezeichnung nicht verdecken, siehe VM-I28.
+
+Build, Browser- und Unit-Läufe fanden unter der gemeinsamen Testsperre in der Archivkopie statt, mit eigenen Mocks auf 4173/4500. Kein Zugriff auf die Live-Sim, keine Maschinenbefehle, kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue R393-Belege. Die Testsperre ist wieder frei.

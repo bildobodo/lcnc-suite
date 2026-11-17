@@ -1,0 +1,83 @@
+{
+  "verdict": "PASS",
+  "run": "codex-r393-encoded",
+  "logs": 1,
+  "connections": {
+    "infra": 2
+  },
+  "http": {
+    "with origin": 2
+  },
+  "frames": 0,
+  "frames_by_class": {},
+  "commands": {},
+  "attempts": 1,
+  "per_attempt": {
+    "codex-r393.spec.ts \u203a R393 an encoded slash in a path parameter does not leak its value [retry 0]": {}
+  },
+  "attempt_list": [
+    {
+      "name": "codex-r393.spec.ts \u203a R393 an encoded slash in a path parameter does not leak its value [retry 0]",
+      "test": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "d56282ee-1056-4855-96d6-39c304d529b7",
+      "status": "failed",
+      "page": false,
+      "frames": 0,
+      "observed": "no page loaded at a mock, no frames"
+    }
+  ],
+  "no_cookie": [],
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+    "coverage against the inventory (step 5c)"
+  ],
+  "http_paths": {
+    "requests": 2,
+    "contexts": 1,
+    "classes": {
+      "served": 1,
+      "fallback": 1
+    },
+    "routes": {},
+    "fallback_paths": {
+      "GET /settings/{section}": 1
+    },
+    "idless_covered_by_synthetic_hops": 0,
+    "ws_handshakes_joined": 0,
+    "per_attempt": {
+      "codex-r393.spec.ts \u203a R393 an encoded slash in a path parameter does not leak its value [retry 0]": [
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/__e2e/target",
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "other",
+          "variant": null,
+          "path": "/settings/{section}",
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        }
+      ]
+    },
+    "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+    "findings": []
+  }
+}

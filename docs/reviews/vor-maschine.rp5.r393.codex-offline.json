@@ -1,0 +1,471 @@
+{
+  "review": "R393",
+  "head": "cccc94ea",
+  "cases": {
+    "direct_handler_control": {
+      "required": "served, no findings",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/devices",
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "direct_fallback_control": {
+      "required": "fallback, no findings",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "fallback": 1
+        },
+        "routes": {},
+        "fallback_paths": {
+          "GET /g30": 1
+        },
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/g30",
+              "class": "fallback",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "fetched_fallback": {
+      "required": "server fallback stays visible, never EVIDENCE fetched",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "fetched": 1
+        },
+        "routes": {
+          "GET /g30": {
+            "fetched": 1
+          }
+        },
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "GET /g30",
+              "variant": null,
+              "path": null,
+              "class": "fetched",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "fetched_closed_contact": {
+      "required": "no served response; replacement alone is proven",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "fetched": 1
+        },
+        "routes": {
+          "GET /devices": {
+            "fetched": 1
+          }
+        },
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "GET /devices",
+              "variant": null,
+              "path": null,
+              "class": "fetched",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "forwarded_closed_contact": {
+      "required": "contact occurred but no server response completed; not before-contact abort",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "aborted-early": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/devices",
+              "class": "aborted-early",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "redirect_only_first_contact": {
+      "required": "both hops unknown under the accepted multi-hop contract",
+      "actual": {
+        "requests": 2,
+        "contexts": 1,
+        "classes": {
+          "served": 1,
+          "redirect-hop": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/r",
+              "class": "served",
+              "transport": "finished",
+              "status": 302,
+              "n": 1
+            },
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/target",
+              "class": "redirect-hop",
+              "transport": "failed",
+              "status": null,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "rewritten_url": {
+      "required": "GET /devices was served, not GET /g30",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {
+          "GET /g30": {
+            "served": 1
+          }
+        },
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "GET /g30",
+              "variant": null,
+              "path": null,
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "foreign_context_project": {
+      "required": "finding: context origin differs from attempt project",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/devices",
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "orphan_actions_and_end": {
+      "required": "finding: actions/end have no request",
+      "actual": {
+        "requests": 0,
+        "contexts": 1,
+        "classes": {},
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {},
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "duplicate_request_id": {
+      "required": "finding: repeated request ID must not overwrite first ownership/projection",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {
+          "POST /upload": {
+            "served": 1
+          }
+        },
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "POST /upload",
+              "variant": null,
+              "path": null,
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "no_context_close_mark": {
+      "required": "completed run must account for the close/service-worker check of each context",
+      "actual": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a a test [retry 0]": [
+            {
+              "what": "other",
+              "variant": null,
+              "path": "/devices",
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "integrated_control": {
+      "verdict": "PASS",
+      "findings": [],
+      "http_paths": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a t [retry 0]": [
+            {
+              "what": "page",
+              "variant": null,
+              "path": null,
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "integrated_foreign_context_project": {
+      "verdict": "PASS",
+      "findings": [],
+      "http_paths": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a t [retry 0]": [
+            {
+              "what": "page",
+              "variant": null,
+              "path": null,
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "integrated_orphan_actions_and_end": {
+      "verdict": "PASS",
+      "findings": [],
+      "http_paths": {
+        "requests": 1,
+        "contexts": 1,
+        "classes": {
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "x.spec.ts \u203a t [retry 0]": [
+            {
+              "what": "page",
+              "variant": null,
+              "path": null,
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    },
+    "integrated_foreign_worker_file": {
+      "verdict": "PASS",
+      "findings": [],
+      "http_paths": {
+        "requests": 2,
+        "contexts": 2,
+        "classes": {
+          "replaced": 1,
+          "served": 1
+        },
+        "routes": {},
+        "fallback_paths": {},
+        "idless_covered_by_synthetic_hops": 0,
+        "ws_handshakes_joined": 0,
+        "per_attempt": {
+          "None": [
+            {
+              "what": "page",
+              "variant": null,
+              "path": null,
+              "class": "replaced",
+              "transport": "none",
+              "status": null,
+              "n": 1
+            }
+          ],
+          "x.spec.ts \u203a t [retry 0]": [
+            {
+              "what": "page",
+              "variant": null,
+              "path": null,
+              "class": "served",
+              "transport": "finished",
+              "status": 200,
+              "n": 1
+            }
+          ]
+        },
+        "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+        "findings": []
+      }
+    }
+  }
+}

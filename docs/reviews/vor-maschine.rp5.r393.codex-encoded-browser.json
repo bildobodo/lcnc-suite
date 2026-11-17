@@ -1,0 +1,148 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r393-f7ii0l71/lcnc-webui/playwright.gate.config.ts",
+    "rootDir": "/tmp/codex-r393-f7ii0l71/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r393-encoded",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r393-f7ii0l71/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r393-encoded",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r393-f7ii0l71/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "codex-r393.spec.ts",
+      "file": "codex-r393.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R393 an encoded slash in a path parameter does not leak its value",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 102,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"codex-r393-invented-path-value\"\u001b[39m\nReceived string:        \u001b[31m\"{\\\"t\\\":1794905009844,\\\"kind\\\":\\\"head\\\",\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"instance\\\":\\\"d56282ee-1056-4855-96d6-39c304d529b7\\\",\\\"port\\\":4500,\\\"pid\\\":2284376}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009850,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009852,\\\"kind\\\":\\\"open\\\",\\\"conn\\\":1,\\\"origin\\\":{\\\"infra\\\":\\\"infra:baseline\\\"},\\\"req_id\\\":null}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009853,\\\"kind\\\":\\\"close\\\",\\\"conn\\\":1}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009855,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009862,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009863,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"reset\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009864,\\\"kind\\\":\\\"open\\\",\\\"conn\\\":2,\\\"origin\\\":{\\\"infra\\\":\\\"infra:baseline\\\"},\\\"req_id\\\":null}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009864,\\\"kind\\\":\\\"close\\\",\\\"conn\\\":2}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009865,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009866,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009903,\\\"kind\\\":\\\"http\\\",\\\"method\\\":\\\"GET\\\",\\\"path\\\":\\\"/__e2e/target\\\",\\\"qkeys\\\":[],\\\"origin\\\":{\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"test\\\":\\\"4def156a6e8f1a9f3817-96b897613ec19cb1e252\\\",\\\"project\\\":\\\"e2e\\\",\\\"retry\\\":0},\\\"req_id\\\":\\\"req:0.1\\\",\\\"status\\\":200,\\\"served\\\":\\\"handler\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009917,\\\"kind\\\":\\\"http\\\",\\\"method\\\":\\\"GET\\\",\\\"path\\\":\\\"/settings/\u001b[7mcodex-r393-invented-path-value\u001b[27m/tail\\\",\\\"qkeys\\\":[],\\\"origin\\\":{\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"test\\\":\\\"4def156a6e8f1a9f3817-96b897613ec19cb1e252\\\",\\\"project\\\":\\\"e2e\\\",\\\"retry\\\":0},\\\"req_id\\\":\\\"req:0.2\\\",\\\"status\\\":200,\\\"served\\\":\\\"fallback\\\"}\u001b[39m\n\u001b[31m\"\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"codex-r393-invented-path-value\"\u001b[39m\nReceived string:        \u001b[31m\"{\\\"t\\\":1794905009844,\\\"kind\\\":\\\"head\\\",\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"instance\\\":\\\"d56282ee-1056-4855-96d6-39c304d529b7\\\",\\\"port\\\":4500,\\\"pid\\\":2284376}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009850,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009852,\\\"kind\\\":\\\"open\\\",\\\"conn\\\":1,\\\"origin\\\":{\\\"infra\\\":\\\"infra:baseline\\\"},\\\"req_id\\\":null}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009853,\\\"kind\\\":\\\"close\\\",\\\"conn\\\":1}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009855,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009862,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009863,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"reset\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009864,\\\"kind\\\":\\\"open\\\",\\\"conn\\\":2,\\\"origin\\\":{\\\"infra\\\":\\\"infra:baseline\\\"},\\\"req_id\\\":null}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009864,\\\"kind\\\":\\\"close\\\",\\\"conn\\\":2}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009865,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009866,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009903,\\\"kind\\\":\\\"http\\\",\\\"method\\\":\\\"GET\\\",\\\"path\\\":\\\"/__e2e/target\\\",\\\"qkeys\\\":[],\\\"origin\\\":{\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"test\\\":\\\"4def156a6e8f1a9f3817-96b897613ec19cb1e252\\\",\\\"project\\\":\\\"e2e\\\",\\\"retry\\\":0},\\\"req_id\\\":\\\"req:0.1\\\",\\\"status\\\":200,\\\"served\\\":\\\"handler\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009917,\\\"kind\\\":\\\"http\\\",\\\"method\\\":\\\"GET\\\",\\\"path\\\":\\\"/settings/\u001b[7mcodex-r393-invented-path-value\u001b[27m/tail\\\",\\\"qkeys\\\":[],\\\"origin\\\":{\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"test\\\":\\\"4def156a6e8f1a9f3817-96b897613ec19cb1e252\\\",\\\"project\\\":\\\"e2e\\\",\\\"retry\\\":0},\\\"req_id\\\":\\\"req:0.2\\\",\\\"status\\\":200,\\\"served\\\":\\\"fallback\\\"}\u001b[39m\n\u001b[31m\"\u001b[39m\n    at /tmp/codex-r393-f7ii0l71/lcnc-webui/e2e/codex-r393.spec.ts:41:44",
+                    "location": {
+                      "file": "/tmp/codex-r393-f7ii0l71/lcnc-webui/e2e/codex-r393.spec.ts",
+                      "column": 44,
+                      "line": 41
+                    },
+                    "snippet": "  39 |   await page.evaluate(t => fetch(`/settings/${t}%2Ftail`).then(r => r.text()), invented);\n  40 |   const replay = replayFile(mock.instance)!;\n> 41 |   expect(readFileSync(replay, 'utf8')).not.toContain(invented);\n     |                                            ^\n  42 | });\n  43 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r393-f7ii0l71/lcnc-webui/e2e/codex-r393.spec.ts",
+                        "column": 44,
+                        "line": 41
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"codex-r393-invented-path-value\"\u001b[39m\nReceived string:        \u001b[31m\"{\\\"t\\\":1794905009844,\\\"kind\\\":\\\"head\\\",\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"instance\\\":\\\"d56282ee-1056-4855-96d6-39c304d529b7\\\",\\\"port\\\":4500,\\\"pid\\\":2284376}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009850,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009852,\\\"kind\\\":\\\"open\\\",\\\"conn\\\":1,\\\"origin\\\":{\\\"infra\\\":\\\"infra:baseline\\\"},\\\"req_id\\\":null}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009853,\\\"kind\\\":\\\"close\\\",\\\"conn\\\":1}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009855,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009862,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009863,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"reset\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009864,\\\"kind\\\":\\\"open\\\",\\\"conn\\\":2,\\\"origin\\\":{\\\"infra\\\":\\\"infra:baseline\\\"},\\\"req_id\\\":null}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009864,\\\"kind\\\":\\\"close\\\",\\\"conn\\\":2}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009865,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009866,\\\"kind\\\":\\\"ctl\\\",\\\"op\\\":\\\"snapshot\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009903,\\\"kind\\\":\\\"http\\\",\\\"method\\\":\\\"GET\\\",\\\"path\\\":\\\"/__e2e/target\\\",\\\"qkeys\\\":[],\\\"origin\\\":{\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"test\\\":\\\"4def156a6e8f1a9f3817-96b897613ec19cb1e252\\\",\\\"project\\\":\\\"e2e\\\",\\\"retry\\\":0},\\\"req_id\\\":\\\"req:0.1\\\",\\\"status\\\":200,\\\"served\\\":\\\"handler\\\"}\u001b[39m\n\u001b[31m{\\\"t\\\":1794905009917,\\\"kind\\\":\\\"http\\\",\\\"method\\\":\\\"GET\\\",\\\"path\\\":\\\"/settings/\u001b[7mcodex-r393-invented-path-value\u001b[27m/tail\\\",\\\"qkeys\\\":[],\\\"origin\\\":{\\\"run\\\":\\\"codex-r393-encoded\\\",\\\"test\\\":\\\"4def156a6e8f1a9f3817-96b897613ec19cb1e252\\\",\\\"project\\\":\\\"e2e\\\",\\\"retry\\\":0},\\\"req_id\\\":\\\"req:0.2\\\",\\\"status\\\":200,\\\"served\\\":\\\"fallback\\\"}\u001b[39m\n\u001b[31m\"\u001b[39m\n\n  39 |   await page.evaluate(t => fetch(`/settings/${t}%2Ftail`).then(r => r.text()), invented);\n  40 |   const replay = replayFile(mock.instance)!;\n> 41 |   expect(readFileSync(replay, 'utf8')).not.toContain(invented);\n     |                                            ^\n  42 | });\n  43 |\n    at /tmp/codex-r393-f7ii0l71/lcnc-webui/e2e/codex-r393.spec.ts:41:44"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T08:43:29.761Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r393-f7ii0l71/lcnc-webui/test-results/codex-r393-R393-an-encoded-3649f-ter-does-not-leak-its-value-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r393-f7ii0l71/lcnc-webui/test-results/codex-r393-R393-an-encoded-3649f-ter-does-not-leak-its-value-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r393-f7ii0l71/lcnc-webui/test-results/codex-r393-R393-an-encoded-3649f-ter-does-not-leak-its-value-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r393-f7ii0l71/lcnc-webui/e2e/codex-r393.spec.ts",
+                    "column": 44,
+                    "line": 41
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+          "file": "codex-r393.spec.ts",
+          "line": 36,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-17T08:43:28.114Z",
+    "duration": 1895.6970000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "review": "R393",
+  "head": "cccc94eaaf8581abada93a2786e6dc898c7cdd60",
+  "base": "cd23f813",
+  "document": "f9e1d13e",
+  "archive": "/tmp/codex-r393-f7ii0l71",
+  "source_hashes_verified_against_head": {
+    "lcnc-webui/e2e/httpRecord.ts": "5a7e129d3bb9ffb040bb6b627a461c2cca2de36a19ff6a0142f9a970a8432f8e",
+    "lcnc-webui/e2e/routeProjection.ts": "7cbe43cbf9461041169140e580af5826d33c33d6d9a9097ec1a73fc37b18bc95",
+    "lcnc-webui/e2e/test.ts": "1e376a923ba80107bc5aaeeac6516f3301750809bbdb9bb13e9b457999afbeaf",
+    "lcnc-webui/e2e/mock-gateway.mjs": "f2b7e930d5d0a8c13e5fedea89ab2ba069967f528cf357638fb8e95743563275",
+    "scripts/test_select/http_paths.py": "167b4628514a49affc7b11f9cf282876f3bf73820871e0f0c98e7421a8ce4227",
+    "scripts/test_select/replay.py": "bf1d0143581575a1f0d9a90ab98fc945b400a74112664a183b999a1f49e97aab"
+  },
+  "checks": {
+    "build": "PASS",
+    "pytest_http_and_replay": {
+      "passed": 143,
+      "seconds": 0.27
+    },
+    "vitest_projection_and_projects": {
+      "passed": 9,
+      "files": 2
+    },
+    "chromium_first_run": {
+      "startTime": "2026-11-17T08:40:11.005Z",
+      "duration": 3670.758,
+      "expected": 12,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "chromium_encoded_case": {
+      "startTime": "2026-11-17T08:43:28.114Z",
+      "duration": 1895.6970000000001,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "unroute_without_instrumentation": {
+      "instrumented": false,
+      "answer": "fallback",
+      "verdict": "PASS"
+    },
+    "first_run_replay": "PASS",
+    "encoded_run_replay": "PASS"
+  },
+  "isolation": {
+    "dependency_copy": "cp -a from own R388 archive, no shared node_modules",
+    "browser_lock": "scripts/test_support/heavy_lock.py, held for each browser/build/unit run",
+    "ports": [
+      4173,
+      4500
+    ],
+    "live_sim_access": false,
+    "new_tests_in_archive_only": true,
+    "product_changes": false
+  },
+  "findings": [
+    "VM-I28: server-contact semantics lost in fetched/redirect/closed classification",
+    "VM-I29: rewritten URL credited to original route",
+    "VM-I30: incomplete/foreign HTTP records pass replay",
+    "VM-I31: shared handler breaks unroute",
+    "VM-I32: encoded path parameter leaks through mock mask"
+  ]
+}
