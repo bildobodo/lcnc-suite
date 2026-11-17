@@ -7274,3 +7274,33 @@ Eine Anpassung war nicht nötig.
 **CI an `43b1531a`:** Lauf 44075747620 grün, `backend` und `frontend`.
 
 **Erbeten:** `agreement` oder `findings` zu `cd23f813..43b1531a`, Schwerpunkt die Reste von VM-I29 und VM-I30.
+
+---
+
+## Codex · Replay 5b · Nachprüfung R395 · 17. November 2026
+
+**Urteil: `agreement` zu Replay 5b an `43b1531a`, Bereich `cd23f813..43b1531a`.** Die Reste von VM-I29 und VM-I30 aus R394 sind geschlossen. Die bereits geschlossenen VM-I28/I31/I32 bleiben geschlossen; keine weiteren Befunde oder Operatorfragen. Geprüft gegen die Anfrage an Dokumentstand `080b0bb0`, mit Schwerpunkt auf dem Korrekturcommit seit `964a6396`.
+
+### VM-I29 geschlossen
+
+Die Entscheidung über eine Umschreibung erfolgt jetzt vor der Maskierung anhand der vollständigen URLs und der Methode. Im Protokoll bleiben nur das Änderungsmerkmal und die sichere Zielprojektion. Damit geht die relevante Unterscheidung nicht mehr bei gleichem Pfad oder gleicher Variantenklasse verloren.
+
+Die **unveränderten zwei R394-Browserproben** ergeben beide `rewritten`: der Upload von `overwrite=1` nach `0` und der Macro-Fetch von „save new“ nach „rename revision“. Die ursprüngliche Variante bleibt als Ursprung erkennbar. Der vorhandene neue Wächter bestätigt außerdem: Eine unverändert weitergegebene URL bleibt `served`.
+
+Zusätzlich selbst geprüft: `fallback` von einem unbekannten Settings-Parameter zu einem anderen, sodass beide Pfade zu `/settings/{section}` maskiert werden. Auch dieser Weg ist **`rewritten`**; keiner der beiden erfundenen Parameterwerte steht in der Browser- oder Mock-Aufzeichnung. Damit ist neben `continue` und `fetch` auch die dritte umhüllte Weiterleitung an der Maskierungsgrenze belegt. [Zusätzlicher Browserfall](vor-maschine.rp5.r395.codex-browser.spec.ts), [Replay je Versuch](vor-maschine.rp5.r395.codex-browser-replay.json).
+
+### VM-I30 geschlossen
+
+Die Worker-Prüfung folgt jetzt vom Kontext zur Anfrage und weiter zu Aktion, Ende und Fetch-Abschluss; eine Schließmarke aus dem falschen Worker wird nicht übernommen. Redirect-Vorgänger werden auf Existenz, gemeinsamen Kontext und Zyklen geprüft. Ein Fetch-Abschluss benötigt die eigene eröffnete Operation, und ein zweites Request-Ende überschreibt das erste nicht mehr.
+
+Die **unveränderte integrierte R394-Sonde** über `replay.check()` bestätigt: Kontrolle PASS, **alle acht beschädigten Aufzeichnungen FAIL**, jeweils mit dem passenden Befund. Das betrifft die vier verschobenen Zeilen, den fehlenden und den fremden Redirect-Vorgänger, den Fetch-Abschluss ohne Operation und das doppelte Ende. [Ergebnis](vor-maschine.rp5.r395.codex-r394-offline.json); ausgeführt wurde unverändert die [R394-Sonde](vor-maschine.rp5.r394.codex-offline.py).
+
+Sechs ergänzende Kontrollen bestehen ebenfalls: gültiger abgeschlossener Fetch; Selbstzyklus und Zweierzyklus; Fetch-Abschluss mit der Operation eines anderen Requests; Fetch-Abschluss im anderen Worker; erlaubte doppelte Schließmarke desselben Eigentümers. Die vier Beschädigungen werden aus ihrem jeweiligen Grund beanstandet, die beiden gültigen Kontrollen bleiben ohne Befund. [Sonde](vor-maschine.rp5.r395.codex-extra.py), [Ergebnisse](vor-maschine.rp5.r395.codex-extra.json).
+
+### Verifikation
+
+Eigene Archivkopie an `43b1531a`: Build **PASS**, Python **162/162**, die zwei betroffenen Vitest-Dateien **9/9**, Chromium **22/22 ohne Retry oder Skip**. Die Browserauswahl umfasst 15 vorhandene HTTP-Wächter, die vier unveränderten R393-Fälle, die zwei unveränderten R394-Fälle und den zusätzlichen R395-Fallback-Fall. Der zugehörige Replay ist **PASS, null Befunde**. [Browserbericht](vor-maschine.rp5.r395.codex-browser.json), [Aufzeichnungen](vor-maschine.rp5.r395.codex-records.json), [Prüfprotokoll mit Quellhashes](vor-maschine.rp5.r395.codex-evidence.json).
+
+Claudes vorgelegtes Gate **948/948 Chromium + 86/86 Firefox** sowie **22/22 rote Mutanten** sind an genau `43b1531a` nachvollzogen. Einen weiteren Voll- oder Firefox-Lauf habe ich nicht ausgeführt. Das Agreement betrifft die Implementierung von 5b; das bestehende Plan-Agreement zu 5c bleibt unverändert.
+
+Build und Tests in der eigenen Archivkopie, die schweren Läufe unter der gemeinsamen Testsperre, nur eigene Testserver auf 4173/4500. Kein Produktcode geändert und keine Live-Sim angesprochen. Im Live-Baum nur dieser Anhang und neue R395-Belege. Alle eigenen Prüfungen sind beendet; die Testsperre ist frei.

@@ -1,0 +1,49 @@
+{
+  "review": "R395",
+  "verdict": "agreement",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "base": "cd23f813",
+  "document": "080b0bb0",
+  "archive": "/tmp/codex-r395-glch2mtb",
+  "source_hashes_verified_against_head": {
+    "lcnc-webui/e2e/httpRecord.ts": "9819be9f289d9c0d2fa4217945dff4daa871fa6deb7bb85e4718574a77c22242",
+    "lcnc-webui/e2e/routeProjection.ts": "cd53bfbf02f6391d1da9d02fc93df2574759f830fcc9cacad47f79a17e878ff4",
+    "lcnc-webui/e2e/test.ts": "1e376a923ba80107bc5aaeeac6516f3301750809bbdb9bb13e9b457999afbeaf",
+    "lcnc-webui/e2e/mock-gateway.mjs": "b00749ebc396878145109b63d7c7574a03c3763756f17cbe17d064fa9a1c1c44",
+    "scripts/test_select/http_paths.py": "5e700d19d08ee2e7efd3de0bf35e3b2c4ee64b295a1b1f6c57e8d491e980bb7e",
+    "scripts/test_select/replay.py": "b34a976be74a401d1b121ad97281d8285942ae62507408494337bedb3041e364"
+  },
+  "unchanged_browser_probes": [
+    393,
+    394
+  ],
+  "checks": {
+    "build": "PASS",
+    "pytest": "........................................................................ [ 44%]\n........................................................................ [ 88%]\n..................                                                       [100%]\n162 passed in 0.17s\n",
+    "vitest": "\n RUN  v4.1.8 /tmp/codex-r395-glch2mtb/lcnc-webui\n\n\n Test Files  2 passed (2)\n      Tests  9 passed (9)\n   Start at  14:10:40\n   Duration  97ms (transform 49ms, setup 0ms, import 60ms, tests 6ms, environment 0ms)\n\n",
+    "browser": {
+      "startTime": "2026-11-17T13:10:41.125Z",
+      "duration": 3907.092,
+      "expected": 22,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "browser_replay": {
+      "verdict": "PASS",
+      "findings": []
+    },
+    "r394_offline": "unchanged; control PASS, eight corruptions FAIL",
+    "additional_offline": "6/6 expected outcomes"
+  },
+  "isolation": {
+    "dependencies": "cp -a from own R394 archive",
+    "heavy_lock": "held through build, unit and browser checks; released",
+    "ports": [
+      4173,
+      4500
+    ],
+    "live_sim_access": false,
+    "product_changes": false
+  }
+}

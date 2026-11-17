@@ -1,0 +1,4550 @@
+{
+  "/tmp/r395-http/codex-r395-w0.jsonl": [
+    {
+      "t": 1794921042941,
+      "k": "ctx",
+      "ctx": "0.c1",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "4def156a6e8f1a9f3817-854de021d5a33331f61b",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921042973,
+      "k": "req",
+      "ctx": "0.c1",
+      "id": "0.1",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921042973,
+      "k": "act",
+      "id": "0.1",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921042986,
+      "k": "end",
+      "id": "0.1",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921042994,
+      "k": "req",
+      "ctx": "0.c1",
+      "id": "0.2",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__codex/a",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921042994,
+      "k": "act",
+      "id": "0.2",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921042998,
+      "k": "end",
+      "id": "0.2",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043000,
+      "k": "closing",
+      "ctx": "0.c1",
+      "sw": 0
+    },
+    {
+      "t": 1794921043048,
+      "k": "ctx",
+      "ctx": "0.c2",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "4def156a6e8f1a9f3817-3b20278b69124a52f141",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043065,
+      "k": "req",
+      "ctx": "0.c2",
+      "id": "0.3",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043065,
+      "k": "act",
+      "id": "0.3",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043072,
+      "k": "end",
+      "id": "0.3",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043078,
+      "k": "req",
+      "ctx": "0.c2",
+      "id": "0.4",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/g30",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /g30",
+      "variant": null
+    },
+    {
+      "t": 1794921043078,
+      "k": "act",
+      "id": "0.4",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043078,
+      "k": "act",
+      "id": "0.4",
+      "act": "fetch",
+      "op": "0.f1"
+    },
+    {
+      "t": 1794921043082,
+      "k": "fetched",
+      "id": "0.4",
+      "op": "0.f1",
+      "status": 200
+    },
+    {
+      "t": 1794921043083,
+      "k": "act",
+      "id": "0.4",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921043085,
+      "k": "end",
+      "id": "0.4",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043086,
+      "k": "closing",
+      "ctx": "0.c2",
+      "sw": 0
+    },
+    {
+      "t": 1794921043127,
+      "k": "ctx",
+      "ctx": "0.c3",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "4def156a6e8f1a9f3817-5a9e59d84d82e6d38b01",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043142,
+      "k": "req",
+      "ctx": "0.c3",
+      "id": "0.5",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043142,
+      "k": "act",
+      "id": "0.5",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043149,
+      "k": "end",
+      "id": "0.5",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043154,
+      "k": "req",
+      "ctx": "0.c3",
+      "id": "0.6",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/g30",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /g30",
+      "variant": null
+    },
+    {
+      "t": 1794921043154,
+      "k": "act",
+      "id": "0.6",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043154,
+      "k": "act",
+      "id": "0.6",
+      "act": "continue",
+      "to": {
+        "changed": true,
+        "method": "GET",
+        "host": "localhost:4500",
+        "path": "/devices",
+        "route": "GET /devices",
+        "variant": null
+      }
+    },
+    {
+      "t": 1794921043158,
+      "k": "end",
+      "id": "0.6",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043159,
+      "k": "closing",
+      "ctx": "0.c3",
+      "sw": 0
+    },
+    {
+      "t": 1794921043210,
+      "k": "ctx",
+      "ctx": "0.c4",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043225,
+      "k": "req",
+      "ctx": "0.c4",
+      "id": "0.7",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043225,
+      "k": "act",
+      "id": "0.7",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043230,
+      "k": "end",
+      "id": "0.7",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043235,
+      "k": "req",
+      "ctx": "0.c4",
+      "id": "0.8",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043235,
+      "k": "act",
+      "id": "0.8",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043239,
+      "k": "end",
+      "id": "0.8",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043240,
+      "k": "closing",
+      "ctx": "0.c4",
+      "sw": 0
+    },
+    {
+      "t": 1794921043301,
+      "k": "ctx",
+      "ctx": "0.c5",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "d243388c74277068e954-1e483b94daac591f6922",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043316,
+      "k": "req",
+      "ctx": "0.c5",
+      "id": "0.9",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043316,
+      "k": "act",
+      "id": "0.9",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043322,
+      "k": "end",
+      "id": "0.9",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043329,
+      "k": "req",
+      "ctx": "0.c5",
+      "id": "0.10",
+      "at": "request",
+      "method": "POST",
+      "host": "localhost:4500",
+      "path": "/upload",
+      "qkeys": [
+        "overwrite"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "POST /upload",
+      "variant": "overwrite=1"
+    },
+    {
+      "t": 1794921043329,
+      "k": "act",
+      "id": "0.10",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043329,
+      "k": "act",
+      "id": "0.10",
+      "act": "continue",
+      "to": {
+        "changed": true,
+        "method": "POST",
+        "host": "localhost:4500",
+        "path": "/upload",
+        "route": "POST /upload",
+        "variant": "overwrite=0"
+      }
+    },
+    {
+      "t": 1794921043334,
+      "k": "closing",
+      "ctx": "0.c5",
+      "sw": 0
+    },
+    {
+      "t": 1794921043358,
+      "k": "ctx",
+      "ctx": "0.c6",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "d243388c74277068e954-789833780714633d8baf",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043374,
+      "k": "req",
+      "ctx": "0.c6",
+      "id": "0.11",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043374,
+      "k": "act",
+      "id": "0.11",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043379,
+      "k": "end",
+      "id": "0.11",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043385,
+      "k": "req",
+      "ctx": "0.c6",
+      "id": "0.12",
+      "at": "request",
+      "method": "PUT",
+      "host": "localhost:4500",
+      "path": "/macro",
+      "qkeys": [
+        "base"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "PUT /macro",
+      "variant": "save base=new"
+    },
+    {
+      "t": 1794921043385,
+      "k": "act",
+      "id": "0.12",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043385,
+      "k": "act",
+      "id": "0.12",
+      "act": "fetch",
+      "op": "0.f2",
+      "to": {
+        "changed": true,
+        "method": "PUT",
+        "host": "localhost:4500",
+        "path": "/macro",
+        "route": "PUT /macro",
+        "variant": "rename base=revision rename_base=revision"
+      }
+    },
+    {
+      "t": 1794921043387,
+      "k": "fetched",
+      "id": "0.12",
+      "op": "0.f2",
+      "status": 200
+    },
+    {
+      "t": 1794921043387,
+      "k": "act",
+      "id": "0.12",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921043390,
+      "k": "closing",
+      "ctx": "0.c6",
+      "sw": 0
+    },
+    {
+      "t": 1794921043445,
+      "k": "ctx",
+      "ctx": "0.c7",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "d02de6bd0d2424201737-52f46dbec11379511525",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043461,
+      "k": "req",
+      "ctx": "0.c7",
+      "id": "0.13",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043461,
+      "k": "act",
+      "id": "0.13",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043467,
+      "k": "end",
+      "id": "0.13",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043472,
+      "k": "req",
+      "ctx": "0.c7",
+      "id": "0.14",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043472,
+      "k": "act",
+      "id": "0.14",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043472,
+      "k": "act",
+      "id": "0.14",
+      "act": "fallback",
+      "to": {
+        "changed": true,
+        "method": "GET",
+        "host": "localhost:4500",
+        "path": "/settings/{section}",
+        "route": null,
+        "variant": null
+      }
+    },
+    {
+      "t": 1794921043472,
+      "k": "act",
+      "id": "0.14",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043477,
+      "k": "end",
+      "id": "0.14",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043478,
+      "k": "closing",
+      "ctx": "0.c7",
+      "sw": 0
+    },
+    {
+      "t": 1794921043533,
+      "k": "ctx",
+      "ctx": "0.c8",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-04d58f8450350ea76afe",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921043551,
+      "k": "req",
+      "ctx": "0.c8",
+      "id": "0.15",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921043551,
+      "k": "act",
+      "id": "0.15",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043558,
+      "k": "end",
+      "id": "0.15",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043564,
+      "k": "req",
+      "ctx": "0.c8",
+      "id": "0.16",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/devices",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /devices",
+      "variant": null
+    },
+    {
+      "t": 1794921043564,
+      "k": "act",
+      "id": "0.16",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043565,
+      "k": "req",
+      "ctx": "0.c8",
+      "id": "0.17",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/devices",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /devices",
+      "variant": null
+    },
+    {
+      "t": 1794921043565,
+      "k": "act",
+      "id": "0.17",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921043565,
+      "k": "act",
+      "id": "0.17",
+      "act": "fallback"
+    },
+    {
+      "t": 1794921043565,
+      "k": "act",
+      "id": "0.17",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921043617,
+      "k": "end",
+      "id": "0.17",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921043964,
+      "k": "act",
+      "id": "0.16",
+      "act": "fulfill",
+      "status": 200,
+      "response": false
+    },
+    {
+      "t": 1794921043968,
+      "k": "closing",
+      "ctx": "0.c8",
+      "sw": 0
+    },
+    {
+      "t": 1794921044005,
+      "k": "ctx",
+      "ctx": "0.c9",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-7cdc96e8d26aa26e5736",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044024,
+      "k": "req",
+      "ctx": "0.c9",
+      "id": "0.18",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044024,
+      "k": "act",
+      "id": "0.18",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044030,
+      "k": "end",
+      "id": "0.18",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044035,
+      "k": "req",
+      "ctx": "0.c9",
+      "id": "0.19",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/devices",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /devices",
+      "variant": null
+    },
+    {
+      "t": 1794921044035,
+      "k": "act",
+      "id": "0.19",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044035,
+      "k": "act",
+      "id": "0.19",
+      "act": "fetch",
+      "op": "0.f3"
+    },
+    {
+      "t": 1794921044036,
+      "k": "fetched",
+      "id": "0.19",
+      "op": "0.f3",
+      "status": 200
+    },
+    {
+      "t": 1794921044036,
+      "k": "act",
+      "id": "0.19",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921044039,
+      "k": "closing",
+      "ctx": "0.c9",
+      "sw": 0
+    },
+    {
+      "t": 1794921044077,
+      "k": "ctx",
+      "ctx": "0.c10",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-b304833c638ed2e6b5a3",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044093,
+      "k": "req",
+      "ctx": "0.c10",
+      "id": "0.20",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044093,
+      "k": "act",
+      "id": "0.20",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044098,
+      "k": "end",
+      "id": "0.20",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044103,
+      "k": "req",
+      "ctx": "0.c10",
+      "id": "0.21",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/..%2f..%2fe2e-outside",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044103,
+      "k": "act",
+      "id": "0.21",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044106,
+      "k": "end",
+      "id": "0.21",
+      "transport": "failed",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "t": 1794921044108,
+      "k": "closing",
+      "ctx": "0.c10",
+      "sw": 0
+    },
+    {
+      "t": 1794921044158,
+      "k": "ctx",
+      "ctx": "0.c11",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-b9cc47357af61e1c042b",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044174,
+      "k": "req",
+      "ctx": "0.c11",
+      "id": "0.22",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044174,
+      "k": "act",
+      "id": "0.22",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044181,
+      "k": "end",
+      "id": "0.22",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044185,
+      "k": "req",
+      "ctx": "0.c11",
+      "id": "0.23",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/g30",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /g30",
+      "variant": null
+    },
+    {
+      "t": 1794921044185,
+      "k": "act",
+      "id": "0.23",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044190,
+      "k": "closing",
+      "ctx": "0.c11",
+      "sw": 0
+    },
+    {
+      "t": 1794921044225,
+      "k": "ctx",
+      "ctx": "0.c12",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-e4c8d3649f9ea4a26807",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044240,
+      "k": "req",
+      "ctx": "0.c12",
+      "id": "0.24",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044240,
+      "k": "act",
+      "id": "0.24",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044247,
+      "k": "end",
+      "id": "0.24",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044252,
+      "k": "req",
+      "ctx": "0.c12",
+      "id": "0.25",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/redirect",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044252,
+      "k": "act",
+      "id": "0.25",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044255,
+      "k": "req",
+      "ctx": "0.c12",
+      "id": "0.26",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": "0.25",
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044255,
+      "k": "end",
+      "id": "0.25",
+      "transport": "finished",
+      "status": 302
+    },
+    {
+      "t": 1794921044257,
+      "k": "end",
+      "id": "0.26",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044258,
+      "k": "closing",
+      "ctx": "0.c12",
+      "sw": 0
+    },
+    {
+      "t": 1794921044307,
+      "k": "ctx",
+      "ctx": "0.c13",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-3e4153848afc1e4ce0a8",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044323,
+      "k": "req",
+      "ctx": "0.c13",
+      "id": "0.27",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044323,
+      "k": "act",
+      "id": "0.27",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044329,
+      "k": "end",
+      "id": "0.27",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044334,
+      "k": "req",
+      "ctx": "0.c13",
+      "id": "0.28",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/synthetic",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044334,
+      "k": "act",
+      "id": "0.28",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044334,
+      "k": "act",
+      "id": "0.28",
+      "act": "fulfill",
+      "status": 302,
+      "response": false
+    },
+    {
+      "t": 1794921044336,
+      "k": "req",
+      "ctx": "0.c13",
+      "id": "0.29",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": "0.28",
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044336,
+      "k": "end",
+      "id": "0.28",
+      "transport": "finished",
+      "status": 302
+    },
+    {
+      "t": 1794921044338,
+      "k": "end",
+      "id": "0.29",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044339,
+      "k": "closing",
+      "ctx": "0.c13",
+      "sw": 0
+    },
+    {
+      "t": 1794921044373,
+      "k": "ctx",
+      "ctx": "0.c14",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044391,
+      "k": "req",
+      "ctx": "0.c14",
+      "id": "0.30",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044391,
+      "k": "act",
+      "id": "0.30",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044397,
+      "k": "end",
+      "id": "0.30",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044403,
+      "k": "req",
+      "ctx": "0.c14",
+      "id": "0.31",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/redirect",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044403,
+      "k": "act",
+      "id": "0.31",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044403,
+      "k": "act",
+      "id": "0.31",
+      "act": "fetch",
+      "op": "0.f4"
+    },
+    {
+      "t": 1794921044406,
+      "k": "fetched",
+      "id": "0.31",
+      "op": "0.f4",
+      "status": 200
+    },
+    {
+      "t": 1794921044406,
+      "k": "act",
+      "id": "0.31",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921044408,
+      "k": "end",
+      "id": "0.31",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044409,
+      "k": "closing",
+      "ctx": "0.c14",
+      "sw": 0
+    },
+    {
+      "t": 1794921044441,
+      "k": "ctx",
+      "ctx": "0.c15",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-93ced2cec37669e1814a",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044459,
+      "k": "req",
+      "ctx": "0.c15",
+      "id": "0.32",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044459,
+      "k": "act",
+      "id": "0.32",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044465,
+      "k": "end",
+      "id": "0.32",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044472,
+      "k": "req",
+      "ctx": "0.c15",
+      "id": "0.33",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/devices",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /devices",
+      "variant": null
+    },
+    {
+      "t": 1794921044472,
+      "k": "act",
+      "id": "0.33",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044472,
+      "k": "act",
+      "id": "0.33",
+      "act": "abort"
+    },
+    {
+      "t": 1794921044474,
+      "k": "end",
+      "id": "0.33",
+      "transport": "failed",
+      "error": "net::ERR_FAILED"
+    },
+    {
+      "t": 1794921044478,
+      "k": "req",
+      "ctx": "0.c15",
+      "id": "0.34",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/tool-table",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /tool-table",
+      "variant": null
+    },
+    {
+      "t": 1794921044478,
+      "k": "act",
+      "id": "0.34",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044478,
+      "k": "closing",
+      "ctx": "0.c15",
+      "sw": 0
+    },
+    {
+      "t": 1794921044507,
+      "k": "ctx",
+      "ctx": "0.c16",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-39bb9915f2526d19ff70",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044523,
+      "k": "req",
+      "ctx": "0.c16",
+      "id": "0.35",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044523,
+      "k": "act",
+      "id": "0.35",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044529,
+      "k": "end",
+      "id": "0.35",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044534,
+      "k": "req",
+      "ctx": "0.c16",
+      "id": "0.36",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/g30",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /g30",
+      "variant": null
+    },
+    {
+      "t": 1794921044534,
+      "k": "act",
+      "id": "0.36",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044534,
+      "k": "act",
+      "id": "0.36",
+      "act": "fetch",
+      "op": "0.f5"
+    },
+    {
+      "t": 1794921044536,
+      "k": "fetched",
+      "id": "0.36",
+      "op": "0.f5",
+      "status": 200
+    },
+    {
+      "t": 1794921044536,
+      "k": "act",
+      "id": "0.36",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921044539,
+      "k": "end",
+      "id": "0.36",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044541,
+      "k": "closing",
+      "ctx": "0.c16",
+      "sw": 0
+    },
+    {
+      "t": 1794921044576,
+      "k": "ctx",
+      "ctx": "0.c17",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-a1935fcb765d7c133424",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044593,
+      "k": "req",
+      "ctx": "0.c17",
+      "id": "0.37",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044593,
+      "k": "act",
+      "id": "0.37",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044599,
+      "k": "end",
+      "id": "0.37",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044604,
+      "k": "req",
+      "ctx": "0.c17",
+      "id": "0.38",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/g30",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /g30",
+      "variant": null
+    },
+    {
+      "t": 1794921044604,
+      "k": "act",
+      "id": "0.38",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044604,
+      "k": "act",
+      "id": "0.38",
+      "act": "continue",
+      "to": {
+        "changed": true,
+        "method": "GET",
+        "host": "localhost:4500",
+        "path": "/devices",
+        "route": "GET /devices",
+        "variant": null
+      }
+    },
+    {
+      "t": 1794921044607,
+      "k": "end",
+      "id": "0.38",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044609,
+      "k": "closing",
+      "ctx": "0.c17",
+      "sw": 0
+    },
+    {
+      "t": 1794921044640,
+      "k": "ctx",
+      "ctx": "0.c18",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-042c801909b3b58d8c16",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044656,
+      "k": "req",
+      "ctx": "0.c18",
+      "id": "0.39",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044656,
+      "k": "act",
+      "id": "0.39",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044663,
+      "k": "end",
+      "id": "0.39",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044669,
+      "k": "req",
+      "ctx": "0.c18",
+      "id": "0.40",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/a",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044669,
+      "k": "act",
+      "id": "0.40",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044673,
+      "k": "end",
+      "id": "0.40",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044676,
+      "k": "req",
+      "ctx": "0.c18",
+      "id": "0.41",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/b",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044676,
+      "k": "act",
+      "id": "0.41",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044676,
+      "k": "act",
+      "id": "0.41",
+      "act": "fulfill",
+      "status": 200,
+      "response": false
+    },
+    {
+      "t": 1794921044678,
+      "k": "end",
+      "id": "0.41",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044679,
+      "k": "closing",
+      "ctx": "0.c18",
+      "sw": 0
+    },
+    {
+      "t": 1794921044707,
+      "k": "ctx",
+      "ctx": "0.c19",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044722,
+      "k": "req",
+      "ctx": "0.c19",
+      "id": "0.42",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044722,
+      "k": "act",
+      "id": "0.42",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044729,
+      "k": "end",
+      "id": "0.42",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044735,
+      "k": "req",
+      "ctx": "0.c19",
+      "id": "0.43",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/headers-continue",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044735,
+      "k": "act",
+      "id": "0.43",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044735,
+      "k": "act",
+      "id": "0.43",
+      "act": "continue"
+    },
+    {
+      "t": 1794921044738,
+      "k": "end",
+      "id": "0.43",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044742,
+      "k": "req",
+      "ctx": "0.c19",
+      "id": "0.44",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/headers-fallback",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044742,
+      "k": "act",
+      "id": "0.44",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044742,
+      "k": "act",
+      "id": "0.44",
+      "act": "fallback"
+    },
+    {
+      "t": 1794921044742,
+      "k": "act",
+      "id": "0.44",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044745,
+      "k": "end",
+      "id": "0.44",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044748,
+      "k": "req",
+      "ctx": "0.c19",
+      "id": "0.45",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/headers-fetch",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044748,
+      "k": "act",
+      "id": "0.45",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044748,
+      "k": "act",
+      "id": "0.45",
+      "act": "fetch",
+      "op": "0.f6"
+    },
+    {
+      "t": 1794921044749,
+      "k": "fetched",
+      "id": "0.45",
+      "op": "0.f6",
+      "status": 200
+    },
+    {
+      "t": 1794921044749,
+      "k": "act",
+      "id": "0.45",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921044751,
+      "k": "end",
+      "id": "0.45",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044752,
+      "k": "closing",
+      "ctx": "0.c19",
+      "sw": 0
+    },
+    {
+      "t": 1794921044792,
+      "k": "ctx",
+      "ctx": "0.c20",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044807,
+      "k": "req",
+      "ctx": "0.c20",
+      "id": "0.46",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044807,
+      "k": "act",
+      "id": "0.46",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044813,
+      "k": "end",
+      "id": "0.46",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044818,
+      "k": "req",
+      "ctx": "0.c20",
+      "id": "0.47",
+      "at": "request",
+      "method": "POST",
+      "host": "localhost:4500",
+      "path": "/upload",
+      "qkeys": [
+        "overwrite"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "POST /upload",
+      "variant": "overwrite=1"
+    },
+    {
+      "t": 1794921044818,
+      "k": "act",
+      "id": "0.47",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044818,
+      "k": "act",
+      "id": "0.47",
+      "act": "continue",
+      "to": {
+        "changed": true,
+        "method": "POST",
+        "host": "localhost:4500",
+        "path": "/upload",
+        "route": "POST /upload",
+        "variant": "overwrite=0"
+      }
+    },
+    {
+      "t": 1794921044822,
+      "k": "req",
+      "ctx": "0.c20",
+      "id": "0.48",
+      "at": "request",
+      "method": "PUT",
+      "host": "localhost:4500",
+      "path": "/macro",
+      "qkeys": [
+        "base"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "PUT /macro",
+      "variant": "save base=new"
+    },
+    {
+      "t": 1794921044822,
+      "k": "act",
+      "id": "0.48",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044822,
+      "k": "act",
+      "id": "0.48",
+      "act": "fetch",
+      "op": "0.f7",
+      "to": {
+        "changed": true,
+        "method": "PUT",
+        "host": "localhost:4500",
+        "path": "/macro",
+        "route": "PUT /macro",
+        "variant": "rename base=revision rename_base=revision"
+      }
+    },
+    {
+      "t": 1794921044824,
+      "k": "fetched",
+      "id": "0.48",
+      "op": "0.f7",
+      "status": 200
+    },
+    {
+      "t": 1794921044824,
+      "k": "act",
+      "id": "0.48",
+      "act": "fulfill",
+      "status": 200,
+      "response": true
+    },
+    {
+      "t": 1794921044826,
+      "k": "req",
+      "ctx": "0.c20",
+      "id": "0.49",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/devices",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "GET /devices",
+      "variant": null
+    },
+    {
+      "t": 1794921044826,
+      "k": "act",
+      "id": "0.49",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044826,
+      "k": "act",
+      "id": "0.49",
+      "act": "continue"
+    },
+    {
+      "t": 1794921044830,
+      "k": "closing",
+      "ctx": "0.c20",
+      "sw": 0
+    },
+    {
+      "t": 1794921044873,
+      "k": "ctx",
+      "ctx": "0.c21",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-72853a072c64883fd44f",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044888,
+      "k": "req",
+      "ctx": "0.c21",
+      "id": "0.50",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044888,
+      "k": "act",
+      "id": "0.50",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044895,
+      "k": "end",
+      "id": "0.50",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044900,
+      "k": "req",
+      "ctx": "0.c21",
+      "id": "0.51",
+      "at": "request",
+      "method": "PUT",
+      "host": "localhost:4500",
+      "path": "/macro",
+      "qkeys": [
+        "base",
+        "name"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "PUT /macro",
+      "variant": "save base=new"
+    },
+    {
+      "t": 1794921044900,
+      "k": "act",
+      "id": "0.51",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044900,
+      "k": "act",
+      "id": "0.51",
+      "act": "fulfill",
+      "status": 200,
+      "response": false
+    },
+    {
+      "t": 1794921044902,
+      "k": "req",
+      "ctx": "0.c21",
+      "id": "0.52",
+      "at": "request",
+      "method": "PUT",
+      "host": "localhost:4500",
+      "path": "/macro",
+      "qkeys": [
+        "base",
+        "name",
+        "rename_base",
+        "rename_from"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "PUT /macro",
+      "variant": "rename base=revision rename_base=revision"
+    },
+    {
+      "t": 1794921044902,
+      "k": "act",
+      "id": "0.52",
+      "act": "handler",
+      "scope": "page"
+    },
+    {
+      "t": 1794921044902,
+      "k": "act",
+      "id": "0.52",
+      "act": "fulfill",
+      "status": 200,
+      "response": false
+    },
+    {
+      "t": 1794921044904,
+      "k": "closing",
+      "ctx": "0.c21",
+      "sw": 0
+    },
+    {
+      "t": 1794921044940,
+      "k": "ctx",
+      "ctx": "0.c22",
+      "how": "new",
+      "run": "codex-r395",
+      "test": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+      "project": "e2e",
+      "retry": 0
+    },
+    {
+      "t": 1794921044956,
+      "k": "req",
+      "ctx": "0.c22",
+      "id": "0.53",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "type": "document",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044956,
+      "k": "act",
+      "id": "0.53",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044964,
+      "k": "end",
+      "id": "0.53",
+      "transport": "finished",
+      "status": 200
+    },
+    {
+      "t": 1794921044969,
+      "k": "req",
+      "ctx": "0.c22",
+      "id": "0.54",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/__e2e/target",
+      "qkeys": [
+        "e2e_case",
+        "token"
+      ],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044969,
+      "k": "act",
+      "id": "0.54",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044973,
+      "k": "req",
+      "ctx": "0.c22",
+      "id": "0.55",
+      "at": "request",
+      "method": "POST",
+      "host": "localhost:4500",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": "POST /settings/{section}",
+      "variant": "unknown section"
+    },
+    {
+      "t": 1794921044973,
+      "k": "act",
+      "id": "0.55",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044976,
+      "k": "req",
+      "ctx": "0.c22",
+      "id": "0.56",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044976,
+      "k": "act",
+      "id": "0.56",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044980,
+      "k": "req",
+      "ctx": "0.c22",
+      "id": "0.57",
+      "at": "request",
+      "method": "GET",
+      "host": "localhost:4500",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "type": "fetch",
+      "sw": false,
+      "from": null,
+      "route": null,
+      "variant": null
+    },
+    {
+      "t": 1794921044980,
+      "k": "act",
+      "id": "0.57",
+      "act": "catch-all"
+    },
+    {
+      "t": 1794921044984,
+      "k": "closing",
+      "ctx": "0.c22",
+      "sw": 0
+    }
+  ],
+  "/tmp/r395-replay/codex-r395-b1d35ae7-58c7-4e25-8e54-48e0146b3816.jsonl": [
+    {
+      "t": 1794921042913,
+      "kind": "head",
+      "run": "codex-r395",
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "port": 4500,
+      "pid": 2738404
+    },
+    {
+      "t": 1794921042918,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921042920,
+      "kind": "open",
+      "conn": 1,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921042921,
+      "kind": "close",
+      "conn": 1
+    },
+    {
+      "t": 1794921042923,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921042930,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921042931,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921042932,
+      "kind": "open",
+      "conn": 2,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921042932,
+      "kind": "close",
+      "conn": 2
+    },
+    {
+      "t": 1794921042933,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921042934,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921042976,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-854de021d5a33331f61b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.1",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921042996,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__codex/a",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-854de021d5a33331f61b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.2",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921043041,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043042,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043043,
+      "kind": "open",
+      "conn": 3,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043043,
+      "kind": "close",
+      "conn": 3
+    },
+    {
+      "t": 1794921043044,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043045,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043066,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-3b20278b69124a52f141",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.3",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043081,
+      "kind": "http",
+      "method": "GET",
+      "path": "/g30",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-3b20278b69124a52f141",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f1",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921043121,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043121,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043122,
+      "kind": "open",
+      "conn": 4,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043122,
+      "kind": "close",
+      "conn": 4
+    },
+    {
+      "t": 1794921043123,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043124,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043145,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-5a9e59d84d82e6d38b01",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.5",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043155,
+      "kind": "http",
+      "method": "GET",
+      "path": "/devices",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-5a9e59d84d82e6d38b01",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.6",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043204,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043205,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043205,
+      "kind": "open",
+      "conn": 5,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043205,
+      "kind": "close",
+      "conn": 5
+    },
+    {
+      "t": 1794921043206,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043207,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043226,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.7",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043237,
+      "kind": "http",
+      "method": "GET",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.8",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921043294,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043295,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043295,
+      "kind": "open",
+      "conn": 6,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043296,
+      "kind": "close",
+      "conn": 6
+    },
+    {
+      "t": 1794921043297,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043297,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043318,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "d243388c74277068e954-1e483b94daac591f6922",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.9",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043332,
+      "kind": "http",
+      "method": "POST",
+      "path": "/upload",
+      "qkeys": [
+        "overwrite"
+      ],
+      "origin": {
+        "run": "codex-r395",
+        "test": "d243388c74277068e954-1e483b94daac591f6922",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.10",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921043352,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043353,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043353,
+      "kind": "open",
+      "conn": 7,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043354,
+      "kind": "close",
+      "conn": 7
+    },
+    {
+      "t": 1794921043354,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043355,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043375,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "d243388c74277068e954-789833780714633d8baf",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.11",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043387,
+      "kind": "http",
+      "method": "PUT",
+      "path": "/macro",
+      "qkeys": [
+        "base",
+        "rename_base",
+        "rename_from"
+      ],
+      "origin": {
+        "run": "codex-r395",
+        "test": "d243388c74277068e954-789833780714633d8baf",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f2",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921043439,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043440,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043441,
+      "kind": "open",
+      "conn": 8,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043441,
+      "kind": "close",
+      "conn": 8
+    },
+    {
+      "t": 1794921043442,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043442,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043462,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "d02de6bd0d2424201737-52f46dbec11379511525",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.13",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043474,
+      "kind": "http",
+      "method": "GET",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "d02de6bd0d2424201737-52f46dbec11379511525",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.14",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921043526,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043527,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921043528,
+      "kind": "open",
+      "conn": 9,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921043528,
+      "kind": "close",
+      "conn": 9
+    },
+    {
+      "t": 1794921043529,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043529,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043553,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-04d58f8450350ea76afe",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.15",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043566,
+      "kind": "http",
+      "method": "GET",
+      "path": "/devices",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-04d58f8450350ea76afe",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.17",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921043999,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921043999,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044000,
+      "kind": "open",
+      "conn": 10,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044000,
+      "kind": "close",
+      "conn": 10
+    },
+    {
+      "t": 1794921044001,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044002,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044025,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-7cdc96e8d26aa26e5736",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.18",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044036,
+      "kind": "http",
+      "method": "GET",
+      "path": "/devices",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-7cdc96e8d26aa26e5736",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f3",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044070,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044071,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044072,
+      "kind": "open",
+      "conn": 11,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044072,
+      "kind": "close",
+      "conn": 11
+    },
+    {
+      "t": 1794921044073,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044073,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044094,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-b304833c638ed2e6b5a3",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.20",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044105,
+      "kind": "http",
+      "method": "GET",
+      "path": "/../../e2e-outside",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-b304833c638ed2e6b5a3",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.21",
+      "status": 403,
+      "served": "403"
+    },
+    {
+      "t": 1794921044153,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044154,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044154,
+      "kind": "open",
+      "conn": 12,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044154,
+      "kind": "close",
+      "conn": 12
+    },
+    {
+      "t": 1794921044155,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044156,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044176,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-b9cc47357af61e1c042b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.22",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044187,
+      "kind": "http",
+      "method": "GET",
+      "path": "/g30",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-b9cc47357af61e1c042b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.23",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044219,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044220,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044220,
+      "kind": "open",
+      "conn": 13,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044221,
+      "kind": "close",
+      "conn": 13
+    },
+    {
+      "t": 1794921044221,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044222,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044242,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-e4c8d3649f9ea4a26807",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.24",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044253,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/redirect",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-e4c8d3649f9ea4a26807",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.25",
+      "status": 302,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044256,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-e4c8d3649f9ea4a26807",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.25",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044302,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044302,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044303,
+      "kind": "open",
+      "conn": 14,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044303,
+      "kind": "close",
+      "conn": 14
+    },
+    {
+      "t": 1794921044304,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044304,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044325,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-3e4153848afc1e4ce0a8",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.27",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044337,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-3e4153848afc1e4ce0a8",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": null,
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044368,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044368,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044369,
+      "kind": "open",
+      "conn": 15,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044369,
+      "kind": "close",
+      "conn": 15
+    },
+    {
+      "t": 1794921044370,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044370,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044393,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.30",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044404,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/redirect",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f4",
+      "status": 302,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044406,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f4",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044435,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044436,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044436,
+      "kind": "open",
+      "conn": 16,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044437,
+      "kind": "close",
+      "conn": 16
+    },
+    {
+      "t": 1794921044437,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044438,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044461,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-93ced2cec37669e1814a",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.32",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044501,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044502,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044502,
+      "kind": "open",
+      "conn": 17,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044503,
+      "kind": "close",
+      "conn": 17
+    },
+    {
+      "t": 1794921044503,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044504,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044525,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-39bb9915f2526d19ff70",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.35",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044536,
+      "kind": "http",
+      "method": "GET",
+      "path": "/g30",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-39bb9915f2526d19ff70",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f5",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044569,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044570,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044570,
+      "kind": "open",
+      "conn": 18,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044571,
+      "kind": "close",
+      "conn": 18
+    },
+    {
+      "t": 1794921044572,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044572,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044595,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-a1935fcb765d7c133424",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.37",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044606,
+      "kind": "http",
+      "method": "GET",
+      "path": "/devices",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-a1935fcb765d7c133424",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.38",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044635,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044636,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044636,
+      "kind": "open",
+      "conn": 19,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044637,
+      "kind": "close",
+      "conn": 19
+    },
+    {
+      "t": 1794921044637,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044638,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044658,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-042c801909b3b58d8c16",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.39",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044671,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/a",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-042c801909b3b58d8c16",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.40",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044702,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044702,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044703,
+      "kind": "open",
+      "conn": 20,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044703,
+      "kind": "close",
+      "conn": 20
+    },
+    {
+      "t": 1794921044704,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044705,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044724,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.42",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044737,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/headers-continue",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.43",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044743,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/headers-fallback",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.44",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044749,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/headers-fetch",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f6",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044786,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044787,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044787,
+      "kind": "open",
+      "conn": 21,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044788,
+      "kind": "close",
+      "conn": 21
+    },
+    {
+      "t": 1794921044788,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044789,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044809,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.46",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044820,
+      "kind": "http",
+      "method": "POST",
+      "path": "/upload",
+      "qkeys": [
+        "overwrite"
+      ],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.47",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044824,
+      "kind": "http",
+      "method": "PUT",
+      "path": "/macro",
+      "qkeys": [
+        "base",
+        "rename_base",
+        "rename_from"
+      ],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "fetch:0.f7",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044827,
+      "kind": "http",
+      "method": "GET",
+      "path": "/devices",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.49",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044868,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044869,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044870,
+      "kind": "open",
+      "conn": 22,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044870,
+      "kind": "close",
+      "conn": 22
+    },
+    {
+      "t": 1794921044870,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044871,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044890,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-72853a072c64883fd44f",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.50",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044934,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044935,
+      "kind": "ctl",
+      "op": "reset"
+    },
+    {
+      "t": 1794921044936,
+      "kind": "open",
+      "conn": 23,
+      "origin": {
+        "infra": "infra:baseline"
+      },
+      "req_id": null
+    },
+    {
+      "t": 1794921044937,
+      "kind": "close",
+      "conn": 23
+    },
+    {
+      "t": 1794921044937,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044938,
+      "kind": "ctl",
+      "op": "snapshot"
+    },
+    {
+      "t": 1794921044958,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.53",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044970,
+      "kind": "http",
+      "method": "GET",
+      "path": "/__e2e/target",
+      "qkeys": [
+        "e2e_case",
+        "token"
+      ],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.54",
+      "status": 200,
+      "served": "handler"
+    },
+    {
+      "t": 1794921044974,
+      "kind": "http",
+      "method": "POST",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.55",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044978,
+      "kind": "http",
+      "method": "GET",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.56",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921044981,
+      "kind": "http",
+      "method": "GET",
+      "path": "/settings/{section}",
+      "qkeys": [],
+      "origin": {
+        "run": "codex-r395",
+        "test": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+        "project": "e2e",
+        "retry": 0
+      },
+      "req_id": "req:0.57",
+      "status": 200,
+      "served": "fallback"
+    },
+    {
+      "t": 1794921045002,
+      "kind": "end"
+    }
+  ],
+  "/tmp/r395-events.jsonl": [
+    {
+      "t": 1794921042868,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "browser",
+      "name": "chromium",
+      "version": "148.0.7778.0",
+      "pinned": null,
+      "workerIndex": 0
+    },
+    {
+      "t": 1794921042913,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "bound",
+      "slot": 0,
+      "port": 4500,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "endpoint": "http://localhost:4500/",
+      "replay": "/tmp/r395-replay/codex-r395-b1d35ae7-58c7-4e25-8e54-48e0146b3816.jsonl"
+    },
+    {
+      "t": 1794921042935,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 reused handler can be unregistered from its first URL",
+      "testId": "4def156a6e8f1a9f3817-854de021d5a33331f61b",
+      "retry": 0
+    },
+    {
+      "t": 1794921043032,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 reused handler can be unregistered from its first URL",
+      "testId": "4def156a6e8f1a9f3817-854de021d5a33331f61b",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043045,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 a fetch of the SPA fallback remains a fallback contact",
+      "testId": "4def156a6e8f1a9f3817-3b20278b69124a52f141",
+      "retry": 0
+    },
+    {
+      "t": 1794921043115,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 a fetch of the SPA fallback remains a fallback contact",
+      "testId": "4def156a6e8f1a9f3817-3b20278b69124a52f141",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043124,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 a URL override does not serve the original gateway route",
+      "testId": "4def156a6e8f1a9f3817-5a9e59d84d82e6d38b01",
+      "retry": 0
+    },
+    {
+      "t": 1794921043199,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 a URL override does not serve the original gateway route",
+      "testId": "4def156a6e8f1a9f3817-5a9e59d84d82e6d38b01",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043207,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 an encoded slash in a path parameter does not leak its value",
+      "testId": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+      "retry": 0
+    },
+    {
+      "t": 1794921043281,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r393.spec.ts",
+      "project": "e2e",
+      "title": "R393 an encoded slash in a path parameter does not leak its value",
+      "testId": "4def156a6e8f1a9f3817-96b897613ec19cb1e252",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043298,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r394.spec.ts",
+      "project": "e2e",
+      "title": "R394 query-only rewrite changes the projected upload variant",
+      "testId": "d243388c74277068e954-1e483b94daac591f6922",
+      "retry": 0
+    },
+    {
+      "t": 1794921043349,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r394.spec.ts",
+      "project": "e2e",
+      "title": "R394 query-only rewrite changes the projected upload variant",
+      "testId": "d243388c74277068e954-1e483b94daac591f6922",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043355,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r394.spec.ts",
+      "project": "e2e",
+      "title": "R394 query-only fetch rewrite changes the projected macro variant",
+      "testId": "d243388c74277068e954-789833780714633d8baf",
+      "retry": 0
+    },
+    {
+      "t": 1794921043431,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r394.spec.ts",
+      "project": "e2e",
+      "title": "R394 query-only fetch rewrite changes the projected macro variant",
+      "testId": "d243388c74277068e954-789833780714633d8baf",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043443,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r395.spec.ts",
+      "project": "e2e",
+      "title": "R395 fallback rewrite remains visible when both parameter values mask to the same template",
+      "testId": "d02de6bd0d2424201737-52f46dbec11379511525",
+      "retry": 0
+    },
+    {
+      "t": 1794921043516,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "codex-r395.spec.ts",
+      "project": "e2e",
+      "title": "R395 fallback rewrite remains visible when both parameter values mask to the same template",
+      "testId": "d02de6bd0d2424201737-52f46dbec11379511525",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921043530,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "two GET /devices: the late one replaced, the other served by the mock \u2014 assigned by id, not URL or order",
+      "testId": "54be4cfb39f784bd0505-04d58f8450350ea76afe",
+      "retry": 0
+    },
+    {
+      "t": 1794921043994,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "two GET /devices: the late one replaced, the other served by the mock \u2014 assigned by id, not URL or order",
+      "testId": "54be4cfb39f784bd0505-04d58f8450350ea76afe",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044002,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "fetch then fulfill: the one server contact assigned, the answer replaced",
+      "testId": "54be4cfb39f784bd0505-7cdc96e8d26aa26e5736",
+      "retry": 0
+    },
+    {
+      "t": 1794921044065,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "fetch then fulfill: the one server contact assigned, the answer replaced",
+      "testId": "54be4cfb39f784bd0505-7cdc96e8d26aa26e5736",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044074,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a 403 from the mock is served, with its status",
+      "testId": "54be4cfb39f784bd0505-b304833c638ed2e6b5a3",
+      "retry": 0
+    },
+    {
+      "t": 1794921044148,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a 403 from the mock is served, with its status",
+      "testId": "54be4cfb39f784bd0505-b304833c638ed2e6b5a3",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044156,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "the SPA fallback answers an API path: never a served route",
+      "testId": "54be4cfb39f784bd0505-b9cc47357af61e1c042b",
+      "retry": 0
+    },
+    {
+      "t": 1794921044215,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "the SPA fallback answers an API path: never a served route",
+      "testId": "54be4cfb39f784bd0505-b9cc47357af61e1c042b",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044222,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a server redirect: the first id carries both contacts, both hops stay unknown",
+      "testId": "54be4cfb39f784bd0505-e4c8d3649f9ea4a26807",
+      "retry": 0
+    },
+    {
+      "t": 1794921044298,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a server redirect: the first id carries both contacts, both hops stay unknown",
+      "testId": "54be4cfb39f784bd0505-e4c8d3649f9ea4a26807",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044305,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a synthetic 302: the follow-up reaches the mock without an id, covered by its hop and unassigned",
+      "testId": "54be4cfb39f784bd0505-3e4153848afc1e4ce0a8",
+      "retry": 0
+    },
+    {
+      "t": 1794921044364,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a synthetic 302: the follow-up reaches the mock without an id, covered by its hop and unassigned",
+      "testId": "54be4cfb39f784bd0505-3e4153848afc1e4ce0a8",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044371,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a fetch through a server redirect, then fulfill: the replacement proven, the server contact not",
+      "testId": "54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89",
+      "retry": 0
+    },
+    {
+      "t": 1794921044430,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a fetch through a server redirect, then fulfill: the replacement proven, the server contact not",
+      "testId": "54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044438,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "an aborted request and one a spec holds until its context closes",
+      "testId": "54be4cfb39f784bd0505-93ced2cec37669e1814a",
+      "retry": 0
+    },
+    {
+      "t": 1794921044497,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "an aborted request and one a spec holds until its context closes",
+      "testId": "54be4cfb39f784bd0505-93ced2cec37669e1814a",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044505,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a fetch over the SPA fallback, then fulfill: a fallback stays a fallback (R393 VM-I28)",
+      "testId": "54be4cfb39f784bd0505-39bb9915f2526d19ff70",
+      "retry": 0
+    },
+    {
+      "t": 1794921044565,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a fetch over the SPA fallback, then fulfill: a fallback stays a fallback (R393 VM-I28)",
+      "testId": "54be4cfb39f784bd0505-39bb9915f2526d19ff70",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044573,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a rewritten URL is credited to no route (R393 VM-I29)",
+      "testId": "54be4cfb39f784bd0505-a1935fcb765d7c133424",
+      "retry": 0
+    },
+    {
+      "t": 1794921044631,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a rewritten URL is credited to no route (R393 VM-I29)",
+      "testId": "54be4cfb39f784bd0505-a1935fcb765d7c133424",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044638,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a handler registered for two urls is unrouted from one of them alone (R393 VM-I31)",
+      "testId": "54be4cfb39f784bd0505-042c801909b3b58d8c16",
+      "retry": 0
+    },
+    {
+      "t": 1794921044697,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a handler registered for two urls is unrouted from one of them alone (R393 VM-I31)",
+      "testId": "54be4cfb39f784bd0505-042c801909b3b58d8c16",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044705,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a spec's own headers replace the request's on continue, fallback and fetch, as in Playwright (R394)",
+      "testId": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+      "retry": 0
+    },
+    {
+      "t": 1794921044781,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a spec's own headers replace the request's on continue, fallback and fetch, as in Playwright (R394)",
+      "testId": "54be4cfb39f784bd0505-4c76486a4b08e3c7b00b",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044789,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29)",
+      "testId": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+      "retry": 0
+    },
+    {
+      "t": 1794921044864,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29)",
+      "testId": "54be4cfb39f784bd0505-dd627258bdb3d985c46d",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044871,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a save and a rename of a macro in one test are two variants",
+      "testId": "54be4cfb39f784bd0505-72853a072c64883fd44f",
+      "retry": 0
+    },
+    {
+      "t": 1794921044931,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "a save and a rename of a macro in one test are two variants",
+      "testId": "54be4cfb39f784bd0505-72853a072c64883fd44f",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921044938,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-start",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "an invented token in a query, a header and a path parameter appears in no record",
+      "testId": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+      "retry": 0
+    },
+    {
+      "t": 1794921044999,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "test-end",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816",
+      "file": "http-paths.spec.ts",
+      "project": "e2e",
+      "title": "an invented token in a query, a header and a path parameter appears in no record",
+      "testId": "54be4cfb39f784bd0505-be82e55afb4909f9e5c1",
+      "retry": 0,
+      "status": "passed"
+    },
+    {
+      "t": 1794921045004,
+      "run": "codex-r395",
+      "pid": 2738357,
+      "event": "stopped",
+      "slot": 0,
+      "workerIndex": 0,
+      "instance": "b1d35ae7-58c7-4e25-8e54-48e0146b3816"
+    }
+  ]
+}
