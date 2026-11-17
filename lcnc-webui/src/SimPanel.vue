@@ -615,7 +615,7 @@ function onRootKey(e: KeyboardEvent) {
           <span class="mono checkPct">{{ fmtPct(simView.sweep.frac) }}</span>
         </template>
         <!-- the words take the bar's room: the card's trigger and the "?"
-             stand at the row's end in every state (dev CI 44098232396) -->
+             stand at the row's end with and without the bar (dev CI 44098232396) -->
         <span v-else class="text-muted checkState">{{ simView.previous ? "Not checked yet" : "Not checked" }}</span>
         <!-- What the check on screen was computed with (step 4 plan 1c): a
              card, not more text in the "?" — taken when the check began. -->
@@ -732,7 +732,7 @@ function onRootKey(e: KeyboardEvent) {
 .simWhere { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .checkRow .progressTrack { min-width: 48px; }
 /* Without a bar the words grow into its room: the card's trigger and the "?"
-   keep their place at the row's end whatever the check's state (a press aimed
+   keep their place at the row's end with and without the bar (a press aimed
    at the trigger landed on the bar when the state changed under it). */
 .checkState { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The check basis card: its values are sentences — they read from the start. */
