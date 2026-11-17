@@ -110,13 +110,26 @@ def test_the_three_redirect_cases_of_r268_keep_their_verdicts(tmp_path):
 
 
 def test_closing_after_the_mark_held_by_a_spec_other_server_and_aborted_before_routing(tmp_path):
-    rec = Rec().req("1", "/g30", t=50).act("1", "catch-all")
-    rec.req("2", "/tool-table", t=10).act("2", "handler")
+    rec = Rec().req("2", "/tool-table", t=10).act("2", "handler")
     rec.req("3", "/", host="localhost:4173", t=11).act("3", "catch-all").end("3")
     rec.req("4", "/telemetry", method="POST", type_="ping", t=12).end("4", "failed")
-    res = rec.closing(40).judge(tmp_path)
+    rec.closing(40).req("1", "/g30", t=50).act("1", "catch-all")
+    res = rec.judge(tmp_path)
     assert res["findings"] == []
     assert classes(res) == {"other-server": 1, "closing": 1, "held": 1, "aborted-early": 1}
+
+
+def test_the_record_s_order_decides_closing_never_the_millisecond(tmp_path):
+    # the proof gate at 371ead38: request, handler and mark in ONE millisecond —
+    # the request came first, so its spec held it; the clock would say closing
+    held = Rec().req("1", "/tool-table", t=7).act("1", "handler").closing(7)
+    assert classes(held.judge(tmp_path)) == {"held": 1}
+    late = Rec().closing(7).req("1", "/g30", t=7).act("1", "catch-all")
+    assert classes(late.judge(tmp_path)) == {"closing": 1}
+    # a request BEFORE the mark without an end and without a handler is no
+    # closing request: it has no named path
+    early = Rec().req("1", "/g30", t=8).act("1", "catch-all").closing(7)
+    assert any("no named path" in f for f in early.judge(tmp_path)["findings"])
 
 
 def test_the_firefox_ws_handshake_is_its_own_class_joined_by_its_id(tmp_path):

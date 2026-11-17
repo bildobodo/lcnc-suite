@@ -28,7 +28,9 @@ The classes (`CLASS`), in the order they are decided:
                    contact under the chain's first id) may cover ONE id-less
                    contact of its attempt with its method, path and query
                    key names (R390 VM389-01) — covered, it stays unassigned
-  closing          no end, issued at or after its context's closing mark
+  closing          no end, its request line written AFTER its context's closing
+                   mark — the order of the worker's record, never the clock (two
+                   lines in one millisecond are ordered by the record alone)
   held             a spec handler entered, no action, no end (the spec held
                    it until the context closed)
   aborted-early    no contact and the transport failed: forwarded, or before any
@@ -59,12 +61,15 @@ READ_KINDS = frozenset({"ctx", "req", "act", "fetched", "end", "closing"})
 
 
 def read_record(http_dir: Path, run: str) -> tuple[list[dict], list[str]]:
-    """Every line of this run's HTTP record, in file order — or the problems."""
+    """Every line of this run's HTTP record, in file order — or the problems.
+    Each line gets its place `_o` (file, line): a worker writes its record
+    in order and a context lives in one worker, so `_o` orders a context's
+    lines exactly where the millisecond clock cannot."""
     lines, problems = [], []
     files = sorted(http_dir.glob(f"{run}-w*.jsonl")) if http_dir.is_dir() else []
     if not files:
         problems.append(f"no HTTP record of run {run} in {http_dir}")
-    for f in files:
+    for fi, f in enumerate(files):
         for n, raw in enumerate(f.read_text().splitlines(), 1):
             try:
                 rec = json.loads(raw)
@@ -74,6 +79,7 @@ def read_record(http_dir: Path, run: str) -> tuple[list[dict], list[str]]:
             if not isinstance(rec, dict) or rec.get("k") not in READ_KINDS:
                 problems.append(f"{f.name}:{n}: a line of unknown kind")
                 continue
+            rec["_o"] = (fi, n)
             lines.append(rec)
     return lines, problems
 
@@ -113,7 +119,7 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, ports: dict[str,
         elif k == "end":
             end[r["id"]] = r
         elif k == "closing":
-            ctx.setdefault(r["ctx"], {})["closing"] = r["t"]
+            ctx.setdefault(r["ctx"], {})["closing"] = r["_o"]
             if r.get("sw"):
                 findings.append(f"context {r['ctx']}: {r['sw']} service worker(s) at its close — they are blocked")
 
@@ -182,7 +188,7 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, ports: dict[str,
                     "aborted-early" if contacts[0].get("closed") else "served"
             elif len(contacts) > 1:
                 c = "several"
-            elif e is None and closing is not None and r["t"] >= closing:
+            elif e is None and closing is not None and r["_o"] > closing:
                 c = "closing"
             elif e is not None and e.get("transport") == "failed":
                 c = "aborted-early"
@@ -196,7 +202,7 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, ports: dict[str,
             if pre_fulfill and 300 <= int(pre_fulfill[-1].get("status") or 0) < 400 and not by_req.get(first) \
                     and pre.get("ctx") == r["ctx"]:
                 synthetic[key].append(rid)
-        elif e is None and closing is not None and r["t"] >= closing:
+        elif e is None and closing is not None and r["_o"] > closing:
             c = "closing"
         elif "handler" in a and e is None:
             c = "held"
