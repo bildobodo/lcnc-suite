@@ -647,6 +647,13 @@ async def sc_trip(args):
 async def run(args):
     git_rev = subprocess.run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"],
                              capture_output=True, text=True).stdout.strip()
+    # replay step 5c (Codex R390/R392): a scenario counts as run evidence only
+    # from a report of THIS commit with a clean tree — the full commit and the
+    # tree's state; an unreadable state is not clean
+    commit = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    porcelain = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "--untracked-files=no"],
+                               capture_output=True, text=True)
+    dirty = porcelain.returncode != 0 or bool(porcelain.stdout.strip())
     pid = gateway_pid()
     if not pid:
         print("FATAL: gateway not running", file=sys.stderr)
@@ -654,6 +661,8 @@ async def run(args):
     report = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "git": git_rev,
+        "commit": commit,
+        "dirty": dirty,
         "run_id": RUN_ID,
         "trace": TRACE,
         "gateway_pid": pid,
