@@ -113,6 +113,12 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
     _E + "macroFolder.ts": (
         Read('readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json"', 1,
              ("scripts/test_fixtures/macro_refusals.json",)),),
+    _E + "http-paths.spec.ts": (
+        Read('readFileSync(replay, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),
+        Read('readFileSync(f, "utf8")', 1, None, "that log and this worker's HTTP record (step 5b), searched for the invented token")),
+    _E + "routeProjection.ts": (
+        Read('readFileSync(new URL("../../scripts/inventory/atoms.py.json"', 1, ("scripts/inventory/atoms.py.json",),
+             "the gateway's routes and settings sections — the replay's projection (step 5b)"),),
     _E + "macros.spec.ts": (
         Read("readFileSync((await download.path())!", 1, None, "a file the test downloaded itself"),),
     _E + "mock-gateway.mjs": (
@@ -142,6 +148,7 @@ FULL_ONLY = {
     "smoke": "the app loading without a gateway: main, App and the build — central",
     "mock-baseline": "the per-worker mock's baseline reset (e2e/test.ts) — central",
     "replay-origin": "the replay's origin binding (e2e/test.ts, the mock's replay log) — central",
+    "http-paths": "the replay's HTTP paths (e2e/httpRecord.ts, the mock, step 5b) — central",
 }
 
 # ── Spec groups ──────────────────────────────────────────────────────────

@@ -29,17 +29,22 @@
 //                closed only once EACH unload beacon reached the mock, matched
 //                by its own mark (Firefox sends a beacon after the context's
 //                close without the cookie; Codex R386 VM-I25).
+//  context       (test)   — the browser's HTTP record (replay step 5b,
+//                e2e/httpRecord.ts): every request of the page's context and
+//                of every `browser.newContext()` inside the test, with its id,
+//                its route actions and the context's closing mark.
 //  browserPin    (worker) — the started browser's own version in the event
 //                log; in Firefox it must be the pinned one, and its WebGL
 //                answer is recorded beside it (none: no display, R387).
 import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { appConnectFrames, ctl, MOCK } from "./ctl";
 import { logEvent, replayFile, RUN, startMock, stopMock, type MockHandle } from "./mockFixture";
 import { portOf, slotOf } from "./mockSlot.mjs";
 import { complete, parseMarks, receipts, type AttemptOrigin, type ReplayLine } from "./unloadReceipts";
+import { instrument } from "./httpRecord";
 
 export * from "@playwright/test";
 
@@ -52,6 +57,8 @@ type Wire = Awaited<ReturnType<typeof appConnectFrames>>;
 
 /** The replay's origin of one test attempt, as the cookie carries it. */
 export interface ReplayOrigin { run: string; test: string; project: string; retry: number }
+const originOf = (testInfo: TestInfo): ReplayOrigin =>
+  ({ run: RUN, test: testInfo.testId, project: testInfo.project.name, retry: testInfo.retry });
 export const ORIGIN_COOKIE = "e2e_origin";
 
 /** Touch under WebDriver BiDi is a SILENT no-op: `tap()` and
@@ -166,6 +173,11 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
   // context before the context closes (unloadInContext).
   // `hasTouch` is the context option as the test resolves it — a file's
   // test.use included, not only the project's.
+  context: async ({ context }, use, testInfo) => {
+    await instrument(context, originOf(testInfo), "fixture");
+    await use(context);
+  },
+
   page: async ({ page, browserName, mock, hasTouch }, use, testInfo) => {
     if (browserName === "firefox") {
       if (hasTouch) throw new Error(TOUCH_UNDER_BIDI);
@@ -207,7 +219,7 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
 
   // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from this pattern
   storageState: async ({}, use, testInfo) => {
-    const origin: ReplayOrigin = { run: RUN, test: testInfo.testId, project: testInfo.project.name, retry: testInfo.retry };
+    const origin = originOf(testInfo);
     await use({
       cookies: [{ name: ORIGIN_COOKIE, value: encodeURIComponent(JSON.stringify(origin)), domain: new URL(MOCK).hostname,
                   path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" }],
@@ -248,7 +260,18 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
     expect(await snapshot(), "the mock's baseline after reset").toEqual(mock.pristine);
     expect(wire, "a fresh app client's connect frames after reset").toEqual(mock.pristineWire);
     logEvent({ event: "test-start", ...where });
-    await use();   // resolves after the test, failed or not
+    // every context a test opens is recorded too (replay step 5b)
+    const newContext = browser.newContext.bind(browser);
+    browser.newContext = async (o) => {
+      const c = await newContext(o);
+      await instrument(c, originOf(testInfo), "new");
+      return c;
+    };
+    try {
+      await use();   // resolves after the test, failed or not
+    } finally {
+      browser.newContext = newContext;
+    }
     for (const c of browser.contexts()) await c.close().catch(() => {});
     logEvent({ event: "test-end", ...where, status: testInfo.status });
     if (mock.died()) throw new Error(`the worker's mock ended during the test: ${mock.died()}`);

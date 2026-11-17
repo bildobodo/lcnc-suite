@@ -112,10 +112,34 @@ const server = createServer(async (req, res) => {
     // unloadInContext, Codex R386 VM-I25): the receipt is matched by it
     const query = (req.url || "").includes("?") ? new URLSearchParams((req.url || "").split("?").slice(1).join("?")) : null;
     const beacon = query?.get("e2e_beacon") ?? null;
-    res.on("finish", () => replay({ kind: "http", method: req.method, path, origin, req_id: reqId, status: res.statusCode,
-                                    ...(beacon !== null ? { beacon } : {}) }));
+    // replay step 5b (R389 D2): how the mock answered (`served`: its own
+    // handler, a static file, the SPA FALLBACK — index.html for any path,
+    // never a served API route —, or 403 / 404), the query's key NAMES (never
+    // a value), and a request that ended without its answer (`closed`)
+    const qkeys = query ? [...new Set(query.keys())].sort() : [];
+    res.on("finish", () => replay({ kind: "http", method: req.method, path, qkeys, origin, req_id: reqId, status: res.statusCode,
+                                    served: res.e2eServed ?? null, ...(beacon !== null ? { beacon } : {}) }));
+    res.on("close", () => {
+      if (!res.writableFinished)
+        replay({ kind: "http", method: req.method, path, qkeys, origin, req_id: reqId, status: null, served: null, closed: true });
+    });
+  }
+  // replay step 5b's counter-cases (e2e/http-paths.spec.ts): a real server
+  // redirect and its target — test-only paths no gateway route has
+  if (path === "/__e2e/redirect") {
+    res.e2eServed = "handler";
+    res.writeHead(302, { location: "/__e2e/target" });
+    res.end();
+    return;
+  }
+  if (path === "/__e2e/target") {
+    res.e2eServed = "handler";
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.end("target");
+    return;
   }
   if (path === "/macros") {
+    res.e2eServed = "handler";
     // Package 5: the macro folder of a configuration without one (specs that
     // need files serve their own folder through page.route)
     res.writeHead(200, { "content-type": "application/json" });
@@ -123,6 +147,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   if (path === "/settings") {
+    res.e2eServed = "handler";
     // the page's first settings (main.ts): this device's view — the stored
     // blob with the simulation ON unless a spec set it (the fixture default)
     res.writeHead(200, { "content-type": "application/json" });
@@ -131,12 +156,14 @@ const server = createServer(async (req, res) => {
     return;
   }
   if (path === "/devices") {
+    res.e2eServed = "handler";
     // Settings › Devices (settings split): this device and what a spec set
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true, devices: [{ ...MOCK_DEVICE_ROW, name: MOCK_DEVICE.name }, ...devicesList] }));
     return;
   }
   if (path === "/preview") {
+    res.e2eServed = "handler";
     res.writeHead(200, { "content-type": "application/octet-stream" });
     res.end(Buffer.from(PREVIEW));
     return;
@@ -148,11 +175,13 @@ const server = createServer(async (req, res) => {
     res.writeHead(code, { "content-type": MIME[extname(f)] || "application/octet-stream" });
     res.end(buf);
   };
-  if (!file.startsWith(DIST)) { res.writeHead(403); res.end(); return; }
+  if (!file.startsWith(DIST)) { res.e2eServed = "403"; res.writeHead(403); res.end(); return; }
   try {
+    res.e2eServed = "static";
     await send(file);
   } catch {
-    try { await send(join(DIST, "index.html")); } catch { res.writeHead(404); res.end(); } // SPA fallback
+    res.e2eServed = "fallback";
+    try { await send(join(DIST, "index.html")); } catch { res.e2eServed = "404"; res.writeHead(404); res.end(); } // SPA fallback
   }
 });
 
@@ -318,7 +347,8 @@ const connectFrames = () => [withEnvelope(state), activeViewerInit];
 wss.on("connection", (ws, req) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
   const conn = ++replayConn;
-  replay({ kind: "open", conn, origin: originOf(req) });
+  // the HTTP record's id where a browser routed the handshake (Firefox, replay 5b)
+  replay({ kind: "open", conn, origin: originOf(req), req_id: req.headers["x-e2e-req"] ?? null });
   ws.on("close", () => replay({ kind: "close", conn }));
   for (const frame of connectFrames()) ws.send(JSON.stringify(frame));
   ws.on("message", (buf) => {

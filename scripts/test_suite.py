@@ -144,7 +144,8 @@ def offline_commands(component, out=None):
         commands.append(("readback-target", [python(), "-m", "pytest", str(ROOT / "scripts/test_toolsetter_readback_check.py")], ROOT))
         commands.append(("parity-compare", [python(), "-m", "pytest", str(ROOT / "scripts/test_parity_compare.py")], ROOT))
         commands.append(("test-select", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_selector.py")], ROOT))
-        commands.append(("replay", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_replay.py")], ROOT))
+        commands.append(("replay", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_replay.py"),
+                                    str(ROOT / "scripts/test_select/test_http_paths.py")], ROOT))
         # the Firefox core's fetch and runner (plan vor-maschine R385): the pin's
         # checks, the core set, the touch scan, the result judgement
         commands.append(("firefox-units", [python(), "-m", "pytest", str(ROOT / "scripts/test_fetch_firefox.py"),

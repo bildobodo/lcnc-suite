@@ -225,11 +225,13 @@ def browser(sel: dict, logs: Path) -> list[dict]:
     events.unlink(missing_ok=True)
     # the replay logs (test strategy step 5): a fresh folder per run, each
     # mock's log named by the run — the check reads only this run's
-    replay_dir = logs / "replay"
+    replay_dir, http_dir = logs / "replay", logs / "http"
     shutil.rmtree(replay_dir, ignore_errors=True)
+    # the browser's HTTP record (step 5b, e2e/httpRecord.ts): fresh per run too
+    shutil.rmtree(http_dir, ignore_errors=True)
     env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report),
            "LCNC_E2E_EVENTS": str(events), "LCNC_E2E_RUN": run_id, "LCNC_E2E_WORKERS": str(WORKERS),
-           "LCNC_E2E_REPLAY_DIR": str(replay_dir)}
+           "LCNC_E2E_REPLAY_DIR": str(replay_dir), "LCNC_E2E_HTTP_DIR": str(http_dir)}
     checks = []
     if names == FULL:
         config = "playwright.gate.config.ts"
@@ -261,21 +263,23 @@ def browser(sel: dict, logs: Path) -> list[dict]:
             proof.check_workers(ran, log, run_id) if log else ["the fixture's event log is missing or empty"])
         checks.append({"name": "browser-workers", "status": "FAIL" if owners else "PASS", "run": run_id,
                        **({"why": owners[:20]} if owners else {"mocks": len({e["instance"] for e in log if e.get("event") == "bound"})})})
-        checks.append(replay_check(replay_dir, events, run_id, logs / "replay.json"))
+        checks.append(replay_check(replay_dir, events, run_id, logs / "replay.json", http_dir))
     return checks
 
 
-def replay_check(replay_dir: Path, events: Path, run_id: str, out: Path) -> dict:
+def replay_check(replay_dir: Path, events: Path, run_id: str, out: Path, http_dir: Path) -> dict:
     """The replay (test strategy step 5): every frame the UI sent to this
-    run's mocks against the gateway's own rules — scripts/test_select/replay.py."""
+    run's mocks against the gateway's own rules, and every HTTP request of
+    the browser with its response path (step 5b) — scripts/test_select/replay.py."""
     try:
-        result = replay.check(replay_dir, events, run_id)
+        result = replay.check(replay_dir, events, run_id, http_dir=http_dir)
     except Exception as e:  # noqa: BLE001 — a check that could not run is no PASS
         return {"name": "browser-replay", "status": "FAIL", "why": [f"the replay check did not run: {type(e).__name__}: {e}"]}
     out.write_text(json.dumps(result, indent=2) + "\n")
     return {"name": "browser-replay", "status": result["verdict"], "report": out.name,
             **({"why": result["findings"][:20]} if result["findings"]
-               else {"frames": result["frames"], "attempts": result["attempts"], "outside": result["outside"]})}
+               else {"frames": result["frames"], "attempts": result["attempts"],
+                     "http": result["http_paths"]["classes"], "outside": result["outside"]})}
 
 
 #: the install probe's deadline in the merge gate (installer with fresh

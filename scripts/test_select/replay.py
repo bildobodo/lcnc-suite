@@ -59,6 +59,11 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
+# the sibling module of step 5b, importable however this one is (round_gate
+# imports test_select.replay, the guards import replay)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import http_paths  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 GATEWAY = ROOT / "lcnc-gateway"
 ATOMS = ROOT / "scripts/inventory/atoms.web.json"
@@ -89,6 +94,15 @@ OUTSIDE = [
     "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
     "the gates and the handlers (admission, effect)",
     "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+    "coverage against the inventory (step 5c)",
+]
+#: with the browser's HTTP record (step 5b, http_paths.py): each request's
+#: response path and its route's variant are judged — payload VALUES are not
+OUTSIDE_5B = [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values — a request's response path and its route's variant are judged (step 5b), "
+    "never a value; a fallback or a replaced answer is no served route",
     "coverage against the inventory (step 5c)",
 ]
 
@@ -389,9 +403,13 @@ def _no_cookie_attempt(opened: dict, attempts: dict, inst: str) -> tuple[str, in
     return hits[0] if len(hits) == 1 else None
 
 
-def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | None = None) -> dict:
+def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | None = None,
+          http_dir: Path | None = None, http_expect: list[dict] | None = None) -> dict:
     events, event_problems = read_events(events_path, run)
     instances = [e["instance"] for e in events if e.get("event") == "bound"]
+    ports = {e["instance"]: e["port"] for e in events if e.get("event") == "bound" and _int(e.get("port"))}
+    mock_http: list[tuple[str, dict]] = []
+    mock_opens: list[tuple[str, dict]] = []
     attempts: dict[tuple[str, int], dict] = {}
     for e in events:
         if e.get("event") in ("test-start", "test-end") and e.get("testId"):
@@ -437,6 +455,7 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
         for rec in lines:
             kind = rec.get("kind")
             if kind == "open":
+                mock_opens.append((inst, rec))
                 c, o = rec.get("conn"), rec.get("origin")
                 if c in origin_of:
                     findings.append(f"{inst} conn {c}: a second open line — the first origin stays")
@@ -465,6 +484,7 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
                 if rec.get("conn") not in origin_of:
                     findings.append(f"{inst} conn {rec.get('conn')}: a close line without its open")
             elif kind == "http":
+                mock_http.append((inst, rec))
                 o = rec.get("origin")
                 req = f"{rec.get('method')} {rec.get('path')}"
                 key, why = _attempt_of(o, run, inst, attempts) if isinstance(o, dict) and "infra" not in o \
@@ -568,6 +588,10 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
                      "instance": a.get("instance"), "status": a.get("status"), "page": k in loaded,
                      "frames": sum(per_attempt[k].values()), "observed": observed(k)}
                     for k, a in sorted(attempts.items(), key=lambda kv: where(kv[0]))]
+    paths = None
+    if http_dir is not None:
+        paths = http_paths.judge(http_dir, run, attempts, name, ports, mock_http, mock_opens, loaded, http_expect)
+        findings += paths["findings"]
     return {
         "verdict": "FAIL" if findings else "PASS", "run": run, "logs": len(logs),
         "connections": dict(conns), "http": dict(http), "frames": sum(frames_by.values()),
@@ -576,7 +600,8 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
         "per_attempt": {where(k): dict(sorted(c.items())) for k, c in sorted(per_attempt.items(), key=lambda kv: where(kv[0]))},
         "attempt_list": attempt_list, "no_cookie": no_cookie,
         "var_files": sorted(var_sets), "expected": expected,
-        "findings": findings, "outside": OUTSIDE,
+        "findings": findings, "outside": OUTSIDE if paths is None else OUTSIDE_5B,
+        **({"http_paths": paths} if paths is not None else {}),
     }
 
 
@@ -586,8 +611,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--events", type=Path, required=True)
     ap.add_argument("--run", required=True)
     ap.add_argument("--out", type=Path)
+    ap.add_argument("--http", type=Path, help="the browser's HTTP record (step 5b, e2e/httpRecord.ts)")
     a = ap.parse_args(argv)
-    result = check(a.dir, a.events, a.run)
+    result = check(a.dir, a.events, a.run, http_dir=a.http)
     text = json.dumps(result, indent=2)
     if a.out:
         a.out.write_text(text + "\n")

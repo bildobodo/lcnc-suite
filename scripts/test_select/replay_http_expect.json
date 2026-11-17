@@ -1,0 +1,23 @@
+[
+  {"file": "http-paths.spec.ts", "title": "two GET /devices: the late one replaced, the other served by the mock — assigned by id, not URL or order",
+   "expect": [{"method": "GET", "path": "/devices", "class": "replaced", "n": 1},
+              {"method": "GET", "path": "/devices", "class": "served", "n": 1}]},
+  {"file": "http-paths.spec.ts", "title": "fetch then fulfill: the one server contact assigned, the answer replaced",
+   "expect": [{"method": "GET", "path": "/devices", "class": "fetched", "n": 1}]},
+  {"file": "http-paths.spec.ts", "title": "a 403 from the mock is served, with its status",
+   "expect": [{"method": "GET", "path": "/..%2f..%2fe2e-outside", "class": "served", "status": 403, "n": 1}]},
+  {"file": "http-paths.spec.ts", "title": "the SPA fallback answers an API path: never a served route",
+   "expect": [{"method": "GET", "path": "/g30", "class": "fallback", "n": 1}]},
+  {"file": "http-paths.spec.ts", "title": "a server redirect: the first id carries both contacts, both hops stay unknown",
+   "expect": [{"method": "GET", "path": "/__e2e/redirect", "class": "several", "n": 1},
+              {"method": "GET", "path": "/__e2e/target", "class": "redirect-hop", "n": 1}]},
+  {"file": "http-paths.spec.ts", "title": "a synthetic 302: the follow-up reaches the mock without an id, covered by its hop and unassigned",
+   "expect": [{"method": "GET", "path": "/__e2e/synthetic", "class": "replaced", "n": 1},
+              {"method": "GET", "path": "/__e2e/target", "class": "redirect-hop", "n": 1}],
+   "covered": 1},
+  {"file": "http-paths.spec.ts", "title": "a fetch through a server redirect, then fulfill: the replacement proven, the server contact not",
+   "expect": [{"method": "GET", "path": "/__e2e/redirect", "class": "fetch-unknown", "n": 1}]},
+  {"file": "http-paths.spec.ts", "title": "an aborted request and one a spec holds until its context closes",
+   "expect": [{"method": "GET", "path": "/devices", "class": "aborted", "n": 1},
+              {"method": "GET", "path": "/tool-table", "class": "held", "n": 1}]}
+]

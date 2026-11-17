@@ -51,6 +51,10 @@ export default defineConfig({
     timezoneId: 'UTC',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // replay step 5b (FI265-02 Rest A): no service worker may answer a
+    // request past the routes — blocked here, and the HTTP record writes the
+    // number each context holds at its close (the replay requires none)
+    serviceWorkers: 'block',
   },
   projects: [
     { name: "e2e", use: { browserName: "chromium" } },

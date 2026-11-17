@@ -334,12 +334,13 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
     report, events = logs / "firefox.json", logs / "firefox-mock-events.jsonl"
     run_id = f"firefox-{uuid.uuid4()}"
     events.unlink(missing_ok=True)
-    replay_dir = logs / "firefox-replay"
+    replay_dir, http_dir = logs / "firefox-replay", logs / "firefox-http"
     import shutil
     shutil.rmtree(replay_dir, ignore_errors=True)
+    shutil.rmtree(http_dir, ignore_errors=True)
     env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report),
            "LCNC_E2E_EVENTS": str(events), "LCNC_E2E_RUN": run_id, "LCNC_E2E_WORKERS": str(rg.WORKERS),
-           "LCNC_E2E_REPLAY_DIR": str(replay_dir), "LCNC_FIREFOX": fetched["binary"],
+           "LCNC_E2E_REPLAY_DIR": str(replay_dir), "LCNC_E2E_HTTP_DIR": str(http_dir), "LCNC_FIREFOX": fetched["binary"],
            "LCNC_FIREFOX_SET": "required" if required_only else "all"}
     listed, err = rg.listing(CONFIG, env, logs / "firefox-list.json")
     if err:
@@ -401,7 +402,7 @@ def core(logs: Path, *, replay_on: bool, missing: str, required_only: bool = Fal
                    **({"why": graphics[:20]} if graphics else {"webgl": "none"})})
     if replay_on:
         t1 = time.monotonic()
-        r = rg.replay_check(replay_dir, events, run_id, logs / "firefox-replay.json")
+        r = rg.replay_check(replay_dir, events, run_id, logs / "firefox-replay.json", http_dir)
         r["name"], r["seconds"] = "firefox-replay", round(time.monotonic() - t1, 1)
         checks.append(r)
     return {"checks": checks, "pending": None, "info": info}
