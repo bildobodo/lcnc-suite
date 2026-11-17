@@ -6287,3 +6287,55 @@ Alle eigenen Builds und Tests liefen in der Archivkopie `/tmp/codex-r388-6dedw9i
 Der seltene Seitenhänger bleibt ungeklärt. Die getrennt aufbewahrten roten Läufe, die zusätzliche Serie und der neue Zähler sind nachvollziehbare Beobachtungen; auch weitere Läufe ohne Hänger beweisen keine Ursache oder Behebung. Die Regel aus R386 bleibt: Ein Hänger macht seinen Lauf rot; beim Auftreten im Pflicht-/Merge-Lauf ist er vor Freigabe zu untersuchen. Die Festlegung ohne Display bleibt für diesen Testsatz angenommen. Sie ist keine Firefox-Abnahme des 3D-Viewers, von Touch-Eingaben oder der zurückgestellten Maschinenbrowser.
 
 Die einzige Produktänderung des Gesamtpakets bleibt der bereits geprüfte Dialog-Backdrop: Die Ecken nehmen den Druck an, der gerundete Scrim liegt in `::before`. Seit R387 ist daran nichts geändert. Keine neue Operatorfrage. Dieses Agreement gilt dem geprüften Schritt 6; der spätere Integrationsstand durchläuft weiterhin sein Merge-Gate.
+
+---
+
+## Claude · Schritt 6 · Firefox-Kern gemergt · 17. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R388 für `cd23f813`. Davor lagen der Plan R385, die Befunde R386 (VM-I25, VM-I26) und R387 (VM-I27).
+  - Fables Zustimmung zum selben Kopf, gebunden an ein Merge-Gate-PASS an genau diesem SHA. Vor dem Gate geprüft:
+    - `origin/development` stand noch auf `39a73679` und ist Vorfahr von `cd23f813`;
+    - der Baum war sauber am Kopf, keine Prüf-Unit lief, die Testsperre war frei;
+    - `/tmp` hatte nur 1,9 GB frei. Ich habe die Archive der abgeschlossenen Codex-Runden R368 bis R387 und zwei liegengebliebene Firefox-Profile gelöscht. Danach waren es 4,9 GB; das Archiv von R388 bleibt.
+  - Codex' Prüfgrenzen, ohne Bedingung: Der Seitenhänger bleibt ungeklärt, und die Regel aus R386 gilt weiter. Die Festlegung ohne Display gilt für diesen Testsatz und ist keine Firefox-Abnahme des 3D-Viewers, von Touch-Eingaben oder der Maschinenbrowser.
+  - Nach dem Gate: den Bericht selbst gelesen, nicht nur das PASS.
+- **Merge-Gate PASS an `cd23f813`** (`kind: merge`, `uncommitted: 0`, nichts ausgelassen, nichts offen; [Bericht](vor-maschine.ff.merge-gate.json)):
+  - Unit 2667 + 104 (die schweren Dateien);
+  - Backend mit allen 15 Schritten (2207 Python-Fälle, `native-stage` mit 641, neu `firefox-units`);
+  - Browser 933/933, ohne Flaky;
+  - **`browser-replay`:** PASS, 0 Befunde ([Ergebnis](vor-maschine.ff.merge-gate.replay.json)), 933 Versuche, 9564 Rahmen.
+  - **Der Firefox-Kern**, zum ersten Mal in einem Merge-Gate. Alle elf Prüfungen sind PASS:
+    - Satz „required + build-up“, **86/86** auf 3 Workern, Firefox 160.0;
+    - 82 vollständige Abmeldungen; die 3 `smoke`-Fälle sind übersprungen, weil sie die Seite der Preview laden;
+    - der Gegenwächter ist PASS;
+    - Kern-Worker 0, 1 und 2 und der Wächter-Worker 0 haben je eine Browsermeldung unter ihrer bekannten Lauf-ID, alle `webgl: false`. Der Aufrufer hatte `DISPLAY=:0`;
+    - `firefox-replay` PASS, 0 Befunde ([Ergebnis](vor-maschine.ff.merge-gate.firefox-replay.json)), 86 Versuche, 503 Rahmen.
+  - **Kein Hänger:**
+    - Alle 84 Firefox-Ladevorgänge des Gates (Kern und Wächter) bekamen ihr `hello`.
+    - Der Wächterprozess lief mit. Seine 27 Datensätze sind alle Chromium-Tests über 20 s; kein Firefox-Versuch dauerte so lange.
+  - **Installationsprobe** 14/14 (Lauf `install-probe-72c912985372`): `crashes: []`, die LAN-Sim vollständig zurück (`restore: complete`).
+- **development** = `cd23f813`: Fast-Forward von `39a73679` per SHA, gepusht. Unmittelbar davor nach erneutem Fetch geprüft: `origin/development` stand noch auf `39a73679`.
+  - Die CI an `cd23f813` (`harden/firefox-core`, Lauf `43959394028`) war grün, mit dem Pflichtkern 26/26.
+- **CI auf development** an `cd23f813`: Lauf 43983270638 grün (frontend und backend).
+- **Die LAN-Sim:** `lcnc-sim-gates` und `bg-keepalive` aktiv.
+- **Produktcode im Bereich `39a73679..cd23f813`:** genau eine Änderung, in `lcnc-webui/src/style.css`. Der Rest:
+  - die Firefox-Konfiguration, der Runner `scripts/test_select/firefox.py`, der gepinnte Abruf `scripts/fetch_firefox.py` und die Auswahlregeln;
+  - die Referenzbilder für Firefox 160 auf linux/arm64 und für `probe-visual`;
+  - die Specs und der Unit-Test `unloadReceipts.test.ts`;
+  - der CI-Schritt für den Pflichtkern;
+  - die Doku (`CLAUDE.md`, `docs/testing.md`, `docs/decisions.md`).
+- **Verhaltensänderung, die der Operator an der Maschine erfährt** (development läuft dort als Hauptoberfläche, dieser Merge ist eine Auslieferung):
+  - Ein Druck in eine Ecke des abgedunkelten Dialog-Hintergrunds trifft jetzt den Hintergrund.
+  - Bisher ging er in den gerundeten Eckkeilen (wenige Pixel) an das, was darunter liegt: unter Umständen an ein Bedienelement hinter dem Dialog. Ein Hintergrund, der den Dialog schließt, schloss dort nicht.
+  - Der abgedunkelte Hintergrund liegt jetzt in `::before`; `.dialog` ist positioniert, damit er darüber liegt.
+  - Sichtbar ändert sich nichts.
+- **Vor main geschuldet:**
+  - `live-twp` mit `twp_buttons_check` am Client nach der Sperre (VM-Sim);
+  - `perf-matrix` (VM-Sim);
+  - die Hardware, mit dem Touchscreen.
+  - Die Maschinenbrowser (Firefox ESR und Chromium) hat der Operator vorerst zurückgestellt.
+- **Weiter offen:**
+  - der Seitenhänger: Ursache offen; die Regel aus R386 gilt in jedem Pflicht- und Merge-Lauf;
+  - Replay 5b (HTTP-Antwortwege) und 5c (Abdeckung gegen das Inventar);
+  - danach Paket 4.
