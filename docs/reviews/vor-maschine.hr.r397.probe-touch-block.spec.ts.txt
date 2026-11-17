@@ -1,0 +1,61 @@
+// PROBE (Fable's deciding question): a press handled, then the main thread
+// blocked ~600 ms (from the task after the press), the release sent 120 ms
+// after the press — does the hold fire? Control: no block. Recorded: the
+// events' handler time and their own timeStamp, the [hold] line, the command.
+import { test, expect } from "./test";
+import { enterTouch } from "./touchMode";
+import { ctl, MOCK } from "./ctl";
+
+test.use({ hasTouch: true, viewport: { width: 1280, height: 800 } });
+const PERMS_ALL = {
+  idle: true, jog: true, override: true, ready: true, run: true, pause: false, resume: false, step: true, abort: true,
+  spindleStop: true, probe: true, zero: true, machineFrame: true, goZero: true, planeFrame: true, touchoff: true,
+  touchoffRotary: true, twpCapture: true, surfaceComp: true, safety: true, setup: true, sourceWrite: true,
+  toolTableWrite: true, armed: true, always: true, programLoad: true, modeManual: true, modeCoord: true,
+  parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
+};
+const recorded = async (cmd: string) => ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? [])
+  .filter(c => c.cmd === cmd).length;
+
+for (const block of [600, 0]) for (let i = 0; i < 10; i++) {
+  test(`block ${block} ms, tap ${i}`, async ({ page }) => {
+    const lines: string[] = [];
+    page.on("console", m => { if (m.text().startsWith("[hold]") || m.text().startsWith("[fire]")) lines.push(m.text()); });
+    await ctl({ op: "reset" });
+    await page.goto(MOCK);
+    await expect(page.locator("input.setupInput").first()).toBeVisible();
+    await enterTouch(page);
+    await ctl({ op: "quiet", on: true });
+    await ctl({ op: "status_delta", data: { active_file: "/A.ngc", homed: [1, 1, 1], permissions: PERMS_ALL } });
+    await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toBeEnabled();
+    await ctl({ op: "clearCmds" });
+    await page.evaluate((ms) => {
+      const w = window as unknown as { __ev: unknown[] };
+      w.__ev = [];
+      for (const t of ["pointerdown", "pointerup", "pointercancel"])
+        window.addEventListener(t, (e) => w.__ev.push({ t, now: Math.round(performance.now()), ts: Math.round(e.timeStamp) }), true);
+      // after the button's own handler (window, bubble): block from the NEXT task
+      if (ms) window.addEventListener("pointerdown", () => setTimeout(() => {
+        const s = performance.now(); w.__ev.push({ t: "block-start", now: Math.round(s) });
+        while (performance.now() - s < ms) { /* the main thread blocked */ }
+        w.__ev.push({ t: "block-end", now: Math.round(performance.now()) });
+      }, 0), { once: true });
+    }, block);
+    const cdp = await page.context().newCDPSession(page);
+    const box = (await page.getByRole("button", { name: "Unhome All", exact: true }).boundingBox())!;
+    const p = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const t0 = Date.now();
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+    const t1 = Date.now();
+    await page.waitForTimeout(Math.max(0, 120 - (t1 - t0)));
+    const t2 = Date.now();
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    const t3 = Date.now();
+    await page.waitForTimeout(1200);
+    const fired = await recorded("unhome_all");
+    const ev = await page.evaluate(() => (window as unknown as { __ev: unknown[] }).__ev);
+    console.log(`PROBE-BLOCK ${JSON.stringify({ block, i, fired, test_ms: { start_send: t1 - t0, end_sent_at: t2 - t0, end_send: t3 - t2 }, ev, lines })}`);
+    await ctl({ op: "quiet", on: false });
+    await ctl({ op: "reset" });
+  });
+}

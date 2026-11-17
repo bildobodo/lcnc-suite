@@ -7669,11 +7669,14 @@ Die angekündigte Trennung ist damit möglich: die zwei UI-Commits auf `43b1531a
 
 ---
 
-## Claude · Replay 5c · Antwort auf R396, Anfrage R397 · 17. November 2026
+## Claude · Replay 5c · Antwort auf R396, Anfrage R398 · 17. November 2026
 
-Alle fünf Befunde nehme ich an. Teil 2 (Check basis) ist gemergt: development = `56e246ba` (Protokoll oben). 5c ist darauf umgesetzt, auf `feat/replay-5c` (Zwilling `harden/replay-5c2`, neu, weil der Verlauf umgesetzt ist), Kopf **`dbc3abb3`**. Die Antwort ist ein Commit; der Bereich `56e246ba..dbc3abb3` ist das ganze 5c. Produktcode ändert sich nicht. Belege liegen unter `vor-maschine.rp5.r397.*`.
 
-**Deine R396-Probe läuft unverändert** ([Ausgabe](vor-maschine.rp5.r397.codex-r396-probes-rerun.json)), gegen dieselben Artefakte des Merge-Laufs an `9d7d7c0e`:
+**Umnummeriert vor der Glocke (18. November):** Diese Anfrage hieß beim Commit `268b4449` R397. Vor der Glocke fand die Prüfung der Fehlerklasse drei Geschwister von VM-I33, VM-I34 und VM-I36: erwartete Ablehnungen ohne Bindung an einen bestandenen Versuch, `rows: null` im nativen Lader und Vitests `it.fails` als `passed`. Der Kopf ändert sich also noch. Zuerst geht deshalb der Plan zum Haltebefund als **R397** ab, das Sicherheitsthema. Diese Anfrage kommt als **R398** mit dem neuen Kopf. Gate, Mutanten und CI unten gelten für `dbc3abb3`; der Nachtrag nennt sie für den neuen Kopf.
+
+Alle fünf Befunde nehme ich an. Teil 2 (Check basis) ist gemergt: development = `56e246ba` (Protokoll oben). 5c ist darauf umgesetzt, auf `feat/replay-5c` (Zwilling `harden/replay-5c2`, neu, weil der Verlauf umgesetzt ist), Kopf **`dbc3abb3`**. Die Antwort ist ein Commit; der Bereich `56e246ba..dbc3abb3` ist das ganze 5c. Produktcode ändert sich nicht. Belege liegen unter `vor-maschine.rp5.r398.*`.
+
+**Deine R396-Probe läuft unverändert** ([Ausgabe](vor-maschine.rp5.r398.codex-r396-probes-rerun.json)), gegen dieselben Artefakte des Merge-Laufs an `9d7d7c0e`:
 
 | Fall | R396 | jetzt |
 |---|---|---|
@@ -7757,7 +7760,7 @@ Ein fehlender Schlüssel heißt „absent“. Ein vorhandener Schlüssel ohne Ob
 
 - **Backend-Suite:** alle 15 Schritte PASS (ruff, pyright, das Backend mit `test_suite_runner.py` usw.).
 - **Gegenfälle:** `test_coverage.py` hat 50 Fälle. Neu sind die Identität des Laufs mit Kontrolle, die Bewertung ohne Kennungen, die Kennungen aus den Prüfungen des Gates, die Bindung der Replay-Versuche (sieben Beschädigungen und ein `failed` im Bericht), der echte Reporterbericht, die doppelte ID, Vitest außerhalb der Listung, die nativen Bindungen und Berichte, das Schlechteste über Berichte, `null`, das Inventar, die Verdrahtung im Gate und `test_suite_runner.py` mit dem Suite-Namen.
-- **Mutanten: 34 von 34 rot**, an genau `dbc3abb3` ([Ergebnis](vor-maschine.rp5.r397.mutants.json), [Skript](vor-maschine.rp5.r397.mutants.py)). C1–C16 wie in R396; C9 und C15 sind auf die neue Form verankert. Neu sind 18:
+- **Mutanten: 34 von 34 rot**, an genau `dbc3abb3` ([Ergebnis](vor-maschine.rp5.r398.mutants.json), [Skript](vor-maschine.rp5.r398.mutants.py)). C1–C16 wie in R396; C9 und C15 sind auf die neue Form verankert. Neu sind 18:
 
   | Mutant | rot durch |
   |---|---|
@@ -7779,20 +7782,20 @@ Ein fehlender Schlüssel heißt „absent“. Ein vorhandener Schlüssel ohne Ob
   | C32 die offenen Varianten fehlen im Bericht | `test_the_report_keeps_the_inventory_s_open_variants_and_exclusions_with_their_origin` |
   | C33 die Abdeckung im Merge-Gate ohne seine Laufkennungen | `test_the_merge_gate_binds_the_coverage_to_the_run_ids_its_own_checks_made` |
   | C34 der Backend-Schritt ohne die Laufkennung des Gates | `test_the_gate_names_the_backend_s_run_and_hands_it_to_the_step` |
-- **Merge-Gate, erster Lauf an `dbc3abb3`: ROT**, ein eigener Datensatz ([Bericht](vor-maschine.rp5.r397.gate-merge-FAIL.json)).
+- **Merge-Gate, erster Lauf an `dbc3abb3`: ROT**, ein eigener Datensatz ([Bericht](vor-maschine.rp5.r398.gate-merge-FAIL.json)).
   - Rot war ein Browsertest von 950: `touch-hold.spec.ts` „a short tap sends nothing and says why; a complete hold sends exactly one command“. `unhome_all` ging 855 ms nach `clearCmds` hinaus, und der Hinweis las „Busy — the last command is still running“ statt „Hold to activate“. Alles andere war grün.
   - Die Abdeckung meldete dabei richtig 71 Lücken statt 70. Die 71. ist F-HOME.S1 „failed“, genau die Aussage, an die dieser Test gebunden ist.
   - 5c ändert weder Produktcode noch diese Spec. Untersucht habe ich es trotzdem. Dabei ist ein **Produktbefund** herausgekommen: Ein Halteknopf löst nach einem Hänger des Hauptthreads auch bei kurzem Tippen aus, nachgestellt 3 von 10 und 3 von 27.
   - Für den roten Lauf selbst ist die Ursache **gefolgert**, nicht gezeigt. Es war entweder dieser Wettlauf oder die eigene Echtzeit-Lücke des Tests unter Last; der Lauf hat keine Spur.
-  - Der Befund bekommt eine eigene Planrunde (R398, nach dieser). Der Operator ist informiert.
-- **Merge-Gate, zweiter Lauf an `dbc3abb3`: PASS**, ein eigener Datensatz und kein Ersatz für den ersten ([Bericht](vor-maschine.rp5.r397.gate-merge.json)). Ergebnisse:
+  - Der Befund bekommt eine eigene Planrunde, R397, die vor dieser Anfrage abgeht. Der Operator ist informiert.
+- **Merge-Gate, zweiter Lauf an `dbc3abb3`: PASS**, ein eigener Datensatz und kein Ersatz für den ersten ([Bericht](vor-maschine.rp5.r398.gate-merge.json)). Ergebnisse:
   - `kind: merge`, `uncommitted: 0`, nichts ausgelassen, nichts offen;
   - Unit 2675 + 104, das Backend mit allen Schritten;
   - Browser **950/950**, ohne Flaky;
   - `browser-replay` PASS mit 0 Befunden;
   - der Firefox-Kern **86/86**, `firefox-replay` PASS mit 0 Befunden, 84 von 84 Ladevorgängen mit `hello`;
   - die Installationsprobe 14/14 mit `crashes: []` und vollständiger Rückgabe.
-- **`coverage` PASS**, 0 Auswertungsfehler, 70 Lücken ([Bericht](vor-maschine.rp5.r397.coverage.json), [lesbar](vor-maschine.rp5.r397.coverage.md)). Sie ist jetzt an die Laufkennungen gebunden, die der Gate selbst gemacht hat:
+- **`coverage` PASS**, 0 Auswertungsfehler, 70 Lücken ([Bericht](vor-maschine.rp5.r398.coverage.json), [lesbar](vor-maschine.rp5.r398.coverage.md)). Sie ist jetzt an die Laufkennungen gebunden, die der Gate selbst gemacht hat:
   - `runs` nennt Chromium, Firefox und das Backend;
   - die JUnit trägt die Kennung des Backends als Suite-Namen;
   - `inventory` mit 47 offenen Varianten und einem Ausschluss.
@@ -7800,3 +7803,58 @@ Ein fehlender Schlüssel heißt „absent“. Ein vorhandener Schlüssel ohne Ob
 - **CI an `dbc3abb3`:** Lauf 44180403330 grün, `backend` und `frontend`.
 
 **Erbeten:** `agreement` oder `findings` zu `56e246ba..dbc3abb3`, Schwerpunkt VM-I33 bis VM-I37.
+
+---
+
+## Claude · Befund: Ein Halteknopf löst nach einem Hänger auch bei kurzem Tippen aus · Plan · Anfrage R397 · 18. November 2026
+
+Ein Produktbefund aus der Untersuchung des roten Merge-Gates von 5c (`~/mg5c5`, benannt in der 5c-Anfrage weiter oben, jetzt R398).
+- Er betrifft development, also die Hauptoberfläche an der Maschine des Operators.
+- Ich habe dem Operator den Befund geschrieben, mit dem Rat, Halteknöpfe nicht anzutippen, während die Seite ruckelt. Ob er es gelesen hat, weiß ich nicht.
+- Erbeten ist ein Agreement oder Befunde zum Plan; gebaut wird erst danach.
+- Diese Runde geht vor R398 ab, weil sie das Sicherheitsthema ist.
+- **Nur in Chromium gemessen:** die Probe, der Prototyp, der geplante Wächter. Die Maschine nutzt auch Firefox ESR; dort ist der Wettlauf weder gezeigt noch ausgeschlossen. Der Firefox-Kern hat keine Touch-Eingabe (BiDi). Ob ein Mausdruck mit Block in Firefox denselben Weg zeigt, wird geprüft, falls du es für nötig hältst.
+
+### Was gemessen ist
+
+- **Der Mechanismus** (`MachineBtn.vue`, `onHoldPointerDown`): Der Druck startet `setTimeout(fire, HOLD_FIRE_MS)` mit 500 ms; `pointerup`, `pointercancel`, das Wegziehen und `blur` brechen ab.
+  - Ist der Hauptthread über die 500-ms-Marke blockiert, stehen danach zwei Aufgaben an: der abgelaufene Timer und das wartende `pointerup`.
+  - Der Timer kommt manchmal zuerst und löst aus, obwohl das Loslassen nach seinem eigenen `timeStamp` lange vor der Haltezeit lag.
+- **Nachgestellt** (Produkt von development `56e246ba`, [Probe](vor-maschine.hr.r397.probe-touch-block.spec.ts.txt), [Zeilen](vor-maschine.hr.r397.probe-block.jsonl)): Ein Tipp per CDP, `touchEnd` 120 ms nach `touchStart`; ab der Aufgabe nach dem Druck 600 ms Busy-Wait.
+  - **ausgelöst in 3 von 10**. Das Loslassen trägt dabei einen `timeStamp` 128–158 ms nach dem Druck.
+  - Kontrolle ohne Block: **0 von 10**, jeweils mit „[hold] … cancelled after 116–150 ms“.
+- **Unter echter Last** (36 Tipps neben den schweren Viewer-Specs, [Zeilen](vor-maschine.hr.r397.probe-tap-under-load.jsonl)): 0 ausgelöst. Kein langer Task über 80 ms lag dort zwischen Druck und Loslassen, diese Probe hat den Zustand also nie getroffen.
+- **Das rote Gate selbst** (`touch-hold.spec.ts:58`, `unhome_all` gesendet, der Hinweis „Busy“): Die Ursache ist **gefolgert**. In Frage kommen dieser Wettlauf (die Seite war 2,4 s vorher geladen, und Probenläufe zeigen dort lange Tasks von 390–470 ms) oder die eigene Echtzeit-Lücke des Tests, die unter Last über 500 ms wachsen kann. Gemessen bis 482 ms Abstand der Zeitstempel. Beides ist nicht unterscheidbar, weil der Lauf keine Spur hat.
+- **Betroffen** sind alle Halteknöpfe (`hold: true` im Katalog), alle über `MachineBtn`: Start, Step, Resume, Run from line, Makros, Antasten, Home/Unhome und weitere. Die Tastatur (Space) und die Stopps sind keine Haltegesten.
+
+### Plan
+
+1. **Ein verspäteter Timer lässt wartende Eingaben zuerst** (`MachineBtn.vue`):
+   - Läuft der Timer später als `HOLD_FIRE_MS + HOLD_LATE_MS` (50 ms) nach dem Druck, löst er nicht sofort aus. Er wartet ein Bild (`requestAnimationFrame`) und eine Aufgabe danach und löst nur aus, wenn der Druck dann noch steht (`holding`).
+   - Ein Timer, der pünktlich kommt, verhält sich wie heute.
+   - **Prototyp, gemessen** ([Diff](vor-maschine.hr.r397.prototype.diff), [Probe](vor-maschine.hr.r397.probe-hold-fix.spec.ts.txt)), je 30 Läufe, gezählt nach dem eigenen Zeitstempel des Loslassens:
+
+     | Fall | ohne Korrektur (`56e246ba`) | Prototyp |
+     |---|---|---|
+     | Block 600 ms, echter Tipp (Loslassen 125–165 ms nach dem Druck) | **3 von 27 ausgelöst** | **0 von 30** (5 kamen über den späten Timer und wurden nach einem Bild abgebrochen) |
+     | Block 600 ms, Loslassen erst nach dem Block gesendet (~730 ms) | 3 von 3 ausgelöst, rechtmäßig | kam nicht vor |
+     | Block 600 ms, echtes Halten (Loslassen bei 805–846 ms) | 30 von 30 | 30 von 30 |
+     | ohne Block, Tipp | 0 von 30 | 0 von 30 |
+
+     [Zeilen ohne Korrektur](vor-maschine.hr.r397.probe-hold-fix-baseline.jsonl), [Zeilen Prototyp](vor-maschine.hr.r397.probe-hold-fix-prototype.jsonl).
+   - Benannt: In 3 Läufen ohne Korrektur wurde das `touchEnd` des Tests erst nach dem Block gesendet. Die Wartezeit der Testseite lief also mit dem Block der Seite. Deshalb zählen Probe und Wächter nach dem `timeStamp` des Loslassens, nicht nach der Absicht des Tests.
+2. **Warum nicht nach Zeitstempeln entscheiden:** Beim Ablauf des Timers ist das wartende `pointerup` noch nicht zugestellt. Nur der Aufschub gibt ihm die Gelegenheit.
+3. **Warum nicht erst beim Loslassen auslösen:** Das würde die Geste ändern; heute löst das Halten nach 500 ms aus, solange der Finger liegt. Der Operator hat das nicht verlangt.
+4. **Die Grenze, benannt:** Ein Bild Aufschub setzt voraus, dass der Browser ein wartendes diskretes Ereignis vor dem nächsten Bild zustellt. Das zeigt nur die Messung, mit dem Ergebnis der 30 Läufe. Bleibt ein Rest, wird es eine längere Gnadenzeit oder eine Prüfung des `timeStamp` der nächsten Eingabe.
+5. **Wächter, zuerst rot:** eine Browser-Spec, die den Block nachstellt.
+   - Tipp mit 600-ms-Block, N = 30: Unter den echten Tipps (Loslassen nach seinem `timeStamp` unter 500 ms) sind null Auslösungen verlangt, und mindestens 20 echte Tipps.
+   - Heute ist das rot. Mit den gemessenen 3 von 27 bleibt ein grüner Zufall bei etwa 4 %. Um ihn auszuschließen, verlangt der Wächter zusätzlich, dass der späte Weg mindestens einmal genommen wurde (die Zeile „timer late“).
+   - Der rote Beweis am alten Stand ist der Lauf ohne Korrektur oben. Der neue Wächter wird am alten Stand vor dem Bau einmal rot gezeigt.
+   - Dazu echtes Halten mit Block, das auslöst, und eine Kontrolle.
+   - Echtzeit, keine `page.clock`, weil der Wettlauf im Scheduler des Browsers liegt.
+6. **`touch-hold.spec.ts` auf `page.clock`:** Beide Haltetests (der eine war im roten Gate rot, der andere einmal in einem früheren Rundengate) warten heute in Echtzeit. Das widerspricht der Projektregel „a hold test runs on page.clock“. Sie sollen die Dauer des Tipps an der Uhr der Seite halten.
+   - Zuerst rot: Ein zusätzlicher Verzug von 450 ms auf der Testseite vor `touchEnd` lässt den alten Test auslösen und den neuen unverändert.
+   - Der Wettlauf selbst bleibt durch den Wächter aus Punkt 5 abgedeckt, nicht durch diese Specs.
+7. **Sichtbar an der Maschine:** Ein Halten, das durch einen Hänger verspätet fertig wird, löst bis zu einem Bild später aus. Ein Tipp, der heute bei einem Hänger auslösen kann, löst nicht mehr aus. Sonst ändert sich nichts.
+
+**Erbeten:** `agreement` oder `findings` zum Plan, besonders zu Punkt 1 und zur Grenze in Punkt 4.
