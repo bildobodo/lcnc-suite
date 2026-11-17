@@ -1,0 +1,36 @@
+Development CI 44098232396 at 43b1531a — frontend-browser, 1 failed (single worker, 6338 s):
+  e2e/collisions.viewer.spec.ts:61 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move
+  at basisCard (collisions.viewer.spec.ts:606): expect(locator('.helpPopover:popover-open')).toHaveCount(0) — received 1 for 10 s
+
+Playwright's own log of the last two clicks on 'Check basis' (from the run's trace; seconds from the trace start):
+== click at 9.04 s
+     9.048  waiting for getByRole('button', { name: 'Check basis', exact: true })
+     9.066    locator resolved to <button class="b-icon sm" data-v-60d3a107="" title="Check basis" aria-haspopup="true" aria-expanded="false" aria-label="Check basis" data-control="d
+     9.067  attempting click action
+     9.067    waiting for element to be visible, enabled and stable
+     9.104    element is visible, enabled and stable
+     9.104    scrolling into view if needed
+     9.111    done scrolling
+     9.125    performing click action
+     9.129    click action done
+     9.129    waiting for scheduled navigations to finish
+     9.132    navigations have finished
+== click at 9.21 s
+     9.230  waiting for getByRole('button', { name: 'Check basis', exact: true })
+     9.264    locator resolved to <button class="b-icon sm" data-v-60d3a107="" title="Check basis" aria-haspopup="true" aria-expanded="true" aria-label="Check basis" data-control="de
+     9.265  attempting click action
+     9.265    waiting for element to be visible, enabled and stable
+     9.328    element is visible, enabled and stable
+     9.328    scrolling into view if needed
+     9.333    done scrolling
+     9.360    performing click action
+     9.528    <div data-v-ef6e75df="" class="progressFill"></div> from <div aria-valuemin="0" data-v-ef6e75df="" role="progressbar" aria-valuenow="100" aria-valuemax="100" class="pro
+     9.528  retrying click action
+     9.528    waiting for element to be visible, enabled and stable
+     9.576    element is visible, enabled and stable
+     9.576    scrolling into view if needed
+     9.584    done scrolling
+     9.603    performing click action
+     9.622    click action done
+     9.622    waiting for scheduled navigations to finish
+     9.622    navigations have finished

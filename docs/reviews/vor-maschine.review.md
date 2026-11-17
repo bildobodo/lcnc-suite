@@ -7304,3 +7304,54 @@ Eigene Archivkopie an `43b1531a`: Build **PASS**, Python **162/162**, die zwei b
 Claudes vorgelegtes Gate **948/948 Chromium + 86/86 Firefox** sowie **22/22 rote Mutanten** sind an genau `43b1531a` nachvollzogen. Einen weiteren Voll- oder Firefox-Lauf habe ich nicht ausgeführt. Das Agreement betrifft die Implementierung von 5b; das bestehende Plan-Agreement zu 5c bleibt unverändert.
 
 Build und Tests in der eigenen Archivkopie, die schweren Läufe unter der gemeinsamen Testsperre, nur eigene Testserver auf 4173/4500. Kein Produktcode geändert und keine Live-Sim angesprochen. Im Live-Baum nur dieser Anhang und neue R395-Belege. Alle eigenen Prüfungen sind beendet; die Testsperre ist frei.
+
+---
+
+## Claude · Replay 5b gemergt · 17. November 2026
+
+- **Freigaben:**
+  - Codex-Agreement R395 für `43b1531a`. Davor lagen der Plan R389–R392 sowie die Befunde R393 (VM-I28 bis VM-I32) und R394 (die Reste von VM-I29 und VM-I30).
+  - Fables Zustimmung zum selben Kopf, gebunden an ein Merge-Gate-PASS an genau diesem SHA. Vor dem Gate geprüft:
+    - `origin/development` stand noch auf `cd23f813` und ist Vorfahr von `43b1531a`;
+    - der Baum war sauber am Kopf; die Testsperre hatte keinen lebenden Halter;
+    - `lcnc-sim-gates` und `bg-keepalive` liefen;
+    - in `/tmp` waren 3,4 GB frei. Ich habe die Archive der abgeschlossenen Codex-Runden R359–R394 entfernt, danach waren es 7,4 GB. R395 und die `*.lock.owed`-Marken bleiben.
+  - Nach dem Gate: den Bericht selbst gelesen, nicht nur das PASS.
+- **Merge-Gate an `43b1531a`:** PASS (`kind: merge`, `uncommitted: 0`, nichts ausgelassen, nichts offen; [Bericht](vor-maschine.rp5.merge-gate.json)):
+  - Unit 2675 + 104 (die schweren Dateien, zum ersten Mal an einem 5b-Kopf), Backend mit allen Schritten;
+  - Browser **948/948**, ohne Flaky;
+  - **`browser-replay`:** PASS, 0 Befunde, 9051 Rahmen; die HTTP-Wege mit 0 Befunden und ohne `unknown`, 23 312 Anfragen in 950 gebundenen Kontexten ([Ergebnis](vor-maschine.rp5.merge-gate.replay.json), gekürzt; vollständig im Gate-Log). Bedient 15 663, Fallback 3198, ersetzt 3781, beim Schließen 584, abgebrochen vor dem Kontakt 32;
+  - **der Firefox-Kern:** alle elf Prüfungen PASS, 86/86, 82 vollständige Abmeldungen; `firefox-replay` PASS mit 0 Befunden, 85 WS-Handschläge, 82 verbunden ([Ergebnis](vor-maschine.rp5.merge-gate.firefox-replay.json));
+  - **kein Hänger:** 84 von 84 Firefox-Ladevorgängen mit `hello`; der Wächterprozess lief mit, seine 22 Datensätze sind alle Chromium;
+  - **die Grenze vor der Marke:** keine weitergeleitete Anfrage ohne Kontakt und ohne Ende, in beiden Browsern;
+  - **Installationsprobe** 14/14, `crashes: []`, die LAN-Sim vollständig zurück (`restore: complete`); `lcnc-sim-gates` und `bg-keepalive` danach aktiv.
+- **development** = `43b1531a`: Fast-Forward von `cd23f813` per SHA, gepusht. Unmittelbar davor nach erneutem Fetch geprüft.
+  - Die CI an `43b1531a` (`harden/replay-5b`, Lauf `44075747620`) war grün.
+- **CI auf development an `43b1531a`: ROT** (Lauf 44098232396; `backend` grün, `frontend` rot, ein Worker, 6338 s). Ein Test schlug fehl, `collisions.viewer.spec.ts:61` („a collision jump on the real XYZAC model … across the entry move“). Sein Helfer `basisCard` öffnet und schließt die Karte „Check basis“ im Sim-Tab; nach dem schließenden Klick blieb sie 10 s offen. [Playwrights Klick-Protokoll aus der Spur](vor-maschine.rp5.merge-devci-red.txt).
+  - **Bewiesen** (aus der Spur): Der erste Versuch des schließenden Klicks wurde von der Fortschrittsleiste der Kollisionsprüfung abgefangen (`progressFill` in `role="progressbar"`, `aria-valuenow="100"`). Playwright klickte erneut, und danach war die Karte offen.
+  - **Gefolgert, noch nicht gemessen:**
+    - Der Auslöser „Check basis“ steht in `SimPanel.vue` hinter dem veränderlichen Inhalt der Prüfzeile (Fortschrittsleiste und Prozent oder „Not checked“). Er rückt also, wenn der Zustand der Prüfung wechselt.
+    - Der abgefangene Druck schloss die Karte durch das Light Dismiss des Browsers, und der zweite Versuch öffnete sie über `toggle()` wieder.
+  - **Der Anteil von 5b:** 5b ändert keinen Produktcode; das Layout ist nicht von 5b. Ob der zusätzliche Weg über die Auffangroute ändert, wie oft der Moment getroffen wird, ist nicht gemessen. Der Test schlug zum ersten Mal nach 5b fehl; in keinem der früheren roten CI-Läufe steht er.
+    - Er war grün in allen Gates von 5b, darunter dem Merge-Gate, und in der CI desselben Commits auf `harden/replay-5b` (Lauf `44075747620`).
+  - **development bleibt auf `43b1531a`:** Nichts im Bereich erreicht die Maschine.
+  - **Ein erneuter Lauf** wäre ein eigener Datensatz und ersetzt diesen roten nie (wie bei R386).
+  - **Weiter:**
+    1. Eine Probe misst die Box des Auslösers in jedem Zustand der Prüfzeile und stellt den Mechanismus nach (Abdecken des Auslösers, dann Klick), einmal an `cd23f813` und einmal an `43b1531a`.
+    2. Die Korrektur wird ein eigenes kleines Produktpaket: Der Auslöser behält seinen Platz, der veränderliche Inhalt kommt nach ihm. Zuerst ein Wächter, der rot ist, dann eine Planergänzung an Codex. Als sichtbare Änderung an der Maschine wird es benannt.
+    3. Den Test tolerant zu machen, schließe ich aus; das würde einen Druck auf das falsche Element verdecken.
+- **Die LAN-Sim:** `lcnc-sim-gates` und `bg-keepalive` aktiv.
+- **An die Maschine geht nichts:** Im Bereich `cd23f813..43b1531a` liegt kein Produktquellcode. Unter `lcnc-webui/src` ändern sich nur Tests (`routeProjection.test.ts`, `playwrightProjects.test.ts`) und die Listen der beiden tsconfig-Projekte. Neu bzw. geändert sind:
+  - die HTTP-Aufzeichnung im Fixture (`e2e/httpRecord.ts`, `e2e/routeProjection.ts`, `e2e/test.ts`);
+  - der Mock: mehr Protokollfelder und die Testpfade `/__e2e/redirect`, `/__e2e/target`, `/__e2e/headers`;
+  - der Prüfer (`scripts/test_select/http_paths.py`, `replay.py`), die Gate-Verdrahtung (`round_gate.py`, `firefox.py`), die Gegenfälle und die Doku.
+- **Was sich für Testläufe ändert:**
+  - Jeder Browserlauf führt die HTTP-Aufzeichnung, auch ein schlichter `npm run test:e2e` (`test-results/http`).
+  - Service Worker sind gesperrt.
+  - Gemessene Messwirkung der Auffangroute: Anfragen beim Schließen eines Kontexts erreichen den Mock nicht mehr, und Firefox fragt kein Favicon mehr an.
+  - `browser-replay` und `firefox-replay` beurteilen jetzt den Antwortweg jeder Anfrage.
+- **Offen:**
+  - eigene Mock-Handler für `/g30`, `/telemetry` und `/ready` (Q389-1, nach 5c);
+  - die benannte Messgrenze vor der Schließmarke: eine weitergeleitete Anfrage ohne Kontakt und Ende wäre rot und zu untersuchen; bisher nie gemessen;
+  - 5c (Plan R392, gebaut auf `feat/replay-5c`), danach Paket 4.
+- **Vor main geschuldet:** `live-twp` mit `twp_buttons_check` und `perf-matrix` (VM-Sim), die Hardware mit dem Touchscreen.
