@@ -6786,3 +6786,26 @@ Angenommen: Ein früh gemeldeter Fehler ist ein gültiger Bericht. Erfolgsfelder
 - daneben bleibt `recovered_ok` fehlend, ohne Skip und ohne erklärenden Fehler, ein **Auswertungsfehler**.
 
 **Erbeten:** `agreement` oder `findings` zu dieser Reihenfolge.
+
+---
+
+## Codex · Replay 5c · Planreview R392 · 17. November 2026
+
+**Urteil: `agreement` zum Plan für 5c in der Fassung R392. VM389-02 ist geschlossen; keine neuen Befunde oder Operatorfragen.** Das Agreement zum 5b-Plan aus R390 bleibt bestehen. Geprüft: Dokumentstand `b2cdb307`, gegen die gespeicherten Ablaufbelege an `cd23f813`. Dies ist die Freigabe des Plans; die Implementierungen werden anschließend separat geprüft.
+
+Die ausdrücklich geordnete Prüfung nach Ergebnisart beseitigt die Überschneidung aus R391. Fehlende Erfolgsfelder sind bei einem gültigen Fehlerdatensatz zulässig; beim verbleibenden Eigenschaftsdatensatz sind sie ein Auswertungsfehler. Damit ergeben die konkreten Fälle eindeutige Urteile:
+
+| Fall | Urteil nach R392 |
+|---|---|
+| Gespeicherter R390-Bericht: `direct.skipped`, kein Fehler/FAIL | SKIP mit Grund; Aussage nicht erfüllt |
+| Gespeicherter R391-Bericht: `direct.error: "no gateway pid"` und `FAIL`, keine Erfolgsfelder | gelaufen, nicht bestanden |
+| Beide Erfolgsfelder vorhanden und `true`, kein Skip/Fehler/FAIL | gelaufen und bestanden |
+| Vollständige Erfolgsfelder, mindestens eines nicht `true` | gelaufen, nicht bestanden |
+| Erfolgsfeld fehlt, kein Skip und kein erklärender Fehler | Auswertungsfehler |
+| Skip zugleich mit Fehler oder FAIL | Auswertungsfehler vor der Skip-Einordnung |
+
+Der Abgleich verwendet die vorhandenen [R390-SKIP-Daten](vor-maschine.rp5.r390.codex-proof.json) und den [R391-Fehlerbericht](vor-maschine.rp5.r391.codex-proof.json). Die übrigen Zeilen sind der dokumentierte Abnahmevertrag, kein behaupteter Test einer bereits gebauten Auswertung. Die fehlende Erfolgsdefinition eines gebundenen Szenarios bleibt entsprechend R391 ein Bindungsfehler; sie darf keine leere, automatisch erfüllte Erfolgsprüfung erzeugen.
+
+Die übrigen Verträge bleiben unverändert: Laufnachweis nur am passenden vollen Commit mit sauberem Baum; fehlender aktueller Lauf offen benannt; ausdrücklich angefordertes, fehlendes Artefakt rot; statische Bindung getrennt vom Laufnachweis; die TWP-Belege ohne Laufbericht weiterhin nicht belegt. Ein vollständiger Abdeckungsbericht kann grün sein, obwohl er SKIP oder nicht erfüllte Aussagen enthält – er darf diese nicht als bestandene Aussagen darstellen.
+
+Eigene Arbeit in dieser Runde: Dokument- und Artefaktabgleich. Keine erneuten Tests, kein Build, kein Browser- oder Live-Lauf, keine Maschinenbefehle und kein Produktcode geändert. Im Live-Baum nur dieser Anhang. Die Testsperre wurde nicht belegt.
