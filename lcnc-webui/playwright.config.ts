@@ -10,8 +10,12 @@ if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshot
 process.env.LCNC_E2E_RUN ??= `${process.pid}-${Date.now()}`;
 process.env.LCNC_E2E_EVENTS ??= path.resolve("test-results", "mock-events.jsonl");
 // The replay logs (test strategy step 5): every mock's received frames and
-// requests, each with its connection's origin — scripts/replay/check.py reads them.
+// requests, each with its connection's origin — scripts/test_select/replay.py reads them.
 process.env.LCNC_E2E_REPLAY_DIR ??= path.resolve("test-results", "replay");
+// The browser's HTTP record (step 5b, e2e/httpRecord.ts): every request with
+// its own id — replay.py --http joins it with the mocks' lines. A plain run
+// (CI's `npm run test:e2e`) keeps one too: http-paths.spec reads its own.
+process.env.LCNC_E2E_HTTP_DIR ??= path.resolve("test-results", "http");
 
 // Browser suite: the BUILT frontend with a plain preview for disconnected
 // smoke tests and a mock gateway for state, layout and visual regression
