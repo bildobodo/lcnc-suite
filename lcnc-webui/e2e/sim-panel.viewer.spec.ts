@@ -1556,22 +1556,25 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
 // at 1600 × 1000. A jump that builds the entry move turns the row to "Not
 // checked" for about 0.7 s and back: a press aimed at the trigger landed on
 // the bar (its light dismiss closed the card, Playwright's retry opened it
-// again). The trigger and its "?" keep their place in every state of the
-// row, sampled every frame from "Not checked" until the check has begun.
+// again). The trigger and its "?" keep their place with and without the
+// bar: every DOM state of the row (a MutationObserver — the first "Not
+// checked" may last less than a frame) and every frame, from before the
+// preview arrives until the check has begun.
 for (const vp of ["desktop", "touch-portrait"] as const) {
-  test(`${vp}: the check basis trigger and its "?" keep their place in every state of the check row (dev CI 44098232396)`, async ({ page, context }) => {
+  test(`${vp}: the check basis trigger and its "?" keep their place with and without the check's bar (dev CI 44098232396)`, async ({ page, context }) => {
     await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
     await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
     await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
     await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
     await openSimTab(page);
     // from before the preview arrives: the row comes with it, "Not checked"
-    // until the check begins
+    // until the check begins — read at every change of the panel's DOM (in
+    // the task that made it, before any later one) and every frame
     await page.evaluate(() => {
       const w = window as unknown as { __checkRow: { state: string; trigger: number; help: number }[] };
       w.__checkRow = [];
       let last = "";
-      const tick = () => {
+      const read = () => {
         const row = document.querySelector(".simPanel .checkRow");
         const t = row?.querySelector('button[aria-label="Check basis"]')?.getBoundingClientRect();
         const h = row?.querySelector(".helpIcon")?.getBoundingClientRect();
@@ -1580,8 +1583,10 @@ for (const vp of ["desktop", "touch-portrait"] as const) {
           const key = JSON.stringify(s);
           if (key !== last) { w.__checkRow.push(s); last = key; }
         }
-        requestAnimationFrame(tick);
       };
+      new MutationObserver(read).observe(document.querySelector(".simPanel")!,
+        { subtree: true, childList: true, characterData: true, attributes: true });
+      const tick = () => { read(); requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
     });
     await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5100, file: "/sim.ngc" } });

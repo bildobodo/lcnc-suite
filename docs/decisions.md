@@ -11639,11 +11639,13 @@ and the retry opens the card again — the CI's click log, step for step. The
 same move puts an operator's tap on the bar.
 
 **Decided.** The words without a bar take the bar's room (`.checkState`,
-flex 1, an ellipsis): the trigger and the row's "?" stand at the row's end in
-every state of the check. The test is not made tolerant — a press on the
-wrong element would be hidden. Guard: `sim-panel.viewer.spec.ts` samples the
-row every frame from "Not checked" until the check has begun (desktop and
-touch portrait) — red before the fix (269.75 / 308.75 px), green after.
+flex 1, an ellipsis): the trigger and the row's "?" stand at the row's end
+with and without the bar, as long as the row does not overflow — what stands
+before the growing element (the label, the percentage) no longer moves them. The test is not made tolerant — a press on the
+wrong element would be hidden. Guard: `sim-panel.viewer.spec.ts` reads the
+row at every change of the panel's DOM and every frame, from before the
+preview arrives until the check has begun (desktop and touch portrait), and
+needs both forms — red before the fix (269.75 / 308.75 px), green after.
 Visible at the machine: in "Not checked" the card's icon and the "?" stand at
 the row's right end, where they stand beside the bar.
 
