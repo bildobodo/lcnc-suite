@@ -1,0 +1,31 @@
+R389 probe — what the catch-all route changes at the mock (http lines with a test origin, per method and path head)
+Columns: round gate at cd23f813 (~/rgff-cd23f813), merge gate at cd23f813 (~/mgff), the probe at 03019f88 (~/rg5b-probe)
+
+-- replay
+GET /g30                        2329    2314    1793
+POST /telemetry                 1673    1658    1517
+GET /static                    12608   12611   12565
+POST /settings                     0       1       1
+GET /preview                      74      74      73
+GET /macros                      941     940     940
+GET /settings                    992     992     992
+GET /gcode                         3       3       3
+GET /devices                      84      84      84
+GET /subfile                       2       2       2
+GET /                            995     995     995
+total                          19701   19674   18965
+
+-- firefox-replay
+GET /favicon.ico                  31      31       0
+POST /telemetry                  186     188     189
+GET /static                      973     973     973
+GET /macros                       74      74      74
+GET /                             82      82      82
+GET /settings                     82      82      82
+GET /preview                       7       7       7
+GET /g30                          85      85      85
+GET /devices                      12      12      12
+total                           1532    1534    1504
+
+-- Chromium requests without a transport end: 615; ms issued before their attempt's test-end: p50 102, p90 207, max 21435; <500 ms: 596; <2000 ms: 609; with a route call: 4
+-- finished requests: p50 3609 ms before test-end

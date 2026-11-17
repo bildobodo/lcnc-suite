@@ -1,0 +1,159 @@
+commit 03019f88a377c5de62a92e7df06833fc2ce08596
+Author: bildobodo <160418175+bildobodo@users.noreply.github.com>
+Date:   Tue Nov 17 01:10:07 2026 +0100
+
+    PROBE (replay 5b feasibility, not for merge): an always-on catch-all route with x-e2e-req, browser request events per worker, the mock's served path and unanswered requests
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/lcnc-webui/e2e/httpProbe.ts b/lcnc-webui/e2e/httpProbe.ts
+new file mode 100644
+index 00000000..c37acb0f
+--- /dev/null
++++ b/lcnc-webui/e2e/httpProbe.ts
+@@ -0,0 +1,48 @@
++// PROBE ONLY (replay 5b feasibility, before the plan request): the agreed
++// HTTP instrumentation of FI265-02 Rest A (R268/R269) in its smallest form —
++// a catch-all route registered FIRST on every context (the lowest priority)
++// that continues each request no spec handler took with `x-e2e-req: <id>`,
++// and the browser's own request events with that id, written to a file of
++// this worker beside the event log. Measures: does an always-on catch-all
++// change what the tests see (counts, unload beacons, run time); are worker
++// requests reported and routed; does the header change a request; does the
++// route handler see the request after its `request` event.
++import { appendFileSync } from "node:fs";
++import type { BrowserContext, Request } from "@playwright/test";
++
++const OUT = process.env.LCNC_E2E_EVENTS ? `${process.env.LCNC_E2E_EVENTS}.http-${process.env.TEST_WORKER_INDEX ?? "x"}.jsonl` : null;
++const write = (rec: Record<string, unknown>) => { if (OUT) appendFileSync(OUT, JSON.stringify({ t: Date.now(), ...rec }) + "\n"); };
++
++let seq = 0;
++
++const done = new WeakSet<BrowserContext>();
++
++export async function instrument(context: BrowserContext, origin: { test: string; retry: number }, label: string): Promise<void> {
++  if (done.has(context)) return;
++  done.add(context);
++  const ids = new WeakMap<Request, string>();
++  const idOf = (r: Request): string => {
++    let id = ids.get(r);
++    if (!id) { id = `${origin.test}.${origin.retry}.${++seq}`; ids.set(r, id); }
++    return id;
++  };
++  context.on("request", (r) => {
++    const u = new URL(r.url());
++    const from = r.redirectedFrom();
++    write({ kind: "breq", ctx: label, test: origin.test, retry: origin.retry, id: idOf(r), method: r.method(), path: u.pathname,
++            qkeys: [...u.searchParams.keys()], type: r.resourceType(), sw: r.serviceWorker() !== null,
++            from: from ? idOf(from) : null, host: u.host });
++  });
++  context.on("requestfinished", async (r) => {
++    const resp = await r.response().catch(() => null);
++    write({ kind: "bfin", id: idOf(r), status: resp?.status() ?? null });
++  });
++  context.on("requestfailed", (r) => write({ kind: "bfail", id: idOf(r), error: r.failure()?.errorText ?? null }));
++  await context.route(() => true, async (route) => {
++    const r = route.request();
++    const known = ids.has(r);
++    const id = idOf(r);
++    write({ kind: "broute", id, known_at_route: known });
++    await route.continue({ headers: { ...r.headers(), "x-e2e-req": id } });
++  });
++}
+diff --git a/lcnc-webui/e2e/mock-gateway.mjs b/lcnc-webui/e2e/mock-gateway.mjs
+index 5b197760..c79d0151 100644
+--- a/lcnc-webui/e2e/mock-gateway.mjs
++++ b/lcnc-webui/e2e/mock-gateway.mjs
+@@ -113,9 +113,12 @@ const server = createServer(async (req, res) => {
+     const query = (req.url || "").includes("?") ? new URLSearchParams((req.url || "").split("?").slice(1).join("?")) : null;
+     const beacon = query?.get("e2e_beacon") ?? null;
+     res.on("finish", () => replay({ kind: "http", method: req.method, path, origin, req_id: reqId, status: res.statusCode,
+-                                    ...(beacon !== null ? { beacon } : {}) }));
++                                    served: res.locals_served ?? null, ...(beacon !== null ? { beacon } : {}) }));
++    // PROBE (replay 5b): a request that ends without its answer leaves no finish
++    res.on("close", () => { if (!res.writableFinished) replay({ kind: "http", method: req.method, path, origin, req_id: reqId, status: null, closed: true }); });
+   }
+   if (path === "/macros") {
++    res.locals_served = "handler";
+     // Package 5: the macro folder of a configuration without one (specs that
+     // need files serve their own folder through page.route)
+     res.writeHead(200, { "content-type": "application/json" });
+@@ -123,6 +126,7 @@ const server = createServer(async (req, res) => {
+     return;
+   }
+   if (path === "/settings") {
++    res.locals_served = "handler";
+     // the page's first settings (main.ts): this device's view — the stored
+     // blob with the simulation ON unless a spec set it (the fixture default)
+     res.writeHead(200, { "content-type": "application/json" });
+@@ -131,12 +135,14 @@ const server = createServer(async (req, res) => {
+     return;
+   }
+   if (path === "/devices") {
++    res.locals_served = "handler";
+     // Settings › Devices (settings split): this device and what a spec set
+     res.writeHead(200, { "content-type": "application/json" });
+     res.end(JSON.stringify({ ok: true, devices: [{ ...MOCK_DEVICE_ROW, name: MOCK_DEVICE.name }, ...devicesList] }));
+     return;
+   }
+   if (path === "/preview") {
++    res.locals_served = "handler";
+     res.writeHead(200, { "content-type": "application/octet-stream" });
+     res.end(Buffer.from(PREVIEW));
+     return;
+@@ -148,11 +154,13 @@ const server = createServer(async (req, res) => {
+     res.writeHead(code, { "content-type": MIME[extname(f)] || "application/octet-stream" });
+     res.end(buf);
+   };
+-  if (!file.startsWith(DIST)) { res.writeHead(403); res.end(); return; }
++  if (!file.startsWith(DIST)) { res.locals_served = "403"; res.writeHead(403); res.end(); return; }
+   try {
++    res.locals_served = "static";
+     await send(file);
+   } catch {
+-    try { await send(join(DIST, "index.html")); } catch { res.writeHead(404); res.end(); } // SPA fallback
++    res.locals_served = "fallback";
++    try { await send(join(DIST, "index.html")); } catch { res.locals_served = "404"; res.writeHead(404); res.end(); } // SPA fallback
+   }
+ });
+ 
+diff --git a/lcnc-webui/e2e/test.ts b/lcnc-webui/e2e/test.ts
+index e0a71ba6..516ae9b0 100644
+--- a/lcnc-webui/e2e/test.ts
++++ b/lcnc-webui/e2e/test.ts
+@@ -40,6 +40,7 @@ import { appConnectFrames, ctl, MOCK } from "./ctl";
+ import { logEvent, replayFile, RUN, startMock, stopMock, type MockHandle } from "./mockFixture";
+ import { portOf, slotOf } from "./mockSlot.mjs";
+ import { complete, parseMarks, receipts, type AttemptOrigin, type ReplayLine } from "./unloadReceipts";
++import { instrument } from "./httpProbe";
+ 
+ export * from "@playwright/test";
+ 
+@@ -166,6 +167,12 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
+   // context before the context closes (unloadInContext).
+   // `hasTouch` is the context option as the test resolves it — a file's
+   // test.use included, not only the project's.
++  // PROBE (replay 5b feasibility): the catch-all route on every context
++  context: async ({ context }, use, testInfo) => {
++    await instrument(context, { test: testInfo.testId, retry: testInfo.retry }, "fixture");
++    await use(context);
++  },
++
+   page: async ({ page, browserName, mock, hasTouch }, use, testInfo) => {
+     if (browserName === "firefox") {
+       if (hasTouch) throw new Error(TOUCH_UNDER_BIDI);
+@@ -248,7 +255,14 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
+     expect(await snapshot(), "the mock's baseline after reset").toEqual(mock.pristine);
+     expect(wire, "a fresh app client's connect frames after reset").toEqual(mock.pristineWire);
+     logEvent({ event: "test-start", ...where });
++    const newContext = browser.newContext.bind(browser);
++    browser.newContext = async (o) => {
++      const c = await newContext(o);
++      await instrument(c, { test: testInfo.testId, retry: testInfo.retry }, "new");
++      return c;
++    };
+     await use();   // resolves after the test, failed or not
++    browser.newContext = newContext;
+     for (const c of browser.contexts()) await c.close().catch(() => {});
+     logEvent({ event: "test-end", ...where, status: testInfo.status });
+     if (mock.died()) throw new Error(`the worker's mock ended during the test: ${mock.died()}`);

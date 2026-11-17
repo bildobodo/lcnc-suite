@@ -1,0 +1,1161 @@
+{
+  "kind": "round",
+  "note": "replay 5b feasibility probe",
+  "base": "39a7367909177eb800af21f6ad3c744def6089d9",
+  "head": "03019f88a377c5de62a92e7df06833fc2ce08596",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser",
+    "firefox-core"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/unloadReceipts.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/unloadReceipts.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "lcnc-webui/e2e/mock-gateway.mjs: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/test.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/unloadReceipts.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/src/style.css: central: every surface, every dialog or every connection depends on it"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "lcnc-gateway/test_suite_runner.py: the gateway: the browser suite runs against the mock",
+        "scripts/fetch_firefox.py: scripts and their tests ride the backend gate",
+        "scripts/test_fetch_firefox.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/firefox.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/round_gate.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/selector.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/test_firefox.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/test_selector.py: scripts and their tests ride the backend gate",
+        "scripts/test_suite.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-angle.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-boss.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-cal.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-inside.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-outside.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-ridge.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-surface.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-toolsetter.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-homed-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-homed-setup.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-unhomed-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-unhomed-setup.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-homed-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-homed-setup.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-unhomed-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-unhomed-setup.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-homed-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-homed-setup.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-plane-stale-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-plane-stale-setup.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-unhomed-jog.png",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-unhomed-setup.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-angle.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-boss.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-cal.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-inside.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-outside.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-ridge.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-surface.png",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-toolsetter.png",
+        "lcnc-webui/e2e/dialogs.spec.ts",
+        "lcnc-webui/e2e/firefox-core.json",
+        "lcnc-webui/e2e/firefox-unload.guard.ts",
+        "lcnc-webui/e2e/firefox.json",
+        "lcnc-webui/e2e/httpProbe.ts",
+        "lcnc-webui/e2e/mock-gateway.mjs",
+        "lcnc-webui/e2e/probe-visual.spec.ts",
+        "lcnc-webui/e2e/test.ts",
+        "lcnc-webui/e2e/unloadReceipts.ts",
+        "lcnc-webui/playwright.firefox.config.ts",
+        "lcnc-webui/src/style.css",
+        "scripts/fetch_firefox.py",
+        "scripts/test_select/firefox.py"
+      ],
+      "reasons": [
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-angle.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-boss.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-cal.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-inside.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-outside.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-ridge.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-surface.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-toolsetter.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-homed-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-homed-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-unhomed-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-unhomed-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-homed-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-homed-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-unhomed-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-unhomed-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-homed-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-homed-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-plane-stale-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-plane-stale-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-unhomed-jog.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-unhomed-setup.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-angle.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-boss.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-cal.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-inside.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-outside.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-ridge.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-surface.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-toolsetter.png: selects the Firefox core itself",
+        "lcnc-webui/e2e/dialogs.spec.ts: selects the Firefox core itself",
+        "lcnc-webui/e2e/firefox-core.json: selects the Firefox core itself",
+        "lcnc-webui/e2e/firefox-unload.guard.ts: selects the Firefox core itself",
+        "lcnc-webui/e2e/firefox.json: selects the Firefox core itself",
+        "lcnc-webui/e2e/mock-gateway.mjs: selects the Firefox core itself",
+        "lcnc-webui/e2e/probe-visual.spec.ts: selects the Firefox core itself",
+        "lcnc-webui/e2e/test.ts: selects the Firefox core itself",
+        "lcnc-webui/e2e/unloadReceipts.ts: selects the Firefox core itself",
+        "lcnc-webui/playwright.firefox.config.ts: selects the Firefox core itself",
+        "lcnc-webui/src/style.css: selects the Firefox core itself",
+        "scripts/fetch_firefox.py: selects the Firefox core itself",
+        "scripts/test_select/firefox.py: selects the Firefox core itself",
+        "the full browser run holds the core: lcnc-webui/e2e/mock-gateway.mjs: build, test configuration or the shared mock and fixtures",
+        "the full browser run holds the core: lcnc-webui/e2e/test.ts: build, test configuration or the shared mock and fixtures",
+        "the full browser run holds the core: lcnc-webui/e2e/unloadReceipts.ts: build, test configuration or the shared mock and fixtures",
+        "the full browser run holds the core: lcnc-webui/src/style.css: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/e2e/dialogs.spec.ts → dialogs (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → dialogs (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → dialogs (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → layout (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → layout (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → probe-click (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → probe-click (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-angle.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-boss.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-cal.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-inside.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-outside.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-ridge.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-surface.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/probe-visual.spec.ts/probe-toolsetter.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-angle.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-boss.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-cal.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-inside.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-outside.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-ridge.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-surface.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/probe-visual.spec.ts/probe-toolsetter.png → probe-visual (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → probe-visual (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → probe-visual (a core spec)",
+        "lcnc-webui/e2e/probe-visual.spec.ts → probe-visual (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → smoke (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → smoke (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → tabs (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → tabs (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-homed-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-homed-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-unhomed-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/3axis-xyz-desktop-unhomed-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-homed-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-homed-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-unhomed-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/5axis-xyzac-desktop-unhomed-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-homed-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-homed-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-plane-stale-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-plane-stale-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-unhomed-jog.png → visual (a core spec)",
+        "lcnc-webui/e2e/__screenshots__/firefox-160.0-linux-aarch64/visual.spec.ts/6axis-twp-desktop-unhomed-setup.png → visual (a core spec)",
+        "lcnc-webui/e2e/httpProbe.ts → visual (a core spec)",
+        "lcnc-webui/e2e/mock-gateway.mjs → visual (a core spec)"
+      ]
+    },
+    "live": {}
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1172005
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 492727
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 353031
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 326577
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 298209
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 259968
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 253986
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 157448
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 145023
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 118705
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 113306
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 109484
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 95384
+    },
+    {
+      "file": "help-icons.spec.ts",
+      "ms": 94259
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 78304
+    },
+    {
+      "file": "simulation-off.viewer.spec.ts",
+      "ms": 74292
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 63976
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 63582
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 60942
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 56144
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 47883
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 46980
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 46653
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 44935
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 41641
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 41343
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 34821
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 34443
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 33382
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 30324
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 29971
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 28082
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 27176
+    },
+    {
+      "file": "devices.spec.ts",
+      "ms": 26100
+    },
+    {
+      "file": "probe-visual.spec.ts",
+      "ms": 25984
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 24239
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 23522
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 23320
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 20508
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 18698
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 18137
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 16854
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 15713
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 15408
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 15280
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 15262
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 14876
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 14164
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 10059
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 10045
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 8829
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 8627
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 8401
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 7543
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 6771
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 6623
+    },
+    {
+      "file": "replay-origin.spec.ts",
+      "ms": 3735
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 3511
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 3088
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 2575
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1420
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 1036
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 29
+    }
+  ],
+  "firefox": {
+    "pinned": "160.0",
+    "playwright": "Version 1.60.0",
+    "arch": "linux-aarch64",
+    "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+    "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+    "cache": "hit",
+    "newer": {
+      "status": "current",
+      "latest": "160.0",
+      "pinned": "160.0"
+    },
+    "set": "required + build-up",
+    "started": [
+      "firefox 160.0"
+    ],
+    "caller_display": ":0",
+    "images_not_compared": [],
+    "workers": {
+      "asked": 3,
+      "report": 3,
+      "seconds": 116
+    },
+    "unloads": [
+      {
+        "title": "Outside: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Outside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Inside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "z_surface: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "surface_scan: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "arrows move focus, Enter selects; every navigation key stays in the list — no jog",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Toolsetter: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "3axis-xyz desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "5axis-xyzac desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a tab switch sends nothing — but a jog still running stops",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "6axis-twp desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a hidden panel is not focusable",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "the Run-from-line spindle preset is one option group: Rev, Stop, Fwd",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      }
+    ],
+    "unloads_skipped": [
+      {
+        "title": "app shell mounts with no gateway connected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "default-deny: machine controls are closed while disconnected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "Arm control stays reachable",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      }
+    ]
+  },
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/rg5b-probe.service",
+    "cpu_s": 8560,
+    "memory_peak_mb": 4510
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-5b/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 4
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 15
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rg5b-probe/gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 60,
+      "files": 167,
+      "tests": 2667,
+      "passed": 2667,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2667
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-5b/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rg5b-probe/gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 240
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1867,
+      "tests": 933,
+      "passed": 933,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 933
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-a3430572-6da2-49df-8e92-c91f5aea72c4",
+      "mocks": 3
+    },
+    {
+      "name": "browser-replay",
+      "status": "PASS",
+      "report": "replay.json",
+      "frames": 9576,
+      "attempts": 933,
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+        "coverage against the inventory (step 5c)"
+      ]
+    },
+    {
+      "name": "firefox-fetch",
+      "status": "PASS",
+      "seconds": 0.0,
+      "cache": "hit"
+    },
+    {
+      "name": "firefox-static",
+      "status": "PASS"
+    },
+    {
+      "name": "firefox-set",
+      "status": "PASS",
+      "tests": 86
+    },
+    {
+      "name": "firefox-core",
+      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/rg5b-probe/gate-round.logs/test-results",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 116,
+      "tests": 86,
+      "passed": 86,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "firefox-executed",
+      "status": "PASS",
+      "tests": 86
+    },
+    {
+      "name": "firefox-workers",
+      "status": "PASS",
+      "run": "firefox-e48b8554-d6a1-4773-bfb0-4bfc1b03b1bc"
+    },
+    {
+      "name": "firefox-unload",
+      "status": "PASS",
+      "loaded": 82,
+      "unloads": 82,
+      "skipped": 3
+    },
+    {
+      "name": "firefox-unload-guard",
+      "status": "PASS",
+      "seconds": 10,
+      "run": "firefox-guard-ca53c6a0-88c2-4bd4-9eeb-c3eab3b429ea"
+    },
+    {
+      "name": "firefox-browser",
+      "status": "PASS",
+      "version": "160.0"
+    },
+    {
+      "name": "firefox-graphics",
+      "status": "PASS",
+      "webgl": "none"
+    },
+    {
+      "name": "firefox-replay",
+      "status": "PASS",
+      "report": "firefox-replay.json",
+      "frames": 503,
+      "attempts": 86,
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP requests' payloads (step 5b) — recorded with their origin, not judged",
+        "coverage against the inventory (step 5c)"
+      ],
+      "seconds": 0.0
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": []
+}

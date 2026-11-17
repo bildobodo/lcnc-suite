@@ -1,0 +1,92 @@
+{
+ "browser_requests": 1654,
+ "mock_http_lines": 1504,
+ "browser_by_type": {
+  "document": 422,
+  "script": 551,
+  "stylesheet": 174,
+  "fetch": 314,
+  "font": 111,
+  "xhr": 82
+ },
+ "browser_hosts": {
+  "localhost:4500": 1014,
+  "localhost:4501": 277,
+  "localhost:4502": 318,
+  "localhost:4173": 45
+ },
+ "service_worker_requests": 0,
+ "redirect_hops": 0,
+ "route_seen": 1631,
+ "route_before_request_event": 0,
+ "route_twice": 0,
+ "browser_end": {
+  "finished": 1649,
+  "failed": 5
+ },
+ "browser_no_end": 0,
+ "browser_failed_errors": {
+  "NS_ERROR_UNEXPECTED": 4,
+  "NS_BINDING_ABORTED": 1
+ },
+ "mock_with_req_id": 1504,
+ "mock_without_req_id": {},
+ "mock_contacts_per_id": {
+  "1": 1504
+ },
+ "mock_ids_browser_never_saw": 0,
+ "mock_served": {
+  "static": 1055,
+  "handler": 175,
+  "fallback": 274
+ },
+ "mock_closed": [],
+ "mock_closed_count": 0,
+ "mock_options": 0,
+ "fallback_served": {
+  "POST /telemetry": 189,
+  "GET /g30": 85
+ },
+ "join": {
+  "caught, 1 mock contact(s)": 1504,
+  "caught, 0 mock contact(s)": 127,
+  "spec handler / not routed, 0 mock contact(s)": 23
+ },
+ "caught_no_contact": {
+  "GET other bfin": 85,
+  "GET static bfin": 27,
+  "POST api /telemetry bfail": 4,
+  "GET page bfin": 3,
+  "GET api /settings bfin": 3,
+  "GET api /macros bfin": 2,
+  "POST api /telemetry bfin": 2,
+  "GET api /macros bfail": 1
+ },
+ "not_caught_by_class": {
+  "GET api /macros": 8,
+  "GET api /gcode": 7,
+  "POST api /import-tool-library": 4,
+  "POST api /upload": 2,
+  "GET api /macro": 2
+ },
+ "worker /ready": {
+  "browser_events": 0,
+  "caught": 0,
+  "mock_lines": 0,
+  "mock_lines_with_id": 0
+ },
+ "worker /preview": {
+  "browser_events": 7,
+  "caught": 7,
+  "mock_lines": 7,
+  "mock_lines_with_id": 7
+ },
+ "api_mock_served": {
+  "POST api /telemetry \u2192 fallback 200": 189,
+  "GET api /g30 \u2192 fallback 200": 85,
+  "GET api /settings \u2192 handler 200": 82,
+  "GET api /macros \u2192 handler 200": 74,
+  "GET api /devices \u2192 handler 200": 12,
+  "GET api /preview \u2192 handler 200": 7
+ }
+}

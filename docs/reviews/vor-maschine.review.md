@@ -6339,3 +6339,170 @@ Die einzige Produktänderung des Gesamtpakets bleibt der bereits geprüfte Dialo
   - der Seitenhänger: Ursache offen; die Regel aus R386 gilt in jedem Pflicht- und Merge-Lauf;
   - Replay 5b (HTTP-Antwortwege) und 5c (Abdeckung gegen das Inventar);
   - danach Paket 4.
+
+---
+
+## Claude · Replay 5b und 5c · Plananfrage R389 · 17. November 2026
+
+Schritt 6 ist gemergt (development `cd23f813`). Als Nächstes kommen die zwei offenen Teile des Replays:
+- **5b:** HTTP aus dem Browser-Kontext mit seinem Antwortweg.
+- **5c:** die Abdeckung aus Inventar × ausgeführten Fällen.
+
+**Die Verträge stehen schon.** Diese Anfrage wiederholt sie nicht.
+- FI265-02 Rest A und B: drei Identitäten, nur ein einzelner belegter Serverkontakt zählt, Projektionen je Route (R268, R269: „keine weitere Planrunde erforderlich“).
+- FI265-03: fünf getrennte Belegarten, Ergebnisse aus Laufartefakten, kein Prozentwert über Lücken (R267).
+- FI265-01: `unresolved`, `excluded` und `variantsOpen` sind getrennte Klassen (R269).
+
+**Erbeten ist ein Agreement zu den Abweichungen**, die sich seither ergeben haben. Seit R269 kamen hinzu: die Mocks je Worker (R261–R264), die Herkunft über `storageState` (R373) und der Firefox-Kern mit seinen Abmeldungen (R385–R388). Dazu kommt, was eine Machbarkeitsprobe gemessen hat. Zwei Pakete, 5b und danach 5c, jedes mit eigener Prüfung und eigenem Merge. Keines ändert Produktcode.
+
+### Machbarkeitsprobe
+
+**Aufbau.** Der Probe-Commit `03019f88` auf `cd23f813` ist nur lokal und wird nicht gemergt; der Diff liegt bei ([Probe-Diff](vor-maschine.rp5.r389.probe.diff.txt)). Er enthält die kleinste Form des vereinbarten Rest A:
+- eine Auffangroute, die als Erste auf jedem Kontext registriert ist, auch auf denen aus `browser.newContext()`;
+- sie setzt jede Anfrage, die kein Spec-Handler erledigt hat, mit `x-e2e-req: <id>` fort;
+- die Ereignisse `request`, `requestfinished` und `requestfailed` des Browsers mit dieser ID in einer Datei je Worker;
+- im Mock je Anfrage, wie er bedient hat (`handler`, `static`, `fallback`, `403`, `404`), und eine Zeile für eine Anfrage, die ohne Antwort endete.
+
+Die umhüllten Spec-Methoden (`fulfill`, `continue`, `fetch` …) fehlen in der Probe noch. Ausgewertet hat ein Round Gate am Probe-Commit ([Bericht](vor-maschine.rp5.r389.probe-gate.json), [Vergleich mit den Gates an `cd23f813`](vor-maschine.rp5.r389.probe-compare.txt), [Auswertung Chromium](vor-maschine.rp5.r389.probe-chromium.json), [Auswertung Firefox](vor-maschine.rp5.r389.probe-firefox.json), [Skript](vor-maschine.rp5.r389.probe-analyze.py)).
+
+**Ergebnisse:**
+
+| Frage | Chromium (voller Lauf) | Firefox (Kern) |
+|---|---|---|
+| Ändert die Auffangroute, was die Tests sehen? | nein: 933/933, 1867 s (Merge-Gate an `cd23f813`: 1892 s) | nein: 86/86, 116 s (112 s); 82 Abmeldungen vollständig, der Gegenwächter PASS |
+| Ändert sie, was der Mock sieht? | ja, nur beim Schließen: gegenüber dem Round Gate an `cd23f813` erreichen 536 `GET /g30`, 156 `POST /telemetry`, 43 statische und 1 `/preview` den Mock nicht mehr (Punkt 4); die WS-Rahmen bleiben gleich (9576 zu 9572) | ja, ein Pfad: Firefox fordert `GET /favicon.ico` mit aktiver Route nicht mehr an (31 zu 0, auch im Browserprotokoll keine solche Anfrage); alles andere gleich (1504 zu 1532 Zeilen) |
+| Sieht die Route die Anfrage erst nach ihrem `request`-Ereignis? | ja, in allen 18 981 Fällen | ja, in allen 1631 |
+| Kontakte je ID im Mock | immer genau einer (18 943) | immer genau einer (1504) |
+| Mock-IDs, die der Browser nie sah | 0 | 0 |
+| `OPTIONS`, Service Worker, Weiterleitungen | keine | keine |
+| Worker-Anfragen gemeldet und geroutet | `/ready` 6 Ereignisse, 5 erreichten den Mock mit ID; `/preview` 358: 74 gingen durch die Auffangroute, 73 davon erreichten den Mock mit ID (eine brach vorher ab), die übrigen 284 erledigen Spec-Routen | `/preview` 7 von 7 mit ID; `/ready` löst im Kern kein Test aus |
+
+**Was die Probe neu zeigt:**
+1. **Der SPA-Fallback beantwortet API-Pfade.** Der Mock kennt nur `/macros`, `/settings`, `/devices` und `/preview`. Alles andere beantwortet sein Fallback mit 200 und `index.html`, für jede Methode.
+   - Chromium: `GET /g30` 1793-mal, `POST /telemetry` 1517-mal, `GET /ready` 5, `GET /gcode` 3, `GET /subfile` 2, `POST /settings/macroBar` 1.
+   - Firefox: `POST /telemetry` 189, `GET /g30` 85.
+   - Die App liest `/g30` mit `resp.json()` (`lcncApi.ts:149`). Eine Fallback-Antwort ist für sie also „G30 nicht gelesen“. Ein 200 im heutigen Replay-Protokoll belegt keine bediente Route.
+2. **Firefox meldet den WebSocket-Handschlag als Anfrage** (`GET /ws`, Typ `document`, 82-mal, einmal je geladenem Versuch) und leitet ihn durch die Route. Chromium tut beides nicht.
+3. **Ein Spec-`continue()` ohne Kennung:** 27 statische Anfragen erreichten den Mock ohne ID. Alle stammen aus `editor-guards.spec.ts:139–142` und `:163–166`, die `**/static/*.js` verzögert und mit `route.continue()` fortsetzen. Das vereinbarte umhüllte `continue` setzt die Kennung.
+4. **Ohne Transportende:** 615 Anfragen in Chromium, in Firefox keine.
+   - **609 davon entstanden beim Schließen.** Gestellt wurden sie im Median 102 ms vor dem `test-end` ihres Versuchs, 596 davon weniger als 500 ms davor. Zum Vergleich: Abgeschlossene Anfragen liegen im Median 3,6 s davor. Es sind vor allem `GET /g30` (456) und `POST /telemetry` (128): Die Seite liest beim Abbau neu und schickt ihre Pagehide-Beacons, verteilt über viele Specs (`layout` 133, `dialogs` 57 …).
+   - **Das ist eine Nebenwirkung der Auffangroute.** Ohne sie erreichen diese Anfragen den Mock noch im Schließfenster. Mit dem zusätzlichen Weg über die Route kommen sie nicht mehr an; daher die fehlenden Zeilen in der Tabelle oben. Der Browser meldet sie weiterhin, sie sind also gesehen und nicht verloren. Die Testergebnisse und die WS-Rahmen ändern sich nicht.
+   - **Sechs davon haben andere Gründe:**
+     - Zwei `GET /preview` hält `bake-hold.viewer.spec.ts` absichtlich über 20 s. Dazu kommen zwei weitere `/preview` und ein `/ready` aus derselben Datei.
+     - Vier Anfragen hatten einen Routenaufruf: drei Mal `collisionWorker.js` in `simulation-off.viewer.spec.ts`, dessen Worker der Test beendet, und eine Schrift in `lifecycle.spec.ts`.
+5. **Ein dritter Server:** `smoke.spec.ts` lädt die App vom Vorschau-Server (`localhost:4173`). Dessen Anfragen (Chromium 36, Firefox 45) erreichen den Mock nie, weder mit noch ohne ID.
+
+### 5b · Abweichungen und Ergänzungen zum Vertrag
+
+**D1 · zusätzliche benannte Klassen.** Die Tabelle aus R268/R269 bleibt; dazu kommen:
+
+| Beobachtung | Weg |
+|---|---|
+| der Mock beantwortete die ID über seinen SPA-Fallback | **vom Mock-Fallback beantwortet**. Für einen API-Pfad ist das nie „vom Mock bedient“ und nie Abdeckung |
+| die Anfrage ging an einen anderen Host als den Mock des Workers | **anderer Server** (heute nur der Vorschau-Server von `smoke`) |
+| Firefox: `GET /ws` vom Typ `document` | **WS-Handschlag**, über die Kennung mit der `open`-Zeile des Mocks verbunden; kein HTTP-Beleg |
+| kein Endereignis, gestellt nach der Marke, mit der das Fixture das Schließen beginnt (neu: ein Ereignis `closing` vor `context.close()`) | **beim Schließen unterwegs**: unvollständig, benannt. Die Probe hatte diese Marke noch nicht; gemessen ist nur der Abstand zum `test-end` (Punkt 4) |
+| ein umhüllter Spec-Handler hat die Anfrage bekommen und nie erledigt | **vom Spec gehalten** (etwa `bake-hold`, `toolsetter.viewer.spec.ts:281`) |
+
+Die R268-Klasse „unbekannt / unvollständig“ hat damit benannte Unterklassen: Weiterleitungs-Hop, mehrere Kontakte einer Fetch-Operation, beim Schließen unterwegs, vom Spec gehalten, abgebrochen vor dem Kontakt. Ein Unbekannt außerhalb dieser Unterklassen ist ein Befund, etwa eine Anfrage ohne Ende, die vor der Schließmarke gestellt wurde und keinen Handler hatte.
+
+**Zuerst zu prüfen:** Ob die Kennung beim Firefox-WS-Handschlag am Mock ankommt, hat die Probe nicht belegt; sie protokollierte das Upgrade nicht. Das ist die erste Prüfung der Umsetzung. Fehlt die Kennung, steht die Klasse ohne Verbindung zur `open`-Zeile, benannt.
+
+**D2 · der Mock protokolliert:**
+- wie er bedient hat (`served`);
+- eine Anfrage ohne Antwort (`closed`);
+- die Kennung auch auf der `open`-Zeile eines WS-Handschlags.
+
+Die vorhandenen Leser der `http`-Zeilen bleiben unverändert und bekommen einen Wächter:
+- die Herkunftsklassen des Replays, einschließlich der `/ready`-Probe ohne Cookie;
+- `firefox.py` (geladene Versuche);
+- `unloadReceipts.ts` (die Beacon-Marken).
+
+**D3 · Treue des Mocks: in 5b nur gemessen, nicht geändert.**
+- Ein eigener Handler für `/g30`, `/telemetry` und `/ready` würde ändern, was die Tests sehen. Die G30-Anzeige wäre dann zum Beispiel in den meisten Tests „gelesen“.
+- 5b bleibt deshalb Messung: Der Fallback wird sichtbar, mit der Liste der betroffenen Pfade.
+- Die Handler wären ein eigener Punkt nach 5c, mit eigener Gegenprobe der betroffenen Specs. **Frage Q389-1** unten.
+
+**D4 · was rot macht und was nur gelistet wird.** Mein Vorschlag (**Frage Q389-2**): Rot macht nur, was die Messung selbst beschädigt.
+- eine Anfrage ohne Herkunft (wie heute);
+- ein roher Query-Wert oder ein Token in einem Beleg. Der Logger schreibt nur Schlüsselnamen; dazu die vereinbarte byteweise Suche;
+- ein Widerspruch: ein aufgezeichnetes `fulfill` und dazu ein Mock-Kontakt unter derselben ID ohne Fetch-Operation;
+- ein Mock-Kontakt aus einem Testversuch ohne Kennung. Nach dem Umhüllen gehen alle Wege über Auffangroute, `continue` oder `fetch`; gemessen sind heute die 27 aus Punkt 3;
+- ein registrierter Service Worker;
+- ein geladener Versuch ohne Browserprotokoll;
+- ein Unbekannt außerhalb der benannten Unterklassen (D1).
+
+Alles andere steht je Versuch und Klasse im Ergebnis und ist kein Beleg: ersetzt, Fallback, anderer Server, unterwegs, Projektion nicht abgeleitet.
+
+**D5 · Firefox:** Dieselbe Instrumentierung läuft im Kern, `firefox-replay` urteilt mit denselben Regeln. Die Probe zeigt keinen Unterschied im Ergebnis des Kerns, nur den WS-Handschlag aus Punkt 2.
+
+**D6 · Projektionen** wie vereinbart (Rest B). Die ersten Einträge sind `PUT /macro`, `/settings/{section}` und `POST /upload`; die übrigen schreibenden Routen werden im Bau aus den Handlern abgeleitet, je mit Gegenfall. Eine Route ohne Projektion steht als „Variante nicht abgeleitet“. Die Projektion läuft im Fixture, also dort, wo die Rohwerte liegen. Ins Protokoll geht nur die Variante, nie ein Wert.
+
+**D7 · Ergebnis je Versuch:** Methode, Routenvorlage, Variante, Weg, Transport und Status. Wiederholungen werden erst nach der Projektion zusammengefasst.
+
+**Gegenfälle:**
+- **die vereinbarten:**
+  - zwei `GET /g30` im selben Test, eine ersetzt und eine vom Mock bedient, mit vertauschter Abschlussreihenfolge;
+  - der vorhandene Fall mit `fetch` und `fulfill`;
+  - ein 404 vom Mock;
+  - die drei Weiterleitungsfälle aus R268, einschließlich der fehlenden ID beim synthetischen 302;
+  - Speichern und Umbenennen als zwei Varianten;
+  - die byteweise Suche nach einem erfundenen Token.
+- **neu:**
+  - ein API-Pfad über den SPA-Fallback;
+  - eine Anfrage an den Vorschau-Server;
+  - der Firefox-WS-Handschlag;
+  - eine Anfrage, die beim Schließen unterwegs ist;
+  - ein unumhülltes `continue()`, das rot sein muss.
+
+**Mutanten** im echten Lauf, jeder rot an seinem benannten Test:
+- die Auffangroute ohne Kennung;
+- die Zuordnung über die URL statt über die Kennung (der Fall mit den zwei `GET /g30`);
+- ein Logger mit Query-Werten;
+- ein umhülltes `fulfill`, das nicht protokolliert;
+- der Fallback als „bedient“ gezählt;
+- `serviceWorkers` erlaubt und die Prüfung entfernt.
+
+### 5c · Abdeckung aus Inventar × ausgeführten Fällen
+
+**Eingaben:** nur die Artefakte des Laufs, an seinem Commit:
+- `playwright.json` des vollen Laufs und des Firefox-Kerns;
+- die Vitest-JSON-Berichte;
+- **neu:** JUnit aus Pytest für die Schichten `gateway` und `script`. Heute schreibt das Gate dafür kein Ergebnis je Test;
+- die Replay-Ergebnisse: WS-Befehle mit Variante, HTTP-Wege aus 5b, nur aus bestandenen Versuchen;
+- native Berichte nur desselben Commits. An einem neuen Kopf ist „Nativ belegt“ deshalb leer, und der Bericht sagt das.
+
+**Ausgabe je Funktion:** die fünf Belegarten getrennt.
+- **Inventarisiert:** Atome, Varianten, `variantsOpen` benannt.
+- **Ausgelöst:** je Befehls- und Routen-Atom beobachtet oder nicht. Eine Route, die nur im Browser ersetzt wurde, steht als solche.
+- **Geprüft:** je Aussage, ob ihre Belegtests gesammelt wurden, liefen und bestanden. `SKIP`, Quarantäne, nicht gelaufen und nicht anwendbar bleiben getrennt.
+- **Gegenprobe**.
+- **Nativ belegt**.
+
+Kein Prozentwert. Die Lücken stehen mit Namen da, heute zum Beispiel die 17 nie gesendeten Befehle mit ihren Funktionen (F-JOG drei, F-TOOLEDIT zwei, je einer bei F-DEVICES, F-WCS, F-GOTO, F-PROBE, F-POWER, F-PREVIEW, F-COMP, F-SHUTDOWN, F-SIMTRIP, F-DIAG, F-TWP, F-LOAD). 5c listet sie; es schließt sie nicht mit neuen Tests.
+
+**Wie Belege aufgelöst werden:**
+- **Browser, Unit, Gateway, Skript:** gesammelt laut Listung (`playwright --list`, Vitest-Liste, `pytest --collect-only`), gelaufen und bestanden laut Bericht.
+- **Nativ:** Für die 70 Belege der Schicht `native` gilt der Fall in `native_cases.py` als „gesammelt“. „Gelaufen“ zählt nur mit einem Bericht desselben Commits; sonst heißt es „nicht an diesem Commit“. Das ist kein Widerspruch und kein FAIL.
+- **Absichtlich ungültige Rahmen:** Ein Rahmen, dessen erwartete Ablehnung kam, zählt als **Gegenprobe** seines Befehls, nicht als „Ausgelöst“. Ausgelöst zählt nur, was der Replay als gültig beurteilte, aus bestandenen Versuchen.
+
+**Ort und Urteil:**
+- `docs/inventory/funktionen.md` bleibt die statische Tabelle. Sie ist an `render()` gebunden (`test_inventory.py:42`).
+- Die Laufabdeckung ist ein Gate-Artefakt (`coverage.json` und eine lesbare Fassung). Das Merge-Protokoll legt die Fassung seines Merge-Gates bei.
+- Der Gate-Schritt `coverage` ist PASS, wenn der Bericht vollständig und widerspruchsfrei ist: jede Funktion und jedes Atom eingeordnet, jede Beleg-ID aufgelöst.
+- FAIL nur bei einem Widerspruch: ein Beleg, der nicht gesammelt wurde, oder ein fehlendes Laufartefakt.
+- **Wo der Schritt läuft:** nur im Merge-Gate, wo alle Sätze laufen. Eine Runde, die das Backend oder den vollen Browserlauf auslässt, führt `coverage` als ausgelassen mit Grund und nie als FAIL wegen fehlender Artefakte.
+- Eine Lücke ist nie FAIL.
+
+### Reihenfolge
+
+1. **5b:** Fixture, Mock, Replay-Prüfer, Gegenfälle, Mutanten. Eigene Anfrage, eigenes Merge-Gate.
+2. **5c:** JUnit im Backend-Schritt, `coverage.py`, Gate-Schritt, Gegenfälle („Ein Testname, der nie ausgeführt wird, erfüllt keinen Laufnachweis“, ein SKIP, ein fehlendes Artefakt), Mutanten. Eigene Anfrage, eigenes Merge-Gate.
+3. **Danach Paket 4** (Maschinentag), dann die Handler aus D3, falls Q389-1 sie will.
+
+### Fragen
+
+- **Q389-1:** Mock-Handler für `/g30`, `/telemetry` und `/ready` (D3): nach 5c als eigener Punkt, wie vorgeschlagen, oder schon in 5b?
+- **Q389-2:** Die Regel aus D4: Rot macht nur, was die Messung beschädigt; alles andere wird gelistet. Einverstanden, oder soll eine Klasse (etwa der Fallback auf einem API-Pfad) ebenfalls rot machen?
+
+**Erbeten:** `agreement` oder `findings` zu D1–D7, zum Aufbau von 5c und zu Q389-1 und Q389-2.

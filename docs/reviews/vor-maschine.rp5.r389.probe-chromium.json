@@ -1,0 +1,116 @@
+{
+ "browser_requests": 23418,
+ "mock_http_lines": 18970,
+ "browser_by_type": {
+  "document": 998,
+  "script": 7888,
+  "stylesheet": 2045,
+  "fetch": 9666,
+  "font": 1685,
+  "xhr": 994,
+  "ping": 142
+ },
+ "browser_hosts": {
+  "localhost:4500": 7588,
+  "localhost:4501": 7546,
+  "localhost:4502": 8248,
+  "localhost:4173": 36
+ },
+ "service_worker_requests": 0,
+ "redirect_hops": 0,
+ "route_seen": 18981,
+ "route_before_request_event": 0,
+ "route_twice": 0,
+ "browser_end": {
+  "finished": 22615,
+  "failed": 188
+ },
+ "browser_no_end": 615,
+ "browser_failed_errors": {
+  "net::ERR_ABORTED": 187,
+  "net::ERR_FAILED": 1
+ },
+ "mock_with_req_id": 18943,
+ "mock_without_req_id": {
+  "GET static": 27
+ },
+ "mock_contacts_per_id": {
+  "1": 18943
+ },
+ "mock_ids_browser_never_saw": 0,
+ "mock_served": {
+  "static": 13560,
+  "handler": 2089,
+  "fallback": 3321
+ },
+ "mock_closed": [],
+ "mock_closed_count": 0,
+ "mock_options": 0,
+ "fallback_served": {
+  "GET /g30": 1793,
+  "POST /telemetry": 1517,
+  "GET /ready": 5,
+  "GET /gcode": 3,
+  "GET /subfile": 2,
+  "POST /settings/macroBar": 1
+ },
+ "join": {
+  "caught, 1 mock contact(s)": 18943,
+  "spec handler / not routed, 0 mock contact(s)": 4437,
+  "caught, 0 mock contact(s)": 38
+ },
+ "caught_no_contact": {
+  "GET static bfin": 27,
+  "GET api /g30 bfail": 3,
+  "GET page bfin": 3,
+  "GET api /settings bfin": 3,
+  "GET api /preview bfail": 1,
+  "GET api /macros bfin": 1
+ },
+ "not_caught_by_class": {
+  "GET other": 2833,
+  "GET api /g30": 502,
+  "GET api /gcode": 356,
+  "GET api /preview": 284,
+  "POST api /telemetry": 161,
+  "GET api /macros": 93,
+  "GET static": 47,
+  "GET api /files": 38,
+  "POST api /import-tool-library": 30,
+  "GET api /tool-library-files": 27,
+  "GET api /macro": 24,
+  "POST api /upload": 8,
+  "PUT api /macro": 8,
+  "GET api /tool-library-file": 7,
+  "POST api /settings": 3,
+  "GET api /settings": 3,
+  "PUT api /save": 3,
+  "DELETE api /macro": 3,
+  "GET api /subfile": 2,
+  "GET api /devices": 2
+ },
+ "worker /ready": {
+  "browser_events": 6,
+  "caught": 5,
+  "mock_lines": 5,
+  "mock_lines_with_id": 5
+ },
+ "worker /preview": {
+  "browser_events": 358,
+  "caught": 74,
+  "mock_lines": 73,
+  "mock_lines_with_id": 73
+ },
+ "api_mock_served": {
+  "GET api /g30 \u2192 fallback 200": 1793,
+  "POST api /telemetry \u2192 fallback 200": 1517,
+  "GET api /settings \u2192 handler 200": 992,
+  "GET api /macros \u2192 handler 200": 940,
+  "GET api /devices \u2192 handler 200": 84,
+  "GET api /preview \u2192 handler 200": 73,
+  "GET api /ready \u2192 fallback 200": 5,
+  "GET api /gcode \u2192 fallback 200": 3,
+  "GET api /subfile \u2192 fallback 200": 2,
+  "POST api /settings \u2192 fallback 200": 1
+ }
+}
