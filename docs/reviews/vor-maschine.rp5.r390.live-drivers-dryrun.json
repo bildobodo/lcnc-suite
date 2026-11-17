@@ -1,0 +1,181 @@
+{
+ "bindings": 15,
+ "resolved": 15,
+ "red": [],
+ "per_binding": [
+  {
+   "function": "F-ESTOP",
+   "statement": "S4",
+   "file": "perf_matrix.py",
+   "title": "sigstop_trip",
+   "instances": null,
+   "verdict": "resolved: scenario"
+  },
+  {
+   "function": "F-GOTO",
+   "statement": "S1",
+   "file": "twp_buttons_check.py",
+   "title": "→ Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-GOTO",
+   "statement": "S1",
+   "file": "twp_buttons_check.py",
+   "title": "→ Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-GOTO",
+   "statement": "S1b",
+   "file": "twp_buttons_check.py",
+   "title": "→ Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-GOTO",
+   "statement": "S1b",
+   "file": "twp_buttons_check.py",
+   "title": "→ Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-GOTO",
+   "statement": "S1d",
+   "file": "twp_buttons_check.py",
+   "title": "→ G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-GOTO",
+   "statement": "S2",
+   "file": "twp_buttons_check.py",
+   "title": "→ Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-TOUCHOFF",
+   "statement": "S3b",
+   "file": "twp_touchoff_plane_check.py",
+   "title": "{label}: G54 moved by the touch-off amount",
+   "instances": [
+    "A=0",
+    "A=35"
+   ],
+   "verdict": "resolved: template, label ∈ ['A=0', 'A=35']"
+  },
+  {
+   "function": "F-TOUCHOFF",
+   "statement": "S3b",
+   "file": "twp_touchoff_plane_check.py",
+   "title": "{label}: G54 moved ALONG the plane normal (table frame)",
+   "instances": [
+    "A=0",
+    "A=35"
+   ],
+   "verdict": "resolved: template, label ∈ ['A=0', 'A=35']"
+  },
+  {
+   "function": "F-TWP",
+   "statement": "S3",
+   "file": "twp_capture_check.py",
+   "title": "{label}: gateway capture ok",
+   "instances": [
+    "A=35"
+   ],
+   "verdict": "resolved: template, label ∈ ['A=0', 'A=35']"
+  },
+  {
+   "function": "F-TWP",
+   "statement": "S3",
+   "file": "twp_capture_check.py",
+   "title": "{label}: plane normal == tool axis",
+   "instances": [
+    "A=35"
+   ],
+   "verdict": "resolved: template, label ∈ ['A=0', 'A=35']"
+  },
+  {
+   "function": "F-TWP",
+   "statement": "S3",
+   "file": "twp_capture_check.py",
+   "title": "{label}: DRO ~0 at the tip",
+   "instances": [
+    "A=35"
+   ],
+   "verdict": "resolved: template, label ∈ ['A=0', 'A=35']"
+  },
+  {
+   "function": "F-TWP",
+   "statement": "S3",
+   "file": "twp_reorient_check.py",
+   "title": "tool normal to plane again",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-TWP",
+   "statement": "S3",
+   "file": "twp_reorient_check.py",
+   "title": "stored plane unchanged by the re-orient",
+   "instances": null,
+   "verdict": "resolved: check line"
+  },
+  {
+   "function": "F-TWP",
+   "statement": "S3",
+   "file": "twp_capture_check.py",
+   "title": "G: G69 recovers — undefined, G54, identity kins, machine ON",
+   "instances": null,
+   "verdict": "resolved: check line"
+  }
+ ],
+ "files": {
+  "scripts/perf_matrix.py": {
+   "check_constants": 0,
+   "templates": 0,
+   "unresolved": [],
+   "scenarios": 9
+  },
+  "scripts/twp_buttons_check.py": {
+   "check_constants": 26,
+   "templates": 0,
+   "unresolved": [
+    [
+     381,
+     "a placeholder that is not a plain name (line 381)"
+    ]
+   ],
+   "scenarios": 0
+  },
+  "scripts/twp_touchoff_plane_check.py": {
+   "check_constants": 13,
+   "templates": 11,
+   "unresolved": [],
+   "scenarios": 0
+  },
+  "scripts/twp_capture_check.py": {
+   "check_constants": 25,
+   "templates": 13,
+   "unresolved": [],
+   "scenarios": 0
+  },
+  "scripts/twp_reorient_check.py": {
+   "check_constants": 19,
+   "templates": 0,
+   "unresolved": [
+    [
+     385,
+     "placeholder name outside a function"
+    ]
+   ],
+   "scenarios": 0
+  }
+ }
+}
