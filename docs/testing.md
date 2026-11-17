@@ -563,8 +563,8 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
   `tsconfig.app.json` include), a guard holds the two lists equal.
 
 Evidence is bound statically in this step (the named file holds the title);
-whether it ran and passed comes from the run artifacts with the measurement
-(step 5, Replay).
+whether it ran and passed is the coverage of a run (step 5c, "The coverage of a
+run": the merge gate's `coverage` step).
 
 ## Scoped-CSS / design-token linter
 

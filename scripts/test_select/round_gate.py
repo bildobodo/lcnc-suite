@@ -543,23 +543,31 @@ def main(argv: list[str] | None = None) -> int:
         else:
             omitted.append({"check": "firefox-core", "reason": "no path selects the Firefox core"})
 
-    if a.merge:
-        # the installer, from a fresh clone, and what it installed started
-        # (package I) — a merge only; it takes the VM's one LinuxCNC. AFTER
-        # the heavy section: the probe holds the heavy lock itself, through its
-        # restore, whatever happens to this process (Codex R330 FI-I60)
-        checks.append(install_probe(logs, sel["head"]))
-        # the coverage of this run (replay step 5c): reads the artefacts only
-        checks.append(coverage_check(logs, sel["head"]))
-    else:
-        omitted.append({"check": "coverage", "reason": "the coverage needs every set of the run — the merge gate runs it "
-                                                       "(replay step 5c)"})
+    tail, left_out = merge_tail(a.merge, logs, sel["head"])
+    checks += tail
+    omitted += left_out
 
     pending = [firefox_pending] if firefox_pending else []
     for check, paths in sel["live"].items():
         pending.append({"check": check, "status": "pending: a live check, run before main", "paths": paths})
     return finish("PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",
                   checks=checks, omitted=omitted, pending=pending)
+
+
+#: why a round runs no coverage (replay step 5c, plan R389)
+COVERAGE_ROUND = "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+
+
+def merge_tail(merge: bool, logs: Path, head: str) -> tuple[list[dict], list[dict]]:
+    """The gate's last steps: in a merge the installer, from a fresh clone,
+    and what it installed started (package I; it takes the VM's one
+    LinuxCNC, AFTER the heavy section: the probe holds the heavy lock
+    itself, through its restore — Codex R330 FI-I60), then the coverage of
+    this run (replay step 5c: it reads the artefacts only). A round lists
+    the coverage omitted, with its reason. → (checks, omitted)."""
+    if merge:
+        return [install_probe(logs, head), coverage_check(logs, head)], []
+    return [], [{"check": "coverage", "reason": COVERAGE_ROUND}]
 
 
 def coverage_check(logs: Path, head: str) -> dict:

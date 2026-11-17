@@ -9,7 +9,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
 - **Anzeigen** (was die Oberfläche zusagt, etwa „Kompensation bestätigt aktiv“) haben keine Quelle mit Atomen; ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.
-- **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, kommt aus den Laufberichten (nächster Schritt).
+- **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, zeigt die Abdeckung eines Laufs: der Schritt `coverage` des Merge-Gates (scripts/inventory/coverage.py, `coverage.md` in seinen Logs).
 
 ## Offene Aussagen
 

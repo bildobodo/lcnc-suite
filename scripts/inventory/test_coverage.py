@@ -179,10 +179,10 @@ def test_an_expected_refusal_is_no_trigger_of_its_command(tmp_path):
     replay = {"attempt_list": [{"name": ATT, "status": "passed"}],
               "per_attempt": {ATT: {"touchoff": 1}}, "per_attempt_expected": {ATT: {"touchoff": 1}}}
     c = _run_with(tmp_path, **{"replay.json": replay})
-    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"] == "not sent"
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == "not sent"
     replay["per_attempt_expected"] = {}
     c = _run_with(tmp_path / "b", **{"replay.json": replay})
-    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"] == {"touchoff": 1}
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"] == {"e2e": {"touchoff": 1}, "firefox-core": "not sent"}
 
 
 def test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence(tmp_path):
@@ -196,7 +196,7 @@ def test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence(tmp_p
     c = _run_with(tmp_path / "b", **{"replay.json": replay})
     assert not [g for g in c["gaps"] if g["item"] == "http:GET /g30"]
     trig = next(f for f in c["functions"] if "GET /g30" in f["triggered"]["routes"])["triggered"]["routes"]["GET /g30"]
-    assert trig == {"served by the mock": 3}
+    assert trig == {"e2e": {"served by the mock": 3}, "firefox-core": "not requested"}
 
 
 def test_a_firefox_pass_never_stands_in_for_chromium(tmp_path):
@@ -215,3 +215,82 @@ def test_a_firefox_pass_never_stands_in_for_chromium(tmp_path):
             if x.get("file") == e["file"] and x.get("title") == e["title"]]
     by = {x["project"]: x["status"] for x in rows}
     assert by == {"e2e": "not run", "firefox-core": "passed"}
+
+
+# ── R396 before the bell: the wiring, an unknown status, the Firefox subset, ──
+# ── the JUnit's worst, native reports of this and of another commit       ──
+
+def test_a_merge_ends_with_the_install_probe_then_the_coverage_and_a_round_omits_it(tmp_path, monkeypatch):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from test_select import round_gate   # noqa: PLC0415
+    calls = []
+    monkeypatch.setattr(round_gate, "install_probe", lambda logs, head: calls.append("install-probe") or {"name": "install-probe"})
+    monkeypatch.setattr(round_gate, "coverage_check", lambda logs, head: calls.append("coverage") or {"name": "coverage"})
+    checks, omitted = round_gate.merge_tail(True, tmp_path, HEAD)
+    assert [c["name"] for c in checks] == ["install-probe", "coverage"] == calls and omitted == []
+    calls.clear()
+    checks, omitted = round_gate.merge_tail(False, tmp_path, HEAD)
+    assert checks == [] and calls == [] and omitted == [{"check": "coverage", "reason": round_gate.COVERAGE_ROUND}]
+
+
+def test_a_status_the_report_does_not_know_is_never_passed():
+    assert coverage.verdict(["passed", "timedOut"]) == "unknown status ['timedOut']"
+    assert coverage.verdict(["passed", "passed"]) == "passed"
+
+
+def test_a_title_outside_the_firefox_core_is_named_never_red(tmp_path):
+    fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"]
+             if e["layer"] == "browser" and "$" not in e["title"] and "{" not in e["title"])
+
+    def report(project: str, title: str) -> dict:
+        test = {"projectName": project, "status": "expected", "results": [{"status": "passed"}]}
+        return {"suites": [{"title": e["file"], "file": e["file"], "specs": [{"title": title, "file": e["file"], "tests": [test]}]}]}
+    c = _run_with(tmp_path, **{"list-run.json": report("e2e", e["title"]), "playwright.json": report("e2e", e["title"]),
+                               "firefox-list.json": report("firefox-core", "another core test"),
+                               "firefox.json": report("firefox-core", "another core test")})
+    rows = [x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+            if x.get("file") == e["file"] and x.get("title") == e["title"]]
+    assert {x["project"]: x["status"] for x in rows} == {"e2e": "passed", "firefox-core": "not in the Firefox core"}
+    assert not [x for x in c["errors"] if e["title"][:40] in x]
+
+
+def test_the_junit_keeps_the_worst_result_per_node(tmp_path):
+    p = tmp_path / "j.xml"
+    p.write_text('<testsuites><testsuite>'
+                 '<testcase classname="test_a.T" name="test_x"/>'
+                 '<testcase classname="test_a.T" name="test_x"><failure/></testcase>'
+                 '<testcase classname="test_a.T" name="test_y"><skipped/><failure/></testcase>'
+                 '<testcase classname="test_a.T" name="test_z"/>'
+                 '</testsuite></testsuites>')
+    got = coverage.junit_tests(p)
+    assert got == {("test_a.py", "test_a.py::T::test_x"): "failed", ("test_a.py", "test_a.py::T::test_y"): "failed",
+                   ("test_a.py", "test_a.py::T::test_z"): "passed"}
+
+
+def test_a_native_report_counts_only_at_this_commit_and_its_counter_flag_decides(tmp_path):
+    fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"]
+             if e["layer"] == "native" and ".counter-" in e["title"])
+    rows = [{"case": e["title"], "status": "PASS", "counter": True, **({"variant": e["variant"]} if e.get("variant") else {})}]
+    mine, other = tmp_path / "mine.json", tmp_path / "other.json"
+    mine.write_text(json.dumps({"commit": HEAD, "profile": e["profile"], "rows": rows}))
+    other.write_text(json.dumps({"commit": "d" * 40, "profile": e["profile"], "rows": rows}))
+    for report, want, basis in ((mine, "PASS", "the report's counter flag"), (other, "not at this commit", "by its name")):
+        d = tmp_path / report.stem
+        d.mkdir()
+        body = dict(EMPTY_RUN)
+        c = coverage.coverage(gate(d, body), [report], [])
+        row = next(x for f in c["functions"] for x in f["native"] if x["title"] == e["title"])
+        assert row["status"] == want
+        counter = next(x for f in c["functions"] for x in f["counter"]["native counter rows"] if x["title"] == e["title"])
+        assert counter["basis"].startswith(basis)
+        assert not [x for x in c["errors"] if "native report" in x]
+
+
+def test_triggering_is_kept_per_project(tmp_path):
+    ff = {"attempt_list": [{"name": ATT, "status": "passed"}], "per_attempt": {ATT: {"touchoff": 2}}}
+    c = _run_with(tmp_path, **{"firefox-replay.json": ff})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"] == {"e2e": "not sent", "firefox-core": {"touchoff": 2}}
+    # the gap is the full Chromium run's: a command only the Firefox core sent is still one
+    assert [g for g in c["gaps"] if g["item"] == "cmd:touchoff"]
