@@ -231,6 +231,19 @@ def test_a_redirect_chain_with_one_contact_left_stays_unknown(tmp_path):
     assert res["findings"] == [] and classes(res) == {"redirect-chain": 1, "redirect-hop": 1}
 
 
+def test_no_member_of_a_redirect_chain_is_evidence_not_even_a_routed_hop(tmp_path):
+    # a hop that got a route call and one contact (R269: every member of a chain)
+    rec = Rec().req("1", "/r").act("1", "catch-all").contact("/r", "req:1", status=302)
+    rec.req("2", "/t", frm="1").act("2", "catch-all").contact("/t", "req:2", served="handler").end("2")
+    rec.req("3", "/r2").act("3", "catch-all").contact("/r2", "req:3", status=302)
+    rec.req("4", "/t2", frm="3").act("4", "handler").act("4", "fetch", op="f4").act("4", "fulfill", status=200, response=True)
+    rec.contact("/t2", "fetch:f4", served="handler").end("4")
+    res = rec.judge(tmp_path)
+    assert res["findings"] == []
+    assert classes(res) == {"fetch-unknown": 1, "redirect-chain": 3}
+    assert not set(res["classes"]) & http_paths.EVIDENCE
+
+
 # ── R393: a rewrite is no evidence of the original route (VM-I29) ──────────
 
 def test_a_recorded_rewrite_is_its_own_class_and_an_unrecorded_one_is_red(tmp_path):

@@ -108,6 +108,21 @@ test("a handler registered for two urls is unrouted from one of them alone (R393
   expect(await page.evaluate(() => fetch("/__e2e/b").then(r => r.text()))).toBe("registered-handler");
 });
 
+test("a spec's own headers replace the request's on continue, fallback and fetch, as in Playwright (R394)", async ({ page }) => {
+  await page.goto(NEUTRAL);
+  const drop = (route: Route) => { const h = { ...route.request().headers() }; delete h["x-drop"]; return h; };
+  await page.route("**/__e2e/headers-continue", route => route.continue({ headers: drop(route) }));
+  await page.route("**/__e2e/headers-fallback", route => route.fallback({ headers: drop(route) }));
+  await page.route("**/__e2e/headers-fetch", async (route) => {
+    const response = await route.fetch({ headers: drop(route) });
+    await route.fulfill({ response });
+  });
+  for (const p of ["/__e2e/headers-continue", "/__e2e/headers-fallback", "/__e2e/headers-fetch"]) {
+    const seen = await page.evaluate(u => fetch(u, { headers: { "x-drop": "1", "x-keep": "1" } }).then(r => r.json()), p);
+    expect({ path: p, drop: "x-drop" in seen, keep: "x-keep" in seen }).toEqual({ path: p, drop: false, keep: true });
+  }
+});
+
 test("a save and a rename of a macro in one test are two variants", async ({ page }) => {
   await page.goto(NEUTRAL);
   await page.route("**/macro?*", route => route.fulfill({ json: { ok: true } }));

@@ -425,13 +425,15 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   worker that attempt ran in; ids unique; no action, end or fetch without its
   request; every context closed by its mark; an assigned contact carries its
   request's attempt. A rewrite (`continue` / `fallback` / `fetch` with another
-  url or method) is recorded with where it went.
+  url or method) is recorded with where it went. A spec's own `headers`
+  replace the request's, as in Playwright (only the id is added).
 - **Classes** (the order they are decided): aborted, rewritten (no evidence of
   the original route, R393 VM-I29), replaced, fetched (one contact the mock
   answered itself), fetch-fallback (a fetch over the SPA fallback stays a
   fallback), fetch-unknown, ws-handshake (Firefox reports the upgrade),
-  other-server (the preview server of `smoke`), redirect-chain (the start of a
-  chain, however many contacts — R393 VM-I28), served, fallback,
+  other-server (the preview server of `smoke`), redirect-chain (any member of
+  a chain that got a route call, however many contacts — R393 VM-I28), served,
+  fallback,
   contact-closed (the mock reached, no answer), several, redirect-hop, closing (its request line comes
   AFTER its context's mark in the worker's record — the record's order, never
   the clock: two lines in one millisecond are ordered by the record alone),
@@ -468,8 +470,11 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   `GET /devices` assigned by id with the replaced one ending last, fetch then
   fulfill, a mock 403, the fallback on an API path, the three redirect cases
   of R268, abort and a held request, a save and a rename of a macro in one
-  test as two variants, an invented token in a query and a
-  header and a path parameter found in no record) with
+  test as two variants, a fetch over the fallback, a rewritten URL, a
+  handler unrouted from one of its two urls, a spec's own headers on
+  continue / fallback / fetch, an invented token in a query and a
+  header and a path parameter — plain and with an encoded slash — found in
+  no record) with
   `replay_http_expect.json`;
   `test_http_paths.py` synthetic (every class, every finding, the four red
   counter-cases of the synthetic-redirect bound); `src/routeProjection.test.ts`.

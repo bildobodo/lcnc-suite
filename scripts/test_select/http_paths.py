@@ -29,8 +29,9 @@ The classes (`CLASSES`), in the order they are decided:
                    evidence
   other-server     forwarded to a host that is not this attempt's mock (the
                    preview server of smoke.spec)
-  redirect-chain   forwarded and the start of a redirect chain: unknown, however
-                   many contacts its id carries (R269, R393 VM-I28)
+  redirect-chain   forwarded and a member of a redirect chain — its start or a
+                   hop that got a route call: unknown, however many contacts its
+                   id carries (R269, R393 VM-I28; no chain member is evidence)
   served           forwarded, exactly one contact the mock answered with its
                    handler, a static file, a 403 or a 404, at the request's path
   fallback         forwarded, exactly one contact the mock's SPA FALLBACK
@@ -273,6 +274,7 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
         mark = closing.get(r.get("ctx"))
         e = end.get(rid)
         contacts = by_req.get(rid, [])
+        in_chain = rid in starts_chain or bool(r.get("from"))
         if "abort" in terminal:
             c = "aborted"
         elif rewrite_of(rid, r) is not None:
@@ -281,7 +283,7 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
             if "fetch" in terminal:
                 fops = [x["op"] for x in acts[rid] if x["act"] == "fetch"]
                 fc = [m for op in fops for m in by_op.get(op, [])]
-                one = fc[0] if len(fops) == 1 and len(fc) == 1 else None
+                one = fc[0] if len(fops) == 1 and len(fc) == 1 and not in_chain else None
                 if one is None or one.get("closed"):
                     c = "fetch-unknown"
                 elif not (one.get("method") == r.get("method") and _same_path(r.get("path"), one.get("path"))):
@@ -301,7 +303,7 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
         elif "continue" in terminal or "catch-all" in terminal:
             if mock_host and r.get("host") != mock_host and not contacts:
                 c = "other-server"
-            elif rid in starts_chain:
+            elif in_chain:
                 c = "redirect-chain"
             elif len(contacts) == 1:
                 one = contacts[0]

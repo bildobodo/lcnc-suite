@@ -149,6 +149,13 @@ const server = createServer(async (req, res) => {
     res.end();
     return;
   }
+  if (path.startsWith("/__e2e/headers")) {
+    // the request's headers as they arrived (R394: a spec's own headers replace the request's)
+    res.e2eServed = "handler";
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(req.headers));
+    return;
+  }
   if (path === "/__e2e/target") {
     res.e2eServed = "handler";
     res.writeHead(200, { "content-type": "text/plain" });

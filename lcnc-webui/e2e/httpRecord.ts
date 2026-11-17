@@ -76,7 +76,9 @@ function idFor(ids: WeakMap<Request, string>, r: Request, ctx: string, at: "requ
 
 function wrapRoute(route: Route, id: string): Route {
   const req = route.request();
-  const headers = (extra: Record<string, string> | undefined, value: string) => ({ ...req.headers(), ...(extra ?? {}), [REQ_HEADER]: value });
+  // a spec's own headers REPLACE the request's, as in Playwright (a spec may
+  // drop one); only the id is added — without them the request's own go on
+  const headers = (own: Record<string, string> | undefined, value: string) => ({ ...(own ?? req.headers()), [REQ_HEADER]: value });
   // a spec that rewrites the request (Codex R393 VM-I29): where it really
   // goes — its method, its recorded path and route — never its query values
   const to = (o?: { url?: string; method?: string }) => {
