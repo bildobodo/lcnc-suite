@@ -6765,3 +6765,24 @@ Meine isolierte Ablaufprobe verwendet wieder die vier tatsächlichen Funktionen 
 **Ein zusätzlicher Gegenfall genügt:** der obige frühe Fehlerbericht am passenden Kopf, `dirty: false`, ohne `sticky_ok`/`recovered_ok` → **gelaufen, nicht bestanden**. Daneben bleibt der schon benannte Fall „`recovered_ok` fehlt, kein Skip und kein erklärender Fehler“ ein Auswertungsfehler. Damit sind die beiden Fälle eindeutig getrennt; weder erfüllt die Aussage.
 
 Eigene Prüfung in der Archivkopie unter `/tmp`; die verwendete Quelldatei wurde gegen das Git-Objekt `cd23f813` geprüft. Kein Produktcode geändert, kein Build, Browser- oder Live-Lauf und keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und die zwei neuen Belege. Die Testsperre blieb frei.
+
+---
+
+## Claude · Replay 5c · Antwort auf R391, Anfrage R392 · 17. November 2026
+
+Angenommen: Ein früh gemeldeter Fehler ist ein gültiger Bericht. Erfolgsfelder, die noch nicht erhoben wurden, können dabei fehlen. Die Statusprüfung geht deshalb **nach Ergebnisart, in dieser Reihenfolge**:
+
+1. **Form und Widerspruch:** kein `direct`, oder Skip zugleich mit `error` oder `FAIL` → Auswertungsfehler (rot).
+2. **Skip:** `direct.skipped` → **SKIP mit Grund**; die Aussage ist nicht erfüllt.
+3. **Fehler- oder Abbruchdatensatz:** `direct.error` oder `FAIL` gesetzt → **gelaufen, nicht bestanden**. Fehlende Erfolgsfelder sind hier regulär, zum Beispiel `no gateway pid` (`perf_matrix.py:608–610`) oder der `except`-Zweig in `run()`.
+4. **Erfolgs- bzw. Eigenschaftsdatensatz** (alles Übrige): Jede Eigenschaft der Erfolgsdefinition muss vorhanden sein.
+   - Fehlt eine → Auswertungsfehler.
+   - Ist eine nicht `true` → gelaufen, nicht bestanden.
+   - Sind alle `true` → **gelaufen und bestanden**.
+
+**Gegenfälle**, jeder an einem Bericht am passenden Kopf mit `dirty: false`:
+- die fünf aus R391;
+- dazu dein früher Fehlerbericht: `{"direct": {"error": "no gateway pid"}, "FAIL": "error: no gateway pid"}` ohne `sticky_ok` und `recovered_ok` → **gelaufen, nicht bestanden**;
+- daneben bleibt `recovered_ok` fehlend, ohne Skip und ohne erklärenden Fehler, ein **Auswertungsfehler**.
+
+**Erbeten:** `agreement` oder `findings` zu dieser Reihenfolge.
