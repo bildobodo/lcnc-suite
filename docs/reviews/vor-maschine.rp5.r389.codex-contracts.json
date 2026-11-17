@@ -1,0 +1,425 @@
+{
+  "review": "R389",
+  "product_commit": "cd23f813",
+  "document_commit": "1ce58d2a",
+  "scope": "Plan review; static source inspection plus synthetic offline replay cases",
+  "not_run": [
+    "live scripts",
+    "browser suite",
+    "product builds",
+    "machine commands"
+  ],
+  "inventory_sha256": "2f2f3ad7fa48e453c178dd6ad28a71b16a76c0babc94350c884a443c448652f2",
+  "evidence_counts": {
+    "gateway": 174,
+    "browser": 70,
+    "script": 15,
+    "native": 70,
+    "unit": 18
+  },
+  "script_evidence_count": 15,
+  "all_script_evidence_live": true,
+  "script_evidence": [
+    {
+      "function": "F-ESTOP",
+      "statement": "S4",
+      "layer": "script",
+      "file": "perf_matrix.py",
+      "title": "sigstop_trip",
+      "live": true,
+      "source_lines": [
+        25,
+        604
+      ]
+    },
+    {
+      "function": "F-GOTO",
+      "statement": "S1",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero",
+      "live": true,
+      "source_lines": [
+        426
+      ]
+    },
+    {
+      "function": "F-GOTO",
+      "statement": "S1",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero",
+      "live": true,
+      "source_lines": [
+        442
+      ]
+    },
+    {
+      "function": "F-GOTO",
+      "statement": "S1b",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)",
+      "live": true,
+      "source_lines": [
+        417
+      ]
+    },
+    {
+      "function": "F-GOTO",
+      "statement": "S1b",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0",
+      "live": true,
+      "source_lines": [
+        435
+      ]
+    },
+    {
+      "function": "F-GOTO",
+      "statement": "S1d",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183",
+      "live": true,
+      "source_lines": [
+        452
+      ]
+    },
+    {
+      "function": "F-GOTO",
+      "statement": "S2",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)",
+      "live": true,
+      "source_lines": [
+        485
+      ]
+    },
+    {
+      "function": "F-TOUCHOFF",
+      "statement": "S3b",
+      "layer": "script",
+      "file": "twp_touchoff_plane_check.py",
+      "title": "{label}: G54 moved by the touch-off amount",
+      "instances": [
+        "A=0",
+        "A=35"
+      ],
+      "live": true,
+      "source_lines": [
+        336
+      ]
+    },
+    {
+      "function": "F-TOUCHOFF",
+      "statement": "S3b",
+      "layer": "script",
+      "file": "twp_touchoff_plane_check.py",
+      "title": "{label}: G54 moved ALONG the plane normal (table frame)",
+      "instances": [
+        "A=0",
+        "A=35"
+      ],
+      "live": true,
+      "source_lines": [
+        342
+      ]
+    },
+    {
+      "function": "F-TWP",
+      "statement": "S3",
+      "layer": "script",
+      "file": "twp_capture_check.py",
+      "title": "{label}: gateway capture ok",
+      "instances": [
+        "A=35"
+      ],
+      "live": true,
+      "source_lines": [
+        492
+      ]
+    },
+    {
+      "function": "F-TWP",
+      "statement": "S3",
+      "layer": "script",
+      "file": "twp_capture_check.py",
+      "title": "{label}: plane normal == tool axis",
+      "instances": [
+        "A=35"
+      ],
+      "live": true,
+      "source_lines": [
+        502
+      ]
+    },
+    {
+      "function": "F-TWP",
+      "statement": "S3",
+      "layer": "script",
+      "file": "twp_capture_check.py",
+      "title": "{label}: DRO ~0 at the tip",
+      "instances": [
+        "A=35"
+      ],
+      "live": true,
+      "source_lines": [
+        504
+      ]
+    },
+    {
+      "function": "F-TWP",
+      "statement": "S3",
+      "layer": "script",
+      "file": "twp_reorient_check.py",
+      "title": "tool normal to plane again",
+      "live": true,
+      "source_lines": [
+        370
+      ]
+    },
+    {
+      "function": "F-TWP",
+      "statement": "S3",
+      "layer": "script",
+      "file": "twp_reorient_check.py",
+      "title": "stored plane unchanged by the re-orient",
+      "live": true,
+      "source_lines": [
+        373
+      ]
+    },
+    {
+      "function": "F-TWP",
+      "statement": "S3",
+      "layer": "script",
+      "file": "twp_capture_check.py",
+      "title": "G: G69 recovers — undefined, G54, identity kins, machine ON",
+      "live": true,
+      "source_lines": [
+        727
+      ]
+    }
+  ],
+  "script_files": {
+    "perf_matrix.py": {
+      "sha256": "fbf993b69bc94798184c234ede29aece9fa505bbe9ba1c6226da581ceba09c2f",
+      "test_functions": [],
+      "test_classes": [],
+      "module_level_controller_calls": [],
+      "module_level_require_ready": []
+    },
+    "twp_buttons_check.py": {
+      "sha256": "01f9c73b11651c17424466c063a4330cf4f8e0f0ac0302d7bc853da4cd3d45d5",
+      "test_functions": [],
+      "test_classes": [],
+      "module_level_controller_calls": [
+        {
+          "line": 39,
+          "call": "linuxcnc.command()"
+        },
+        {
+          "line": 40,
+          "call": "linuxcnc.stat()"
+        },
+        {
+          "line": 41,
+          "call": "linuxcnc.error_channel()"
+        }
+      ],
+      "module_level_require_ready": [
+        340
+      ]
+    },
+    "twp_capture_check.py": {
+      "sha256": "437d581592c152d6bfa780c9b6401480048218c5af82703e7baccfce078a2782",
+      "test_functions": [],
+      "test_classes": [],
+      "module_level_controller_calls": [
+        {
+          "line": 43,
+          "call": "linuxcnc.command()"
+        },
+        {
+          "line": 44,
+          "call": "linuxcnc.stat()"
+        },
+        {
+          "line": 45,
+          "call": "linuxcnc.error_channel()"
+        }
+      ],
+      "module_level_require_ready": [
+        437
+      ]
+    },
+    "twp_reorient_check.py": {
+      "sha256": "338c6a6a4b47d48aace6cb708fbccc3f1ff368c74d8c41f8ccde838806330063",
+      "test_functions": [],
+      "test_classes": [],
+      "module_level_controller_calls": [
+        {
+          "line": 31,
+          "call": "linuxcnc.command()"
+        },
+        {
+          "line": 32,
+          "call": "linuxcnc.stat()"
+        },
+        {
+          "line": 33,
+          "call": "linuxcnc.error_channel()"
+        }
+      ],
+      "module_level_require_ready": [
+        205
+      ]
+    },
+    "twp_touchoff_plane_check.py": {
+      "sha256": "69b1587c7614fa2209a3d991d6cd23b77b624a5bc7277f8719a2d5c3652c3d67",
+      "test_functions": [],
+      "test_classes": [],
+      "module_level_controller_calls": [
+        {
+          "line": 41,
+          "call": "linuxcnc.command()"
+        },
+        {
+          "line": 42,
+          "call": "linuxcnc.stat()"
+        },
+        {
+          "line": 43,
+          "call": "linuxcnc.error_channel()"
+        }
+      ],
+      "module_level_require_ready": [
+        219
+      ]
+    }
+  },
+  "redirect_source": {
+    "file": "docs/reviews/function-inventory.r268.codex-probe.json",
+    "sha256": "30a9055b6c2118c8515d256de3bd2acd23a62b9f1ed2de3816962ff6eb891a58",
+    "rerun_here": false,
+    "case": {
+      "mode": "synthetic",
+      "requests": [
+        {
+          "id": "synthetic-1",
+          "path": "/synthetic",
+          "from": null
+        },
+        {
+          "id": "synthetic-2",
+          "path": "/end",
+          "from": "synthetic-1"
+        }
+      ],
+      "routed": [
+        {
+          "id": "synthetic-1",
+          "path": "/synthetic"
+        }
+      ],
+      "server": [
+        {
+          "path": "/end",
+          "id": null
+        }
+      ],
+      "responses": [
+        {
+          "id": "synthetic-1",
+          "status": 302
+        },
+        {
+          "id": "synthetic-2",
+          "status": 200
+        }
+      ]
+    }
+  },
+  "offline_replay_source_sha256": "9415825e74398b17ce78683f5d35d355700e9a5aabd71581b362bc9815e3ad01",
+  "offline_replay_cases": {
+    "valid_only": {
+      "verdict": "PASS",
+      "per_attempt": {
+        "x.spec.ts › t [retry 0]": {
+          "hello": 1,
+          "touchoff": 1
+        }
+      },
+      "expected": [],
+      "findings": [],
+      "input_log_kinds": {
+        "head": 1,
+        "http": 1,
+        "open": 1,
+        "frame": 2
+      },
+      "gateway_reply_recorded": false
+    },
+    "expected_invalid_only": {
+      "verdict": "PASS",
+      "per_attempt": {
+        "x.spec.ts › t [retry 0]": {
+          "hello": 1,
+          "touchoff": 1
+        }
+      },
+      "expected": [
+        {
+          "where": "x.spec.ts › t [retry 0]",
+          "cmd": "touchoff",
+          "refusal": "refused"
+        }
+      ],
+      "findings": [],
+      "input_log_kinds": {
+        "head": 1,
+        "http": 1,
+        "open": 1,
+        "frame": 2
+      },
+      "gateway_reply_recorded": false
+    },
+    "valid_and_expected_invalid": {
+      "verdict": "PASS",
+      "per_attempt": {
+        "x.spec.ts › t [retry 0]": {
+          "hello": 1,
+          "touchoff": 2
+        }
+      },
+      "expected": [
+        {
+          "where": "x.spec.ts › t [retry 0]",
+          "cmd": "touchoff",
+          "refusal": "refused"
+        }
+      ],
+      "findings": [],
+      "input_log_kinds": {
+        "head": 1,
+        "http": 1,
+        "open": 1,
+        "frame": 3
+      },
+      "gateway_reply_recorded": false
+    }
+  },
+  "archive_sources_verified_against_cd23f813": [
+    "scripts/inventory/functions.json",
+    "scripts/test_select/replay.py",
+    "scripts/test_select/test_replay.py",
+    "scripts/perf_matrix.py",
+    "scripts/twp_buttons_check.py",
+    "scripts/twp_capture_check.py",
+    "scripts/twp_reorient_check.py",
+    "scripts/twp_touchoff_plane_check.py"
+  ]
+}

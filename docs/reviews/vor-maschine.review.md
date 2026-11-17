@@ -6506,3 +6506,57 @@ Kein Prozentwert. Die Lücken stehen mit Namen da, heute zum Beispiel die 17 nie
 - **Q389-2:** Die Regel aus D4: Rot macht nur, was die Messung beschädigt; alles andere wird gelistet. Einverstanden, oder soll eine Klasse (etwa der Fallback auf einem API-Pfad) ebenfalls rot machen?
 
 **Erbeten:** `agreement` oder `findings` zu D1–D7, zum Aufbau von 5c und zu Q389-1 und Q389-2.
+
+---
+
+## Codex · Replay 5b und 5c · Planreview R389 · 17. November 2026
+
+**Urteil: `findings`.** Die Richtung, die zwei getrennten Pakete und die meisten Ergänzungen D1–D7 sind angenommen. Vor dem Bau bleiben zwei begrenzte Vertragsreste: **VM389-01** zur fehlenden Kennung beim Redirect und **VM389-02** zur Auflösung der bereits inventarisierten Live-Skriptbelege. Dafür ist keine Operator-Entscheidung nötig.
+
+Geprüft: Anfrage am Dokumentstand `1ce58d2a`, Quellen an development `cd23f813`, FI265-01..03 einschließlich R267–R269 und die vorgelegten Machbarkeitsartefakte. `03019f88` ist dabei ausschließlich Machbarkeitsbeleg, kein zur Freigabe geprüfter Implementierungskopf.
+
+### Antworten auf Q389-1 und Q389-2
+
+- **Q389-1: eigene Mock-Handler getrennt nach 5c.** In 5b soll der Fallback sichtbar werden. Ein G30-Handler würde tatsächlich den von vielen Specs gesehenen Zustand ändern; diese Änderung gehört mit ihren Erwartungen und Gegenfällen in eine eigene Runde. 5c muss die heutige Lücke trotzdem vollständig berichten können. Damit nehme ich keine weitere Arbeit in Paket 4 auf und ändere dessen Priorität nicht.
+- **Q389-2: Zustimmung zum Grundsatz „Messung beschädigt = rot; Lücke = benannt“.** Ein nachgewiesener API-Fallback darf einen vollständigen Messbericht grün lassen. Als bediente API-Route oder fachlich geprüfte Wirkung darf er nicht zählen. Dasselbe gilt für eine ersetzte Browserantwort: Die Browseranfrage ist beobachtet, eine echte Handlerantwort damit nicht belegt. Rot bleiben fehlende Messartefakte, unaufgelöste Bindungen und unzulässige Zuordnungen. D4 braucht dafür die Präzisierung in VM389-01.
+
+### VM389-01 · D4 widerspricht der ausdrücklich erhaltenen Redirect-Grenze
+
+D4 macht jeden Mock-Kontakt eines Testversuchs ohne Kennung rot und begründet das damit, dass nach dem Umhüllen alle Wege über Auffangroute, `continue` oder `fetch` gehen. Das gilt gerade für den bereits abgenommenen synthetischen 302-Fall nicht:
+
+| Vorhandener Gegenfall | Browser/Route | Mock |
+|---|---|---|
+| `fulfill(302)` → Folgeanfrage | `synthetic-1` wird ersetzt; `synthetic-2` ist über `redirectedFrom` verkettet, erhält aber keinen neuen Route-Aufruf | ein Kontakt ohne ID |
+
+R269 lässt die Folgeanfrage **unbekannt/unvollständig** und den Mock-Kontakt **nicht zuordenbar**, ohne eine Verbindung aus URL oder Reihenfolge zu erfinden. R389 erhält diesen Vertrag, nennt Weiterleitungs-Hops als zulässige unvollständige Klasse und verlangt denselben Gegenfall. Gleichzeitig würde die pauschale D4-Regel ihn zum Messfehler machen. [Der unveränderte damalige Browserbeleg](function-inventory.r268.codex-probe.json) und sein [Auszug im R389-Prüfbeleg](vor-maschine.rp5.r389.codex-contracts.json) zeigen den konkreten Widerspruch; ich habe den Browserfall diesmal nicht neu ausgeführt.
+
+**Gegenvorschlag:** Die erhaltene Redirect-Grenze ausdrücklich gegen die neue Fehlerregel abgrenzen. Direkte, instrumentierbare Wege ohne Kennung bleiben rot; die konkret benannten, nicht zuordenbaren Weiterleitungsfälle bleiben als Messgrenze sichtbar und erzeugen keine Abdeckung. Das ist keine pauschale Ausnahme für weitere kennungslose Kontakte im selben Lauf. Wenn stattdessen auch diese Redirect-Fälle künftig rot werden sollen, bitte das als Änderung des R269-Vertrags benennen und begründen.
+
+**Abnahmepunkte:** erwartetes Urteil für alle drei alten Redirect-Fälle festlegen; der direkte unumhüllte `continue()` bleibt rot; ein zusätzlicher unerklärter Kontakt darf auch neben einem bekannten Redirect nicht verschwinden. Die drei Identitäten und das Verbot, aus URL/Reihenfolge eine Einzelzuordnung abzuleiten, bleiben bestehen.
+
+### VM389-02 · Die 15 Skriptbelege sind keine Pytest-Fälle
+
+Die 5c-Zeile „Browser, Unit, Gateway, Skript: gesammelt laut Listung … `pytest --collect-only`“ passt nicht zum heutigen Inventar. An `cd23f813` enthält es **15 Belegbindungen der Schicht `script`, alle mit `live: true`, in fünf Dateien**:
+
+- `perf_matrix.py`: etwa `F-ESTOP.S4` → Szenario `sigstop_trip`;
+- `twp_buttons_check.py`: sechs Zusagen zu den Fahrknöpfen;
+- `twp_touchoff_plane_check.py`: zwei parametrisierte Zusagen für `A=0`/`A=35`;
+- `twp_capture_check.py` und `twp_reorient_check.py`: sechs weitere TWP-Zusagen.
+
+Diese Dateien haben keine `test_*`-Funktionen oder `Test*`-Klassen. Ihre Belegnamen sind Szenarien beziehungsweise Laufmeldungen, keine Pytest-Test-IDs. Die Sonderregel für die 70 `native`-Belege erfasst sie nicht. Unter der vorgeschlagenen Regel „Beleg nicht gesammelt = FAIL“ wäre daher bereits der unveränderte Bestand rot. Die Dateien zusätzlich zur Pytest-Sammlung zu importieren ist auch kein passender Adapter: beispielsweise erzeugt `twp_buttons_check.py:39–41` beim Import Controllerobjekte und ruft auf Modulebene in Zeile 340 `require_ready()` auf.
+
+**Gegenvorschlag:** Eine ausdrücklich getrennte Auflösung für `script` + `live: true`, durch einen kleinen deklarativen beziehungsweise statischen Adapter für diese fünf Treiber. Er löst Szenario/Prüfzeile und die deklarierten Instanzen auf, ohne den Treiber zu importieren oder zu starten. Ein passender, an Stand und tatsächlichen Fall gebundener Laufbericht kann anschließend „gelaufen/bestanden“ belegen. Fehlt ein solcher Live-Lauf am Kopf, bleibt das **benannt und nicht belegt**, wie bei der nativen Schicht; daraus wird weder PASS der Aussage noch FAIL der vollständigen Auswertung. Ein Schreibfehler in der Bindung oder ein fehlendes Artefakt eines als durchgeführt behaupteten Laufs bleibt dagegen rot. Dafür müssen keine neuen Maschinenläufe in jedes Merge-Gate aufgenommen werden.
+
+**Abnahmepunkte:** den vorhandenen `sigstop_trip`-Beleg und eine parametrisierte TWP-Bindung ohne aktuellen Live-Bericht korrekt offen ausweisen; unbekannten Fall/fehlende Instanz ablehnen; einen Bericht eines anderen Commits nicht als aktuellen Laufnachweis übernehmen. [Sonde](vor-maschine.rp5.r389.codex-contracts.py), [alle 15 Bindungen, Fundstellen und AST-Befunde](vor-maschine.rp5.r389.codex-contracts.json).
+
+### Angenommene Teile und Grenzen für den Bau
+
+- **D1:** Fallback, anderer Server, WS-Handschlag und benannt unvollständige Wege sind sinnvolle Klassen, unter VM389-01. Die Schließmarke gehört zum konkreten Kontext und zum wirklichen Beginn seines Schließens. Die 609 Fälle der Probe sind bislang aus dem Abstand zu `test-end` erschlossen; sie beweisen noch nicht, dass diese Anfragen nach dieser künftigen Marke entstanden. Das erste vollständige Protokoll muss sie nach der vereinbarten Regel beurteilen. Ein bloßer Zeitabstand darf die Marke nicht ersetzen.
+- **D2/D5:** additive Mock-Felder und dieselbe Instrumentierung im Firefox-Kern sind angenommen. Herkunftsprüfung, `/ready`-Ausnahme und die bereits gezählten Firefox-Abmeldungen behalten ihre eigenen Wächter. Ein unbekannter WS-Zusammenhang ist kein HTTP-Nachweis und keine Aufweichung des Abmeldevertrags.
+- **D3/D4:** wie oben beantwortet. Die Probe belegt weiterhin bestandene Tests, aber nicht generell unverändertes Verhalten: Sie misst selbst weniger beim Mock angekommene Anfragen. Diese Messwirkung muss beim Ergebnis benannt bleiben.
+- **D6/D7:** explizite semantische Projektionen vor dem Zusammenfassen, keine Rohwerte, Ergebnis je Versuch und getrennte Angaben für Antwortweg, Transport und Status sind angenommen. Run/Test/Projekt/Retry und die drei internen Anfrageidentitäten bleiben für die Zuordnung erhalten; ein lesbarer Testtitel allein ist kein Schlüssel.
+- **5c:** die fünf getrennten Belegarten, Laufartefakte statt statischer Testnamen, kein Prozentwert, unveränderte statische Tabelle und Ausführung nur im Merge-Gate sind angenommen, unter VM389-02. Chromium und Firefox bleiben als Projekte unterscheidbar; ein gültiger Laufnachweis benötigt seine passende Testinstanz und seinen Stand.
+
+**Eine wichtige Auslegung zu „erwartete Ablehnung kam“:** Das heutige `replay.expected` entsteht durch die **Offline-Nutzlastprüfung**, nicht durch eine empfangene Gateway-Antwort. Meine drei kleinen Ablaufproben mit dem vorhandenen Prüfer ergeben jeweils PASS: gültiger Rahmen, erwarteter ungültiger Rahmen, beide zusammen. Die heutigen `per_attempt`-Zahlen enthalten dabei auch den ungültigen Rahmen; in keinem dieser synthetischen Eingabeprotokolle steht eine Gateway-Antwort. Für 5c also gültige Beobachtungen gesondert ableiten, wie vorgeschlagen, und eine solche Gegenprobe ausdrücklich dem Nutzlastprüfer zuordnen. Eine fachliche Ablehnungs- oder Wirkungszusage braucht weiterhin ihren gebundenen Test mit der entsprechenden Erwartung. Die drei Ergebnisse stehen ebenfalls im [Prüfbeleg](vor-maschine.rp5.r389.codex-contracts.json).
+
+Eigene Arbeit: statische Prüfung der Quellen und Artefakte sowie drei synthetische Offline-Abläufe in der vorhandenen Archivkopie `/tmp/codex-r388-6dedw9iv` an `cd23f813`. Kein Produktcode geändert, kein Build, Browser- oder Live-Lauf, keine Maschinenbefehle. Die Live-Skripte wurden ausschließlich als Text/AST gelesen. Im Live-Baum nur dieser Anhang und die zwei neuen R389-Belege. Die Testsperre wurde nicht belegt.
