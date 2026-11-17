@@ -156,3 +156,62 @@ def test_the_merge_gate_s_coverage_step_is_red_on_a_run_without_its_artefacts(tm
     assert c["name"] == "coverage" and c["status"] == "FAIL"
     assert any("missing" in w for w in c["why"])
     assert (logs / "coverage.json").is_file() and (logs / "coverage.md").is_file()
+
+
+# ── the three rules the mutants of 5c need a guard for ──────────────────────
+
+def _run_with(tmp: Path, **files) -> dict:
+    """A run of the empty set with some artefacts replaced; the real inventory."""
+    tmp.mkdir(parents=True, exist_ok=True)
+    body = dict(EMPTY_RUN)
+    body.update(files)
+    return coverage.coverage(gate(tmp, body), [], [])
+
+
+def _fn(c: dict, fid: str) -> dict:
+    return next(f for f in c["functions"] if f["id"] == fid)
+
+
+ATT = "x.spec.ts › t [retry 0]"
+
+
+def test_an_expected_refusal_is_no_trigger_of_its_command(tmp_path):
+    replay = {"attempt_list": [{"name": ATT, "status": "passed"}],
+              "per_attempt": {ATT: {"touchoff": 1}}, "per_attempt_expected": {ATT: {"touchoff": 1}}}
+    c = _run_with(tmp_path, **{"replay.json": replay})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"] == "not sent"
+    replay["per_attempt_expected"] = {}
+    c = _run_with(tmp_path / "b", **{"replay.json": replay})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"] == {"touchoff": 1}
+
+
+def test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence(tmp_path):
+    rows = {ATT: [{"what": "GET /g30", "variant": None, "path": None, "class": "fallback", "transport": "finished",
+                   "status": 200, "n": 3}]}
+    replay = {"attempt_list": [{"name": ATT, "status": "passed"}], "http_paths": {"per_attempt": rows}}
+    c = _run_with(tmp_path, **{"replay.json": replay})
+    gaps = [g for g in c["gaps"] if g["item"] == "http:GET /g30"]
+    assert gaps and gaps[0]["why"] == "never answered by a server (fallback)"
+    rows[ATT][0]["class"] = "served"
+    c = _run_with(tmp_path / "b", **{"replay.json": replay})
+    assert not [g for g in c["gaps"] if g["item"] == "http:GET /g30"]
+    trig = next(f for f in c["functions"] if "GET /g30" in f["triggered"]["routes"])["triggered"]["routes"]["GET /g30"]
+    assert trig == {"served by the mock": 3}
+
+
+def test_a_firefox_pass_never_stands_in_for_chromium(tmp_path):
+    fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"]
+             if e["layer"] == "browser" and "$" not in e["title"] and "{" not in e["title"])
+
+    def report(project: str, status: str | None) -> dict:
+        test = {"projectName": project, "status": status or "skipped", "results": [{"status": "passed"}] if status else []}
+        return {"suites": [{"title": e["file"], "file": e["file"], "specs": [
+            {"title": e["title"], "file": e["file"], "tests": [test]}]}]}
+    c = _run_with(tmp_path, **{"list-run.json": report("e2e", None), "playwright.json": report("e2e", None),
+                               "firefox-list.json": report("firefox-core", None),
+                               "firefox.json": report("firefox-core", "expected")})
+    rows = [x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+            if x.get("file") == e["file"] and x.get("title") == e["title"]]
+    by = {x["project"]: x["status"] for x in rows}
+    assert by == {"e2e": "not run", "firefox-core": "passed"}
