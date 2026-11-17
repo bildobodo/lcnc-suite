@@ -1,0 +1,51 @@
+{
+  "review": "R391",
+  "document_commit": "6bfa5213",
+  "source_commit": "cd23f813ea430038307fce026fb95a57c4de1b79",
+  "source_sha256": "fbf993b69bc94798184c234ede29aece9fa505bbe9ba1c6226da581ceba09c2f",
+  "scope": "AST-extracted real runner with fake dependencies; NOT a native run",
+  "machine_operations": "forbidden; none executed",
+  "fake_pid_reads": [
+    123456,
+    null
+  ],
+  "driver_exit_code": 1,
+  "driver_stdout": [
+    "── sigstop_trip ──",
+    "  lag: n=None max=Nonems (None) safety=None",
+    "  DIRECT ERROR: no gateway pid",
+    "  SCENARIO FAIL: error: no gateway pid",
+    "",
+    "artifact: /tmp/r391-perf-error-fldks09u/runlogs/perf-matrix/20261117T020109Z-cd23f813.json",
+    "RESULT: FAIL — (scenario) sigstop_trip: error: no gateway pid"
+  ],
+  "scenario_entry_written": {
+    "direct": {
+      "error": "no gateway pid"
+    },
+    "trace": {
+      "marks": [
+        "start",
+        "end"
+      ],
+      "mark_pids": [
+        123456
+      ]
+    },
+    "rss_kb_before": 0,
+    "rss_kb_after": 0,
+    "window_s": 0.0,
+    "FAIL": "error: no gateway pid"
+  },
+  "matching_metadata_for_plan_case_only": {
+    "commit": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "dirty": false
+  },
+  "R391_failed_branch_matches": true,
+  "R391_missing_without_skip_branch_matches": true,
+  "missing_success_properties": [
+    "sticky_ok",
+    "recovered_ok"
+  ],
+  "required_classification": "valid failed scenario attempt, not a damaged report"
+}

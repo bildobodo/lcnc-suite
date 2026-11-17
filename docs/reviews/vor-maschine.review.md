@@ -6732,3 +6732,36 @@ Widersprüchlich oder fehlend heißt hier: kein `direct`, Skip und `FAIL` zuglei
 Ein weiterer Live-Lauf ist dafür nicht nötig.
 
 **Erbeten:** `agreement` oder `findings` zum Laufnachweis von 5c in dieser Fassung.
+
+---
+
+## Codex · Replay 5c · Planreview R391 · 17. November 2026
+
+**Urteil: `findings` – ein begrenzter Rest bei VM389-02 zur Reihenfolge der Statusprüfung.** Die positive Erfolgsdefinition schließt den SKIP-Befund aus R390. Die jetzige Tabelle gibt einem regulären frühen Fehlerbericht jedoch zwei unterschiedliche Urteile. Das Agreement zum 5b-Plan und die übrigen geschlossenen Punkte bleiben bestehen. Keine Operatorfrage.
+
+Geprüft: Dokumentstand `6bfa5213`, Berichtsschreiber und Szenario an `cd23f813`. Weiterhin nur Planprüfung.
+
+### Angenommen
+
+Eine Erfolgsdefinition je gebundenem Szenario, heute `sigstop_trip` mit `sticky_ok` und `recovered_ok`, verhindert ein späteres Zurückfallen auf „kein FAIL = bestanden“. Eine fehlende Erfolgsdefinition ist ein Bindungsfehler. SKIP mit Grund erfüllt die fachliche Aussage nicht. Für einen Erfolgsnachweis müssen beide Eigenschaften vorhanden und tatsächlich `true` sein. Diese Teile sind geschlossen.
+
+### VM389-02 · Rest: Erfolgsfelder sind bei einem gemeldeten frühen Fehler nicht zwingend vorhanden
+
+Die Tabelle erklärt `FAIL` beziehungsweise `direct.error` zu **„gelaufen, nicht bestanden“**. Die anschließende Pflichtfeldregel erklärt aber jede fehlende Erfolgseigenschaft ohne Skip zum **Auswertungsfehler**. Beides trifft auf einen normalen Bericht des vorhandenen Runners zu:
+
+```json
+{
+  "direct": {"error": "no gateway pid"},
+  "FAIL": "error: no gateway pid"
+}
+```
+
+`sc_trip()` liefert diesen Fehler in `perf_matrix.py:608–610`, bevor die beiden Eigenschaften gemessen werden. Ebenso ersetzt der `except`-Zweig in `run()` ein abgebrochenes Szenario durch einen `direct.error`-Datensatz; seine Erfolgseigenschaften fehlen dann regulär. Das ist ein gültig berichteter fehlgeschlagener Versuch, kein beschädigtes Berichtsformat.
+
+Meine isolierte Ablaufprobe verwendet wieder die vier tatsächlichen Funktionen aus `cd23f813`: Der erste ersetzte PID-Leser lässt den Runner beginnen, der zweite meldet dem Szenario keine PID. Der Runner schreibt den oben gezeigten Fehler, keine Erfolgseigenschaften und endet mit **Exitcode 1**. Die vollständige Ausgabe und der Berichtseintrag stehen im [Beleg](vor-maschine.rp5.r391.codex-proof.json), die [Sonde](vor-maschine.rp5.r391.codex-proof.py) ist reproduzierbar. Alle externen Zugriffe sind ersetzt, Signale und HAL-Zugriffe verboten; das ist kein nativer Lauf.
+
+**Gegenvorschlag:** Die Statusprüfung ausdrücklich nach Ergebnisart ordnen. Ein gültiger Skip ergibt SKIP. Ein gültiger Abbruch-/Fehlerdatensatz ergibt „gelaufen, nicht bestanden“, auch wenn die noch nicht erhobenen Erfolgsfelder fehlen. Erst für einen verbleibenden Erfolgs- beziehungsweise Eigenschaftsdatensatz sind diese Felder vollständig erforderlich: `false` ergibt nicht bestanden, alle `true` ergeben bestanden, fehlende Pflichtfelder ergeben Auswertungsfehler. Formfehler und widersprüchliche Kombinationen wie Skip zugleich mit Fehler/FAIL bleiben rot.
+
+**Ein zusätzlicher Gegenfall genügt:** der obige frühe Fehlerbericht am passenden Kopf, `dirty: false`, ohne `sticky_ok`/`recovered_ok` → **gelaufen, nicht bestanden**. Daneben bleibt der schon benannte Fall „`recovered_ok` fehlt, kein Skip und kein erklärender Fehler“ ein Auswertungsfehler. Damit sind die beiden Fälle eindeutig getrennt; weder erfüllt die Aussage.
+
+Eigene Prüfung in der Archivkopie unter `/tmp`; die verwendete Quelldatei wurde gegen das Git-Objekt `cd23f813` geprüft. Kein Produktcode geändert, kein Build, Browser- oder Live-Lauf und keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und die zwei neuen Belege. Die Testsperre blieb frei.
