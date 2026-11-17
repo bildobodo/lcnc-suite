@@ -549,12 +549,33 @@ def main(argv: list[str] | None = None) -> int:
         # the heavy section: the probe holds the heavy lock itself, through its
         # restore, whatever happens to this process (Codex R330 FI-I60)
         checks.append(install_probe(logs, sel["head"]))
+        # the coverage of this run (replay step 5c): reads the artefacts only
+        checks.append(coverage_check(logs, sel["head"]))
+    else:
+        omitted.append({"check": "coverage", "reason": "the coverage needs every set of the run — the merge gate runs it "
+                                                       "(replay step 5c)"})
 
     pending = [firefox_pending] if firefox_pending else []
     for check, paths in sel["live"].items():
         pending.append({"check": check, "status": "pending: a live check, run before main", "paths": paths})
     return finish("PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",
                   checks=checks, omitted=omitted, pending=pending)
+
+
+def coverage_check(logs: Path, head: str) -> dict:
+    """The function inventory × the cases this run ran (replay step 5c,
+    scripts/inventory/coverage.py): PASS when the report is complete and
+    consistent — a gap is listed, never red; an evaluation error is red."""
+    try:
+        sys.path.insert(0, str(ROOT / "scripts/inventory"))
+        import coverage   # noqa: PLC0415 — the inventory's module, by its own path
+        c = coverage.coverage_of(logs, head, "merge", [], [])
+    except Exception as e:  # noqa: BLE001 — a check that could not run is no PASS
+        return {"name": "coverage", "status": "FAIL", "why": [f"the coverage did not run: {type(e).__name__}: {e}"]}
+    (logs / "coverage.json").write_text(json.dumps(c, indent=1, ensure_ascii=False) + "\n")
+    (logs / "coverage.md").write_text(coverage.markdown(c))
+    return {"name": "coverage", "status": c["verdict"], "report": "coverage.json",
+            **({"why": c["errors"][:20]} if c["errors"] else {"gaps": len(c["gaps"])})}
 
 
 def guarded(argv: list[str] | None = None) -> int:

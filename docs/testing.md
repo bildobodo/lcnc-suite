@@ -483,6 +483,40 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   `test_http_paths.py` synthetic (every class, every finding, the four red
   counter-cases of the synthetic-redirect bound); `src/routeProjection.test.ts`.
 
+## The coverage of a run (step 5c; Codex FI265-03, R389, R390–R392)
+
+The merge gate ends with `coverage` (`scripts/inventory/coverage.py`): the
+function inventory × the cases THIS run ran, written to `coverage.json` and
+`coverage.md` in its logs; a round lists it as omitted (it needs every set).
+By hand on a merge gate's record:
+
+    python3 -I scripts/inventory/coverage.py --gate <gate-merge.json> \
+        [--native-report <report.json> ...] [--live-report <perf_matrix.json> ...] --out c.json --md c.md
+
+- **Five kinds, kept apart, never a percentage** (FI265-03): inventoried (the
+  claimed atoms), triggered (each command and route atom seen in a PASSED
+  attempt — a command by its valid frames, a route by its 5b path; "served by
+  the mock" is never gateway evidence), checked (each statement's evidence
+  bound to LISTED test ids and their results), counter (the payload
+  checker's expected refusals — `per_attempt_expected` in the replay — and
+  native counter rows), native (a report of THIS commit). Every gap by name.
+- **Binding** (the R393 dry run, all 347 entries): browser and unit evidence
+  by the exact title or title path, a fragment, or a template whose captures
+  equal each declared instance (or vitest's quoted form) — never a substring;
+  every bound test must pass; Chromium and Firefox apart. Gateway evidence by
+  its node in the backend step's JUnit (`backend.junit.xml`, written by
+  `test_suite.py`). Native evidence: the case as a string constant of
+  `native_run.py`, its status only from a report of the same commit, profile
+  and variant. Script evidence (`live: true`): `live_drivers.py` resolves it
+  by `ast`; a perf_matrix scenario counts only from a report with this full
+  commit and a clean tree, its status ordered by result kind (R392); the TWP
+  drivers write no report — "not proven".
+- **Red** (an evaluation error, never a gap): an artefact of the run missing,
+  evidence that binds no listed test, a report given as run evidence missing
+  or malformed, a script binding that does not resolve.
+- **Guards:** `scripts/inventory/test_coverage.py`, `test_replay.py`
+  (`per_attempt_expected`).
+
 ## Function inventory (Codex R265–R269)
 
 Every operator function, complete with respect to the named sources: the

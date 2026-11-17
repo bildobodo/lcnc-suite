@@ -152,9 +152,17 @@ def verdict(statuses: list[str]) -> str:
 # ── the report ─────────────────────────────────────────────────────────────
 
 def coverage(gate_path: Path, native_paths: list[Path], live_paths: list[Path], root: Path = ROOT) -> dict:
+    """From a gate's record (its head and kind) and its logs folder."""
     gate = json.loads(gate_path.read_text())
-    logs = gate_path.with_suffix(".logs")
-    head = gate.get("head", "")
+    return coverage_of(gate_path.with_suffix(".logs"), gate.get("head", ""), gate.get("kind", ""),
+                       native_paths, live_paths, root, gate_path.name)
+
+
+def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live_paths: list[Path],
+                root: Path = ROOT, label: str = "") -> dict:
+    """The coverage of a run from its logs folder — the merge gate calls this
+    before its own record is written."""
+    gate = {"kind": kind, "head": head}
     errors: list[str] = []
     web, py, fns = functions.load(root)
     ids = functions.atom_ids(web, py)
@@ -300,7 +308,7 @@ def coverage(gate_path: Path, native_paths: list[Path], live_paths: list[Path], 
                         "triggered": {"commands": trig_c, "routes": trig_r},
                         "statements": stmts, "counter": counter, "native": native})
     return {
-        "verdict": "FAIL" if errors else "PASS", "head": head, "gate": gate_path.name,
+        "verdict": "FAIL" if errors else "PASS", "head": head, "gate": label or logs.name,
         "functions": out_fns, "gaps": gaps, "errors": errors,
         "payload_checker_refusals": sum(len(v) for v in refused.values()),
         "notes": ["the payload checker's counter-check: replay_refusals.json lists what is expected; "

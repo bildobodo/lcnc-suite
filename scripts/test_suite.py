@@ -135,7 +135,12 @@ def offline_commands(component, out=None):
         # root pyrightconfig.json, this interpreter's import paths); a missing
         # pyright fails the step with its reason.
         commands.append(("pyright", [python(), str(ROOT / "scripts/run_pyright.py")], ROOT))
-        commands.append(("backend", [python(), "-m", "pytest"], ROOT / "lcnc-gateway"))
+        # replay step 5c (plan R389): the gateway's tests with their own result
+        # each — the coverage binds a statement's evidence to them
+        # (scripts/inventory/coverage.py reads <out>/backend.junit.xml)
+        commands.append(("backend", [python(), "-m", "pytest",
+                                     *([f"--junitxml={out / 'backend.junit.xml'}"] if out is not None else [])],
+                         ROOT / "lcnc-gateway"))
         commands.append(("5axis-model", [python(), str(ROOT / "scripts/test_5axis_xyzac.py")], ROOT))
         # Explicit: the backend pytest runs in lcnc-gateway with testpaths=["."]
         # and never discovers scripts/ — the CSS linter's own pins ride here.
