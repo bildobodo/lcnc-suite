@@ -11623,6 +11623,30 @@ A test name that exists proves nothing (FI265-03).
   record is "run, not passed", only complete success data is passed.
 - **The merge gate runs it;** a round lists it omitted.
 
+## 2026-11-17 — The check basis trigger keeps its place (dev CI 44098232396)
+
+**Why.** The development CI at `43b1531a` failed once in
+`collisions.viewer.spec.ts` ("a collision jump … across the entry move"): the
+card "Check basis" stayed open after its closing click. Measured (a probe
+sampling every frame of the spec's flow, at `cd23f813` and `43b1531a`): the
+trigger stood right after "Not checked" and at the row's end beside the
+progress bar — 270 px apart at 1600 × 1000 —, and a jump that builds the
+entry move turns the row to "Not checked" for about 0.7 s and back, while
+the spec reads the card. Staged (the layout changed after Playwright's hit
+check, before its press): the press lands on the bar, the browser's light
+dismiss closes the card, Playwright reports the interception and retries,
+and the retry opens the card again — the CI's click log, step for step. The
+same move puts an operator's tap on the bar.
+
+**Decided.** The words without a bar take the bar's room (`.checkState`,
+flex 1, an ellipsis): the trigger and the row's "?" stand at the row's end in
+every state of the check. The test is not made tolerant — a press on the
+wrong element would be hidden. Guard: `sim-panel.viewer.spec.ts` samples the
+row every frame from "Not checked" until the check has begun (desktop and
+touch portrait) — red before the fix (269.75 / 308.75 px), green after.
+Visible at the machine: in "Not checked" the card's icon and the "?" stand at
+the row's right end, where they stand beside the bar.
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

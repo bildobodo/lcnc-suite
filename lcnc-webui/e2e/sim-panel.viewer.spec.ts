@@ -1551,6 +1551,51 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
   });
 });
 
+// Dev CI 44098232396 (2026-11-17): the card's trigger stood right after
+// "Not checked" and at the row's end beside the progress bar — 270 px apart
+// at 1600 × 1000. A jump that builds the entry move turns the row to "Not
+// checked" for about 0.7 s and back: a press aimed at the trigger landed on
+// the bar (its light dismiss closed the card, Playwright's retry opened it
+// again). The trigger and its "?" keep their place in every state of the
+// row, sampled every frame from "Not checked" until the check has begun.
+for (const vp of ["desktop", "touch-portrait"] as const) {
+  test(`${vp}: the check basis trigger and its "?" keep their place in every state of the check row (dev CI 44098232396)`, async ({ page, context }) => {
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+    await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
+    await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
+    await openSimTab(page);
+    // from before the preview arrives: the row comes with it, "Not checked"
+    // until the check begins
+    await page.evaluate(() => {
+      const w = window as unknown as { __checkRow: { state: string; trigger: number; help: number }[] };
+      w.__checkRow = [];
+      let last = "";
+      const tick = () => {
+        const row = document.querySelector(".simPanel .checkRow");
+        const t = row?.querySelector('button[aria-label="Check basis"]')?.getBoundingClientRect();
+        const h = row?.querySelector(".helpIcon")?.getBoundingClientRect();
+        if (row && t && h && t.width > 0) {
+          const s = { state: row.querySelector('[role="progressbar"]') ? "bar" : "text", trigger: t.left, help: h.left };
+          const key = JSON.stringify(s);
+          if (key !== last) { w.__checkRow.push(s); last = key; }
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5100, file: "/sim.ngc" } });
+    await expect(page.locator('.simPanel .checkRow [role="progressbar"]'), "the check begins").toBeVisible({ timeout: 30_000 });
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const seen = await page.evaluate(() => (window as unknown as { __checkRow: { state: string; trigger: number; help: number }[] }).__checkRow);
+    expect([...new Set(seen.map(s => s.state))].sort(), `the row seen without its bar and with it: ${JSON.stringify(seen)}`).toEqual(["bar", "text"]);
+    for (const s of seen) {
+      expect(Math.abs(s.trigger - seen[0]!.trigger), `the trigger in the ${s.state} state`).toBeLessThan(0.5);
+      expect(Math.abs(s.help - seen[0]!.help), `the "?" in the ${s.state} state`).toBeLessThan(0.5);
+    }
+  });
+}
+
 // Codex R136 VP-I94: at 1600 × 1000 the side pane is regular (540 px, not
 // narrow) — the result words of a mixed result took 709 px, and the coverage
 // and the other two kinds fell out of the clipped line. The form is measured:
