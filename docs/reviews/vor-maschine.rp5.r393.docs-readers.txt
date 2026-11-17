@@ -1,0 +1,5 @@
+R393 — which test file names CLAUDE.md, docs/testing.md or docs/decisions.md (git grep at f47618ef, the first full run's head; read from the object store)
+
+lcnc-webui/src/viewer/scrubTrack.test.ts:467:  // Wire shape mirroring the decisions.md switchkins probe: identity rapid,
+
+Every hit is a comment or a docstring; no test reads these files.

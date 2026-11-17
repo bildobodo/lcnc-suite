@@ -1,0 +1,139 @@
+{
+ "baseline": {
+  "verdict": "PASS",
+  "findings": []
+ },
+ "H1": {
+  "what": "the catch-all forwards without the id",
+  "kind": "browser",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "FAIL",
+  "findings": [
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.1 GET / \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.2 GET /static/index-Cw_Yo_8H.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.3 GET /static/three-D_Nc9AAY.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.4 GET /static/msgpack-BkQaaVuN.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.5 GET /static/index-BfuNUijc.css \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.6 GET /settings \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.7 GET /static/wsWorker-P733WBKL.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.8 GET /static/ThreeViewer-DsOXnQuy.js \u2014 no named path (actions ['catch-all'], end finished)"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H2": {
+  "what": "a contact assigned by its URL instead of its id",
+  "kind": "offline",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "FAIL",
+  "findings": [
+   "request 0.13 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.15 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.28 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.30 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.43 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.45 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.58 GET /g30: fulfilled in the browser AND a contact under its id without a fetch",
+   "request 0.60 GET /g30: fulfilled in the browser AND a contact under its id without a fetch"
+  ],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_the_three_redirect_cases_of_r268_keep_their_verdicts"
+  ],
+  "red": true
+ },
+ "H3": {
+  "what": "the record keeps the query's values",
+  "kind": "browser",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "FAIL",
+  "findings": [
+   "request 1.22: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.47: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.55: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.73: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.82: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.83: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.100: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.108: a query in the recorded path \u2014 the record keeps key names only"
+  ],
+  "failed_tests": [
+   "an invented token in a query and a header appears in no record"
+  ],
+  "red": true
+ },
+ "H4": {
+  "what": "a wrapped fulfill that records nothing",
+  "kind": "browser",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "FAIL",
+  "findings": [
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.13 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.16 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed [retry 0]: request 0.29 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed [retry 0]: request 0.31 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a a save LinuxCNC did not confirm is never 'saved' [retry 0]: request 0.45 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a a save LinuxCNC did not confirm is never 'saved' [retry 0]: request 0.47 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a machine frame only: under TCP, Use Current Position and Save are dimmed with the reason [retry 0]: request 0.61 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a machine frame only: under TCP, Use Current Position and Save are dimmed with the reason [retry 0]: request 0.63 GET /g30 \u2014 no named path (actions ['handler'], end finished)"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H5": {
+  "what": "the SPA fallback counted as a served route",
+  "kind": "offline",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "FAIL",
+  "findings": [
+   "http-paths.spec.ts \u203a the SPA fallback answers an API path: never a served route [retry 0]: GET /g30 as fallback 0 time(s), expected 1"
+  ],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_a_forwarded_request_with_its_one_contact_is_served_and_the_fallback_is_not"
+  ],
+  "red": true
+ },
+ "H6": {
+  "what": "a real redirect hop covers an id-less contact (the synthetic condition dropped)",
+  "kind": "offline",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /t reached the mock without an id0]"
+  ],
+  "red": true
+ },
+ "H7": {
+  "what": "an id-less contact is never a finding",
+  "kind": "offline",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-no synthetic redirect hop of the attempt covers it]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /other reached the mock without an id]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /t reached the mock without an id0]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /devices reached the mock without an id]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /t reached the mock without an id1]"
+  ],
+  "red": true
+ },
+ "H8": {
+  "what": "the closing mark not written",
+  "kind": "browser",
+  "head": "4b6bd4e8fe65c757ff4558a355787fb29f1e3883",
+  "replay": "FAIL",
+  "findings": [
+   "g30.spec.ts \u203a Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed [retry 0]: request 0.32 POST /telemetry \u2014 no named path (actions [], end none)",
+   "g30.spec.ts \u203a a captured draft is dropped when the kinematics mode changes [retry 0]: request 0.78 POST /telemetry \u2014 no named path (actions [], end none)",
+   "g30.spec.ts \u203a a late file read never overwrites a newer confirmed read [retry 0]: request 0.142 POST /telemetry \u2014 no named path (actions [], end none)",
+   "g30.spec.ts \u203a Use Current Position is dimmed while the machine moves, with the gateway's reason [retry 0]: request 0.158 POST /telemetry \u2014 no named path (actions [], end none)",
+   "macros.spec.ts \u203a the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision [retry 0]: request 2.16 GET /g30 \u2014 no named path (actions [], end none)",
+   "macros.spec.ts \u203a a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers [retry 0]: request 2.32 GET /g30 \u2014 no named path (actions [], end none)",
+   "macros.spec.ts \u203a an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision [retry 0]: request 2.58 GET /g30 \u2014 no named path (actions [], end none)",
+   "macros.spec.ts \u203a another client's save under a draft is a conflict: Reload shows the disk; nothing is overwritten silently [retry 0]: request 2.84 POST /telemetry \u2014 no named path (actions [], end none)"
+  ],
+  "failed_tests": [],
+  "red": true
+ }
+}
