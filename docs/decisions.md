@@ -11546,6 +11546,48 @@ read landed 32 ms after a test's `clearCmds` on the CI runner, read from that
 run's replay log; the spec now drops the page's own frames and reads, as
 `g30.spec.ts` and `toolsetter-setup.spec.ts` do.
 
+## 2026-11-17 — The replay's HTTP paths (step 5b; Codex FI265-02 Rest A/B, R268/R269, R389–R392)
+
+**Why.** Step 5a judged every frame; an HTTP request only had to carry an
+origin. A 200 in the mock's log proved no served route: the mock's SPA
+fallback answers `index.html` with 200 for any path and method — in the full
+run `GET /g30` about 1800 times, `POST /telemetry` about 1500, `/ready`,
+`/gcode`, `/subfile`, a settings beacon. And a request a spec answered in the
+browser never reached the mock at all.
+
+**What.** The fixture records each request of a test's contexts with its own
+id (`e2e/httpRecord.ts`); a catch-all route registered first forwards it
+with `x-e2e-req`; every spec handler's action is recorded through a wrapped
+Route. The mock logs how it answered. `http_paths.py` joins both by id and
+names each request's path; the replay runs it in every gate.
+
+**Decided.**
+- **Assigned by id only** (R269): one proven direct contact is assigned;
+  several under one id, a redirect hop, a fetch through a redirect stay
+  visibly unknown. Never URL or order.
+- **The fallback is no served route** (R389 D1/D3): it is its own class.
+  The mock gets no handlers for `/g30`, `/telemetry`, `/ready` in 5b — that
+  would change what many specs see; a separate point after 5c (Q389-1).
+- **What fails** (R389 D4, Q389-2): a damaged measurement — an id given at
+  the route, a service worker, a contradiction, a contact under an unknown
+  id, an id-less contact no synthetic redirect hop covers (R390 VM389-01:
+  the hop's predecessor fulfilled with a 3xx, no contact under the chain's
+  first id, same method, path and query key names, one per hop), a loaded
+  page without its context, a query in the record, an `unknown`. A gap —
+  replaced, fallback, other server, closing, held — is listed, never green
+  evidence of a route.
+- **Closing by its mark,** never by a distance in time (R389): each context
+  writes its mark right before it closes.
+- **Projections in the fixture** from the inventory's route and section atoms:
+  only the variant leaves the browser, never a value (the invented-token
+  counter-case searches every record byte by byte).
+
+**Measured side effect (R389 probe):** the catch-all changes no test result;
+a request issued while a context closes no longer reaches the mock (it stays
+in the record, class closing); Firefox no longer asks for `/favicon.ico`.
+
+**Not proven:** HTTP payload values; the coverage against the inventory (5c).
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

@@ -389,11 +389,68 @@ gateway's own rules. Run it by hand on a gate's logs:
 - **Result:** the frames by connection class, the commands, EVERY attempt
   (`attempt_list`: id, project, retry, mock, status, page loaded at a mock,
   frames) with its commands (`per_attempt`), the named cookie-less
-  connection with its frames, and what lies outside (`outside`: the
-  profile's axis bounds, gates and handlers, HTTP payloads (5b), coverage
-  against the inventory (5c)).
+  connection with its frames, the HTTP paths (`http_paths`, step 5b
+  below), and what lies outside (`outside`: the profile's axis bounds, gates
+  and handlers, HTTP payload VALUES, coverage against the inventory (5c)).
 - **Guards:** `scripts/test_select/test_replay.py` (synthetic logs, each case
   red for its own reason).
+
+## The replay's HTTP paths (step 5b; Codex FI265-02 Rest A/B, R268/R269, R389–R392)
+
+Every browser request of a test, with what happened to it. The fixture keeps a
+record per worker (`e2e/httpRecord.ts`, `LCNC_E2E_HTTP_DIR`); the replay joins
+it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
+--http <dir>`; the round and merge gates and the Firefox core pass theirs).
+
+- **Three identities:** the browser request (an id at its `request` event),
+  its redirect chain (`redirectedFrom`), a spec's `route.fetch` (an id of its
+  own). A catch-all route registered FIRST on every context continues each
+  request no spec handler took with `x-e2e-req: req:<id>`; the wrapped
+  `continue` and `fetch` set it too (`fetch:<op>`). The mock logs that header
+  — a server contact is assigned by it ONLY, never by URL or order.
+- **Wrapped routes:** `page.route` / `context.route` / `unroute` on every
+  context and its pages (the fixture's, `browser.newContext()`'s, a
+  `newPage()`) hand each spec handler a Route whose `fulfill`, `continue`,
+  `fallback`, `fetch` and `abort` are recorded against the request's id.
+- **The mock** logs how it answered (`served`: its handler, a static file,
+  the SPA **fallback** — `index.html` for any path, never a served route —,
+  403, 404), the query's key NAMES, an unanswered request (`closed`), and the
+  id on a WS `open`. Test-only paths `/__e2e/redirect` and `/__e2e/target`
+  stage a real redirect for the counter-cases.
+- **Closing mark:** each context writes its mark right before it closes (the
+  fixture's close and a spec's `context.close()`) with its service workers —
+  `serviceWorkers: "block"` in the config; any at the close is a finding.
+- **Classes** (the order they are decided): aborted, replaced, fetched (one
+  contact), fetch-unknown, ws-handshake (Firefox reports the upgrade), other-
+  server (the preview server of `smoke`), served, fallback, several (a server
+  redirect keeps the header), redirect-hop, closing (issued at or after the
+  mark), held (a spec handler never acted), aborted-early, unknown. Only
+  served and fetched are a server's answer to a route.
+- **Findings** (R389 D4): an id first given at the route; a service worker; a
+  `fulfill` and a contact under the same id without a fetch; a contact under
+  an id the browser never recorded; an id-less contact of a test attempt —
+  unless a SYNTHETIC redirect hop of the same attempt covers it (its
+  predecessor fulfilled with a 3xx, no contact under the chain's first id,
+  same method, path and query key names, one contact per hop; covered, both
+  stay unassigned — R390 VM389-01); a loaded page without its context in the
+  record; a query in a recorded path; an `unknown`; an expectation of
+  `replay_http_expect.json` that ran and was not seen.
+- **Projection** (`e2e/routeProjection.ts`): the route template from the
+  inventory's `http:` atoms and the agreed variant — `PUT /macro` save or
+  rename with its bases, `DELETE /macro`, `POST /macro-upload` create or
+  replace, `POST /upload` overwrite, the settings section from the
+  inventory's `section:` atoms — never a value; a route without one shows
+  its variant as not derived.
+- **What the catch-all changes, measured (R389):** no test result; a request
+  a page issues while its context closes no longer reaches the mock (it is
+  in the record, class closing); Firefox no longer asks for `/favicon.ico`.
+- **Counter-cases:** `e2e/http-paths.spec.ts` in the real browser (two
+  `GET /devices` assigned by id with the replaced one ending last, fetch then
+  fulfill, a mock 403, the fallback on an API path, the three redirect cases
+  of R268, abort and a held request, an invented token in a query and a
+  header found in no record) with `replay_http_expect.json`;
+  `test_http_paths.py` synthetic (every class, every finding, the four red
+  counter-cases of the synthetic-redirect bound); `src/routeProjection.test.ts`.
 
 ## Function inventory (Codex R265–R269)
 

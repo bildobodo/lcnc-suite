@@ -21,4 +21,9 @@ describe("Playwright project", () => {
     expect(config).toMatch(/\bworkers:\s*Number\(process\.env\.LCNC_E2E_WORKERS \?\? 3\)/);
     expect(config).not.toMatch(/\bdependencies:/);
   });
+
+  it("blocks service workers: none may answer a request past the routes (replay step 5b)", () => {
+    expect(config).toMatch(/\bserviceWorkers:\s*'block'/);
+    expect(config).not.toMatch(/\bserviceWorkers:\s*'allow'/);
+  });
 });
