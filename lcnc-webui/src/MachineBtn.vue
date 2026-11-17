@@ -104,6 +104,8 @@ let holdTimer = 0;
 let holdStartX = 0;
 let holdStartY = 0;
 const HOLD_MOVE_SLOP = 10; // px
+/** How late the hold timer may run before queued input goes first (a frame and some). */
+const HOLD_LATE_MS = 50;
 
 // ── Transient hint (review "Hold verständlich") ──
 // "Hold to activate" after a short tap on a hold button; "Busy — try again"
@@ -204,7 +206,22 @@ function onHoldPointerDown(e: PointerEvent) {
   holding.value = true;
   armHoldGuards();
   clearTimeout(holdTimer);
-  holdTimer = window.setTimeout(() => {
+  holdTimer = window.setTimeout(() => holdDue(e, false), HOLD_FIRE_MS);
+}
+
+// The hold time is over — unless the timer is LATE: the main thread was
+// blocked past it, and a release that happened in that block is still
+// queued behind this task (it fired a 120 ms tap in 3 of 10 staged runs —
+// a 600 ms block, 2026-11-17). A late timer gives queued input one frame
+// first and fires only if the press still stands then.
+function holdDue(e: PointerEvent, deferred: boolean) {
+  if (!holding.value) return;
+  if (!deferred && performance.now() - holdStartTs > HOLD_FIRE_MS + HOLD_LATE_MS) {
+    console.warn(`[hold] ${props.type} timer late by ${Math.round(performance.now() - holdStartTs - HOLD_FIRE_MS)} ms: queued input first`);
+    requestAnimationFrame(() => { holdTimer = window.setTimeout(() => holdDue(e, true), 0); });
+    return;
+  }
+  {
     holding.value = false;
     disarmHoldGuards();
     // Gate may have closed mid-hold (disarm, probe started) — re-check.
@@ -215,7 +232,7 @@ function onHoldPointerDown(e: PointerEvent) {
     }
     if (busyWillDrop()) showHint('Busy — try again');
     callClickHandler(e);
-  }, HOLD_FIRE_MS);
+  }
 }
 
 // A hold is bound to its target and its gate for its whole duration: the
