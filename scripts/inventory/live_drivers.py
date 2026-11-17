@@ -126,10 +126,14 @@ def scenario_status(report: Any, scenario: str) -> tuple[str, str]:
     ('error', why) | ('absent', '') | ('skip', reason) | ('failed', why) | ('passed', '')."""
     if not isinstance(report, dict) or not isinstance(report.get("scenarios"), dict):
         return "error", "the report has no scenarios object"
-    entry = report["scenarios"].get(scenario)
-    if entry is None:
+    if scenario not in report["scenarios"]:
         return "absent", ""
-    direct = entry.get("direct") if isinstance(entry, dict) else None
+    entry = report["scenarios"][scenario]
+    if not isinstance(entry, dict):
+        # present but no record (`null`, a list …): a damaged record, never a
+        # missing run (Codex R396 VM-I36)
+        return "error", f"{scenario}: {type(entry).__name__} where a scenario record belongs"
+    direct = entry.get("direct")
     if not isinstance(direct, dict):
         return "error", f"{scenario}: no direct result"
     skipped, error, fail = direct.get("skipped"), direct.get("error"), entry.get("FAIL")
@@ -145,6 +149,10 @@ def scenario_status(report: Any, scenario: str) -> tuple[str, str]:
         return "error", f"{scenario}: no {missing} in a record that is neither a skip nor an error"
     bad = [p for p in need if direct[p] is not True]
     return ("failed", f"{scenario}: {bad} not true") if bad else ("passed", "")
+
+
+#: the order a scenario's statuses are judged in over several reports
+_LIVE_RANK = {"passed": 0, "skip": 1, "failed": 2, "error": 3}
 
 
 def load_report(path: Path) -> tuple[dict | None, str]:
@@ -172,10 +180,13 @@ def judge(evidence: dict, root: Path, reports: list[dict], head: str) -> dict:
         return {"resolved": True, "status": "not proven", "why": "the driver writes no run report"}
     mine = [r for r in reports if r.get("commit") == head and r.get("dirty") is False]
     other = [r for r in reports if r not in mine]
-    for r in reversed(mine):
-        st, why = scenario_status(r, evidence["title"])
-        if st == "absent":
-            continue
-        return {"resolved": True, "status": st, "why": why, "report": r.get("run_id")}
+    # every report of this commit that holds the scenario, the WORST decides —
+    # a later report never hides an earlier failure (Codex R396, VM-I34's class)
+    found = [(*scenario_status(r, evidence["title"]), r.get("run_id")) for r in mine]
+    found = [x for x in found if x[0] != "absent"]
+    if found:
+        st, why, run = max(found, key=lambda x: _LIVE_RANK.get(x[0], len(_LIVE_RANK)))
+        return {"resolved": True, "status": st, "why": why, "report": run,
+                **({"reports": len(found)} if len(found) > 1 else {})}
     return {"resolved": True, "status": "not at this commit",
             "why": "no report of this commit with a clean tree" + (f" ({len(other)} of another commit or dirty)" if other else "")}

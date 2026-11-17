@@ -11649,6 +11649,23 @@ A test name that exists proves nothing (FI265-03).
   record is "run, not passed", only complete success data is passed.
 - **The merge gate runs it;** a round lists it omitted.
 
+**Amended after R396 (Codex VM-I33–VM-I37).** The listings bounded nothing
+(empty listings, another run's report and ids, a red replay all stayed PASS
+with 110 statements checked); `test.fail()` read as passed and a repeat
+overwrote its twin; any string of `native_run.py` was a case; a `null`
+scenario read as a missing run; the open variants were not in the report.
+Now: the gate's own run ids bind every record (the backend's JUnit by its
+suite name); the listings are the collected sets; a replay counts only green,
+of this run, each attempt bound to a listed test's result at its retry;
+statuses from the reporter's own fields, every instance by its id; native
+cases DECLARED per variant (`native_cases.REPORT_CASES`) and every native
+report of this commit held against them — a scan of the 113 producer sites
+cannot tell a case from a part name (`eval_probe_z("probe", …)` inside
+`combine` vs `eval_probe_z("probe-z", …)` as a row); the worst over every
+report of a commit; the source inventory's sites under `inventory`. Codex's
+R396 probe script runs unchanged: its control PASS, every damage red for its
+own reason.
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

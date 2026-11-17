@@ -483,7 +483,7 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   `test_http_paths.py` synthetic (every class, every finding, the four red
   counter-cases of the synthetic-redirect bound); `src/routeProjection.test.ts`.
 
-## The coverage of a run (step 5c; Codex FI265-03, R389, R390–R392)
+## The coverage of a run (step 5c; Codex FI265-03, R389, R390–R392, R396)
 
 The merge gate ends with `coverage` (`scripts/inventory/coverage.py`): the
 function inventory × the cases THIS run ran, written to `coverage.json` and
@@ -493,8 +493,27 @@ By hand on a merge gate's record:
     python3 -I scripts/inventory/coverage.py --gate <gate-merge.json> \
         [--native-report <report.json> ...] [--live-report <perf_matrix.json> ...] --out c.json --md c.md
 
+- **One run, by its ids** (R396 VM-I33): the merge gate hands the coverage
+  the run ids its own checks made (`browser-workers`, `firefox-workers`,
+  `backend` — `gate_runs`; `--gate` reads them from the record). Every
+  listing, report and replay carries its run's id, the backend's JUnit it as
+  its suite name (`test_suite.py --run-id` → `-o junit_suite_name`). The
+  LISTINGS are the collected sets: a result outside them, another run's
+  record, the same test id twice or with another title is an evaluation
+  error. A replay counts only green and of this run, each attempt bound to a
+  listed test of its project whose report result at that retry is "passed".
+  Without the gate's ids (`coverage_of(…)` after the fact) each listing's own
+  id is the reference and the JUnit is not compared — the report says so.
+- **The reporter's own forms** (R396 VM-I34): a Playwright test is passed only
+  when it was expected to pass and its last result passed; `test.fail()`
+  failing as expected is "expected to fail", never passed; every instance is
+  its own id (a repeat too) and every bound one must pass. A native case and a
+  live scenario are their WORST over every report of this commit.
 - **Five kinds, kept apart, never a percentage** (FI265-03): inventoried (the
-  claimed atoms), triggered (each command and route atom seen in a PASSED
+  claimed atoms and the claims of role variant; the source inventory's
+  unresolved, excluded and open-variant sites with their origin under
+  `inventory` — assigned to no function, never counted as gaps, R396 VM-I37),
+  triggered (each command and route atom seen in a PASSED
   attempt — a command by its valid frames, a route by its 5b path; "served by
   the mock" is never gateway evidence), checked (each statement's evidence
   bound to LISTED test ids and their results), counter (the payload
@@ -505,17 +524,24 @@ By hand on a merge gate's record:
   equal each declared instance (or vitest's quoted form) — never a substring;
   every bound test must pass; Chromium and Firefox apart. Gateway evidence by
   its node in the backend step's JUnit (`backend.junit.xml`, written by
-  `test_suite.py`). Native evidence: the case as a string constant of
-  `native_run.py`, its status only from a report of the same commit, profile
-  and variant. Script evidence (`live: true`): `live_drivers.py` resolves it
+  `test_suite.py`). Native evidence: a DECLARED case of its variant
+  (`native_cases.REPORT_CASES`, from the full reports of 39a73679 and cad9ac77
+  — a string somewhere in the source is no case, R396 VM-I35) and a profile of
+  `native_run.PROFILES`; its status only from a report of the same commit,
+  profile and variant, and every native report of this commit is held
+  against the declared set (a row of another case, a complete run without
+  one of its cases: an evaluation error). Script evidence (`live: true`): `live_drivers.py` resolves it
   by `ast`; a perf_matrix scenario counts only from a report with this full
-  commit and a clean tree, its status ordered by result kind (R392); the TWP
-  drivers write no report — "not proven".
+  commit and a clean tree, its status ordered by result kind (R392); a
+  scenario present without a record (`null`) is an error, never a missing run
+  (R396 VM-I36); the TWP drivers write no report — "not proven".
 - **Red** (an evaluation error, never a gap): an artefact of the run missing,
   evidence that binds no listed test, a report given as run evidence missing
   or malformed, a script binding that does not resolve.
-- **Guards:** `scripts/inventory/test_coverage.py`, `test_replay.py`
-  (`per_attempt_expected`).
+- **Guards:** `scripts/inventory/test_coverage.py` (with Codex's real
+  Playwright status report, `scripts/test_fixtures/coverage/`),
+  `test_replay.py` (`per_attempt_expected`), `test_suite_runner.py` (the
+  JUnit's suite name).
 
 ## Function inventory (Codex R265–R269)
 

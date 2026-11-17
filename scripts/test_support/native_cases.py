@@ -21,6 +21,43 @@ STANDSTILL = 0.001            # mm/s
 ACCEL = (750.0, 750.0, 750.0 * (1 - 0.2))   # X, Y, Z (OFFSET_AV_RATIO)
 
 
+#: Every case a native_run report row can carry, per variant (None = the main
+#: run, `native_run.py --variant …` its own run): the binding set of native
+#: evidence (replay 5c, Codex R396 VM-I35 — a string somewhere in the source
+#: is no case). Taken from the full reports of 39a73679 (main, 86 rows) and
+#: cad9ac77 (latch-delayed, 3 rows). The producers build names from tables
+#: and suffixes (`f"{case}.start"`, `JOG_SERVO_CASES[case]`) and evaluators
+#: take part names too (`eval_probe_z("probe", …)` inside `combine`), so the
+#: set is DECLARED, not scanned: the coverage holds every native report it is
+#: given against it — a row of another case, or a complete run without one
+#: of its cases, is an evaluation error there.
+REPORT_CASES: dict = {
+    None: (
+        'clients-4', 'clients-8', 'comp-after-xy', 'comp-after-xy.counter-frozen', 'comp-cubic',
+        'comp-cubic.counter-nearest', 'comp-linear', 'comp-linear.counter-cubic', 'comp-nearest',
+        'comp-nearest.counter-linear', 'comp-on-off', 'comp-on-off.counter-gap+0.05', 'coolant-flood',
+        'coolant-flood.counter-other-pin', 'coolant-mist', 'coolant-mist.counter-other-pin', 'disconnect-close',
+        'disconnect-heartbeat', 'goto-g30', 'goto-home', 'goto-zero', 'goto-zero.counter-xy-first', 'home-all',
+        'home-joint-0', 'home-joint-1', 'home-joint-2', 'jog-x+', 'jog-x+.servo', 'jog-x-', 'jog-x-.servo', 'jog-y+',
+        'jog-y+.servo', 'jog-y-', 'jog-y-.servo', 'jog-z+', 'jog-z+.servo', 'jog-z-', 'jog-z-.servo', 'latch-recovered',
+        'latch-same-cycle', 'latch-sticky', 'm6-hold', 'm600-t1', 'm600-t1-override-lock', 'm600-t1-return',
+        'm600-t1-return.counter-x+1', 'm600-t1.counter-3102', 'm600-unload', 'override-plateau-100',
+        'override-plateau-50', 'override-plateau.counter-75', 'probe-run', 'probe-run-miss', 'probe-run-miss.start',
+        'probe-run-override-lock', 'probe-run.counter-plate-1', 'probe-run.feature-off', 'probe-run.not-a-routine',
+        'probe-run.restore', 'probe-run.start', 'probe-z', 'probe-z-miss', 'probe-z-miss.start',
+        'probe-z.counter-plate-1', 'probe-z.start', 'rfl-line', 'rfl-line.counter-line+1', 'rfl-no-earlier-line',
+        'rfl-start-point', 'rfl-start-point.counter-entry-x+1', 'sim-trip', 'sim-trip.counter-silent',
+        'surface-override-lock', 'surface-scan', 'surface-scan.counter-node+1', 'surface-scan.counter-xy-swapped',
+        'surface-scan.feature-off', 'surface-scan.job', 'surface-scan.map', 'surface-scan.start', 'tool-reload',
+        'tool-reload.counter-old-length', 'ts-sync-booking', 'ts-sync-program-m600',
+        'ts-sync-program-m600.counter-old-basis', 'ts-sync-stable',
+    ),
+    "latch-delayed": (
+        'latch-recovered', 'latch-same-cycle.delayed-order', 'latch-sticky',
+    ),
+}
+
+
 def brake_bound(axis: int, v: float = JOG_SPEED) -> float:
     """The F5 model (R127): v²/(2a) + 2·v·4T — 2.1 mm on X/Y, 2.5 on Z."""
     return v * v / (2 * ACCEL[axis]) + 2 * v * 4 * T
