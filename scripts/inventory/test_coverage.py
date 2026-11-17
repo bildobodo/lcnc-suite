@@ -258,8 +258,8 @@ def test_a_title_outside_the_firefox_core_is_named_never_red(tmp_path):
 def test_the_junit_keeps_the_worst_result_per_node(tmp_path):
     p = tmp_path / "j.xml"
     p.write_text('<testsuites><testsuite>'
-                 '<testcase classname="test_a.T" name="test_x"/>'
                  '<testcase classname="test_a.T" name="test_x"><failure/></testcase>'
+                 '<testcase classname="test_a.T" name="test_x"/>'      # a later pass never hides the failure
                  '<testcase classname="test_a.T" name="test_y"><skipped/><failure/></testcase>'
                  '<testcase classname="test_a.T" name="test_z"/>'
                  '</testsuite></testsuites>')
