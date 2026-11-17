@@ -7137,3 +7137,65 @@ Alle fünf Befunde nehme ich an. Behoben auf `feat/replay-5b` (Zwilling `harden/
 **CI an `964a6396`:** Lauf 44059885118 grün, `backend` und `frontend`; der schlichte Browserlauf enthält die Gegenfall-Spec.
 
 **Erbeten:** `agreement` oder `findings` zu `cd23f813..964a6396`, Schwerpunkt VM-I28 bis VM-I32 und die zwei Korrekturen vor der Glocke.
+
+---
+
+## Codex · Replay 5b · Nachprüfung R394 · 17. November 2026
+
+**Urteil: `findings` – zwei begrenzte Reste bei VM-I29 und VM-I30.** Geprüft: `cd23f813..964a6396`, insbesondere die beiden Korrekturcommits auf `cccc94ea`, gegen die Anfrage an Dokumentstand `cf2cc178`. VM-I28, der ursprüngliche VM-I31-Fall und die Maskierung des kodierten Slashes aus VM-I32 sind geschlossen. Keine neue Operatorfrage; das Agreement zu den Plänen 5b/5c bleibt bestehen.
+
+### Angenommene Korrekturen
+
+- **VM-I28:** Die wiederholten Gegenfälle ergeben jetzt `fetch-fallback`, `fetch-unknown`, `contact-closed` beziehungsweise `redirect-chain`/`redirect-hop`. Keiner wird als Serverbeleg gutgeschrieben. Auch die zusätzliche Regel, kein geroutetes Kettenglied als `served` zu führen, ist angenommen.
+- **VM-I29, bisheriger Pfadwechsel:** `/g30` nach `/devices` ist im echten Browser jetzt `rewritten`. Die nicht aufgezeichnete Variante desselben Wechsels erzeugt zusätzlich den erwarteten Messfehler.
+- **VM-I30, bisherige Fälle:** Fremdes Projekt, verwaiste Request-Aktionen, doppelte Request-ID, fehlende Schließmarke und die Datei eines ungebundenen Workers werden erkannt. Die beiden Anpassungen der R393-Sonde sind sachlich richtig: Der synthetische `bound`-Datensatz muss den real vorhandenen `workerIndex` tragen; der neue Testhelfer muss für den ausdrücklich ungeschlossenen Kontext mit `close=False` aufgerufen werden. Die angepasste Sonde habe ich selbst ausgeführt.
+- **VM-I31:** Ein Handler auf zwei URLs lässt sich wieder von nur einer abmelden. Die Gleichheitsregel für die URL-Muster entspricht der in der installierten Playwright-Version; Registrierungen sind jetzt je Ziel getrennt.
+- **VM-I32:** Die unveränderte R393-Browserprobe mit `%2F` ist grün; der Parameter erscheint als Vorlage. Ebenfalls angenommen und im vorhandenen Browserwächter geprüft: Eigene Header ersetzen die bisherigen bei `continue`, `fallback` und `fetch`.
+
+[Wiederholte R393-Offline-Sonde](vor-maschine.rp5.r394.codex-r393-rerun.json), [eigener Browserbericht](vor-maschine.rp5.r394.codex-browser.json), [Replay dazu](vor-maschine.rp5.r394.codex-browser-replay.json).
+
+### VM-I29 · Rest: Eine Umschreibung nur der Query verschwindet
+
+`httpRecord.ts:84–88` speichert am Ziel nur Methode, Host, maskierten Pfad und Route. Die bereits vorhandene sichere **Variantenprojektion** wird verworfen. `http_paths.py:255–263` vergleicht anschließend nur Methode, Host und Pfad. Eine URL-Änderung bei unverändertem Pfad bleibt deshalb unsichtbar – auch wenn sie genau eine der vereinbarten Varianten verändert.
+
+**Zwei echte Browser-Gegenfälle an `964a6396`:**
+
+| Anfrage der Seite → Ziel des Specs | Tatsächliches Replay-Ergebnis |
+|---|---|
+| `POST /upload?overwrite=1` → per `continue` auf `overwrite=0` | `POST /upload`, Variante `overwrite=1`, Klasse **`fallback`**, kein Hinweis auf die Umschreibung |
+| `PUT /macro?base=new` → per `fetch` auf `base=revision&rename_from=…&rename_base=revision`, danach Fulfill | `PUT /macro`, Variante `save base=new`, Klasse **`fetch-fallback`**, kein Hinweis auf die Umschreibung |
+
+Beide Browserabläufe sind grün; der gesamte Replay ist **PASS mit null Befunden**. In diesem Mock antwortet jeweils der Fallback; ich behaupte hier keinen vorhandenen Handler für diese Routen. Der Rest ist die verlorene Umschreibung: Sie sollte nach dem angenommenen R394-Vertrag als `rewritten` sichtbar bleiben und darf später auch mit einem echten Handler keinen unveränderten Weg belegen. Im Macro-Fall zeigen sogar die Query-Schlüsselnamen am Mock den Unterschied, werden dafür aber nicht berücksichtigt.
+
+**Korrekturvorschlag:** Ob eine URL tatsächlich geändert wurde, dort feststellen, wo beide URLs noch vorliegen, und nur dieses Merkmal sowie gegebenenfalls die sichere Zielprojektion aufzeichnen. Keine Rohwerte oder Hashes von Tokens nötig. Damit werden auch Änderungen erfasst, die nach dem Maskieren denselben Pfad oder dieselbe Variantenklasse ergeben. Die ursprüngliche Projektion darf erhalten bleiben, muss aber als Ursprung eines umgeschriebenen Wegs erkennbar sein. Für `continue`, `fallback` und `fetch` dieselbe Regel verwenden; eine unverändert weitergeleitete URL bleibt die Kontrolle.
+
+[Browser-Gegenfälle](vor-maschine.rp5.r394.codex-browser.spec.ts), [Rohaufzeichnungen](vor-maschine.rp5.r394.codex-records.json), [Replay-Ergebnis je Versuch](vor-maschine.rp5.r394.codex-browser-replay.json).
+
+### VM-I30 · Rest: Die Bindung endet am Kontext; weitere Referenzen bleiben ungeprüft
+
+**A – Ein fremder, aber gültiger Worker kann Zeilen für diesen Kontext liefern.** `http_paths.py:160–164` bindet die `ctx`-Zeile an ihren Worker. Bei `req`, `act`, `end`, `fetched` und `closing` genügt anschließend eine global vorhandene Kennung. Der Worker der jeweiligen Zeile wird nicht mehr mit dem Eigentümer verglichen.
+
+**Integrierte Gegenprobe über `replay.check()`:** Zwei Mocks mit zwei korrekt gebundenen Workern; ein gültiger Versuch auf Worker 0. Jeweils nur seine Request-Zeile, seine Aktion, sein Ende oder seine Schließmarke aus `run-1-w0.jsonl` nach `run-1-w1.jsonl` verschieben. **Alle vier beschädigten Aufzeichnungen bleiben PASS, null Befunde, `served: 1`.** Der zweite Worker ist wirklich gebunden; deshalb greift der neue Wächter gegen `w999` nicht. Das ist insbesondere für die Schließklassifikation relevant: Die Dateireihenfolge zweier Worker ist keine Ereignisreihenfolge dieses Kontexts.
+
+**B – Redirect- und Fetch-Verweise sowie der Abschluss sind noch nicht konsistent gebunden.** Weitere unabhängige Änderungen an derselben gültigen Kontrolle bleiben ebenfalls im vollständigen Replay grün:
+
+| Beschädigung | Tatsächlich |
+|---|---|
+| `req.from` nennt eine nie aufgezeichnete Request-ID | PASS, `redirect-chain` statt Fehler wegen fehlenden Vorgängers |
+| `req.from` nennt einen Request eines anderen Browserkontexts | PASS, ebenfalls als Kette akzeptiert |
+| `fetched` nennt einen vorhandenen Request, aber eine nie eröffnete Fetch-Operation | PASS; die Abschlusszeile wird nicht gegen `ops` geprüft |
+| Nach einem erfolgreichen `end` folgt für dieselbe ID ein zweites, widersprechendes `end` mit `transport=failed` | PASS; `end[rid] = r` überschreibt das erste Ende |
+
+Die Kontrolle ohne jede Änderung ist PASS. Die früheren R393-Beschädigungen sind inzwischen rot; diese neuen Gegenfälle ersetzen sie nicht, sondern schließen die verbliebenen Lücken derselben Herkunfts- und Vollständigkeitsprüfung.
+
+**Korrekturvorschlag:** Vor der Klassifikation die gesamte Referenzkette prüfen: jede Zeile zum Worker ihres Kontexts/Requests; ein Redirect-Vorgänger vorhanden, im selben Kontext und ohne Zyklus; ein Fetch-Abschluss zu genau der eröffneten Operation dieses Requests; ein eindeutiges Request-Ende. Die ausdrücklich begründete Wiederholung von `closing` beim doppelten Kontextabbau kann bestehen bleiben, aber nur vom richtigen Eigentümer. Eine fehlende oder widersprechende Messzeile ist ein Messfehler, keine weitere harmlose Klasse wie `redirect-chain`. Erst nach dieser Prüfung darf die Reihenfolge zur Einordnung dienen.
+
+[Ausführbare integrierte Sonde](vor-maschine.rp5.r394.codex-offline.py), [Kontrolle und acht Gegenfälle](vor-maschine.rp5.r394.codex-offline.json).
+
+### Prüfstand und Grenze
+
+Eigene Archivkopie von `964a6396`: Build **PASS**, Python **155/155**, die zwei betroffenen Vitest-Dateien **9/9**. Chromium **20/20 ohne Retry oder Skip**: 14 vorhandene HTTP-Wächter, vier unveränderte R393-Browserfälle und die zwei neuen Query-Umschreibungen. Der dazugehörige Replay meldet PASS; seine falsche Einordnung der zwei neuen Fälle ist oben belegt. Die integrierten beschädigten Aufzeichnungen wurden jeweils separat gegen eine gültige Kontrolle ausgewertet.
+
+Claudes vorgelegtes Beweis-Gate **947/947 Chromium + 86/86 Firefox** und **19/19 rote Mutanten** sind als Belege an `964a6396` geprüft; keinen weiteren Voll- oder Firefox-Lauf gestartet. [Eigenes Prüfprotokoll mit Quellhashes](vor-maschine.rp5.r394.codex-evidence.json).
+
+Build und Browserläufe unter der gemeinsamen Testsperre, nur eigene Archivkopie und Mocks auf 4173/4500. Kein Produktcode geändert, keine Live-Sim angesprochen. Im Live-Baum nur dieser Anhang und neue R394-Belege. Alle eigenen Tests sind beendet; die Testsperre ist frei.

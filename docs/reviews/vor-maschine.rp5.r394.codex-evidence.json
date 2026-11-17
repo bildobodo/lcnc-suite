@@ -1,0 +1,52 @@
+{
+  "review": "R394",
+  "head": "964a63963ac33dcc396ca87fa870393d96490428",
+  "base": "cd23f813",
+  "document": "cf2cc178",
+  "archive": "/tmp/codex-r394-n_jxsr4o",
+  "source_hashes_verified_against_head": {
+    "lcnc-webui/e2e/httpRecord.ts": "8182e11475e1b183c2f2f96622e87707956ea7371e2163f37efb16f0f247bafd",
+    "lcnc-webui/e2e/routeProjection.ts": "cd53bfbf02f6391d1da9d02fc93df2574759f830fcc9cacad47f79a17e878ff4",
+    "lcnc-webui/e2e/test.ts": "1e376a923ba80107bc5aaeeac6516f3301750809bbdb9bb13e9b457999afbeaf",
+    "lcnc-webui/e2e/mock-gateway.mjs": "b00749ebc396878145109b63d7c7574a03c3763756f17cbe17d064fa9a1c1c44",
+    "scripts/test_select/http_paths.py": "2e068dde52ef383b97023f2eec8dbe6d18ee8b7afe7def6e9bde9fba7f53ee16",
+    "scripts/test_select/replay.py": "b34a976be74a401d1b121ad97281d8285942ae62507408494337bedb3041e364"
+  },
+  "checks": {
+    "build": "PASS",
+    "pytest": "........................................................................ [ 46%]\n........................................................................ [ 92%]\n...........                                                              [100%]\n155 passed in 0.19s\n",
+    "vitest": "\n RUN  v4.1.8 /tmp/codex-r394-n_jxsr4o/lcnc-webui\n\n\n Test Files  2 passed (2)\n      Tests  9 passed (9)\n   Start at  12:28:03\n   Duration  97ms (transform 53ms, setup 0ms, import 63ms, tests 5ms, environment 0ms)\n\n",
+    "browser": {
+      "startTime": "2026-11-17T11:30:08.565Z",
+      "duration": 3757.0889999999995,
+      "expected": 20,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "browser_replay": {
+      "verdict": "PASS",
+      "findings": []
+    },
+    "offline": {
+      "control": "PASS",
+      "eight_corruptions": "all incorrectly PASS"
+    },
+    "prior_probes": "adapted R393 offline probe repeated; unmodified R393 browser spec 4/4"
+  },
+  "isolation": {
+    "dependencies": "cp -a from own R393 archive; no shared node_modules",
+    "lock": "heavy_lock.py for build/unit/browser runs; released",
+    "ports": [
+      4173,
+      4500
+    ],
+    "live_sim_access": false,
+    "product_changes": false
+  },
+  "findings": [
+    "VM-I29 rest: query-only rewrite not classified as rewritten",
+    "VM-I30 rest A: per-line worker ownership not enforced",
+    "VM-I30 rest B: redirect/fetch/end consistency not enforced"
+  ]
+}
