@@ -1,0 +1,61 @@
+{
+ "requests": 1642,
+ "contexts": 85,
+ "classes": {
+  "replaced": 23,
+  "ws-handshake": 84,
+  "other-server": 40,
+  "served": 1230,
+  "fallback": 265
+ },
+ "routes": {
+  "GET /": {
+   "other-server": 3,
+   "served": 82
+  },
+  "GET /devices": {
+   "served": 12
+  },
+  "GET /g30": {
+   "fallback": 84
+  },
+  "GET /gcode": {
+   "replaced": 7
+  },
+  "GET /macro": {
+   "replaced": 2
+  },
+  "GET /macros": {
+   "other-server": 2,
+   "replaced": 8,
+   "served": 74
+  },
+  "GET /preview": {
+   "served": 7
+  },
+  "GET /settings": {
+   "other-server": 3,
+   "served": 82
+  },
+  "POST /import-tool-library": {
+   "replaced": 4
+  },
+  "POST /telemetry": {
+   "fallback": 181,
+   "other-server": 5
+  },
+  "POST /upload": {
+   "replaced": 2
+  }
+ },
+ "fallback_paths": {
+  "POST /telemetry": 181,
+  "GET /g30": 84
+ },
+ "idless_covered_by_synthetic_hops": 0,
+ "ws_handshakes_joined": 82,
+ "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+ "findings": [],
+ "per_attempt_counter_cases": {},
+ "per_attempt_note": "85 attempts in the gate log replay.json (local); here only the counter-case spec"
+}

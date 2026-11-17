@@ -1,0 +1,313 @@
+{
+ "baseline": {
+  "verdict": "PASS",
+  "findings": []
+ },
+ "H1": {
+  "what": "the catch-all forwards without the id",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.1 GET / \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.2 GET /static/index-Cw_Yo_8H.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.3 GET /static/three-D_Nc9AAY.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.4 GET /static/msgpack-BkQaaVuN.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.5 GET /static/index-BfuNUijc.css \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.6 GET /settings \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.7 GET /static/wsWorker-P733WBKL.js \u2014 no named path (actions ['catch-all'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.8 GET /static/ThreeViewer-DsOXnQuy.js \u2014 no named path (actions ['catch-all'], end finished)"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H2": {
+  "what": "a contact assigned by its URL instead of its id",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-7cdc96e8d26aa26e5736', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-b304833c638ed2e6b5a3', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-b9cc47357af61e1c042b', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-e4c8d3649f9ea4a26807', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-e4c8d3649f9ea4a26807', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-3e4153848afc1e4ce0a8', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-fa3eaf93b418dd2d7d89', 'project': 'e2e', 're)",
+   "request 1.1 GET /__e2e/target: its contact carries another origin ({'run': 'sub-1794915484', 'test': '54be4cfb39f784bd0505-93ced2cec37669e1814a', 'project': 'e2e', 're)"
+  ],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_a_recorded_rewrite_is_its_own_class_and_an_unrecorded_one_is_red",
+   "FAILED scripts/test_select/test_http_paths.py::test_the_same_path_encoded_in_the_browser_and_decoded_at_the_mock_is_no_rewrite"
+  ],
+  "red": true
+ },
+ "H3": {
+  "what": "the record keeps the query's values",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "request 1.33: a query in the recorded path \u2014 the record keeps key names only",
+   "request 1.34: a query in the recorded path \u2014 the record keeps key names only",
+   "request 1.37: a query in the recorded path \u2014 the record keeps key names only",
+   "request 1.38: a query in the recorded path \u2014 the record keeps key names only",
+   "request 1.40: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.47: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.55: a query in the recorded path \u2014 the record keeps key names only",
+   "request 2.73: a query in the recorded path \u2014 the record keeps key names only"
+  ],
+  "failed_tests": [
+   "an invented token in a query, a header and a path parameter appears in no record"
+  ],
+  "red": true
+ },
+ "H4": {
+  "what": "a wrapped fulfill that records nothing",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.13 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis [retry 0]: request 0.15 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed [retry 0]: request 0.28 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed [retry 0]: request 0.30 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a a save LinuxCNC did not confirm is never 'saved' [retry 0]: request 0.44 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a a save LinuxCNC did not confirm is never 'saved' [retry 0]: request 0.46 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a machine frame only: under TCP, Use Current Position and Save are dimmed with the reason [retry 0]: request 0.59 GET /g30 \u2014 no named path (actions ['handler'], end finished)",
+   "g30.spec.ts \u203a machine frame only: under TCP, Use Current Position and Save are dimmed with the reason [retry 0]: request 0.61 GET /g30 \u2014 no named path (actions ['handler'], end finished)"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H5": {
+  "what": "the SPA fallback counted as a served route",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "http-paths.spec.ts \u203a the SPA fallback answers an API path: never a served route [retry 0]: GET /g30 as fallback 0 time(s), expected 1",
+   "http-paths.spec.ts \u203a a handler registered for two urls is unrouted from one of them alone (R393 VM-I31) [retry 0]: GET /__e2e/a as fallback 0 time(s), expected 1"
+  ],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_a_forwarded_request_with_its_one_contact_is_served_and_the_fallback_is_not"
+  ],
+  "red": true
+ },
+ "H6": {
+  "what": "a real redirect hop covers an id-less contact (the synthetic condition dropped)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /t reached the mock without an id0]"
+  ],
+  "red": true
+ },
+ "H7": {
+  "what": "an id-less contact is never a finding",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-no synthetic redirect hop of the attempt covers it]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /other reached the mock without an id]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /t reached the mock without an id0]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /devices reached the mock without an id]",
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-GET /t reached the mock without an id1]"
+  ],
+  "red": true
+ },
+ "H9": {
+  "what": "service workers allowed in the config",
+  "kind": "unit",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "unit_exit": 1,
+  "failed": [
+   "\u001b[31m     \u001b[31m\u00d7\u001b[31m blocks service workers: none may answer a request past the routes (replay step 5b)\u001b[39m\u001b[32m 2\u001b[2mms\u001b[22m\u001b[39m",
+   "\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m src/playwrightProjects.test.ts\u001b[2m > \u001b[22mPlaywright project\u001b[2m > \u001b[22mblocks service workers: none may answer a request past the routes (replay step 5b)"
+  ],
+  "red": true
+ },
+ "H10": {
+  "what": "a service worker at a context's close is no finding",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_each_finding_is_red_for_its_own_reason[<lambda>-service worker(s) at its close]"
+  ],
+  "red": true
+ },
+ "H11": {
+  "what": "closing by the clock again (the request's ms at or after the mark's)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "http-paths.spec.ts \u203a an aborted request and one a spec holds until its context closes [retry 0]: GET /tool-table as held 0 time(s), expected 1"
+  ],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_the_record_s_order_decides_closing_never_the_millisecond"
+  ],
+  "red": true
+ },
+ "H12": {
+  "what": "a wrapped continue that drops the id",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.83 GET /static/index-Cw_Yo_8H.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.84 GET /static/three-D_Nc9AAY.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.85 GET /static/msgpack-BkQaaVuN.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.88 GET /static/wsWorker-P733WBKL.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.89 GET /static/ThreeViewer-DsOXnQuy.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.90 GET /static/toolGeometry-CyOHk4ZX.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.95 GET /static/previewWorker-zTzcNKFy.js \u2014 no named path (actions ['continue'], end finished)",
+   "editor-guards.spec.ts \u203a program change while CodeMirror is still loading: the view shows A and is usable [retry 0]: request 0.101 GET /static/index-o9DEOgyx.js \u2014 no named path (actions ['continue'], end finished)"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H13": {
+  "what": "a fetch over the SPA fallback counted as a server answer (R393 VM-I28)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "http-paths.spec.ts \u203a a fetch over the SPA fallback, then fulfill: a fallback stays a fallback (R393 VM-I28) [retry 0]: GET /g30 as fetch-fallback 0 time(s), expected 1"
+  ],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_a_fetch_over_the_fallback_stays_a_fallback_and_a_closed_contact_proves_no_answer"
+  ],
+  "red": true
+ },
+ "H14": {
+  "what": "a rewrite by continue({url}) not recorded (R393 VM-I29)",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "request 1.24 GET /g30: its contact is GET /devices with no recorded rewrite",
+   "http-paths.spec.ts \u203a a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29) [retry 0]: POST /upload as rewritten (overwrite=1) 0 time(s), expected 1"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H15": {
+  "what": "a context naming another project is no finding (R393 VM-I30)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_a_damaged_or_foreign_record_is_red[<lambda>-names project 'firefox-core'-kw0]"
+  ],
+  "red": true
+ },
+ "H16": {
+  "what": "unroute(url, handler) takes the handler's last wrapper, whatever its url (R393 VM-I31)",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "http-paths.spec.ts \u203a a handler registered for two urls is unrouted from one of them alone (R393 VM-I31) [retry 0]: GET /__e2e/a as fallback 0 time(s), expected 1",
+   "http-paths.spec.ts \u203a a handler registered for two urls is unrouted from one of them alone (R393 VM-I31) [retry 0]: GET /__e2e/b as replaced 0 time(s), expected 1"
+  ],
+  "failed_tests": [
+   "a handler registered for two urls is unrouted from one of them alone (R393 VM-I31)"
+  ],
+  "red": true
+ },
+ "H17": {
+  "what": "the mock masks the parameter after decoding (R393 VM-I32)",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "request 1.43 GET /settings/{section}: its contact is GET /settings/e2e-invented-1794916027965-3hnimkgk9vw/tail with no recorded rewrite"
+  ],
+  "failed_tests": [
+   "an invented token in a query, a header and a path parameter appears in no record"
+  ],
+  "red": true
+ },
+ "H18": {
+  "what": "a spec's own headers merged with the request's again (R394)",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "failed_tests": [
+   "a spec's own headers replace the request's on continue, fallback and fetch, as in Playwright (R394)"
+  ],
+  "red": true
+ },
+ "H19": {
+  "what": "a routed hop of a redirect chain counted as served again (R394)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_no_member_of_a_redirect_chain_is_evidence_not_even_a_routed_hop"
+  ],
+  "red": true
+ },
+ "H20": {
+  "what": "a rewrite of the query alone not seen \u2014 the path compared only (R394 VM-I29)",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "http-paths.spec.ts \u203a a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29) [retry 0]: POST /upload as rewritten (overwrite=1) 0 time(s), expected 1",
+   "http-paths.spec.ts \u203a a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29) [retry 0]: PUT /macro as rewritten (save base=new) 0 time(s), expected 1"
+  ],
+  "failed_tests": [],
+  "red": true
+ },
+ "H21": {
+  "what": "an act, end or fetched line of another worker accepted (R394 VM-I30)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_every_line_and_reference_is_bound[<lambda>-written by worker 1, the request's is 0]"
+  ],
+  "red": true
+ },
+ "H22": {
+  "what": "a second end of a request overwrites the first (R394 VM-I30)",
+  "kind": "offline",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "PASS",
+  "findings": [],
+  "guard_failed": [
+   "FAILED scripts/test_select/test_http_paths.py::test_every_line_and_reference_is_bound[<lambda>-a second end line]"
+  ],
+  "red": true
+ },
+ "H8": {
+  "what": "the closing mark not written",
+  "kind": "browser",
+  "head": "43b1531a8aabbce18bd2a7786696ca91b535a0c8",
+  "replay": "FAIL",
+  "findings": [
+   "context 0.c1: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c2: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c3: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c4: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c5: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c6: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c7: no closing mark \u2014 the record of a finished run ends every context",
+   "context 0.c8: no closing mark \u2014 the record of a finished run ends every context"
+  ],
+  "failed_tests": [],
+  "red": true
+ }
+}
