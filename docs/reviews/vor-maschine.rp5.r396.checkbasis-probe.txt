@@ -111,7 +111,8 @@ B: the card open; the layout changed at the MOVE before the closing press (after
    cd23f813: PROBE B staged=true open-after-closing-click=1
    43b1531a: PROBE B staged=false open-after-closing-click=0
    43b1531a: PROBE B staged=true open-after-closing-click=1
-   First staging (the cover added AT the pointerdown) did not reproduce: Playwright's listener had judged the hit already
+   First staging (the cover added AT the pointerdown) did not reproduce: Playwright 1.60.0 attaches its hit-target capture
+   listeners in its injected script's constructor (_setupHitTargetInterceptors), before the probe's, and judges the hit at the pointerdown
    (record: open-after-closing-click=0 for both — probe-43b1531a-B-first-staging, kept in the work dir).
 
 Playwright's log of the staged closing click (43b1531a, from its trace):

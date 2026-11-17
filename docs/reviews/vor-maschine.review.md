@@ -7362,7 +7362,7 @@ Build und Tests in der eigenen Archivkopie, die schweren Läufe unter der gemein
 
 Zwei Teile in einer Anfrage, Basis development `43b1531a` (5b gemergt):
 1. **5c** auf `feat/replay-5c` (Zwilling `harden/replay-5c`), Kopf **`9d7d7c0e`**. Grundlage ist der vereinbarte Plan: R389 (5c), R390–R392 (die Live-Belege und die Statusreihenfolge), FI265-03 (die fünf Belegarten). Produktcode ändert sich nicht.
-2. **Die Korrektur der roten development-CI** (Lauf 44098232396, im Merge-Protokoll von 5b benannt) als zwei Commits darauf: `fix/check-basis-trigger` (Zwilling `harden/check-basis`), Kopf **`1ec5e093`**. Der erste ist die Korrektur mit dem Wächter, der zweite macht den Wächter robuster. Das ist eine kleine Produktänderung im Sim-Tab, sichtbar an der Maschine; als Planergänzung steht sie unten mit Messung, Mechanismus und Wächter.
+2. **Die Korrektur der roten development-CI** (Lauf 44098232396, im Merge-Protokoll von 5b benannt) als zwei Commits darauf: `fix/check-basis-trigger` (Zwilling `harden/check-basis`), Kopf **`1ec5e093`**. Der erste ist die Korrektur mit dem Wächter. Der zweite macht den Wächter robuster und fasst die Aussage in den Kommentaren von `SimPanel.vue`, in `CLAUDE.md` und in der Doku auf „mit und ohne Leiste“ zusammen. Die Korrektur liegt auf 5c: Hat 5c einen Befund, die Korrektur aber nicht, setze ich ihre zwei Commits auf `43b1531a` um und lasse dort ein eigenes Gate laufen. Das ist eine kleine Produktänderung im Sim-Tab, sichtbar an der Maschine; als Planergänzung steht sie unten mit Messung, Mechanismus und Wächter.
 
 Erbeten ist ein Agreement oder Befunde zu `43b1531a..1ec5e093`, gern je Teil getrennt: Ein Befund an der Korrektur hält 5c nicht auf. Belege liegen unter `vor-maschine.rp5.r396.*`.
 
@@ -7447,7 +7447,7 @@ Vor dem Bau habe ich die Regeln in einem Probelauf über alle Belege des Inventa
   - **26 Routen**: 7 nie angefragt, 19 von keinem Server beantwortet, nur ersetzt, Fallback, umgeschrieben, gehalten oder beim Schließen.
 - **Gegenprobe:** `replay_refusals.json` ist leer, also gab es in diesem Lauf keine erwartete Ablehnung des Nutzlastprüfers. Der Bericht sagt das, der Gegenfall ist synthetisch. Native Zählerzeilen stehen mit ihren Belegen, ohne Bericht dieses Commits.
 
-Dazu: Der Firefox-Wächterprozess lief mit; seine 24 Datensätze gehören alle zum Chromium-Lauf. `browser-replay` beurteilte 9117 Rahmen und die HTTP-Wege von 948 Versuchen, ohne `unknown`. Die Zahlen der Abdeckung sind dieselben wie an den Gates an `54cf35ac` und `eab53110`, verglichen mit deren eigenen `coverage.json`.
+Dazu: Der Firefox-Wächterprozess lief mit; seine 24 Datensätze gehören alle zum Chromium-Lauf. `browser-replay` beurteilte 9117 Rahmen und die HTTP-Wege von 948 Versuchen, ohne die Befundklasse `unknown`. Die eine `fetch-unknown`-Anfrage ist der Gegenfall in `http-paths.spec.ts` („a fetch through a server redirect, then fulfill“). Die Zahlen der Abdeckung sind dieselben wie an den Gates an `54cf35ac` und `eab53110`, verglichen mit deren eigenen `coverage.json`.
 
 **CI an `9d7d7c0e`:** Lauf 44126448442 grün, `backend` und `frontend`.
 
@@ -7510,7 +7510,7 @@ Dazu: Der Firefox-Wächterprozess lief mit; seine 24 Datensätze gehören alle z
 - Playwrights Protokoll hat dieselbe Form wie das der CI: erst „performing click action“, dann „… intercepts pointer events“, dann die Wiederholung.
   - Der Druck erreichte also die Seite, und das Light Dismiss des Browsers schloss die Karte. In welchem Moment des Drucks das geschah, habe ich nicht gemessen; die Probe hält nur den Endzustand fest.
   - Die Wiederholung traf den Auslöser; `toggle()` sah die Karte zu und öffnete sie.
-- Benannt: Mein erster Versuch legte die Abdeckung beim Druck selbst hin und reproduzierte nichts. Playwrights eigener Capture-Listener ist vor jedem der Seite registriert und hatte den Treffer schon beurteilt.
+- Benannt: Mein erster Versuch legte die Abdeckung beim Druck selbst hin und reproduzierte nichts, die Karte war zu. Playwright 1.60.0 hängt seine Capture-Listener für die Treffer-Ereignisse schon im Konstruktor seines eingespritzten Skripts an `window` (`_setupHitTargetInterceptors` in `playwright-core/lib/coreBundle.js`). Er ist also vor dem Listener der Probe dran und beurteilt den Treffer beim pointerdown selbst. Gemessen ist nur: Abdeckung beim pointerdown → Karte zu; Abdeckung bei der Bewegung davor → Karte offen.
 - Dasselbe Verschieben setzt den Tipp einer Bedienperson auf die Leiste.
 
 **Abweichung vom Merge-Protokoll von 5b, benannt.** Dort stand: erst ein roter Wächter, dann eine Planergänzung an Codex, und der veränderliche Inhalt kommt nach dem Auslöser. Beides habe ich anders gemacht:
@@ -7538,6 +7538,8 @@ Dazu: Der Firefox-Wächterprozess lief mit; seine 24 Datensätze gehören alle z
 **Beweis-Gates** (`round_gate.py --base 9d7d7c0e`):
 - an `25c2fd32`: PASS, `uncommitted: 0`. Unit 2675; der ausgewählte Browserlauf **433/433** mit layout, visual, contrast, dialogs, collisions und sim-panel; `browser-replay` PASS mit 5065 Rahmen; der Firefox-Kern **86/86** mit `firefox-replay` PASS. Ausgelassen nach Regel: `unit-heavy`, `backend`, `coverage`.
 - an `1ec5e093`: PASS, `uncommitted: 0`, dieselbe Auswahl: Unit 2675, Browser **433/433**, `browser-replay` PASS mit 5053 Rahmen, der Firefox-Kern **86/86** mit `firefox-replay` PASS ([Bericht](vor-maschine.rp5.r396.checkbasis-gate-1ec5e093.json); der von `25c2fd32` liegt [daneben](vor-maschine.rp5.r396.checkbasis-gate-25c2fd32.json)).
+
+**Die Bindung der Abdeckung an `1ec5e093`** (ein Rundengate führt `coverage` nicht, und der Wächter bringt zwei neue Testtitel): Der Probelauf der Bindung gegen die volle Chromium-Listung des Gates an `1ec5e093` bindet jeden Beleg genau wie an `9d7d7c0e`. Dieselbe Zusammenfassung, nichts ungebunden.
 
 **CI:** an `25c2fd32` Lauf 44143282444 grün (`backend` und `frontend`); an `1ec5e093` Lauf 44148765139 grün (`backend` und `frontend`).
 
