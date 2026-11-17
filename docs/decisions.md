@@ -11601,6 +11601,28 @@ in the record, class closing); Firefox no longer asks for `/favicon.ico`.
 
 **Not proven:** HTTP payload values; the coverage against the inventory (5c).
 
+## 2026-11-17 — The coverage of a run (step 5c; Codex FI265-03, R389, R390–R392)
+
+**Why.** The inventory named every function and its statements; whether a
+statement's evidence RAN, passed, at which head, stayed outside every gate.
+A test name that exists proves nothing (FI265-03).
+
+**Decided.**
+- **From the run's own artefacts only:** the listings and reports of the
+  gate, the backend's JUnit, the replay's frames and HTTP paths; native and
+  live reports only when given, and only of this commit.
+- **Five kinds apart, no percentage, every gap named** — the 17 commands no
+  test sends, the routes no server answers, the statements with no gate
+  evidence.
+- **Binding by listed test ids, never text:** the rules of the dry run over
+  all 347 entries (exact, fragment, template captures equal to each
+  instance); every bound test must pass.
+- **Red only for an evaluation error** (Q389-2): a missing artefact, an
+  evidence that binds nothing, a claimed report not shown.
+- **Live scenarios ordered by result kind** (R392): a skip is SKIP, an error
+  record is "run, not passed", only complete success data is passed.
+- **The merge gate runs it;** a round lists it omitted.
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

@@ -285,6 +285,20 @@ def test_an_expected_refusal_is_no_finding_and_another_still_is(tmp_path):
     assert any("touchoff refused" in f for f in run(tmp_path, [m], [attempt(A)], refusals=[EXPECT])["findings"])
 
 
+def test_an_expected_refusal_is_counted_apart_with_its_variant_key(tmp_path):
+    # replay step 5c: the payload checker's counter-check, kept apart from the
+    # valid frames — per_attempt still counts every frame (R374's shape)
+    m = Mock()
+    c = m.page(A)
+    m.frame(c, {"cmd": "touchoff", "axes": {"Q": 1.0}})
+    m.frame(c, {"cmd": "touchoff", "axes": {"X": 1.0}})                  # a valid one beside it
+    r = run(tmp_path, [m], [attempt(A)], refusals=[EXPECT])
+    assert r["verdict"] == "PASS", r["findings"]
+    name = "x.spec.ts › t [retry 0]"
+    assert r["per_attempt"][name]["touchoff"] == 2
+    assert r["per_attempt_expected"] == {name: {"touchoff": 1}}
+
+
 def test_an_expected_refusal_that_never_came_fails(tmp_path):
     m = Mock()
     m.page(A)

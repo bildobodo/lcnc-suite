@@ -145,3 +145,14 @@ def test_evidence_no_listed_test_carries_is_not_collected_and_red(tmp_path):
 def test_a_report_given_as_run_evidence_that_does_not_exist_is_red(tmp_path):
     c = coverage.coverage(gate(tmp_path, EMPTY_RUN), [tmp_path / "missing-native.json"], [tmp_path / "missing-live.json"])
     assert any(e.startswith("native report") for e in c["errors"]) and any(e.startswith("live report") for e in c["errors"])
+
+
+def test_the_merge_gate_s_coverage_step_is_red_on_a_run_without_its_artefacts(tmp_path):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from test_select import round_gate   # noqa: PLC0415
+    logs = tmp_path / "gate.logs"
+    (logs / "backend").mkdir(parents=True)
+    c = round_gate.coverage_check(logs, HEAD)
+    assert c["name"] == "coverage" and c["status"] == "FAIL"
+    assert any("missing" in w for w in c["why"])
+    assert (logs / "coverage.json").is_file() and (logs / "coverage.md").is_file()
