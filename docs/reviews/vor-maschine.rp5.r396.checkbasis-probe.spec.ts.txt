@@ -1,0 +1,146 @@
+// PROBE for dev CI 44098232396 (collisions.viewer.spec.ts:61, the Check basis
+// card open after its closing click). Not a product test; run from a copy tree.
+//  A  where the "Check basis" trigger stands in each state of the check row,
+//     sampled every frame through the spec's own flow (prepare + jump + the
+//     basis polls) — the states and the trigger's x, with every pointerdown's
+//     target and whether the card was open at it.
+//  B  the staged mechanism: the card open, the layout changes between
+//     Playwright's hit check and the pointerdown (a one-shot capture listener
+//     puts a box over the trigger AT the pointerdown), the cover gone 150 ms
+//     later — is the card open after the click? And the same click unstaged.
+import { test, expect, type Page, type BrowserContext } from "./test";
+import { encode } from "@msgpack/msgpack";
+import { readFileSync } from "node:fs";
+import { ctl } from "./ctl";
+import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
+import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+
+const MODEL = new URL("../../examples/sim_config/machine-5axis-xyzac/", import.meta.url);
+const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"));
+
+async function prepare(page: Page, context: BrowserContext, o: {
+  file: string; version: number; feed: number[][]; lines: number[]; joints: number[]; before?: () => Promise<unknown>;
+}) {
+  const preview = Buffer.from(encode({ file: o.file, preview_schema: 11, feed: o.feed,
+    feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
+    violations: [], violations_total: 0 }));
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
+    body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await ctl({ op: "status_delta", data: { active_file: o.file, joint_pos: o.joints, actual_position: o.joints,
+    g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    rotation_xy: 0, is_enabled: false, enabled: false } });
+  if (o.before) await o.before();
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: o.version, file: o.file } });
+  await simShow(page, "clash");
+}
+
+/** Every frame: the row's state and the trigger's box; only changes kept. */
+const startSampler = (page: Page) => page.evaluate(() => {
+  const w = window as unknown as { __probe: unknown[]; __probeT0: number };
+  w.__probe = []; w.__probeT0 = performance.now();
+  let last = "";
+  const tick = () => {
+    const row = document.querySelector(".simPanel .checkRow");
+    const btn = document.querySelector('.simPanel button[aria-label="Check basis"]');
+    const r = btn?.getBoundingClientRect();
+    const st = row ? [row.querySelector(".sub")?.textContent?.trim(), row.querySelector('[role="progressbar"]') ? "bar" : "nobar",
+      row.querySelector(".checkPct")?.textContent?.trim() ?? row.querySelector(".text-muted")?.textContent?.trim()].join("|") : "norow";
+    const key = `${st} x=${r ? Math.round(r.left) : "-"} y=${r ? Math.round(r.top) : "-"} w=${r ? Math.round(r.width) : "-"} vis=${r ? (r.width > 0) : "-"}`;
+    if (key !== last) { w.__probe.push({ t: Math.round(performance.now() - w.__probeT0), key }); last = key; }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  window.addEventListener("pointerdown", (e) => {
+    const t = e.target as Element;
+    const open = !!document.querySelector(".helpPopover:popover-open");
+    w.__probe.push({ t: Math.round(performance.now() - w.__probeT0), key: `POINTERDOWN target=${t.className || t.tagName} cardOpen=${open}` });
+  }, true);
+});
+const dumpSampler = async (page: Page, tag: string) => {
+  const rows = await page.evaluate(() => (window as unknown as { __probe: unknown[] }).__probe);
+  console.log(`PROBE ${tag} ${JSON.stringify(rows)}`);
+};
+
+async function basisCard(page: Page): Promise<string> {
+  const trigger = page.getByRole("button", { name: "Check basis", exact: true });
+  await trigger.click();
+  const card = page.locator(".helpPopover:popover-open");
+  await expect(card).toBeVisible();
+  const text = await card.innerText();
+  await trigger.click();
+  await expect(card).toHaveCount(0);
+  return text;
+}
+
+for (const rep of [1, 2, 3]) {
+  test(`A${rep}: the trigger's box through the spec's flow`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    let started = false;
+    await prepare(page, context, { file: `/crash${rep}.ngc`, version: 2200 + rep, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+      feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]],
+      before: async () => { await startSampler(page); started = true; } });
+    expect(started).toBe(true);
+    const rows = page.locator(".simPanel tbody tr[data-sim-row]");
+    await expect(rows.first()).toBeVisible({ timeout: 60_000 });
+    await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { toolpath: false, rapids: false } } } } });
+    await simStepBtn(page, "Next collision").click();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await expect(simLine(page)).toHaveText(/^L7\b/);
+    let polls = 0;
+    try {
+      await expect.poll(async () => { polls++; return await basisCard(page); }, { timeout: 30_000 })
+        .toContain("The machine's position — the entry move included");
+    } finally {
+      console.log(`PROBE A${rep} polls=${polls}`);
+      await page.waitForTimeout(500);
+      await dumpSampler(page, `A${rep}`);
+    }
+    await expect(page.locator(".scrubBar .checkSlot")).toHaveText("100 %", { timeout: 60_000 });
+    await dumpSampler(page, `A${rep}-end`);
+    await ctl({ op: "reset" });
+  });
+}
+
+for (const staged of [false, true]) {
+  test(`B: a closing click ${staged ? "with the layout changed at its pointerdown" : "unstaged (the control)"}`, async ({ page, context }) => {
+    test.setTimeout(60_000);
+    // the row exists only with a program: the spec's own, its check run to 100 %
+    await prepare(page, context, { file: `/crashB${staged ? 1 : 0}.ngc`, version: 2300 + (staged ? 1 : 0), lines: [1, 6, 7, 8],
+      joints: [-100, 0, 0, 0, 0], feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+    await expect(page.locator(".simPanel .checkPct")).toHaveText("100 %", { timeout: 60_000 });
+    const trigger = page.getByRole("button", { name: "Check basis", exact: true });
+    await trigger.click();
+    const card = page.locator(".helpPopover:popover-open");
+    await expect(card).toBeVisible();
+    // Playwright's own capture listener (installed with its injected script,
+    // before any of ours) judges the hit at the pointerdown; its preliminary
+    // check runs before the move. So the layout changes at the MOVE that
+    // precedes the press: after Playwright's check, before its pointerdown.
+    await page.mouse.move(5, 5);
+    if (staged) await trigger.evaluate((el) => {
+      const once = () => {
+        window.removeEventListener("pointermove", once, true);
+        const r = el.getBoundingClientRect();
+        const cover = document.createElement("div");
+        cover.className = "probeCover";
+        Object.assign(cover.style, { position: "fixed", left: `${r.left - 4}px`, top: `${r.top - 4}px`, width: `${r.width + 8}px`,
+          height: `${r.height + 8}px`, zIndex: "2147483647", background: "transparent" });
+        document.body.appendChild(cover);
+        setTimeout(() => cover.remove(), 150);
+      };
+      window.addEventListener("pointermove", once, true);
+    });
+    await trigger.click();
+    await page.waitForTimeout(400);
+    const open = await card.count();
+    console.log(`PROBE B staged=${staged} open-after-closing-click=${open}`);
+  });
+}

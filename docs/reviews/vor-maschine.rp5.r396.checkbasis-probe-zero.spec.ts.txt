@@ -1,0 +1,43 @@
+// PROBE: why the sim-panel fixture's check stands at 0 % (the guard's state).
+// The sim-panel spec's preview and text, the guard's setup; at 5 s and 15 s
+// the viewer's own diagnostics of the check.
+import { test, expect } from "./test";
+import { encode } from "@msgpack/msgpack";
+import { ctl } from "./ctl";
+import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { openSimTab } from "./simTab";
+import { withLimitRuns } from "./limitRuns";
+
+const FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
+FEED[17]![0] = 110; FEED[29]![0] = 120;
+const PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/sim.ngc", preview_schema: 11, feed: FEED,
+  feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
+  feed_outside: new Uint8Array(FEED.map(p => (p[0]! > 100 ? 1 : 0))),
+  feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 4)).buffer),
+  violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }, { line: 32, axis: "X", value: 120, limit: 100, kind: "max" }],
+  violations_total: 2 })));
+const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
+
+test("probe: the check's state in the guard's fixture", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
+  await openSimTab(page);
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5100, file: "/sim.ngc" } });
+  await expect(page.locator('.simPanel .checkRow [role="progressbar"]')).toBeVisible({ timeout: 30_000 });
+  for (const at of [5000, 15000]) {
+    await page.waitForTimeout(at === 5000 ? 5000 : 10000);
+    const d = await page.evaluate(() => {
+      const v = window.__viewerDiag as unknown as Record<string, () => unknown>;
+      const call = (k: string) => { try { return typeof v?.[k] === "function" ? v[k]!() : "absent"; } catch (e) { return `threw ${e}`; } };
+      return { work: call("getSimulationWork"), activity: call("getCollisionActivity"), stopped: call("getCollisionStopped"),
+               holdLog: call("getCollisionHoldLog"), summary: call("getCollisionSummary"),
+               row: document.querySelector(".simPanel .checkRow")?.textContent?.replace(/\s+/g, " ").trim(),
+               line: document.querySelector(".simPanel .simSummary")?.textContent?.replace(/\s+/g, " ").trim(),
+               model: document.querySelectorAll("canvas").length };
+    });
+    console.log(`PROBE-ZERO at ${at} ms: ${JSON.stringify(d)}`);
+  }
+});

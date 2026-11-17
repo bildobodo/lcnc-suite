@@ -1,0 +1,213 @@
+Check basis probe (dev CI 44098232396) — e2e/probe-basis.spec.ts (attached as .ts.txt), Chromium, one worker, no retries.
+A: the spec's own flow (collisions.viewer.spec.ts prepare, the jump, the basis polls); every frame the check row's state and the
+   trigger's box (only changes), and every pointerdown's target with the card's state at it. Times in ms from the sampler's start.
+
+== cd23f813 (before 5b) A1
+     3  norow x=- y=- w=- vis=-
+   145  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   651  Collision check|bar|0 % x=0 y=0 w=0 vis=false
+   671  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   676  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2060  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2603  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2619  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+  2786  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2870  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3036  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3118  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3263  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3438  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3522  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== cd23f813 (before 5b) A2
+     2  norow x=- y=- w=- vis=-
+   162  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   665  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   669  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+   683  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2134  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2542  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2559  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+  2745  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2826  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  2992  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3074  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3301  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3426  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3508  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== cd23f813 (before 5b) A3
+    12  norow x=- y=- w=- vis=-
+   157  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   682  Collision check|bar|0 % x=0 y=0 w=0 vis=false
+   686  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   695  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2128  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2636  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2653  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+  2821  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2905  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3072  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3154  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3331  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3473  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3556  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== 43b1531a (5b) A1
+    15  norow x=- y=- w=- vis=-
+   167  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   611  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   616  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+   685  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2032  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2505  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2522  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+  2671  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2756  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  2921  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2987  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3297  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3391  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3471  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== 43b1531a (5b) A2
+     6  norow x=- y=- w=- vis=-
+   138  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   606  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   620  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+   639  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2069  Collision check|bar|65 % x=1532 y=174 w=26 vis=true
+  2119  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2461  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2477  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+  2663  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2744  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  2894  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2963  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3221  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3328  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3395  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== 43b1531a (5b) A3
+     3  norow x=- y=- w=- vis=-
+   169  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   249  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   253  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+   668  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  1971  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2478  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2495  Collision check|nobar|Not checked x=1262 y=174 w=26 vis=true
+  2661  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2727  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  2892  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2959  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3186  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3292  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3360  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+B: the card open; the layout changed at the MOVE before the closing press (after Playwright's preliminary hit check, before
+   its pointerdown, which Playwright's own capture listener judges first); the cover removed 150 ms later.
+   cd23f813: PROBE B staged=false open-after-closing-click=0
+   cd23f813: PROBE B staged=true open-after-closing-click=1
+   43b1531a: PROBE B staged=false open-after-closing-click=0
+   43b1531a: PROBE B staged=true open-after-closing-click=1
+   First staging (the cover added AT the pointerdown) did not reproduce: Playwright's listener had judged the hit already
+   (record: open-after-closing-click=0 for both — probe-43b1531a-B-first-staging, kept in the work dir).
+
+Playwright's log of the staged closing click (43b1531a, from its trace):
+   waiting for getByRole('button', { name: 'Check basis', exact: true })
+     locator resolved to <button class="b-icon sm" data-v-60d3a107="" title="Check basis" aria-haspopup="true" aria-expanded="true" aria-label="Check basis" data-control="detailsIcon" aria-controls="deta
+   attempting click action
+     waiting for element to be visible, enabled and stable
+     element is visible, enabled and stable
+     scrolling into view if needed
+     done scrolling
+     performing click action
+     <div class="probeCover"></div> intercepts pointer events
+   retrying click action
+     waiting for element to be visible, enabled and stable
+     element is visible, enabled and stable
+     scrolling into view if needed
+     done scrolling
+     <div class="probeCover"></div> intercepts pointer events
+   retrying click action
+     waiting 20ms
+     waiting for element to be visible, enabled and stable
+     element is visible, enabled and stable
+     scrolling into view if needed
+     done scrolling
+     <div class="probeCover"></div> intercepts pointer events
+   retrying click action
+     waiting 100ms
+     waiting for element to be visible, enabled and stable
+     element is visible, enabled and stable
+     scrolling into view if needed
+     done scrolling
+     performing click action
+     click action done
+     waiting for scheduled navigations to finish
+     navigations have finished
+
+
+At the fix (1ec5e093's tree, built) — A, the same flow:
+
+== fix A1
+     3  norow x=- y=- w=- vis=-
+   146  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   692  Collision check|bar|0 % x=0 y=0 w=0 vis=false
+   696  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   708  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2262  Collision check|bar|65 % x=1532 y=174 w=26 vis=true
+  2278  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2771  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2792  Collision check|nobar|Not checked x=1532 y=174 w=26 vis=true
+  3020  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3138  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3321  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3420  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3677  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3820  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3920  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== fix A2
+    25  norow x=- y=- w=- vis=-
+   461  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   988  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+  1001  Collision check|nobar|Not checked x=1532 y=174 w=26 vis=true
+  1035  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  3263  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3286  Collision check|bar|15 % x=1532 y=174 w=26 vis=true
+  3375  Collision check|bar|73 % x=1532 y=174 w=26 vis=true
+  3400  Collision check|nobar|Not checked x=1532 y=174 w=26 vis=true
+  3513  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3614  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3795  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3895  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  4137  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  4292  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  4375  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+== fix A3
+     4  norow x=- y=- w=- vis=-
+   216  Collision check|nobar|Not checked x=0 y=0 w=0 vis=false
+   721  Collision check|bar|0 % x=0 y=0 w=0 vis=false
+   809  POINTERDOWN target=b sm default muted tab-main cardOpen=false
+   819  Collision check|bar|0 % x=1532 y=174 w=26 vis=true
+  2902  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  2947  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  2971  Collision check|nobar|Not checked x=1532 y=174 w=26 vis=true
+  3210  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3313  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3494  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  3593  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+  3819  Collision check|bar|100 % x=1532 y=174 w=26 vis=true
+  3941  POINTERDOWN target=[object SVGAnimatedString] cardOpen=false
+  4025  POINTERDOWN target=[object SVGAnimatedString] cardOpen=true
+
+B at the fix (the staging covers the trigger itself, so it still opens — the fix takes away the move, not the browser's mechanism):
+   PROBE B staged=false open-after-closing-click=0
+   PROBE B staged=true open-after-closing-click=1
+
+probe-zero (the guard's fixture, desktop; e2e/probe-zero.spec.ts, attached as .ts.txt) — why its bar stands at 0 %:
+   PROBE-ZERO at 5000 ms: {"work":{"worker":true,"busy":false,"result":true,"run":false,"scheduled":false},"activity":{"starts":1,"busy":false,"resumable":false,"result":true},"stopped":null,"holdLog":["decode on","decode off"],"summary":{"shards":4,"hits":0,"pairCount":0,"pairsPrescreened":null,"staticContacts":0,"truncated":null,"sweepMs":0,"samples":0,"onsets":[],"uncertified":null},"row":"Collision check0 %Check basisBasisThe machine when the check started — changed sinceProgram kinematicsMachine frameRotary axesA 0.00° C 0.00°Work offsetG54 values not readStart toolNone — the check uses a stub bodyStartThe program's first pointThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).No parts move against each other — nothing to check. No tool loaded: checked with a 6 mm stub.","line":"No moving pairs2 limit violations2 tool changes",
+   PROBE-ZERO at 15000 ms: {"work":{"worker":true,"busy":false,"result":true,"run":false,"scheduled":false},"activity":{"starts":1,"busy":false,"resumable":false,"result":true},"stopped":null,"holdLog":["decode on","decode off"],"summary":{"shards":4,"hits":0,"pairCount":0,"pairsPrescreened":null,"staticContacts":0,"truncated":null,"sweepMs":0,"samples":0,"onsets":[],"uncertified":null},"row":"Collision check0 %Check basisBasisThe machine when the check started — changed sinceProgram kinematicsMachine frameRotary axesA 0.00° C 0.00°Work offsetG54 values not readStart toolNone — the check uses a stub bodyStartThe program's first pointThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).No parts move against each other — nothing to check. No tool loaded: checked with a 6 mm stub.","line":"No moving pairs2 limit violations2 tool changes"

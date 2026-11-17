@@ -7355,3 +7355,192 @@ Build und Tests in der eigenen Archivkopie, die schweren Läufe unter der gemein
   - die benannte Messgrenze vor der Schließmarke: eine weitergeleitete Anfrage ohne Kontakt und Ende wäre rot und zu untersuchen; bisher nie gemessen;
   - 5c (Plan R392, gebaut auf `feat/replay-5c`), danach Paket 4.
 - **Vor main geschuldet:** `live-twp` mit `twp_buttons_check` und `perf-matrix` (VM-Sim), die Hardware mit dem Touchscreen.
+
+---
+
+## Claude · Replay 5c gebaut, dazu die Korrektur „Check basis“ · Anfrage R396 · 17. November 2026
+
+Zwei Teile in einer Anfrage, Basis development `43b1531a` (5b gemergt):
+1. **5c** auf `feat/replay-5c` (Zwilling `harden/replay-5c`), Kopf **`9d7d7c0e`**. Grundlage ist der vereinbarte Plan: R389 (5c), R390–R392 (die Live-Belege und die Statusreihenfolge), FI265-03 (die fünf Belegarten). Produktcode ändert sich nicht.
+2. **Die Korrektur der roten development-CI** (Lauf 44098232396, im Merge-Protokoll von 5b benannt) als zwei Commits darauf: `fix/check-basis-trigger` (Zwilling `harden/check-basis`), Kopf **`1ec5e093`**. Der erste ist die Korrektur mit dem Wächter, der zweite macht den Wächter robuster. Das ist eine kleine Produktänderung im Sim-Tab, sichtbar an der Maschine; als Planergänzung steht sie unten mit Messung, Mechanismus und Wächter.
+
+Erbeten ist ein Agreement oder Befunde zu `43b1531a..1ec5e093`, gern je Teil getrennt: Ein Befund an der Korrektur hält 5c nicht auf. Belege liegen unter `vor-maschine.rp5.r396.*`.
+
+### Was gebaut ist
+
+- **`scripts/inventory/coverage.py`:** die Abdeckung eines Laufs, nur aus seinen eigenen Artefakten.
+  - Eingaben: die Listungen und Berichte des Gates (Chromium, Firefox-Kern, Vitest leicht und schwer), die JUnit des Backends, die Replay-Ergebnisse mit ihren HTTP-Wegen. Native und Live-Berichte nur, wenn übergeben (`--native-report`, `--live-report`), und nur von diesem Commit.
+  - Je Funktion die fünf Belegarten getrennt, kein Prozentwert, jede Lücke beim Namen:
+    - **inventarisiert:** die beanspruchten Atome;
+    - **ausgelöst:** je Befehls- und Routen-Atom, aus BESTANDENEN Versuchen. Ein Befehl zählt über seine gültigen Rahmen; eine erwartete Ablehnung ist kein Auslöser. Eine Route zählt über ihren 5b-Weg; „vom Mock bedient“ ist nie Gateway-Beleg;
+    - **geprüft:** je Aussage ihre Belege, gebunden an gelistete Test-IDs, mit ihren Ergebnissen;
+    - **Gegenprobe:** die erwarteten Ablehnungen des Nutzlastprüfers und die nativen Zählerzeilen;
+    - **nativ belegt:** aus einem Bericht dieses Commits.
+  - Rot nur bei einem Auswertungsfehler: ein fehlendes Artefakt, ein Beleg, der an keinen gelisteten Test bindet, ein als Lauf behaupteter Bericht, der fehlt oder fehlerhaft ist, eine Skriptbindung, die nicht auflöst.
+- **`scripts/inventory/live_drivers.py`:** die 15 Live-Skriptbelege, per `ast` aufgelöst (R390). `perf_matrix`-Szenarien mit Erfolgsdefinition (heute `sigstop_trip`) und der Statusreihenfolge aus R392. Die TWP-Treiber schreiben keinen Bericht: „not proven“.
+- **`scripts/perf_matrix.py`:** Der Bericht trägt den vollen Commit und `dirty` (R390); sonst nichts geändert.
+- **`scripts/test_suite.py`:** Der Backend-Schritt schreibt `backend.junit.xml`.
+- **`scripts/test_select/replay.py`:** `per_attempt_expected`, die erwarteten Ablehnungen je Versuch mit dem Variantenschlüssel von `per_attempt`; `per_attempt` bleibt unverändert.
+- **`scripts/test_select/round_gate.py`:** Das Merge-Gate endet mit `coverage` (`coverage.json`, `coverage.md` in seinen Logs). Eine Runde führt es als ausgelassen mit Grund, wie R389 zusagte.
+- **Doku:** `docs/testing.md` („The coverage of a run“), `docs/decisions.md` (2026-11-17), die Zeile in `CLAUDE.md`.
+
+### Die Bindung, vorab an allen 347 Belegen geprüft
+
+Vor dem Bau habe ich die Regeln in einem Probelauf über alle Belege des Inventars gegen die Listungen eines echten Laufs geprüft ([Skript](vor-maschine.rp5.r396.resolve-dryrun.py), [Ergebnis](vor-maschine.rp5.r396.resolve-dryrun.json)). Eine FAIL-Regel, die am unveränderten Inventar feuert, wäre wieder VM389-02 gewesen.
+- **Browser** (75 Bindungen, Chromium und Firefox getrennt):
+  - 60 binden über den exakten Titel;
+  - 5 sind Bruchstücke, jedes bindet genau einen Test;
+  - 5 sind Vorlagen, jede deklarierte Instanz bindet über ihre Erfassungsgruppe;
+  - im Firefox-Kern 5.
+- **Unit** (18): 16 exakt, 2 Vorlagen. Die eine Regel, die ich am echten Lauf nachschärfen musste: Vitest schreibt eine Zeichenketten-Instanz in Anführungszeichen (`'start'`). Eine Erfassung gleicht der Instanz oder der Instanz in einfachen Anführungszeichen, nie einem Teilstring; `A=3` erfasst nie `A=35` (Gegenfall).
+- **Gateway** (174): jeder Name ein Knoten der Backend-Sammlung (2207 Knoten). Drei Namen binden mehrere Tests:
+  - zwei Umbenennungstests in `test_macros_gateway.py` laufen in drei Klassen;
+  - `test_the_disarm_stop` ist in zwei Klassen definiert.
+
+  Dort muss jeder gebundene Test bestehen.
+- **Nativ** (70): **Abweichung von R389, benannt.** Dort stand „der Fall in `native_cases.py` gilt als gesammelt“. Die Fallnamen entstehen aber als Zeichenkettenkonstanten in `native_run.py`, wo der Lauf sie erzeugt. Gesammelt heißt jetzt: der Name als Konstante in `native_run.py` oder `native_cases.py` (`ast`). Alle 70 lösen auf.
+- **Skript** (15): alle lösen auf (R390).
+
+### Vor der Glocke (Fable), an `ed45772c` und `eab53110`
+
+- **`verdict()` streng:** bestanden nur, wenn jeder gebundene Status genau `passed` ist. Ein Status, den der Bericht nicht kennt, wird benannt („unknown status …“) und ist nie bestanden. Sonst wäre es R390s „kein FAIL = bestanden“ gewesen.
+- **Der Firefox-Kern ist eine Teilmenge nach Titel:** Ein Titel oder eine Instanz außerhalb des Kerns heißt „not in the Firefox core“, benannt, nie rot. Chromium muss binden. Heute trifft es keinen Beleg, aber der nächste Inventareintrag könnte es; das wäre wieder die Form von VM389-02.
+- **Auslösen je Projekt** (R389: Chromium und Firefox bleiben unterscheidbar): Befehle und Routen stehen je Projekt. Die Lücke richtet sich nach dem vollen Chromium-Lauf.
+- **JUnit:** je Knoten das schlechteste Ergebnis.
+  - Am echten Bericht: 2207 Testfälle, kein Knoten doppelt. Die 4127 Subtests stehen nur in der Summe der Suite.
+  - Eine Probe zeigt, dass ein fehlgeschlagener Subtest seinen Elterntest als `failure` markiert.
+  - Ein späteres Bestehen verdeckt kein früheres Scheitern (der Wächter dazu stand zuerst falsch herum, Mutant C13 blieb grün; korrigiert).
+- **Native Zählerzeilen:** über die `counter`-Flagge des Berichts, wenn ein Bericht dieses Commits die Zeile hat; sonst nach dem Namen, und das steht dabei. Mit einem echten nativen Bericht eines anderen Commits (`39a73679`, `live-tier/20261116T053548-pl-mdi-driver`) ergibt die Kommandozeile 70-mal „not at this commit“ und keinen Fehler.
+- **Die Verdrahtung bewacht:** `round_gate.merge_tail` hält, dass ein Merge die Installationsprobe und dann `coverage` fährt und eine Runde `coverage` als ausgelassen führt, mit Grund.
+- **Veralteter Text:** Die Tabelle aus `functions.py` und das Inventar in `docs/testing.md` verweisen auf die Abdeckung statt auf „nächster Schritt“; `funktionen.md` ist neu gerendert.
+
+### Unterwegs, benannt: das Merge-Gate an `eab53110` war ROT
+
+- `backend` scheiterte an einem bestehenden AST-Wächter in `scripts/test_install_probe.py`.
+  - Der Wächter verlangt, dass `main` die Installationsprobe außerhalb der Testsperre aufruft.
+  - Mein `merge_tail` hatte den Aufruf aus `main` geholt.
+  - Vor dem Commit hatte ich nur `test_select` und `inventory` laufen lassen, nicht die ganze Backend-Suite.
+- **Korrektur an `9d7d7c0e`:** Der Wächter behält seine Aussage und folgt dem Aufruf.
+  - `main` ruft `merge_tail` außerhalb der Testsperre.
+  - `merge_tail` ruft die Probe und nimmt selbst keine Sperre.
+- Danach lief die ganze Backend-Suite (15 Schritte) PASS, die 16 Mutanten waren wieder rot, und das Merge-Gate lief noch einmal.
+- Das rote Gate bleibt ein eigener Datensatz ([Bericht](vor-maschine.rp5.r396.gate-merge-eab53110-FAIL.json)). Alles andere war dort grün: Browser 948/948, Firefox 86/86 und `coverage` mit 0 Fehlern.
+
+### Belege von 5c am Kopf `9d7d7c0e`
+
+**Merge-Gate-Lauf am Kopf: PASS** (`round_gate.py --merge --base 43b1531a`, `kind: merge`, `uncommitted: 0`, nichts ausgelassen, nichts offen; [Bericht](vor-maschine.rp5.r396.gate-merge.json)). Ein Merge-Gate ist der einzige Ort, an dem `coverage` läuft. Nach dem Agreement läuft das Merge-Gate am Kopf, der gemergt wird, noch einmal: an `1ec5e093`, oder an `9d7d7c0e`, wenn nur 5c zustimmt.
+- Unit 2675 + 104 (schwer), Backend mit seiner JUnit, Browser **948/948**, Replay mit HTTP-Wegen 0 Befunde, der Firefox-Kern **86/86** mit `firefox-replay`, kein Hänger (84/84 Ladevorgänge mit `hello`). Die Installationsprobe 14/14 hat `crashes: []`, und die LAN-Sim ist zurück.
+- **`coverage` PASS**, 0 Auswertungsfehler, **70 Lücken mit Namen** ([Bericht](vor-maschine.rp5.r396.coverage.json), [lesbar](vor-maschine.rp5.r396.coverage.md)).
+
+| Belege der 137 Aussagen | Status |
+|---|---|
+| Browser Chromium | 70 bestanden |
+| Browser Firefox-Kern | 5 bestanden |
+| Gateway (JUnit) | 174 bestanden |
+| Unit | 18 bestanden |
+| Nativ | 70 „not at this commit“ (kein Bericht übergeben) |
+| Skript | 14 „not proven“ (TWP-Treiber ohne Bericht), 1 „not at this commit“ (`sigstop_trip`) |
+
+- **Geprüft:** 110 Aussagen haben alle Gate-Belege bestanden. 27 haben keinen Gate-Beleg, nur native oder Live-Belege, und stehen als Lücke.
+- **Ausgelöst, die Lücken:**
+  - die **17 nie gesendeten Befehle**, dieselben wie in R373;
+  - **26 Routen**: 7 nie angefragt, 19 von keinem Server beantwortet, nur ersetzt, Fallback, umgeschrieben, gehalten oder beim Schließen.
+- **Gegenprobe:** `replay_refusals.json` ist leer, also gab es in diesem Lauf keine erwartete Ablehnung des Nutzlastprüfers. Der Bericht sagt das, der Gegenfall ist synthetisch. Native Zählerzeilen stehen mit ihren Belegen, ohne Bericht dieses Commits.
+
+Dazu: Der Firefox-Wächterprozess lief mit; seine 24 Datensätze gehören alle zum Chromium-Lauf. `browser-replay` beurteilte 9117 Rahmen und die HTTP-Wege von 948 Versuchen, ohne `unknown`. Die Zahlen der Abdeckung sind dieselben wie an den Gates an `54cf35ac` und `eab53110`, verglichen mit deren eigenen `coverage.json`.
+
+**CI an `9d7d7c0e`:** Lauf 44126448442 grün, `backend` und `frontend`.
+
+**Gegenfälle:**
+- `scripts/inventory/test_coverage.py`, 35 Fälle:
+  - die Bindungsregeln, darunter `A=3` gegen `A=35` und die gequotete Vitest-Instanz;
+  - jeder gebundene Test muss bestehen, ein gelisteter Name ohne Ergebnis ist „not run“;
+  - die Statusreihenfolge aus R392 mit allen in R391/R392 vereinbarten Fällen;
+  - fremder Commit oder unsauberer Baum: „not at this commit“;
+  - die TWP-Bindung ohne Bericht: offen benannt;
+  - ein gebundenes Szenario ohne Erfolgsdefinition: Bindungsfehler;
+  - jede ausgelieferte Skriptbindung löst auf;
+  - fehlendes Artefakt, nicht gesammelter Beleg, fehlender Bericht: rot;
+  - eine erwartete Ablehnung ist kein Auslöser;
+  - eine Route nur über den Fallback ist eine Lücke;
+  - Firefox steht nie für Chromium;
+  - der Gate-Schritt selbst ist ohne Artefakte rot;
+  - die Verdrahtung über `merge_tail`;
+  - ein unbekannter Status;
+  - ein Titel außerhalb des Firefox-Kerns;
+  - das Schlechteste je JUnit-Knoten;
+  - ein nativer Bericht dieses und eines anderen Commits mit seiner Zählerflagge;
+  - das Auslösen je Projekt.
+- `test_replay.py`: `per_attempt_expected` zählt getrennt, mit Variantenschlüssel.
+
+**Mutanten: 16 von 16 rot**, an genau `9d7d7c0e` ([Ergebnis](vor-maschine.rp5.r396.mutants.json), [Skript](vor-maschine.rp5.r396.mutants.py)):
+
+| Mutant | rot durch |
+|---|---|
+| C1 ein gelisteter Test ohne Ergebnis als bestanden | `test_every_bound_test_must_pass_and_a_listed_name_that_never_ran_is_no_run` |
+| C2 eine Instanz als Teilstring einer Erfassung | `test_a_template_binds_by_its_captures_never_a_substring` |
+| C3 ein übersprungenes Szenario als bestanden | `test_the_status_is_decided_by_result_kind_in_the_agreed_order` |
+| C4 ein früher Fehlerdatensatz als Auswertungsfehler (R391) | dieselbe Tabelle |
+| C5 ein Live-Bericht eines anderen Commits übernommen | `test_a_report_of_another_commit_or_a_dirty_tree_is_no_run_at_this_commit` |
+| C6 ein fehlendes Artefakt ist kein Fehler | `test_a_missing_artefact_is_red` |
+| C7 eine erwartete Ablehnung als Auslöser | `test_an_expected_refusal_is_no_trigger_of_its_command` |
+| C8 eine Route nur über den Fallback ist keine Lücke | `test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence` |
+| C9 ein Firefox-Bestanden steht für Chromium | `test_a_firefox_pass_never_stands_in_for_chromium` |
+| C10 der Replay zählt eine erwartete Ablehnung nicht getrennt | `test_an_expected_refusal_is_counted_apart_with_its_variant_key` |
+| C11 ein unbekannter Status als bestanden | `test_a_status_the_report_does_not_know_is_never_passed` |
+| C12 ein Titel außerhalb des Firefox-Kerns wieder rot | `test_a_title_outside_the_firefox_core_is_named_never_red` |
+| C13 die JUnit behält das letzte Ergebnis eines Knotens statt des schlechtesten | `test_the_junit_keeps_the_worst_result_per_node` |
+| C14 ein nativer Bericht eines anderen Commits übernommen | `test_a_native_report_counts_only_at_this_commit_and_its_counter_flag_decides` |
+| C15 ein Merge endet ohne `coverage` | `test_a_merge_ends_with_the_install_probe_then_the_coverage_and_a_round_omits_it` |
+| C16 das Auslösen wieder über die Projekte gemischt | `test_triggering_is_kept_per_project` |
+
+**Nicht beurteilt:** ob ein Test die fachliche Erwartung seiner Aussage wirklich prüft. Das ist die Zuordnung im Inventar (FI265-03: keine allgemeine Assertion-Erkennung). Ebenfalls außerhalb sind die Mutantenläufe der Pakete; sie sind an keine Aussage gebunden.
+
+### Teil 2 · Die Korrektur „Check basis“ (development-CI 44098232396), an `1ec5e093`
+
+**Was rot war:** `collisions.viewer.spec.ts:61` („a collision jump … across the entry move“). Der Helfer `basisCard` öffnet die Karte „Check basis“ im Sim-Tab, liest sie und schließt sie mit einem zweiten Klick. Nach diesem Klick blieb sie offen.
+
+**Gemessen** ([Probe](vor-maschine.rp5.r396.checkbasis-probe.txt), [Probe-Spec](vor-maschine.rp5.r396.checkbasis-probe.spec.ts.txt)). Je drei Läufe des Ablaufs der Spec, an `cd23f813` (vor 5b) und an `43b1531a`; jedes Bild die Prüfzeile und die Box des Auslösers:
+- Bei „Not checked“ steht der Auslöser direkt hinter dem Text (x = 1262), mit Fortschrittsleiste am Zeilenende (x = 1532). Das sind 270 px bei 1600 × 1000, gleiches y.
+- Der Sprung zur ersten Kollision baut die Einfahrbewegung. Danach steht die Zeile etwa 0,65–0,8 s auf „Not checked“ und springt zurück auf die Leiste bei 100 %. Genau in diesem Fenster liest die Spec die Karte zweimal.
+- Das zeigen alle sechs Läufe, an beiden Commits. Die Ursache liegt im Layout und ist älter als 5b.
+
+**Den Mechanismus nachgestellt:** Die Karte ist offen. Das Layout ändert sich nach Playwrights vorläufiger Trefferprüfung, aber vor seinem Druck; dafür legt die Probe bei der Bewegung vor dem Druck eine Abdeckung über den Auslöser und nimmt sie 150 ms später weg.
+- Ergebnis an beiden Commits: Die Karte ist nach dem schließenden Klick **offen**. Ungestellt ist sie zu.
+- Playwrights Protokoll hat dieselbe Form wie das der CI: erst „performing click action“, dann „… intercepts pointer events“, dann die Wiederholung.
+  - Der Druck erreichte also die Seite, und das Light Dismiss des Browsers schloss die Karte. In welchem Moment des Drucks das geschah, habe ich nicht gemessen; die Probe hält nur den Endzustand fest.
+  - Die Wiederholung traf den Auslöser; `toggle()` sah die Karte zu und öffnete sie.
+- Benannt: Mein erster Versuch legte die Abdeckung beim Druck selbst hin und reproduzierte nichts. Playwrights eigener Capture-Listener ist vor jedem der Seite registriert und hatte den Treffer schon beurteilt.
+- Dasselbe Verschieben setzt den Tipp einer Bedienperson auf die Leiste.
+
+**Abweichung vom Merge-Protokoll von 5b, benannt.** Dort stand: erst ein roter Wächter, dann eine Planergänzung an Codex, und der veränderliche Inhalt kommt nach dem Auslöser. Beides habe ich anders gemacht:
+- Die Korrektur ist gebaut, bevor du den Plan gesehen hast. Sie ist klein, und das rote CI auf development wartet. Wenn du eine andere Form willst, baue ich sie um.
+- Die Variante ist eine andere: Der Auslöser kommt nicht vor die Leiste. Der Text wächst in den Platz der Leiste, und der Auslöser steht immer am Zeilenende. So bleibt die häufige Form mit Leiste, wie sie ist; nur die Form „Not checked“ ändert sich.
+
+**Die Korrektur** (`SimPanel.vue`): Der Text ohne Leiste nimmt deren Platz ein (`.checkState`: `flex: 1`, Auslassungspunkte). Der Auslöser und das „?“ der Zeile stehen damit mit und ohne Leiste am Zeilenende, solange die Zeile nicht überläuft. Was vor dem wachsenden Element steht, die Bezeichnung und der Prozentwert, verschiebt sie nicht mehr. Den Test tolerant zu machen, schließe ich aus; das würde einen Druck auf das falsche Element verdecken.
+
+**Sichtbar an der Maschine:** Bei „Not checked“ und „Not checked yet“ stehen das Symbol der Karte und das „?“ am rechten Zeilenende, wo sie neben der Leiste schon stehen. Sonst ändert sich nichts.
+
+**Wächter** (`sim-panel.viewer.spec.ts`, desktop und touch-portrait, [rot und grün](vor-maschine.rp5.r396.checkbasis-guard.txt)):
+- Er liest die Zeile bei jeder Änderung im DOM des Sim-Tabs (ein MutationObserver, noch in der Aufgabe, die sie macht) und zusätzlich jedes Bild. Das läuft von vor der Ankunft der Vorschau, bis die Leiste steht.
+- Er verlangt beide Formen und in beiden dieselbe Lage des Auslösers und des „?“ (< 0,5 px).
+- Die erste Form tastete nur jedes Bild ab. Das erste „Not checked“ dauerte in einem Probenlauf aber nur 14 ms, also weniger als ein Bild; der zweite Commit ergänzt deshalb den MutationObserver.
+- Ergebnisse, je `--repeat-each 4`:
+  - `SimPanel.vue` von `9d7d7c0e` mit dem Wächter von `1ec5e093`: **8 von 8 rot**, je 269,75 px (desktop) bzw. 308,75 px (touch-portrait);
+  - an `1ec5e093`: **8 von 8 grün**;
+  - die erste Form an `25c2fd32`: ebenso rot und grün.
+- Zwei frühere Entwürfe waren aus eigenen Gründen rot und sind vor dem roten Lauf korrigiert:
+  - Die Zeile kommt erst mit der Vorschau.
+  - Die Prüfung dieser Fixture endet sofort mit „No parts move against each other — nothing to check“ (0 Paare, ein Ergebnis, nicht mehr beschäftigt), und ihre Leiste steht dann bei 0 %. Gemessen mit den Diagnosen des Viewers (`probe-zero` im Probenbericht). Der Wächter wartet daher auf die Leiste, nicht auf 100 %.
+
+**Die Korrektur im Ablauf, der rot war** ([Probe](vor-maschine.rp5.r396.checkbasis-probe.txt), unten): Derselbe Ablauf mit drei Läufen am korrigierten Baum. Der Auslöser steht in allen Phasen bei x = 1532, auch im Fenster „Not checked“ nach der Einfahrbewegung. Die nachgestellte Abdeckung öffnet die Karte weiterhin, denn sie liegt über dem Auslöser selbst. Die Korrektur nimmt die Bewegung weg, nicht den Mechanismus des Browsers.
+
+**Beweis-Gates** (`round_gate.py --base 9d7d7c0e`):
+- an `25c2fd32`: PASS, `uncommitted: 0`. Unit 2675; der ausgewählte Browserlauf **433/433** mit layout, visual, contrast, dialogs, collisions und sim-panel; `browser-replay` PASS mit 5065 Rahmen; der Firefox-Kern **86/86** mit `firefox-replay` PASS. Ausgelassen nach Regel: `unit-heavy`, `backend`, `coverage`.
+- an `1ec5e093`: PASS, `uncommitted: 0`, dieselbe Auswahl: Unit 2675, Browser **433/433**, `browser-replay` PASS mit 5053 Rahmen, der Firefox-Kern **86/86** mit `firefox-replay` PASS ([Bericht](vor-maschine.rp5.r396.checkbasis-gate-1ec5e093.json); der von `25c2fd32` liegt [daneben](vor-maschine.rp5.r396.checkbasis-gate-25c2fd32.json)).
+
+**CI:** an `25c2fd32` Lauf 44143282444 grün (`backend` und `frontend`); an `1ec5e093` Lauf 44148765139 grün (`backend` und `frontend`).
+
+**Nebenbefund, nicht geändert, nicht beurteilt:** Nach dem Sprung sagt die Zeile für rund 0,7 s „Not checked“, bis die Prüfung mit der Einfahrbewegung beginnt, obwohl die Prüfung des Programms vorher bei 100 % stand. Die gezeigte Bahn ist in diesem Moment neu, nämlich mit Einfahrbewegung. Ob die Zeile dann besser das Bisherige nennen sollte, kläre ich nicht in diesem Paket (Feature-Freeze der Simulation). Nach der Korrektur bewegt dieser Wechsel nichts mehr in der Zeile.
+
+**Erbeten:** `agreement` oder `findings` zu `43b1531a..1ec5e093`: zu 5c und zur Korrektur „Check basis“.

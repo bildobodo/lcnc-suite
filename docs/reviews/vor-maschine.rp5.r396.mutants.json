@@ -1,0 +1,154 @@
+{
+ "baseline": {
+  "exit": 0,
+  "tail": [
+   "157 passed in 2.29s"
+  ]
+ },
+ "C1": {
+  "what": "a listed test without a result counted as passed",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_every_bound_test_must_pass_and_a_listed_name_that_never_ran_is_no_run",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_every_bound_test_must_pass_and_a_listed_name_that_never_ran_is_no_run[statuses3-not run]",
+   "FAILED scripts/inventory/test_coverage.py::test_a_firefox_pass_never_stands_in_for_chromium"
+  ]
+ },
+ "C2": {
+  "what": "a template's instance matched as a substring of a capture",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_template_binds_by_its_captures_never_a_substring",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_template_binds_by_its_captures_never_a_substring"
+  ]
+ },
+ "C3": {
+  "what": "a skipped scenario counted as passed",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_the_status_is_decided_by_result_kind_in_the_agreed_order",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_status_is_decided_by_result_kind_in_the_agreed_order[r0-want0]"
+  ]
+ },
+ "C4": {
+  "what": "an early error record without success fields an evaluation error (R391)",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_the_status_is_decided_by_result_kind_in_the_agreed_order",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_status_is_decided_by_result_kind_in_the_agreed_order[r2-want2]",
+   "FAILED scripts/inventory/test_coverage.py::test_the_status_is_decided_by_result_kind_in_the_agreed_order[r3-want3]"
+  ]
+ },
+ "C5": {
+  "what": "a live report of another commit taken",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_report_of_another_commit_or_a_dirty_tree_is_no_run_at_this_commit",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_report_of_another_commit_or_a_dirty_tree_is_no_run_at_this_commit"
+  ]
+ },
+ "C6": {
+  "what": "a missing artefact of the run is no error",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_missing_artefact_is_red",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_missing_artefact_is_red - a..."
+  ]
+ },
+ "C7": {
+  "what": "an expected refusal counted as a trigger",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_an_expected_refusal_is_no_trigger_of_its_command",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_expected_refusal_is_no_trigger_of_its_command"
+  ]
+ },
+ "C8": {
+  "what": "a route the fallback answered is no gap",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence"
+  ]
+ },
+ "C9": {
+  "what": "a Firefox pass stands in for Chromium",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_firefox_pass_never_stands_in_for_chromium",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_firefox_pass_never_stands_in_for_chromium"
+  ]
+ },
+ "C11": {
+  "what": "a status the report does not know counted as passed",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_status_the_report_does_not_know_is_never_passed",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_status_the_report_does_not_know_is_never_passed"
+  ]
+ },
+ "C12": {
+  "what": "a title outside the Firefox core red again",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_title_outside_the_firefox_core_is_named_never_red",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_title_outside_the_firefox_core_is_named_never_red"
+  ]
+ },
+ "C13": {
+  "what": "the JUnit keeps the last result of a node, not its worst",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_the_junit_keeps_the_worst_result_per_node",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_junit_keeps_the_worst_result_per_node"
+  ]
+ },
+ "C14": {
+  "what": "a native report of another commit taken",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_native_report_counts_only_at_this_commit_and_its_counter_flag_decides",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_report_counts_only_at_this_commit_and_its_counter_flag_decides"
+  ]
+ },
+ "C15": {
+  "what": "a merge ends without the coverage",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_a_merge_ends_with_the_install_probe_then_the_coverage_and_a_round_omits_it",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_merge_ends_with_the_install_probe_then_the_coverage_and_a_round_omits_it"
+  ]
+ },
+ "C16": {
+  "what": "triggering merged across the projects again",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_triggering_is_kept_per_project",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_triggering_is_kept_per_project"
+  ]
+ },
+ "C10": {
+  "what": "the replay counts an expected refusal as a valid frame of its own",
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "red": true,
+  "named": "test_an_expected_refusal_is_counted_apart_with_its_variant_key",
+  "failed": [
+   "FAILED scripts/test_select/test_replay.py::test_an_expected_refusal_is_counted_apart_with_its_variant_key"
+  ]
+ }
+}

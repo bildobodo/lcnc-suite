@@ -1,0 +1,15 @@
+Guard: sim-panel.viewer.spec.ts › {desktop,touch-portrait}: the check basis trigger and its "?" keep their place with and without the check's bar (dev CI 44098232396); --repeat-each 4, one worker, no retries.
+The row is read at every change of the Sim panel's DOM (MutationObserver) and every frame, from before the preview arrives until the bar shows.
+
+== RED: the guard of 1ec5e093 with SimPanel.vue of 9d7d7c0e, built
+      1   8 failed
+      8     Error: the trigger in the bar state
+      8     Expected: < 0.5
+      4     Received:   269.75
+      4     Received:   308.75
+
+== GREEN: 1ec5e093's tree, built
+  8 passed (27.0s)
+
+== The guard's first form (every frame only) at 25c2fd32: red 8/8 on the unfixed SimPanel.vue (269.75 / 308.75 px), green 8/8 with the fix.
+(Two drafts of the first form failed for their own reasons and were corrected before its red run: it waited for "Not checked" before the preview arrives — the row comes with the preview; and for 100 % — this fixture's check ends at once with "No parts move against each other", its bar at 0 % (measured, probe-zero in vor-maschine.rp5.r396.checkbasis-probe.txt), so the guard waits for the bar.)

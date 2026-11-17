@@ -1,0 +1,316 @@
+{
+ "summary": {
+  "browser / e2e / exact / resolved": 60,
+  "browser / e2e / fragment / resolved": 5,
+  "browser / e2e / template / resolved": 5,
+  "browser / firefox-core / exact / resolved": 1,
+  "browser / firefox-core / template / resolved": 4,
+  "gateway / None / exact / resolved": 174,
+  "native / None / constant / resolved": 70,
+  "unit / None / exact / resolved": 16,
+  "unit / None / template / resolved": 2
+ },
+ "unresolved_or_why": [],
+ "fragments": [
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-TOOLMEASURE",
+   "st": "S1",
+   "file": "toolsetter-setup.spec.ts",
+   "title": "Measure Current is ONE command: the tool_measure job",
+   "mode": "fragment",
+   "bound": 1,
+   "why": "",
+   "names": [
+    "toolsetter-setup.spec.ts › Measure Current is ONE command: the tool_measure job — a refusal says why and nothing follows (Codex R16 XZ-06) [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-TOOLMEASURE",
+   "st": "S2",
+   "file": "run-hold.spec.ts",
+   "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values",
+   "mode": "fragment",
+   "bound": 1,
+   "why": "",
+   "names": [
+    "run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07) [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-TOOLMEASURE",
+   "st": "S3",
+   "file": "toolsetter-setup.spec.ts",
+   "title": "without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off",
+   "mode": "fragment",
+   "bound": 1,
+   "why": "",
+   "names": [
+    "toolsetter-setup.spec.ts › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-MACROFILES",
+   "st": "S1",
+   "file": "macros.spec.ts",
+   "title": "Save's refusal: a conflict rebases Keep editing on the gateway's revision",
+   "mode": "fragment",
+   "bound": 1,
+   "why": "",
+   "names": [
+    "macros.spec.ts › Save's refusal: a conflict rebases Keep editing on the gateway's revision; busy or unnamed is no conflict [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-MACROFILES",
+   "st": "S2",
+   "file": "macros.spec.ts",
+   "title": "a rename moves the file and its place on the bar",
+   "mode": "fragment",
+   "bound": 1,
+   "why": "",
+   "names": [
+    "macros.spec.ts › the editor dialog: name, title and description are the header lines; a rename moves the file and its place on the bar [e2e]"
+   ]
+  }
+ ],
+ "templates": [
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-JOG",
+   "st": "S5b",
+   "file": "jog-buttons.spec.ts",
+   "title": "every jog button on ${name}: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b)",
+   "mode": "template",
+   "bound": 2,
+   "why": "",
+   "names": [
+    "jog-buttons.spec.ts › every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [e2e]",
+    "jog-buttons.spec.ts › every jog button on XYZAC: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-PROBE",
+   "st": "S1",
+   "file": "probe-click.spec.ts",
+   "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+   "mode": "template",
+   "bound": 5,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › Outside: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Boss/Pocket: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Ridge/Valley: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Angle: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Calibrate: a held probe button sends its routine with the panel's numbers [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-PROBE",
+   "st": "S4",
+   "file": "probe-click.spec.ts",
+   "title": "${key}: the job the button sends is the native stage's whole job",
+   "mode": "template",
+   "bound": 2,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › z_surface: the job the button sends is the native stage's whole job [e2e]",
+    "probe-click.spec.ts › surface_scan: the job the button sends is the native stage's whole job [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-PROBECAL",
+   "st": "S1",
+   "file": "probe-click.spec.ts",
+   "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+   "mode": "template",
+   "bound": 5,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › Outside: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Boss/Pocket: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Ridge/Valley: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Angle: a held probe button sends its routine with the panel's numbers [e2e]",
+    "probe-click.spec.ts › Calibrate: a held probe button sends its routine with the panel's numbers [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "e2e",
+   "fn": "F-SURFACE",
+   "st": "S2b",
+   "file": "probe-click.spec.ts",
+   "title": "${key}: the job the button sends is the native stage's whole job",
+   "mode": "template",
+   "bound": 2,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › z_surface: the job the button sends is the native stage's whole job [e2e]",
+    "probe-click.spec.ts › surface_scan: the job the button sends is the native stage's whole job [e2e]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "firefox-core",
+   "fn": "F-PROBE",
+   "st": "S1",
+   "file": "probe-click.spec.ts",
+   "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+   "mode": "template",
+   "bound": 5,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › Outside: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Boss/Pocket: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Ridge/Valley: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Angle: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Calibrate: a held probe button sends its routine with the panel's numbers [firefox-core]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "firefox-core",
+   "fn": "F-PROBE",
+   "st": "S4",
+   "file": "probe-click.spec.ts",
+   "title": "${key}: the job the button sends is the native stage's whole job",
+   "mode": "template",
+   "bound": 2,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › z_surface: the job the button sends is the native stage's whole job [firefox-core]",
+    "probe-click.spec.ts › surface_scan: the job the button sends is the native stage's whole job [firefox-core]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "firefox-core",
+   "fn": "F-PROBECAL",
+   "st": "S1",
+   "file": "probe-click.spec.ts",
+   "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+   "mode": "template",
+   "bound": 5,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › Outside: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Boss/Pocket: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Ridge/Valley: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Angle: a held probe button sends its routine with the panel's numbers [firefox-core]",
+    "probe-click.spec.ts › Calibrate: a held probe button sends its routine with the panel's numbers [firefox-core]"
+   ]
+  },
+  {
+   "layer": "browser",
+   "project": "firefox-core",
+   "fn": "F-SURFACE",
+   "st": "S2b",
+   "file": "probe-click.spec.ts",
+   "title": "${key}: the job the button sends is the native stage's whole job",
+   "mode": "template",
+   "bound": 2,
+   "why": "",
+   "names": [
+    "probe-click.spec.ts › z_surface: the job the button sends is the native stage's whole job [firefox-core]",
+    "probe-click.spec.ts › surface_scan: the job the button sends is the native stage's whole job [firefox-core]"
+   ]
+  },
+  {
+   "layer": "unit",
+   "fn": "F-PROBE",
+   "st": "S2",
+   "file": "probeVarFiles.test.ts",
+   "title": "${rel} declares every number the probe panel and the toolsetter write",
+   "mode": "template",
+   "bound": 3,
+   "why": "",
+   "names": [
+    "the shipped var files > xyz3/sim.var declares every number the probe panel and the toolsetter write",
+    "the shipped var files > xyzabc6/sim.var declares every number the probe panel and the toolsetter write",
+    "the shipped var files > xyzac5/sim.var declares every number the probe panel and the toolsetter write"
+   ],
+   "in_heavy": false
+  },
+  {
+   "layer": "unit",
+   "fn": "F-GAMEPAD",
+   "st": "S3",
+   "file": "useGamepad.test.ts",
+   "title": "$action ($want.cmd): exactly its command under its control's gate; closed, nothing",
+   "mode": "template",
+   "bound": 11,
+   "why": "",
+   "names": [
+    "useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'start' ('cycle_start'): exactly its command under its control's gate; closed, nothing",
+    "useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'start' ('cycle_resume'): exactly its command under its control's gate; closed, nothing",
+    "useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'pause' ('cycle_pause'): exactly its command under its control's gate; closed, nothing",
+    "useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'resume' ('cycle_resume'): exactly its command under its control's gate; closed, nothing",
+    "useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'abort' ('abort'): exactly its command under its control's gate; closed, nothing",
+    "useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'spindle_stop' ('spindle_stop'): exactly its command under its control's gate; closed, nothing"
+   ],
+   "in_heavy": false
+  }
+ ],
+ "multi_bound_exact": [
+  {
+   "layer": "gateway",
+   "fn": "F-MACROFILES",
+   "st": "S3",
+   "file": "test_macros_gateway.py",
+   "title": "test_a_rename_is_one_step_bound_to_the_old_revision",
+   "mode": "exact",
+   "bound": 3,
+   "why": "",
+   "names": [
+    "test_macros_gateway.py::Routes::test_a_rename_is_one_step_bound_to_the_old_revision",
+    "test_macros_gateway.py::RefusalShape::test_a_rename_is_one_step_bound_to_the_old_revision",
+    "test_macros_gateway.py::FolderAdmission::test_a_rename_is_one_step_bound_to_the_old_revision"
+   ]
+  },
+  {
+   "layer": "gateway",
+   "fn": "F-MACROFILES",
+   "st": "S3",
+   "file": "test_macros_gateway.py",
+   "title": "test_a_rename_whose_old_name_cannot_leave_renames_nothing",
+   "mode": "exact",
+   "bound": 3,
+   "why": "",
+   "names": [
+    "test_macros_gateway.py::Routes::test_a_rename_whose_old_name_cannot_leave_renames_nothing",
+    "test_macros_gateway.py::RefusalShape::test_a_rename_whose_old_name_cannot_leave_renames_nothing",
+    "test_macros_gateway.py::FolderAdmission::test_a_rename_whose_old_name_cannot_leave_renames_nothing"
+   ]
+  },
+  {
+   "layer": "gateway",
+   "fn": "SYS-CONN",
+   "st": "S3",
+   "file": "test_button_gates_e.py",
+   "title": "test_the_disarm_stop",
+   "mode": "exact",
+   "bound": 2,
+   "why": "",
+   "names": [
+    "test_button_gates_e.py::TestAStopNeedsNoSwitch::test_the_disarm_stop",
+    "test_button_gates_e.py::TestAStopIsBookedOnlyOnceWritten::test_the_disarm_stop"
+   ]
+  }
+ ]
+}
