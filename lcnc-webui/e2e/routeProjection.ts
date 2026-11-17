@@ -43,9 +43,13 @@ const PROJECTIONS: Record<string, (u: URL) => string> = {
   "PUT /settings/{section}": (u) => sectionOf(u),
   "POST /settings/{section}": (u) => sectionOf(u),
 };
+/** A path segment decoded — or null when its encoding is malformed (never a throw). */
+function decoded(seg: string): string | null {
+  try { return decodeURIComponent(seg); } catch { return null; }
+}
 function sectionOf(u: URL): string {
-  const s = decodeURIComponent(u.pathname.split("/")[2] ?? "");
-  return SECTIONS.has(s) ? `section=${s}` : "unknown section";
+  const s = decoded(u.pathname.split("/")[2] ?? "");
+  return s !== null && SECTIONS.has(s) ? `section=${s}` : "unknown section";
 }
 
 /** The path the record keeps: a route's path parameter appears as its
@@ -57,8 +61,8 @@ export function recordedPath(url: URL): string {
   // is never kept (the mock logs it the same way)
   const hit = ROUTES.find(r => r.template.includes("{") && r.re.test(url.pathname));
   if (!hit) return url.pathname;
-  return hit.template === "/settings/{section}" && SECTIONS.has(decodeURIComponent(url.pathname.split("/")[2] ?? ""))
-    ? url.pathname : hit.template;
+  const s = decoded(url.pathname.split("/")[2] ?? "");
+  return hit.template === "/settings/{section}" && s !== null && SECTIONS.has(s) ? url.pathname : hit.template;
 }
 
 /** The route a request takes and its variant — or no route (a static file,

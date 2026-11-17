@@ -109,10 +109,20 @@ const PREVIEW = msgpackEncode({
 // anything else is /settings/{section} (the ONE parameter route of the gateway)
 const SECTIONS = new Set(JSON.parse(readFileSync(new URL("../../scripts/inventory/atoms.py.json", import.meta.url), "utf8"))
   .adapters.sections.atoms.map(a => a.id.slice("section:".length)));
-const loggedPath = (p) => /^\/settings\/[^/]+$/.test(p) && !SECTIONS.has(p.slice("/settings/".length)) ? "/settings/{section}" : p;
+// The boundary of the parameter is decided on the RAW path, before decoding:
+// an encoded slash (%2F) is part of the value, never a second segment (Codex
+// R393 VM-I32) — one raw segment after /settings/ is the parameter
+const loggedPath = (raw, decoded) => {
+  const m = /^\/settings\/([^/]+)$/.exec(raw);
+  if (!m) return decoded;
+  let section;
+  try { section = decodeURIComponent(m[1]); } catch { section = null; }
+  return section !== null && SECTIONS.has(section) ? decoded : "/settings/{section}";
+};
 
 const server = createServer(async (req, res) => {
-  const path = decodeURIComponent((req.url || "/").split("?")[0]);
+  const rawPath = (req.url || "/").split("?")[0];
+  const path = decodeURIComponent(rawPath);
   if (REPLAY) {
     const origin = originOf(req), reqId = req.headers["x-e2e-req"] ?? null;
     // a page's unload beacon carries its mark in the query (e2e/test.ts
@@ -124,11 +134,11 @@ const server = createServer(async (req, res) => {
     // never a served API route —, or 403 / 404), the query's key NAMES (never
     // a value), and a request that ended without its answer (`closed`)
     const qkeys = query ? [...new Set(query.keys())].sort() : [];
-    res.on("finish", () => replay({ kind: "http", method: req.method, path: loggedPath(path), qkeys, origin, req_id: reqId, status: res.statusCode,
+    res.on("finish", () => replay({ kind: "http", method: req.method, path: loggedPath(rawPath, path), qkeys, origin, req_id: reqId, status: res.statusCode,
                                     served: res.e2eServed ?? null, ...(beacon !== null ? { beacon } : {}) }));
     res.on("close", () => {
       if (!res.writableFinished)
-        replay({ kind: "http", method: req.method, path: loggedPath(path), qkeys, origin, req_id: reqId, status: null, served: null, closed: true });
+        replay({ kind: "http", method: req.method, path: loggedPath(rawPath, path), qkeys, origin, req_id: reqId, status: null, served: null, closed: true });
     });
   }
   // replay step 5b's counter-cases (e2e/http-paths.spec.ts): a real server

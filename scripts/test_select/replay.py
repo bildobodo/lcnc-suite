@@ -407,7 +407,8 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
           http_dir: Path | None = None, http_expect: list[dict] | None = None) -> dict:
     events, event_problems = read_events(events_path, run)
     instances = [e["instance"] for e in events if e.get("event") == "bound"]
-    ports = {e["instance"]: e["port"] for e in events if e.get("event") == "bound" and _int(e.get("port"))}
+    bound = {e["instance"]: {"port": e.get("port"), "workerIndex": e.get("workerIndex")}
+             for e in events if e.get("event") == "bound"}
     mock_http: list[tuple[str, dict]] = []
     mock_opens: list[tuple[str, dict]] = []
     attempts: dict[tuple[str, int], dict] = {}
@@ -590,7 +591,7 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
                     for k, a in sorted(attempts.items(), key=lambda kv: where(kv[0]))]
     paths = None
     if http_dir is not None:
-        paths = http_paths.judge(http_dir, run, attempts, name, ports, mock_http, mock_opens, loaded, http_expect)
+        paths = http_paths.judge(http_dir, run, attempts, name, bound, mock_http, mock_opens, loaded, http_expect)
         findings += paths["findings"]
     return {
         "verdict": "FAIL" if findings else "PASS", "run": run, "logs": len(logs),

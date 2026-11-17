@@ -11565,6 +11565,11 @@ names each request's path; the replay runs it in every gate.
 - **Assigned by id only** (R269): one proven direct contact is assigned;
   several under one id, a redirect hop, a fetch through a redirect stay
   visibly unknown. Never URL or order.
+- **An id proves the operation, not the route** (R393): a contact counts as
+  the route's answer only when the mock answered it itself (not its fallback,
+  not a closed contact), at the request's own method and path, outside any
+  redirect chain; a rewrite by the spec is its own class. The record is bound
+  to the run's workers, attempts and projects before it is judged.
 - **The fallback is no served route** (R389 D1/D3): it is its own class.
   The mock gets no handlers for `/g30`, `/telemetry`, `/ready` in 5b — that
   would change what many specs see; a separate point after 5c (Q389-1).

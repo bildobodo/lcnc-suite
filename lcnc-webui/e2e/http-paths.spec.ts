@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { test, expect } from "./test";
+import { test, expect, type Route } from "./test";
 import { MOCK } from "./ctl";
 import { replayFile } from "./mockFixture";
 import { httpRecordFile } from "./httpRecord";
@@ -81,6 +81,33 @@ test("an aborted request and one a spec holds until its context closes", async (
   await held;                                               // its handler has it — then the context closes
 });
 
+test("a fetch over the SPA fallback, then fulfill: a fallback stays a fallback (R393 VM-I28)", async ({ page }) => {
+  await page.goto(NEUTRAL);
+  await page.route("**/g30", async (route) => {
+    const response = await route.fetch();
+    expect(response.headers()["content-type"]).toContain("text/html");   // the mock's fallback: index.html
+    await route.fulfill({ response, json: { value: "invented by the spec" } });
+  });
+  expect(await page.evaluate(() => fetch("/g30").then(r => r.json()))).toEqual({ value: "invented by the spec" });
+});
+
+test("a rewritten URL is credited to no route (R393 VM-I29)", async ({ page }) => {
+  await page.goto(NEUTRAL);
+  await page.route("**/g30", route => route.continue({ url: `${MOCK}devices` }));
+  expect(await page.evaluate(() => fetch("/g30").then(r => r.json()))).toHaveProperty("devices");
+});
+
+test("a handler registered for two urls is unrouted from one of them alone (R393 VM-I31)", async ({ page }) => {
+  await page.goto(NEUTRAL);
+  const handler = (route: Route) => route.fulfill({ body: "registered-handler" });
+  await page.route("**/__e2e/a", handler);
+  await page.route("**/__e2e/b", handler);
+  await page.unroute("**/__e2e/a", handler);
+  // as uninstrumented Playwright does: a is gone (the mock's fallback answers), b stays
+  expect(await page.evaluate(() => fetch("/__e2e/a").then(r => r.text()))).not.toBe("registered-handler");
+  expect(await page.evaluate(() => fetch("/__e2e/b").then(r => r.text()))).toBe("registered-handler");
+});
+
 test("a save and a rename of a macro in one test are two variants", async ({ page }) => {
   await page.goto(NEUTRAL);
   await page.route("**/macro?*", route => route.fulfill({ json: { ok: true } }));
@@ -99,10 +126,11 @@ test("an invented token in a query, a header and a path parameter appears in no 
     // and in a route's path parameter: kept as its template (R268 Rest B)
     await fetch(`/settings/${t}`, { method: "POST", body: "{}" });
     await fetch(`/settings/${t}`);
+    await fetch(`/settings/${t}%2Ftail`);            // an encoded slash stays inside the parameter (R393 VM-I32)
   }, token);
   const replay = replayFile(mock.instance)!;
   // the mock writes its line when the answer finishes
   await expect.poll(() => readFileSync(replay, "utf8").includes('"qkeys":["e2e_case","token"]')).toBe(true);
-  await expect.poll(() => readFileSync(replay, "utf8").split("/settings/{section}").length - 1).toBeGreaterThanOrEqual(2);
+  await expect.poll(() => readFileSync(replay, "utf8").split("/settings/{section}").length - 1).toBeGreaterThanOrEqual(3);
   for (const f of [replay, httpRecordFile()!]) expect(readFileSync(f, "utf8").includes(token), f).toBe(false);
 });

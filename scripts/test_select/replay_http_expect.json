@@ -61,7 +61,7 @@
    {
     "method": "GET",
     "path": "/__e2e/redirect",
-    "class": "several",
+    "class": "redirect-chain",
     "n": 1
    },
    {
@@ -137,6 +137,48 @@
     "path": "/macro",
     "class": "replaced",
     "variant": "rename base=revision rename_base=revision",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "file": "http-paths.spec.ts",
+  "title": "a fetch over the SPA fallback, then fulfill: a fallback stays a fallback (R393 VM-I28)",
+  "expect": [
+   {
+    "method": "GET",
+    "path": "/g30",
+    "class": "fetch-fallback",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "file": "http-paths.spec.ts",
+  "title": "a rewritten URL is credited to no route (R393 VM-I29)",
+  "expect": [
+   {
+    "method": "GET",
+    "path": "/g30",
+    "class": "rewritten",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "file": "http-paths.spec.ts",
+  "title": "a handler registered for two urls is unrouted from one of them alone (R393 VM-I31)",
+  "expect": [
+   {
+    "method": "GET",
+    "path": "/__e2e/a",
+    "class": "fallback",
+    "n": 1
+   },
+   {
+    "method": "GET",
+    "path": "/__e2e/b",
+    "class": "replaced",
     "n": 1
    }
   ]

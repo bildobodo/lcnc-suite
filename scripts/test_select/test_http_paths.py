@@ -17,7 +17,7 @@ RUN = "run-1"
 KEY = ("t1", 0)
 ATTEMPTS = {KEY: {"file": "x.spec.ts", "title": "a test", "project": "e2e", "instance": "m1", "status": "passed"}}
 NAME = {KEY: "x.spec.ts › a test [retry 0]"}
-PORTS = {"m1": 4500}
+BOUND = {"m1": {"port": 4500, "workerIndex": 0}}
 ORIGIN = {"run": RUN, "test": "t1", "project": "e2e", "retry": 0}
 HOST = "localhost:4500"
 
@@ -48,21 +48,27 @@ class Rec:
                            **({"status": status} if transport == "finished" else {"error": "net::ERR_ABORTED"})})
         return self
 
-    def contact(self, path: str, req_id: str | None, *, served: str = "static", status: int = 200,
-                method: str = "GET", qkeys: list | None = None) -> Rec:
-        self.mock.append(("m1", {"kind": "http", "method": method, "path": path, "qkeys": qkeys or [], "origin": ORIGIN,
-                                 "req_id": req_id, "status": status, "served": served}))
+    def contact(self, path: str, req_id: str | None, *, served: str | None = "static", status: int | None = 200,
+                method: str = "GET", qkeys: list | None = None, origin: dict | None = None, closed: bool = False) -> Rec:
+        self.mock.append(("m1", {"kind": "http", "method": method, "path": path, "qkeys": qkeys or [],
+                                 "origin": ORIGIN if origin is None else origin, "req_id": req_id, "status": status,
+                                 "served": served, **({"closed": True} if closed else {})}))
         return self
 
     def closing(self, t: int, sw: int = 0) -> Rec:
         self.lines.append({"t": t, "k": "closing", "ctx": "c1", "sw": sw})
         return self
 
-    def judge(self, tmp: Path, loaded: set | None = None, expect: list | None = None) -> dict:
+    def judge(self, tmp: Path, loaded: set | None = None, expect: list | None = None, close: bool = True,
+              worker: int = 0) -> dict:
         d = tmp / "http"
         d.mkdir(exist_ok=True)
-        (d / f"{RUN}-w0.jsonl").write_text("".join(json.dumps(x) + "\n" for x in self.lines))
-        return http_paths.judge(d, RUN, ATTEMPTS, NAME, PORTS, self.mock, self.opens, loaded or set(),
+        lines = list(self.lines)
+        # a finished run's record ends every context (the fixture's close)
+        if close and not any(x["k"] == "closing" and x["ctx"] == "c1" for x in lines):
+            lines.append({"t": self.t + 1, "k": "closing", "ctx": "c1", "sw": 0})
+        (d / f"{RUN}-w{worker}.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+        return http_paths.judge(d, RUN, ATTEMPTS, NAME, BOUND, self.mock, self.opens, loaded or set(),
                                 expect if expect is not None else [])
 
 
@@ -105,7 +111,7 @@ def test_the_three_redirect_cases_of_r268_keep_their_verdicts(tmp_path):
     rec.contact("/r", "fetch:f9", status=302).contact("/t", "fetch:f9").end("5")
     res = rec.judge(tmp_path)
     assert res["findings"] == []
-    assert classes(res) == {"replaced": 1, "fetch-unknown": 1, "several": 1, "redirect-hop": 2}
+    assert classes(res) == {"replaced": 1, "fetch-unknown": 1, "redirect-chain": 1, "redirect-hop": 2}
     assert res["idless_covered_by_synthetic_hops"] == 1
 
 
@@ -178,7 +184,7 @@ def test_a_page_loaded_at_its_mock_without_its_context_in_the_record_is_red(tmp_
 
 
 def test_no_record_at_all_is_red(tmp_path):
-    res = http_paths.judge(tmp_path / "none", RUN, ATTEMPTS, NAME, PORTS, [], [], set(), [])
+    res = http_paths.judge(tmp_path / "none", RUN, ATTEMPTS, NAME, BOUND, [], [], set(), [])
     assert res["findings"] == [f"no HTTP record of run {RUN} in {tmp_path / 'none'}"]
 
 
@@ -199,3 +205,67 @@ def test_the_shipped_expectations_name_only_tests_of_the_counter_case_spec():
     for x in json.loads(http_paths.EXPECT.read_text()):
         assert x["file"] == "http-paths.spec.ts" and f'test("{x["title"]}"' in spec, x["title"]
         assert all(w["class"] in http_paths.CLASSES for w in x["expect"])
+
+
+# ── R393: a contact proves the agreed response path, no more (VM-I28) ──────
+
+def test_a_fetch_over_the_fallback_stays_a_fallback_and_a_closed_contact_proves_no_answer(tmp_path):
+    rec = Rec().req("1", "/g30").act("1", "handler").act("1", "fetch", op="f1").act("1", "fulfill", status=200, response=True)
+    rec.contact("/g30", "fetch:f1", served="fallback").end("1")
+    rec.req("2", "/devices").act("2", "handler").act("2", "fetch", op="f2").act("2", "fulfill", status=200)
+    rec.contact("/devices", "fetch:f2", served=None, status=None, closed=True).end("2")
+    rec.req("3", "/devices").act("3", "catch-all").contact("/devices", "req:3", served=None, status=None, closed=True)
+    rec.end("3", "failed")
+    res = rec.judge(tmp_path)
+    assert res["findings"] == []
+    assert classes(res) == {"fetch-fallback": 1, "fetch-unknown": 1, "contact-closed": 1}
+    assert not set(res["classes"]) & http_paths.EVIDENCE
+
+
+def test_a_redirect_chain_with_one_contact_left_stays_unknown(tmp_path):
+    # a server 302; the second hop fails before it reaches the mock — one
+    # contact under the chain's id is still no single direct answer (R269)
+    rec = Rec().req("1", "/r").act("1", "catch-all").contact("/r", "req:1", status=302)
+    rec.req("2", "/t", frm="1").end("2", "failed")
+    res = rec.judge(tmp_path)
+    assert res["findings"] == [] and classes(res) == {"redirect-chain": 1, "redirect-hop": 1}
+
+
+# ── R393: a rewrite is no evidence of the original route (VM-I29) ──────────
+
+def test_a_recorded_rewrite_is_its_own_class_and_an_unrecorded_one_is_red(tmp_path):
+    rec = Rec().req("1", "/g30").act("1", "handler")
+    rec.act("1", "continue", to={"method": "GET", "host": HOST, "path": "/devices", "route": "GET /devices"})
+    rec.contact("/devices", "req:1", served="handler").end("1")
+    res = rec.judge(tmp_path)
+    assert res["findings"] == [] and classes(res) == {"rewritten": 1}
+    hidden = Rec().req("1", "/g30").act("1", "handler").act("1", "continue").contact("/devices", "req:1", served="handler").end("1")
+    res = hidden.judge(tmp_path)
+    assert classes(res) == {"rewritten": 1}
+    assert any("its contact is GET /devices with no recorded rewrite" in f for f in res["findings"])
+
+
+def test_the_same_path_encoded_in_the_browser_and_decoded_at_the_mock_is_no_rewrite(tmp_path):
+    rec = Rec().req("1", "/..%2f..%2fx").act("1", "catch-all").contact("/../../x", "req:1", served="403", status=403).end("1")
+    res = rec.judge(tmp_path)
+    assert res["findings"] == [] and classes(res) == {"served": 1}
+
+
+# ── R393: the record is bound before it is judged (VM-I30) ─────────────────
+
+@pytest.mark.parametrize("build,why,kw", [
+    (lambda r: r.lines.__setitem__(0, {**r.lines[0], "project": "firefox-core"}) or r, "names project 'firefox-core'", {}),
+    (lambda r: r.req("1", "/devices").act("1", "catch-all").act("9", "fulfill", status=200).end("9"),
+     "of a request the record never saw (9)", {}),
+    (lambda r: r.req("1", "/devices").act("1", "catch-all").req("1", "/g30"), "a second request line", {}),
+    (lambda r: r.req("1", "/devices").act("1", "catch-all").contact("/devices", "req:1", served="handler").end("1"),
+     "no closing mark", {"close": False}),
+    (lambda r: r.req("1", "/devices").act("1", "catch-all").contact("/devices", "req:1", served="handler",
+                                                                      origin={**ORIGIN, "test": "t9"}).end("1"),
+     "its contact carries another origin", {}),
+    (lambda r: r, "a record of worker 999, which no mock of this run was bound to", {"worker": 999}),
+    (lambda r: r.lines.__setitem__(0, {**r.lines[0], "run": "other-run"}) or r, "a context of run 'other-run'", {}),
+])
+def test_a_damaged_or_foreign_record_is_red(tmp_path, build, why, kw):
+    res = build(Rec()).judge(tmp_path, **kw)
+    assert any(why in f for f in res["findings"]), res["findings"]

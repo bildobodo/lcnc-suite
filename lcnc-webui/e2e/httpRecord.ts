@@ -51,7 +51,6 @@ export interface HttpOrigin { run: string; test: string; project: string; retry:
 let reqSeq = 0, fetchSeq = 0, ctxSeq = 0;
 const instrumented = new WeakSet<BrowserContext>();
 const wrappedPages = new WeakSet<Page>();
-const handlerWrap = new WeakMap<object, object>();
 
 type Handler = (route: Route, request: Request) => unknown;
 type RouteFn = (url: unknown, handler: Handler, options?: unknown) => Promise<void>;
@@ -78,6 +77,14 @@ function idFor(ids: WeakMap<Request, string>, r: Request, ctx: string, at: "requ
 function wrapRoute(route: Route, id: string): Route {
   const req = route.request();
   const headers = (extra: Record<string, string> | undefined, value: string) => ({ ...req.headers(), ...(extra ?? {}), [REQ_HEADER]: value });
+  // a spec that rewrites the request (Codex R393 VM-I29): where it really
+  // goes — its method, its recorded path and route — never its query values
+  const to = (o?: { url?: string; method?: string }) => {
+    if (!o || (o.url === undefined && o.method === undefined)) return {};
+    const u = new URL(o.url ?? req.url(), req.url());
+    const method = o.method ?? req.method();
+    return { to: { method, host: u.host, path: recordedPath(u), route: project(method, u).route } };
+  };
   return new Proxy(route, {
     get(target, prop, receiver) {
       switch (prop) {
@@ -89,12 +96,12 @@ function wrapRoute(route: Route, id: string): Route {
           };
         case "continue":
           return async (o?: Parameters<Route["continue"]>[0]) => {
-            write({ k: "act", id, act: "continue" });
+            write({ k: "act", id, act: "continue", ...to(o) });
             return target.continue({ ...(o ?? {}), headers: headers(o?.headers, `req:${id}`) });
           };
         case "fallback":
           return async (o?: Parameters<Route["fallback"]>[0]) => {
-            write({ k: "act", id, act: "fallback" });
+            write({ k: "act", id, act: "fallback", ...to(o) });
             return target.fallback(o);
           };
         case "abort":
@@ -105,7 +112,7 @@ function wrapRoute(route: Route, id: string): Route {
         case "fetch":
           return async (o?: Parameters<Route["fetch"]>[0]) => {
             const op = `${WORKER}.f${++fetchSeq}`;
-            write({ k: "act", id, act: "fetch", op });
+            write({ k: "act", id, act: "fetch", op, ...to(o) });
             const resp = await target.fetch({ ...(o ?? {}), headers: headers(o?.headers, `fetch:${op}`) });
             write({ k: "fetched", id, op, status: resp.status() });
             return resp;
@@ -119,23 +126,43 @@ function wrapRoute(route: Route, id: string): Route {
   });
 }
 
+/** Two route patterns are the same registration's when Playwright would
+ *  match them alike: the same string, a RegExp of the same source and flags,
+ *  the same predicate. */
+const sameUrl = (a: unknown, b: unknown) => a === b ||
+  (a instanceof RegExp && b instanceof RegExp && a.source === b.source && a.flags === b.flags);
+
 /** Wrap `route` / `unroute` of a page or a context: each spec handler gets
  *  the wrapped Route; entering it is recorded (a handler that never acts is
- *  "held"). `unroute(url, handler)` finds the wrapper of that handler. */
+ *  "held"). Each REGISTRATION gets its own wrapper, kept per target with its
+ *  url (Codex R393 VM-I31: one wrapper per handler lost the first url of a
+ *  handler registered twice), so `unroute(url, handler)` removes exactly the
+ *  routes it removed before and `unroute(url)` all of that url. */
 function wrapRouting(target: Page | BrowserContext, scope: "page" | "context", ids: WeakMap<Request, string>, ctx: string): void {
   const route = target.route.bind(target) as unknown as RouteFn;
   const unroute = target.unroute.bind(target) as unknown as UnrouteFn;
+  const regs: Array<{ url: unknown; handler: Handler; wrapped: Handler }> = [];
   (target as unknown as { route: RouteFn }).route = (url, handler, options) => {
     const wrapped: Handler = (r, request) => {
       const id = idFor(ids, request, ctx, "route");
       write({ k: "act", id, act: "handler", scope });
       return handler(wrapRoute(r, id), request);
     };
-    handlerWrap.set(handler, wrapped);
+    regs.push({ url, handler, wrapped });
     return route(url, wrapped, options);
   };
-  (target as unknown as { unroute: UnrouteFn }).unroute = (url, handler) =>
-    unroute(url, handler ? (handlerWrap.get(handler) as Handler | undefined) ?? handler : undefined);
+  (target as unknown as { unroute: UnrouteFn }).unroute = async (url, handler) => {
+    if (!handler) {
+      for (let i = regs.length - 1; i >= 0; i--) if (sameUrl(regs[i].url, url)) regs.splice(i, 1);
+      return unroute(url);
+    }
+    const mine = regs.filter(x => sameUrl(x.url, url) && x.handler === handler);
+    if (mine.length === 0) return unroute(url, handler);
+    for (const x of mine) {
+      regs.splice(regs.indexOf(x), 1);
+      await unroute(url, x.wrapped);
+    }
+  };
 }
 
 /** Write the closing mark of a context and its service workers, then close it. */

@@ -420,16 +420,27 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
 - **Closing mark:** each context writes its mark right before it closes (the
   fixture's close and a spec's `context.close()`) with its service workers —
   `serviceWorkers: "block"` in the config; any at the close is a finding.
-- **Classes** (the order they are decided): aborted, replaced, fetched (one
-  contact), fetch-unknown, ws-handshake (Firefox reports the upgrade), other-
-  server (the preview server of `smoke`), served, fallback, several (a server
-  redirect keeps the header), redirect-hop, closing (its request line comes
+- **Bound before judged** (R393 VM-I30): every record file is a worker of
+  the run; every context an attempt of the run with its project, in the
+  worker that attempt ran in; ids unique; no action, end or fetch without its
+  request; every context closed by its mark; an assigned contact carries its
+  request's attempt. A rewrite (`continue` / `fallback` / `fetch` with another
+  url or method) is recorded with where it went.
+- **Classes** (the order they are decided): aborted, rewritten (no evidence of
+  the original route, R393 VM-I29), replaced, fetched (one contact the mock
+  answered itself), fetch-fallback (a fetch over the SPA fallback stays a
+  fallback), fetch-unknown, ws-handshake (Firefox reports the upgrade),
+  other-server (the preview server of `smoke`), redirect-chain (the start of a
+  chain, however many contacts — R393 VM-I28), served, fallback,
+  contact-closed (the mock reached, no answer), several, redirect-hop, closing (its request line comes
   AFTER its context's mark in the worker's record — the record's order, never
   the clock: two lines in one millisecond are ordered by the record alone),
   held (a spec handler never acted), aborted-early (no contact, the transport
   failed — forwarded, or before any route call), unknown. Only served and
   fetched are a server's answer to a route.
-- **Findings** (R389 D4): an id first given at the route; a service worker; a
+- **Findings** (R389 D4, R393): a binding problem of the record; a contact at
+  another method or path than its request with no recorded rewrite; an id
+  first given at the route; a service worker; a
   `fulfill` and a contact under the same id without a fetch; a contact under
   an id the browser never recorded; an id-less contact of a test attempt —
   unless a SYNTHETIC redirect hop of the same attempt covers it (its
@@ -445,7 +456,11 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   inventory's `section:` atoms — never a value; a route without one shows
   its variant as not derived. A route's path parameter is recorded as its
   template unless its value is enumerated (`/settings/{section}` for any
-  section the inventory does not name — the record and the mock alike).
+  section the inventory does not name — the record and the mock alike; the
+  mock decides the parameter's boundary on the RAW path, so an encoded slash
+  stays inside the value, R393 VM-I32). Each route registration keeps its own
+  wrapper, so `unroute(url, handler)` removes what it removed without the
+  record (R393 VM-I31).
 - **What the catch-all changes, measured (R389):** no test result; a request
   a page issues while its context closes no longer reaches the mock (it is
   in the record, class closing); Firefox no longer asks for `/favicon.ico`.
