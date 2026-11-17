@@ -420,12 +420,16 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
 - **Closing mark:** each context writes its mark right before it closes (the
   fixture's close and a spec's `context.close()`) with its service workers —
   `serviceWorkers: "block"` in the config; any at the close is a finding.
-- **Bound before judged** (R393 VM-I30): every record file is a worker of
-  the run; every context an attempt of the run with its project, in the
-  worker that attempt ran in; ids unique; no action, end or fetch without its
-  request; every context closed by its mark; an assigned contact carries its
-  request's attempt. A rewrite (`continue` / `fallback` / `fetch` with another
-  url or method) is recorded with where it went. A spec's own `headers`
+- **Bound before judged** (R393/R394 VM-I30): every record file is a worker
+  of the run; every context an attempt of the run with its project, in the
+  worker that attempt ran in; EVERY line in its context's or request's worker;
+  ids unique; no action, end or fetch without its request, a `fetched` only of
+  a fetch its request opened, one end per request; a redirect predecessor
+  recorded, in the same context, no cycle; every context closed by its mark;
+  an assigned contact carries its request's attempt. A rewrite (`continue` /
+  `fallback` / `fetch` with another url — the query alone too — or method) is
+  decided where both URLs are at hand and recorded with its target's safe
+  projection; the same url passed on is no rewrite. A spec's own `headers`
   replace the request's, as in Playwright (only the id is added).
 - **Classes** (the order they are decided): aborted, rewritten (no evidence of
   the original route, R393 VM-I29), replaced, fetched (one contact the mock

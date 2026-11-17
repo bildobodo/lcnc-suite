@@ -123,6 +123,23 @@ test("a spec's own headers replace the request's on continue, fallback and fetch
   }
 });
 
+test("a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29)", async ({ page }) => {
+  await page.goto(NEUTRAL);
+  await page.route("**/upload?*", route => route.continue({ url: `${MOCK}upload?overwrite=0` }));
+  await page.route("**/macro?*", async (route) => {
+    const response = await route.fetch({ url: `${MOCK}macro?base=revision&rename_from=a.ngc&rename_base=revision` });
+    await route.fulfill({ response });
+  });
+  // the same url passed on unchanged is the control: no rewrite
+  await page.route("**/devices", route => route.continue({ url: route.request().url() }));
+  const codes = await page.evaluate(async () => [
+    (await fetch("/upload?overwrite=1", { method: "POST", body: "e2e" })).status,
+    (await fetch("/macro?base=new", { method: "PUT", body: "e2e" })).status,
+    (await fetch("/devices")).status,
+  ]);
+  expect(codes).toEqual([200, 200, 200]);
+});
+
 test("a save and a rename of a macro in one test are two variants", async ({ page }) => {
   await page.goto(NEUTRAL);
   await page.route("**/macro?*", route => route.fulfill({ json: { ok: true } }));

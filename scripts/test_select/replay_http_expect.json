@@ -182,5 +182,31 @@
     "n": 1
    }
   ]
+ },
+ {
+  "file": "http-paths.spec.ts",
+  "title": "a rewrite of the query alone is rewritten, on continue and on fetch (R394 VM-I29)",
+  "expect": [
+   {
+    "method": "POST",
+    "path": "/upload",
+    "class": "rewritten",
+    "variant": "overwrite=1",
+    "n": 1
+   },
+   {
+    "method": "PUT",
+    "path": "/macro",
+    "class": "rewritten",
+    "variant": "save base=new",
+    "n": 1
+   },
+   {
+    "method": "GET",
+    "path": "/devices",
+    "class": "served",
+    "n": 1
+   }
+  ]
  }
 ]

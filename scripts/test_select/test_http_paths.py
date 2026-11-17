@@ -17,7 +17,7 @@ RUN = "run-1"
 KEY = ("t1", 0)
 ATTEMPTS = {KEY: {"file": "x.spec.ts", "title": "a test", "project": "e2e", "instance": "m1", "status": "passed"}}
 NAME = {KEY: "x.spec.ts › a test [retry 0]"}
-BOUND = {"m1": {"port": 4500, "workerIndex": 0}}
+BOUND = {"m1": {"port": 4500, "workerIndex": 0}, "m2": {"port": 4501, "workerIndex": 1}}
 ORIGIN = {"run": RUN, "test": "t1", "project": "e2e", "retry": 0}
 HOST = "localhost:4500"
 
@@ -67,7 +67,12 @@ class Rec:
         # a finished run's record ends every context (the fixture's close)
         if close and not any(x["k"] == "closing" and x["ctx"] == "c1" for x in lines):
             lines.append({"t": self.t + 1, "k": "closing", "ctx": "c1", "sw": 0})
-        (d / f"{RUN}-w{worker}.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+        # a line may be written by another worker's file (`_in`), all else by `worker`
+        files: dict[int, list] = {}
+        for x in lines:
+            files.setdefault(x.get("_in", worker), []).append({k: v for k, v in x.items() if k != "_in"})
+        for w, xs in files.items():
+            (d / f"{RUN}-w{w}.jsonl").write_text("".join(json.dumps(x) + "\n" for x in xs))
         return http_paths.judge(d, RUN, ATTEMPTS, NAME, BOUND, self.mock, self.opens, loaded or set(),
                                 expect if expect is not None else [])
 
@@ -248,7 +253,7 @@ def test_no_member_of_a_redirect_chain_is_evidence_not_even_a_routed_hop(tmp_pat
 
 def test_a_recorded_rewrite_is_its_own_class_and_an_unrecorded_one_is_red(tmp_path):
     rec = Rec().req("1", "/g30").act("1", "handler")
-    rec.act("1", "continue", to={"method": "GET", "host": HOST, "path": "/devices", "route": "GET /devices"})
+    rec.act("1", "continue", to={"changed": True, "method": "GET", "host": HOST, "path": "/devices", "route": "GET /devices"})
     rec.contact("/devices", "req:1", served="handler").end("1")
     res = rec.judge(tmp_path)
     assert res["findings"] == [] and classes(res) == {"rewritten": 1}
@@ -281,4 +286,48 @@ def test_the_same_path_encoded_in_the_browser_and_decoded_at_the_mock_is_no_rewr
 ])
 def test_a_damaged_or_foreign_record_is_red(tmp_path, build, why, kw):
     res = build(Rec()).judge(tmp_path, **kw)
+    assert any(why in f for f in res["findings"]), res["findings"]
+
+
+# ── R394: a query rewrite, and the binding of every line (VM-I29, VM-I30) ──
+
+def test_a_rewrite_of_the_query_alone_is_rewritten_and_the_same_url_passed_on_is_not(tmp_path):
+    rec = Rec().req("1", "/upload", method="POST", qkeys=["overwrite"]).act("1", "handler")
+    rec.act("1", "continue", to={"changed": True, "method": "POST", "host": HOST, "path": "/upload",
+                                 "route": "POST /upload", "variant": "overwrite=0"})
+    rec.contact("/upload", "req:1", served="fallback", method="POST", qkeys=["overwrite"]).end("1")
+    rec.req("2", "/devices").act("2", "handler").act("2", "continue").contact("/devices", "req:2", served="handler").end("2")
+    res = rec.judge(tmp_path)
+    assert res["findings"] == [] and classes(res) == {"rewritten": 1, "served": 1}
+
+
+def _request_line_elsewhere(r: Rec) -> Rec:
+    r.req("1", "/devices").act("1", "catch-all").contact("/devices", "req:1", served="handler").end("1")
+    next(x for x in r.lines if x["k"] == "req").update(_in=1)
+    return r
+
+
+def _predecessor_in_another_context(r: Rec) -> Rec:
+    r.lines.append({"t": 0, "k": "ctx", "ctx": "c2", "how": "new", **ORIGIN})
+    r.req("1", "/r")
+    r.lines[-1]["ctx"] = "c2"
+    r.req("2", "/t", frm="1")
+    r.lines.append({"t": 9, "k": "closing", "ctx": "c2", "sw": 0})
+    return r
+
+
+@pytest.mark.parametrize("build,why", [
+    # a line of the request in the file of ANOTHER, validly bound worker
+    (lambda r: r.req("1", "/devices").act("1", "catch-all").contact("/devices", "req:1", served="handler").end("1")
+     .lines[-2].update(_in=1) or r, "written by worker 1, the request's is 0"),
+    (lambda r: _request_line_elsewhere(r), "request 1: written by worker 1, its context by worker 0"),
+    (lambda r: r.req("2", "/t", frm="9").end("2"), "its redirect predecessor 9 was never recorded"),
+    (lambda r: _predecessor_in_another_context(r), "its redirect predecessor 1 belongs to another context"),
+    (lambda r: r.req("1", "/devices").act("1", "handler").act("1", "fulfill", status=200)
+     .lines.append({"t": 1, "k": "fetched", "id": "1", "op": "f9", "status": 200}) or r, "a fetched line of no fetch it opened"),
+    (lambda r: r.req("1", "/devices").act("1", "catch-all").contact("/devices", "req:1", served="handler").end("1").end("1", "failed"),
+     "a second end line"),
+])
+def test_every_line_and_reference_is_bound(tmp_path, build, why):
+    res = build(Rec()).judge(tmp_path)
     assert any(why in f for f in res["findings"]), res["findings"]

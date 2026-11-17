@@ -172,6 +172,10 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
                 continue
             if r.get("ctx") not in ctx:
                 findings.append(f"request {rid}: of a context the record never opened ({r.get('ctx')})")
+            elif ctx[r["ctx"]]["_w"] != r["_w"]:
+                # every line in its owner's worker (R394 VM-I30): the order of
+                # two workers' files is no order of one context's events
+                findings.append(f"request {rid}: written by worker {r['_w']}, its context by worker {ctx[r['ctx']]['_w']}")
             req[rid] = r
             if r.get("at") != "request":
                 findings.append(f"request {rid} {r.get('method')} {r.get('path')}: its id was first given at the route — "
@@ -183,6 +187,9 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
             if c not in ctx:
                 findings.append(f"a closing mark of a context the record never opened ({c})")
                 continue
+            if r["_w"] != ctx[c]["_w"]:
+                findings.append(f"context {c}: a closing mark written by worker {r['_w']}, the context's is {ctx[c]['_w']}")
+                continue
             closing.setdefault(c, r["_o"])           # a context closed twice keeps its first mark
             if r.get("sw"):
                 findings.append(f"context {c}: {r['sw']} service worker(s) at its close — they are blocked")
@@ -191,6 +198,12 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
         if k in ("act", "end", "fetched") and rid not in req:
             findings.append(f"a {k} line of a request the record never saw ({rid})")
             continue
+        if k in ("act", "end", "fetched") and r["_w"] != req[rid]["_w"]:
+            findings.append(f"request {rid}: a {k} line written by worker {r['_w']}, the request's is {req[rid]['_w']}")
+            continue
+        if k == "fetched" and ops.get(r.get("op")) != rid:
+            findings.append(f"request {rid}: a fetched line of no fetch it opened ({r.get('op')})")
+            continue
         if k == "act":
             acts[rid].append(r)
             if r.get("act") == "fetch":
@@ -198,10 +211,31 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
                     findings.append(f"fetch {r.get('op')}: a second fetch line — ids are unique")
                 ops[r.get("op")] = rid
         elif k == "end":
+            if rid in end:
+                findings.append(f"request {rid}: a second end line — a request ends once")
+                continue
             end[rid] = r
     for c, r in ctx.items():
         if r.get("run") == run and c not in closing:
             findings.append(f"context {c}: no closing mark — the record of a finished run ends every context")
+    # a redirect chain is bound too (R394 VM-I30): its predecessor recorded,
+    # in the same context, and no cycle — a missing link is a measurement
+    # error, never another harmless redirect class
+    for rid, r in req.items():
+        frm = r.get("from")
+        if not frm:
+            continue
+        if frm not in req:
+            findings.append(f"request {rid}: its redirect predecessor {frm} was never recorded")
+        elif req[frm].get("ctx") != r.get("ctx"):
+            findings.append(f"request {rid}: its redirect predecessor {frm} belongs to another context")
+        seen, cur = {rid}, frm
+        while cur in req and req[cur].get("from"):
+            if cur in seen:
+                findings.append(f"request {rid}: its redirect chain runs in a cycle")
+                break
+            seen.add(cur)
+            cur = req[cur]["from"]
 
     def attempt_of(c: Any) -> tuple | None:
         x = ctx.get(c, {})
@@ -253,12 +287,12 @@ def judge(http_dir: Path, run: str, attempts: dict, name: dict, bound: dict[str,
     starts_chain = {r["from"] for r in req.values() if r.get("from")}
 
     def rewrite_of(rid: str, r: dict) -> dict | None:
-        """The recorded rewrite of a request — its effective method, host or
-        path differ from the request's own (R393 VM-I29)."""
+        """The recorded rewrite of a request: the record decided where both
+        URLs were at hand that the url or the method changed — the query
+        alone too (R393 VM-I29, R394)."""
         for x in acts.get(rid, []):
             to = x.get("to")
-            if isinstance(to, dict) and (to.get("method") != r.get("method") or to.get("path") != r.get("path")
-                                         or to.get("host") != r.get("host")):
+            if isinstance(to, dict) and to.get("changed") is True:
                 return to
         return None
 

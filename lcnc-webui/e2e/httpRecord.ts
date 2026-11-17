@@ -79,13 +79,18 @@ function wrapRoute(route: Route, id: string): Route {
   // a spec's own headers REPLACE the request's, as in Playwright (a spec may
   // drop one); only the id is added — without them the request's own go on
   const headers = (own: Record<string, string> | undefined, value: string) => ({ ...(own ?? req.headers()), [REQ_HEADER]: value });
-  // a spec that rewrites the request (Codex R393 VM-I29): where it really
-  // goes — its method, its recorded path and route — never its query values
+  // a spec that rewrites the request (Codex R393 VM-I29, R394): WHETHER it
+  // changed is decided here, where both URLs are at hand — a change of the
+  // query alone too —, and only that and the target's safe projection go to
+  // the record (method, host, masked path, route, variant), never a value;
+  // the same URL passed on is no rewrite (the control)
   const to = (o?: { url?: string; method?: string }) => {
     if (!o || (o.url === undefined && o.method === undefined)) return {};
     const u = new URL(o.url ?? req.url(), req.url());
     const method = o.method ?? req.method();
-    return { to: { method, host: u.host, path: recordedPath(u), route: project(method, u).route } };
+    if (u.href === new URL(req.url()).href && method === req.method()) return {};
+    const p = project(method, u);
+    return { to: { changed: true, method, host: u.host, path: recordedPath(u), route: p.route, variant: p.variant } };
   };
   return new Proxy(route, {
     get(target, prop, receiver) {
