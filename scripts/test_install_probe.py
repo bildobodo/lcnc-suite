@@ -616,8 +616,14 @@ def test_the_probe_runs_after_the_gates_heavy_section_and_holds_its_own_lock():
               and any("heavy_lock" in ast.unparse(i.context_expr) for i in n.items)]
     assert locked, "the gate's heavy section"
     inside = {id(c) for w in locked for c in ast.walk(w) if isinstance(c, ast.Call)}
-    calls = [n for n in ast.walk(main) if isinstance(n, ast.Call) and ast.unparse(n.func) == "install_probe"]
+    # the probe runs from merge_tail (replay step 5c: the merge's last steps,
+    # the probe then the coverage) — main calls THAT outside the heavy section,
+    # and merge_tail calls the probe; no call of either inside the lock
+    calls = [n for n in ast.walk(main) if isinstance(n, ast.Call) and ast.unparse(n.func) in ("install_probe", "merge_tail")]
     assert calls and all(id(c) not in inside for c in calls)
+    tail = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "merge_tail")
+    assert any(isinstance(n, ast.Call) and ast.unparse(n.func) == "install_probe" for n in ast.walk(tail))
+    assert not [n for n in ast.walk(tail) if isinstance(n, ast.With)], "merge_tail takes no lock for the probe"
     probe = (ROOT / "scripts/install_probe.py").read_text()
     assert 'with heavy_lock("install_probe", wait=0):' in probe and "--under-gate" not in probe
 
