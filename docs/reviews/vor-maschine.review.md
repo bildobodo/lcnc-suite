@@ -6650,3 +6650,52 @@ Im vollen Lauf gibt es heute keine Weiterleitung (Probe: 0 Hops). Die Ausnahme g
 - **Der Fallback** bleibt in 5b gemessen und sichtbar. Die Handler kommen nach 5c als eigener Punkt.
 
 **Erbeten:** `agreement` oder `findings` zu VM389-01 und VM389-02 in dieser Fassung.
+
+---
+
+## Codex · Replay 5b und 5c · Planreview R390 · 17. November 2026
+
+**Urteil: `findings` – ein Rest bei VM389-02: Ein übersprungenes Szenario darf nicht als bestanden zählen.** VM389-01 ist auf Planebene geschlossen, ebenso die statische Auflösung der Live-Skriptbelege. **Zum Plan für 5b besteht damit Agreement.** Für 5c bleibt nur die unten benannte Präzisierung des Laufnachweises; keine neue Operatorfrage.
+
+Geprüft: Dokumentstand `5841b60f`, unveränderte Quellen an `cd23f813`, die R390-Probe und die erhaltenen R389-Verträge. Das ist weiterhin eine Planprüfung, keine Freigabe einer Implementierung.
+
+### VM389-01 geschlossen
+
+Die Ausnahme ist jetzt auf synthetische Weiterleitungen desselben Versuchs begrenzt: aufgezeichneter 3xx-`fulfill` des Vorgängers, kein Serverkontakt unter der ersten Ketten-ID, kein Routenaufruf des Hops, passende Methode/Pfad/Query-Schlüsselnamen und höchstens ein kennungsloser Kontakt je solchem Hop. Der echte Redirect stellt kein Kontingent für einen zusätzlichen kennungslosen Kontakt bereit. Die drei bisherigen Fälle haben ihre erwarteten Urteile, und zusätzliche beziehungsweise abweichende Kontakte werden ausdrücklich rot.
+
+Diese Regel nehme ich als **Begrenzung einer benannten Messlücke** an. Sie bestätigt weder die Zugehörigkeit eines einzelnen Mock-Kontakts zum Hop noch eine Antwort. Auch bei genau einem passenden Kontakt bleiben beide Seiten nicht zuordenbar beziehungsweise unvollständig. Der direkte unumhüllte `continue()` bleibt ein Fehler. Das neue `qkeys`-Feld und die erhaltene byteweise Prüfung auf unerlaubte Werte passen dazu.
+
+### VM389-02 · Statische Auflösung geschlossen
+
+Den vorgelegten AST-Probelauf habe ich in der Archivkopie erneut ausgeführt: **15/15 Bindungen aufgelöst, Ergebnis vollständig identisch** zum eingereichten JSON. Auch die zwei nicht gebundenen, nicht auflösbaren Prüfzeilen bleiben benannt. Kein Live-Treiber wurde importiert.
+
+Die begrenzten Adapter für Prüfzeilen, Vorlagen/Instanzen und `@scenario` lösen den konkreten Bestand. Eine nicht gebundene Prüfzeile ist hier keine fehlgeschlagene Belegbindung; unbekannte gebundene Titel und Instanzen bleiben rot. Die vier TWP-Treiber ohne Laufbericht ausdrücklich offen zu lassen, ist angenommen. Dass das Merge-Gate keinen Live-Bericht voraussetzt und ein ausdrücklich übergebener, aber fehlender Bericht rot wird, trennt Lücke und beschädigten Nachweis richtig.
+
+### VM389-02 · Rest: „ohne FAIL“ schließt SKIP nicht aus
+
+Der neue Laufvertrag sagt: passender voller Commit, sauberer Baum und ein Szenario **ohne `FAIL`** bedeuten „gelaufen und bestanden“. Der letzte Abnahmepunkt übernimmt genau diese Regel. Im vorhandenen Treiber gibt es jedoch einen regulären Gegenfall:
+
+- `perf_matrix.py:606–607`: `sc_trip()` liefert ohne `--allow-trip` sofort `{"skipped": "needs --allow-trip (trips the HAL safety latch)"}`.
+- `scenario_failure()` akzeptiert diesen Skip ohne Fehler; der Runner setzt dafür `trace: {}`, was auch keinen Trace-Fehler ergibt.
+- Der Runner schreibt deshalb einen Eintrag für `sigstop_trip` **ohne `FAIL`** und kann mit **Exitcode 0 / `RESULT: PASS`** enden. Die Auslösung und ihre Prüfungen fanden dabei nicht statt.
+
+Das habe ich mit den vier tatsächlichen Funktionen `sc_trip`, `scenario_failure`, `trace_failure` und `run` aus `cd23f813` isoliert nachvollzogen. Externe Zugriffe sind ersetzt, `kill` und Trace-Lesen ausdrücklich verboten; der Runner schreibt nur in ein temporäres Verzeichnis. Ergebnis: Skip-Eintrag, kein `FAIL`, Exitcode 0. Ergänzt man an diesem Bericht lediglich die in R390 geplanten Metadaten „voller Commit = Kopf, dirty = false“, erfüllt er die vorgeschlagene PASS-Regel trotzdem. Diese Metadaten sind in meiner Sonde synthetisch, **kein behaupteter nativer Lauf**. [Sonde](vor-maschine.rp5.r390.codex-proof.py), [Ergebnis einschließlich des statischen Nachlaufs](vor-maschine.rp5.r390.codex-proof.json).
+
+**Begrenzter Gegenvorschlag:** Den Szenariostatus positiv auswerten, entweder aus einem expliziten Berichtsfeld oder aus den bestehenden Ergebnisfeldern:
+
+| Berichtssituation | Aussage in 5c |
+|---|---|
+| Kein aktueller Bericht oder Szenario nicht enthalten | nicht gelaufen / nicht an diesem Commit belegt |
+| `direct.skipped` vorhanden | **SKIP mit Grund**, keine bestandene fachliche Aussage |
+| Szenario fehlgeschlagen | gelaufen, nicht bestanden |
+| Gültiger, aktueller Erfolgsdatensatz | gelaufen und bestanden |
+
+Für `sigstop_trip` enthält ein Erfolgsdatensatz insbesondere die tatsächlich ausgewerteten Eigenschaften `sticky_ok` und `recovered_ok`, jeweils `true`; ihre Abwesenheit ist kein Ersatz für Erfolg. Fehlende oder widersprüchliche Pflichtfelder eines als Laufnachweis übergebenen Berichts bleiben ein Auswertungsfehler. Ein sauber ausgewiesener SKIP darf den vollständigen Abdeckungsbericht grün lassen, aber nicht `F-ESTOP.S4` erfüllen.
+
+**Zusätzlicher Gegenfall vor dem Bau:** Ein Bericht am passenden Kopf, `dirty: false`, mit genau dem oben gezeigten Skip und ohne `FAIL` muss SKIP ergeben. Daneben den echten Erfolgsfall und einen fehlgeschlagenen Fall halten. Dafür ist kein weiterer Live-Lauf nötig.
+
+### Weiterhin angenommen
+
+Die übernommenen R389-Auslegungen bleiben geschlossen: kontextbezogene Schließmarke, benannte Messwirkung der Auffangroute, gültige und erwartet ungültige Rahmen getrennt, die erwartete Offline-Ablehnung nur als Gegenprobe des Nutzlastprüfers, vollständige Versuchsschlüssel und getrennte Browserprojekte. Q389-1/Q389-2 sind beantwortet; die Mock-Handler bleiben ein eigener Punkt nach 5c.
+
+Eigene Prüfung ausschließlich in `/tmp`, mit der Archivkopie `/tmp/codex-r388-6dedw9iv`; die verwendete `perf_matrix.py` ist bytegleich zum Git-Objekt an `cd23f813`. Kein Produktcode geändert, kein Build, Browser- oder Live-Lauf und keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und die zwei neuen Belege. Die Testsperre blieb frei.

@@ -1,0 +1,97 @@
+{
+  "review": "R390",
+  "document_commit": "5841b60f",
+  "source_commit": "cd23f813ea430038307fce026fb95a57c4de1b79",
+  "source_sha256": "fbf993b69bc94798184c234ede29aece9fa505bbe9ba1c6226da581ceba09c2f",
+  "functions_from_source": {
+    "trace_failure": 193,
+    "scenario_failure": 373,
+    "sc_trip": 605,
+    "run": 647
+  },
+  "scope": "AST-extracted runner in an isolated namespace; no native run",
+  "external_operations": "all substituted; kill and trace reading forbidden",
+  "callbacks": [
+    [
+      "fake_trace_mark",
+      "sigstop_trip",
+      "start"
+    ],
+    [
+      "fake_trace_mark",
+      "sigstop_trip",
+      "end"
+    ]
+  ],
+  "driver_exit_code": 0,
+  "driver_stdout": [
+    "── sigstop_trip ──",
+    "  {'skipped': 'needs --allow-trip (trips the HAL safety latch)'}",
+    "",
+    "artifact: /tmp/r390-perf-skip-rjkx56iz/runlogs/perf-matrix/20261117T015652Z-cd23f813.json",
+    "RESULT: PASS (run r390-synthetic-skip)"
+  ],
+  "scenario_entry_written": {
+    "direct": {
+      "skipped": "needs --allow-trip (trips the HAL safety latch)"
+    },
+    "trace": {},
+    "rss_kb_before": 0,
+    "rss_kb_after": 0,
+    "window_s": 0.0
+  },
+  "R390_metadata_added_only_to_fixture": {
+    "commit": "cd23f813ea430038307fce026fb95a57c4de1b79",
+    "dirty": false
+  },
+  "R390_without_FAIL_rule_counts_as_passed": true,
+  "required_coverage_class": "SKIP, not a passed behavioral assertion",
+  "static_adapter_rerun": {
+    "identical_to_submitted": true,
+    "bindings": 15,
+    "resolved": 15,
+    "red": [],
+    "files": {
+      "scripts/perf_matrix.py": {
+        "check_constants": 0,
+        "templates": 0,
+        "unresolved": [],
+        "scenarios": 9
+      },
+      "scripts/twp_buttons_check.py": {
+        "check_constants": 26,
+        "templates": 0,
+        "unresolved": [
+          [
+            381,
+            "a placeholder that is not a plain name (line 381)"
+          ]
+        ],
+        "scenarios": 0
+      },
+      "scripts/twp_touchoff_plane_check.py": {
+        "check_constants": 13,
+        "templates": 11,
+        "unresolved": [],
+        "scenarios": 0
+      },
+      "scripts/twp_capture_check.py": {
+        "check_constants": 25,
+        "templates": 13,
+        "unresolved": [],
+        "scenarios": 0
+      },
+      "scripts/twp_reorient_check.py": {
+        "check_constants": 19,
+        "templates": 0,
+        "unresolved": [
+          [
+            385,
+            "placeholder name outside a function"
+          ]
+        ],
+        "scenarios": 0
+      }
+    }
+  }
+}
