@@ -7858,3 +7858,70 @@ Ein Produktbefund aus der Untersuchung des roten Merge-Gates von 5c (`~/mg5c5`, 
 7. **Sichtbar an der Maschine:** Ein Halten, das durch einen Hänger verspätet fertig wird, löst bis zu einem Bild später aus. Ein Tipp, der heute bei einem Hänger auslösen kann, löst nicht mehr aus. Sonst ändert sich nichts.
 
 **Erbeten:** `agreement` oder `findings` zum Plan, besonders zu Punkt 1 und zur Grenze in Punkt 4.
+
+---
+
+## Codex · Halten nach einem Hänger · Planreview R397 · 18. November 2026
+
+**Urteil: `findings`.** Der Befund ist bestätigt, ebenso die Priorität vor 5c. Den vorgeschlagenen Frame-Aufschub nehme ich als Lösung noch nicht an: **Auch der Prototyp löst bei einem echten kurzen Tipp aus**, und ein aufgeschobener Callback kann sich an einen neuen Druck hängen. Drei Vertragsreste **VM397-01 bis VM397-03**; dazu **Q397-1** an den Operator zum Verhalten nach einer erkannten Unterbrechung.
+
+Prüfstand: Plan an `b063b290`, Prototyp `0eb2a5d7`, Basis `56e246ba`. Eigene Archivkopie unter `/tmp/codex-r397-iR7ap2oV`, eigene Abhängigkeiten, Build und Browserläufe unter der gemeinsamen Testsperre. Nur lokaler Mock, kein Kontakt zur Sim, kein Test oder Build im Live-Baum. [Stand, Eingaben, Ergebnisse und Grenzen](vor-maschine.hr.r397.codex-evidence.json).
+
+### VM397-01 · Weder die 50-ms-Grenze noch der Frame-Aufschub schließen den kurzen Tipp aus
+
+**A: Die Schonfrist übersieht lange Hänger, deren Ende nahe an der Fälligkeit liegt.** Eine lange Blockade kann kurz nach 500 ms enden. Der Timer ist dann nur 20–40 ms verspätet und nimmt im Prototyp den unveränderten direkten Weg. Die Verspätung des Endtimers misst nicht die Unterbrechung während der Geste.
+
+Eigene Messung am Prototyp mit echtem Chromium-Touch, Loslassen über einen unabhängigen Node-Timer angefordert und anschließend nach den **Zeitstempeln der tatsächlichen Pointer-Ereignisse** eingeordnet:
+
+| Ende der Blockade relativ zum zugestellten Druck | Echte kurze Tipps | Trotzdem `unhome_all` |
+|---|---:|---:|
+| 520 ms | 30 | **11** |
+| 540 ms | 30 | **9** |
+
+Ein Beispiel bei 540 ms: Druck zugestellt bei 15630 ms, Blockende 16170 ms, Timer 16175,1 ms, Loslassen erst bei 16182,6 ms zugestellt. Die Ereigniszeitstempel ergeben trotzdem nur **121,8 ms** Druckdauer. Der Timer war etwa 45 ms zu spät und löste ohne Aufschub aus. [Messungen](vor-maschine.hr.r397.codex-deadline.json), [Spec](vor-maschine.hr.r397.codex-deadline.spec.ts).
+
+**B: Auch der tatsächlich genommene späte Weg kann vor dem wartenden Loslassen auslösen.** In der separaten Probe mit 600 ms Blockdauer wurden am Prototyp **1 von 30 echten kurzen Tipps** ausgelöst. Acht dieser Tipps nahmen den späten Weg; der falsche Auslöser gehört zu diesen acht.
+
+Die konkrete Zeile (`block: 600`, `i: 21`):
+
+- Druck: Ereigniszeit 21948,5 ms, Zustellung 21973,3 ms.
+- Loslassen: Ereigniszeit 22069,7 ms, also **121,2 ms Druckdauer**.
+- Block: 22075–22675 ms.
+- Timer: 22680,6 ms, mit **„timer late by 207 ms: queued input first“**.
+- Loslassen erst bei 22694,1 ms zugestellt; kein Abbruch mehr, **ein `unhome_all` im Mock**.
+
+Damit ist die Grenze aus Punkt 4 nicht nur theoretisch offen. Der vorhandene Aufschub hat in dieser Messung gerade nicht alle wartenden Eingaben vor die Aktion gebracht. Die weiteren Dauerproben mit 520 und 540 ms Blockdauer ergaben jeweils 0/30 Auslösungen; dort begann der Block rund 100 ms nach dem Druck und endete daher später als in Tabelle A. Beide Versuchsformen sind getrennt erhalten. [Dauerproben](vor-maschine.hr.r397.codex-duration.json), [Spec](vor-maschine.hr.r397.codex-probe.spec.ts), [Mock-Aufzeichnung](vor-maschine.hr.r397.codex-mock.jsonl). Die Häufigkeiten beschreiben diese Proben, keine Fehlerquote an der Maschine.
+
+Auch der Plattformvertrag liefert keine allgemeine Zusage „nach einem Frame sind die Eingaben abgearbeitet“: Die Auswahl zwischen ausführbaren Task-Queues ist dem Browser überlassen; die Reihenfolge innerhalb einer Quelle ist etwas anderes. Timer garantieren zudem keinen exakten Ausführungszeitpunkt. [HTML-Ereignisschleife](https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model), [Timer-Vertrag](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers).
+
+**Planänderung:** Aus `holding` nach einer Wartephase wird kein positiver Nachweis, dass der Finger noch liegt. Eine längere feste Gnadenzeit verschiebt dieselbe Unsicherheit. Der Plan braucht einen expliziten Umgang mit einer unterbrochenen beziehungsweise nicht mehr belegbaren Haltegeste, einschließlich einer Hängererkennung **während** der Geste und unmittelbar vor der Aktion, nicht nur anhand der Verspätung ihres Endtimers. Mein Vorschlag ist Abbruch und ein neuer vollständiger Druck (Q397-1). Beispielsweise kann ein über kurze Prüfschritte geführter Zustand bei einer zu großen Beobachtungslücke ungültig werden; der alte Druck wird danach nicht automatisch wieder scharf. Erkennungsgrenze und verbleibende Grenze sind im nächsten Plan konkret zu benennen und gegen beide Probenformen zu halten. Die Aussage „ein Tipp löst nicht mehr aus“ und die obere Verzögerungsangabe „bis zu einem Bild“ sind für den jetzigen Prototyp nicht belegt.
+
+### VM397-02 · Jeder aufgeschobene Schritt gehört zu genau einer Geste
+
+Der neue `requestAnimationFrame` wird weder gespeichert noch abgebrochen. `holdDue(e, true)` prüft nur das gemeinsame `holding`. Nach einem Abbruch und neuem Druck ist es wieder `true`, und der alte Callback kann den neuen Druck vor dessen eigener Haltezeit auslösen. Er überschreibt dabei auch `holdTimer` des neuen Drucks. `onBeforeUnmount` räumt ebenfalls nur den Timeout auf.
+
+**Kontrollierte Gegenprobe am gebauten Prototyp:** Den einen vom späten Timer angeforderten Frame zurückgehalten; ersten Finger losgelassen; neuen echten Touch-Druck auf denselben Knopf begonnen; den alten Frame freigegeben. Ergebnis: **ein `unhome_all`**, obwohl der neue Druck nach seinen Ereigniszeitstempeln nur **113,6 ms** dauert. Die Erwartung „kein Befehl“ ist rot. Beide Pointerfolgen sind vertrauenswürdige Chromium-Eingaben; nur die Reihenfolge des aufgeschobenen Frames ist gezielt kontrolliert. Das ist ein reproduzierbarer Lebensdauer-Gegenfall, keine Behauptung über seine Häufigkeit bei freiem Scheduler. [Probe am Ende der Spec](vor-maschine.hr.r397.codex-probe.spec.ts), [Ereignisse unter `R397-OLD-FRAME`](vor-maschine.hr.r397.codex-duration.json), [roter Browserbericht](vor-maschine.hr.r397.codex-browser.json).
+
+**Planänderung:** Eine Kennung je Geste, geprüft in jedem Timer-/Frame-Fortsetzungsschritt. Release, Cancel, Wegziehen, Gate-/Zielwechsel, Blur/Hidden und Unmount machen diese Kennung endgültig ungültig. Ein neuer Druck beginnt mit eigener Frist und eigenen Ressourcen. Alle ausstehenden Timer und Frames werden aufgeräumt; ein trotzdem eintreffender alter Callback bleibt wirkungslos. Das ist unabhängig davon nötig, welche Hängerregel der Operator wählt.
+
+### VM397-03 · Der Wächter braucht einen fallgebundenen Nachweis und die zweite Browserfamilie
+
+Die Trennung ist richtig: **normale Gestendauern mit `page.clock`, Scheduler-Wettlauf mit Echtzeit.** Die Umstellung der beiden bestehenden Specs und der Gegenfall mit verzögertem Testtreiber sind angenommen. Die Echtzeitprobe muss die Zeitstempel weiter selbst prüfen; die Absicht „120 ms gewartet“ reicht nicht.
+
+Den Zusatz „irgendwo kam einmal `timer late`, damit ist grüner Zufall ausgeschlossen“ nehme ich so nicht an. Er belegt weder die Wirkung des Abbruchs noch den direkten Weg unterhalb der 50-ms-Grenze. Am unveränderten alten Stand fehlt diese Logzeile ohnehin; Rot allein wegen ihres Fehlens wäre kein Rot-Nachweis der fehlerhaften Aktion.
+
+**Für die nächste Fassung:**
+
+- Einen deterministischen Wächter für die Zustandsregel und die alten Fortsetzungen aufnehmen: fälliger Schritt vor dem wartenden Release, Unterbrechung vor beziehungsweise über der Frist, Abbruch plus neuer Druck, Ziel-/Gatewechsel und Unmount. Rot muss an der ausgelösten Aktion beziehungsweise verletzten Zustandsregel hängen.
+- Die echte Scheduler-Probe daneben behalten. Pro Geste Ereigniszeit, Zustellzeit, Fälligkeit, genommenen Weg und gesendeten Befehl zuordnen. Nicht getroffene Reihenfolgen ausdrücklich als nicht getroffen führen; keine Quotenbehauptung aus 30 Läufen. Unsere 520-/540-ms-Ende-Proben und der 600-ms-Fall gehören dazu.
+- **Ja, die erbetene Firefox-Mausprobe ist nötig.** `MachineBtn` benutzt denselben Pointer-Haltepfad auch mit der Maus. Mindestens kurzer Druck, echtes Halten, Blockade und Abbruch/neuer Druck auf dem benannten Firefox prüfen. Chromium-Touch ist kein Nachweis für den Firefox-Scheduler. Die fehlende BiDi-Touch-Eingabe bleibt als Grenze benannt; Firefox ESR mit dem tatsächlichen Touchscreen bleibt eine eigene Abnahme, statt aus dem Mauslauf abgeleitet zu werden.
+
+Die eigenen Echtzeit-Specs sind Messproben: Ihr grüner Teststatus bestätigt die Mindestzahl echter Tipps, **nicht** die Abwesenheit der oben gezählten Fehlauslösungen. Der Lebensdauer-Wächter prüft dagegen die Aktion direkt und endet rot. Diese beiden Arten stehen in den Belegen getrennt.
+
+### Q397-1 · Operatorentscheidung zum Hängerfall
+
+Die Frage wurde dem Operator in diesem Thread gestellt: **Eine beim Hänger ungültig gewordene Haltegeste abbrechen und „Seite verzögert — erneut halten“ anzeigen?** Meine Empfehlung ist **Abbruch und erneut halten**, bei unverändertem normalem Halten auf einer flüssigen Seite. Als Alternative ist eine besondere Bestätigung beim Loslassen nach dem Hänger genannt; diese müsste Druckidentität und Zeitstempel positiv auswerten. Eine automatische Nachholung nach bloßem Zeitaufschub empfehle ich nicht. Bei Abgabe dieses Reviews liegt noch keine Antwort vor; eine Entscheidung wird nicht unterstellt.
+
+### Abschluss dieser Runde
+
+Build des Prototyps PASS. Eigene Messungen: 150 echte kurze Tipps in fünf getrennten Reihen, dabei die oben belegten Fehlauslösungen; zusätzlich der deterministische alte-Frame-Gegenfall. Keine vollständige Gate-Abnahme oder Produktimplementierung in dieser Planrunde. Alle eigenen Läufe sind beendet und ihre Sperren freigegeben. Die Live-Änderungen beschränken sich auf diesen Anhang und neue `vor-maschine.hr.r397.codex-*`-Belege. R398/Replay 5c ist nicht Gegenstand dieses Urteils.

@@ -1,0 +1,110 @@
+{
+  "review": "R397",
+  "date": "2026-11-18",
+  "document": "b063b2907d6a313d5064b849b4ae6381ed5b592c",
+  "base": "56e246ba75224fc0606d85575a48eef0929f3cea",
+  "prototype": "0eb2a5d73200966fdf07b73ca1ce38f3085f9942",
+  "archive": "/tmp/codex-r397-iR7ap2oV",
+  "source_sha256": "757a70c9ccfb6910e90ffb61c9f1023b1f0580711a7fe1bf117e87076226b0d9",
+  "build": "PASS",
+  "summary": [
+    {
+      "group": "duration",
+      "block_ms": 520,
+      "samples": 30,
+      "true_taps": 30,
+      "false_fires": 0,
+      "late_path_taps": 3,
+      "late_path_false_fires": 0
+    },
+    {
+      "group": "duration",
+      "block_ms": 540,
+      "samples": 30,
+      "true_taps": 30,
+      "false_fires": 0,
+      "late_path_taps": 4,
+      "late_path_false_fires": 0
+    },
+    {
+      "group": "duration",
+      "block_ms": 600,
+      "samples": 30,
+      "true_taps": 30,
+      "false_fires": 1,
+      "late_path_taps": 8,
+      "late_path_false_fires": 1
+    },
+    {
+      "group": "deadline",
+      "block_ms": 520,
+      "samples": 30,
+      "true_taps": 30,
+      "false_fires": 11,
+      "late_path_taps": 0,
+      "late_path_false_fires": 0
+    },
+    {
+      "group": "deadline",
+      "block_ms": 540,
+      "samples": 30,
+      "true_taps": 30,
+      "false_fires": 9,
+      "late_path_taps": 2,
+      "late_path_false_fires": 0
+    }
+  ],
+  "browser_results": {
+    "duration_and_old_frame": {
+      "startTime": "2026-11-18T00:02:06.849Z",
+      "duration": 95402.69099999999,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "deadline": {
+      "startTime": "2026-11-18T00:04:07.877Z",
+      "duration": 55669.103,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "interpretation": {
+    "observation_specs": "Assert minimum number of real short taps; their PASS is not a safety verdict. False fires are counted separately from timestamps and mock commands.",
+    "old_frame": "Expected failing behavior assertion: old deferred frame held through pointerup and new pointerdown, then resumed. Both pointer sequences are trusted Chromium CDP input; scheduler interleaving is explicitly controlled.",
+    "run_isolation": "Own archive and node_modules copy, shared heavy_lock.py; local mock only. No live-tree tests/builds or simulation access; all own runs finished.",
+    "native_thread_time": "touchEnd sent using Node timer concurrently with touchStart, not waiting for touchStart acknowledgement; classify by pointer event timeStamps."
+  },
+  "sources": [
+    {
+      "url": "https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model",
+      "checked": "2026-11-18",
+      "relevance": "Selection among runnable task queues is implementation-defined; no general input-before-frame drain guarantee."
+    },
+    {
+      "url": "https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers",
+      "checked": "2026-11-18",
+      "relevance": "Timers need not run exactly on schedule."
+    }
+  ],
+  "limitations": [
+    "Only Chromium measured here. No Firefox or physical touchscreen trial.",
+    "No implementation or full gate review: this is the requested plan review of a measured prototype."
+  ],
+  "evidence_sha256": {
+    "vor-maschine.hr.r397.codex-duration.json": "9999a5bbb8db1d72c127ecd16f21b480e9bf27fa238aa5b4d519e0351b3b185b",
+    "vor-maschine.hr.r397.codex-deadline.spec.ts": "d9ce0105fde730a67d402e3192bfecabea03fc158878b434f9db37d000fd6d45",
+    "vor-maschine.hr.r397.codex-deadline.json": "f4470b66d055d3472f06edb85c3210cf7a1febd8b353be8051dfc76cb46bab17",
+    "vor-maschine.hr.r397.codex-deadline-browser.json": "ac975b1e30752aba14be9263b10013f5761687c2a9664e66c4e25f6585861c0e",
+    "vor-maschine.hr.r397.codex-browser.json": "2f5eda8aae57bed142d52f2308cbaca1ebcd87a269fd4f9f3980261302b50918",
+    "vor-maschine.hr.r397.codex-mock.jsonl": "ba1de6b9962551f2a3e4d53011bf491ecf6eab042b4ea7dd90eb9f118cffc73d",
+    "vor-maschine.hr.r397.codex-deadline-run.sh": "18bd8be012500c33d14ab3e615a8bb10b269f754607eb80d92dc9cdddf54c2a2",
+    "vor-maschine.hr.r397.codex-build.txt": "a7f3e0b5651d7d618b384a1681989f405db1f7e3e5c7a45be8b94dd66a940f4f",
+    "vor-maschine.hr.r397.codex-run.sh": "2182447ad093ac8cd0ae4b7c9c143c9b4d1c0a8721424973e74cee5566ae2baf",
+    "vor-maschine.hr.r397.codex-deadline-mock.jsonl": "c14bc18c802db17be10e5ecd244956e3930e0a7b93b39094613e4f95d06dfbb0",
+    "vor-maschine.hr.r397.codex-probe.spec.ts": "e8b31eea0e6da3f128c8bc874fd337df293fce83cd901eace437ca0317e49870"
+  }
+}

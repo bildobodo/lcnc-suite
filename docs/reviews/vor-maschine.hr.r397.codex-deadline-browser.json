@@ -1,0 +1,333 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r397-iR7ap2oV/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/codex-r397-iR7ap2oV/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r397-deadline",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r397-iR7ap2oV/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r397-deadline",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r397-iR7ap2oV/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/codex-r397-iR7ap2oV\\/lcnc-webui\\/e2e\\/r397-deadline\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r397-deadline.spec.ts",
+      "file": "r397-deadline.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real touch tap with block ending 520 ms after down",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 26812,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R397 {\"block\":520,\"i\":0,\"elapsed\":776,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":2361.600000143051,\"ts\":2338.4000000953674,\"trusted\":true},{\"t\":\"block-start\",\"now\":2463.9000000953674},{\"t\":\"block-end\",\"now\":2881.600000143051},{\"t\":\"hold-due\",\"now\":2886},{\"t\":\"pointerup\",\"now\":2900.4000000953674,\"ts\":2458.600000143051,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":1,\"elapsed\":766,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":3195.2000000476837,\"ts\":3159.7000000476837,\"trusted\":true},{\"t\":\"block-start\",\"now\":3297.7000000476837},{\"t\":\"block-end\",\"now\":3715.2000000476837},{\"t\":\"pointerup\",\"now\":3715.4000000953674,\"ts\":3282.4000000953674,\"trusted\":true},{\"t\":\"hold-log\",\"now\":3715.600000143051,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":2,\"elapsed\":767,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":3995.4000000953674,\"ts\":3958,\"trusted\":true},{\"t\":\"block-start\",\"now\":4098},{\"t\":\"block-end\",\"now\":4515.400000095367},{\"t\":\"pointerup\",\"now\":4515.600000143051,\"ts\":4079,\"trusted\":true},{\"t\":\"hold-log\",\"now\":4515.700000047684,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":3,\"elapsed\":766,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":4793.600000143051,\"ts\":4756.299999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":4895.200000047684},{\"t\":\"block-end\",\"now\":5313.600000143051},{\"t\":\"pointerup\",\"now\":5313.799999952316,\"ts\":4876.100000143051,\"trusted\":true},{\"t\":\"hold-log\",\"now\":5313.900000095367,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":4,\"elapsed\":765,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":5594,\"ts\":5558.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":5696.100000143051},{\"t\":\"block-end\",\"now\":6114},{\"t\":\"pointerup\",\"now\":6114.200000047684,\"ts\":5680.900000095367,\"trusted\":true},{\"t\":\"hold-log\",\"now\":6114.299999952316,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":5,\"elapsed\":769,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":6378.900000095367,\"ts\":6354.5,\"trusted\":true},{\"t\":\"block-start\",\"now\":6480.299999952316},{\"t\":\"block-end\",\"now\":6898.900000095367},{\"t\":\"hold-due\",\"now\":6903.299999952316},{\"t\":\"pointerup\",\"now\":6913.5,\"ts\":6475.700000047684,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":6,\"elapsed\":769,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":7194.299999952316,\"ts\":7155.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":7296.200000047684},{\"t\":\"block-end\",\"now\":7714.299999952316},{\"t\":\"pointerup\",\"now\":7714.5,\"ts\":7279.900000095367,\"trusted\":true},{\"t\":\"hold-log\",\"now\":7714.600000143051,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":7,\"elapsed\":764,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":7977.600000143051,\"ts\":7954.5,\"trusted\":true},{\"t\":\"block-start\",\"now\":8079.600000143051},{\"t\":\"block-end\",\"now\":8497.600000143051},{\"t\":\"pointerup\",\"now\":8506.200000047684,\"ts\":8075.400000095367,\"trusted\":true},{\"t\":\"hold-log\",\"now\":8506.400000095367,\"text\":\"[hold] unhome cancelled after 529 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":8,\"elapsed\":351,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":8799.900000095367,\"ts\":8769.400000095367,\"trusted\":true},{\"t\":\"pointerup\",\"now\":8910.900000095367,\"ts\":8886.200000047684,\"trusted\":true},{\"t\":\"hold-log\",\"now\":8911.200000047684,\"text\":\"[hold] unhome cancelled after 111 ms: released before the hold time (hold 500 ms to fire)\"},{\"t\":\"block-start\",\"now\":8927.299999952316},{\"t\":\"block-end\",\"now\":9320}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":9,\"elapsed\":765,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":9393.100000143051,\"ts\":9369.600000143051,\"trusted\":true},{\"t\":\"block-start\",\"now\":9494.700000047684},{\"t\":\"block-end\",\"now\":9913.100000143051},{\"t\":\"hold-due\",\"now\":9917},{\"t\":\"pointerup\",\"now\":9924.900000095367,\"ts\":9490.200000047684,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":10,\"elapsed\":766,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":10193.900000095367,\"ts\":10170.100000143051,\"trusted\":true},{\"t\":\"block-start\",\"now\":10296.5},{\"t\":\"block-end\",\"now\":10713.900000095367},{\"t\":\"hold-due\",\"now\":10718.5},{\"t\":\"pointerup\",\"now\":10726.700000047684,\"ts\":10291,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":11,\"elapsed\":770,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":11009.799999952316,\"ts\":10972.900000095367,\"trusted\":true},{\"t\":\"block-start\",\"now\":11111.900000095367},{\"t\":\"block-end\",\"now\":11529.799999952316},{\"t\":\"pointerup\",\"now\":11530.100000143051,\"ts\":11094.200000047684,\"trusted\":true},{\"t\":\"hold-log\",\"now\":11530.200000047684,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":12,\"elapsed\":770,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":11810.900000095367,\"ts\":11773,\"trusted\":true},{\"t\":\"block-start\",\"now\":11912.5},{\"t\":\"block-end\",\"now\":12330.900000095367},{\"t\":\"pointerup\",\"now\":12331.100000143051,\"ts\":11894.100000143051,\"trusted\":true},{\"t\":\"hold-log\",\"now\":12331.200000047684,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":13,\"elapsed\":772,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":12596.100000143051,\"ts\":12570.200000047684,\"trusted\":true},{\"t\":\"block-start\",\"now\":12698},{\"t\":\"block-end\",\"now\":13116.100000143051},{\"t\":\"hold-due\",\"now\":13120.299999952316},{\"t\":\"pointerup\",\"now\":13128.799999952316,\"ts\":12691.100000143051,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":14,\"elapsed\":767,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":13392.700000047684,\"ts\":13369.900000095367,\"trusted\":true},{\"t\":\"block-start\",\"now\":13495.700000047684},{\"t\":\"block-end\",\"now\":13912.700000047684},{\"t\":\"hold-due\",\"now\":13917.100000143051},{\"t\":\"pointerup\",\"now\":13924.700000047684,\"ts\":13490.900000095367,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":15,\"elapsed\":756,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":14227.799999952316,\"ts\":14201,\"trusted\":true},{\"t\":\"block-start\",\"now\":14329.700000047684},{\"t\":\"block-end\",\"now\":14747.799999952316},{\"t\":\"pointerup\",\"now\":14748.100000143051,\"ts\":14321,\"trusted\":true},{\"t\":\"hold-log\",\"now\":14748.200000047684,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":16,\"elapsed\":764,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":15027.100000143051,\"ts\":14990.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":15128.799999952316},{\"t\":\"block-end\",\"now\":15547.200000047684},{\"t\":\"pointerup\",\"now\":15547.400000095367,\"ts\":15111.900000095367,\"trusted\":true},{\"t\":\"hold-log\",\"now\":15547.400000095367,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":17,\"elapsed\":767,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":15809.5,\"ts\":15787.100000143051,\"trusted\":true},{\"t\":\"block-start\",\"now\":15911.100000143051},{\"t\":\"block-end\",\"now\":16329.5},{\"t\":\"hold-due\",\"now\":16335.400000095367},{\"t\":\"pointerup\",\"now\":16344.700000047684,\"ts\":15907.299999952316,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":18,\"elapsed\":764,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":16626.400000095367,\"ts\":16591.200000047684,\"trusted\":true},{\"t\":\"block-start\",\"now\":16727.5},{\"t\":\"block-end\",\"now\":17146.400000095367},{\"t\":\"pointerup\",\"now\":17146.700000047684,\"ts\":16711.60000014305,\"trusted\":true},{\"t\":\"hold-log\",\"now\":17146.799999952316,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":19,\"elapsed\":762,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":17442.700000047684,\"ts\":17413.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":17544.299999952316},{\"t\":\"block-end\",\"now\":17962.700000047684},{\"t\":\"pointerup\",\"now\":17962.900000095367,\"ts\":17535.10000014305,\"trusted\":true},{\"t\":\"hold-log\",\"now\":17963,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":20,\"elapsed\":766,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":18243.10000014305,\"ts\":18205.60000014305,\"trusted\":true},{\"t\":\"block-start\",\"now\":18344.700000047684},{\"t\":\"block-end\",\"now\":18763.10000014305},{\"t\":\"pointerup\",\"now\":18763.299999952316,\"ts\":18325.799999952316,\"trusted\":true},{\"t\":\"hold-log\",\"now\":18763.400000095367,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":21,\"elapsed\":757,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":19026.10000014305,\"ts\":19003.60000014305,\"trusted\":true},{\"t\":\"block-start\",\"now\":19127.10000014305},{\"t\":\"block-end\",\"now\":19546.10000014305},{\"t\":\"pointerup\",\"now\":19552.799999952316,\"ts\":19125.60000014305,\"trusted\":true},{\"t\":\"hold-log\",\"now\":19552.900000095367,\"text\":\"[hold] unhome cancelled after 527 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":22,\"elapsed\":762,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":19809.700000047684,\"ts\":19786.299999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":19911.200000047684},{\"t\":\"block-end\",\"now\":20329.700000047684},{\"t\":\"pointerup\",\"now\":20336.400000095367,\"ts\":19907.200000047684,\"trusted\":true},{\"t\":\"hold-log\",\"now\":20336.5,\"text\":\"[hold] unhome cancelled after 527 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":23,\"elapsed\":763,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":20592.700000047684,\"ts\":20571.900000095367,\"trusted\":true},{\"t\":\"block-start\",\"now\":20694.60000014305},{\"t\":\"block-end\",\"now\":21112.700000047684},{\"t\":\"hold-due\",\"now\":21117.60000014305},{\"t\":\"pointerup\",\"now\":21125.5,\"ts\":20693.700000047684,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":24,\"elapsed\":763,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":21393.60000014305,\"ts\":21371.5,\"trusted\":true},{\"t\":\"block-start\",\"now\":21495.400000095367},{\"t\":\"block-end\",\"now\":21913.60000014305},{\"t\":\"pointerup\",\"now\":21922,\"ts\":21492.299999952316,\"trusted\":true},{\"t\":\"hold-log\",\"now\":21922.10000014305,\"text\":\"[hold] unhome cancelled after 528 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":25,\"elapsed\":765,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":22193.200000047684,\"ts\":22170.60000014305,\"trusted\":true},{\"t\":\"block-start\",\"now\":22294.900000095367},{\"t\":\"block-end\",\"now\":22713.200000047684},{\"t\":\"hold-due\",\"now\":22718},{\"t\":\"pointerup\",\"now\":22726.60000014305,\"ts\":22290.299999952316,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":26,\"elapsed\":756,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":22992.5,\"ts\":22967.900000095367,\"trusted\":true},{\"t\":\"block-start\",\"now\":23094.900000095367},{\"t\":\"block-end\",\"now\":23512.5},{\"t\":\"pointerup\",\"now\":23512.700000047684,\"ts\":23088.10000014305,\"trusted\":true},{\"t\":\"hold-log\",\"now\":23512.799999952316,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":27,\"elapsed\":762,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":23792.60000014305,\"ts\":23757.700000047684,\"trusted\":true},{\"t\":\"block-start\",\"now\":23894.200000047684},{\"t\":\"block-end\",\"now\":24312.60000014305},{\"t\":\"pointerup\",\"now\":24312.799999952316,\"ts\":23877.799999952316,\"trusted\":true},{\"t\":\"hold-log\",\"now\":24312.799999952316,\"text\":\"[hold] unhome cancelled after 520 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":28,\"elapsed\":764,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":24575.900000095367,\"ts\":24554.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":24677.60000014305},{\"t\":\"block-end\",\"now\":25095.900000095367},{\"t\":\"hold-due\",\"now\":25100.200000047684},{\"t\":\"pointerup\",\"now\":25108.799999952316,\"ts\":24676.299999952316,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":520,\"i\":29,\"elapsed\":763,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":25375.799999952316,\"ts\":25353.700000047684,\"trusted\":true},{\"t\":\"block-start\",\"now\":25477.10000014305},{\"t\":\"block-end\",\"now\":25895.799999952316},{\"t\":\"hold-due\",\"now\":25901.5},{\"t\":\"pointerup\",\"now\":25908.700000047684,\"ts\":25474.200000047684,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397-SUMMARY {\"block\":520,\"total\":30,\"trueTaps\":30,\"falseFires\":11}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T00:04:09.778Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "de14a0a274dcca8c6498-93aa7786fc6ee96209bc",
+          "file": "r397-deadline.spec.ts",
+          "line": 26,
+          "column": 32
+        },
+        {
+          "title": "real touch tap with block ending 540 ms after down",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 26686,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R397 {\"block\":540,\"i\":0,\"elapsed\":776,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":1996.3999998569489,\"ts\":1970.3999998569489,\"trusted\":true},{\"t\":\"block-start\",\"now\":2098.0999999046326},{\"t\":\"block-end\",\"now\":2536.399999856949},{\"t\":\"pointerup\",\"now\":2536.699999809265,\"ts\":2091,\"trusted\":true},{\"t\":\"hold-log\",\"now\":2537.0999999046326,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":1,\"elapsed\":402,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":2845.5,\"ts\":2775.899999856949,\"trusted\":true},{\"t\":\"pointerup\",\"now\":2961.7999999523163,\"ts\":2896.7999999523163,\"trusted\":true},{\"t\":\"hold-log\",\"now\":2961.899999856949,\"text\":\"[hold] unhome cancelled after 116 ms: released before the hold time (hold 500 ms to fire)\"},{\"t\":\"block-start\",\"now\":2996.0999999046326},{\"t\":\"block-end\",\"now\":3385.5999999046326}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":2,\"elapsed\":787,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":3445.899999856949,\"ts\":3423.399999856949,\"trusted\":true},{\"t\":\"block-start\",\"now\":3547.399999856949},{\"t\":\"block-end\",\"now\":3985.899999856949},{\"t\":\"hold-due\",\"now\":3991},{\"t\":\"pointerup\",\"now\":4000.5,\"ts\":3543.7999999523163,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":3,\"elapsed\":785,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":4262.099999904633,\"ts\":4239.199999809265,\"trusted\":true},{\"t\":\"block-start\",\"now\":4363.899999856949},{\"t\":\"block-end\",\"now\":4802.199999809265},{\"t\":\"hold-due\",\"now\":4807},{\"t\":\"pointerup\",\"now\":4816.099999904633,\"ts\":4359.699999809265,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":4,\"elapsed\":789,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":5095.199999809265,\"ts\":5057.699999809265,\"trusted\":true},{\"t\":\"block-start\",\"now\":5201.099999904633},{\"t\":\"block-end\",\"now\":5635.199999809265},{\"t\":\"pointerup\",\"now\":5635.5,\"ts\":5178.5,\"trusted\":true},{\"t\":\"hold-log\",\"now\":5635.5,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":5,\"elapsed\":777,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":5895.399999856949,\"ts\":5871.099999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":5997},{\"t\":\"block-end\",\"now\":6435.399999856949},{\"t\":\"pointerup\",\"now\":6441.5,\"ts\":5992.599999904633,\"trusted\":true},{\"t\":\"hold-log\",\"now\":6441.5,\"text\":\"[hold] unhome cancelled after 546 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":6,\"elapsed\":777,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":6694.799999952316,\"ts\":6671,\"trusted\":true},{\"t\":\"block-start\",\"now\":6796.699999809265},{\"t\":\"block-end\",\"now\":7234.799999952316},{\"t\":\"pointerup\",\"now\":7241.199999809265,\"ts\":6791.199999809265,\"trusted\":true},{\"t\":\"hold-log\",\"now\":7241.199999809265,\"text\":\"[hold] unhome cancelled after 546 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":7,\"elapsed\":787,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":7512.799999952316,\"ts\":7474.399999856949,\"trusted\":true},{\"t\":\"block-start\",\"now\":7614.299999952316},{\"t\":\"block-end\",\"now\":8052.799999952316},{\"t\":\"pointerup\",\"now\":8053,\"ts\":7595.099999904633,\"trusted\":true},{\"t\":\"hold-log\",\"now\":8053,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":8,\"elapsed\":782,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":8311.799999952316,\"ts\":8290.099999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":8413.5},{\"t\":\"block-end\",\"now\":8851.799999952316},{\"t\":\"pointerup\",\"now\":8861,\"ts\":8410.399999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":8861.199999809265,\"text\":\"[hold] unhome cancelled after 549 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":9,\"elapsed\":775,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":9127.899999856949,\"ts\":9101.099999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":9229.699999809265},{\"t\":\"block-end\",\"now\":9667.899999856949},{\"t\":\"pointerup\",\"now\":9668,\"ts\":9221.799999952316,\"trusted\":true},{\"t\":\"hold-log\",\"now\":9668.5,\"text\":\"[hold] unhome cancelled after 541 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":10,\"elapsed\":774,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":9930,\"ts\":9905,\"trusted\":true},{\"t\":\"block-start\",\"now\":10031.099999904633},{\"t\":\"block-end\",\"now\":10470},{\"t\":\"pointerup\",\"now\":10470.199999809265,\"ts\":10025.399999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":10470.299999952316,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":11,\"elapsed\":781,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":10729.799999952316,\"ts\":10705.299999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":10830.799999952316},{\"t\":\"block-end\",\"now\":11269.799999952316},{\"t\":\"pointerup\",\"now\":11276.599999904633,\"ts\":10826.399999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":11276.799999952316,\"text\":\"[hold] unhome cancelled after 547 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":12,\"elapsed\":789,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":11545.099999904633,\"ts\":11508.5,\"trusted\":true},{\"t\":\"block-start\",\"now\":11646.399999856949},{\"t\":\"block-end\",\"now\":12085.099999904633},{\"t\":\"pointerup\",\"now\":12085.299999952316,\"ts\":11630.399999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":12085.399999856949,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":13,\"elapsed\":781,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":12378.399999856949,\"ts\":12344.899999856949,\"trusted\":true},{\"t\":\"block-start\",\"now\":12479.799999952316},{\"t\":\"block-end\",\"now\":12918.399999856949},{\"t\":\"pointerup\",\"now\":12918.5,\"ts\":12466.399999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":12918.599999904633,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":14,\"elapsed\":789,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":13196.5,\"ts\":13160.199999809265,\"trusted\":true},{\"t\":\"block-start\",\"now\":13298},{\"t\":\"block-end\",\"now\":13736.5},{\"t\":\"pointerup\",\"now\":13736.699999809265,\"ts\":13277.899999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":13736.799999952316,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":15,\"elapsed\":792,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":13995,\"ts\":13971.5,\"trusted\":true},{\"t\":\"block-start\",\"now\":14096.399999856949},{\"t\":\"block-end\",\"now\":14535},{\"t\":\"hold-due\",\"now\":14552},{\"t\":\"hold-log\",\"now\":14552,\"text\":\"[hold] unhome timer late by 57 ms: queued input first\"},{\"t\":\"pointerup\",\"now\":14558.199999809265,\"ts\":14091.399999856949,\"trusted\":true},{\"t\":\"hold-log\",\"now\":14558.299999952316,\"text\":\"[hold] unhome cancelled after 563 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":16,\"elapsed\":786,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":14812.599999904633,\"ts\":14789.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":14914.599999904633},{\"t\":\"block-end\",\"now\":15352.599999904633},{\"t\":\"hold-due\",\"now\":15358.599999904633},{\"t\":\"pointerup\",\"now\":15367,\"ts\":14910.299999952316,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":17,\"elapsed\":788,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":15630,\"ts\":15603.099999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":15731.599999904633},{\"t\":\"block-end\",\"now\":16170},{\"t\":\"hold-due\",\"now\":16175.099999904633},{\"t\":\"pointerup\",\"now\":16182.599999904633,\"ts\":15724.899999856949,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":18,\"elapsed\":786,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":16444.799999952316,\"ts\":16419.699999809265,\"trusted\":true},{\"t\":\"block-start\",\"now\":16546.699999809265},{\"t\":\"block-end\",\"now\":16984.799999952316},{\"t\":\"hold-due\",\"now\":16989.099999904633},{\"t\":\"pointerup\",\"now\":16996.699999809265,\"ts\":16542.299999952316,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":19,\"elapsed\":783,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":17262,\"ts\":17235.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":17363.099999904633},{\"t\":\"block-end\",\"now\":17802},{\"t\":\"pointerup\",\"now\":17802.099999904633,\"ts\":17356,\"trusted\":true},{\"t\":\"hold-log\",\"now\":17802.199999809265,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":20,\"elapsed\":781,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":18078.099999904633,\"ts\":18045.299999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":18180},{\"t\":\"block-end\",\"now\":18618.099999904633},{\"t\":\"pointerup\",\"now\":18618.199999809265,\"ts\":18167.199999809265,\"trusted\":true},{\"t\":\"hold-log\",\"now\":18618.299999952316,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":21,\"elapsed\":783,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":18877.89999985695,\"ts\":18854.89999985695,\"trusted\":true},{\"t\":\"block-start\",\"now\":18979.099999904633},{\"t\":\"block-end\",\"now\":19417.89999985695},{\"t\":\"hold-due\",\"now\":19427.89999985695},{\"t\":\"pointerup\",\"now\":19435.5,\"ts\":18975.89999985695,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":22,\"elapsed\":774,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":19694.599999904633,\"ts\":19668.599999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":19796.699999809265},{\"t\":\"block-end\",\"now\":20234.599999904633},{\"t\":\"pointerup\",\"now\":20234.799999952316,\"ts\":19788.39999985695,\"trusted\":true},{\"t\":\"hold-log\",\"now\":20234.89999985695,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":23,\"elapsed\":788,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":20494.89999985695,\"ts\":20469.89999985695,\"trusted\":true},{\"t\":\"block-start\",\"now\":20597.099999904633},{\"t\":\"block-end\",\"now\":21034.89999985695},{\"t\":\"hold-due\",\"now\":21039.699999809265},{\"t\":\"pointerup\",\"now\":21046.89999985695,\"ts\":20590.39999985695,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":24,\"elapsed\":796,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":21312.39999985695,\"ts\":21288.799999952316,\"trusted\":true},{\"t\":\"block-start\",\"now\":21413.799999952316},{\"t\":\"block-end\",\"now\":21852.39999985695},{\"t\":\"hold-due\",\"now\":21864.89999985695},{\"t\":\"hold-log\",\"now\":21864.89999985695,\"text\":\"[hold] unhome timer late by 52 ms: queued input first\"},{\"t\":\"pointerup\",\"now\":21873.89999985695,\"ts\":21409.599999904633,\"trusted\":true},{\"t\":\"hold-log\",\"now\":21874,\"text\":\"[hold] unhome cancelled after 562 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":25,\"elapsed\":785,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":22145.299999952316,\"ts\":22110,\"trusted\":true},{\"t\":\"block-start\",\"now\":22249.299999952316},{\"t\":\"block-end\",\"now\":22685.299999952316},{\"t\":\"pointerup\",\"now\":22685.39999985695,\"ts\":22230.89999985695,\"trusted\":true},{\"t\":\"hold-log\",\"now\":22685.5,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":26,\"elapsed\":777,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":22944.299999952316,\"ts\":22920,\"trusted\":true},{\"t\":\"block-start\",\"now\":23045.599999904633},{\"t\":\"block-end\",\"now\":23484.299999952316},{\"t\":\"pointerup\",\"now\":23488.699999809265,\"ts\":23041.099999904633,\"trusted\":true},{\"t\":\"hold-log\",\"now\":23488.699999809265,\"text\":\"[hold] unhome cancelled after 544 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":27,\"elapsed\":772,\"fired\":0,\"events\":[{\"t\":\"pointerdown\",\"now\":23744.89999985695,\"ts\":23720.099999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":23846.5},{\"t\":\"block-end\",\"now\":24284.89999985695},{\"t\":\"pointerup\",\"now\":24285.099999904633,\"ts\":23840.699999809265,\"trusted\":true},{\"t\":\"hold-log\",\"now\":24285.199999809265,\"text\":\"[hold] unhome cancelled after 540 ms: released before the hold time (hold 500 ms to fire)\"}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":28,\"elapsed\":786,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":24546,\"ts\":24521.099999904633,\"trusted\":true},{\"t\":\"block-start\",\"now\":24647.39999985695},{\"t\":\"block-end\",\"now\":25086},{\"t\":\"hold-due\",\"now\":25089.599999904633},{\"t\":\"pointerup\",\"now\":25097.5,\"ts\":24642,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397 {\"block\":540,\"i\":29,\"elapsed\":784,\"fired\":1,\"events\":[{\"t\":\"pointerdown\",\"now\":25361.099999904633,\"ts\":25338.5,\"trusted\":true},{\"t\":\"block-start\",\"now\":25462.5},{\"t\":\"block-end\",\"now\":25901.099999904633},{\"t\":\"hold-due\",\"now\":25907.799999952316},{\"t\":\"pointerup\",\"now\":25914.299999952316,\"ts\":25458.5,\"trusted\":true}]}\n"
+                    },
+                    {
+                      "text": "R397-SUMMARY {\"block\":540,\"total\":30,\"trueTaps\":30,\"falseFires\":9}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T00:04:36.764Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "de14a0a274dcca8c6498-110d8035f1bc8addd349",
+          "file": "r397-deadline.spec.ts",
+          "line": 26,
+          "column": 32
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T00:04:07.877Z",
+    "duration": 55669.103,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
