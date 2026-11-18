@@ -123,6 +123,19 @@ def halcmd_getp(pin: str):
 
 # ---- trace extraction ------------------------------------------------------
 
+#: lcnc_trace's backup count (`_TRACE_BACKUPS`): trace.ndjson.1 … .5
+TRACE_BACKUPS = 5
+
+
+def _lines(path: str):
+    """The lines of one trace file — a file a rotation removed meanwhile is none."""
+    try:
+        with open(path, "rb") as f:
+            yield from f
+    except FileNotFoundError:
+        return
+
+
 def trace_window(t0_ns: int, t1_ns: int, mark=None) -> dict:
     """Summarize trace events whose t_wall_ns falls inside [t0_ns, t1_ns].
     `mark` = (run id, scenario): the window's own marks (trace_mark) — which
@@ -132,35 +145,43 @@ def trace_window(t0_ns: int, t1_ns: int, mark=None) -> dict:
     publishes = []
     connects = 0
     marks, mark_pids = [], set()
-    if not os.path.exists(TRACE):
+    # the trace and its rotated backups (lcnc_trace: RotatingFileHandler,
+    # 50 MB × 5): a rotation during a run moves the window's marks into
+    # trace.ndjson.1 … — a line is read once, by its text, should a rotation
+    # move a file while it is read (package 4)
+    files = [f for f in (TRACE, *(f"{TRACE}.{i}" for i in range(1, TRACE_BACKUPS + 1))) if os.path.exists(f)]
+    if not files:
         return {"error": "no trace file"}
-    with open(TRACE, "rb") as f:
-        for line in f:
-            # cheap pre-filter before json
-            if b'"t_wall_ns"' not in line:
-                continue
-            try:
-                e = json.loads(line)
-            except Exception:
-                continue
-            tw = e.get("t_wall_ns")
-            if not isinstance(tw, int) or not (t0_ns <= tw <= t1_ns):
-                continue
-            tag = e.get("tag", "")
-            if tag == "lag.window":
-                lag.append((e.get("drift_ms", 0),
-                            str(e.get("dominant_phase", "?")).split(" peer=")[0]))
-            elif tag.startswith("safety."):
-                safety.append(tag)
-            elif tag == "gcode.publish":
-                publishes.append({k: e.get(k) for k in
-                                  ("bytes", "bytes_gz", "gzip_ms", "total_ms")})
-            elif tag == "ws.connect.accept":
-                connects += 1
-            elif tag == "browser.perfmatrix_mark" and mark is not None \
-                    and (e.get("run"), e.get("scenario")) == tuple(mark):
-                marks.append(e.get("at"))
-                mark_pids.add(e.get("pid"))
+    seen: set = set()
+    for line in (ln for path in files for ln in _lines(path)):
+        # cheap pre-filter before json
+        if b'"t_wall_ns"' not in line:
+            continue
+        try:
+            e = json.loads(line)
+        except Exception:
+            continue
+        tw = e.get("t_wall_ns")
+        if not isinstance(tw, int) or not (t0_ns <= tw <= t1_ns):
+            continue
+        if line in seen:            # only the window's lines are kept (6 × 50 MB are not)
+            continue
+        seen.add(line)
+        tag = e.get("tag", "")
+        if tag == "lag.window":
+            lag.append((e.get("drift_ms", 0),
+                        str(e.get("dominant_phase", "?")).split(" peer=")[0]))
+        elif tag.startswith("safety."):
+            safety.append(tag)
+        elif tag == "gcode.publish":
+            publishes.append({k: e.get(k) for k in
+                              ("bytes", "bytes_gz", "gzip_ms", "total_ms")})
+        elif tag == "ws.connect.accept":
+            connects += 1
+        elif tag == "browser.perfmatrix_mark" and mark is not None \
+                and (e.get("run"), e.get("scenario")) == tuple(mark):
+            marks.append(e.get("at"))
+            mark_pids.add(e.get("pid"))
     worst = max(lag, default=(0, None))
     return {
         "lag_windows": len(lag),

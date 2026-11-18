@@ -22,7 +22,9 @@ Cases on the VM's REAL LinuxCNC, run by hand, never beside a gate:
 command line, never a bare `flock`: from the LAN stop the return is OWED and only the run's final restore,
 its unit's ExecStopPost, settles it; an unreadable marker keeps everyone out), records and stops the LAN sim, builds a run tree
 of the tested commit and a confined copy of the profile, checks it before the start, runs the cases and
-gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). It runs only as the user unit
+gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). Without a running LAN sim it
+refuses by name before touching anything (`native_run: refused — the LAN instance is not running`, a
+`report.json` with `verdict: REFUSED`; package 4 — it was a TypeError). It runs only as the user unit
 `native-run` — the command is in its docstring. Offline guards: `scripts/test_native_stage.py` (the
 backend gate's `native-stage` step). Step 2a adds Z probing, M600 with the override lock and the M6 hold;
 every routine runs under the M6 helper `test_support/tool_change.py` (nothing confirmed unless declared).
@@ -912,7 +914,8 @@ close the existing seed-freshness follow-up. The gantry uses separate preview go
 length differ. Historical recordings and goldens remain unchanged.
 
 Do not regenerate preview goldens merely to turn a failed comparison green.
-The live runner only checks them. Performance measurements (`perf_matrix.py`
+The live runner only checks them. Performance measurements (`perf_matrix.py` — it reads the trace with its
+rotated backups, `trace.ndjson.1` … `.5`, so a rotation during a run keeps the window's marks; package 4 —
 and browser worker/camera latency), operator walkthroughs, real hardware and
 actual touchscreen acceptance remain separate gates with their own evidence.
 
