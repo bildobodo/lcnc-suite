@@ -1,0 +1,25 @@
+{
+  "errors": [
+    "playwright.json: test id a237f05b9d2909b5d62e-fa3028da289416483b33 [e2e] has two results for one retry [0, 0]"
+  ],
+  "ambiguous_test_status": "contradictory (two results for one retry: [0, 0])",
+  "attempt_still_allowed": true,
+  "attempt": {
+    "name": "setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11) [retry 0]",
+    "test": "a237f05b9d2909b5d62e-fa3028da289416483b33",
+    "project": "e2e",
+    "retry": 0,
+    "instance": "1ac65982-0882-4e39-b75e-9cfc07f973cd",
+    "status": "passed",
+    "page": true,
+    "frames": 6,
+    "observed": "page loaded at its mock, 6 frame(s)"
+  },
+  "counts": {
+    "estop_reset": 1,
+    "get_tool_table": 2,
+    "heartbeat": 1,
+    "hello": 1,
+    "tab_visibility": 1
+  }
+}

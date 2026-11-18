@@ -1,0 +1,92 @@
+{
+  "review": "R400",
+  "date": "2026-11-18",
+  "document": "41b8f567c6f92ea6fe0a5647689b41a175ccf1c1",
+  "base": "56e246ba75224fc0606d85575a48eef0929f3cea",
+  "head": "1dcf8c4893713235845ee818e40247d187a187a1",
+  "previous": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+  "archive": "/tmp/codex-r400",
+  "checks": {
+    "pytest": "179 passed in 9.17s",
+    "vitest_first": "40 reported passed: 34 existing lcnc/permissions tests + six R398 fixtures (five expected failures, one positive control); all five forms produce fails:true",
+    "vitest_second": "two same-title cases, one real pass and one expected failure, each reported passed but with distinct fails options",
+    "control": "110 checked, 0 evaluation errors on copies of mg5c7 with explicitly added R400 options",
+    "R398_cases": "all old corruptions and five expected-failure fixtures rejected; positive controls kept",
+    "new_counterexamples": [
+      "missing/null/string/number fails field reads as false: PASS, 110 checked",
+      "foreign heavy-group option overwrites light-group true: PASS, 110 checked",
+      "one of two same-title option records missing: PASS, 110 checked",
+      "missing sole option row: FAIL but bound evidence still passed, 110 checked",
+      "contradictory retry: FAIL but all six frames still admitted by replay_attempts",
+      "inconsistent native report: FAIL but 68 PASS evidence rows remain"
+    ]
+  },
+  "input_provenance": {
+    "old_gate": "/home/cnc/mg5c7/gate-merge.json",
+    "old_head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+    "added_options_source": "/tmp/claude-1000/-home-cnc-lcnc-suite/43040f88-3607-41a3-a5fe-dc80019b2257/scratchpad/mg5c7copy/gate-merge.logs",
+    "added_options_notice": "Supplied R400 runtime options, copied and hash recorded, not part of the original mg5c7 gate; used as a diagnostic baseline only, NOT as a new merge-gate pass. Product/unit sources unchanged between heads.",
+    "new_options": "Fresh runs in own archive use the unchanged R400 reporter; test fixtures explicitly added and ONE inventory unit binding redirected in memory for evaluation probes.",
+    "native": "Synthetic native records of the declared case set; no native driver imported or run."
+  },
+  "commands": [
+    "python -m pytest scripts/inventory/test_coverage.py scripts/test_select/test_replay.py -q -p no:cacheprovider",
+    "bash /tmp/r400-run.sh (shared heavy_lock.py; own archive)",
+    "python -B /tmp/r400-probes.py --root /tmp/codex-r400 --gate /tmp/r400-input/gate-merge.json --out /tmp/r400-probes.json",
+    "bash /tmp/r400-duplicate-run.sh (shared heavy_lock.py; own archive)",
+    "python -B /tmp/r400-duplicate-probe.py"
+  ],
+  "limits": [
+    "No full gate or browser run. No new merge-gate pass at 1dcf8c48 claimed.",
+    "CI 44369585550 not independently polled or awaited; supplied as running.",
+    "No live-sim access, product edits or checkouts; review appendix and new evidence only in live tree.",
+    "All own runs complete; shared lock released."
+  ],
+  "verdict": "findings",
+  "source_sha256": {
+    "scripts/inventory/coverage.py": "b2c9e35788703aa9566f297cae4ea81487755a0e72551202828d94cef0f2fc2c",
+    "scripts/inventory/test_coverage.py": "3962a2172e900143bb97ac94387b63ffc76c2b3fe87475416d557c7b4713c2d0",
+    "scripts/test_select/round_gate.py": "5112cea65b5468a3ab475aa048c617bf79291f01b6e779f1122dab6833e26ca8",
+    "scripts/test_select/vitest_options_reporter.mjs": "b177265f40b588e26746fbeb0a532f7c76743dccddf46113bffd77039c9770ee"
+  },
+  "input_sha256": {
+    "gate-merge.json": "91516b432180f1e1b317b446a0c4c49ff997ceb249da092c9aa87c76bf1ed4ba",
+    "gate-merge.logs/unit-heavy.options.json": "ccdc24ba220f58b2e375cd3eb929ad903c3a714383f9cb71950b9831534d1fc1",
+    "gate-merge.logs/unit-light.options.json": "ccdc24ba220f58b2e375cd3eb929ad903c3a714383f9cb71950b9831534d1fc1",
+    "gate-merge.logs/firefox-replay.json": "55c623d23e5554df0e901369d9b21246fe88cc80bcb8dcf69360cdfe67d49390",
+    "gate-merge.logs/replay.json": "f53b867cc8c164cb556b9e9f0d49ee98ba9e527e1104b1bf537488746d02e4d1",
+    "gate-merge.logs/unit-heavy.json": "12c890ef9d349d3d269d718178552ab71bc667bfba2c55f4ea3415bfa150f6f8",
+    "gate-merge.logs/unit-heavy.list.json": "ba6db85463ed14fe503b1fddea14a81a6183fd46ac5a812be67a3e46bcf8e82d",
+    "gate-merge.logs/unit-light.json": "1191bea33e2ce91d3018b684af6a178368dd18d61a6d6e26a749078b5a3830de",
+    "gate-merge.logs/unit-light.list.json": "595d2bcaa35bb427ff7c2337061b1395f3055cfc8380dc098cab0e2fd8308910",
+    "gate-merge.logs/firefox.json": "7afe667c55d793f7bd68e59ccdb99d40d7c9eec9d74fa71e3d52cca9f8f13617",
+    "gate-merge.logs/firefox-list.json": "353b61fc15b02b75baead7713835bb538d6dcd9e6a618064f80b3260d1fc5dda",
+    "gate-merge.logs/playwright.json": "5ad3997473ebbf2e0a5b50297058e2de8d4c005db320cc0eb708a2f87b6ab275",
+    "gate-merge.logs/list-run.json": "dc689e4158d4c9bf3a2eae3f6de5e6fdcd0430372bd14865cfb601c6b0ae1e78",
+    "gate-merge.logs/backend/backend.junit.xml": "5e930d143df42425388ea86a617dd63b4dde4de791e608d051657a9c4613840c"
+  },
+  "evidence_sha256": {
+    "vor-maschine.rp5.r400.codex-probes.json": "02e5f27aba9616e72aca7c9f8de695556dd0c43ebcc73bd9d7705cfba97dff58",
+    "vor-maschine.rp5.r400.codex-duplicate-run.sh": "57c88eef06bea6f7cb8c75fcd18c09ab82a5a941020806ee34381dfac15c874f",
+    "vor-maschine.rp5.r400.codex-vitest-list.json": "0c16bd20ebb83aa68a5f3e72b44b73952fb04829bc78a745cf5b4c2d7c684ff5",
+    "vor-maschine.rp5.r400.codex-duplicate-list.json": "a2d721b3dd6cad8f3da23be5b7a0cec6c584dbc2dc2d12f03b177e2cf5840b35",
+    "vor-maschine.rp5.r400.codex-duplicate-options.json": "5f9e7ee1ae2ff76d440a90cc572569c8b333a7a268f8f4138bb3e6e379cbb69e",
+    "vor-maschine.rp5.r400.codex-duplicate-report.json": "2ce14977f7d925e33c8b29551fe62ed264233d8886b80b34e25f3d39e13b042c",
+    "vor-maschine.rp5.r400.codex-duplicate.test.ts": "7654f622eb476577b9cf0160508e2ce881f4cfe4ddbc375b87544f0f7d7c92c5",
+    "vor-maschine.rp5.r400.codex-run.sh": "4375a9545ad09c4fe0c08165c5c2d1f52c4031ed628b1a23f8a7892777b68364",
+    "vor-maschine.rp5.r400.codex-r396-probes-adapted.py": "0cf954f88d2bec3c79eaba4a71a15429ae0b8d4f6190e3f65c9349f891f00a8b",
+    "vor-maschine.rp5.r400.codex-r398-probes-rerun.json": "fdd14d0eaa28bba25a82907dd0f7525ecebd506ab62e00071a0f3e3b8665a7ca",
+    "vor-maschine.rp5.r400.codex-pytest.txt": "fa7907aacfc34365d101ebd219d58ecafe9d2a73a3646fe9c6fd725c903d733b",
+    "vor-maschine.rp5.r400.codex-r396-probes-rerun.json": "59a86ee5d061d26cd889ddfe39adcfcb2a46e7ddeac234e6e981e83aa4ac9a42",
+    "vor-maschine.rp5.r400.codex-ambiguous-retry.json": "37cf53eb621dd85d060dbb85bb9058e8c1603d76bc1a2773054d9b9065a94395",
+    "vor-maschine.rp5.r400.codex-vitest-options.json": "219bb77b012825a114c08d61e486a0bdd3d6d8b7412b8a9c4aab4d759c61bb01",
+    "vor-maschine.rp5.r400.codex-probes.py": "4324923e615a12b0f053d6f2f88c886bfaa71aeb017f5715403dd797db9c4e4c",
+    "vor-maschine.rp5.r400.codex-input-heavy.options.json": "ccdc24ba220f58b2e375cd3eb929ad903c3a714383f9cb71950b9831534d1fc1",
+    "vor-maschine.rp5.r400.codex-vitest-report.json": "f34d102731526da63233bc403eaf51e47f537b152d256f979e7d4d629e96b9a9",
+    "vor-maschine.rp5.r400.codex-r398-probes-adapted.py": "ebdd93e7b2abfc2c15c06cde3d00e93f2f5c29944e43c64d70cb87d0928faa98",
+    "vor-maschine.rp5.r400.codex-duplicate-probe.json": "b0cd4f5a022d5073e551169f3cb5d929b07859212df62665322c903e8652afa4",
+    "vor-maschine.rp5.r400.codex-input-light.options.json": "ccdc24ba220f58b2e375cd3eb929ad903c3a714383f9cb71950b9831534d1fc1",
+    "vor-maschine.rp5.r400.codex-vitest-console.txt": "444dd91b22454ea1ef7900c4a88db84eb38793981aff0b91740af3cd5cf46326",
+    "vor-maschine.rp5.r400.codex-duplicate-probe.py": "e6bc9bbc5b2aa0f88c443a6bb2e8a5f0370b9cf2743823aa30ebe4a200e33b8a"
+  }
+}

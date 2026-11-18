@@ -1,0 +1,162 @@
+[
+  {
+    "name": "applyClientOverlay > armed + not busy passes the backend gates through",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlay > disarmed closes everything except always and the stops",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlay > a stop follows the backend: closed there, closed here",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlay > busy closes the busy-subset but not jog/abort",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlay > absent backend permissions yield all-false except always and arming (safe default; Arm stays reachable)",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlay > a backend-closed gate stays closed even when armed and idle",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "simulation-mode overlay (client-local, simMode.ts) > closes every machine-action gate while sim is active",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "simulation-mode overlay (client-local, simMode.ts) > keeps the stops open in sim (BG-08)",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "simulation-mode overlay (client-local, simMode.ts) > keeps always, armed, and setup open in sim",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "simulation-mode overlay (client-local, simMode.ts) > sim=false (default) changes nothing",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "simulation-mode overlay (client-local, simMode.ts) > surfaceComp passes through from the backend and carries the busy term",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "run gate (program start) > is a busy-subset gate that follows armed, independent of ready",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "a class the gateway does not ship (button gates BG-15) > is closed — never read from ready",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "a class the gateway does not ship (button gates BG-15) > names the restart as its reason, armed or not for a stop",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "a class the gateway does not ship (button gates BG-15) > before the first status nothing is compared — no restart reason",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "machineFrame / goZero gates > follow armed/busy like ready",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "the write gates (button gates BG-14) > need arm, settle with busy and stay open in simulation",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "the recovery and the package D gates (button gates D) > arming is the backend's decision alone — a disarmed client may arm unless a trip waits",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "the recovery and the package D gates (button gates D) > E-Stop Reset, loading and the mode choice need this client's arm",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "the recovery and the package D gates (button gates D) > simulation keeps loading and the recovery, closes the mode choice, the G30 read and the spindle",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlayReasons (U-06, review 2026-09-14) > names the client-local terms and passes the backend's reason through otherwise",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlayReasons (U-06, review 2026-09-14) > a stop carries no client-local reason: only the backend's (BG-08)",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "applyClientOverlayReasons (U-06, review 2026-09-14) > a closed gate without a shipped reason stays unexplained, never invented",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "explainKeydown (R-05 access, R-06 containment) > explains on Enter and Space, and consumes the key",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "explainKeydown (R-05 access, R-06 containment) > ignores every other key, so ordinary shortcuts still work",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "reason length (design wave D1 live look) > every client-local reason is a short 'why — what to do'",
+    "file": "/tmp/codex-r400/lcnc-webui/src/permissions.test.ts"
+  },
+  {
+    "name": "plain expected failure",
+    "file": "/tmp/codex-r400/lcnc-webui/src/r398-fixtures/plain.test.ts"
+  },
+  {
+    "name": "isQueueSafe (issue #18 — what may queue across a reconnect) > allows read-only get_* commands",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "isQueueSafe (issue #18 — what may queue across a reconnect) > allows telemetry / visibility commands",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "isQueueSafe (issue #18 — what may queue across a reconnect) > DROPS motion / mutation commands",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "client transport policy (issue #31) > never debounces a stop command",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "client transport policy (issue #31) > debounces motion commands by default",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "client transport policy (issue #31) > flag toggles and continuous inputs hold no latch",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "client transport policy (issue #31) > an unknown command gets the safe default, not zero",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "client transport policy (issue #31) > carries no permission gates",
+    "file": "/tmp/codex-r400/lcnc-webui/src/lcnc.test.ts"
+  },
+  {
+    "name": "each expected failure 1",
+    "file": "/tmp/codex-r400/lcnc-webui/src/r398-fixtures/each.test.ts"
+  },
+  {
+    "name": "option expected failure",
+    "file": "/tmp/codex-r400/lcnc-webui/src/r398-fixtures/option.test.ts"
+  },
+  {
+    "name": "spaced expected failure",
+    "file": "/tmp/codex-r400/lcnc-webui/src/r398-fixtures/spaced.test.ts"
+  },
+  {
+    "name": "alias expected failure",
+    "file": "/tmp/codex-r400/lcnc-webui/src/r398-fixtures/alias.test.ts"
+  },
+  {
+    "name": "normal positive control",
+    "file": "/tmp/codex-r400/lcnc-webui/src/r398-fixtures/control.test.ts"
+  }
+]

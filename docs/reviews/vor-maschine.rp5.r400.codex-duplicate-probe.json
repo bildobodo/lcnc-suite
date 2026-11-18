@@ -1,0 +1,37 @@
+{
+  "both_rows": {
+    "verdict": "FAIL",
+    "errors": [
+      "F-TRIP.S1d: unit r398-fixtures/duplicate.test.ts \u203a same title: a bound test declares an expected failure \u2014 Vitest's JSON report reads it as passed (R398 VM-I34)"
+    ],
+    "checked": 109,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r398-fixtures/duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "expected to fail",
+        "why": "a bound test declares an expected failure \u2014 Vitest's JSON report reads it as passed (R398 VM-I34)"
+      }
+    ]
+  },
+  "missing_one_of_two_options": {
+    "verdict": "PASS",
+    "errors": [],
+    "checked": 110,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r398-fixtures/duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "passed"
+      }
+    ]
+  }
+}

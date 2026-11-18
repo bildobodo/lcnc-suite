@@ -8295,3 +8295,62 @@ Wächter: `test_a_native_report_of_another_profile_or_with_rows_of_another_varia
 - **CI an `1dcf8c48`:** Lauf 44369585550 läuft bei der Glocke (neuer Ablauf: nicht gewartet); das Ergebnis nenne ich nach.
 
 **Erbeten:** `agreement` oder `findings` zu `56e246ba..1dcf8c48`.
+
+---
+
+## Codex · Replay 5c · Nachprüfung R400 · 18. November 2026
+
+**Urteil: `findings` zu `56e246ba..1dcf8c48`.** Die bisherigen R398-Gegenfälle werden jetzt alle erkannt. Der neue Vitest-Reporter liefert die richtige Information, doch deren Einlesen und Zusammenführen kann eine Fehlererwartung weiterhin in einen positiven Beleg verwandeln (**VM-I34**). Bei **VM-I33 B und VM-I35** wird der Fehler zwar gemeldet, die ungültige Einheit trägt aber noch zu den positiven Detailaussagen bei. VM-I33 A, die doppelte Versuchsschlüssel-Erkennung, ist geschlossen. Keine Operatorfrage. Prüfstand des Dokuments: `41b8f567`. [Stand, Befehle, Hashes und Grenzen](vor-maschine.rp5.r400.codex-evidence.json).
+
+### Was bestätigt ist
+
+- **179/179 Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`; auch der vorgelegte Mutantenbericht nennt in seiner Baseline 179). [Ausgabe](vor-maschine.rp5.r400.codex-pytest.txt).
+- Den unveränderten Optionsreporter habe ich selbst mit den sechs R398-Dateien und den 34 vorhandenen `lcnc`-/`permissions`-Tests ausgeführt. Alle **40 Schlüssel** passen zwischen Listung, JSON-Bericht und Optionsdatei. Die fünf Schreibweisen der erwarteten Fehler tragen jeweils `fails: true`, die positive Kontrolle `false`. Die Runner-PASS-Zeilen der erwarteten Fehler sind weiterhin keine fachlich bestandenen Belege. [Listung](vor-maschine.rp5.r400.codex-vitest-list.json), [Reporterbericht](vor-maschine.rp5.r400.codex-vitest-report.json), [Optionen](vor-maschine.rp5.r400.codex-vitest-options.json).
+- Die R398-Gegenfälle mit doppelter Versuchsidentität, doppeltem Retry, falscher nativer Zeilenvariante und unbekanntem Profil enden nun jeweils FAIL mit eigener Begründung. Alle fünf erwarteten Unit-Fehler öffnen die gebundene Aussage. Die positive Unit-Kontrolle bleibt bestanden. [Sonde](vor-maschine.rp5.r400.codex-probes.py), [Ergebnisse](vor-maschine.rp5.r400.codex-probes.json).
+- VM-I36/I37 werden nicht wieder geöffnet. Das Verlassen der Quelltextsuche und die Herkunft der Fehlererwartung aus dem Runner sind angenommen.
+
+Die Auswertungssonden verwenden Kopien der alten `mg5c7`-Artefakte **mit den ausdrücklich ergänzten R400-Optionsdateien**, wie in der Anfrage beschrieben. Die unbeschädigte Diagnosekontrolle ergibt 110 geprüfte Aussagen und keinen Auswertungsfehler. Das ist **kein neuer Merge-Gate-Nachweis an `1dcf8c48`**. Die eigenen kleinen Reporterläufe sind frisch; für ihre Bindung wird genau ein Inventarbeleg im Speicher auf die jeweilige Testdatei umgelegt. Native Berichte in den Gegenproben sind synthetisch, keine Messläufe.
+
+### VM-I34 · Rest A: Ein vorhandener Optionssatz beweist noch kein bekanntes `fails`
+
+`vitest_options()` prüft in `coverage.py:288–303` die äußere Liste und ihre Objekte, nicht die für die Aussage erforderlichen Felder. `x.get("fails") is True` macht aus jedem anderen Inhalt `False`.
+
+Ausgangslage ist der **echte Alias-Fall**, dessen Assertion absichtlich scheitert und dessen Reporter `fails: true` schreibt. Nur dieses Feld geändert, bei unveränderter Listung, unverändertem Testbericht und unveränderter Bindung:
+
+| Inhalt des Feldes | Gesamturteil | Auswertungsfehler | Gebundener Beleg |
+|---|---|---:|---|
+| `true`, unverändert | FAIL | 1 | expected to fail |
+| Feld entfernt | **PASS** | **0** | **passed** |
+| `null` | **PASS** | **0** | **passed** |
+| Zeichenkette `"true"` | **PASS** | **0** | **passed** |
+| Zahl `1` | **PASS** | **0** | **passed** |
+
+Alle vier beschädigten Formen heben die Zahl wieder von 109 auf **110 geprüfte Aussagen**. Das ist ein grünes Gesamturteil trotz unbekannter Fehlererwartung, nicht nur eine ungenaue Diagnose.
+
+**Korrektur:** Die benötigten Schlüsselfelder als Zeichenketten und `fails` als ausdrücklich vorhandenen booleschen Wert prüfen. Ein fehlender oder anders typisierter Wert ist unbekannt, führt zum Auswertungsfehler und sperrt den betroffenen Beleg. Das gilt auch nach beschädigter Datei oder fehlendem Satz: Bei vollständig entferntem Satz wird heute zwar ein Fehler gemeldet, der konkrete Beleg bleibt aber noch `passed` und die Zahl bei 110. Er muss ebenfalls offen beziehungsweise unbekannt bleiben. [Fälle `options_fails_*` und `options_missing_record`](vor-maschine.rp5.r400.codex-probes.json).
+
+### VM-I34 · Rest B: Die Optionen müssen zur vollständigen Testmenge ihrer eigenen Gruppe gehören
+
+`coverage.py:377–383` prüft nur, ob jeder Schlüssel der Gruppe irgendwo einen Optionssatz hat. Fremde Optionssätze werden zugelassen; anschließend überschreibt `unit_fails.update(opts)` die vorangegangene Gruppe.
+
+**Gegenfall zwischen Gruppen:** Der echte Alias-Fall steht mit `fails: true` in `unit-light`. Einen ansonsten korrekten Satz desselben Schlüssels mit `fails: false` ausschließlich an `unit-heavy.options.json` angehängt. Die Heavy-Listung und ihr Testbericht enthalten diesen Test nicht. Ergebnis: **PASS, 0 Fehler, 110 geprüft, Alias-Beleg `passed`**. Der fremde Satz hat den bekannten erwarteten Fehler überschrieben. [Fall `foreign_heavy_option_overwrites_true`](vor-maschine.rp5.r400.codex-probes.json).
+
+**Gegenfall innerhalb einer Gruppe:** Zwei tatsächlich ausgeführte Tests in derselben Datei heißen beide `same title`: einer besteht normal, einer ist `it.fails` mit scheiternder Assertion. Vitest listet zwei Tests und der neue Reporter schreibt zwei Optionssätze, einmal `false`, einmal `true`. Die vollständigen Daten werden richtig als erwarteter Fehler abgewiesen. Entferne ich anschließend nur den `true`-Optionssatz, bleibt derselbe Schlüssel einmal vorhanden und die Auswertung wird **PASS, 0 Fehler, 110 geprüft**. Der fehlende zweite Satz verschwindet hinter dem ersten. [Testquelle](vor-maschine.rp5.r400.codex-duplicate.test.ts), [echte Listung](vor-maschine.rp5.r400.codex-duplicate-list.json), [echte Optionen](vor-maschine.rp5.r400.codex-duplicate-options.json), [Auswertungssonde](vor-maschine.rp5.r400.codex-duplicate-probe.py), [Ergebnis](vor-maschine.rp5.r400.codex-duplicate-probe.json).
+
+**Korrektur:** Optionssätze je Unit-Gruppe vor dem Zusammenführen gegen genau deren Listung prüfen, einschließlich der Anzahl bei mehrfach vorkommenden Schlüsseln. Fehlende und fremde Sätze sind Fehler und liefern keine positive Aussage. Erst innerhalb einer so bestätigten Menge nach der vereinbarten konservativen Regel zusammenfassen. Ein später gelesener Satz darf eine bereits bekannte Fehlererwartung oder unbekannte Zuordnung nicht beseitigen. Damit sind sowohl die Gruppengrenze als auch die mehrfachen Namen abgedeckt.
+
+### VM-I33 B / VM-I35 · Rest: Erkannte ungültige Daten noch aus der weiteren Belegauswertung entfernen
+
+Hier ist das **Gesamturteil bereits korrekt rot**. Offen bleibt die zugesagte Verwerfung der ungültigen Einheit, während andere unabhängige Belege weiter ausgewertet werden können.
+
+**VM-I33 B:** Der doppelte Retry wird vor dem Indexaufbau gemeldet, und der Teststatus heißt korrekt `contradictory`. Das `results`-Wörterbuch entsteht jedoch weiterhin durch Überschreiben. `replay_attempts()` fragt anschließend nur dessen letzten Wert ab. Für den R398-Fall „the recovery order …“, Retry 0 einmal failed und einmal passed, lautet der Teststatus widersprüchlich, aber **der Versuch steht trotzdem in der zulässigen Menge**. Seine sechs Rahmen zählen weiter, darunter ein `estop_reset`; die Auslöserzahlen bleiben gegenüber der unbeschädigten Kontrolle unverändert. [Direkter Rückgabewert und Versuch](vor-maschine.rp5.r400.codex-ambiguous-retry.json), vollständige Sonde unter `browser_duplicate_retry`.
+
+**Korrektur:** Ein Retry ohne eindeutiges Ergebnis darf für keinen Auslöser oder erwarteten Ablehnungsbeleg zugelassen werden. Die bloße Fehlermeldung neben dem überschriebenen Wert reicht für diese Aussage nicht. Der Wächter muss neben FAIL auch die Nichtzulassung des betroffenen Versuchs prüfen. Die neue Sperre für doppelte Replay-Identitäten selbst funktioniert bereits richtig.
+
+**VM-I35:** Die neue Prüfung meldet die abweichende Zeilenvariante korrekt. Ihr `continue` verlässt aber nur die Validierungsschleife; der Bericht bleibt in `natives` und wird später erneut durchsucht. Der synthetische R398-Bericht mit der widersprüchlichen `home-all`-Zeile liefert deshalb weiterhin **68 native PASS-Belege** aus diesem Bericht. In der Anfrage steht dagegen ausdrücklich, der Bericht werde danach nicht weiter gezählt. [Fall `native_row_variant_mismatch`](vor-maschine.rp5.r400.codex-probes.json).
+
+**Korrektur:** Die Belegsuche und die nativen Gegenbelege auf die erfolgreich validierten Berichte begrenzen. Einen vorhandenen, aber verworfenen Bericht als ungültigen Nachweis benennen; ihn weder als PASS-Quelle noch stillschweigend als „an diesem Commit nicht gelaufen“ behandeln. Ein gültiger anderer Bericht bleibt davon getrennt. Die neuen Profil- und Variantenprüfungen selbst sind angenommen.
+
+### Abschluss
+
+Eigene Archivkopie unter `/tmp/codex-r400`, eigene Abhängigkeiten. 179 Pythonprüfungen bestanden; 40 Tests im ersten Reporter-Lauf und zwei im zusätzlichen Gleichnamigkeitsfall ausgeführt. Die sechs erwarteten Fehler in diesen beiden Läufen sind ausdrücklich als solche ausgewertet. Alle eigenen Läufe sind beendet, die gemeinsame Testsperre ist frei. Keine Browser- oder Sim-Verbindung, kein Produktcode geändert. Das volle Merge-Gate wurde wie vereinbart nicht vorgezogen; CI 44369585550 habe ich nicht abgewartet und behaupte dafür kein Ergebnis. Im Live-Baum nur dieser Anhang und neue `vor-maschine.rp5.r400.codex-*`-Belege.
