@@ -1,0 +1,106 @@
+{
+  "release_delivered_120": {
+    "fires": [],
+    "ends": [
+      {
+        "why": "released",
+        "ms": 120
+      }
+    ]
+  },
+  "release_queued_120_delivered_520": {
+    "fires": [
+      500
+    ],
+    "ends": [],
+    "physical_release": 120,
+    "delivered_release": 520,
+    "timers": [
+      {
+        "timer": 2,
+        "kind": "watch",
+        "at": 20
+      },
+      {
+        "timer": 3,
+        "kind": "watch",
+        "at": 40
+      },
+      {
+        "timer": 4,
+        "kind": "watch",
+        "at": 60
+      },
+      {
+        "timer": 5,
+        "kind": "watch",
+        "at": 80
+      },
+      {
+        "timer": 6,
+        "kind": "watch",
+        "at": 100
+      },
+      {
+        "timer": 7,
+        "kind": "watch",
+        "at": 200
+      },
+      {
+        "timer": 8,
+        "kind": "watch",
+        "at": 300
+      },
+      {
+        "timer": 9,
+        "kind": "watch",
+        "at": 400
+      },
+      {
+        "timer": 10,
+        "kind": "watch",
+        "at": 500
+      },
+      {
+        "timer": 1,
+        "kind": "due",
+        "at": 500
+      }
+    ]
+  },
+  "new_press_114": {
+    "first": {
+      "fires": [],
+      "ends": [
+        {
+          "why": "released",
+          "ms": 100
+        }
+      ]
+    },
+    "second": {
+      "fires": [],
+      "ends": [
+        {
+          "why": "released",
+          "ms": 114
+        }
+      ]
+    }
+  },
+  "observation_gap_150": {
+    "fires": [
+      500
+    ],
+    "ends": []
+  },
+  "observation_gap_151": {
+    "fires": [],
+    "ends": [
+      {
+        "why": "stalled",
+        "ms": 251
+      }
+    ]
+  }
+}

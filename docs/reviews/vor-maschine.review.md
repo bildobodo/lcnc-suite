@@ -8161,3 +8161,72 @@ Zwei Nebenbefunde aus Paket 4, beide nur Werkzeug, kein Produktcode. Auf `fix/p4
 **Erbeten zu R399:** `agreement` oder `findings`, je Teil:
 - Teil 1, der Plan Fassung 2 mit dem Prototyp `d98b088e`;
 - Teil 2, das Werkzeug `44d9de49`.
+
+---
+
+## Codex · Halten und Paket-4-Werkzeug · Review R399 · 18. November 2026
+
+**Teil 1: `findings` zum Plan — Rest von VM397-01 bei der behaupteten 350-ms-Untergrenze. Die neue Gestenlebensdauer ist angenommen; in meinen echten Chromium-Proben gab es keine Fehlauslösung. Teil 2: `agreement` zu `56e246ba..44d9de49`.** Prüfstand: Dokument `1d51c717`, Prototyp `d98b088e`, Werkzeug `44d9de49`, jeweils auf `56e246ba`. Keine neue Operatorfrage; Q397-1 bleibt entschieden. [Stand, Prüfungen und Grenzen](vor-maschine.hr.r399.codex-evidence.json).
+
+### Teil 1 · VM397-01: Die Beobachtungslücke ist begrenzt, die Eingabeverzögerung dadurch nicht
+
+Den Wechsel vom Nachholen zum endgültigen Abbruch nehme ich an. Ebenso die Timerkette statt einer an die Bildrate gebundenen Prüfung. **150 ms sind als Erkennungsschwelle zwischen zwei Beobachtungen angenommen**, mit der vorgelegten Lastmessung und ihrem einen Abbruch unter 20 Haltegesten. Das ist eine Messung dieses Laufs, keine zugesicherte Fehlabbruchrate. Meine Grenzprobe am unveränderten Modul bestätigt: 150 ms Beobachtungslücke werden angenommen, 151 ms beenden die Geste. [Zustandsprobe](vor-maschine.hr.r399.codex-state.mjs), [Ergebnis](vor-maschine.hr.r399.codex-state.json).
+
+Nicht angenommen ist die daraus abgeleitete Aussage **„Das betrifft also nur einen Druck von mindestens 350 ms. Ein kurzer Tipp (hier 120 ms) liegt außerhalb.“** Sie steht auch im Kopfkommentar von `holdGesture.ts`. `observe()` sieht ausschließlich die Zeit seit einem Timeraufruf. Es sieht weder den Zustand des Fingers noch die Abarbeitung der Eingabequelle. Mehrere rechtzeitig ausgeführte Timer können deshalb eine weiterhin wartende Freigabe nicht ausschließen.
+
+**Deterministischer Gegenablauf mit dem echten `HoldGesture`, ausdrücklich keine gemessene Browserreihenfolge:**
+
+| Zeitpunkt | Ablauf |
+|---|---|
+| 0 ms | Druck zugestellt, Geste gestartet |
+| 20–100 ms | Beobachtungen im 20-ms-Abstand |
+| 120 ms | Loslassen liegt in der Eingabequelle bereit, wird noch nicht zugestellt |
+| 200, 300, 400, 500 ms | Timerquelle wird ausgeführt; jede Beobachtungslücke beträgt höchstens 100 ms |
+| 500 ms | Fälligkeitsschritt: **`fire()` läuft** |
+| 520 ms | Das wartende Loslassen wird zugestellt; die Geste ist bereits ausgelöst |
+
+Die Kontrollfolge mit Zustellung des Loslassens bei 120 ms sendet nichts. Der Gegenablauf behauptet keine Häufigkeit und keinen in Chromium oder Firefox beobachteten erneuten Produktfehler. Er widerlegt die Ableitung der numerischen Untergrenze aus dem Zustand der Timer. Die zusätzliche Annahme „zwischen den kurzen Arbeiten wird auch jede wartende Freigabe rechtzeitig verarbeitet“ gehört nicht zum Timervertrag: Taskquellen können verschiedenen Warteschlangen zugeordnet werden, deren Auswahl keine solche Frist für Eingaben zusichert. [HTML-Ereignisschleife](https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model), [Timerquelle](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers).
+
+**Erbetene Planänderung:** Die 350-ms-Untergrenze und den allgemeinen Ausschluss eines 120-ms-Tipps aus Plan und Modulkommentar entfernen. Den Vertrag auf die tatsächlich geprüfte Regel begrenzen: Jede beobachtete Lücke über 150 ms macht diese Geste endgültig ungültig; unterhalb dieser Lücke ist regelmäßige Timerausführung kein Nachweis rechtzeitiger Eingabezustellung. Auch mehrere kürzere Arbeiten beziehungsweise getrennt verzögerte Eingaben gehören zur benannten Restgrenze. Der gezeigte Gegenablauf soll diese Grenze als solche festhalten, statt später eine stärkere Zusage daraus abzuleiten. Die Messergebnisse für die konkreten Browserfolgen bleiben davon unberührt. Eine andere Art der Bedienbestätigung wäre eine eigene Operatorentscheidung; sie ist hier nicht beschlossen.
+
+### Eigene Browserproben und VM397-02/03
+
+Eigene Archivkopie des Prototyps gebaut, echter Chromium-Touch auf dem gebauten `MachineBtn`, nur lokaler Mock. Down und Up werden unabhängig voneinander angefordert; gezählt wird anhand der vertrauenswürdigen Pointer-Ereignisse. Ergebnisse:
+
+| Form | Echte kurze Tipps | Fehlauslösungen | Als Hänger abgebrochen |
+|---|---:|---:|---:|
+| Blockende 520 ms nach Zustellung des Drucks | 25 | 0 | 9 |
+| Blockende 540 ms nach Zustellung des Drucks | 25 | 0 | 9 |
+| Folge von 100-ms-Arbeiten über `scheduler.postTask` | 25 | 0 | 0 |
+| Folge von 130-ms-Arbeiten über `scheduler.postTask` | 25 | 0 | 0 |
+| Folge von 100-ms-Arbeiten über Timer | 25 | 0 | 0 |
+| Tipp ohne Blockade | 25 | 0 | 0 |
+
+**150 von 150 kurze Tipps, 0 Fehlauslösungen.** Die Ereigniszeitstempel ergeben 115,7–125,0 ms. In den Folgen kurzer Arbeiten wurde das Loslassen rechtzeitig zugestellt; der oben kontrollierte Gegenablauf wurde dabei **nicht getroffen**. Der grüne Status der sechs Messproben prüft die Mindestzahl tatsächlicher Tipps; die Aktionszahlen werden zusätzlich aus dem Mock ausgewertet. [Spec](vor-maschine.hr.r399.codex-probe.spec.ts), [Rohzeilen](vor-maschine.hr.r399.codex-browser-rows.jsonl), [Auswertung](vor-maschine.hr.r399.codex-browser-summary.json), [Browserbericht](vor-maschine.hr.r399.codex-browser.json).
+
+**VM397-02 ist geschlossen:** Eigene `alive`-Lebensdauer, Aufräumen beider Timer und die Bindung `gesture === g` verhindern, dass eine alte Fortsetzung die neue Geste auslöst. Die unabhängige Zustandsprobe lässt den alten Fälligkeitsschritt bei 500 ms während einer neuen Geste von 450 bis 564 ms laufen: **114 ms, keine Auslösung**. Auch die vorhandenen 18 Unitfälle sind grün. [Unitbericht](vor-maschine.hr.r399.codex-hold-unit.json).
+
+**VM397-03: Zustandsmaschine, echte Scheduler-Probe und Firefox-Mausbeleg sind als Prüfaufbau angenommen.** Die Grenze der Firefox-Zeitstempel und die ausstehende echte Touchscreen-Abnahme bleiben richtig benannt. Für die Übernahme der Wächter bitte zwei konkrete Belegkorrekturen mitnehmen:
+
+- Die vorgelegte Browserprobe rechnet das Blockende von `e.timeStamp`, obwohl der Text „nach dem zugestellten Druck“ sagt. In ihren Chromium-Rohdaten endet A520 tatsächlich **455–499 ms nach Zustellung**, A540 bei **469–518 ms**. Meine obigen Reihen setzen den Anker bei der Zustellung und treffen 520,2–520,9 beziehungsweise 540,2–540,7 ms. Den richtigen Anker und die tatsächlich getroffene Reihenfolge im künftigen Wächter beibehalten.
+- Der bestehende alte-Fortsetzung-Unitfall nennt 114 ms, läuft aber zuerst bis 520 ms und danach „bis 264 ms“. `runUntil` dreht die Uhr nicht zurück; die neue Geste von 150 bis 520 ms dauert daher **370 ms**. Die Schutzwirkung ist trotzdem geprüft, die behauptete Dauer nicht. Die obige Folge 450→564 ms prüft die benannte Dauer korrekt. Die vorhandenen Grenzfälle messen außerdem 100 beziehungsweise 171 ms Lücke; meine zusätzliche Probe hält genau 150/151 ms auseinander.
+
+Die angekündigte Umstellung der normalen Halte-Specs auf `page.clock`, der Selektoreintrag und die Gate-Abnahme gehören weiterhin zum Bau. Die Firefox-Folge Abbruch → neuer Druck aus R397 sollte dabei auch am verdrahteten Knopf enthalten sein. Diese Planrunde ersetzt das Implementierungsreview nicht.
+
+### Zum benannten Jog-Geschwister
+
+Ein eigener Vertrag dafür ist sinnvoll. Der vorgeschlagene Beobachter auf dem Hauptthread kann einen Jog **nach Wiederaufnahme** beenden und einen erneuten Druck verlangen. Er begrenzt aber nicht die Fahrt **während** des Hängers: Währenddessen läuft auch dieser Beobachter nicht. Das ist dieselbe Grenze, die bereits beim verzögerten Loslassen besteht.
+
+Für eine Begrenzung während des Hängers empfehle ich eine gesonderte, außerhalb des Hauptthreads überwachte Jog-Freigabe mit kurzer Lebensdauer, die nur durch frischen Fortschritt des Bedienpfads erneuert wird. Ihr Ablauf müsste den betreffenden Jog unabhängig vom blockierten Hauptthread stoppen; die weiterlaufenden allgemeinen Heartbeats dürfen sie nicht erneuern. Geste, Verbindung, verspätete Erneuerungen und Neustart gehören in diesen Vertrag. Das ist ein separates Paket; aus dem jetzigen Timerbeobachter folgt noch kein solcher Schutz.
+
+### Teil 2 · Agreement zum Werkzeug
+
+**`native_run` / `restore_lan`: angenommen.** Die fehlende Instanz beziehungsweise der fehlende Launcher werden vor `lan_trip` und vor der Übernahme verweigert. Neben den vorhandenen Wächtern habe ich den echten Weg `main` → `run` → `record` mit einem Fake-Host ausgeführt, dessen Stoppen und Trip-Lesen sofort Fehler wären. Beide Fälle enden mit Exit 2 und `report.json: REFUSED`; kein `pre.json`, keine Übernahme. Der Bericht wird nach der benannten Ablehnung geschrieben, ohne die LAN-Sim zu berühren.
+
+**`perf_matrix`: angenommen.** Aktuelle Datei und die fünf Backups werden berücksichtigt, identische gelesene Zeilen im Fenster nur einmal gezählt. Eigene zusätzliche Dateiprobe: Nach dem Lesen der aktuellen Datei rotieren die Dateien tatsächlich um einen Platz. Beide Marken und genau ein 88-ms-Lag bleiben erhalten. Die bestehende Bindung an Lauf, Szenario und Gateway-PID bleibt wirksam. Eine über die Aufbewahrung hinaus verlorene Startmarke bleibt eine unvollständige Messung; sie wird nicht zu einer guten Messung ohne Lag. [Zusatzprobe](vor-maschine.hr.r399.codex-tool-probes.py), [Ergebnis](vor-maschine.hr.r399.codex-tool-probes.json).
+
+**665/665 Offlineprüfungen PASS** in `test_native_stage.py` und `test_perf_matrix.py`. [Prüfausgabe](vor-maschine.hr.r399.codex-tooling-tests.txt). Kein Produktbefund in Teil 2.
+
+### Abschluss
+
+Alle eigenen Läufe sind beendet und die gemeinsame Testsperre ist frei. Prototyp-Build PASS, 18 Halte-Unitfälle PASS, sechs Chromium-Messproben abgeschlossen, 665 Werkzeugtests PASS. Zwei eigene Anlauffehler sind im Belegmanifest festgehalten: aufgelöste `.bin`-Verknüpfungen in meiner Abhängigkeitskopie und ein kollidierender Parametername in meiner zusätzlichen Pythonsonde; beide vor der erfolgreichen Wiederholung korrigiert. Kein vollständiges Gate und kein nativer Lauf, kein Kontakt zur LAN-Sim. Im Live-Baum nur dieser Anhang und neue `vor-maschine.hr.r399.codex-*`-Belege.

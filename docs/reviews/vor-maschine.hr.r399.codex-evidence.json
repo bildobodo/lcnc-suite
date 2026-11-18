@@ -1,0 +1,73 @@
+{
+  "review": "R399",
+  "date": "2026-11-18",
+  "document": "1d51c71765ac0529927aba661ba7f80c887eef10",
+  "base": "56e246ba75224fc0606d85575a48eef0929f3cea",
+  "hold": "d98b088ec206f7656f47e25518d0664b30de6c86",
+  "tooling": "44d9de49c74713ccffb5b50322e300394bde1b91",
+  "archives": {
+    "hold": "/tmp/codex-r399/hold",
+    "tooling": "/tmp/codex-r399/tooling"
+  },
+  "checks": {
+    "tooling": "665 passed in 58.68s",
+    "hold": "18/18 passed",
+    "build": "PASS",
+    "browser": "6 probes passed, 150 actual touch taps under 350 ms, 0 false fires",
+    "controlled_scheduler": "one deliberately selected timer/input queue order fires at 500 with release queued at 120 but delivered at 520; NOT an observed browser order",
+    "old_callback": "corrected 114-ms new gesture, no fire",
+    "threshold": "150 ms between observations stays alive; 151 ms cancels",
+    "tool_probes": "real native_run main/core with fake host: no stop/trip read, rc2 and REFUSED report; real file rotation with once-only lag and both marks"
+  },
+  "harness_corrections": [
+    "The first JS launch failed before tests: copytree had dereferenced node_modules/.bin symlinks. Restored internal symlinks in own dependency copy; unchanged unit tests and build passed.",
+    "The extra tooling probe initially had a Python helper parameter collision (at used for wall time and mark label); corrected helper name, rerun succeeded. Native host always fake."
+  ],
+  "limits": [
+    "No native instance accessed or stopped; all Python host operations use existing isolated tests or explicit fakes.",
+    "Chromium probes on built MachineBtn, actual trusted CDP touch; sample counts are not error-rate estimates. No new Firefox run; supplied pinned-Firefox mouse evidence inspected.",
+    "Pure-state input queue case is a controlled countermodel to the claimed numerical bound, not a reproduction of that schedule in either measured browser.",
+    "Browser probe assertions ensure at least 15 real short taps per case; no-fire counts are analyzed separately.",
+    "No full gate; plan/prototype review and narrow tooling review only. Own runs all finished; lock released."
+  ],
+  "sources": [
+    {
+      "url": "https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model",
+      "checked": "2026-11-18",
+      "claim": "Task sources may use separate queues; no fixed dispatch deadline for input is obtained from timer progress."
+    },
+    {
+      "url": "https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers",
+      "checked": "2026-11-18",
+      "claim": "Timer callbacks are tasks in the timer task source; timings need not be exact."
+    }
+  ],
+  "verdict": {
+    "part1": "findings: VM397-01 numeric residual bound; gesture lifetime accepted",
+    "part2": "agreement"
+  },
+  "sha256": {
+    "vor-maschine.hr.r399.codex-hold-unit.json": "b6ba45f72b535ad0977a30cd5d088e14784890e86d9379d5780142b0f95d67ba",
+    "vor-maschine.hr.r399.codex-browser-summary.json": "ee65c50fb8ab83398a3febd5f5e35465a537f97e71ddfca273b5dd3713c56ca2",
+    "vor-maschine.hr.r399.codex-browser-rows.jsonl": "b6132b3d2fa9d4c9d07a93146d7c0d5188dc7fcbe972ca1e0db077f2be06831b",
+    "vor-maschine.hr.r399.codex-state.mjs": "d5b432d1fa240b78d4787f3764d4421d2cb7a0760e8c3b33a767506bb0247d2b",
+    "vor-maschine.hr.r399.codex-browser-run.sh": "ef46267baddb7d780effc60ececb845d99cf0ec3d5f3b96cf311b6ed9b3a1d16",
+    "vor-maschine.hr.r399.codex-final-probes.sh": "2849e1191e1384b137222b2483de0ce54c6b72d9ddc0a5fad1ab606192e1eb74",
+    "vor-maschine.hr.r399.codex-run.sh": "db97bb0ff8b5ac4cfed63c818ad4df549804d410bce01691d4b1daacfd5eeca7",
+    "vor-maschine.hr.r399.codex-tool-probes.json": "f8da938728eccbaa5e7d7c7de94b410304dbf3ec95ddb4705023b10acd2dd6b1",
+    "vor-maschine.hr.r399.codex-build.txt": "f585d0bf72a2c0a4b369cab5a884c904be7262ed2267f820e25335e8bd766012",
+    "vor-maschine.hr.r399.codex-browser.json": "dc77261d2886861f3cd8e7c9dd4aff33ebd7f8c417ae764dcf5083e6a1eac765",
+    "vor-maschine.hr.r399.codex-tool-probes.py": "e06325383b0c5d514ab61f9122e5b5261bf6edcbdfdb62c9324c05040ff7cf0a",
+    "vor-maschine.hr.r399.codex-state.json": "c07eac28eb7e001fae39f5ba4a87b54e2ec12eaeddb5fda23aedbdd9b1cd21ab",
+    "vor-maschine.hr.r399.codex-probe.spec.ts": "1d70b21381db39c7c4d80e41d0b3a0c4df0f59571fdf7c26961e29f705d15fb0",
+    "vor-maschine.hr.r399.codex-unit-initial.txt": "0495e1cda9171539ea9bdb40d02d80d0aac9f0ba315eee3675dabf54a7416094",
+    "vor-maschine.hr.r399.codex-tooling-tests.txt": "fbe3e21b4b04aa56baa46808c3f41abd7ec8d88bfb3d47c07e9ed676a5198da4"
+  },
+  "source_sha256": {
+    "/tmp/codex-r399/hold/lcnc-webui/src/MachineBtn.vue": "65acda10f1d90ef805aada7ebfe2fdc7d2b5d3d68653920d81fce29b15f07087",
+    "/tmp/codex-r399/hold/lcnc-webui/src/holdGesture.ts": "37a8d96f1638ccacb4c3d8bbdb7d9b25f6e3217c3eb2ce66a2d24479ea22b6a0",
+    "/tmp/codex-r399/tooling/scripts/native_run.py": "4b8b2a993a31cd9a445515730a8faca881585f1883899e675a026c5ceb9638b5",
+    "/tmp/codex-r399/tooling/scripts/perf_matrix.py": "e8701dc45bc60c49b9603fd7ce211b1145cfc3ac3f4a3bb8aa04caccf89c2c66",
+    "/tmp/codex-r399/tooling/scripts/test_support/restore_lan.py": "1ae8c041088267a3de8c377c2ceaf049189c6098d7b8a953ab2d6dc04cf5d02c"
+  }
+}

@@ -1,0 +1,89 @@
+[
+  {
+    "mode": "A520",
+    "samples": 25,
+    "trueTapsUnder350ms": 25,
+    "falseFires": 0,
+    "stalled": 9,
+    "durationMs": [
+      116.09999990463257,
+      122.79999995231628
+    ],
+    "firstBlockEndAfterDownDeliveryMs": [
+      520.1999998092651,
+      520.9000000953674
+    ]
+  },
+  {
+    "mode": "A540",
+    "samples": 25,
+    "trueTapsUnder350ms": 25,
+    "falseFires": 0,
+    "stalled": 9,
+    "durationMs": [
+      115.69999980926514,
+      121.70000004768372
+    ],
+    "firstBlockEndAfterDownDeliveryMs": [
+      540.1999998092651,
+      540.7000000476837
+    ]
+  },
+  {
+    "mode": "chain100",
+    "samples": 25,
+    "trueTapsUnder350ms": 25,
+    "falseFires": 0,
+    "stalled": 0,
+    "durationMs": [
+      117.90000009536743,
+      124.0
+    ],
+    "firstBlockEndAfterDownDeliveryMs": [
+      201.0,
+      207.5
+    ]
+  },
+  {
+    "mode": "chain130",
+    "samples": 25,
+    "trueTapsUnder350ms": 25,
+    "falseFires": 0,
+    "stalled": 0,
+    "durationMs": [
+      119.70000004768372,
+      121.90000009536743
+    ],
+    "firstBlockEndAfterDownDeliveryMs": [
+      231.0,
+      237.40000009536743
+    ]
+  },
+  {
+    "mode": "chainTimer",
+    "samples": 25,
+    "trueTapsUnder350ms": 25,
+    "falseFires": 0,
+    "stalled": 0,
+    "durationMs": [
+      116.79999995231628,
+      125.0
+    ],
+    "firstBlockEndAfterDownDeliveryMs": [
+      201.10000014305115,
+      208.90000009536743
+    ]
+  },
+  {
+    "mode": "control",
+    "samples": 25,
+    "trueTapsUnder350ms": 25,
+    "falseFires": 0,
+    "stalled": 0,
+    "durationMs": [
+      117.30000019073486,
+      123.70000004768372
+    ],
+    "firstBlockEndAfterDownDeliveryMs": null
+  }
+]

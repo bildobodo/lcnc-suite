@@ -1,0 +1,35 @@
+{
+  "instance": {
+    "rc": 2,
+    "report": {
+      "verdict": "REFUSED",
+      "refused": "the LAN instance is not running — nothing to take over; start lcnc-sim-gates and run again",
+      "variant": null
+    },
+    "pre_exists": false
+  },
+  "launcher": {
+    "rc": 2,
+    "report": {
+      "verdict": "REFUSED",
+      "refused": "the LAN instance is not running — nothing to take over; start lcnc-sim-gates and run again",
+      "variant": null
+    },
+    "pre_exists": false
+  },
+  "rotation_after_current_read": {
+    "lag_windows": 1,
+    "lag_max_drift_ms": 88.0,
+    "lag_max_dominant": "?",
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0,
+    "marks": [
+      "end",
+      "start"
+    ],
+    "mark_pids": [
+      4242
+    ]
+  }
+}
