@@ -46,6 +46,14 @@
         "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
         "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners"
       ]
+    },
+    {
+      "file": "hold-stall-mouse.spec.ts",
+      "titles": [
+        "mouse: a tap sends nothing, a hold on a smooth page sends once",
+        "mouse: a tap or a hold across a blocked page never fires",
+        "mouse: an ended press's step never fires a new short press (an abort, then a new press)"
+      ]
     }
   ],
   "buildup": [

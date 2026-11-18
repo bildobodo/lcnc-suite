@@ -11601,6 +11601,30 @@ in the record, class closing); Firefox no longer asks for `/favicon.ico`.
 
 **Not proven:** HTTP payload values; the coverage against the inventory (5c).
 
+## 2026-11-18 — A hold the page could not watch never fires (Codex R397–R399, operator Q397-1)
+
+**Why.** MachineBtn's hold started `setTimeout(fire, 500)` at the press and
+a release cancelled it. With the main thread blocked across the 500 ms, the
+expired timer and the queued release both waited — and the timer sometimes
+ran first: a 120 ms tap fired Unhome All in 3 of 10 and 3 of 27 staged runs
+(the red merge gate ~/mg5c5 showed the class). A frame of grace (the first
+plan) still fired (Codex: 11/30 and 9/30 with a block ending just past the
+due time, 1/30 on the deferred path), and a deferred step could fire a new
+press.
+
+**Decided.** One gesture per press (`holdGesture.ts`, a pure state machine,
+its timers its own and inert after its end); the press watched every 20 ms
+by a timer chain; EVERY observed gap past 150 ms ends it for good —
+"Page delayed — hold again", nothing sent (the operator's choice, Q397-1).
+Not claimed: a duration bound — timers on time prove no delivered release
+(Codex R399's counter-sequence, pinned in `holdGesture.test.ts`). Every hold
+spec runs on the page's clock (`e2e/holdClock.ts`); the stall runs in real
+time (`hold-stall.spec.ts`, `hold-stall-mouse.spec.ts`, the latter in the
+Firefox core). Visible at the machine: a hold during a page stall over
+0.15 s is cancelled and says so; a hold on a smooth page is unchanged.
+Named sibling, its own package: a continuous jog's stop waits for a stall
+(Codex: an off-main-thread jog lease).
+
 ## 2026-11-17 — The check basis trigger keeps its place (dev CI 44098232396)
 
 **Why.** The development CI at `43b1531a` failed once in

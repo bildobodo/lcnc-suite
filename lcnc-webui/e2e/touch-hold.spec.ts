@@ -2,6 +2,7 @@ import { test, expect, type Page, type CDPSession } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
+import { installHoldClock, onPageClock } from "./holdClock";
 
 // WP7 / UI-14 — hold-to-fire under REAL touch events. The layout fixtures
 // enter touch with one synthetic first touch (touchMode.ts) — the sizes and
@@ -56,74 +57,95 @@ test.afterEach(async () => {
   await ctl({ op: "reset" });
 });
 
+// The holds run on the PAGE's clock (holdClock.ts): the press's duration is
+// the test's, and a stall of the loaded runner cannot end a hold as
+// "Page delayed" (hold after a stall, Codex R397 / R399).
 test("a short tap sends nothing and says why; a complete hold sends exactly one command", async ({ page }) => {
+  await installHoldClock(page);
   const cdp = await open(page);
   const p = await centre(page, "Unhome All");
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(120);
-  await touch(cdp, "touchEnd", []);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(120);
+    await touch(cdp, "touchEnd", []);
+  });
   await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate");
   await page.waitForTimeout(300);
   expect(await recorded("unhome_all")).toBe(0);
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(700);
-  await touch(cdp, "touchEnd", []);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(700);
+    await touch(cdp, "touchEnd", []);
+  });
   await expect.poll(() => recorded("unhome_all")).toBe(1);
   await page.waitForTimeout(300);
   expect(await recorded("unhome_all")).toBe(1);
 });
 
 test("sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero", async ({ page }) => {
+  await installHoldClock(page);
   const cdp = await open(page);
   const p = await centre(page, "Unhome All");
   // Slide beyond the slop — and the control says so (UX-12).
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(150);
-  await touch(cdp, "touchMove", [{ x: p.x + 40, y: p.y }]);
-  await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate — stay on the button");
-  await page.waitForTimeout(500);
-  await touch(cdp, "touchEnd", []);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(150);
+    await touch(cdp, "touchMove", [{ x: p.x + 40, y: p.y }]);
+    await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate — stay on the button");
+    await page.clock.runFor(500);
+    await touch(cdp, "touchEnd", []);
+  });
   expect(await recorded("unhome_all")).toBe(0);
   // The gate closes under the finger: the hint names the reason, nothing fires.
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(150);
-  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, zero: false }, permission_reasons: { zero: "Machine off" } } });
-  await expect(page.locator("[data-btn-hint]")).toHaveText("Unavailable — Machine off");
-  await page.waitForTimeout(500);
-  await touch(cdp, "touchEnd", []);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(150);
+    await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, zero: false }, permission_reasons: { zero: "Machine off" } } });
+    await expect(page.locator("[data-btn-hint]")).toHaveText("Unavailable — Machine off");
+    await page.clock.runFor(500);
+    await touch(cdp, "touchEnd", []);
+  });
   expect(await recorded("unhome_all")).toBe(0);
   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, permission_reasons: {} } });
   await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toHaveAttribute("title", "Hold to activate");
   // touchCancel (the browser took the gesture for a scroll).
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(150);
-  await touch(cdp, "touchCancel", []);
-  await page.waitForTimeout(500);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(150);
+    await touch(cdp, "touchCancel", []);
+    await page.clock.runFor(500);
+  });
   expect(await recorded("unhome_all")).toBe(0);
   // Page hidden mid-hold: no timer fires later.
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(150);
-  await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
-    document.dispatchEvent(new Event("visibilitychange"));
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(150);
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.clock.runFor(600);
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await touch(cdp, "touchEnd", []);
   });
-  await page.waitForTimeout(600);
-  await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
-  await touch(cdp, "touchEnd", []);
   expect(await recorded("unhome_all")).toBe(0);
   // A fresh hold starts from zero: 300 ms after the interrupted ones is not enough.
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(300);
-  await touch(cdp, "touchEnd", []);
-  await page.waitForTimeout(300);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(300);
+    await touch(cdp, "touchEnd", []);
+    await page.clock.runFor(300);
+  });
   expect(await recorded("unhome_all")).toBe(0);
-  await touch(cdp, "touchStart", [p]);
-  await page.waitForTimeout(700);
-  await touch(cdp, "touchEnd", []);
+  await onPageClock(page, async () => {
+    await touch(cdp, "touchStart", [p]);
+    await page.clock.runFor(700);
+    await touch(cdp, "touchEnd", []);
+  });
   await expect.poll(() => recorded("unhome_all")).toBe(1);
 });
 

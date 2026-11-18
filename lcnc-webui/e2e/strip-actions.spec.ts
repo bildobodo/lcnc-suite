@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from "./test";
+import { holdMouse, installHoldClock } from "./holdClock";
 import { ctl } from "./ctl";
 import { PROFILES, VIEWPORTS, openLayout, setLayoutState, settleLayout } from "./layout-fixtures";
 
@@ -22,6 +23,8 @@ const sent = async (): Promise<Cmd[]> => ((await ctl({ op: "lastCmds" })).cmds a
 const strip = (page: Page, name: string) => page.locator(`[data-strip="${name}"]`);
 
 async function open(page: Page, status: Record<string, unknown> = {}) {
+  // every hold here runs on the page's clock (holdClock.ts, hold after a stall)
+  await installHoldClock(page);
   await openLayout(page, XYZ, DESKTOP);
   if (Object.keys(status).length) await ctl({ op: "status_delta", data: status });
   await settleLayout(page);
@@ -34,9 +37,7 @@ async function press(page: Page, target: Locator, ms: number) {
   await target.scrollIntoViewIfNeeded();
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(ms);
-  await page.mouse.up();
+  await holdMouse(page, ms);
 }
 const HOLD_MS = 700, TAP_MS = 80;
 

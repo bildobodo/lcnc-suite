@@ -21,6 +21,7 @@
 // Playwright hit-tests the control at its centre, so a control that moves
 // away under the press fails here instead of being reached synthetically.
 import { test, expect, type Page, type Locator } from "./test";
+import { holdMouse, installHoldClock, onPageClock } from "./holdClock";
 import { ctl, MOCK } from "./ctl";
 
 const PERMS_ALL = {
@@ -38,6 +39,8 @@ async function sent(): Promise<Sent[]> {
 }
 
 async function open(page: Page, viewport: { width: number; height: number }) {
+  // the holds here run on the page's clock (holdClock.ts, hold after a stall)
+  await installHoldClock(page);
   await ctl({ op: "reset" });
   await page.setViewportSize(viewport);
   await page.goto(MOCK);
@@ -160,9 +163,7 @@ for (const orient of [{ name: "landscape", width: 1920, height: 1080 }, { name: 
     const target = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) X$/ });
     const b = (await target.boundingBox())!;
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-    await page.mouse.down();
-    await page.waitForTimeout(700);
-    await page.mouse.up();
+    await holdMouse(page, 700);
     await expect.poll(async () => (await sent()).some(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0), { timeout: 3000 }).toBe(true);
   });
 }
@@ -253,19 +254,22 @@ test.describe("each pointer ends its own press (touch, landscape, two fingers)",
     const before = await box(homeX);
     const p1 = centre(before, 1);
     const p2 = { id: 2, x: 1850, y: 600 };   // the side pane
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
-    await page.waitForTimeout(80);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
-    await page.waitForTimeout(50);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p2] });
-    await page.waitForTimeout(650);
-    const ev = await pointerEvents(page);
-    const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
-    expect(downs, JSON.stringify(ev)).toHaveLength(2);
-    expect(ups.map(e => e.pointerId), "only finger 2 was released").toEqual([downs[1].pointerId]);
-    expect(ev.filter(e => e.type === "pointercancel")).toHaveLength(0);
-    expect(await box(homeX), "Home X under finger 1, still held").toEqual(before);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    // finger 1's hold runs on the page's clock (holdClock.ts)
+    await onPageClock(page, async () => {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
+      await page.clock.runFor(80);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
+      await page.clock.runFor(50);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p2] });
+      await page.clock.runFor(650);
+      const ev = await pointerEvents(page);
+      const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
+      expect(downs, JSON.stringify(ev)).toHaveLength(2);
+      expect(ups.map(e => e.pointerId), "only finger 2 was released").toEqual([downs[1].pointerId]);
+      expect(ev.filter(e => e.type === "pointercancel")).toHaveLength(0);
+      expect(await box(homeX), "Home X under finger 1, still held").toEqual(before);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    });
     await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0).length, { timeout: 3000 }).toBe(1);
     await expect.poll(() => jogShown(page), { timeout: 2000, message: "both presses over: the strip follows" }).toBe(true);
   });
@@ -280,17 +284,20 @@ test.describe("each pointer ends its own press (touch, landscape, two fingers)",
     const head = await box(page.locator('[data-strip="setup"] .sectionHelp'));
     const p1 = { id: 1, x: head.x + 4, y: head.y + head.h / 2 };
     const p2 = centre(yBefore, 2);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
-    await page.waitForTimeout(100);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
-    await page.waitForTimeout(50);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p1] });
-    await page.waitForTimeout(650);   // past finger 1's 500 ms; finger 2's hold fires meanwhile
-    const ev = await pointerEvents(page);
-    const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
-    expect(ups.map(e => e.pointerId), `only finger 1 was released ${JSON.stringify(ev)}`).toEqual([downs[0].pointerId]);
-    expect(await box(homeY), "Home Y under finger 2, still held").toEqual(yBefore);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    // finger 2's hold runs on the page's clock (holdClock.ts)
+    await onPageClock(page, async () => {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
+      await page.clock.runFor(100);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
+      await page.clock.runFor(50);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p1] });
+      await page.clock.runFor(650);   // past finger 1's 500 ms; finger 2's hold fires meanwhile
+      const ev = await pointerEvents(page);
+      const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
+      expect(ups.map(e => e.pointerId), `only finger 1 was released ${JSON.stringify(ev)}`).toEqual([downs[0].pointerId]);
+      expect(await box(homeY), "Home Y under finger 2, still held").toEqual(yBefore);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    });
     await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 1).length, { timeout: 3000 }).toBe(1);
     await expect.poll(() => jogShown(page), { timeout: 2000 }).toBe(true);
   });

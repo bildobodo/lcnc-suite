@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from "./test";
+import { holdMouse, installHoldClock, onPageClock } from "./holdClock";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev } from "./macroFolder";
 
@@ -51,6 +52,8 @@ const count = async (cmd: string) => (await sent()).filter(c => c.cmd === cmd).l
 const SOURCE_A = "a".repeat(64), SOURCE_M = "m".repeat(64);
 
 async function ready(page: Page, settings: Record<string, unknown> = {}, folder?: Folder) {
+  // every hold here runs on the page's clock (holdClock.ts, hold after a stall)
+  await installHoldClock(page);
   await ctl({ op: "reset" });
   await page.setViewportSize({ width: 1600, height: 1000 });
   if (folder) await serve(page, folder);
@@ -73,9 +76,7 @@ async function press(page: Page, target: Locator, ms: number) {
   for (let i = 0; !box && i < 40; i++) { await page.waitForTimeout(50); box = await target.boundingBox(); }
   if (!box) throw new Error("press: the control has no box");
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(ms);
-  await page.mouse.up();
+  await holdMouse(page, ms);
 }
 
 test.afterEach(async () => { await ctl({ op: "reset" }); });
@@ -176,11 +177,13 @@ async function serveRevisions(page: Page, late: Record<string, number>) {
 async function holdWhile(page: Page, target: Locator, during: () => Promise<void>) {
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(100);
-  await during();
-  await page.waitForTimeout(HOLD_MS);
-  await page.mouse.up();
+  await onPageClock(page, async () => {
+    await page.mouse.down();
+    await page.clock.runFor(100);
+    await during();
+    await page.clock.runFor(HOLD_MS);
+    await page.mouse.up();
+  });
 }
 const republish = (version: number) =>
   ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: "/A.ngc" } });
@@ -310,7 +313,7 @@ test("an orientation change mid-hold runs nothing; the focus and an open dialog'
   // moves — under load the new layout took longer than the hold, which then
   // ran on the old button: the case was gone (the parallel measurement,
   // 2026-11-03). A hold that outlives its button fires in the runFor below.
-  await page.clock.install();
+  await installHoldClock(page);
   await ready(page, BAR, new Folder());
   const PORTRAIT = { width: 1000, height: 1400 }, LANDSCAPE = { width: 1600, height: 1000 };
   const park = () => page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });

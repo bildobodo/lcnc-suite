@@ -167,7 +167,7 @@ TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
 PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
-STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
+STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "hold-stall", "hold-stall-mouse", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
          "jog-buttons")
 SETTINGS = ("forms", "devices", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
@@ -216,7 +216,7 @@ RULES: tuple[Rule, ...] = (
              "MachineChoice.vue", "choiceGroup.ts", "btnHint.ts", "FloatingOverlays.vue",
              "gateExplain.ts", "useNumberKeypad.ts", "inputSession.ts", "NumberKeypadStrip.vue",
              "TextKeypadStrip.vue", "textKeyboardPages.ts", "mathEval.ts", "Btn.vue",
-             "MachineBtn.vue", "MachineInput.vue", "MachineToggle.vue", "MachineSlider.vue",
+             "MachineBtn.vue", "holdGesture.ts", "MachineInput.vue", "MachineToggle.vue", "MachineSlider.vue",
              "MachineSelect.vue", "MachineRadio.vue", "MachineColor.vue", "Gate.vue",
              "permissions.ts", "machineControls.ts",
              "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "deviceToken.ts", "simShown.ts", "features.ts",

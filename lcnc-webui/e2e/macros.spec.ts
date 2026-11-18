@@ -1,6 +1,7 @@
 // Package 5, stage C (plan docs/reviews/makros.plan.md): the Macros tab and
 // macro FILES on the bar, against the in-memory folder of macroFolder.ts.
 import { test, expect, type Page } from "./test";
+import { holdMouse, installHoldClock } from "./holdClock";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
@@ -12,6 +13,8 @@ import { sidewaysOverflow } from "./layout-audit";
 const HOLD_MS = 700;
 
 async function ready(page: Page, folder: Folder, settings: Record<string, unknown> = {}) {
+  // every hold here runs on the page's clock (holdClock.ts, hold after a stall)
+  await installHoldClock(page);
   await ctl({ op: "reset" });
   await page.setViewportSize({ width: 1600, height: 1000 });
   await serve(page, folder);
@@ -30,9 +33,7 @@ const runs = async () => (await sent()).filter(c => c.cmd === "run_macro");
 async function press(page: Page, sel: ReturnType<Page["locator"]>, ms: number) {
   const b = (await sel.boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(ms);
-  await page.mouse.up();
+  await holdMouse(page, ms);
 }
 
 async function openTab(page: Page) {
@@ -247,7 +248,7 @@ test("another client's save during a bar hold cancels it; the next hold runs the
   // than the hold, which then ran the old revision: the case was gone
   // (the parallel measurement, 2026-11-03). A hold the save does not cancel
   // fires in the runFor below.
-  await page.clock.install();
+  await installHoldClock(page);
   await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park"] } });
   const park = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
   await expect(park).toBeEnabled();

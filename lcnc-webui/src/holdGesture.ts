@@ -3,21 +3,25 @@
 // deterministically in a unit test (Codex R397 VM397-03) — the browser's own
 // race stays a real-time probe beside it.
 //
-// The rules (operator Q397-1, Codex R397 VM397-01 / VM397-02):
-//  - ONE gesture per press: every timer it schedules is its own;
-//    a release, a cancel, a slide-off, a gate or target change, a hidden page,
-//    a lost focus or the unmount END it for good — a continuation of an ended
+// The rules (operator Q397-1, Codex R397 VM397-01 / VM397-02, R399):
+//  - ONE gesture per press: every timer it schedules is its own; a release,
+//    a cancel, a slide-off, a gate or target change, a hidden page, a lost
+//    focus or the unmount END it for good — a continuation of an ended
 //    gesture does nothing, even when a new press has begun.
-//  - The page is WATCHED while the finger is down: a timer every WATCH_MS
-//    (not frames — a GPU-bound viewer draws below 10 fps with the main thread
-//    free) and the due timer note the time since the last observation. A gap longer than
-//    STALL_MS means the main thread was blocked — a release in that gap may
-//    still be queued, so the hold is no longer provable: it ends with
-//    "Page delayed — hold again" and nothing is sent (never a later fire).
+//  - The press is WATCHED while the finger is down: a timer every WATCH_MS
+//    (not frames — a GPU-bound viewer draws below 10 fps with the main
+//    thread free) and the due timer note the time since the last
+//    observation. EVERY observed gap past STALL_MS ends the gesture for good
+//    as stalled — "Page delayed — hold again", nothing sent, never a later
+//    fire (a release in that gap may still be queued).
 //  - The action runs only at the due time with an unbroken watch.
-// What stays open (named): a release in the last STALL_MS before the hold
-// time, queued behind a task shorter than STALL_MS that spans the due time,
-// can still read as a full hold — a press of at least HOLD_FIRE_MS − STALL_MS.
+// The limit, named (Codex R399): the watch sees timers, not the finger nor
+// the input queue. Timers that run on time do NOT prove that a release was
+// delivered in time — a release queued at 120 ms behind input the browser
+// has not yet dispatched while timers at 200…500 ms still run on time would
+// read as a full hold (holdGesture.test.ts holds that sequence as the
+// limit). No duration bound follows from the timers; what the watch
+// excludes is a stall it observed.
 
 /** How often a held press is observed, ms. */
 export const HOLD_WATCH_MS = 20;

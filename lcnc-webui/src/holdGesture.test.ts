@@ -82,17 +82,38 @@ describe("a hold gesture (Codex R397, operator Q397-1)", () => {
     expect(log.fired).toBe(0); expect(log.ended.map(e => e[0])).toEqual(["stalled"]);
   });
 
-  it("a continuation of an ended gesture is inert — an old step never fires a new press (VM397-02)", () => {
+  it("a continuation of an ended gesture is inert — an old step never fires a new 114 ms press (VM397-02)", () => {
     const s = new FakeScheduler(true);  // cleared timers still run
     const first = press(s);
     s.runUntil(100); first.g.end("released");
-    s.runUntil(150);
-    const second = press(s);            // a new press at 150 ms
-    s.runUntil(520);                    // the first gesture's due step (500) runs anyway
+    s.runUntil(450);
+    const second = press(s);            // a new press at 450 ms
+    s.runUntil(520);                    // the first gesture's due step (500) runs during it
     expect(first.log.fired).toBe(0); expect(second.log.fired).toBe(0);
-    s.runUntil(264); second.g.end("released");   // the new press lasts 114 ms
+    s.runUntil(564); second.g.end("released");   // the new press lasts 114 ms
     s.runUntil(2000);
-    expect(second.log.fired).toBe(0); expect(second.log.ended.map(e => e[0])).toEqual(["released"]);
+    expect(second.log.fired).toBe(0); expect(second.log.ended).toEqual([["released", 114]]);
+  });
+
+  it(`the limit is exact: a gap of ${HOLD_STALL_MS} ms keeps the watch, ${HOLD_STALL_MS + 1} ms ends it`, () => {
+    for (const [gap, stalled] of [[HOLD_STALL_MS, false], [HOLD_STALL_MS + 1, true]] as const) {
+      const s = new FakeScheduler(); const { log } = press(s);
+      s.runUntil(200);                    // the last observation at 200 ms
+      s.block(200 + gap); s.runDue(); s.runUntil(2000);
+      expect(log.ended.map(e => e[0])).toEqual(stalled ? ["stalled"] : []);
+      expect(log.fired).toBe(stalled ? 0 : 1);
+    }
+  });
+
+  it("the named limit (Codex R399): timers on time prove no delivered release — a release queued at 120 ms and delivered at 520 ms reads as a full hold", () => {
+    // This pins what the watch does NOT exclude: the release waits in the
+    // input queue while the timers still run on time (gaps of 100 ms).
+    const s = new FakeScheduler(); const { g, log } = press(s);
+    s.runUntil(100);
+    for (const t of [200, 300, 400, 500]) { s.block(t); s.runDue(); }
+    expect(log.fired).toBe(1);              // the due step ran first …
+    s.block(520); g.end("released");        // … the release queued at 120 ms arrives
+    expect(log.ended).toEqual([]);
   });
 
   for (const why of ["cancelled", "moved", "left", "hidden", "blur", "gate", "target", "unmount"] as const) {
