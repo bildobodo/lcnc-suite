@@ -1,0 +1,76 @@
+// PROBE (hold v2, plan R399): per gesture the event times (timeStamp), the
+// delivery (handler time), the block, the [hold] lines, the hint and the
+// command. Modes: a tap with a block ending near the due time (Codex R397 A:
+// 520 / 540 ms after the delivered press), a tap with a 600 ms block from
+// 100 ms (R397 B), a real hold across a block (v2: cancelled, "Page delayed"),
+// a real hold and a tap without a block (controls). The release is asked for
+// by a NODE timer — then judged by the events' own timestamps.
+import { test, expect } from "./test";
+import { enterTouch } from "./touchMode";
+import { ctl, MOCK } from "./ctl";
+
+const TOUCH = process.env.PROBE_INPUT !== "mouse";
+test.use(TOUCH ? { hasTouch: true, viewport: { width: 1280, height: 800 } } : { viewport: { width: 1280, height: 800 } });
+const PERMS_ALL = {
+  idle: true, jog: true, override: true, ready: true, run: true, pause: false, resume: false, step: true, abort: true,
+  spindleStop: true, probe: true, zero: true, machineFrame: true, goZero: true, planeFrame: true, touchoff: true,
+  touchoffRotary: true, twpCapture: true, surfaceComp: true, safety: true, setup: true, sourceWrite: true,
+  toolTableWrite: true, armed: true, always: true, programLoad: true, modeManual: true, modeCoord: true,
+  parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
+};
+const recorded = async (cmd: string) => ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? [])
+  .filter(c => c.cmd === cmd).length;
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const N = Number(process.env.PROBE_N ?? 20);
+// [mode, release after (ms), block: {from: ms after the delivered press, to: ms after it} | null]
+const MODES: Array<[string, number, { from: number; to: number } | null]> = (process.env.PROBE_MODES ?? "A520,A540,B600,HOLDBLOCK,HOLD,TAP")
+  .split(",").map(m => ({
+    A520: ["A520", 120, { from: 0, to: 520 }], A540: ["A540", 120, { from: 0, to: 540 }],
+    B600: ["B600", 120, { from: 100, to: 700 }], HOLDBLOCK: ["HOLDBLOCK", 800, { from: 100, to: 700 }],
+    HOLD: ["HOLD", 800, null], TAP: ["TAP", 120, null],
+  } as Record<string, [string, number, { from: number; to: number } | null]>)[m]!);
+
+for (const [mode, releaseAt, block] of MODES) for (let i = 0; i < N; i++) {
+  test(`${mode} #${i}`, async ({ page }) => {
+    const lines: string[] = [];
+    page.on("console", m => { if (m.text().startsWith("[hold]") || m.text().startsWith("[fire]")) lines.push(m.text()); });
+    await ctl({ op: "reset" });
+    await page.goto(MOCK);
+    await expect(page.locator("input.setupInput").first()).toBeVisible();
+    if (TOUCH) await enterTouch(page);
+    await ctl({ op: "quiet", on: true });
+    await ctl({ op: "status_delta", data: { active_file: "/A.ngc", homed: [1, 1, 1], permissions: PERMS_ALL } });
+    await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toBeEnabled();
+    await ctl({ op: "clearCmds" });
+    await page.evaluate((b) => {
+      const w = window as unknown as { __ev: unknown[] };
+      w.__ev = [];
+      for (const t of ["pointerdown", "pointerup", "pointercancel"])
+        window.addEventListener(t, (e) => w.__ev.push({ t, now: Math.round(performance.now()), ts: Math.round(e.timeStamp) }), true);
+      if (b) window.addEventListener("pointerdown", (e) => {
+        const at = e.timeStamp;
+        setTimeout(() => {
+          const s = performance.now(); w.__ev.push({ t: "block-start", now: Math.round(s) });
+          while (performance.now() - at < b.to) { /* blocked until `to` after the press */ }
+          w.__ev.push({ t: "block-end", now: Math.round(performance.now()) });
+        }, Math.max(0, b.from - (performance.now() - at)));
+      }, { once: true });
+    }, block);
+    const box = (await page.getByRole("button", { name: "Unhome All", exact: true }).boundingBox())!;
+    const p = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const cdp = TOUCH ? await page.context().newCDPSession(page) : null;
+    if (!TOUCH) await page.mouse.move(p.x, p.y);
+    const t0 = Date.now();
+    if (cdp) await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] }); else await page.mouse.down();
+    await sleep(Math.max(0, releaseAt - (Date.now() - t0)));
+    const t1 = Date.now();
+    if (cdp) await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); else await page.mouse.up();
+    await sleep(1200);
+    const fired = await recorded("unhome_all");
+    const hint = await page.locator("[data-btn-hint]").textContent({ timeout: 500 }).catch(() => null);
+    const ev = await page.evaluate(() => (window as unknown as { __ev: unknown[] }).__ev);
+    console.log(`PROBE-V2 ${JSON.stringify({ mode, i, input: TOUCH ? "touch" : "mouse", fired, hint, release_asked_at: t1 - t0, ev, lines })}`);
+    await ctl({ op: "quiet", on: false });
+    await ctl({ op: "reset" });
+  });
+}

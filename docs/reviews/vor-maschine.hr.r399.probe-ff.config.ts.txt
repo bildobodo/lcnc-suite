@@ -1,0 +1,3 @@
+// PROBE ONLY: the pinned Firefox core's config with the hold probe as its one file.
+import base from "./playwright.firefox.config";
+export default { ...base, testMatch: /\/probe-hold-v2\.spec\.ts$/, grep: undefined };

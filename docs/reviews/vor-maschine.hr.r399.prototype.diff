@@ -1,0 +1,389 @@
+diff --git a/lcnc-webui/src/MachineBtn.vue b/lcnc-webui/src/MachineBtn.vue
+index 45a89da0..e2f3eb4a 100644
+--- a/lcnc-webui/src/MachineBtn.vue
++++ b/lcnc-webui/src/MachineBtn.vue
+@@ -6,6 +6,7 @@ import { usePermissions } from './permissions';
+ import { useGateExplain } from './gateExplain';
+ import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
+ import { showBtnHint } from './btnHint';
++import { BROWSER_SCHEDULER, HoldGesture, type HoldEnd } from './holdGesture';
+ 
+ defineOptions({ inheritAttrs: false });
+ 
+@@ -100,7 +101,8 @@ const resolvedMono = computed(() => props.mono ?? def.value.mono);
+ const attrs = useAttrs();
+ const holdEnabled = computed(() => props.hold ?? def.value.hold ?? false);
+ const holding = ref(false);
+-let holdTimer = 0;
++/** The press under way: ONE gesture, its timers its own (holdGesture.ts). */
++let gesture: HoldGesture | null = null;
+ let holdStartX = 0;
+ let holdStartY = 0;
+ const HOLD_MOVE_SLOP = 10; // px
+@@ -149,18 +151,21 @@ function callClickHandler(e: Event) {
+   else h?.(e);
+ }
+ 
+-let holdStartTs = 0;
+-
+ // Every cancelled hold says so (console, like fire()'s drops): a swallowed
+ // press used to be indistinguishable from a working one — "sometimes it
+ // doesn't" (2026-09-04). A release before HOLD_FIRE_MS is the operator's
+-// tap; a leave/cancel is a pointer steal or slide-off.
+-function cancelHold(reason: string) {
+-  if (!holding.value) return;
+-  clearTimeout(holdTimer);
+-  holding.value = false;
+-  disarmHoldGuards();
+-  console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
++// tap; a leave/cancel is a pointer steal or slide-off; a stall is a page
++// that could not watch the press (holdGesture.ts, operator Q397-1).
++const HOLD_END_WORDS: Record<HoldEnd, string> = {
++  released: "released before the hold time", left: "pointer left the button",
++  cancelled: "pointer cancelled (drag-scroll / gesture took it)", hidden: "page hidden during the hold",
++  blur: "window lost focus during the hold", target: "target changed during the hold",
++  gate: "gate closed during the hold", moved: "moved more than the slop", unmount: "the button left the page",
++  stalled: "the page was blocked during the hold — no longer provable",
++};
++function cancelHold(why: Exclude<HoldEnd, "stalled">) {
++  if (!holding.value || !gesture) return;
++  gesture.end(why);            // → its ended(): the state reset and the log
+ }
+ // EVERY cancelled hold says so AT the control (UX-12) — a half-drawn fill
+ // that vanished used to be the only sign of a slide-off or a gate that
+@@ -168,10 +173,10 @@ function cancelHold(reason: string) {
+ // only: nobody is looking at the control then.
+ const cancelHoldUp = () => {
+   if (holding.value) showHint('Hold to activate');
+-  cancelHold("released before the hold time");
++  cancelHold("released");
+ };
+-const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("pointer left the button"); };
+-const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("pointer cancelled (drag-scroll / gesture took it)"); };
++const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("left"); };
++const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("cancelled"); };
+ // A hold button announces its contract before it is ever pressed through
+ // its hover title (unless the caller names the action); a tap says "Hold to
+ // activate". No resting mark (operator 2026-09-26 — the track read as a
+@@ -181,8 +186,8 @@ const resolvedTitle = computed(() =>
+ 
+ // A hold that loses the page (tab hidden, window blur) is over: the timer
+ // must not fire later as a surprise. Listeners live only for the hold.
+-const cancelHoldHidden = () => { if (document.visibilityState === 'hidden') cancelHold("page hidden during the hold"); };
+-const cancelHoldBlur = () => cancelHold("window lost focus during the hold");
++const cancelHoldHidden = () => { if (document.visibilityState === 'hidden') cancelHold("hidden"); };
++const cancelHoldBlur = () => cancelHold("blur");
+ function armHoldGuards() {
+   document.addEventListener('visibilitychange', cancelHoldHidden);
+   window.addEventListener('blur', cancelHoldBlur);
+@@ -200,40 +205,54 @@ function onHoldPointerDown(e: PointerEvent) {
+   }
+   holdStartX = e.clientX;
+   holdStartY = e.clientY;
+-  holdStartTs = performance.now();
++  gesture?.end("cancelled");   // never expected: a press while one is under way
+   holding.value = true;
+   armHoldGuards();
+-  clearTimeout(holdTimer);
+-  holdTimer = window.setTimeout(() => {
+-    holding.value = false;
+-    disarmHoldGuards();
+-    // Gate may have closed mid-hold (disarm, probe started) — re-check.
+-    if (isDisabled.value) {
+-      showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
+-      console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
+-      return;
+-    }
+-    if (busyWillDrop()) showHint('Busy — try again');
+-    callClickHandler(e);
+-  }, HOLD_FIRE_MS);
++  const g: HoldGesture = new HoldGesture(BROWSER_SCHEDULER, HOLD_FIRE_MS, {
++    fire: () => {
++      if (gesture !== g) return;
++      gesture = null;
++      holding.value = false;
++      disarmHoldGuards();
++      // Gate may have closed mid-hold (disarm, probe started) — re-check.
++      if (isDisabled.value) {
++        showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
++        console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
++        return;
++      }
++      if (busyWillDrop()) showHint('Busy — try again');
++      callClickHandler(e);
++    },
++    ended: (why, heldMs) => {
++      if (gesture === g) {
++        gesture = null;
++        holding.value = false;
++        disarmHoldGuards();
++      }
++      // the operator's choice (Q397-1): a stalled hold is cancelled — hold again
++      if (why === "stalled") showHint('Page delayed — hold again');
++      console.warn(`[hold] ${props.type} cancelled after ${Math.round(heldMs)} ms: ${HOLD_END_WORDS[why]} (hold ${HOLD_FIRE_MS} ms to fire)`);
++    },
++  });
++  gesture = g;
+ }
+ 
+ // A hold is bound to its target and its gate for its whole duration: the
+ // target changing (selection moved, UI-02) or the gate closing — even if
+ // it re-opens before the timer fires — cancels it. The check at timer
+ // expiry alone let a 500 ms window retarget a hold.
+-watch(() => props.holdKey, () => { if (holding.value) showHint('Selection changed — hold again'); cancelHold("target changed during the hold"); });
++watch(() => props.holdKey, () => { if (holding.value) showHint('Selection changed — hold again'); cancelHold("target"); });
+ watch(isDisabled, (off) => {
+   if (!off || !holding.value) return;
+   showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
+-  cancelHold("gate closed during the hold");
++  cancelHold("gate");
+ });
+ 
+ function onHoldPointerMove(e: PointerEvent) {
+   if (!holding.value) return;
+   if (Math.abs(e.clientX - holdStartX) > HOLD_MOVE_SLOP || Math.abs(e.clientY - holdStartY) > HOLD_MOVE_SLOP) {
+     showHint('Hold to activate — stay on the button');
+-    cancelHold("moved more than the slop");
++    cancelHold("moved");
+   }
+ }
+ 
+@@ -242,7 +261,7 @@ function onHoldContextMenu(e: Event) {
+   if (holdEnabled.value) e.preventDefault();
+ }
+ 
+-onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
++onBeforeUnmount(() => { gesture?.end("unmount"); disarmHoldGuards(); });
+ </script>
+ 
+ <template>
+diff --git a/lcnc-webui/src/holdGesture.test.ts b/lcnc-webui/src/holdGesture.test.ts
+new file mode 100644
+index 00000000..56f4e947
+--- /dev/null
++++ b/lcnc-webui/src/holdGesture.test.ts
+@@ -0,0 +1,105 @@
++// The hold gesture's rules, deterministically (Codex R397 VM397-03): a fake
++// scheduler runs the timers in time order; `block` jumps the clock with
++// nothing run (the main thread blocked); `runDue` then runs what came due —
++// as the browser may, BEFORE a release queued during the block.
++import { describe, it, expect } from "vitest";
++import { HoldGesture, HOLD_STALL_MS, type HoldEnd, type HoldScheduler } from "./holdGesture";
++
++class FakeScheduler implements HoldScheduler {
++  t = 0;
++  private seq = 0;
++  private timers = new Map<number, { at: number; fn: () => void }>();
++  /** keep cleared timers running: proves a continuation of an ended gesture is inert */
++  private readonly leak: boolean;
++  constructor(leak = false) { this.leak = leak; }
++  now() { return this.t; }
++  setTimeout(fn: () => void, ms: number) { const id = ++this.seq; this.timers.set(id, { at: this.t + ms, fn }); return id; }
++  clearTimeout(id: number) { if (!this.leak) this.timers.delete(id); }
++  runUntil(to: number) {
++    for (;;) {
++      const next = [...this.timers.entries()].filter(([, x]) => x.at <= to)
++        .sort((a, b) => a[1].at - b[1].at || a[0] - b[0])[0];
++      if (!next) break;
++      this.timers.delete(next[0]);
++      this.t = Math.max(this.t, next[1].at);
++      next[1].fn();
++    }
++    this.t = Math.max(this.t, to);
++  }
++  block(to: number) { this.t = to; }
++  runDue() { this.runUntil(this.t); }
++}
++
++function press(s: HoldScheduler, holdMs = 500) {
++  const log: { fired: number; ended: Array<[HoldEnd, number]> } = { fired: 0, ended: [] };
++  const g = new HoldGesture(s, holdMs, { fire: () => { log.fired++; }, ended: (why, ms) => { log.ended.push([why, ms]); } });
++  return { g, log };
++}
++
++describe("a hold gesture (Codex R397, operator Q397-1)", () => {
++  it("fires once at the hold time on a smooth page — the normal hold unchanged", () => {
++    const s = new FakeScheduler(); const { log } = press(s);
++    s.runUntil(499); expect(log.fired).toBe(0);
++    s.runUntil(500); expect(log.fired).toBe(1);
++    s.runUntil(2000); expect(log.fired).toBe(1); expect(log.ended).toEqual([]);
++  });
++
++  it("a release before the hold time ends it; nothing fires", () => {
++    const s = new FakeScheduler(); const { g, log } = press(s);
++    s.runUntil(120); g.end("released");
++    s.runUntil(2000);
++    expect(log.fired).toBe(0); expect(log.ended).toEqual([["released", 120]]);
++  });
++
++  for (const blockEnd of [520, 540, 600, 700]) {
++    it(`a stall over the hold time (blocked 100 → ${blockEnd} ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires`, () => {
++      const s = new FakeScheduler(); const { g, log } = press(s);
++      s.runUntil(100); s.block(blockEnd);
++      s.runDue();                        // the browser ran the timers first …
++      g.end("released");                 // … then the release queued at 120 ms
++      s.runUntil(2000);
++      expect(log.fired).toBe(0);
++      expect(log.ended).toEqual([["stalled", blockEnd]]);
++    });
++  }
++
++  it("a stall before the hold time with the finger still down: stalled — hold again, never a later fire", () => {
++    const s = new FakeScheduler(); const { log } = press(s);
++    s.runUntil(100); s.block(400); s.runUntil(2000);
++    expect(log.fired).toBe(0); expect(log.ended.map(e => e[0])).toEqual(["stalled"]);
++  });
++
++  it(`long tasks up to the limit (${HOLD_STALL_MS} ms between observations) keep the watch`, () => {
++    const s = new FakeScheduler(); const { log } = press(s);
++    // 80 ms tasks: each observation comes 100 ms after the last (20 ms period + 80)
++    for (let t = 0; t < 600; t += 100) { s.runUntil(t + 20); s.block(t + 100); s.runDue(); }
++    expect(log.ended).toEqual([]); expect(log.fired).toBe(1);
++  });
++
++  it("a gap just past the limit ends it", () => {
++    const s = new FakeScheduler(); const { log } = press(s);
++    s.runUntil(200); s.block(200 + HOLD_STALL_MS + 21); s.runDue(); s.runUntil(2000);
++    expect(log.fired).toBe(0); expect(log.ended.map(e => e[0])).toEqual(["stalled"]);
++  });
++
++  it("a continuation of an ended gesture is inert — an old step never fires a new press (VM397-02)", () => {
++    const s = new FakeScheduler(true);  // cleared timers still run
++    const first = press(s);
++    s.runUntil(100); first.g.end("released");
++    s.runUntil(150);
++    const second = press(s);            // a new press at 150 ms
++    s.runUntil(520);                    // the first gesture's due step (500) runs anyway
++    expect(first.log.fired).toBe(0); expect(second.log.fired).toBe(0);
++    s.runUntil(264); second.g.end("released");   // the new press lasts 114 ms
++    s.runUntil(2000);
++    expect(second.log.fired).toBe(0); expect(second.log.ended.map(e => e[0])).toEqual(["released"]);
++  });
++
++  for (const why of ["cancelled", "moved", "left", "hidden", "blur", "gate", "target", "unmount"] as const) {
++    it(`ended by ${why}: nothing fires afterwards`, () => {
++      const s = new FakeScheduler(true); const { g, log } = press(s);
++      s.runUntil(300); g.end(why); s.runUntil(2000);
++      expect(log.fired).toBe(0); expect(log.ended).toEqual([[why, 300]]);
++    });
++  }
++});
+diff --git a/lcnc-webui/src/holdGesture.ts b/lcnc-webui/src/holdGesture.ts
+new file mode 100644
+index 00000000..c700618a
+--- /dev/null
++++ b/lcnc-webui/src/holdGesture.ts
+@@ -0,0 +1,113 @@
++// A hold-to-fire gesture (MachineBtn, ButtonDef.hold) as a pure state
++// machine: the clock and the scheduler are injected, so its rules hold
++// deterministically in a unit test (Codex R397 VM397-03) — the browser's own
++// race stays a real-time probe beside it.
++//
++// The rules (operator Q397-1, Codex R397 VM397-01 / VM397-02):
++//  - ONE gesture per press: every timer it schedules is its own;
++//    a release, a cancel, a slide-off, a gate or target change, a hidden page,
++//    a lost focus or the unmount END it for good — a continuation of an ended
++//    gesture does nothing, even when a new press has begun.
++//  - The page is WATCHED while the finger is down: a timer every WATCH_MS
++//    (not frames — a GPU-bound viewer draws below 10 fps with the main thread
++//    free) and the due timer note the time since the last observation. A gap longer than
++//    STALL_MS means the main thread was blocked — a release in that gap may
++//    still be queued, so the hold is no longer provable: it ends with
++//    "Page delayed — hold again" and nothing is sent (never a later fire).
++//  - The action runs only at the due time with an unbroken watch.
++// What stays open (named): a release in the last STALL_MS before the hold
++// time, queued behind a task shorter than STALL_MS that spans the due time,
++// can still read as a full hold — a press of at least HOLD_FIRE_MS − STALL_MS.
++
++/** How often a held press is observed, ms. */
++export const HOLD_WATCH_MS = 20;
++/** The longest gap between two observations of a held press that still
++ *  counts as an unbroken watch, ms: the watch's own period plus the long
++ *  tasks measured under the gate's load (50–83 ms) and some room. */
++export const HOLD_STALL_MS = 150;
++
++export type HoldEnd =
++  | "released" | "moved" | "left" | "cancelled" | "hidden" | "blur" | "gate" | "target" | "unmount" | "stalled";
++
++export interface HoldScheduler {
++  now(): number;
++  setTimeout(fn: () => void, ms: number): number;
++  clearTimeout(id: number): void;
++}
++
++export interface HoldCallbacks {
++  /** The hold time is over with an unbroken watch: act. */
++  fire(): void;
++  /** The gesture ended without acting (`why` — the reason, for its hint). */
++  ended(why: HoldEnd, heldMs: number): void;
++}
++
++/** One gesture: made at the press (its timers start), ended by `end` on any
++ *  release or cancel — or by itself at the action or a stall. */
++export class HoldGesture {
++  private alive = true;
++  private timer = 0;
++  private watcher = 0;
++  private readonly s: HoldScheduler;
++  private readonly cb: HoldCallbacks;
++  private readonly stallMs: number;
++  private readonly startedAt: number;
++  private lastSeen: number;
++
++  constructor(s: HoldScheduler, holdMs: number, cb: HoldCallbacks, stallMs = HOLD_STALL_MS) {
++    this.s = s;
++    this.cb = cb;
++    this.stallMs = stallMs;
++    this.startedAt = s.now();
++    this.lastSeen = this.startedAt;
++    this.timer = s.setTimeout(() => this.due(), holdMs);
++    this.watcher = s.setTimeout(() => this.watch(), HOLD_WATCH_MS);
++  }
++
++  get active(): boolean { return this.alive; }
++
++  /** The time since the last observation, and the observation itself. A gap
++   *  past the limit ends the gesture: the press is no longer provable. */
++  private observe(): boolean {
++    const t = this.s.now();
++    const gap = t - this.lastSeen;
++    this.lastSeen = t;
++    if (gap > this.stallMs) {
++      this.finish("stalled");
++      return false;
++    }
++    return true;
++  }
++
++  private watch(): void {
++    if (!this.alive) return;
++    if (!this.observe()) return;
++    this.watcher = this.s.setTimeout(() => this.watch(), HOLD_WATCH_MS);
++  }
++
++  private due(): void {
++    if (!this.alive) return;
++    if (!this.observe()) return;
++    this.alive = false;
++    this.s.clearTimeout(this.watcher);
++    this.cb.fire();
++  }
++
++  /** The press ended before the action (release, cancel, gate …). */
++  end(why: Exclude<HoldEnd, "stalled">): void { this.finish(why); }
++
++  private finish(why: HoldEnd): void {
++    if (!this.alive) return;
++    this.alive = false;
++    this.s.clearTimeout(this.timer);
++    this.s.clearTimeout(this.watcher);
++    this.cb.ended(why, this.s.now() - this.startedAt);
++  }
++}
++
++/** The browser's scheduler. */
++export const BROWSER_SCHEDULER: HoldScheduler = {
++  now: () => performance.now(),
++  setTimeout: (fn, ms) => window.setTimeout(fn, ms),
++  clearTimeout: (id) => window.clearTimeout(id),
++};

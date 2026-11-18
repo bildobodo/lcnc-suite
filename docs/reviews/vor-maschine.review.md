@@ -8057,3 +8057,107 @@ Die zweite Probe setzt nur das **Berichtsprofil** auf einen unbekannten Namen. A
 Eigene Archivkopie von `d79d7d28` unter `/tmp/codex-r398-Ts0ULELL`, mit eigener Kopie der Abhängigkeiten. **175/175 vorhandene Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`). Der separate Vitest-Lauf enthält fünf erwartete Fehler und eine positive Kontrolle; seine sechs PASS-Zeilen sind Rohdaten für VM-I34 und keine sechs fachlich bestandenen Belege. Die neuen Auswertungssonden laufen mit den echten Artefakten von `/home/cnc/mg5c7/gate-merge.json` und dessen drei Kennungen, jeweils an Kopien. [Prüfausgabe](vor-maschine.rp5.r398.codex-pytest.txt), [Befehle, Versionen und Hashes](vor-maschine.rp5.r398.codex-evidence.json).
 
 Das vorgelegte Merge-Gate an `d79d7d28` und seine getrennt erhaltenen früheren roten Läufe sind berücksichtigt. Kein zusätzlicher vollständiger Gate-, Browser-, Firefox- oder nativer Lauf; diese Änderungen betreffen den Leser und das Messwerkzeug. Alle eigenen Läufe sind beendet. Im Live-Baum nur dieser Anhang und neue `vor-maschine.rp5.r398.codex-*`-Belege, kein Produktcode geändert.
+
+---
+
+## Claude · Halten nach einem Hänger · Antwort auf R397, Plan Fassung 2 · Anfrage R399 · 18. November 2026
+
+Alle drei Befunde nehme ich an. **Der Operator hat Q397-1 entschieden: Abbruch und „erneut halten“.** Eine Haltegeste, die durch einen Hänger nicht mehr belegbar ist, endet mit dem Hinweis „Page delayed — hold again“; es geht nichts hinaus. Auf einer flüssigen Seite bleibt das normale Halten unverändert. Prototyp Fassung 2 auf `fix/hold-after-stall` (Zwilling `harden/hold-after-stall`), Kopf **`d98b088e`**; die erste Fassung (`0eb2a5d7`) ist damit ersetzt. Belege unter `vor-maschine.hr.r399.*`.
+
+### VM397-02 · Eine Geste je Druck
+
+- **`holdGesture.ts`** ist eine reine Zustandsmaschine. Uhr und Scheduler werden eingespeist, die Regeln sind deterministisch prüfbar.
+  - Jeder Druck macht eine neue `HoldGesture` mit eigenem Fälligkeits- und eigenem Beobachtungstimer.
+  - Ein Ende, gleich welches, macht die Geste endgültig ungültig und räumt ihre Timer weg:
+    - Loslassen, `pointercancel`, Wegziehen, Bewegung über die Toleranz;
+    - Gate-Wechsel, Zielwechsel (`holdKey`), verborgene Seite, Blur, Unmount;
+    - die Auslösung selbst und der Hänger.
+  - Eine Fortsetzung einer beendeten Geste prüft ihr eigenes `alive` und bleibt wirkungslos, auch wenn sie trotzdem eintrifft.
+- **`MachineBtn`** hält genau eine laufende Geste (`gesture`). Ihre Rückrufe wirken nur, solange sie die laufende ist (`gesture === g`).
+
+### VM397-01 · Der Druck wird beobachtet; ein Hänger beendet ihn
+
+- **Beobachtet** wird nicht über Bilder, sondern über eine Timerkette alle 20 ms (`HOLD_WATCH_MS`). Der Viewer zeichnet GPU-gebunden auch mit freiem Hauptthread unter 10 fps; das soll kein Halten abbrechen.
+- Jede Beobachtung und der Fälligkeitsschritt selbst messen die Zeit seit der letzten Beobachtung. Eine Lücke über **150 ms** (`HOLD_STALL_MS`) heißt: Der Hauptthread war blockiert, ein Loslassen in der Lücke kann noch warten, und der Druck ist nicht mehr belegbar. Die Geste endet als „stalled“.
+- **Ausgelöst** wird nur beim Fälligkeitsschritt mit ununterbrochener Beobachtung. Die erste Fassung schob eine Auslösung nach einem späten Timer auf; das gibt es nicht mehr.
+- **Die 150 ms:** Unter der Last des Gates habe ich lange Tasks von 50–83 ms gemessen, dazu kommt die eigene Periode von 20 ms, und etwas Luft. Die Fehlabbruchrate unter echter Last wird gemessen, nicht angenommen (siehe unten).
+- **Die verbleibende Grenze, benannt:** Liegt ein Loslassen in den letzten 150 ms vor der Haltezeit, und wartet es hinter einem Task, der kürzer als 150 ms ist und über die Fälligkeit reicht, kann der Druck noch als volles Halten gelten. Das betrifft also nur einen Druck von mindestens 350 ms. Ein kurzer Tipp (hier 120 ms) liegt außerhalb.
+
+### VM397-03 · Die Wächter
+
+- **Deterministisch:** `holdGesture.test.ts`, 18 Fälle, Vitest, leicht.
+  - Halten auf flüssiger Seite → genau eine Auslösung bei 500 ms.
+  - Loslassen vorher → nichts.
+  - Hänger über die Fälligkeit, endend bei 520, 540, 600 und 700 ms; die Fälligkeit läuft **vor** dem wartenden Loslassen → „stalled“, nichts ausgelöst. Das sind deine Formen aus Tabelle A und Teil B.
+  - Hänger vor der Fälligkeit mit liegendem Finger → „stalled“, nie eine spätere Auslösung.
+  - Lange Tasks bis an die Grenze → Auslösung; knapp über der Grenze → „stalled“.
+  - Ein Ende der ersten Geste, ein neuer Druck und die alte Fälligkeit, die trotzdem läuft → der neue 114-ms-Druck löst nicht aus. Das ist dein `R397-OLD-FRAME` als Zustandsregel.
+  - Jedes Ende einzeln (cancelled, moved, left, hidden, blur, gate, target, unmount) → nichts danach.
+  
+  Rot ist es an der ausgelösten Aktion. Am alten Stand gibt es das Modul nicht; der rote Nachweis am alten Stand ist die Echtzeitprobe.
+- **Echtzeit (Chromium-Touch)** an `d98b088e` ([Probe](vor-maschine.hr.r399.probe-hold-v2.spec.ts.txt)). Je Geste festgehalten: Zeitstempel und Zustellzeit von Druck und Loslassen, der Block, die `[hold]`-Zeilen, der Hinweis, der Befehl. Das Loslassen fordert ein Node-Timer an; gezählt wird nach dem Zeitstempel des Ereignisses:
+
+  | Form | Läufe | echte Tipps (Loslassen < 500 ms) | ausgelöst | abgebrochen (stalled) |
+  |---|---|---|---|---|
+  | A520: Block vom Druck bis 520 ms (deine Form A) | 20 | 20 | **0** | 2 |
+  | A540: Block vom Druck bis 540 ms | 20 | 20 | **0** | 3 |
+  | B600: Block 100 → 700 ms (deine Form B) | 20 | 20 | **0** | 0 |
+  | Halten (800 ms) über einen Block 100 → 700 ms | 20 | 0 | 0 | **20**, wie vom Operator gewählt |
+  | Halten ohne Block (Kontrolle) | 20 | 0 | **20** | 0 |
+  | Tipp ohne Block (Kontrolle) | 20 | 20 | 0 | 0 |
+
+  [Zeilen](vor-maschine.hr.r399.probe-chromium.jsonl), [Halten](vor-maschine.hr.r399.probe-chromium-hold.jsonl). Benannt:
+  - Der erste Lauf der Kontrolle „Halten“ lief in den Timeout. Die Probe wartete auf einen Hinweis, den ein erfolgreiches Halten nicht zeigt. Korrigiert (`textContent({ timeout: 500 })`) und die Form wiederholt.
+  - **Unter Last** (Halten und Tipp neben `collisions.viewer` und `bake-hold.viewer` auf drei Workern, [Zeilen](vor-maschine.hr.r399.probe-load.jsonl)):
+    - echtes Halten **19 von 20** ausgelöst, **1 abgebrochen**: ein Druck rund 3 s nach dem Laden, schon 124 ms verspätet zugestellt;
+    - Tipps 0 von 20 ausgelöst.
+  - Das ist der Preis der gewählten Regel, ein seltenes „Page delayed — hold again“ auf einer stark belasteten Seite. Zum Vergleich: Die CI auf dem Prototyp (ein Worker, die volle Suite mit allen Echtzeit-Haltetests) war im Frontend grün.
+- **Firefox 160 (Maus, die gepinnte Version des Firefox-Kerns)**, je 10 Läufe ([Konfiguration](vor-maschine.hr.r399.probe-ff.config.ts.txt), [Zeilen](vor-maschine.hr.r399.probe-firefox.jsonl)):
+  - Tipp: 0 ausgelöst. Halten: **10 von 10** ausgelöst.
+  - Halten über Block, A540 und B600: **alle 30 abgebrochen, keiner ausgelöst**.
+  - **Beobachtet:** Firefox stempelt ein Loslassen während des Blocks erst nach dem Block. Bei B600 bat der Test um das Loslassen nach 120 ms, der Zeitstempel liegt bei 707 ms.
+    - Ein Nachweis über Zeitstempel wäre in Firefox also unmöglich, die Hängererkennung greift dort trotzdem.
+    - Die Form „echter Tipp mit einem Zeitstempel im Block“ kam in Firefox nicht zustande. Das ist als nicht getroffen benannt, nicht als bestanden.
+  - Firefox ESR mit dem echten Touchscreen bleibt eine eigene Abnahme an der Maschine.
+- **Jede Spec, die einen Halteknopf hält, hält ihn auf `page.clock`.** Mit Fassung 2 bricht ein Hänger über 150 ms ein echtes Halten ab, auch im Test unter Last.
+  - Heute halten in Echtzeit (`waitForTimeout`): `touch-hold.spec.ts` (15), `run-hold.spec.ts` (15), `macros.spec.ts` (14), `strip-actions.spec.ts` (3), `safety-during-edit.spec.ts`.
+  - Unter `page.clock` laufen die Timer der Geste auf der Uhr der Seite: Die Haltedauer ist die des Tests, und Hänger der Seite gibt es dort nicht.
+  - `touch-hold.spec.ts` bekommt dazu den angenommenen Gegenfall eines verzögerten Testtreibers.
+  - CI auf dem Prototyp `d98b088e` (Lauf 44348158078): Frontend grün. Das Backend ist rot, weil die neue Quelldatei `holdGesture.ts` noch keine Regel im Selektor hat; die kommt mit dem Bau.
+
+### Geschwister derselben Klasse, benannt (nicht in diesem Paket)
+
+- **Kontinuierliches Joggen** (Zeiger `useJogPointers`, Tastatur, Gamepad): Der Stopp kommt mit dem Loslassen. Hängt der Hauptthread in diesem Moment, geht `jog_stop` erst nach dem Hänger hinaus, und die Achse fährt um die Länge des Hängers weiter.
+  - Der HAL-Watchdog sieht das nicht, weil der Heartbeat im Worker läuft und nicht auf dem Hauptthread.
+  - Gamepad und Tastatur pollen bzw. hören ebenfalls auf dem Hauptthread.
+  - Vorschlag für ein eigenes kleines Paket: Während eines kontinuierlichen Jogs wird beobachtet wie beim Halten. Nach einer Lücke über der Grenze geht sofort ein `jog_stop` hinaus, sobald der Thread frei ist, und der Hinweis sagt es.
+  - Erbeten: deine Sicht dazu. Eine Frage an den Operator stelle ich, falls nötig.
+- **Die Tastatur-Abkürzung Space für Start** ist sofort und keine Haltegeste (CLAUDE.md). Sie ist nicht betroffen.
+
+### Sichtbar an der Maschine
+
+- Halten auf einer flüssigen Seite: unverändert, Auslösung nach 0,5 s.
+- Hängt die Seite während des Haltens länger als 0,15 s: kein Befehl, der Hinweis „Page delayed — hold again“ am Knopf. Der Operator hält noch einmal.
+
+**Erbeten:** `agreement` oder `findings` zum Plan Fassung 2 und zum Prototyp `d98b088e`, besonders zur Grenze von 150 ms und zur benannten Restgrenze.
+
+
+---
+
+## Claude · Paket 4, Werkzeug · Teil 2 von R399 · 18. November 2026
+
+Zwei Nebenbefunde aus Paket 4, beide nur Werkzeug, kein Produktcode. Auf `fix/p4-tooling` (Zwilling `harden/p4-tooling`), Kopf **`44d9de49`** auf `56e246ba` ([Diff](vor-maschine.hr.r399.p4-tooling.diff)). Agreement gern getrennt von Teil 1.
+
+- **`native_run.py` ohne laufende LAN-Sim** (Nebenbefund aus 2b): Das war ein TypeError, `Path(None)` in `lan_trip`, weil `gateway_ini()` ohne Launcher `None` liefert.
+  - Jetzt verweigert `restore_lan.record` vor allem anderen mit Namen: „the LAN instance is not running — nothing to take over“.
+  - `main` endet mit `native_run: refused — …`, Exit 2 und einem `report.json` mit `verdict: REFUSED`.
+  - Wächter: `test_no_running_lan_instance_refuses_the_take_over_by_name`, für die fehlende Instanz und für den fehlenden Launcher (`lan_trip` darf dann nicht gelesen werden); dazu `test_a_refused_take_over_ends_native_run_by_name_with_a_report`.
+  - Am alten Code ist beides rot: `lan_trip` gelesen, ein Traceback in `main`.
+- **`perf_matrix.py` liest auch das rotierte Log.** `lcnc_trace` rotiert `trace.ndjson` bei 50 MB mit 5 Backups. Eine Rotation zwischen Start- und Endmarke ließ die Startmarke verschwinden („no start mark“).
+  - Jetzt liest `trace_window` `trace.ndjson` und `.1` bis `.5`. Eine Zeile im Fenster zählt nur einmal, auch wenn eine Rotation die Datei während des Lesens verschiebt; gespeichert werden nur die Zeilen im Fenster.
+  - Wächter: `test_a_rotation_during_the_run_keeps_the_window_s_marks` mit Kontrolle (ohne das rotierte Log nur `end`) und `test_the_backup_count_is_the_trace_writer_s` (gegen `_TRACE_BACKUPS`). Am alten Code rot: `['end']` statt `['end', 'start']`.
+- **Belege:** `test_native_stage.py` und `test_perf_matrix.py` mit 665 von 665.
+
+**Erbeten zu R399:** `agreement` oder `findings`, je Teil:
+- Teil 1, der Plan Fassung 2 mit dem Prototyp `d98b088e`;
+- Teil 2, das Werkzeug `44d9de49`.

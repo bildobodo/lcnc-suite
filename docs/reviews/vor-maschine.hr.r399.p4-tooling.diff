@@ -1,0 +1,243 @@
+diff --git a/docs/testing.md b/docs/testing.md
+index 814c5bf6..9cbdbaf9 100644
+--- a/docs/testing.md
++++ b/docs/testing.md
+@@ -22,7 +22,9 @@ Cases on the VM's REAL LinuxCNC, run by hand, never beside a gate:
+ command line, never a bare `flock`: from the LAN stop the return is OWED and only the run's final restore,
+ its unit's ExecStopPost, settles it; an unreadable marker keeps everyone out), records and stops the LAN sim, builds a run tree
+ of the tested commit and a confined copy of the profile, checks it before the start, runs the cases and
+-gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). It runs only as the user unit
++gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). Without a running LAN sim it
++refuses by name before touching anything (`native_run: refused — the LAN instance is not running`, a
++`report.json` with `verdict: REFUSED`; package 4 — it was a TypeError). It runs only as the user unit
+ `native-run` — the command is in its docstring. Offline guards: `scripts/test_native_stage.py` (the
+ backend gate's `native-stage` step). Step 2a adds Z probing, M600 with the override lock and the M6 hold;
+ every routine runs under the M6 helper `test_support/tool_change.py` (nothing confirmed unless declared).
+@@ -912,7 +914,8 @@ close the existing seed-freshness follow-up. The gantry uses separate preview go
+ length differ. Historical recordings and goldens remain unchanged.
+ 
+ Do not regenerate preview goldens merely to turn a failed comparison green.
+-The live runner only checks them. Performance measurements (`perf_matrix.py`
++The live runner only checks them. Performance measurements (`perf_matrix.py` — it reads the trace with its
++rotated backups, `trace.ndjson.1` … `.5`, so a rotation during a run keeps the window's marks; package 4 —
+ and browser worker/camera latency), operator walkthroughs, real hardware and
+ actual touchscreen acceptance remain separate gates with their own evidence.
+ 
+diff --git a/scripts/native_run.py b/scripts/native_run.py
+index daeed634..ff399e54 100644
+--- a/scripts/native_run.py
++++ b/scripts/native_run.py
+@@ -2983,7 +2983,16 @@ def main(argv=None) -> int:
+                         io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
+                         disconnect_cases(), clients_cases(), latch_cases()]
+     with heavy_lock("native_run", wait=0):
+-        report = run(SystemHost(), steps, a.run_dir)
++        try:
++            report = run(SystemHost(), steps, a.run_dir)
++        except rl.TakeOverRefused as e:
++            # refused before anything was touched (record): no LAN instance
++            # running, or a trip that is the operator's — named, never a
++            # traceback (package 4: a down LAN sim was a TypeError)
++            if a.run_dir.is_dir():
++                write_json(a.run_dir / "report.json", {"verdict": "REFUSED", "refused": str(e), "variant": a.variant})
++            print(f"native_run: refused — {e}")
++            return 2
+     report["variant"] = a.variant
+     report["verdict"] = verdict(report)
+     write_json(a.run_dir / "report.json", report)
+diff --git a/scripts/perf_matrix.py b/scripts/perf_matrix.py
+index a7a6199c..eb17d220 100644
+--- a/scripts/perf_matrix.py
++++ b/scripts/perf_matrix.py
+@@ -123,6 +123,19 @@ def halcmd_getp(pin: str):
+ 
+ # ---- trace extraction ------------------------------------------------------
+ 
++#: lcnc_trace's backup count (`_TRACE_BACKUPS`): trace.ndjson.1 … .5
++TRACE_BACKUPS = 5
++
++
++def _lines(path: str):
++    """The lines of one trace file — a file a rotation removed meanwhile is none."""
++    try:
++        with open(path, "rb") as f:
++            yield from f
++    except FileNotFoundError:
++        return
++
++
+ def trace_window(t0_ns: int, t1_ns: int, mark=None) -> dict:
+     """Summarize trace events whose t_wall_ns falls inside [t0_ns, t1_ns].
+     `mark` = (run id, scenario): the window's own marks (trace_mark) — which
+@@ -132,35 +145,43 @@ def trace_window(t0_ns: int, t1_ns: int, mark=None) -> dict:
+     publishes = []
+     connects = 0
+     marks, mark_pids = [], set()
+-    if not os.path.exists(TRACE):
++    # the trace and its rotated backups (lcnc_trace: RotatingFileHandler,
++    # 50 MB × 5): a rotation during a run moves the window's marks into
++    # trace.ndjson.1 … — a line is read once, by its text, should a rotation
++    # move a file while it is read (package 4)
++    files = [f for f in (TRACE, *(f"{TRACE}.{i}" for i in range(1, TRACE_BACKUPS + 1))) if os.path.exists(f)]
++    if not files:
+         return {"error": "no trace file"}
+-    with open(TRACE, "rb") as f:
+-        for line in f:
+-            # cheap pre-filter before json
+-            if b'"t_wall_ns"' not in line:
+-                continue
+-            try:
+-                e = json.loads(line)
+-            except Exception:
+-                continue
+-            tw = e.get("t_wall_ns")
+-            if not isinstance(tw, int) or not (t0_ns <= tw <= t1_ns):
+-                continue
+-            tag = e.get("tag", "")
+-            if tag == "lag.window":
+-                lag.append((e.get("drift_ms", 0),
+-                            str(e.get("dominant_phase", "?")).split(" peer=")[0]))
+-            elif tag.startswith("safety."):
+-                safety.append(tag)
+-            elif tag == "gcode.publish":
+-                publishes.append({k: e.get(k) for k in
+-                                  ("bytes", "bytes_gz", "gzip_ms", "total_ms")})
+-            elif tag == "ws.connect.accept":
+-                connects += 1
+-            elif tag == "browser.perfmatrix_mark" and mark is not None \
+-                    and (e.get("run"), e.get("scenario")) == tuple(mark):
+-                marks.append(e.get("at"))
+-                mark_pids.add(e.get("pid"))
++    seen: set = set()
++    for line in (ln for path in files for ln in _lines(path)):
++        # cheap pre-filter before json
++        if b'"t_wall_ns"' not in line:
++            continue
++        try:
++            e = json.loads(line)
++        except Exception:
++            continue
++        tw = e.get("t_wall_ns")
++        if not isinstance(tw, int) or not (t0_ns <= tw <= t1_ns):
++            continue
++        if line in seen:            # only the window's lines are kept (6 × 50 MB are not)
++            continue
++        seen.add(line)
++        tag = e.get("tag", "")
++        if tag == "lag.window":
++            lag.append((e.get("drift_ms", 0),
++                        str(e.get("dominant_phase", "?")).split(" peer=")[0]))
++        elif tag.startswith("safety."):
++            safety.append(tag)
++        elif tag == "gcode.publish":
++            publishes.append({k: e.get(k) for k in
++                              ("bytes", "bytes_gz", "gzip_ms", "total_ms")})
++        elif tag == "ws.connect.accept":
++            connects += 1
++        elif tag == "browser.perfmatrix_mark" and mark is not None \
++                and (e.get("run"), e.get("scenario")) == tuple(mark):
++            marks.append(e.get("at"))
++            mark_pids.add(e.get("pid"))
+     worst = max(lag, default=(0, None))
+     return {
+         "lag_windows": len(lag),
+diff --git a/scripts/test_native_stage.py b/scripts/test_native_stage.py
+index fe219ba8..503b6aaa 100644
+--- a/scripts/test_native_stage.py
++++ b/scripts/test_native_stage.py
+@@ -310,6 +310,37 @@ def test_a_lan_trip_before_the_take_over_refuses_it():
+         rl.record(h)
+ 
+ 
++def test_no_running_lan_instance_refuses_the_take_over_by_name():
++    """Package 4: a down LAN sim was a TypeError (`Path(None)` in lan_trip)."""
++    for down in ("instance", "launcher"):
++        h = FakeHost()
++        if down == "instance":
++            h.instance = ()
++        else:
++            h.gateway_ini = lambda: None
++        h.lan_trip = lambda: (_ for _ in ()).throw(AssertionError("lan_trip read without a LAN instance"))
++        with pytest.raises(rl.TakeOverRefused, match="the LAN instance is not running"):
++            rl.record(h)
++
++
++def test_a_refused_take_over_ends_native_run_by_name_with_a_report(tmp_path, monkeypatch, capsys):
++    import native_run as nr   # noqa: PLC0415
++    import contextlib         # noqa: PLC0415
++    monkeypatch.setattr(nr, "in_restore_unit", lambda: True)
++    monkeypatch.setattr(nr, "heavy_lock", lambda *a, **k: contextlib.nullcontext())
++
++    def refuse(host, steps, run_dir):
++        run_dir.mkdir()
++        raise rl.TakeOverRefused("the LAN instance is not running — nothing to take over")
++    monkeypatch.setattr(nr, "run", refuse)
++    import test_support.system_host as shost   # noqa: PLC0415
++    monkeypatch.setattr(shost, "SystemHost", lambda: object())
++    rc = nr.main(["--run-dir", str(tmp_path / "run")])
++    assert rc == 2 and "native_run: refused — the LAN instance is not running" in capsys.readouterr().out
++    report = json.loads((tmp_path / "run" / "report.json").read_text())
++    assert report["verdict"] == "REFUSED" and "not running" in report["refused"]
++
++
+ from test_support import system_host as sh  # noqa: E402
+ 
+ 
+diff --git a/scripts/test_perf_matrix.py b/scripts/test_perf_matrix.py
+index c03aac30..34806fbf 100644
+--- a/scripts/test_perf_matrix.py
++++ b/scripts/test_perf_matrix.py
+@@ -235,6 +235,34 @@ class RunVerdict(unittest.TestCase):
+         self.assertEqual((rc, entry.get("FAIL")), (0, None))
+         self.assertEqual((entry["trace"]["lag_windows"], entry["trace"]["marks"]), (0, ["end", "start"]))
+ 
++    def test_a_rotation_during_the_run_keeps_the_window_s_marks(self):
++        """Package 4: lcnc_trace rotates trace.ndjson at 50 MB (× 5 backups) —
++        a rotation between the start and the end mark moved the start into
++        trace.ndjson.1, and the run read "no start mark". The rotated set is
++        read; a line in two files (a rotation while reading) counts once."""
++        path = self.tmp / "trace.ndjson"
++        start = {"t_wall_ns": __import__("time").time_ns(), "proc": "gateway", "pid": self.GATEWAY,
++                 "tag": "browser.perfmatrix_mark", "run": pm.RUN_ID, "scenario": "probe", "at": "start"}
++        lag = {"t_wall_ns": start["t_wall_ns"] + 1, "pid": self.GATEWAY, "tag": "lag.window", "drift_ms": 7.0}
++        end = {**start, "t_wall_ns": start["t_wall_ns"] + 2, "at": "end"}
++        rotated = self.tmp / "trace.ndjson.1"
++        rotated.write_text(json.dumps(start) + "\n" + json.dumps(lag) + "\n")
++        path.write_text(json.dumps(lag) + "\n" + json.dumps(end) + "\n")     # the lag line twice
++        with mock.patch.object(pm, "TRACE", str(path)):
++            got = pm.trace_window(start["t_wall_ns"] - 1, end["t_wall_ns"] + 1, (pm.RUN_ID, "probe"))
++        self.assertEqual((got["marks"], got["mark_pids"], got["lag_windows"]), (["end", "start"], [self.GATEWAY], 1))
++        rotated.unlink()                                                        # the control: the base alone
++        with mock.patch.object(pm, "TRACE", str(path)):
++            got = pm.trace_window(start["t_wall_ns"] - 1, end["t_wall_ns"] + 1, (pm.RUN_ID, "probe"))
++        self.assertEqual(got["marks"], ["end"])
++
++    def test_the_backup_count_is_the_trace_writer_s(self):
++        import ast
++        src = (Path(__file__).resolve().parents[1] / "lcnc-gateway" / "lcnc_trace.py").read_text()
++        n = next(ast.literal_eval(a.value) for a in ast.parse(src).body
++                 if isinstance(a, ast.Assign) and any(getattr(x, "id", "") == "_TRACE_BACKUPS" for x in a.targets))
++        self.assertEqual(pm.TRACE_BACKUPS, n)
++
+     def test_a_missing_trace_fails(self):            # Codex's trace_missing
+         rc, entry = self.run_matrix(self.MEASURED, "missing")
+         self.assertEqual(rc, 1)
+diff --git a/scripts/test_support/restore_lan.py b/scripts/test_support/restore_lan.py
+index 23ea077a..e2a717a0 100644
+--- a/scripts/test_support/restore_lan.py
++++ b/scripts/test_support/restore_lan.py
+@@ -38,7 +38,13 @@ class TakeOverRefused(RuntimeError):
+ 
+ def record(host, units=UNITS) -> dict:
+     """The LAN instance before the take-over. A trip waiting for its
+-    acknowledgement refuses the take-over: it is the operator's."""
++    acknowledgement refuses the take-over: it is the operator's. No running
++    LAN instance (no linuxcncsvr, no launcher) refuses it too, by name —
++    there is nothing to take over or give back (package 4: it was a
++    TypeError, `Path(None)` in lan_trip)."""
++    if not host.lan_instance() or not host.gateway_ini():
++        raise TakeOverRefused("the LAN instance is not running — nothing to take over; start lcnc-sim-gates "
++                              "and run again")
+     trip = host.lan_trip()
+     if trip:
+         raise TakeOverRefused(f"the LAN instance has an unacknowledged trip ({trip}) — the operator's to acknowledge")
