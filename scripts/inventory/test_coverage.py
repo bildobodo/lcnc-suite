@@ -690,3 +690,109 @@ def test_the_gate_s_unit_steps_write_each_test_s_options():
     assert "f'--reporter={OPTIONS_REPORTER}'" in src
     assert "'LCNC_VITEST_OPTIONS_OUT': str(options)" in src and "options = logs / f'{name}.options.json'" in src
     assert (ROOT / "scripts/test_select/vitest_options_reporter.mjs").is_file()
+
+
+# ── R400: a reported invalid unit is also WITHHELD from positive evidence ────
+
+def _unit_case(tmp_path, name, options, listing_extra=(), heavy_options=None):
+    """One unit evidence bound to a real listed test; its options as given."""
+    fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"]
+             if e["layer"] == "unit" and "$" not in e["title"] and "{" not in e["title"])
+    full = f"/x/lcnc-webui/src/{e['file']}"
+    listing = [{"file": full, "name": e["title"]}, *listing_extra]
+    report = {"testResults": [{"name": full, "assertionResults": [{"ancestorTitles": [], "title": e["title"], "status": "passed"}]}]}
+    files = {"unit-light.list.json": listing, "unit-light.json": report, "unit-light.options.json": options}
+    if heavy_options is not None:
+        files["unit-heavy.options.json"] = heavy_options
+    c = _run_with(tmp_path / name, **files)
+    row = next(x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+               if x["layer"] == "unit" and x["file"] == e["file"] and x["title"] == e["title"])
+    return e, full, row, [x for x in c["errors"] if "options" in x or "expected failure" in x]
+
+
+def test_an_options_record_without_a_boolean_fails_leaves_the_test_unknown_never_passed(tmp_path):
+    e, full, _, _ = _unit_case(tmp_path, "probe", [])
+    rec = {"file": full, "fullName": e["title"], "mode": "run"}
+    for i, bad in enumerate(({**rec}, {**rec, "fails": None}, {**rec, "fails": "true"}, {**rec, "fails": 1})):
+        _, _, row, errs = _unit_case(tmp_path, f"bad{i}", [bad])
+        assert row["status"] == "unknown" and any("a boolean fails" in x for x in errs), (bad, row, errs)
+    _, _, row, errs = _unit_case(tmp_path, "none", [])
+    assert row["status"] == "unknown" and any("0 option record(s) for 1" in x for x in errs)
+    _, _, row, errs = _unit_case(tmp_path, "ok", [{**rec, "fails": False}])
+    assert row["status"] == "passed" and errs == []                                      # the control
+
+
+def test_a_foreign_options_record_never_lowers_a_known_expected_failure(tmp_path):
+    e, full, _, _ = _unit_case(tmp_path, "probe", [])
+    rec = {"file": full, "fullName": e["title"], "mode": "run"}
+    _, _, row, errs = _unit_case(tmp_path, "foreign", [{**rec, "fails": True}], heavy_options=[{**rec, "fails": False}])
+    assert row["status"] == "expected to fail"
+    assert any("a test this group's listing does not hold" in x for x in errs)
+
+
+def test_a_name_listed_twice_needs_a_record_for_each(tmp_path):
+    e, full, _, _ = _unit_case(tmp_path, "probe", [])
+    rec = {"file": full, "fullName": e["title"], "mode": "run"}
+    twice = [{"file": full, "name": e["title"]}]                 # the same name listed a second time
+    _, _, row, errs = _unit_case(tmp_path, "one", [{**rec, "fails": False}], listing_extra=twice)
+    assert row["status"] == "unknown" and any("1 option record(s) for 2" in x for x in errs)
+    _, _, row, errs = _unit_case(tmp_path, "both", [{**rec, "fails": False}, {**rec, "fails": True}], listing_extra=twice)
+    assert row["status"] == "expected to fail"
+
+
+def test_a_retry_without_one_result_admits_no_attempt(tmp_path):
+    doc = pw("e2e", T1)
+    doc["suites"][0]["specs"][0]["tests"][0]["results"] = [{"retry": 0, "status": "failed"}, {"retry": 0, "status": "passed"}]
+    r = replay("e2e", att(), per_attempt={ATT: {"touchoff": 1}})
+    c = _run_with(tmp_path, **{"list-run.json": pw("e2e", T1, listing=True), "playwright.json": doc, "replay.json": r})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == "not sent"
+    assert any("two results for one retry" in x for x in c["errors"])
+
+
+def test_another_run_s_record_or_a_renamed_id_feeds_no_evidence(tmp_path):
+    e = _browser_evidence()
+    test_ = ("c-1", e["file"], e["title"], "passed")
+    foreign = pw("e2e", test_)
+    foreign["config"]["metadata"]["run"] = "another-run"
+    c = _run_with(tmp_path / "run", **{"list-run.json": pw("e2e", test_, listing=True), "playwright.json": foreign})
+    assert {x["project"]: x["status"] for x in _rows_of(c, e)}["e2e"] == "not run"
+    renamed = pw("e2e", ("c-1", e["file"], "another title", "passed"))
+    c = _run_with(tmp_path / "name", **{"list-run.json": pw("e2e", test_, listing=True), "playwright.json": renamed})
+    assert {x["project"]: x["status"] for x in _rows_of(c, e)}["e2e"].startswith("unknown status ['contradictory")
+    doc = pw("e2e", test_, test_)                                 # the id twice
+    c = _run_with(tmp_path / "twice", **{"list-run.json": pw("e2e", test_, listing=True), "playwright.json": doc})
+    assert {x["project"]: x["status"] for x in _rows_of(c, e)}["e2e"].startswith("unknown status ['contradictory")
+
+
+def test_another_run_s_junit_feeds_no_gateway_evidence(tmp_path):
+    c = _run_with(tmp_path, **{"backend/backend.junit.xml":
+                               '<testsuites><testsuite name="another"><testcase classname="test_command_dispatch.X" '
+                               'name="test_not_armed_denied"/></testsuite></testsuites>'})
+    rows = [x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+            if x["layer"] == "gateway" and x["title"] == "test_not_armed_denied"]
+    assert rows and all(x["status"] != "passed" for x in rows)
+
+
+def test_a_rejected_native_report_is_named_invalid_never_a_pass_source(tmp_path):
+    full = _full_rows(None)
+    mixed = [{**r, "variant": "latch-delayed"} if r["case"] == "home-all" else r for r in full]
+    c = coverage.coverage(gate(tmp_path, dict(EMPTY_RUN)), [_native_report(tmp_path / "m.json", mixed)], [])
+    rows = [x for f in c["functions"] for x in f["native"] if x.get("variant") is None]
+    assert rows and all(x["status"] == "invalid report of this commit" for x in rows), {x["status"] for x in rows}
+
+
+def test_across_the_groups_the_stricter_state_stays(tmp_path):
+    e, full, _, _ = _unit_case(tmp_path, "probe", [])
+    rec = {"file": full, "fullName": e["title"], "mode": "run"}
+    heavy = {"unit-heavy.list.json": [{"file": full, "name": e["title"]}],
+             "unit-heavy.json": {"testResults": [{"name": full, "assertionResults": [
+                 {"ancestorTitles": [], "title": e["title"], "status": "passed"}]}]},
+             "unit-heavy.options.json": [{**rec, "fails": False}]}
+    listing = [{"file": full, "name": e["title"]}]
+    report = {"testResults": [{"name": full, "assertionResults": [{"ancestorTitles": [], "title": e["title"], "status": "passed"}]}]}
+    c = _run_with(tmp_path / "both", **{"unit-light.list.json": listing, "unit-light.json": report,
+                                        "unit-light.options.json": [{**rec, "fails": True}], **heavy})
+    row = next(x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+               if x["layer"] == "unit" and x["file"] == e["file"] and x["title"] == e["title"])
+    assert row["status"] == "expected to fail"          # the heavy group's plain never lowers the light group's fails

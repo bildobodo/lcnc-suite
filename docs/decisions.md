@@ -11673,6 +11673,11 @@ one result per retry are unique, a native report's profile and row variants
 are its own, and the expected failure is read from the run's own artefact —
 the unit steps' options reporter (`TestCase.options.fails`, every spelling:
 `.fails (`, `.fails.each`, `{ fails: true }`, an alias), not a text search.
+R400: a unit found invalid is reported AND withheld — the error alone left
+its results counting (a contradictory retry's attempt, a rejected native
+report's rows, an options record without a boolean `fails` read as plain);
+the class check found three more (another run's record or JUnit, a renamed
+or doubled id).
 
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 

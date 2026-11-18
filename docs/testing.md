@@ -519,7 +519,12 @@ By hand on a merge gate's record:
   WORST over every report of this commit; an expected refusal is
   counter-evidence only of an attempt that counts; a native report whose
   rows are no list of objects, of an unknown profile, or with rows of another
-  variant than its own is an evaluation error (R398 VM-I35).
+  variant than its own is an evaluation error (R398 VM-I35). Every unit found
+  invalid is REPORTED AND WITHHELD (R400): another run's record or JUnit, an id
+  twice or renamed, a retry with two results, an options record without a
+  boolean `fails` or outside its group's listing (one per listed test, a
+  later group never lowers a state), a rejected native report (named "invalid
+  report of this commit") — none of them feeds a positive statement.
 - **Five kinds, kept apart, never a percentage** (FI265-03): inventoried (the
   claimed atoms and the claims of role variant; the source inventory's
   unresolved, excluded and open-variant sites with their origin under
