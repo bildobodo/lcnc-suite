@@ -1,0 +1,474 @@
+{
+  "head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+  "cases": {
+    "control": {
+      "verdict": "PASS",
+      "errors": [],
+      "checked": 110,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "duplicated_identity_input": {
+      "original": {
+        "name": "collisions.viewer.spec.ts › the check basis card says what the check read when it began — a later status does not change it, a run's own change is named; keys, Escape is E-Stop (step 4 plan 1c) [retry 0]",
+        "test": "bbbb47f70077cd28aa48-6fa25954366ecd8de539",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "03fcc442-25b0-45b2-9bc6-e36410101b79",
+        "status": "passed",
+        "page": true,
+        "frames": 17,
+        "observed": "page loaded at its mock, 17 frame(s)"
+      },
+      "duplicate": {
+        "name": "collisions.viewer.spec.ts › the check basis card says what the check read when it began — a later status does not change it, a run's own change is named; keys, Escape is E-Stop (step 4 plan 1c) [retry 0] [second name, same identity]",
+        "test": "bbbb47f70077cd28aa48-6fa25954366ecd8de539",
+        "project": "e2e",
+        "retry": 0,
+        "instance": "03fcc442-25b0-45b2-9bc6-e36410101b79",
+        "status": "passed",
+        "page": true,
+        "frames": 17,
+        "observed": "page loaded at its mock, 17 frame(s)"
+      }
+    },
+    "replay_duplicate_identity": {
+      "verdict": "FAIL",
+      "errors": [
+        "replay.json: attempt identity test bbbb47f70077cd28aa48-6fa25954366ecd8de539 [e2e] retry 0 listed 2 times"
+      ],
+      "checked": 110,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 43
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "browser_duplicate_retry": {
+      "verdict": "FAIL",
+      "errors": [
+        "playwright.json: test id a237f05b9d2909b5d62e-fa3028da289416483b33 [e2e] has two results for one retry [0, 0]"
+      ],
+      "checked": 109,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "native_control": {
+      "verdict": "PASS",
+      "errors": [],
+      "checked": 110,
+      "native_passes": 69,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "native_row_variant_mismatch": {
+      "verdict": "FAIL",
+      "errors": [
+        "native report (variant None): rows of another variant ['home-all']"
+      ],
+      "checked": 110,
+      "native_passes": 68,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "home_all": [
+        {
+          "layer": "native",
+          "file": "native_run.py",
+          "title": "home-all",
+          "profile": "3axis_xyz",
+          "variant": null,
+          "status": "not at this commit"
+        }
+      ]
+    },
+    "native_unknown_profile": {
+      "verdict": "FAIL",
+      "errors": [
+        "native report r398-synthetic-native: profile 'not-a-profile' is no native_run profile"
+      ],
+      "checked": 110,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      }
+    },
+    "actual_vitest": {
+      "reader_errors": [],
+      "tests": [
+        {
+          "file": "r398-fixtures/alias.test.ts",
+          "name": "alias expected failure",
+          "reader": "passed",
+          "options_fails": true
+        },
+        {
+          "file": "r398-fixtures/control.test.ts",
+          "name": "normal positive control",
+          "reader": "passed",
+          "options_fails": false
+        },
+        {
+          "file": "r398-fixtures/each.test.ts",
+          "name": "each expected failure 1",
+          "reader": "passed",
+          "options_fails": true
+        },
+        {
+          "file": "r398-fixtures/option.test.ts",
+          "name": "option expected failure",
+          "reader": "passed",
+          "options_fails": true
+        },
+        {
+          "file": "r398-fixtures/plain.test.ts",
+          "name": "plain expected failure",
+          "reader": "passed",
+          "options_fails": true
+        },
+        {
+          "file": "r398-fixtures/spaced.test.ts",
+          "name": "spaced expected failure",
+          "reader": "passed",
+          "options_fails": true
+        }
+      ]
+    },
+    "unit_original_evidence": {
+      "layer": "unit",
+      "file": "ws/statusStore.test.ts",
+      "title": "one entry per trip and one per confirmed acknowledgement, whatever the frames repeat"
+    },
+    "unit_alias.test": {
+      "verdict": "FAIL",
+      "errors": [
+        "F-TRIP.S1d: unit r398-fixtures/alias.test.ts › alias expected failure: a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+      ],
+      "checked": 109,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "bound_evidence": [
+        {
+          "layer": "unit",
+          "file": "r398-fixtures/alias.test.ts",
+          "title": "alias expected failure",
+          "bound": [
+            "alias expected failure"
+          ],
+          "status": "expected to fail",
+          "why": "a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+        }
+      ]
+    },
+    "unit_control.test": {
+      "verdict": "PASS",
+      "errors": [],
+      "checked": 110,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "bound_evidence": [
+        {
+          "layer": "unit",
+          "file": "r398-fixtures/control.test.ts",
+          "title": "normal positive control",
+          "bound": [
+            "normal positive control"
+          ],
+          "status": "passed"
+        }
+      ]
+    },
+    "unit_each.test": {
+      "verdict": "FAIL",
+      "errors": [
+        "F-TRIP.S1d: unit r398-fixtures/each.test.ts › each expected failure 1: a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+      ],
+      "checked": 109,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "bound_evidence": [
+        {
+          "layer": "unit",
+          "file": "r398-fixtures/each.test.ts",
+          "title": "each expected failure 1",
+          "bound": [
+            "each expected failure 1"
+          ],
+          "status": "expected to fail",
+          "why": "a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+        }
+      ]
+    },
+    "unit_option.test": {
+      "verdict": "FAIL",
+      "errors": [
+        "F-TRIP.S1d: unit r398-fixtures/option.test.ts › option expected failure: a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+      ],
+      "checked": 109,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "bound_evidence": [
+        {
+          "layer": "unit",
+          "file": "r398-fixtures/option.test.ts",
+          "title": "option expected failure",
+          "bound": [
+            "option expected failure"
+          ],
+          "status": "expected to fail",
+          "why": "a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+        }
+      ]
+    },
+    "unit_plain.test": {
+      "verdict": "FAIL",
+      "errors": [
+        "F-TRIP.S1d: unit r398-fixtures/plain.test.ts › plain expected failure: a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+      ],
+      "checked": 109,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "bound_evidence": [
+        {
+          "layer": "unit",
+          "file": "r398-fixtures/plain.test.ts",
+          "title": "plain expected failure",
+          "bound": [
+            "plain expected failure"
+          ],
+          "status": "expected to fail",
+          "why": "a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+        }
+      ]
+    },
+    "unit_spaced.test": {
+      "verdict": "FAIL",
+      "errors": [
+        "F-TRIP.S1d: unit r398-fixtures/spaced.test.ts › spaced expected failure: a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+      ],
+      "checked": 109,
+      "native_passes": 0,
+      "estop": {
+        "commands": {
+          "estop": {
+            "e2e": {
+              "estop": 44
+            },
+            "firefox-core": {
+              "estop": 25
+            }
+          },
+          "estop_reset": {
+            "e2e": {
+              "estop_reset": 1
+            },
+            "firefox-core": "not sent"
+          }
+        },
+        "routes": {}
+      },
+      "bound_evidence": [
+        {
+          "layer": "unit",
+          "file": "r398-fixtures/spaced.test.ts",
+          "title": "spaced expected failure",
+          "bound": [
+            "spaced expected failure"
+          ],
+          "status": "expected to fail",
+          "why": "a bound test declares an expected failure — Vitest's JSON report reads it as passed (R398 VM-I34)"
+        }
+      ]
+    }
+  }
+}
