@@ -172,14 +172,21 @@ def listening(port: int) -> bool:
     return False
 
 
+#: replay 5c (Codex R398 VM-I34): writes each test's resolved options — Vitest's
+#: JSON report reads `it.fails` as passed with no mark
+OPTIONS_REPORTER = ROOT / "scripts" / "test_select" / "vitest_options_reporter.mjs"
+
+
 def unit(name: str, files: list[str], exclude: list[str], logs: Path) -> dict:
     """A vitest run matched to its own listing; `.only` refused."""
     listed, report = logs / f"{name}.list.json", logs / f"{name}.json"
+    options = logs / f"{name}.options.json"       # each test's resolved options (`fails`) — the coverage reads it
     args = [*files, *[x for f in exclude for x in ("--exclude", f)]]
     lst = subprocess.run(["npx", "vitest", "list", *args, f"--json={listed}"], cwd=WEB,
                          capture_output=True, text=True)
     c = run(name, ["npx", "vitest", "run", *args, "--allowOnly=false", "--retry=0", "--reporter=default",
-                   "--reporter=json", f"--outputFile.json={report}"], WEB, logs)
+                   "--reporter=json", f"--outputFile.json={report}", f"--reporter={OPTIONS_REPORTER}"], WEB, logs,
+            {"LCNC_VITEST_OPTIONS_OUT": str(options)})
     judge(c, vitest_counts(report))
     if lst.returncode != 0 or not listed.is_file():
         fail(c, f"vitest list failed: {lst.stderr.strip()[-300:]}")

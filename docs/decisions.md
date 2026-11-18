@@ -11668,8 +11668,11 @@ own reason.
 Before R398 the class check found three siblings, fixed the same way: an
 expected refusal of a failed or unlisted attempt counted, a native report
 with `rows: null` raised, and Vitest's `it.fails` reads as passed in its JSON
-report (measured — no mark), so a unit evidence's file must not declare
-`.fails(`.
+report (measured — no mark). R398 closed the rests: the attempt identity and
+one result per retry are unique, a native report's profile and row variants
+are its own, and the expected failure is read from the run's own artefact —
+the unit steps' options reporter (`TestCase.options.fails`, every spelling:
+`.fails (`, `.fails.each`, `{ fails: true }`, an alias), not a text search.
 
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 

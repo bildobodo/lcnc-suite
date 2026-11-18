@@ -507,14 +507,19 @@ By hand on a merge gate's record:
 - **The reporter's own forms** (R396 VM-I34): a Playwright test is passed only
   when it was expected to pass and its last result passed; `test.fail()`
   failing as expected is "expected to fail", never passed; every instance is
-  its own id (a repeat too) and every bound one must pass. Vitest's JSON
-  report writes `it.fails` as passed with no mark (measured), so unit
-  evidence in a file that declares `.fails(` is an evaluation error; pytest
+  its own id (a repeat too) and every bound one must pass; two results for
+  one retry, or one attempt identity (run, test id, project, retry) under two
+  names, are evaluation errors (R398). Vitest's JSON report writes `it.fails`
+  as passed with no mark (measured), so the gate's unit steps also run
+  `scripts/test_select/vitest_options_reporter.mjs`: each test's RESOLVED
+  options (`<name>.options.json`) — a bound unit test that declares an
+  expected failure, in any spelling, reads "expected to fail"; pytest
   writes `xfail` as `<skipped type="pytest.xfail">` (read as skipped) and a
   non-strict XPASS as a pass. A native case and a live scenario are their
   WORST over every report of this commit; an expected refusal is
   counter-evidence only of an attempt that counts; a native report whose
-  rows are no list of objects is an evaluation error.
+  rows are no list of objects, of an unknown profile, or with rows of another
+  variant than its own is an evaluation error (R398 VM-I35).
 - **Five kinds, kept apart, never a percentage** (FI265-03): inventoried (the
   claimed atoms and the claims of role variant; the source inventory's
   unresolved, excluded and open-variant sites with their origin under

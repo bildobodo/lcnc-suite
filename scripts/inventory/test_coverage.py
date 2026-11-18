@@ -152,8 +152,8 @@ def replay(project: str, *attempts: dict, **extra) -> dict:
 
 
 EMPTY_RUN = {**ran("e2e"), **ran("firefox-core"),
-             "unit-light.list.json": [], "unit-light.json": {"testResults": []},
-             "unit-heavy.list.json": [], "unit-heavy.json": {"testResults": []},
+             "unit-light.list.json": [], "unit-light.json": {"testResults": []}, "unit-light.options.json": [],
+             "unit-heavy.list.json": [], "unit-heavy.json": {"testResults": []}, "unit-heavy.options.json": [],
              "replay.json": replay("e2e"), "firefox-replay.json": replay("firefox-core"),
              "backend/backend.junit.xml": f'<testsuites><testsuite name="{RUNS["backend"]}"/></testsuites>'}
 
@@ -516,7 +516,8 @@ def test_a_native_report_of_this_commit_is_held_against_the_declared_set(tmp_pat
                for e in errs("short", _native_report(tmp_path / "short.json", [r for r in full if r["case"] != "home-all"])))
     # a run that ended early names its error: the cases it never reached are no error
     assert errs("early", _native_report(tmp_path / "early.json", full[:3], error="StepFailed: x")) == []
-    assert any("declares no cases" in e for e in errs("variant", _native_report(tmp_path / "v.json", full, variant="other")))
+    other = [{**r, "variant": "other"} for r in full]                # a consistent report of an unknown variant
+    assert any("declares no cases" in e for e in errs("variant", _native_report(tmp_path / "v.json", other, variant="other")))
 
 
 def test_a_native_case_is_its_worst_row_over_every_report_of_this_commit(tmp_path):
@@ -617,24 +618,75 @@ def test_a_native_report_whose_rows_are_no_objects_is_an_evaluation_error(tmp_pa
         assert any("rows is no list of row objects" in e for e in c["errors"]), rows
 
 
-def test_a_unit_file_that_declares_fails_binds_no_evidence(tmp_path, monkeypatch):
-    """Vitest's JSON reporter writes `it.fails` as passed with no mark
-    (measured 2026-11-18) — evidence in such a file is an evaluation error."""
-    f = tmp_path / "x.test.ts"
-    f.write_text('it.fails("an expected failure", () => { expect(1).toBe(2); });\n')
-    assert coverage.declares_fails(f) and not coverage.declares_fails(tmp_path / "missing.test.ts")
-    f.write_text('it("a plain pass", () => {});\n')
-    assert not coverage.declares_fails(f)
-    # through the whole coverage: the shipped unit evidence binds clean …
+def test_a_bound_unit_test_that_declares_an_expected_failure_is_no_pass(tmp_path):
+    """Vitest's JSON report writes `it.fails` as passed with no mark (measured);
+    the run's own options record (vitest_options_reporter.mjs) says what the
+    runner ran — every spelling alike (R398 VM-I34)."""
     fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
-    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"] if e["layer"] == "unit")
-    listing = [{"file": f"/x/lcnc-webui/src/{e['file']}", "name": e["title"]}]
-    report = {"testResults": [{"name": f"/x/lcnc-webui/src/{e['file']}", "assertionResults": [
-        {"ancestorTitles": [], "title": e["title"], "status": "passed"}]}]}
-    files = {"unit-light.list.json": listing, "unit-light.json": report}
-    c = _run_with(tmp_path / "clean", **files)
-    assert not [x for x in c["errors"] if "fails(" in x]
-    # … and is an evaluation error once its file declares `.fails(`
-    monkeypatch.setattr(coverage, "declares_fails", lambda path: path.name == Path(e["file"]).name)
-    c = _run_with(tmp_path / "fails", **files)
-    assert any("declares `.fails(`" in x and e["file"] in x for x in c["errors"])
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"]
+             if e["layer"] == "unit" and "$" not in e["title"] and "{" not in e["title"])
+    full = f"/x/lcnc-webui/src/{e['file']}"
+    listing = [{"file": full, "name": e["title"]}]
+    report = {"testResults": [{"name": full, "assertionResults": [{"ancestorTitles": [], "title": e["title"], "status": "passed"}]}]}
+
+    def unit_row(name: str, options) -> dict:
+        c = _run_with(tmp_path / name, **{"unit-light.list.json": listing, "unit-light.json": report,
+                                          "unit-light.options.json": options})
+        rows = [x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+                if x["layer"] == "unit" and x["file"] == e["file"] and x["title"] == e["title"]]
+        return {"status": rows[0]["status"],
+                "errors": [x for x in c["errors"] if "options.json" in x or "expected failure" in x]}
+    ok = unit_row("plain", [{"file": full, "fullName": e["title"], "fails": False, "mode": "run"}])
+    assert ok == {"status": "passed", "errors": []}                                           # the control
+    xf = unit_row("fails", [{"file": full, "fullName": e["title"], "fails": True, "mode": "run"}])
+    assert xf["status"] == "expected to fail" and any("expected failure" in x for x in xf["errors"])
+    gone = unit_row("no-record", [])
+    assert any("its expected failure unknown" in x for x in gone["errors"])
+    broken = unit_row("broken", {"not": "a list"})
+    assert any("no list of test option records" in x for x in broken["errors"])
+
+
+# ── R398: the rests of VM-I33 / VM-I35 ──────────────────────────────────────
+
+def test_one_attempt_identity_under_two_names_counts_once_and_is_an_error(tmp_path):
+    other = "x.spec.ts › t (renamed) [retry 0]"
+    r = replay("e2e", att(), att(name=other), per_attempt={ATT: {"touchoff": 1}, other: {"touchoff": 1}})
+    c = _run_with(tmp_path, **ran("e2e", T1), **{"replay.json": r})
+    assert any("attempt identity test t-1 [e2e] retry 0 listed 2 times" in e for e in c["errors"])
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == "not sent"
+
+
+def test_two_results_for_one_retry_are_an_error_never_an_overwrite():
+    doc = pw("e2e", T1)
+    t = doc["suites"][0]["specs"][0]["tests"][0]
+    t["results"] = [{"retry": 0, "status": "failed"}, {"retry": 0, "status": "passed"}]
+    errors: list[str] = []
+    idx = coverage.playwright_index(doc, "playwright.json", errors)
+    assert any("two results for one retry" in e for e in errors)
+    assert next(iter(idx.values()))["status"].startswith("contradictory")
+
+
+def test_a_native_report_of_another_profile_or_with_rows_of_another_variant_is_an_error(tmp_path):
+    full = _full_rows(None)
+    def errs(name: str, report: Path) -> list[str]:
+        d = tmp_path / name
+        d.mkdir()
+        return _native_errors(coverage.coverage(gate(d, dict(EMPTY_RUN)), [report], []))
+    assert errs("ok", _native_report(tmp_path / "ok.json", full)) == []                       # the control
+    mixed = [{**r, "variant": "latch-delayed"} if r["case"] == "home-all" else r for r in full]
+    assert any("rows of another variant ['home-all']" in e for e in errs("mixed", _native_report(tmp_path / "m.json", mixed)))
+    p = tmp_path / "p.json"
+    p.write_text(json.dumps({"commit": HEAD, "profile": "unknown_profile", "variant": None, "rows": full}))
+    assert any("profile 'unknown_profile' is no native_run profile" in e for e in errs("profile", p))
+
+
+def test_the_gate_s_unit_steps_write_each_test_s_options():
+    """round_gate.unit runs the options reporter beside the JSON report and
+    names its artefact (R398 VM-I34) — by its syntax: running it is the gate's."""
+    import ast   # noqa: PLC0415
+    tree = ast.parse((ROOT / "scripts/test_select/round_gate.py").read_text())
+    fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "unit")
+    src = ast.unparse(fn)
+    assert "f'--reporter={OPTIONS_REPORTER}'" in src
+    assert "'LCNC_VITEST_OPTIONS_OUT': str(options)" in src and "options = logs / f'{name}.options.json'" in src
+    assert (ROOT / "scripts/test_select/vitest_options_reporter.mjs").is_file()

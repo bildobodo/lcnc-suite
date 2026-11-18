@@ -97,8 +97,14 @@ def playwright_index(report: dict, label: str, errors: list[str]) -> dict[tuple,
                 if key in out:
                     errors.append(f"{label}: test id {key[0]} [{key[1]}] twice — one instance would hide another")
                     continue
+                retries = [r.get("retry") for r in t.get("results") or []]
+                status = _pw_status(t)
+                if len(retries) != len(set(retries)):
+                    # two results for one retry: one would overwrite the other (R398 VM-I33 B)
+                    errors.append(f"{label}: test id {key[0]} [{key[1]}] has two results for one retry {retries}")
+                    status = f"contradictory (two results for one retry: {retries})"
                 out[key] = {"file": sp.get("file"), "path": " › ".join(path + [sp.get("title", "")]),
-                            "status": _pw_status(t),
+                            "status": status,
                             "results": {r.get("retry"): r.get("status") for r in t.get("results") or []}}
         for sub in suite.get("suites", []):
             walk(sub, path + [sub.get("title", "")])
@@ -239,9 +245,16 @@ def replay_attempts(project: str, r: dict | None, listed: dict[tuple, dict], ref
     for n, k in names.items():
         if k > 1:
             errors.append(f"{label}: attempt {str(n)[:80]} listed {k} times")
+    # the identity is (run, test id, project, retry), never the readable name:
+    # one attempt under two names would count twice (R398 VM-I33 A)
+    ident = Counter((r.get("run"), a.get("test"), a.get("project"), a.get("retry")) for a in attempts)
+    for i, k in ident.items():
+        if k > 1:
+            errors.append(f"{label}: attempt identity test {i[1]} [{i[2]}] retry {i[3]} listed {k} times")
     ok: set[str] = set()
     for a in attempts:
-        if a.get("status") != "passed" or names[a.get("name")] != 1:
+        if (a.get("status") != "passed" or names[a.get("name")] != 1
+                or ident[(r.get("run"), a.get("test"), a.get("project"), a.get("retry"))] != 1):
             continue
         t = listed.get((a.get("test"), a.get("project")))
         if a.get("project") != project or t is None:
@@ -272,14 +285,22 @@ def _literal(path: Path, name: str) -> Any:
     raise LookupError(f"{path.name} declares no {name}")
 
 
-def declares_fails(path: Path) -> bool:
-    """A Vitest file that declares an expected failure (`it.fails(` /
-    `test.fails(`): its JSON report carries no mark of it — `status: passed`,
-    `meta: {}` (measured 2026-11-18) — so no unit evidence of it can be read."""
-    try:
-        return ".fails(" in path.read_text()
-    except OSError:
-        return False
+def vitest_options(opts: list | None, label: str, errors: list[str]) -> dict[tuple, bool]:
+    """(file relative to lcnc-webui/src, full name) → declared an expected
+    failure — the RESOLVED option the run wrote (vitest_options_reporter.mjs,
+    R398 VM-I34): Vitest's JSON report reads `it.fails` as passed with no mark,
+    and the source spells it many ways (a space, `.each`, `{ fails: true }`, an
+    alias). Not a list of objects: an evaluation error."""
+    out: dict[tuple, bool] = {}
+    if opts is None:
+        return out
+    if not isinstance(opts, list) or not all(isinstance(x, dict) for x in opts):
+        errors.append(f"{label}: no list of test option records")
+        return out
+    for x in opts:
+        key = (str(x.get("file", "")).split("/lcnc-webui/src/")[-1], x.get("fullName"))
+        out[key] = out.get(key, False) or x.get("fails") is True
+    return out
 
 
 def _sites(sides: tuple, key: str) -> list[dict]:
@@ -348,11 +369,18 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                           for k, v in listed.items() if k[1] == project}
         refs[project] = ref
     unit: dict[tuple, str] = {}
+    unit_fails: dict[tuple, bool] = {}
     for name in ("unit-light", "unit-heavy"):
         lst = logs / f"{name}.list.json"
         if name == "unit-heavy" and not lst.is_file() and gate.get("kind") != "merge":
             continue
-        unit.update(vitest_index(_json(lst, errors) or [], _json(logs / f"{name}.json", errors), f"{name}.json", errors))
+        part = vitest_index(_json(lst, errors) or [], _json(logs / f"{name}.json", errors), f"{name}.json", errors)
+        opts = vitest_options(_json(logs / f"{name}.options.json", errors), f"{name}.options.json", errors)
+        for key in part:
+            if key not in opts and (logs / f"{name}.options.json").is_file():
+                errors.append(f"{name}.options.json: no options of {key[0]} › {key[1][:80]} — its expected failure unknown")
+        unit.update(part)
+        unit_fails.update(opts)
     junit = logs / "backend" / "backend.junit.xml"
     gw = junit_tests(junit) if junit.is_file() else {}
     if not junit.is_file():
@@ -395,6 +423,16 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
         if r.get("commit") != head:
             continue
         v = r.get("variant")
+        # the report's own identity before its completeness — the same the
+        # evidence search uses (R398 VM-I35): a known profile, every row of
+        # the report's variant
+        if r.get("profile") not in profiles:
+            errors.append(f"native report {r.get('run_id', '')}: profile {r.get('profile')!r} is no native_run profile")
+            continue
+        other = sorted({str(row.get("case")) for row in r["rows"] if row.get("variant") != v})
+        if other:
+            errors.append(f"native report (variant {v}): rows of another variant {other[:10]}")
+            continue
         if v not in declared:
             errors.append(f"native report {r.get('run_id', '')}: variant {v!r} declares no cases")
             continue
@@ -479,10 +517,10 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                     cands = [(k, [k[1].split(" > ")[-1], k[1]]) for k in unit if k[0] == e["file"]]
                     bound, why = bind(e, cands)
                     st = verdict([unit[k] for k in bound]) if not why else "not collected"
-                    if not why and declares_fails(root / "lcnc-webui/src" / e["file"]):
-                        why = ("the file declares `.fails(` — Vitest's JSON reporter writes an expected failure "
-                               "as passed (measured, R396 VM-I34's class)")
-                        st = "unreadable"
+                    if not why and any(unit_fails.get(k) for k in bound):
+                        why = ("a bound test declares an expected failure — Vitest's JSON report reads it as "
+                               "passed (R398 VM-I34)")
+                        st = "expected to fail"
                     row |= {"bound": [k[1] for k in bound], "status": st, **({"why": why} if why else {})}
                 elif e["layer"] == "gateway":
                     bound = [k for k in gw if k[0] == e["file"] and k[1].split("::")[-1].split("[")[0] == e["title"]]
