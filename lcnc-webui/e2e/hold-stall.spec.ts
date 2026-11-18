@@ -22,6 +22,7 @@ import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { HOLD_STALL_MS } from "../src/holdGesture";
 import { HOLD_FIRE_MS } from "../src/machineControls";
+import { judgeHold, STALL_HINT } from "./holdJudge";
 
 test.use({ hasTouch: true, viewport: { width: 1280, height: 800 } });
 
@@ -34,7 +35,14 @@ const PERMS_ALL = {
 };
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const hints = (page: Page) => page.evaluate(() => (window as unknown as { __hints: string[] }).__hints);
-const clearHints = (page: Page) => page.evaluate(() => { (window as unknown as { __hints: string[] }).__hints = []; });
+/** From now on: the hints of the next gesture only — the one on screen now
+ *  (its node and text) is ignored while it stands unchanged (Codex R401). */
+const clearHints = (page: Page) => page.evaluate(() => {
+  const w = window as unknown as { __hints: string[]; __hintStale: { el: Element; text: string | null } | null };
+  w.__hints = [];
+  const el = document.querySelector("[data-btn-hint]");
+  w.__hintStale = el ? { el, text: el.textContent } : null;
+});
 const unhomes = async () => ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? [])
   .filter(c => c.cmd === "unhome_all").length;
 
@@ -97,15 +105,8 @@ async function smoothHold(page: Page, cdp: Awaited<ReturnType<typeof open>>["cdp
   for (let attempt = 1; attempt <= 3; attempt++) {
     await clearHints(page);
     const r = await gesture(page, cdp, p, ms, null);
-    const h = await hints(page);
-    tried.push({ ...r, hints: h });
-    const whole = r.delivered !== null && r.delivered >= HOLD_FIRE_MS;
-    if (r.fired > 0) {
-      expect(whole, `a fire from a press the page saw whole: ${JSON.stringify(tried)}`).toBe(true);
-      expect(r.fired, "exactly one").toBe(1);
-      return tried;
-    }
-    if (whole) expect(h, `a whole hold that sent nothing says why: ${JSON.stringify(tried)}`).toContain("Page delayed — hold again");
+    tried.push({ ...r, hints: await hints(page) });
+    if (judgeHold(tried[tried.length - 1]!, tried) === "done") return tried;
   }
   throw new Error(`no hold the page saw whole and watched in three attempts: ${JSON.stringify(tried)}`);
 }
@@ -133,12 +134,18 @@ for (const [name, block, releaseAt] of [["a block from the press's delivery to 5
 test(`a hold across a block past ${HOLD_STALL_MS} ms is cancelled and says so; the same hold on a smooth page fires`, async ({ page }) => {
   test.setTimeout(60_000);
   const { cdp, p } = await open(page);
-  // every hint text the gesture shows (the hint hides itself after ~1.6 s)
+  // every hint a gesture shows after ITS press was delivered (gesture() resets
+  // __hs, its pointerdown lands there), none still on screen from an older
+  // one (clearHints; Codex R401)
   await page.evaluate(() => {
-    const w = window as unknown as { __hints: string[] };
+    const w = window as unknown as { __hints: string[]; __hs?: { t: string }[]; __hintStale: { el: Element; text: string | null } | null };
     w.__hints = [];
+    w.__hintStale = null;
     new MutationObserver(() => {
-      const h = document.querySelector("[data-btn-hint]")?.textContent?.trim();
+      if (!w.__hs?.some(e => e.t === "pointerdown")) return;          // not this gesture's press yet
+      const el = document.querySelector("[data-btn-hint]");
+      if (!el || (w.__hintStale && el === w.__hintStale.el && el.textContent === w.__hintStale.text)) return;
+      const h = el.textContent?.trim();
       if (h && w.__hints[w.__hints.length - 1] !== h) w.__hints.push(h);
     }).observe(document.body, { subtree: true, childList: true, characterData: true });
   });
@@ -151,7 +158,7 @@ test(`a hold across a block past ${HOLD_STALL_MS} ms is cancelled and says so; t
     tried.push({ ...across, hints: await hints(page) });
     expect(across.fired, `a hold the page could not watch: ${JSON.stringify(tried)}`).toBe(0);
     if (across.block !== null && across.delivered !== null && across.delivered >= across.block.to) {
-      expect(tried[tried.length - 1]!.hints, "the hold ended as stalled").toContain("Page delayed — hold again");
+      expect(tried[tried.length - 1]!.hints, "the hold ended as stalled").toContain(STALL_HINT);
       break;
     }
     expect(attempt, `the press down through the block within three attempts: ${JSON.stringify(tried)}`).toBeLessThan(3);

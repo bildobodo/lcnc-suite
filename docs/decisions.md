@@ -11629,7 +11629,18 @@ touch in safety-during-edit) — the round gate at 893356e1 failed one of
 them and the mouse guard's real-time abort case under load; they run on
 the page's clock now, and `src/realTimeHolds.test.ts` scans every spec for
 a real-time wait under a pressed pointer (red first against the old specs:
-exactly those five). Visible at the machine: a hold during a page stall over
+exactly those five). The real-time cases time the release from the press
+call's return (it returns after the page's delivery — measured in Chromium
+and Firefox 160), the page records the block as it ran, and every case
+asserts "never fired" on every attempt while an attempt counts only when the
+page's record proves its setting (else named and taken again, at most
+three) — the round gate at c0785018 failed both guards because a press
+delivered late left the release right behind it (staged load: 15 of 28 red
+before, 28 of 28 after, 0 fires either way). Their hint recorders take a
+hint only after their own press was delivered and never the one still on
+screen (Codex R401: an old "Page delayed" re-read at any DOM change excused
+a silent whole press); one judgement for a smooth hold (`e2e/holdJudge.ts`),
+a guard that a silent whole press stays unexcused. Visible at the machine: a hold during a page stall over
 0.15 s is cancelled and says so; a hold on a smooth page is unchanged.
 Named sibling, its own package: a continuous jog's stop waits for a stall
 (Codex: an off-main-thread jog lease).

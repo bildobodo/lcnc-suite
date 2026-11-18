@@ -29,6 +29,8 @@ const UP = /mouse\.up\(|["']touch(?:End|Cancel)["']\s*[,}\]]|(?:dispatchEvent|ne
 /** A press never outlives its test (a dispatched press may have no release). */
 const TEST_START = /^\s*test(?:\.describe)?\(/;
 const WAIT = /\b(?:waitForTimeout|sleep)\(\s*([^),]+)/g;
+/** A press held by Playwright itself: `click` / `dblclick` / `tap` with a `delay`. */
+const DELAYED = /\.(?:click|dblclick|tap)\(\s*\{[^}]*\bdelay:\s*([^,}\s]+)/g;
 
 /** Every real-time wait >= the stall limit (or of a named length) between a
  *  press and its release, in source order: "file:line". */
@@ -38,6 +40,10 @@ function realTimeHolds(file: string, text: string): string[] {
   text.split("\n").forEach((line, i) => {
     if (UP.test(line) || TEST_START.test(line)) down = false;
     if (DOWN.test(line) && !UP.test(line)) down = true;
+    for (const m of line.matchAll(DELAYED)) {
+      const ms = Number(m[1]!.trim());
+      if (!Number.isFinite(ms) || ms >= HOLD_STALL_MS) out.push(`${file}:${i + 1}`);
+    }
     if (!down) return;
     for (const m of line.matchAll(WAIT)) {
       const ms = Number(m[1]!.trim());
@@ -55,6 +61,9 @@ describe("a hold in a browser spec runs on the page's clock", () => {
     expect(realTimeHolds("a", 'await touch(cdp, "touchStart", [p]);\nawait page.waitForTimeout(150);')).toEqual(["a:2"]);
     expect(realTimeHolds("a", 'el.dispatchEvent(new PointerEvent("pointerdown"));\nawait page.waitForTimeout(600);')).toEqual(["a:2"]);
     expect(realTimeHolds("a", 'await btn.dispatchEvent("pointerdown", { button: 0 });\nawait page.waitForTimeout(600);')).toEqual(["a:2"]);
+    expect(realTimeHolds("a", "await btn.click({ delay: 700 });")).toEqual(["a:1"]);
+    expect(realTimeHolds("a", "await btn.click({ force: true, delay: HOLD });")).toEqual(["a:1"]);
+    expect(realTimeHolds("a", "await btn.click({ delay: 50 });\nawait btn.click({ force: true });")).toEqual([]);
     // a tap's short wait, a wait after the release, a press on the page's clock
     expect(realTimeHolds("a", "await page.mouse.down();\nawait page.waitForTimeout(100);\nawait page.mouse.up();\nawait page.waitForTimeout(900);"))
       .toEqual([]);

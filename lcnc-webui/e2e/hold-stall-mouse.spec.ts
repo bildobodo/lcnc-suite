@@ -22,6 +22,7 @@
 import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { installHoldClock, onPageClock } from "./holdClock";
+import { judgeHold, STALL_HINT } from "./holdJudge";
 import { HOLD_FIRE_MS } from "../src/machineControls";
 
 test.use({ viewport: { width: 1280, height: 800 } });
@@ -53,18 +54,26 @@ async function open(page: Page) {
 type Seen = { t: string; at: number };
 type Blk = { from: number; to: number } | null;
 /** From now on: every press and release the page delivers (`at`, its clock)
- *  and every hint text the button shows. */
+ *  and every hint the button shows AFTER this record's first press was
+ *  delivered — never one before it, never the one on screen at this call
+ *  while it stands unchanged (a hint shows 1.5 s; Codex R401: an old "Page
+ *  delayed" re-read at any DOM change excused a silent whole press). */
 const record = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __rec?: boolean; __blk: Blk };
+  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __rec?: boolean; __blk: Blk; __hintStale: { el: Element; text: string | null } | null };
   w.__seen = [];
   w.__hints = [];
   w.__blk = null;
+  const shown = document.querySelector("[data-btn-hint]");
+  w.__hintStale = shown ? { el: shown, text: shown.textContent } : null;
   if (w.__rec) return;
   w.__rec = true;
   for (const t of ["pointerdown", "pointerup"])
     window.addEventListener(t, () => w.__seen.push({ t, at: performance.now() }), { capture: true });
   new MutationObserver(() => {
-    const h = document.querySelector("[data-btn-hint]")?.textContent?.trim();
+    if (!w.__seen.some(e => e.t === "pointerdown")) return;          // not this record's press yet
+    const el = document.querySelector("[data-btn-hint]");
+    if (!el || (w.__hintStale && el === w.__hintStale.el && el.textContent === w.__hintStale.text)) return;
+    const h = el.textContent?.trim();
     if (h && w.__hints[w.__hints.length - 1] !== h) w.__hints.push(h);
   }).observe(document.body, { subtree: true, childList: true, characterData: true });
 });
@@ -115,24 +124,18 @@ test("mouse: a tap sends nothing, a hold on a smooth page sends once", async ({ 
     }
     expect(attempt, `a tap the page saw short within three attempts: ${JSON.stringify(taps)}`).toBeLessThan(3);
   }
-  // a hold: counted once the page saw it whole; a whole one that sent nothing
-  // says "Page delayed" (the runner stalled it) and is retaken; a fire from a
-  // press the page saw short is red
+  // a hold, judged by what the page saw (holdJudge.ts): retaken when the page
+  // saw it short or saw it whole and stalled (said so); a fire from a press
+  // the page saw short is red, so is a silent whole press
   const holds = [];
   for (let attempt = 1; ; attempt++) {
     await ctl({ op: "clearCmds" });
     await record(page);
     await press(page, 800);
     await sleep(500);
-    const s = await seen(page), d = deliveredOf(s), fired = await unhomes();
-    holds.push({ delivered: d, fired, hints: s.hints });
-    const whole = d !== null && d >= HOLD_FIRE_MS;
-    if (fired > 0) {
-      expect(whole, `a fire from a press the page saw whole: ${JSON.stringify(holds)}`).toBe(true);
-      expect(fired, "exactly one").toBe(1);
-      break;
-    }
-    if (whole) expect(s.hints, `a whole hold that sent nothing says why: ${JSON.stringify(holds)}`).toContain("Page delayed — hold again");
+    const s = await seen(page);
+    holds.push({ delivered: deliveredOf(s), fired: await unhomes(), hints: s.hints });
+    if (judgeHold(holds[holds.length - 1]!, holds) === "done") break;
     expect(attempt, `a hold the page saw whole and watched within three attempts: ${JSON.stringify(holds)}`).toBeLessThan(3);
   }
   console.log(`hold-stall-mouse smooth: ${JSON.stringify({ taps, holds })}`);
@@ -158,7 +161,7 @@ test("mouse: a tap or a hold across a blocked page never fires", async ({ page }
       // at or past the due time (a tap's release held back by the block; a
       // hold down through the block) — then a hold ended as stalled
       if (s.block !== null && delivered !== null && delivered >= HOLD_FIRE_MS) {
-        if (ms > HOLD_FIRE_MS) expect(s.hints, `the hold ended as stalled: ${JSON.stringify(tried)}`).toContain("Page delayed — hold again");
+        if (ms > HOLD_FIRE_MS) expect(s.hints, `the hold ended as stalled: ${JSON.stringify(tried)}`).toContain(STALL_HINT);
         break;
       }
       expect(attempt, `the setting within three attempts: ${JSON.stringify(tried)}`).toBeLessThan(3);
@@ -192,4 +195,38 @@ test("mouse: an ended press's step never fires a new short press (an abort, then
   expect(s.ups[0], "the first press ended before the second began").toBeLessThan(s.downs[1]);
   expect(s.downs[1], "the second press began before the first one's due time").toBeLessThan(due);
   expect(s.ups[1], "the second press was down at the first one's due time").toBeGreaterThan(due);
+});
+
+// Codex R401 (VM397-03 rest): the recorder takes a hint only from its own
+// press. A stalled hold leaves "Page delayed" on screen; a new record, a DOM
+// change before the press, then a whole press ended silently (a lost focus at
+// 100 ms — no hint by contract, nothing sent): the old hint is not this
+// press's, and the judgement rejects the silent whole press.
+test("mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused", async ({ page }) => {
+  await installHoldClock(page);
+  await open(page);
+  await onPageClock(page, async () => {
+    await record(page);
+    await page.mouse.down();
+    await page.clock.fastForward(700);                   // a stall: the watch sees a 700 ms gap
+    await page.mouse.up();
+    await page.clock.runFor(20);
+    await expect(page.locator("[data-btn-hint]"), "the old hint on screen").toHaveText(STALL_HINT);
+    await record(page);
+    await page.evaluate(() => { const el = document.createElement("i"); document.body.append(el); el.remove(); });
+    expect((await seen(page)).hints, "before the press: nothing of this record").toEqual([]);
+    await page.mouse.down();
+    await page.clock.runFor(100);
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await page.clock.runFor(700);
+    await page.mouse.up();
+    await page.clock.runFor(20);
+  });
+  const s = await seen(page);
+  const a = { delivered: deliveredOf(s), fired: await unhomes(), hints: s.hints };
+  console.log(`hold-stall-mouse stale hint: ${JSON.stringify(a)}`);
+  expect(a.delivered, "a press the page saw whole").toBeGreaterThanOrEqual(HOLD_FIRE_MS);
+  expect(a.fired, "nothing sent").toBe(0);
+  expect(a.hints, "no hint of this press").not.toContain(STALL_HINT);
+  expect(() => judgeHold(a, [a]), "the silent whole press is rejected").toThrow();
 });
