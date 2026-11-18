@@ -6,6 +6,7 @@ import { usePermissions } from './permissions';
 import { useGateExplain } from './gateExplain';
 import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
 import { showBtnHint } from './btnHint';
+import { BROWSER_SCHEDULER, HoldGesture, type HoldEnd } from './holdGesture';
 
 defineOptions({ inheritAttrs: false });
 
@@ -100,12 +101,11 @@ const resolvedMono = computed(() => props.mono ?? def.value.mono);
 const attrs = useAttrs();
 const holdEnabled = computed(() => props.hold ?? def.value.hold ?? false);
 const holding = ref(false);
-let holdTimer = 0;
+/** The press under way: ONE gesture, its timers its own (holdGesture.ts). */
+let gesture: HoldGesture | null = null;
 let holdStartX = 0;
 let holdStartY = 0;
 const HOLD_MOVE_SLOP = 10; // px
-/** How late the hold timer may run before queued input goes first (a frame and some). */
-const HOLD_LATE_MS = 50;
 
 // ── Transient hint (review "Hold verständlich") ──
 // "Hold to activate" after a short tap on a hold button; "Busy — try again"
@@ -151,18 +151,21 @@ function callClickHandler(e: Event) {
   else h?.(e);
 }
 
-let holdStartTs = 0;
-
 // Every cancelled hold says so (console, like fire()'s drops): a swallowed
 // press used to be indistinguishable from a working one — "sometimes it
 // doesn't" (2026-09-04). A release before HOLD_FIRE_MS is the operator's
-// tap; a leave/cancel is a pointer steal or slide-off.
-function cancelHold(reason: string) {
-  if (!holding.value) return;
-  clearTimeout(holdTimer);
-  holding.value = false;
-  disarmHoldGuards();
-  console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
+// tap; a leave/cancel is a pointer steal or slide-off; a stall is a page
+// that could not watch the press (holdGesture.ts, operator Q397-1).
+const HOLD_END_WORDS: Record<HoldEnd, string> = {
+  released: "released before the hold time", left: "pointer left the button",
+  cancelled: "pointer cancelled (drag-scroll / gesture took it)", hidden: "page hidden during the hold",
+  blur: "window lost focus during the hold", target: "target changed during the hold",
+  gate: "gate closed during the hold", moved: "moved more than the slop", unmount: "the button left the page",
+  stalled: "the page was blocked during the hold — no longer provable",
+};
+function cancelHold(why: Exclude<HoldEnd, "stalled">) {
+  if (!holding.value || !gesture) return;
+  gesture.end(why);            // → its ended(): the state reset and the log
 }
 // EVERY cancelled hold says so AT the control (UX-12) — a half-drawn fill
 // that vanished used to be the only sign of a slide-off or a gate that
@@ -170,10 +173,10 @@ function cancelHold(reason: string) {
 // only: nobody is looking at the control then.
 const cancelHoldUp = () => {
   if (holding.value) showHint('Hold to activate');
-  cancelHold("released before the hold time");
+  cancelHold("released");
 };
-const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("pointer left the button"); };
-const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("pointer cancelled (drag-scroll / gesture took it)"); };
+const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("left"); };
+const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("cancelled"); };
 // A hold button announces its contract before it is ever pressed through
 // its hover title (unless the caller names the action); a tap says "Hold to
 // activate". No resting mark (operator 2026-09-26 — the track read as a
@@ -183,8 +186,8 @@ const resolvedTitle = computed(() =>
 
 // A hold that loses the page (tab hidden, window blur) is over: the timer
 // must not fire later as a surprise. Listeners live only for the hold.
-const cancelHoldHidden = () => { if (document.visibilityState === 'hidden') cancelHold("page hidden during the hold"); };
-const cancelHoldBlur = () => cancelHold("window lost focus during the hold");
+const cancelHoldHidden = () => { if (document.visibilityState === 'hidden') cancelHold("hidden"); };
+const cancelHoldBlur = () => cancelHold("blur");
 function armHoldGuards() {
   document.addEventListener('visibilitychange', cancelHoldHidden);
   window.addEventListener('blur', cancelHoldBlur);
@@ -202,55 +205,54 @@ function onHoldPointerDown(e: PointerEvent) {
   }
   holdStartX = e.clientX;
   holdStartY = e.clientY;
-  holdStartTs = performance.now();
+  gesture?.end("cancelled");   // never expected: a press while one is under way
   holding.value = true;
   armHoldGuards();
-  clearTimeout(holdTimer);
-  holdTimer = window.setTimeout(() => holdDue(e, false), HOLD_FIRE_MS);
-}
-
-// The hold time is over — unless the timer is LATE: the main thread was
-// blocked past it, and a release that happened in that block is still
-// queued behind this task (it fired a 120 ms tap in 3 of 10 staged runs —
-// a 600 ms block, 2026-11-17). A late timer gives queued input one frame
-// first and fires only if the press still stands then.
-function holdDue(e: PointerEvent, deferred: boolean) {
-  if (!holding.value) return;
-  if (!deferred && performance.now() - holdStartTs > HOLD_FIRE_MS + HOLD_LATE_MS) {
-    console.warn(`[hold] ${props.type} timer late by ${Math.round(performance.now() - holdStartTs - HOLD_FIRE_MS)} ms: queued input first`);
-    requestAnimationFrame(() => { holdTimer = window.setTimeout(() => holdDue(e, true), 0); });
-    return;
-  }
-  {
-    holding.value = false;
-    disarmHoldGuards();
-    // Gate may have closed mid-hold (disarm, probe started) — re-check.
-    if (isDisabled.value) {
-      showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
-      console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
-      return;
-    }
-    if (busyWillDrop()) showHint('Busy — try again');
-    callClickHandler(e);
-  }
+  const g: HoldGesture = new HoldGesture(BROWSER_SCHEDULER, HOLD_FIRE_MS, {
+    fire: () => {
+      if (gesture !== g) return;
+      gesture = null;
+      holding.value = false;
+      disarmHoldGuards();
+      // Gate may have closed mid-hold (disarm, probe started) — re-check.
+      if (isDisabled.value) {
+        showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
+        console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
+        return;
+      }
+      if (busyWillDrop()) showHint('Busy — try again');
+      callClickHandler(e);
+    },
+    ended: (why, heldMs) => {
+      if (gesture === g) {
+        gesture = null;
+        holding.value = false;
+        disarmHoldGuards();
+      }
+      // the operator's choice (Q397-1): a stalled hold is cancelled — hold again
+      if (why === "stalled") showHint('Page delayed — hold again');
+      console.warn(`[hold] ${props.type} cancelled after ${Math.round(heldMs)} ms: ${HOLD_END_WORDS[why]} (hold ${HOLD_FIRE_MS} ms to fire)`);
+    },
+  });
+  gesture = g;
 }
 
 // A hold is bound to its target and its gate for its whole duration: the
 // target changing (selection moved, UI-02) or the gate closing — even if
 // it re-opens before the timer fires — cancels it. The check at timer
 // expiry alone let a 500 ms window retarget a hold.
-watch(() => props.holdKey, () => { if (holding.value) showHint('Selection changed — hold again'); cancelHold("target changed during the hold"); });
+watch(() => props.holdKey, () => { if (holding.value) showHint('Selection changed — hold again'); cancelHold("target"); });
 watch(isDisabled, (off) => {
   if (!off || !holding.value) return;
   showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
-  cancelHold("gate closed during the hold");
+  cancelHold("gate");
 });
 
 function onHoldPointerMove(e: PointerEvent) {
   if (!holding.value) return;
   if (Math.abs(e.clientX - holdStartX) > HOLD_MOVE_SLOP || Math.abs(e.clientY - holdStartY) > HOLD_MOVE_SLOP) {
     showHint('Hold to activate — stay on the button');
-    cancelHold("moved more than the slop");
+    cancelHold("moved");
   }
 }
 
@@ -259,7 +261,7 @@ function onHoldContextMenu(e: Event) {
   if (holdEnabled.value) e.preventDefault();
 }
 
-onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
+onBeforeUnmount(() => { gesture?.end("unmount"); disarmHoldGuards(); });
 </script>
 
 <template>
