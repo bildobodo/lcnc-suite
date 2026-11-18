@@ -1,0 +1,26 @@
+[
+  {
+    "name": "alias expected failure",
+    "file": "/tmp/codex-r398-Ts0ULELL/lcnc-webui/src/r398-fixtures/alias.test.ts"
+  },
+  {
+    "name": "normal positive control",
+    "file": "/tmp/codex-r398-Ts0ULELL/lcnc-webui/src/r398-fixtures/control.test.ts"
+  },
+  {
+    "name": "each expected failure 1",
+    "file": "/tmp/codex-r398-Ts0ULELL/lcnc-webui/src/r398-fixtures/each.test.ts"
+  },
+  {
+    "name": "option expected failure",
+    "file": "/tmp/codex-r398-Ts0ULELL/lcnc-webui/src/r398-fixtures/option.test.ts"
+  },
+  {
+    "name": "plain expected failure",
+    "file": "/tmp/codex-r398-Ts0ULELL/lcnc-webui/src/r398-fixtures/plain.test.ts"
+  },
+  {
+    "name": "spaced expected failure",
+    "file": "/tmp/codex-r398-Ts0ULELL/lcnc-webui/src/r398-fixtures/spaced.test.ts"
+  }
+]

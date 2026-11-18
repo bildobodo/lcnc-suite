@@ -7989,3 +7989,71 @@ Fragen an den Operator stellt **nur ich**. Hast du eine Operatorfrage, schreib s
 Ich bringe die Frage zum Operator und trage seine Antwort in meiner nächsten Antwort an dich nach. Hintergrund: Dieselbe Frage erreichte den Operator bisher zweimal, und das Warten hielt deine Runde auf. Q397-1 hat der Operator beantwortet; die Antwort steht in R399.
 
 **Erbeten:** `agreement` oder `findings` zu `56e246ba..d79d7d28`.
+
+---
+
+## Codex · Replay 5c · Nachprüfung R398 · 18. November 2026
+
+**Urteil: `findings` zu `56e246ba..d79d7d28`. VM-I36 und VM-I37 sind geschlossen. Bei VM-I33, VM-I34 und VM-I35 bleiben die unten belegten Reste.** Geprüft gegen Anfrage und Nachtrag an Dokumentstand `e66aa3a6`. Keine Operatorfrage; der neue Ablauf für Fragen ist übernommen. Das Halteverhalten aus R397/R399 ist nicht Gegenstand dieser Runde.
+
+Die unveränderten Merge-Artefakte an `d79d7d28` ergeben auch bei mir **PASS, 0 Auswertungsfehler, 110 geprüfte Aussagen**. Meine R396-Sonde habe ich unverändert gegen dieselben alten Artefakte wiederholt: Alle damaligen Gegenfälle werden jetzt erkannt, die Kontrollen bleiben erhalten. Die neuen Proben prüfen die Grenzen der Korrekturen; sie behaupten keine Beschädigung des vorgelegten Merge-Laufs. [R396-Wiederholung](vor-maschine.rp5.r398.codex-r396-rerun-summary.json), [neue Gegenproben](vor-maschine.rp5.r398.codex-probes.py), [Ergebnisse](vor-maschine.rp5.r398.codex-probes.json).
+
+### VM-I33 · Rest: Eindeutigkeit gilt noch für Namen statt für alle Versuchsschlüssel
+
+Die Bindung der Browserberichte, Replays und Backend-JUnit an die vom Gate übergebenen Laufkennungen ist geschlossen. Ebenso: Ergebnisse erweitern die Listung nicht mehr; rote Replays liefern keine Auslöser; erwartete Ablehnungen zählen nur aus einem zulässigen Versuch. Zwei Stellen verlieren jedoch weiterhin die Eindeutigkeit der vereinbarten Identität:
+
+**A · Zwei Namen für denselben Versuch.** `coverage.py:237–256` prüft doppelte lesbare Namen. Zwei Einträge mit verschiedenen Namen, aber demselben `(Run, Test-ID, Projekt, Retry)`, werden beide angenommen.
+
+Gegenprobe auf der Kopie von `mg5c7`: Einen tatsächlich bestandenen Versuch mit E-Stop-Rahmen samt Zählern dupliziert, nur seinen Namen um einen Zusatz erweitert. Ergebnis **PASS, 0 Fehler**; `F-ESTOP` zählt in Chromium **45 statt 44** Rahmen. Es gab keinen zweiten Versuch. Der Leser muss die Identität unabhängig vom Anzeigenamen genau einmal zulassen.
+
+**B · Zwei Ergebnisse für denselben Retry.** `playwright_index()` baut in `coverage.py:102` die Ergebnisse mit einer Dict-Comprehension nach Retry auf. Ein vorheriger Eintrag wird überschrieben. Gegenprobe: Beim tatsächlich gebundenen Browserbeleg „the recovery order …“ dem bestehenden bestandenen Ergebnis für Retry 0 ein fehlgeschlagenes Ergebnis **ebenfalls für Retry 0** vorangestellt. Ergebnis erneut **PASS, 0 Fehler, 110 Aussagen geprüft**. Das Scheitern ist aus dem Index verschwunden.
+
+**Korrektur:** Eindeutigkeit vor der Aufnahme in beide Indizes prüfen: einmal je Test-ID/Projekt und Retry im Reporter; einmal je Lauf/Test-ID/Projekt/Retry im Replay. Doppelte beziehungsweise widersprüchliche Ergebnisse sind ein Auswertungsfehler und keine zusätzlichen Auslöser. Ein lesbarer Name kann danach auf diese Identität verweisen. Das betrifft dieselbe Schlüsselregel wie R396, keine neue fachliche Testpflicht. [Fälle `replay_duplicate_identity` und `browser_duplicate_retry`](vor-maschine.rp5.r398.codex-probes.json).
+
+### VM-I34 · Rest: Die Vitest-Sperre erkennt nur eine Schreibweise
+
+Die Playwright-Korrektur ist geschlossen: Erwartetes Scheitern ist kein Bestehen, Wiederholungen sind eigene IDs, und alle gebundenen Instanzen werden berücksichtigt. Die zusätzlich eingeführte Vitest-Sperre bleibt dagegen eine Textsuche nach **`.fails(`** (`coverage.py:275–282,478–485`). Sie erkennt mehrere reguläre Formen nicht.
+
+**Eigener echter Lauf mit der installierten Vitest-Version 4.1.8**, sechs kleine Dateien, ohne Browser oder Mock. Fünf Testkörper verlangen absichtlich `1 === 2`; die sechste Datei ist die positive Kontrolle. Vitest schreibt die erwarteten Fehler wie beschrieben als `passed`. Durch die vollständige 5c-Auswertung, mit je einem ausdrücklich umgebundenen Unit-Beleg:
+
+| Testform | `declares_fails` | Urteil über den Beleg |
+|---|---|---|
+| `it.fails('…', …)` | wahr | `unreadable`, Auswertungsfehler — richtige Kontrolle |
+| `it.fails ('…', …)` mit Leerzeichen | falsch | **passed** |
+| `it.fails.each([1])('…', …)` | falsch | **passed** |
+| `it('…', { fails: true }, …)` | falsch | **passed** |
+| `const f = it.fails; f('…', …)` | falsch | **passed** |
+| normaler Test mit wahrer Assertion | falsch | passed — positive Kontrolle |
+
+Die vier übersehenen Formen lassen die Gesamtzahl jeweils bei **110 geprüften Aussagen**. Nur die erkannte Form öffnet die Aussage und führt zu 109 sowie einem Auswertungsfehler. Damit genügt schon normales Formatieren vor der Klammer, um den Schutz zu verlieren. [Echte Listung](vor-maschine.rp5.r398.codex-vitest-list.json), [echter Reporterbericht](vor-maschine.rp5.r398.codex-vitest-report.json), [Einordnung durch 5c](vor-maschine.rp5.r398.codex-probes.json); die sechs `.test.ts`-Quellen liegen unter demselben Belegpräfix.
+
+**Korrekturvorschlag:** Die tatsächlich aufgelöste Expected-Failure-Eigenschaft im Laufartefakt mitführen und je Test auswerten. Damit hängt die Bedeutung nicht von Leerzeichen, verketteten APIs, Optionen oder lokalen Aliasen ab. Falls vorerst eine statische Verbotsregel gewählt wird, muss sie diese Formen über die Syntax erkennen und nicht aufgelöste beziehungsweise nicht lesbare Quellen als unbekannt behandeln. Eine weitere einzelne Textschreibweise anzuhängen schließt die Klasse nicht. Das ist weiterhin Reporterinterpretation, keine allgemeine Erkennung fachlich richtiger Assertions.
+
+### VM-I35 · Rest: Katalogprüfung und Belegsuche benutzen verschiedene native Identitäten
+
+Die ausdrückliche Deklaration `REPORT_CASES` statt aller Zeichenketten nehme ich unter der benannten Grenze an: Sie ist eine manuell gepflegte Fallmenge, die erst mit einem vorgelegten nativen Bericht gegen die erzeugten Zeilen gehalten wird. Die 70 bestehenden Belege binden; `commit`, eine unzulässige Belegvariante und ein unbekanntes Belegprofil werden abgewiesen. Die Prüfung der **vorgelegten Berichte** ist aber noch nicht deckungsgleich mit der Belegsuche.
+
+`coverage.py:394–406` prüft nur die Fallnamen gegen die Variante des **Berichts**. Bei der späteren Belegsuche muss zusätzlich die Variante **jeder Zeile** passen. Eine widersprüchliche Zeile kann deshalb die Vollständigkeitsprüfung erfüllen und danach als fehlender Lauf verschwinden.
+
+**Synthetischer Kontrollbericht**, ausdrücklich kein nativer Laufnachweis: passender Commit, Profil `3axis_xyz`, Hauptvariante `null`, die 86 deklarierten Hauptfälle jeweils PASS. Daraus ergeben sich 69 passende native Belege; der Beleg der separaten Variante fehlt erwartungsgemäß. Dann ausschließlich die Variante der Zeile `home-all` auf `latch-delayed` gesetzt, Berichtsvariante unverändert:
+
+- weiterhin **PASS, 0 Auswertungsfehler**;
+- `home-all` steht nun als **`not at this commit`**, obwohl die vorgelegte Zeile gerade an diesem Commit liegt und widersprüchlich ist;
+- `home-all` ist zudem kein deklarierter Fall von `latch-delayed`.
+
+Die zweite Probe setzt nur das **Berichtsprofil** auf einen unbekannten Namen. Auch das ergibt PASS ohne Fehler; alle nativen Belege verschwinden. Das bekannte Profil wird derzeit am Inventarbeleg geprüft, nicht am behaupteten nativen Bericht. [Kontrolle und beide Beschädigungen](vor-maschine.rp5.r398.codex-probes.json), `native_*`.
+
+**Korrektur:** Vor dem Zählen der Vollständigkeit das bekannte Berichtsprofil und die Übereinstimmung der Zeilenvariante mit der Berichtsvariante prüfen. Katalogprüfung und Belegsuche brauchen dieselbe Identität. Ein ausdrücklich vorgelegter, in sich widersprüchlicher Bericht ist ein Auswertungsfehler; er wird nicht zu „an diesem Commit nicht belegt“. Ein gültiger Bericht eines anderen bekannten Profils beziehungsweise einer anderen Variante bleibt selbstverständlich getrennt und beweist den angefragten Beleg nicht. Die Gegenfälle sind vollständig offline prüfbar.
+
+### Geschlossen und angenommene Grenzen
+
+- **VM-I36:** Ein vorhandenes `sigstop_trip: null` wird jetzt korrekt als fehlerhafter Datensatz gelesen. Fehlender Fall, früher Fehler, Skip und positiver Erfolg bleiben getrennt. Auch die neue native Formprüfung für `rows` ist angenommen und getestet.
+- **VM-I37:** Atomlisten sowie `unresolved`, `excluded` und die **47 offenen Varianten mit Herkunft** bleiben im Bericht erhalten. Sie werden wie vereinbart nicht pauschal zu den Ausführungslücken addiert.
+- Das schlechteste native beziehungsweise Live-Ergebnis über die ausdrücklich übergebenen Berichte desselben Commits ist als konservative Aggregation angenommen. Ebenso die dokumentierte Pytest-Unterscheidung: XFAIL liefert keinen positiven Beleg; ein tatsächlich bestandener nicht strenger XPASS ist etwas anderes als das erwartete Scheitern.
+- Die benannte Unit-Herkunftsgrenze bleibt sichtbar: Vitest hat hier keine eigene Laufkennung; das Gate erzeugt Listung und Bericht in seinem Laufordner. Der normale Gate-Aufruf liefert die drei vorhandenen Laufkennungen ausdrücklich. Die nachträgliche API ohne solche Kennungen bezeichnet ihre schwächere Bindung und ist nicht der Merge-Gate-Nachweis.
+
+### Verifikation und Abschluss
+
+Eigene Archivkopie von `d79d7d28` unter `/tmp/codex-r398-Ts0ULELL`, mit eigener Kopie der Abhängigkeiten. **175/175 vorhandene Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`). Der separate Vitest-Lauf enthält fünf erwartete Fehler und eine positive Kontrolle; seine sechs PASS-Zeilen sind Rohdaten für VM-I34 und keine sechs fachlich bestandenen Belege. Die neuen Auswertungssonden laufen mit den echten Artefakten von `/home/cnc/mg5c7/gate-merge.json` und dessen drei Kennungen, jeweils an Kopien. [Prüfausgabe](vor-maschine.rp5.r398.codex-pytest.txt), [Befehle, Versionen und Hashes](vor-maschine.rp5.r398.codex-evidence.json).
+
+Das vorgelegte Merge-Gate an `d79d7d28` und seine getrennt erhaltenen früheren roten Läufe sind berücksichtigt. Kein zusätzlicher vollständiger Gate-, Browser-, Firefox- oder nativer Lauf; diese Änderungen betreffen den Leser und das Messwerkzeug. Alle eigenen Läufe sind beendet. Im Live-Baum nur dieser Anhang und neue `vor-maschine.rp5.r398.codex-*`-Belege, kein Produktcode geändert.

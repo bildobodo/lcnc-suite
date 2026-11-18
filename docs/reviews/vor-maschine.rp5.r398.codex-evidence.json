@@ -1,0 +1,85 @@
+{
+  "review": "R398",
+  "date": "2026-11-18",
+  "base": "56e246ba75224fc0606d85575a48eef0929f3cea",
+  "head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+  "document": "e66aa3a6a0c413dcc6fa638cea87a97453cb64ee",
+  "archive": "/tmp/codex-r398-Ts0ULELL",
+  "scope": "Replay 5c only; neither R397 nor R399 hold behavior reviewed here.",
+  "checks": {
+    "pytest": {
+      "files": [
+        "scripts/inventory/test_coverage.py",
+        "scripts/test_select/test_replay.py"
+      ],
+      "result": "175 passed in 7.89s"
+    },
+    "vitest": {
+      "version": "4.1.8",
+      "result": "6 passed: 5 expected failures plus 1 positive control; real list and JSON report; four expected-failure forms pass through coverage as positive evidence"
+    },
+    "real_merge_control": {
+      "verdict": "PASS",
+      "errors": 0,
+      "checked": 110,
+      "runs": "All three supplied explicitly from original gate checks via coverage(gate_path)."
+    },
+    "r396_unchanged": "all old counterexamples detected, controls unchanged; standalone API without gate IDs as original probe specifies"
+  },
+  "probes_command": "PYTHONDONTWRITEBYTECODE=1 python <probes.py> --root <archive> --gate /home/cnc/mg5c7/gate-merge.json --out <probes.json> (requires the real Vitest output at /tmp/r398-vitest-list.json and /tmp/r398-vitest-report.json)",
+  "isolation": "Own git archive and own node_modules copy. Python/Vitest under heavy_lock.py. No browser, gateway, native driver, VM or live-tree tests/builds. All own runs finished.",
+  "notes": [
+    "Native inputs are labeled synthetic: the declared case set with statuses PASS, then one deliberate identity corruption. No native pass is claimed from these probes.",
+    "Unit probes change one inventory evidence binding in process to each real standalone Vitest fixture. The other inventory bindings and actual merge artifacts remain unchanged.",
+    "Replay and Playwright identity counterexamples mutate copies of the supplied reports, not their originals."
+  ],
+  "source_sha256": {
+    "scripts/inventory/coverage.py": "bdf16d411e5b42ba9c094aa128ee73265a248725196f3a9a8d7842edd8433182",
+    "scripts/inventory/live_drivers.py": "10ed2e101e4a979b8d994576fd865d095cf01f24f4e5ef86e590d9d8fc3348d9",
+    "scripts/test_select/round_gate.py": "906df46fa783c35665ac7a681407f939be675854cae82f9e261796f291e03586",
+    "scripts/test_support/native_cases.py": "56ec33028424818a88f092fecdedc8f2b38ba66ff6f28b2129415ca70144c525"
+  },
+  "input_sha256": {
+    "/home/cnc/mg5c7/gate-merge.json": "91516b432180f1e1b317b446a0c4c49ff997ceb249da092c9aa87c76bf1ed4ba",
+    "/home/cnc/mg5c7/gate-merge.logs/list-run.json": "dc689e4158d4c9bf3a2eae3f6de5e6fdcd0430372bd14865cfb601c6b0ae1e78",
+    "/home/cnc/mg5c7/gate-merge.logs/playwright.json": "5ad3997473ebbf2e0a5b50297058e2de8d4c005db320cc0eb708a2f87b6ab275",
+    "/home/cnc/mg5c7/gate-merge.logs/firefox-list.json": "353b61fc15b02b75baead7713835bb538d6dcd9e6a618064f80b3260d1fc5dda",
+    "/home/cnc/mg5c7/gate-merge.logs/firefox.json": "7afe667c55d793f7bd68e59ccdb99d40d7c9eec9d74fa71e3d52cca9f8f13617",
+    "/home/cnc/mg5c7/gate-merge.logs/unit-light.list.json": "595d2bcaa35bb427ff7c2337061b1395f3055cfc8380dc098cab0e2fd8308910",
+    "/home/cnc/mg5c7/gate-merge.logs/unit-light.json": "1191bea33e2ce91d3018b684af6a178368dd18d61a6d6e26a749078b5a3830de",
+    "/home/cnc/mg5c7/gate-merge.logs/unit-heavy.list.json": "ba6db85463ed14fe503b1fddea14a81a6183fd46ac5a812be67a3e46bcf8e82d",
+    "/home/cnc/mg5c7/gate-merge.logs/unit-heavy.json": "12c890ef9d349d3d269d718178552ab71bc667bfba2c55f4ea3415bfa150f6f8",
+    "/home/cnc/mg5c7/gate-merge.logs/replay.json": "f53b867cc8c164cb556b9e9f0d49ee98ba9e527e1104b1bf537488746d02e4d1",
+    "/home/cnc/mg5c7/gate-merge.logs/firefox-replay.json": "55c623d23e5554df0e901369d9b21246fe88cc80bcb8dcf69360cdfe67d49390",
+    "/home/cnc/mg5c7/gate-merge.logs/backend/backend.junit.xml": "5e930d143df42425388ea86a617dd63b4dde4de791e608d051657a9c4613840c"
+  },
+  "evidence_sha256": {
+    "vor-maschine.rp5.r398.codex-vitest-console.txt": "6e99200ae0d71d201f9947b50f0e1f5f4c183412ebe8ae44d005fecba14cac07",
+    "vor-maschine.rp5.r398.codex-plain.test.ts": "56adb51cf4c38f617967150f41db69efb9afb9df69875f33b6e420e815256c1c",
+    "vor-maschine.rp5.r398.codex-r396-probes-rerun-d79d7d28.json": "c66725ca38c1b7142d8d363c59ad961861b4066cf1cc1d0409ec408a47b9726a",
+    "vor-maschine.rp5.r398.codex-probes.json": "ac2ad96c6cd20a20c3aba65e3d93d122547298c89b31df837a990cbfab063f2d",
+    "vor-maschine.rp5.r398.codex-r396-rerun-summary.json": "a28c9764f1860dd9eb03a38b8caac684c9c30c7dfa4bac43de24f7831496af19",
+    "vor-maschine.rp5.r398.codex-r396-probes-rerun.json": "c66725ca38c1b7142d8d363c59ad961861b4066cf1cc1d0409ec408a47b9726a",
+    "vor-maschine.rp5.r398.codex-vitest-report.json": "1fcfa04137d79cfa5a515b3e0ef355104bbbb0df886dc047b18d27e59c2f2dba",
+    "vor-maschine.rp5.r398.codex-control.test.ts": "5280abe20a46da653302769713aaf2f9e66f5bca97aa4528d32a8aee0e2b0bab",
+    "vor-maschine.rp5.r398.codex-spaced.test.ts": "98384bba233e44989c7168808a8445c09ff29fe426b1450971663046960e92dd",
+    "vor-maschine.rp5.r398.codex-vitest.config.ts": "284068211841c3c4433d1d102ec5a15c067862e70a3fac7548368b35e6a3732b",
+    "vor-maschine.rp5.r398.codex-each.test.ts": "8560ea61a816d220a43aec6bcdb62bb2f1409cc2443337e324de134954617526",
+    "vor-maschine.rp5.r398.codex-pytest.txt": "a06cd6dc0062df5b0591605c6d70067f9d08c3f7fbc1e5c9d487efae75c1b1e9",
+    "vor-maschine.rp5.r398.codex-alias.test.ts": "954df22e96fd299e9d8f7de56a33ed0128f2abf88919ef30264918596eb15beb",
+    "vor-maschine.rp5.r398.codex-run.sh": "2ef8bb68ac8278b2a00f6fbfc53d484e8dbbd28ceb940184b11b72e44da72a40",
+    "vor-maschine.rp5.r398.codex-probes.py": "2a73bdb6f9e0f60af5432b6edb4012e9750be3d3cc3dcafb238fb0e97d94acfd",
+    "vor-maschine.rp5.r398.codex-vitest-list.json": "28575b7ebddf3c7ccfdb943b790de53bbe98da407caa5f2e16a9a477d84572d3",
+    "vor-maschine.rp5.r398.codex-option.test.ts": "4cdbc122b54c99721e0bd1d1d7b13422925401d85ffc667282e575d418bd0c78"
+  },
+  "verdict": "findings",
+  "open": [
+    "VM-I33 rest: duplicate attempt/retry identities",
+    "VM-I34 rest: actual expected-failure forms in Vitest",
+    "VM-I35 rest: row variant differs from run variant; report profile not checked"
+  ],
+  "closed": [
+    "VM-I36",
+    "VM-I37"
+  ]
+}

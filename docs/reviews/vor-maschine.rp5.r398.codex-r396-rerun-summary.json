@@ -1,0 +1,122 @@
+{
+  "head": "9d7d7c0e38b4d863549aa269d02b942ce080f668",
+  "code_reviewed": "d79d7d28",
+  "script_unchanged": "docs/reviews/vor-maschine.rp5.r396.codex-coverage-probes.py",
+  "cases": {
+    "control_actual_merge_artifacts": {
+      "verdict": "PASS",
+      "errors": 0,
+      "first_errors": [],
+      "checked": 110
+    },
+    "empty_browser_and_unit_listings": {
+      "verdict": "FAIL",
+      "errors": 4935,
+      "first_errors": [
+        "playwright.json: appearance.spec.ts › a pulse moves the background, never the text: the banner stays fully opaque whil [800c8f995c061dbbf429-8475a3e2fb4258157462] — a result for a test the listing does not hold",
+        "playwright.json: appearance.spec.ts › reduced motion: no pulse and no flash — the state stays a static fill [800c8f995c061dbbf429-6ba8d0476467d0da2467] — a result for a test the listing does not hold",
+        "playwright.json: appearance.spec.ts › the E-Stop Reset and the state banner flash in step, whichever started first [800c8f995c061dbbf429-7705abc285136bfdf30c] — a result for a test the listing does not hold"
+      ],
+      "checked": 52
+    },
+    "foreign_playwright_run": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "playwright.json: run 'different-run', this run 'gate-ee03ce5b-4888-4fba-9174-eaa917f2593b' — another run's record"
+      ],
+      "checked": 110
+    },
+    "foreign_playwright_ids": {
+      "verdict": "FAIL",
+      "errors": 1896,
+      "first_errors": [
+        "playwright.json: appearance.spec.ts › a pulse moves the background, never the text: the banner stays fully opaque whil [foreign-800c8f995c061dbbf429-8475a3e2fb4258157462] — a result for a test the listing does not hold",
+        "playwright.json: appearance.spec.ts › reduced motion: no pulse and no flash — the state stays a static fill [foreign-800c8f995c061dbbf429-6ba8d0476467d0da2467] — a result for a test the listing does not hold",
+        "playwright.json: appearance.spec.ts › the E-Stop Reset and the state banner flash in step, whichever started first [foreign-800c8f995c061dbbf429-7705abc285136bfdf30c] — a result for a test the listing does not hold"
+      ],
+      "checked": 59
+    },
+    "foreign_replay_run_and_ids": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "replay.json: run 'different-run', this run 'gate-ee03ce5b-4888-4fba-9174-eaa917f2593b' — another run's replay"
+      ],
+      "checked": 110
+    },
+    "failed_replay": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "replay.json: verdict 'FAIL', 1 finding(s) — a red replay is no source of triggers"
+      ],
+      "checked": 110
+    },
+    "expected_browser_failure": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "replay.json: setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the t passed in the replay; the report has 'failed' at retry 0"
+      ],
+      "checked": 109
+    },
+    "native_metadata_word_collected_as_case": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "F-ESTOP.S4: native native_run.py › commit: no declared case 'commit' of variant None (native_cases.REPORT_CASES)"
+      ],
+      "checked": 110
+    },
+    "inventory_open_variants": {
+      "source": {
+        "complete": true,
+        "unresolved": [],
+        "excluded": 1,
+        "variantsOpen": 47
+      },
+      "output_inventoried": {
+        "atoms": [
+          "cmd:arm",
+          "control:SafetyStrip.vue|MachineBtn:arm|@click=emit('arm', !armed)",
+          "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model.number=autoDisarmMin",
+          "setting:machine.autoDisarmMin",
+          "status:armed",
+          "status:clients"
+        ],
+        "variants": [],
+        "problems": []
+      },
+      "output_mentions_variantsOpen": true
+    },
+    "live_absent_control": {
+      "verdict": "PASS",
+      "errors": 0,
+      "first_errors": [],
+      "checked": 110
+    },
+    "live_null_scenario": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "F-ESTOP.S4: script perf_matrix.py › sigstop_trip: sigstop_trip: NoneType where a scenario record belongs"
+      ],
+      "checked": 110
+    },
+    "live_missing_direct": {
+      "verdict": "FAIL",
+      "errors": 1,
+      "first_errors": [
+        "F-ESTOP.S4: script perf_matrix.py › sigstop_trip: sigstop_trip: no direct result"
+      ],
+      "checked": 110
+    },
+    "live_pass_control": {
+      "verdict": "PASS",
+      "errors": 0,
+      "first_errors": [],
+      "checked": 110
+    }
+  }
+}
