@@ -11620,7 +11620,16 @@ Not claimed: a duration bound — timers on time prove no delivered release
 (Codex R399's counter-sequence, pinned in `holdGesture.test.ts`). Every hold
 spec runs on the page's clock (`e2e/holdClock.ts`); the stall runs in real
 time (`hold-stall.spec.ts`, `hold-stall-mouse.spec.ts`, the latter in the
-Firefox core). Visible at the machine: a hold during a page stall over
+Firefox core) — and each of their cases proves its setting from what the
+page saw (the release DELIVERED at or past the due time, the stall hint, a
+new press spanning the old due time): without that the tap cases stayed
+green with the block missing (R401, red first). Five specs still held in
+real time (disarmed, probe-click, toolsetter-setup, touchoff, the first
+touch in safety-during-edit) — the round gate at 893356e1 failed one of
+them and the mouse guard's real-time abort case under load; they run on
+the page's clock now, and `src/realTimeHolds.test.ts` scans every spec for
+a real-time wait under a pressed pointer (red first against the old specs:
+exactly those five). Visible at the machine: a hold during a page stall over
 0.15 s is cancelled and says so; a hold on a smooth page is unchanged.
 Named sibling, its own package: a continuous jog's stop waits for a stall
 (Codex: an off-main-thread jog lease).

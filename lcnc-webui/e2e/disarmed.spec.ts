@@ -10,6 +10,7 @@
 // disabled AND carry its reason; a free one may act. The static inventory
 // (src/controlInventory.ts) names what each free control does.
 import { test, expect, type Page, type Locator } from "./test";
+import { holdMouse, installHoldClock } from "./holdClock";
 import { ctl, MOCK } from "./ctl";
 import { moreItem } from "./more";
 import { BUTTON_TYPES, INPUT_DEFS } from "../src/machineControls";
@@ -315,12 +316,11 @@ async function hold(page: Page, target: Locator) {
   await target.scrollIntoViewIfNeeded();   // the strip scrolls sideways
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(700);
-  await page.mouse.up();
+  await holdMouse(page, 700);   // on the page's clock (holdClock.ts): a stalled runner cannot end it
 }
 
 test("the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27)", async ({ page }) => {
+  await installHoldClock(page);   // Fwd is a hold (hold())
   await open(page);
   const spindle = page.locator('[data-strip="spindle"]');
   const rpm = page.locator(".spRpmInput");

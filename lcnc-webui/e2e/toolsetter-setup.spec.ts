@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from "./test";
+import { holdMouse, installHoldClock } from "./holdClock";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { toolsetterSetup, toolsetterVarMap } from "../src/toolsetterSetup";
 
@@ -56,9 +57,7 @@ const sent = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string;
 async function hold(page: Page, target: Locator) {
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(700);   // > HOLD_FIRE_MS (500)
-  await page.mouse.up();
+  await holdMouse(page, 700);   // > HOLD_FIRE_MS (500), on the page's clock (holdClock.ts)
 }
 
 async function reasonAt(page: Page, name: string) {
@@ -132,6 +131,7 @@ test("a save the server never confirmed is no setup; its confirmation is", async
 });
 
 test("Measure Current is ONE command: the tool_measure job — a refusal says why and nothing follows (Codex R16 XZ-06)", async ({ page }) => {
+  await installHoldClock(page);   // Measure Current is a hold (hold())
   await open(page, { ...M600, toolsetter: SET_UP });   // zeros in X/Y and slow feed 0: a valid setup
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   const measure = page.getByRole("button", { name: "Measure Current", exact: true });
@@ -151,6 +151,7 @@ test("Measure Current is ONE command: the tool_measure job — a refusal says wh
 });
 
 test("an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06)", async ({ page }) => {
+  await installHoldClock(page);   // Measure Current is a hold (hold())
   await open(page, { ...M600, toolsetter: SET_UP });
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await hold(page, page.getByRole("button", { name: "Measure Current", exact: true }));

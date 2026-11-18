@@ -30,6 +30,7 @@
     "src/viewer/toolBasis.test.ts",
     "src/themeTokens.test.ts",
     "src/playwrightProjects.test.ts",
+    "src/realTimeHolds.test.ts",
     "src/radioNames.test.ts",
     "src/commandShapes.test.ts",
     "src/routeProjection.test.ts",

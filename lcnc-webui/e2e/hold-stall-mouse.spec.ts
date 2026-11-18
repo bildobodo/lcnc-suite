@@ -10,8 +10,14 @@
 // or past the due time, a blocked hold was ended as stalled (its hint), a new
 // press spanned the old press's due time — so a missing block or a drifted
 // timing fails the case instead of leaving it green for the wrong reason.
+// The abort case has no block: it runs on the page's clock (holdClock.ts),
+// where its timing is exact (under the gate's load a real-time second press
+// came 629 ms after the first, past the due time it must span). A hold on a
+// smooth page may find the loaded runner stalling it: such an attempt must
+// say so ("Page delayed") and is taken again, at most three.
 import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
+import { installHoldClock, onPageClock } from "./holdClock";
 import { HOLD_FIRE_MS } from "../src/machineControls";
 
 test.use({ viewport: { width: 1280, height: 800 } });
@@ -82,8 +88,16 @@ test("mouse: a tap sends nothing, a hold on a smooth page sends once", async ({ 
   await press(page, 120);
   await sleep(800);
   expect(await unhomes(), "a tap").toBe(0);
-  await press(page, 800);
-  await expect.poll(unhomes).toBe(1);
+  for (let attempt = 1; ; attempt++) {
+    await record(page);
+    await press(page, 800);
+    await sleep(500);
+    if (await unhomes() > 0) break;
+    expect((await seen(page)).hints, `attempt ${attempt} sent nothing: only a stalled page may`).toContain("Page delayed — hold again");
+    expect(attempt, "a hold the page watched, within three attempts").toBeLessThan(3);
+  }
+  await sleep(500);
+  expect(await unhomes(), "exactly one").toBe(1);
 });
 
 test("mouse: a tap or a hold across a blocked page never fires", async ({ page }) => {
@@ -107,13 +121,20 @@ test("mouse: a tap or a hold across a blocked page never fires", async ({ page }
 });
 
 test("mouse: an ended press's step never fires a new short press (an abort, then a new press)", async ({ page }) => {
+  await installHoldClock(page);
   await open(page);
   await record(page);
-  const t0 = Date.now();
-  await press(page, 100);                              // the first press ends at 100 ms
-  await sleep(Math.max(0, 450 - (Date.now() - t0)));
-  await press(page, 114);                              // a new 114 ms press across the first one's 500 ms
-  await sleep(900);
+  await onPageClock(page, async () => {
+    await page.mouse.down();                           // the first press ends at 100 ms
+    await page.clock.runFor(100);
+    await page.mouse.up();
+    await page.clock.runFor(350);
+    await page.mouse.down();                           // a new 114 ms press across the first one's 500 ms
+    await page.clock.runFor(114);
+    await page.mouse.up();
+    await page.clock.runFor(900);
+  });
+  await sleep(300);
   const s = await seen(page);
   console.log(`hold-stall-mouse abort, then a new press: ${JSON.stringify(s)}`);
   expect(await unhomes(), "the old press's due step on the new press").toBe(0);

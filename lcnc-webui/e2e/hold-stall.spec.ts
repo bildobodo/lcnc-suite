@@ -29,6 +29,7 @@ const PERMS_ALL = {
   parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const hints = (page: Page) => page.evaluate(() => (window as unknown as { __hints: string[] }).__hints);
 const unhomes = async () => ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? [])
   .filter(c => c.cmd === "unhome_all").length;
 
@@ -103,7 +104,17 @@ test(`a hold across a block past ${HOLD_STALL_MS} ms is cancelled and says so; t
   });
   const across = await gesture(page, cdp, p, 800, { from: 100, to: 700 });
   expect(across.fired, "a hold the page could not watch").toBe(0);
-  expect(await page.evaluate(() => (window as unknown as { __hints: string[] }).__hints)).toContain("Page delayed — hold again");
-  const smooth = await gesture(page, cdp, p, 800, null);
-  expect(smooth.fired, "the same hold, the page smooth").toBe(1);
+  expect(await hints(page)).toContain("Page delayed — hold again");
+  // the same hold, the page smooth — an attempt the loaded runner stalled must
+  // say so and is taken again, at most three
+  for (let attempt = 1; ; attempt++) {
+    await page.evaluate(() => { (window as unknown as { __hints: string[] }).__hints = []; });
+    const smooth = await gesture(page, cdp, p, 800, null);
+    if (smooth.fired > 0) {
+      expect(smooth.fired, "the same hold, the page smooth: exactly one").toBe(1);
+      break;
+    }
+    expect(await hints(page), `attempt ${attempt} sent nothing: only a stalled page may`).toContain("Page delayed — hold again");
+    expect(attempt, "a hold the page watched, within three attempts").toBeLessThan(3);
+  }
 });

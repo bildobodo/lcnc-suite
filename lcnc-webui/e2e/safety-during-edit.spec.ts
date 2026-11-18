@@ -438,20 +438,23 @@ test.describe("the first touch: the switch to touch sizes waits for its press", 
     const homeX = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) X$/ });
     const before = await box(homeX);
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: before.x + before.w / 2, y: before.y + before.h / 2 }] });
-    await page.waitForTimeout(700);
-    // Measured in ONE page task: the hold fires around now and the busy latch
-    // re-renders the button (the dimmed form is a wrapper) — a locator that
-    // resolved the old node and measured it after the swap read null.
-    const held = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('[data-strip="setup"] button')]
-        .find(e => /^(Home|Unhome) X$/.test(e.getAttribute("aria-label") ?? ""))!;
-      const r = b.getBoundingClientRect();
-      return { x: Math.round(r.x * 2) / 2, y: Math.round(r.y * 2) / 2, w: Math.round(r.width * 2) / 2, h: Math.round(r.height * 2) / 2 };
+    // the hold on the page's clock (open() installed it): the press is the test's
+    await onPageClock(page, async () => {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: before.x + before.w / 2, y: before.y + before.h / 2 }] });
+      await page.clock.runFor(700);
+      // Measured in ONE page task: the hold fired at 500 ms and the busy latch
+      // re-renders the button (the dimmed form is a wrapper) — a locator that
+      // resolved the old node and measured it after the swap read null.
+      const held = await page.evaluate(() => {
+        const b = [...document.querySelectorAll('[data-strip="setup"] button')]
+          .find(e => /^(Home|Unhome) X$/.test(e.getAttribute("aria-label") ?? ""))!;
+        const r = b.getBoundingClientRect();
+        return { x: Math.round(r.x * 2) / 2, y: Math.round(r.y * 2) / 2, w: Math.round(r.width * 2) / 2, h: Math.round(r.height * 2) / 2 };
+      });
+      expect(held, "Home X under the finger, unmoved").toEqual(before);
+      await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     });
-    expect(held, "Home X under the finger, unmoved").toEqual(before);
-    await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
     await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0).length, { timeout: 3000 }).toBe(1);
   });

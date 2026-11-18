@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl as ctlSend, MOCK } from "./ctl";
+import { holdMouse, installHoldClock, onPageClock } from "./holdClock";
 import { clickMore } from "./more";
 
 // The strip's choice groups (operator P7): buttons with role="radio" in a
@@ -620,14 +621,19 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
 
 // ── WP6: hold target binding, hold hint, tool-change confirm, surface states, keypad owner ──
 
-async function holdOn(page: Page, locator: ReturnType<Page["locator"]>, ms: number) {
+async function pointAt(page: Page, locator: ReturnType<Page["locator"]>) {
   const box = (await locator.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(ms);
+}
+
+/** The page's clock a frame at a time until `ready` (statusStore applies a
+ *  status per animation frame — a paused clock applies none). */
+async function framesUntil(page: Page, ready: () => Promise<boolean>) {
+  await expect.poll(async () => { await page.clock.runFor(20); return ready(); }).toBe(true);
 }
 
 test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cancels when the target moves", async ({ page }) => {
+  await installHoldClock(page);   // the holds run on the page's clock (holdClock.ts)
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctlSend({ op: "quiet", on: true });
@@ -650,23 +656,32 @@ test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cance
     await page.waitForTimeout(300);
     expect(await recordedCmds()).not.toContain("clear_wcs");
     // Selection moves mid-hold (pin another row) → cancelled, nothing sent.
-    await holdOn(page, clear, 200);
-    await page.locator("tbody tr", { hasText: "G57" }).locator("td").first().dispatchEvent("click");
-    await page.waitForTimeout(600);
-    await page.mouse.up();
+    await pointAt(page, clear);
+    await onPageClock(page, async () => {
+      await page.mouse.down();
+      await page.clock.runFor(200);
+      await page.locator("tbody tr", { hasText: "G57" }).locator("td").first().dispatchEvent("click");
+      await page.clock.runFor(600);
+      await page.mouse.up();
+    });
     expect(await recordedCmds()).not.toContain("clear_wcs");
     await expect(clear).toHaveText(/Clear\s+G57/);
     // Gate closes during the hold → cancelled even though it re-opens.
-    await holdOn(page, clear, 150);
-    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
-    await page.waitForTimeout(100);
-    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
-    await page.waitForTimeout(500);
-    await page.mouse.up();
+    await pointAt(page, clear);
+    await onPageClock(page, async () => {
+      await page.mouse.down();
+      await page.clock.runFor(150);
+      await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
+      await framesUntil(page, () => clear.isDisabled());
+      await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+      await framesUntil(page, () => clear.isEnabled());
+      await page.clock.runFor(500);
+      await page.mouse.up();
+    });
     expect(await recordedCmds()).not.toContain("clear_wcs");
     // A complete hold sends exactly one clear_wcs for the pinned target.
-    await holdOn(page, clear, 700);
-    await page.mouse.up();
+    await pointAt(page, clear);
+    await holdMouse(page, 700);
     const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; target?: string }[] };
     const clears = (sent.cmds ?? []).filter(c => c.cmd === "clear_wcs");
     expect(clears).toHaveLength(1);

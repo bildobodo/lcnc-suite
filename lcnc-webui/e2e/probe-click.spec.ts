@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "./test";
 import { ctl } from './ctl';
+import { holdMouse, installHoldClock } from './holdClock';
 import { PROFILES, VIEWPORTS, openLayout } from './layout-fixtures';
 import { readFileSync } from 'node:fs';
 import { PROBE_FALLBACK, calibrationVarMap, probeVarMap, surfaceVarMap } from '../src/probeVars';
@@ -25,10 +26,11 @@ async function hold(page: Page, target: ReturnType<Page['locator']>) {
   await target.scrollIntoViewIfNeeded();
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(700);
-  await page.mouse.up();
+  await holdMouse(page, 700);   // on the page's clock (holdClock.ts): a stalled runner cannot end it
 }
+
+// every test here holds a probe button: the page's clock from the start
+test.beforeEach(async ({ page }) => { await installHoldClock(page); });
 
 const MAP = Object.keys(probeVarMap(PROBE_FALLBACK, 1)).sort();
 const CAL = Object.keys(calibrationVarMap(PROBE_FALLBACK, 1, 0)).sort();
