@@ -31,6 +31,7 @@ async function sent(): Promise<{ cmd?: string; name?: string; revision?: string;
 const runs = async () => (await sent()).filter(c => c.cmd === "run_macro");
 
 async function press(page: Page, sel: ReturnType<Page["locator"]>, ms: number) {
+  await expect(sel).toBeVisible();   // read the geometry after the signal: shown
   const b = (await sel.boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await holdMouse(page, ms);
@@ -808,6 +809,9 @@ test("the macro bar is dense: compact buttons, and an Abort at its right end tha
     const bar = page.locator(".macroBar");
     const want = touch ? 36 : 28;
     for (const name of ["Park", "Face top", "Abort"]) {
+      // the bar renders once the settings and the macro list arrived: measured after it shows
+      // (the round gate at c4f47253 read a button not yet shown — boundingBox null)
+      await expect(bar.getByRole("button", { name, exact: true })).toBeVisible();   // read the geometry after the signal: shown
       const h = (await bar.getByRole("button", { name, exact: true }).boundingBox())!.height;
       expect(Math.round(h), `${touch ? "touch" : "desktop"}: ${name} is ${want} px`).toBe(want);
     }

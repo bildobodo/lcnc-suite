@@ -622,6 +622,7 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
 // ── WP6: hold target binding, hold hint, tool-change confirm, surface states, keypad owner ──
 
 async function pointAt(page: Page, locator: ReturnType<Page["locator"]>) {
+  await expect(locator).toBeVisible();   // read the geometry after the signal: shown
   const box = (await locator.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 }

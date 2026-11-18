@@ -314,6 +314,7 @@ async function keyIn(page: Page, digits: string) {
 /** Press a hold button long enough to fire (HOLD_FIRE_MS 500). */
 async function hold(page: Page, target: Locator) {
   await target.scrollIntoViewIfNeeded();   // the strip scrolls sideways
+  await expect(target).toBeVisible();   // read the geometry after the signal: shown
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await holdMouse(page, 700);   // on the page's clock (holdClock.ts): a stalled runner cannot end it

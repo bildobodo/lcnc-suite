@@ -45,6 +45,7 @@ async function open(page: Page) {
 }
 
 async function centre(page: Page, name: string) {
+  await expect(page.getByRole("button", { name, exact: true })).toBeVisible();   // read the geometry after the signal: shown
   const box = (await page.getByRole("button", { name, exact: true }).boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }

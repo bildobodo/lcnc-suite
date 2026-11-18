@@ -55,6 +55,7 @@ const sent = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string;
 
 /** Measure Current starts motion: a HOLD (design wave D6), not a tap. */
 async function hold(page: Page, target: Locator) {
+  await expect(target).toBeVisible();   // read the geometry after the signal: shown
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await holdMouse(page, 700);   // > HOLD_FIRE_MS (500), on the page's clock (holdClock.ts)

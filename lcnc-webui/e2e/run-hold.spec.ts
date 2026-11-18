@@ -175,6 +175,7 @@ async function serveRevisions(page: Page, late: Record<string, number>) {
 }
 /** Hold `target`; `during` runs 100 ms in; true when the hold was cancelled. */
 async function holdWhile(page: Page, target: Locator, during: () => Promise<void>) {
+  await expect(target).toBeVisible();   // read the geometry after the signal: shown
   const box = (await target.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await onPageClock(page, async () => {
