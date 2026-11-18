@@ -101,7 +101,9 @@ test("sliding off, a scroll-cancel and a hidden page cancel the hold; the next h
     await touch(cdp, "touchStart", [p]);
     await page.clock.runFor(150);
     await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, zero: false }, permission_reasons: { zero: "Machine off" } } });
-    await expect(page.locator("[data-btn-hint]")).toHaveText("Unavailable — Machine off");
+    // the status applies in an animation frame (statusStore) — on this clock too
+    await expect.poll(async () => { await page.clock.runFor(20); return page.locator("[data-btn-hint]").textContent(); })
+      .toBe("Unavailable — Machine off");
     await page.clock.runFor(500);
     await touch(cdp, "touchEnd", []);
   });
