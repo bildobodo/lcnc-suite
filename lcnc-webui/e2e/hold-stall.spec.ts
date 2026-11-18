@@ -6,13 +6,18 @@
 // holdClock.ts). The block is anchored at the press's DELIVERY (the handler
 // after the button's own, Codex R399), the release is asked for by a Node
 // timer and judged by the events' own timestamps: a "real tap" is a release
-// stamped under 500 ms after its press. The measurement does not claim a
-// rate — it holds that no real tap fired; which order the browser took is
-// in the rows it prints.
+// stamped under 500 ms after its press. The race is proven, not assumed: a
+// row counts only when its release was DELIVERED (the window's capture
+// listener) at or past HOLD_FIRE_MS after the press's delivery — the due
+// time had come with the release still queued, so a guard green with the
+// block missing (release delivered at ~120 ms) fails its count. The
+// measurement does not claim a rate — it holds that no such tap fired; the
+// rows print each one's stamped length, its delivery and whether it fired.
 import { test, expect, type Page } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { HOLD_STALL_MS } from "../src/holdGesture";
+import { HOLD_FIRE_MS } from "../src/machineControls";
 
 test.use({ hasTouch: true, viewport: { width: 1280, height: 800 } });
 
@@ -41,14 +46,16 @@ async function open(page: Page) {
 
 /** One gesture: the press, a block of the main thread from `from` to `to` ms
  *  after the press's delivery (none when null), the release asked for at
- *  `releaseAt` ms. → whether it fired, and the release's stamp after the press's. */
+ *  `releaseAt` ms. → whether it fired, the release's stamp after the press's
+ *  (`pressed`) and its delivery after the press's delivery (`delivered`). */
 async function gesture(page: Page, cdp: Awaited<ReturnType<typeof open>>["cdp"], p: { x: number; y: number },
                        releaseAt: number, block: { from: number; to: number } | null) {
   await ctl({ op: "clearCmds" });
   await page.evaluate((b) => {
-    const w = window as unknown as { __hs: { t: string; ts: number }[] };
+    const w = window as unknown as { __hs: { t: string; ts: number; at: number }[] };
     w.__hs = [];
-    for (const t of ["pointerdown", "pointerup"]) window.addEventListener(t, (e) => w.__hs.push({ t, ts: e.timeStamp }), { capture: true, once: true });
+    for (const t of ["pointerdown", "pointerup"])
+      window.addEventListener(t, (e) => w.__hs.push({ t, ts: e.timeStamp, at: performance.now() }), { capture: true, once: true });
     if (b) window.addEventListener("pointerdown", () => {
       const delivered = performance.now();                 // after the button's own handler (window, bubble)
       setTimeout(() => { while (performance.now() - delivered < b.to) { /* blocked */ } }, Math.max(0, b.from));
@@ -59,9 +66,10 @@ async function gesture(page: Page, cdp: Awaited<ReturnType<typeof open>>["cdp"],
   await sleep(Math.max(0, releaseAt - (Date.now() - t0)));
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await sleep(900);
-  const ev = await page.evaluate(() => (window as unknown as { __hs: { t: string; ts: number }[] }).__hs);
+  const ev = await page.evaluate(() => (window as unknown as { __hs: { t: string; ts: number; at: number }[] }).__hs);
   const down = ev.find(e => e.t === "pointerdown"), up = ev.find(e => e.t === "pointerup");
-  return { fired: await unhomes(), pressed: down && up ? up.ts - down.ts : null };
+  return { fired: await unhomes(), pressed: down && up ? up.ts - down.ts : null,
+           delivered: down && up ? up.at - down.at : null };
 }
 
 for (const [name, block] of [["a block from the press's delivery to 520 ms", { from: 0, to: 520 }],
@@ -73,9 +81,11 @@ for (const [name, block] of [["a block from the press's delivery to 520 ms", { f
     const rows = [];
     for (let i = 0; i < 8; i++) rows.push(await gesture(page, cdp, p, 120, block));
     console.log(`hold-stall ${name}: ${JSON.stringify(rows)}`);
-    const real = rows.filter(r => r.pressed !== null && r.pressed < 500);
-    expect(real.length, "real taps made (a release stamped under 500 ms)").toBeGreaterThanOrEqual(6);
-    expect(real.filter(r => r.fired > 0), "a real tap that fired").toEqual([]);
+    const raced = rows.filter(r => r.pressed !== null && r.pressed < 500
+                                   && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+    expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+      .toBeGreaterThanOrEqual(6);
+    expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
   });
 }
 
