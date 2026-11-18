@@ -79,6 +79,17 @@ def _pw_status(t: dict) -> str:
     return {"unexpected": "failed", "skipped": "skipped", "flaky": "flaky"}.get(st, str(st))
 
 
+def _join(listed: dict, ran: dict | None) -> dict:
+    """A test of the listing joined with its result: an identity found invalid
+    on EITHER side stays invalid (Codex R401) — a clean report never replaces
+    a contradictory listing; its results admit no replay attempt."""
+    if str(listed.get("status", "")).startswith("contradictory"):
+        return {**listed, "results": {}}
+    if ran is None:
+        return {**listed, "status": "listed", "results": {}}
+    return {**listed, "status": ran["status"], "results": ran["results"]}
+
+
 def run_of(doc: Any) -> Any:
     """The run id a Playwright record carries (config.metadata.run)."""
     return ((doc.get("config") or {}).get("metadata") or {}).get("run") if isinstance(doc, dict) else None
@@ -123,11 +134,12 @@ _VITEST = {"passed": "passed", "failed": "failed", "skipped": "skipped", "pendin
 def vitest_index(listing: list, report: dict | None, label: str, errors: list[str]) -> dict[tuple, str]:
     """(file relative to lcnc-webui/src, full name) → status. The LISTING is
     the collected set (VM-I33): a result outside it is an evaluation error; a
-    name the listing holds twice takes the worst of its results."""
-    out: dict[tuple, str] = {}
-    for x in listing:
-        out[(x["file"].split("/lcnc-webui/src/")[-1], x["name"])] = "listed"
-    seen: set[tuple] = set()
+    name the listing holds n times needs exactly n results (Codex R401 — a
+    missing or an extra result is no complete run: an evaluation error, the
+    test contradictory, never passed) and takes the worst of them."""
+    want: Counter = Counter((x["file"].split("/lcnc-webui/src/")[-1], x["name"]) for x in listing)
+    out: dict[tuple, str] = {k: "listed" for k in want}
+    got: Counter = Counter()
     for f in (report or {}).get("testResults", []):
         rel = f["name"].split("/lcnc-webui/src/")[-1]
         for a in f.get("assertionResults", []):
@@ -136,8 +148,12 @@ def vitest_index(listing: list, report: dict | None, label: str, errors: list[st
             if key not in out:
                 errors.append(f"{label}: {key[0]} › {key[1][:80]} — a result for a test the listing does not hold")
                 continue
-            out[key] = _worst(out[key], st) if key in seen else st
-            seen.add(key)
+            got[key] += 1
+            out[key] = _worst(out[key], st) if got[key] > 1 else st
+    for key, n in got.items():
+        if n != want[key]:
+            errors.append(f"{label}: {key[0]} › {key[1][:80]} — {n} result(s) for {want[key]} listed test(s)")
+            out[key] = f"contradictory ({n} results for {want[key]} listed)"
     return out
 
 
@@ -405,9 +421,7 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                 errors.append(f"{report}: test {key[0]} is {x['file']} › {x['path'][:60]}, the listing's "
                               f"{have['file']} › {have['path'][:60]}")
                 ran[key] = {**x, "status": "contradictory (the report names another test)", "results": {}}
-        tests[project] = {k: {**v, "status": ran[k]["status"] if k in ran else "listed",
-                              "results": ran[k]["results"] if k in ran else {}}
-                          for k, v in listed.items() if k[1] == project}
+        tests[project] = {k: _join(v, ran.get(k)) for k, v in listed.items() if k[1] == project}
         refs[project] = ref
     unit: dict[tuple, str] = {}
     unit_fails: dict[tuple, str] = {}
@@ -419,7 +433,8 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
         part = vitest_index(listing_doc, _json(logs / f"{name}.json", errors), f"{name}.json", errors)
         listed = Counter((_rel(str(x.get("file", ""))), x.get("name")) for x in listing_doc if isinstance(x, dict))
         state = vitest_options(_json(logs / f"{name}.options.json", errors), listed, f"{name}.options.json", errors)
-        unit.update(part)
+        for key, st in part.items():           # across the groups: never lowered (R401, as the options)
+            unit[key] = st if key not in unit else _worst(unit[key], st)
         for key, s in state.items():          # across the groups: never lowered (R400)
             unit_fails[key] = max(unit_fails.get(key, "plain"), s, key=_FAILS_RANK.__getitem__)
     junit = logs / "backend" / "backend.junit.xml"

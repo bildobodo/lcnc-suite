@@ -11677,7 +11677,12 @@ R400: a unit found invalid is reported AND withheld — the error alone left
 its results counting (a contradictory retry's attempt, a rejected native
 report's rows, an options record without a boolean `fails` read as plain);
 the class check found three more (another run's record or JUnit, a renamed
-or doubled id).
+or doubled id). R401: the same rule across the JOIN and the GROUPS — an
+identity invalid on either side of the listing/report join stays invalid (a
+clean report never replaces a contradictory listing, and admits no replay
+attempt), a unit name needs exactly as many results as its listing holds (a
+missing or an extra one is no complete run), and across the unit groups a
+result is only ever made stricter, like the options.
 
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 

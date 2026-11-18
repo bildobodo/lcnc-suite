@@ -471,10 +471,85 @@ def test_a_vitest_result_outside_its_listing_is_an_error_and_a_repeated_name_kee
         return {"testResults": [{"name": f, "assertionResults": [
             {"ancestorTitles": ["d"], "title": "t", "status": s} for s in sts]}]}
     errors: list[str] = []
-    assert coverage.vitest_index(listing, res("failed", "passed"), "u", errors) == {("a.test.ts", "d > t"): "failed"}
+    # a name listed twice, two results: the worst of them, no error
+    assert coverage.vitest_index(listing * 2, res("failed", "passed"), "u", errors) == {("a.test.ts", "d > t"): "failed"}
     assert errors == []
     coverage.vitest_index([], res("passed"), "unit-light.json", errors)
     assert any("a result for a test the listing does not hold" in e for e in errors)
+
+
+def test_a_unit_name_needs_exactly_as_many_results_as_the_listing_holds(tmp_path):
+    # Codex R401 (VM-I34): the result multiset against the listing — a missing or an extra result is no
+    # complete run: an evaluation error and a contradictory test, never passed
+    f = "/x/lcnc-webui/src/a.test.ts"
+    one = {"file": f, "name": "d > t"}
+    def res(*sts):
+        return {"testResults": [{"name": f, "assertionResults": [
+            {"ancestorTitles": ["d"], "title": "t", "status": s} for s in sts]}]}
+    key = ("a.test.ts", "d > t")
+    for listing, results, want in (([one, one], ("passed",), "contradictory (1 results for 2 listed)"),
+                                   ([one], ("passed", "passed"), "contradictory (2 results for 1 listed)")):
+        errors: list[str] = []
+        assert coverage.vitest_index(listing, res(*results), "u", errors) == {key: want}
+        assert errors and "listed test(s)" in errors[0], errors
+    for listing, results, want in (([one, one], ("passed", "failed"), "failed"), ([one, one], ("passed", "passed"), "passed"),
+                                   ([one], ("passed",), "passed"), ([one, one], (), "listed")):
+        errors = []
+        assert coverage.vitest_index(listing, res(*results), "u", errors) == {key: want} and errors == []   # controls
+
+
+def _unit_result_case(tmp_path, name, light_results, heavy_results=None, light_listed=2):
+    """One unit evidence bound to a real test, its name listed `light_listed` times with the given
+    results (and, when given, the same name twice in the heavy group); every option record plain."""
+    fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"]
+             if e["layer"] == "unit" and "$" not in e["title"] and "{" not in e["title"])
+    full = f"/x/lcnc-webui/src/{e['file']}"
+    item, rec = {"file": full, "name": e["title"]}, {"file": full, "fullName": e["title"], "mode": "run", "fails": False}
+    def report(sts):
+        return {"testResults": [{"name": full, "assertionResults": [
+            {"ancestorTitles": [], "title": e["title"], "status": s} for s in sts]}]}
+    files = {"unit-light.list.json": [item] * light_listed, "unit-light.json": report(light_results),
+             "unit-light.options.json": [rec] * light_listed}
+    if heavy_results is not None:
+        files.update({"unit-heavy.list.json": [item, item], "unit-heavy.json": report(heavy_results),
+                      "unit-heavy.options.json": [rec, rec]})
+    c = _run_with(tmp_path / name, **files)
+    row = next(x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+               if x["layer"] == "unit" and x["file"] == e["file"] and x["title"] == e["title"])
+    checked = sum(st["checked"] == "passed" for f in c["functions"] for st in f["statements"])
+    return row, [x for x in c["errors"] if "listed test(s)" in x], checked
+
+
+def test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass(tmp_path):
+    # Codex R401's three rows: complete data with one failure → failed (open, no error); the failed
+    # result removed → an error, never passed; the same complete set passing in heavy → still failed
+    row, errs, checked = _unit_result_case(tmp_path, "complete", ("passed", "failed"))
+    assert row["status"] == "failed" and errs == []
+    row, errs, checked_missing = _unit_result_case(tmp_path, "missing", ("passed",))
+    assert row["status"] != "passed" and errs, (row, errs)
+    assert checked_missing == checked                       # no statement gains from the missing result
+    row, errs, checked_over = _unit_result_case(tmp_path, "overlap", ("passed", "failed"), heavy_results=("passed", "passed"))
+    assert row["status"] == "failed" and errs == [] and checked_over == checked
+    row, errs, _ = _unit_result_case(tmp_path, "clean", ("passed", "passed"), heavy_results=("passed", "passed"))
+    assert row["status"] == "passed" and errs == []         # the control: both groups complete and passing
+
+
+def test_a_contradictory_listing_survives_the_join_and_admits_no_attempt(tmp_path):
+    # Codex R401 (VM-I33): the id twice in the LISTING, the report clean — the listing's contradiction
+    # stands: no positive evidence and no replay admission
+    r = replay("e2e", att(), per_attempt={ATT: {"touchoff": 1}})
+    listing = pw("e2e", T1, T1, listing=True)
+    c = _run_with(tmp_path / "twice", **{"list-run.json": listing, "playwright.json": pw("e2e", T1), "replay.json": r})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == "not sent"
+    assert any("twice" in x for x in c["errors"])
+    c = _run_with(tmp_path / "once", **{"list-run.json": pw("e2e", T1, listing=True), "playwright.json": pw("e2e", T1),
+                                       "replay.json": r})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == {"touchoff": 1}      # the control
+    e = _browser_evidence()
+    t = ("c-1", e["file"], e["title"], "passed")
+    c = _run_with(tmp_path / "ev", **{"list-run.json": pw("e2e", t, t, listing=True), "playwright.json": pw("e2e", t)})
+    assert {x["project"]: x["status"] for x in _rows_of(c, e)}["e2e"].startswith("unknown status ['contradictory")
 
 
 def _native_errors(c: dict) -> list[str]:
