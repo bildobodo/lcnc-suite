@@ -507,8 +507,14 @@ By hand on a merge gate's record:
 - **The reporter's own forms** (R396 VM-I34): a Playwright test is passed only
   when it was expected to pass and its last result passed; `test.fail()`
   failing as expected is "expected to fail", never passed; every instance is
-  its own id (a repeat too) and every bound one must pass. A native case and a
-  live scenario are their WORST over every report of this commit.
+  its own id (a repeat too) and every bound one must pass. Vitest's JSON
+  report writes `it.fails` as passed with no mark (measured), so unit
+  evidence in a file that declares `.fails(` is an evaluation error; pytest
+  writes `xfail` as `<skipped type="pytest.xfail">` (read as skipped) and a
+  non-strict XPASS as a pass. A native case and a live scenario are their
+  WORST over every report of this commit; an expected refusal is
+  counter-evidence only of an attempt that counts; a native report whose
+  rows are no list of objects is an evaluation error.
 - **Five kinds, kept apart, never a percentage** (FI265-03): inventoried (the
   claimed atoms and the claims of role variant; the source inventory's
   unresolved, excluded and open-variant sites with their origin under

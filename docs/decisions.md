@@ -11665,6 +11665,11 @@ cannot tell a case from a part name (`eval_probe_z("probe", …)` inside
 report of a commit; the source inventory's sites under `inventory`. Codex's
 R396 probe script runs unchanged: its control PASS, every damage red for its
 own reason.
+Before R398 the class check found three siblings, fixed the same way: an
+expected refusal of a failed or unlisted attempt counted, a native report
+with `rows: null` raised, and Vitest's `it.fails` reads as passed in its JSON
+report (measured — no mark), so a unit evidence's file must not declare
+`.fails(`.
 
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 

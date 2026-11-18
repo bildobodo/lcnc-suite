@@ -590,3 +590,51 @@ def test_the_gate_names_the_backend_s_run_and_hands_it_to_the_step():
                 and n.args and isinstance(n.args[0], ast.Constant) and n.args[0].value == "backend")
     assert "'--run-id', backend_run" in ast.unparse(call)
     assert "'run': backend_run" in src
+
+
+# ── before R398: the siblings of VM-I33 / VM-I34 / VM-I36 ──────────────────
+
+def test_an_expected_refusal_counts_only_from_an_attempt_that_counts(tmp_path):
+    refusal = {"where": ATT, "cmd": "touchoff", "refusal": "out of range"}
+
+    def payload_checker(name: str, attempt: dict) -> list:
+        c = _run_with(tmp_path / name, **ran("e2e", T1), **{"replay.json": replay("e2e", attempt, expected=[refusal])})
+        return _fn(c, "F-TOUCHOFF")["counter"]["payload checker"]
+    assert payload_checker("passed", att()) == [{"cmd": "touchoff", "refusals": 1}]          # the control
+    assert payload_checker("failed", att(status="failed")) == []
+    c = _run_with(tmp_path / "unlisted", **ran("e2e", T1),
+                  **{"replay.json": replay("e2e", att(), expected=[{**refusal, "where": "y.spec.ts › z [retry 0]"}])})
+    assert _fn(c, "F-TOUCHOFF")["counter"]["payload checker"] == []
+    assert any("y.spec.ts › z [retry 0] counted, not in its attempt list" in e for e in c["errors"])
+
+
+def test_a_native_report_whose_rows_are_no_objects_is_an_evaluation_error(tmp_path):
+    for i, rows in enumerate((None, [1], ["home-all"], {"case": "home-all"})):
+        r = tmp_path / f"r{i}.json"
+        r.write_text(json.dumps({"commit": HEAD, "profile": "3axis_xyz", "variant": None, "rows": rows}))
+        (tmp_path / str(i)).mkdir()
+        c = coverage.coverage(gate(tmp_path / str(i), dict(EMPTY_RUN)), [r], [])    # no traceback
+        assert any("rows is no list of row objects" in e for e in c["errors"]), rows
+
+
+def test_a_unit_file_that_declares_fails_binds_no_evidence(tmp_path, monkeypatch):
+    """Vitest's JSON reporter writes `it.fails` as passed with no mark
+    (measured 2026-11-18) — evidence in such a file is an evaluation error."""
+    f = tmp_path / "x.test.ts"
+    f.write_text('it.fails("an expected failure", () => { expect(1).toBe(2); });\n')
+    assert coverage.declares_fails(f) and not coverage.declares_fails(tmp_path / "missing.test.ts")
+    f.write_text('it("a plain pass", () => {});\n')
+    assert not coverage.declares_fails(f)
+    # through the whole coverage: the shipped unit evidence binds clean …
+    fns = json.loads((ROOT / "scripts/inventory/functions.json").read_text())["functions"]
+    e = next(e for f in fns for s in f.get("statements", []) for e in s["evidence"] if e["layer"] == "unit")
+    listing = [{"file": f"/x/lcnc-webui/src/{e['file']}", "name": e["title"]}]
+    report = {"testResults": [{"name": f"/x/lcnc-webui/src/{e['file']}", "assertionResults": [
+        {"ancestorTitles": [], "title": e["title"], "status": "passed"}]}]}
+    files = {"unit-light.list.json": listing, "unit-light.json": report}
+    c = _run_with(tmp_path / "clean", **files)
+    assert not [x for x in c["errors"] if "fails(" in x]
+    # … and is an evaluation error once its file declares `.fails(`
+    monkeypatch.setattr(coverage, "declares_fails", lambda path: path.name == Path(e["file"]).name)
+    c = _run_with(tmp_path / "fails", **files)
+    assert any("declares `.fails(`" in x and e["file"] in x for x in c["errors"])

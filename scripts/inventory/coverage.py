@@ -255,7 +255,8 @@ def replay_attempts(project: str, r: dict | None, listed: dict[tuple, dict], ref
             continue
         ok.add(a["name"])
     counted = (set(r.get("per_attempt", {})) | set(r.get("per_attempt_expected", {}))
-               | set((r.get("http_paths") or {}).get("per_attempt", {})))
+               | set((r.get("http_paths") or {}).get("per_attempt", {}))
+               | {x.get("where") for x in r.get("expected", []) if x.get("where") not in (None, "?")})
     for att in sorted(str(x) for x in counted - set(names)):
         errors.append(f"{label}: {att[:80]} counted, not in its attempt list")
     return ok
@@ -269,6 +270,16 @@ def _literal(path: Path, name: str) -> Any:
         if any(getattr(x, "id", "") == name for x in targets) and n.value is not None:
             return ast.literal_eval(n.value)
     raise LookupError(f"{path.name} declares no {name}")
+
+
+def declares_fails(path: Path) -> bool:
+    """A Vitest file that declares an expected failure (`it.fails(` /
+    `test.fails(`): its JSON report carries no mark of it — `status: passed`,
+    `meta: {}` (measured 2026-11-18) — so no unit evidence of it can be read."""
+    try:
+        return ".fails(" in path.read_text()
+    except OSError:
+        return False
 
 
 def _sites(sides: tuple, key: str) -> list[dict]:
@@ -359,6 +370,9 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
             errors.append(f"native report {why} — a run claimed and not shown")
         elif not all(k in r for k in ("commit", "profile", "rows")):
             errors.append(f"native report {p}: no commit, profile or rows")
+        elif not isinstance(r["rows"], list) or not all(isinstance(x, dict) for x in r["rows"]):
+            # present but damaged: an evaluation error, never a traceback (VM-I36's class)
+            errors.append(f"native report {p}: rows is no list of row objects")
         else:
             natives.append(r)
     lives = []
@@ -410,8 +424,11 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                 valid = n - exp.get(att, {}).get(key, 0)
                 if valid > 0:
                     sent[project][key.split(":")[0]][key] += valid
+        # an expected refusal is counter-evidence only of an attempt that
+        # counts — a failed or unlisted one's is none (VM-I33's class)
         for x in r.get("expected", []):
-            refused[x.get("cmd")].append(x)
+            if x.get("where") in passed:
+                refused[x.get("cmd")].append(x)
         for att, rows in r.get("http_paths", {}).get("per_attempt", {}).items():
             if att not in passed:
                 continue
@@ -462,6 +479,10 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                     cands = [(k, [k[1].split(" > ")[-1], k[1]]) for k in unit if k[0] == e["file"]]
                     bound, why = bind(e, cands)
                     st = verdict([unit[k] for k in bound]) if not why else "not collected"
+                    if not why and declares_fails(root / "lcnc-webui/src" / e["file"]):
+                        why = ("the file declares `.fails(` — Vitest's JSON reporter writes an expected failure "
+                               "as passed (measured, R396 VM-I34's class)")
+                        st = "unreadable"
                     row |= {"bound": [k[1] for k in bound], "status": st, **({"why": why} if why else {})}
                 elif e["layer"] == "gateway":
                     bound = [k for k in gw if k[0] == e["file"] and k[1].split("::")[-1].split("[")[0] == e["title"]]
