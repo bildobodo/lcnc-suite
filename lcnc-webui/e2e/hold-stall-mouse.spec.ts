@@ -12,9 +12,13 @@
 // timing fails the case instead of leaving it green for the wrong reason.
 // The abort case has no block: it runs on the page's clock (holdClock.ts),
 // where its timing is exact (under the gate's load a real-time second press
-// came 629 ms after the first, past the due time it must span). A hold on a
-// smooth page may find the loaded runner stalling it: such an attempt must
-// say so ("Page delayed") and is taken again, at most three.
+// came 629 ms after the first, past the due time it must span). The real-time
+// cases time the release from the press call's return (it returns after the
+// page's delivery — measured, R401), assert "never fired" on every attempt
+// and count an attempt only when the page's record proves its setting (the
+// block recorded by the page itself, the release delivered past the due
+// time, a tap or a hold of the length the page saw); an attempt the loaded
+// runner kept from its setting is named and taken again, at most three.
 import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { installHoldClock, onPageClock } from "./holdClock";
@@ -47,12 +51,14 @@ async function open(page: Page) {
 }
 
 type Seen = { t: string; at: number };
+type Blk = { from: number; to: number } | null;
 /** From now on: every press and release the page delivers (`at`, its clock)
  *  and every hint text the button shows. */
 const record = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __rec?: boolean };
+  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __rec?: boolean; __blk: Blk };
   w.__seen = [];
   w.__hints = [];
+  w.__blk = null;
   if (w.__rec) return;
   w.__rec = true;
   for (const t of ["pointerdown", "pointerup"])
@@ -63,60 +69,101 @@ const record = (page: Page) => page.evaluate(() => {
   }).observe(document.body, { subtree: true, childList: true, characterData: true });
 });
 const seen = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __seen: Seen[]; __hints: string[] };
+  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __blk: Blk };
   return { downs: w.__seen.filter(e => e.t === "pointerdown").map(e => e.at),
-           ups: w.__seen.filter(e => e.t === "pointerup").map(e => e.at), hints: w.__hints };
+           ups: w.__seen.filter(e => e.t === "pointerup").map(e => e.at), hints: w.__hints, block: w.__blk };
 });
+/** The one press's release after its press, as the page delivered them. */
+const deliveredOf = (s: Awaited<ReturnType<typeof seen>>) =>
+  s.downs.length === 1 && s.ups.length === 1 ? s.ups[0]! - s.downs[0]! : null;
 
-/** Block the main thread from `from` to `to` ms after the next press's delivery. */
+/** Block the main thread from `from` to `to` ms after the next press's
+ *  delivery; the page records the block as it ran. */
 const blockAfterPress = (page: Page, from: number, to: number) => page.evaluate(([f, t]) => {
   window.addEventListener("pointerdown", () => {
     const delivered = performance.now();
-    setTimeout(() => { while (performance.now() - delivered < t) { /* blocked */ } }, f);
+    setTimeout(() => {
+      const start = performance.now() - delivered;
+      while (performance.now() - delivered < t) { /* blocked */ }
+      (window as unknown as { __blk: Blk }).__blk = { from: start, to: performance.now() - delivered };
+    }, f);
   }, { once: true });
 }, [from, to]);
 
 async function press(page: Page, ms: number) {
-  const t0 = Date.now();
   await page.mouse.down();
+  const t0 = Date.now();                                 // the call returned: the page has the press
   await sleep(Math.max(0, ms - (Date.now() - t0)));
   await page.mouse.up();
 }
 
 test("mouse: a tap sends nothing, a hold on a smooth page sends once", async ({ page }) => {
   await open(page);
-  await press(page, 120);
-  await sleep(800);
-  expect(await unhomes(), "a tap").toBe(0);
+  // a tap: never a fire from a press the page saw short; counted once the
+  // page saw it short (a loaded runner may deliver it long — then retaken)
+  const taps = [];
   for (let attempt = 1; ; attempt++) {
+    await ctl({ op: "clearCmds" });
+    await record(page);
+    await press(page, 120);
+    await sleep(800);
+    const s = await seen(page), d = deliveredOf(s), fired = await unhomes();
+    taps.push({ delivered: d, fired, hints: s.hints });
+    if (d !== null && d < HOLD_FIRE_MS) {
+      expect(fired, `a tap the page saw short: ${JSON.stringify(taps)}`).toBe(0);
+      break;
+    }
+    expect(attempt, `a tap the page saw short within three attempts: ${JSON.stringify(taps)}`).toBeLessThan(3);
+  }
+  // a hold: counted once the page saw it whole; a whole one that sent nothing
+  // says "Page delayed" (the runner stalled it) and is retaken; a fire from a
+  // press the page saw short is red
+  const holds = [];
+  for (let attempt = 1; ; attempt++) {
+    await ctl({ op: "clearCmds" });
     await record(page);
     await press(page, 800);
     await sleep(500);
-    if (await unhomes() > 0) break;
-    expect((await seen(page)).hints, `attempt ${attempt} sent nothing: only a stalled page may`).toContain("Page delayed — hold again");
-    expect(attempt, "a hold the page watched, within three attempts").toBeLessThan(3);
+    const s = await seen(page), d = deliveredOf(s), fired = await unhomes();
+    holds.push({ delivered: d, fired, hints: s.hints });
+    const whole = d !== null && d >= HOLD_FIRE_MS;
+    if (fired > 0) {
+      expect(whole, `a fire from a press the page saw whole: ${JSON.stringify(holds)}`).toBe(true);
+      expect(fired, "exactly one").toBe(1);
+      break;
+    }
+    if (whole) expect(s.hints, `a whole hold that sent nothing says why: ${JSON.stringify(holds)}`).toContain("Page delayed — hold again");
+    expect(attempt, `a hold the page saw whole and watched within three attempts: ${JSON.stringify(holds)}`).toBeLessThan(3);
   }
-  await sleep(500);
-  expect(await unhomes(), "exactly one").toBe(1);
+  console.log(`hold-stall-mouse smooth: ${JSON.stringify({ taps, holds })}`);
 });
 
 test("mouse: a tap or a hold across a blocked page never fires", async ({ page }) => {
   test.setTimeout(60_000);
   await open(page);
-  for (const [from, to, ms] of [[0, 540, 120], [100, 700, 120], [100, 700, 800]] as const) {
-    await record(page);
-    await blockAfterPress(page, from, to);
-    await press(page, ms);
-    await sleep(900);
-    const s = await seen(page);
-    const delivered = s.downs.length === 1 && s.ups.length === 1 ? s.ups[0] - s.downs[0] : null;
-    console.log(`hold-stall-mouse block ${from}→${to} ms, press ${ms} ms: ${JSON.stringify({ delivered, hints: s.hints })}`);
-    expect(await unhomes(), `block ${from}→${to} ms, press ${ms} ms`).toBe(0);
-    // the setting, proven: one press, its release delivered at or past the due
-    // time (a tap's release held back by the block); a hold across the block
-    // ended as stalled
-    expect(delivered, "the release delivered at or past the due time").toBeGreaterThanOrEqual(HOLD_FIRE_MS);
-    if (ms > HOLD_FIRE_MS) expect(s.hints, "the hold ended as stalled").toContain("Page delayed — hold again");
+  // the release inside the block: at 120 ms for a block from the delivery, at
+  // 250 ms for one from 100 ms (R401: 20 ms of margin was too little)
+  for (const [from, to, ms] of [[0, 540, 120], [100, 700, 250], [100, 700, 800]] as const) {
+    const tried = [];
+    for (let attempt = 1; ; attempt++) {
+      await record(page);
+      await blockAfterPress(page, from, to);
+      await press(page, ms);
+      await sleep(900);
+      const s = await seen(page), delivered = deliveredOf(s);
+      tried.push({ delivered, block: s.block, hints: s.hints });
+      // never a fire, whatever the attempt
+      expect(await unhomes(), `block ${from}→${to} ms, press ${ms} ms: ${JSON.stringify(tried)}`).toBe(0);
+      // the setting, proven by the page: the block ran and the release came
+      // at or past the due time (a tap's release held back by the block; a
+      // hold down through the block) — then a hold ended as stalled
+      if (s.block !== null && delivered !== null && delivered >= HOLD_FIRE_MS) {
+        if (ms > HOLD_FIRE_MS) expect(s.hints, `the hold ended as stalled: ${JSON.stringify(tried)}`).toContain("Page delayed — hold again");
+        break;
+      }
+      expect(attempt, `the setting within three attempts: ${JSON.stringify(tried)}`).toBeLessThan(3);
+    }
+    console.log(`hold-stall-mouse block ${from}→${to} ms, press ${ms} ms: ${JSON.stringify(tried)}`);
   }
 });
 
