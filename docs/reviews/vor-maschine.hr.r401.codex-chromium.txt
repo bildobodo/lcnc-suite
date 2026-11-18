@@ -1,0 +1,52 @@
+[1A[2K[2m[WebServer] [22m(node:1199216) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 10 tests using 1 worker
+
+[1A[2K(node:1199251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1199251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/10] [e2e] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[1A[2K[e2e] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":157.20000004768372,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":838.6000001430511,"fired":1,"hints":[]}]}
+
+[1A[2K[2/10] [e2e] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+[1A[2K[e2e] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":672.4000000953674,"block":{"from":21.59999990463257,"to":540},"hints":["Page delayed — hold again"]}]
+
+[1A[2Khold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":709,"block":{"from":105,"to":700},"hints":["Page delayed — hold again"]}]
+
+[1A[2Khold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":808.7999999523163,"block":{"from":103.70000004768372,"to":700},"hints":["Page delayed — hold again"]}]
+
+[1A[2K[3/10] [e2e] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[1A[2K[e2e] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2400,2850],"ups":[2500,2964],"hints":["Hold to activate"],"block":null}
+
+[1A[2K[4/10] [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires
+[1A[2K[e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":147.09999990463257,"delivered":533.0999999046326,"block":{"from":101.5,"to":520}},{"fired":0,"pressed":168.19999980926514,"delivered":533.7999999523163,"block":{"from":101,"to":520}},{"fired":0,"pressed":151.39999985694885,"delivered":532.4000000953674,"block":{"from":101.20000004768372,"to":520}},{"fired":0,"pressed":152.09999990463257,"delivered":533.4000000953674,"block":{"from":101.30000019073486,"to":520}},{"fired":0,"pressed":153.39999985694885,"delivered":531.7000000476837,"block":{"from":101.10000014305115,"to":520.1000001430511}},{"fired":0,"pressed":149.39999985694885,"delivered":530.5999999046326,"block":{"from":101,"to":520}},{"fired":0,"pressed":143.59999990463257,"delivered":533.0999999046326,"block":{"from":100.90000009536743,"to":520}},{"fired":0,"pressed":169.60000014305115,"delivered":525.4000000953674,"block":{"from":112.60000014305115,"to":520}}]
+
+[1A[2K[5/10] [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires
+[1A[2K[e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":149.79999995231628,"delivered":550.9000000953674,"block":{"from":101.09999990463257,"to":540.0999999046326}},{"fired":0,"pressed":166.39999985694885,"delivered":550.7000000476837,"block":{"from":101.20000004768372,"to":540}},{"fired":0,"pressed":153.10000014305115,"delivered":557.6000001430511,"block":{"from":101.09999990463257,"to":540}},{"fired":0,"pressed":155,"delivered":550.9000000953674,"block":{"from":101,"to":540}},{"fired":0,"pressed":152.20000004768372,"delivered":564.5,"block":{"from":100.90000009536743,"to":540}},{"fired":0,"pressed":144.90000009536743,"delivered":556.2000000476837,"block":{"from":103.5,"to":540}},{"fired":0,"pressed":147.70000004768372,"delivered":574.4000000953674,"block":{"from":100.89999985694885,"to":540}},{"fired":0,"pressed":142.90000009536743,"delivered":550.2000000476837,"block":{"from":101,"to":540}}]
+
+[1A[2K[6/10] [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[1A[2K[e2e] › e2e/hold-stall.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":305.5,"delivered":716.4000000953674,"block":{"from":101.5,"to":700}},{"fired":0,"pressed":299,"delivered":716.4000000953674,"block":{"from":100.79999995231628,"to":700}},{"fired":0,"pressed":280.59999990463257,"delivered":715.9000000953674,"block":{"from":100.89999985694885,"to":700}},{"fired":0,"pressed":281,"delivered":718.5999999046326,"block":{"from":101,"to":700}},{"fired":0,"pressed":282.2999999523163,"delivered":715.5999999046326,"block":{"from":101,"to":700}},{"fired":0,"pressed":283.40000009536743,"delivered":714.1000001430511,"block":{"from":101,"to":700}},{"fired":0,"pressed":282.90000009536743,"delivered":715.7000000476837,"block":{"from":100.90000009536743,"to":700}},{"fired":0,"pressed":289.19999980926514,"delivered":715.4000000953674,"block":{"from":102.70000004768372,"to":700}}]
+
+[1A[2K[7/10] [e2e] › e2e/hold-stall.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[1A[2K[e2e] › e2e/hold-stall.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+hold-stall across: [{"fired":0,"pressed":859.7000000476837,"delivered":831.7999999523163,"block":{"from":114.5,"to":700},"hints":["Page delayed — hold again"]}]
+
+[1A[2Khold-stall smooth: [{"fired":1,"pressed":831.3000001907349,"delivered":829.1000001430511,"block":null,"hints":[]}]
+
+[1A[2K[8/10] [e2e] › e2e/touch-hold.spec.ts:63:1 › a short tap sends nothing and says why; a complete hold sends exactly one command
+[1A[2K[9/10] [e2e] › e2e/touch-hold.spec.ts:85:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero
+[1A[2K[10/10] [e2e] › e2e/touch-hold.spec.ts:154:1 › teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable
+[1A[2K  10 passed (1.3m)

@@ -1,0 +1,470 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r401-hold/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/codex-r401-hold/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r401-chromium",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r401-hold/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r401-chromium",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r401-hold/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/codex-r401-hold\\/lcnc-webui\\/e2e\\/hold-stall\\.spec\\.ts|\\/tmp\\/codex-r401-hold\\/lcnc-webui\\/e2e\\/hold-stall-mouse\\.spec\\.ts|\\/tmp\\/codex-r401-hold\\/lcnc-webui\\/e2e\\/touch-hold\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "hold-stall-mouse.spec.ts",
+      "file": "hold-stall-mouse.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "mouse: a tap sends nothing, a hold on a smooth page sends once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4019,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse smooth: {\"taps\":[{\"delivered\":157.20000004768372,\"fired\":0,\"hints\":[\"Hold to activate\"]}],\"holds\":[{\"delivered\":838.6000001430511,\"fired\":1,\"hints\":[]}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:18:07.872Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-3b040ebf6c766ab0242c",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 100,
+          "column": 1
+        },
+        {
+          "title": "mouse: a tap or a hold across a blocked page never fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6478,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse block 0→540 ms, press 120 ms: [{\"delivered\":672.4000000953674,\"block\":{\"from\":21.59999990463257,\"to\":540},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall-mouse block 100→700 ms, press 250 ms: [{\"delivered\":709,\"block\":{\"from\":105,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall-mouse block 100→700 ms, press 800 ms: [{\"delivered\":808.7999999523163,\"block\":{\"from\":103.70000004768372,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:18:12.001Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-a76b50f0fd0933d5120d",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 141,
+          "column": 1
+        },
+        {
+          "title": "mouse: an ended press's step never fires a new short press (an abort, then a new press)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4042,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse abort, then a new press: {\"downs\":[2400,2850],\"ups\":[2500,2964],\"hints\":[\"Hold to activate\"],\"block\":null}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:18:18.485Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-db6d9f4d1cbeb98026ba",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 170,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "hold-stall.spec.ts",
+      "file": "hold-stall.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a block from the press's delivery to 520 ms: no real tap fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13507,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall a block from the press's delivery to 520 ms: [{\"fired\":0,\"pressed\":147.09999990463257,\"delivered\":533.0999999046326,\"block\":{\"from\":101.5,\"to\":520}},{\"fired\":0,\"pressed\":168.19999980926514,\"delivered\":533.7999999523163,\"block\":{\"from\":101,\"to\":520}},{\"fired\":0,\"pressed\":151.39999985694885,\"delivered\":532.4000000953674,\"block\":{\"from\":101.20000004768372,\"to\":520}},{\"fired\":0,\"pressed\":152.09999990463257,\"delivered\":533.4000000953674,\"block\":{\"from\":101.30000019073486,\"to\":520}},{\"fired\":0,\"pressed\":153.39999985694885,\"delivered\":531.7000000476837,\"block\":{\"from\":101.10000014305115,\"to\":520.1000001430511}},{\"fired\":0,\"pressed\":149.39999985694885,\"delivered\":530.5999999046326,\"block\":{\"from\":101,\"to\":520}},{\"fired\":0,\"pressed\":143.59999990463257,\"delivered\":533.0999999046326,\"block\":{\"from\":100.90000009536743,\"to\":520}},{\"fired\":0,\"pressed\":169.60000014305115,\"delivered\":525.4000000953674,\"block\":{\"from\":112.60000014305115,\"to\":520}}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:18:22.540Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf777f7938b2bd7b199-b97b9d408da35f9a597b",
+          "file": "hold-stall.spec.ts",
+          "line": 119,
+          "column": 3
+        },
+        {
+          "title": "a block from the press's delivery to 540 ms: no real tap fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13710,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall a block from the press's delivery to 540 ms: [{\"fired\":0,\"pressed\":149.79999995231628,\"delivered\":550.9000000953674,\"block\":{\"from\":101.09999990463257,\"to\":540.0999999046326}},{\"fired\":0,\"pressed\":166.39999985694885,\"delivered\":550.7000000476837,\"block\":{\"from\":101.20000004768372,\"to\":540}},{\"fired\":0,\"pressed\":153.10000014305115,\"delivered\":557.6000001430511,\"block\":{\"from\":101.09999990463257,\"to\":540}},{\"fired\":0,\"pressed\":155,\"delivered\":550.9000000953674,\"block\":{\"from\":101,\"to\":540}},{\"fired\":0,\"pressed\":152.20000004768372,\"delivered\":564.5,\"block\":{\"from\":100.90000009536743,\"to\":540}},{\"fired\":0,\"pressed\":144.90000009536743,\"delivered\":556.2000000476837,\"block\":{\"from\":103.5,\"to\":540}},{\"fired\":0,\"pressed\":147.70000004768372,\"delivered\":574.4000000953674,\"block\":{\"from\":100.89999985694885,\"to\":540}},{\"fired\":0,\"pressed\":142.90000009536743,\"delivered\":550.2000000476837,\"block\":{\"from\":101,\"to\":540}}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:18:36.052Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf777f7938b2bd7b199-851ed2d4a52f4501606d",
+          "file": "hold-stall.spec.ts",
+          "line": 119,
+          "column": 3
+        },
+        {
+          "title": "a block from 100 to 700 ms after the delivery: no real tap fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14963,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall a block from 100 to 700 ms after the delivery: [{\"fired\":0,\"pressed\":305.5,\"delivered\":716.4000000953674,\"block\":{\"from\":101.5,\"to\":700}},{\"fired\":0,\"pressed\":299,\"delivered\":716.4000000953674,\"block\":{\"from\":100.79999995231628,\"to\":700}},{\"fired\":0,\"pressed\":280.59999990463257,\"delivered\":715.9000000953674,\"block\":{\"from\":100.89999985694885,\"to\":700}},{\"fired\":0,\"pressed\":281,\"delivered\":718.5999999046326,\"block\":{\"from\":101,\"to\":700}},{\"fired\":0,\"pressed\":282.2999999523163,\"delivered\":715.5999999046326,\"block\":{\"from\":101,\"to\":700}},{\"fired\":0,\"pressed\":283.40000009536743,\"delivered\":714.1000001430511,\"block\":{\"from\":101,\"to\":700}},{\"fired\":0,\"pressed\":282.90000009536743,\"delivered\":715.7000000476837,\"block\":{\"from\":100.90000009536743,\"to\":700}},{\"fired\":0,\"pressed\":289.19999980926514,\"delivered\":715.4000000953674,\"block\":{\"from\":102.70000004768372,\"to\":700}}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:18:49.768Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf777f7938b2bd7b199-ffa6c1a7e6e459d8e9d1",
+          "file": "hold-stall.spec.ts",
+          "line": 119,
+          "column": 3
+        },
+        {
+          "title": "a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5130,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall across: [{\"fired\":0,\"pressed\":859.7000000476837,\"delivered\":831.7999999523163,\"block\":{\"from\":114.5,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall smooth: [{\"fired\":1,\"pressed\":831.3000001907349,\"delivered\":829.1000001430511,\"block\":null,\"hints\":[]}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:04.736Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf777f7938b2bd7b199-b1e91828bd968e5eaf1a",
+          "file": "hold-stall.spec.ts",
+          "line": 133,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "touch-hold.spec.ts",
+      "file": "touch-hold.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a short tap sends nothing and says why; a complete hold sends exactly one command",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4393,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:09.880Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5338185209c1981fb6a0-b38e758384e303aa799f",
+          "file": "touch-hold.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8870,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:14.281Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5338185209c1981fb6a0-36cd30eebf6ea1b597bd",
+          "file": "touch-hold.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3820,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:23.159Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5338185209c1981fb6a0-01ca1675e7a1e7ee9d89",
+          "file": "touch-hold.spec.ts",
+          "line": 154,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T22:18:06.140Z",
+    "duration": 80916.456,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

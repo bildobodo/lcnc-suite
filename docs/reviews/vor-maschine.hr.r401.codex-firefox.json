@@ -1,0 +1,197 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r401-hold/lcnc-webui/playwright.firefox.config.ts",
+    "rootDir": "/tmp/codex-r401-hold/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r401-firefox",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r401-hold/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r401-firefox",
+          "actualWorkers": 1
+        },
+        "id": "firefox-core",
+        "name": "firefox-core",
+        "testDir": "/tmp/codex-r401-hold/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/\\/(probe-visual\\.spec\\.ts|layout\\.spec\\.ts|smoke\\.spec\\.ts|dialogs\\.spec\\.ts|hold-stall-mouse\\.spec\\.ts|probe-click\\.spec\\.ts|tabs\\.spec\\.ts|visual\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "hold-stall-mouse.spec.ts",
+      "file": "hold-stall-mouse.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "mouse: a tap sends nothing, a hold on a smooth page sends once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3367,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse smooth: {\"taps\":[{\"delivered\":169,\"fired\":0,\"hints\":[\"Hold to activate\"]}],\"holds\":[{\"delivered\":815,\"fired\":1,\"hints\":[]}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:29.240Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-51450b9e6aa7cc04ebcd",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 100,
+          "column": 1
+        },
+        {
+          "title": "mouse: a tap or a hold across a blocked page never fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5673,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse block 0→540 ms, press 120 ms: [{\"delivered\":680,\"block\":{\"from\":14,\"to\":540},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall-mouse block 100→700 ms, press 250 ms: [{\"delivered\":707,\"block\":{\"from\":100,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall-mouse block 100→700 ms, press 800 ms: [{\"delivered\":818,\"block\":{\"from\":100,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:33.716Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-1a0fd387a5d361be925c",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 141,
+          "column": 1
+        },
+        {
+          "title": "mouse: an ended press's step never fires a new short press (an abort, then a new press)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2416,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse abort, then a new press: {\"downs\":[1460,1910],\"ups\":[1560,2024],\"hints\":[\"Hold to activate\"],\"block\":null}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:19:39.397Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-a115e0eb6b35f6188989",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 170,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T22:19:27.652Z",
+    "duration": 14415.012,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -8525,3 +8525,78 @@ Belege unter `vor-maschine.hr.r401.*` bzw. `vor-maschine.rp5.r401.*`.
 **Erbeten:** `agreement` oder `findings`, je Teil:
 - Teil 1 zu `56e246ba..2abcdb0b`;
 - Teil 2 zu `56e246ba..11afacdc`.
+
+---
+
+## Codex · Halten und Replay 5c · Nachprüfung R401 · 18. November 2026
+
+**Teil 1: `findings` am Kopf `2abcdb0b`, begrenzt auf den benannten Hinweis-Wächter (VM397-03); kein neuer Produktbefund. VM397-01/02 sind geschlossen. Teil 2: `findings` am Kopf `11afacdc`; die konkreten R400-Gegenfälle sind geschlossen, zwei Zusammenführungsgrenzen derselben Klasse bleiben bei VM-I33/34. VM-I35 ist geschlossen.** Beide Köpfe auf `56e246ba`, Dokumentstand `8081ee3d`. Keine Operatorfrage. [Stand, Befehle, Eingaben, Hashes und Grenzen](vor-maschine.rp5.r401.codex-evidence.json).
+
+### Teil 1 · Umsetzung und bisherige Vertragsreste angenommen
+
+Die unbelegte 350-ms-Untergrenze ist entfernt; der Timervertrag und sein Gegenablauf sind jetzt ausdrücklich benannt. Der alte Fälligkeitsschritt liegt tatsächlich in der neuen **114-ms-Geste**, die exakte Grenze **150/151 ms** ist geprüft. Die Gestenlebensdauer, das endgültige Ende nach einer beobachteten Unterbrechung und die Verdrahtung in `MachineBtn` nehme ich an. Ebenso die Umstellung normaler Haltefälle auf die Seiten-Uhr, die Echtzeit-Wächter daneben und die benannte Wiederholung ausschließlich nicht getroffener beziehungsweise als verzögert belegter Fälle. Die zwei roten Gates sind als solche erhalten und werden durch den späteren grünen Lauf nicht umgedeutet.
+
+Eigene Prüfungen am Kopf:
+
+- **22/22 Unitprüfungen**: 20 Gestenfälle und zwei Prüfungen des Spec-Scans; Build PASS. [Unitbericht](vor-maschine.hr.r401.codex-unit.json), [Build](vor-maschine.hr.r401.codex-build.txt).
+- **10/10 Chromium-Fälle**, unveränderte `hold-stall`, `hold-stall-mouse` und `touch-hold`, ein Worker. Die drei Touch-Reihen trafen je acht kurze, erst nach der Fälligkeit zugestellte Gesten; keine löste aus. [Bericht](vor-maschine.hr.r401.codex-chromium.json), [Zeiten und Aktionen](vor-maschine.hr.r401.codex-chromium.txt).
+- **3/3 Firefox-160-Mausfälle**, mit der gepinnten Konfiguration ohne Display. Alle drei Blockformen blieben ohne Aktion; die Haltedurchgänge nannten den Abbruch. Der neue Druck lag wieder exakt zwischen 450 und 564 ms nach dem ersten. [Bericht](vor-maschine.hr.r401.codex-firefox.json), [Zeiten](vor-maschine.hr.r401.codex-firefox.txt).
+
+Die Grenze bei pünktlichen Timern, aber wartender Eingabe bleibt richtig benannt. Die vor dem Merge zugesagte Messung eines normalen Haltens neben der Kollisionsprüfung ist noch ausstehend; die spätere Maschinen-PC-Auswertung ersetzt sie nicht. Daraus folgt heute weder eine zugesicherte Ablehnungsrate noch eine Touchscreen-Abnahme. Das Jog-Paket bleibt getrennt.
+
+### Teil 1 · VM397-03 Rest: Den angekündigten Hinweis-Fix noch in den geprüften Kopf aufnehmen
+
+Die Anfrage benennt den Fehler bereits richtig. Er ist an `2abcdb0b` noch vorhanden: `record()` beziehungsweise `clearHints()` leeren nur das Array. Der Beobachter übernimmt bei einer beliebigen DOM-Änderung erneut den noch sichtbaren alten Text. Damit ist ein Eintrag im Array kein Nachweis eines Hinweises **dieser** Geste.
+
+Meine zusätzliche Browserprobe benutzt den unveränderten Mitschreiber aus `hold-stall-mouse.spec.ts` und den echten Knopf:
+
+1. Eine erste Geste wird verzögert und zeigt „Page delayed — hold again“.
+2. Nach dem Zurücksetzen des Mitschreibers erzeugt eine harmlose DOM-Änderung erneut diesen Eintrag — **noch vor dem nächsten Druck** (`downs: []`).
+3. Eine neue, auf der Seiten-Uhr genau 800 ms lange Geste endet durch ein künstliches `blur` bei 100 ms. Das ist der bestehende, absichtlich nur auf der Konsole erklärte Abbruch; diese Geste erzeugt keinen Stall-Hinweis und sendet nichts.
+4. Trotzdem erfüllt ihr Mitschrieb die jetzige Bedingung `whole && fired === 0 && hints.includes("Page delayed — hold again")`. Dieselbe Abbruchkontrolle ohne den alten Hinweis liefert ein leeres Array.
+
+[Probe](vor-maschine.hr.r401.codex-hint.spec.ts), [Rohdaten mit Kontrolle](vor-maschine.hr.r401.codex-hint.txt). Ihr grüner Teststatus **bestätigt die Lücke des Mitschreibers**, keine zusätzliche Produktfreigabe und keinen neu gemessenen Produktfehler. Der künstliche Fokusverlust dient nur dazu, den Fall ohne neuen Hinweis eindeutig herzustellen.
+
+**Erbeten:** Die angekündigte Korrektur vor Agreement zu diesem Kopf aufnehmen: den Mitschrieb an den zugestellten Druck binden und einen danach neu erzeugten Hinweis belegen, statt einen vorgefundenen Text als neuen Hinweis zu verwenden. Alternativ den alten Hinweis vor dem nächsten Versuch nachweislich vollständig verschwinden lassen. Ein Gegenwächter muss einen stummen vollständigen Versuch trotz alten Textes ablehnen; ein erfolgreicher nächster Versuch darf ihn nicht nachträglich entschuldigen. Dann ist dieser Rest unabhängig von der bereits angenommenen Produktregel geschlossen.
+
+### Teil 2 · R400-Korrekturen bestätigt
+
+**187/187 Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`). [Ausgabe](vor-maschine.rp5.r401.codex-pytest.txt).
+
+Die R400-Sonden sind mit dem neuen Leser wiederholt; die Eingabe wurde wie angekündigt in einer eigenen Kopie nach den Gruppenlistungen aufgeteilt (**2675/104** Optionssätze). Die alte Eingabe blieb unverändert. Die drei Kontrollen bleiben PASS. Die vier fehlerhaften `fails`-Formen, der fremde Heavy-Satz, der fehlende Satz sowie die fehlende zweite Option eines gleichnamigen Tests liefern keinen positiven Beleg mehr. Der doppelte Retry liefert keinen `estop_reset`-Auslöser. Der widersprüchliche native Bericht liefert **0 statt 68 native PASS-Belege** und heißt „invalid report of this commit“. [Sonde](vor-maschine.rp5.r401.codex-probes.py), [Ergebnisse](vor-maschine.rp5.r401.codex-probes.json), [Gleichnamigkeitsprobe](vor-maschine.rp5.r401.codex-duplicate-probe.json).
+
+Das sind Diagnoseauswertungen der alten Gate-Artefakte mit den benannten Ergänzungen, **kein neues Merge-Gate am R401-Kopf**. Native Gegenberichte sind synthetisch. Die Optionsprüfung selbst und die Verwerfung der nativen Berichte nehme ich an.
+
+### Teil 2 · VM-I33 Rest: Auch eine widersprüchliche Listung muss ungültig bleiben
+
+`playwright_index()` setzt eine doppelte ID inzwischen richtig auf `contradictory` und leert ihre Ergebnisse. In `coverage.py:408–410` überschreibt die Zusammenführung diesen Zustand aber durch den Ergebnisbericht — auch dann, wenn die **Listung** die widersprüchliche Seite war.
+
+**Gegenfall:** In der echten Chromium-Listung den Eintrag „the recovery order …“ mit derselben ID und demselben Projekt dupliziert; Bericht und Replay unverändert. Ergebnis:
+
+- Gesamturteil korrekt FAIL mit „test id … twice“;
+- trotzdem wieder **110 geprüfte Aussagen**;
+- der Versuch zählt weiterhin **einen `estop_reset`** und die unveränderten Auslösersummen (8194 für Chromium).
+
+Beim bereits korrigierten doppelten Retry im **Ergebnisbericht** bleiben dagegen 109 geprüfte Aussagen, und `estop_reset` heißt „not sent“. [Beide Fälle `browser_duplicate_in_listing` und `browser_duplicate_retry`](vor-maschine.rp5.r401.codex-probes.json).
+
+**Erbeten:** Eine ungültige Identität auf jeder Seite des Joins sperrt diese Identität für Belege und Replay-Zulassung. Den Widerspruch der Listung beim Anfügen des Berichts bewahren; ein sauberer Bericht kann keine eindeutige Listung ersetzen. Den Gegenwächter auf Nichtzulassung und fehlende positive Aussage erweitern, nicht nur auf das rote Gesamturteil.
+
+### Teil 2 · VM-I34 weitere Reste: Ergebnisanzahl und Ergebniszustand ebenso erhalten wie Optionen
+
+Die Optionssätze werden jetzt vollständig gezählt und über Gruppen nur verschärft. Für die **Testergebnisse** gilt beides noch nicht: `vitest_index()` verliert die Multiplizität der Listung (`coverage.py:123–141`), und `unit.update(part)` überschreibt den Zustand der vorherigen Gruppe (`:422`).
+
+Eigene echte Vitest-Datei mit zwei normalen Tests desselben Namens: einer besteht, einer scheitert absichtlich, **beide `fails: false`**. Der Runner endet erwartungsgemäß mit Exit 1, die Listung und die Optionen enthalten je zwei Sätze. Für die Auswertung wird genau ein Inventarbeleg im Speicher an diese Datei gebunden. [Quelle](vor-maschine.rp5.r401.codex-result-fixture.test.ts), [Listung](vor-maschine.rp5.r401.codex-result-list.json), [Runnerbericht](vor-maschine.rp5.r401.codex-result-report.json), [Optionen](vor-maschine.rp5.r401.codex-result-options.json).
+
+| Eingabe der Auswertung | Auswertungsfehler | Gebundener Beleg | Geprüfte Aussagen |
+|---|---:|---|---:|
+| Vollständige Daten: ein bestandenes, ein fehlgeschlagenes Ergebnis | 0 | failed | 109 |
+| Nur das fehlgeschlagene Ergebnis entfernt; beide Listungs- und Optionssätze bleiben | **0** | **passed** | **110** |
+| Vollständige Light-Daten mit Fehler; zusätzlich derselbe vollständige Satz in Heavy mit zwei bestandenen Ergebnissen | **0** | **passed** | **110** |
+
+[Auswertungssonde](vor-maschine.rp5.r401.codex-result-probe.py), [Ergebnisse](vor-maschine.rp5.r401.codex-result-probe.json). Die Kontrolle hat keinen Auswertungsfehler: Ein korrekt gelesener fehlgeschlagener Test ist eine offene Aussage. Die beiden Beschädigungen dürfen daraus keine bestandene Aussage machen. Der zweite Gegenfall modelliert die Gruppenüberschneidung, für die die neue Options-Zusammenführung bereits ausdrücklich einen Vertrag hat.
+
+**Erbeten:** Auch die Ergebnis-Multimenge gegen die jeweilige Listung prüfen; ein fehlendes oder überzähliges Ergebnis bei gleichem Schlüssel ist keine vollständige Ausführung. Über Gruppen einen bekannten Fehler beziehungsweise unbekannten Zustand nicht durch PASS ersetzen. Falls Gruppenüberschneidungen grundsätzlich unzulässig sein sollen, sie stattdessen ausdrücklich verweigern und den betroffenen Beleg zurückhalten. Wächter jeweils mit vollständiger positiver beziehungsweise negativer Kontrolle und Nichtbestehen der beschädigten Fassung.
+
+### Abschluss
+
+Eigene Archivkopien, eigene Abhängigkeiten, alle belastenden Läufe unter der gemeinsamen Sperre; alle Prozesse beendet und Sperre frei. Im Live-Baum nur dieser Anhang und neue `*.r401.codex-*`-Belege. Kein Zugriff auf die Live-Sim. Kein volles Merge-Gate und keine eigene CI-Abnahme. Die weiteren Änderungen gehören erneut unter ihren dann benannten Kopf; das vereinbarte einmalige Merge-Gate bleibt danach.

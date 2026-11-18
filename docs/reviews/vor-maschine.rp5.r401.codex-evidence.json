@@ -1,0 +1,165 @@
+{
+  "review": "R401",
+  "document_head": "8081ee3d4167788b83382880247562a2f3b4a849",
+  "hold_head": "2abcdb0b59d4912ed4bdae16d4b23013172c09bc",
+  "replay_head": "11afacdce1336d9a23d399555def19133f9e80f7",
+  "base": "56e246ba",
+  "roots": [
+    "/tmp/codex-r401-hold",
+    "/tmp/codex-r401-replay"
+  ],
+  "runs": {
+    "python": "187 passed",
+    "hold_unit": "22 passed: 20 gestures + 2 source-scan tests",
+    "build": "PASS",
+    "chromium": "10 passed, one worker",
+    "firefox": "3 passed, pinned Firefox 160, no display",
+    "hint_probe": "1 PASS confirms the recorder counterexample; synthetic blur is only a cancellation control, not a new product defect",
+    "result_fixture": "2 actual Vitest tests: one normal pass and one intentional normal failure; exit 1, no expected-failure flag"
+  },
+  "diagnostic_baseline": {
+    "gate": "/tmp/r401-input/gate-merge.json",
+    "original": "/tmp/r400-input",
+    "gate_head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+    "adaptation": "Copied R400 input. Split its full options set by each group listing key (relative file, full title): light 2675, heavy 104. No changes to /tmp/r400-input. Baseline is diagnostic only, NOT a fresh merge run at either R401 head.",
+    "actual_prior_fixture_artifacts": [
+      "vor-maschine.rp5.r400.codex-vitest-list.json",
+      "vor-maschine.rp5.r400.codex-vitest-report.json",
+      "vor-maschine.rp5.r400.codex-vitest-options.json",
+      "vor-maschine.rp5.r400.codex-duplicate-list.json",
+      "vor-maschine.rp5.r400.codex-duplicate-report.json",
+      "vor-maschine.rp5.r400.codex-duplicate-options.json"
+    ],
+    "binding": "Unit probes replace exactly one inventory evidence in memory. Native counterexample reports are synthetic; no native driver was imported."
+  },
+  "limits": [
+    "No live-sim connection",
+    "No full/merge gate",
+    "CI results not independently checked",
+    "No hardware/touchscreen or collision-load acceptance",
+    "Only review appendix and new evidence in the live tree",
+    "All own tests ended; shared heavy lock released"
+  ],
+  "files": {
+    "vor-maschine.hr.r401.codex-unit.json": {
+      "source": "/tmp/r401-hold-unit.json",
+      "sha256": "711a11f2abc6545be7bb2b4039db2a63cb4046438bfd0871994f682f5fa63183"
+    },
+    "vor-maschine.hr.r401.codex-unit.txt": {
+      "source": "/tmp/r401-hold-unit.txt",
+      "sha256": "34425f35520fb76c0fa61cfd52665ff44c8f2bba585bad66f5791fc14ce0afdf"
+    },
+    "vor-maschine.hr.r401.codex-build.txt": {
+      "source": "/tmp/r401-build.txt",
+      "sha256": "a751dc10855a30eefa2b337263c8739ac07e4387f0967bdf0c7a79e28235523f"
+    },
+    "vor-maschine.hr.r401.codex-chromium.json": {
+      "source": "/tmp/r401-browser.json",
+      "sha256": "37be61e0c0ceb2298fdccde21a8f9fcfb7862bedc16a413703e492dfd06f3329"
+    },
+    "vor-maschine.hr.r401.codex-chromium.txt": {
+      "source": "/tmp/r401-browser-console.txt",
+      "sha256": "793cd2eb348f2f54882f8ee7d73a5a129f5fc9d968e7b1a3f6f79fc91a20e418"
+    },
+    "vor-maschine.hr.r401.codex-firefox.json": {
+      "source": "/tmp/r401-firefox.json",
+      "sha256": "ab3ff9ab95304b3966fdbee2957755c7fd3d91f7f13425c9877c61f65b63c110"
+    },
+    "vor-maschine.hr.r401.codex-firefox.txt": {
+      "source": "/tmp/r401-firefox-console.txt",
+      "sha256": "fa0fe8c0528ac34a08312beb609aeb6aba804f6435781dec76a40688cf4cdd6d"
+    },
+    "vor-maschine.hr.r401.codex-run.sh": {
+      "source": "/tmp/r401-hold-run.sh",
+      "sha256": "5c87bfed4b38b7d6b02a216461eb7334a665366293a9f72f81cb8b2ffb8b59f6"
+    },
+    "vor-maschine.hr.r401.codex-hint.spec.ts": {
+      "source": "/tmp/codex-r401-hold/lcnc-webui/e2e/r401-hint.spec.ts",
+      "sha256": "724403722c68e21065ec7e6a9fd2b8095a6615e39ee20562ae87241e4dce5824"
+    },
+    "vor-maschine.hr.r401.codex-hint.json": {
+      "source": "/tmp/r401-hint.json",
+      "sha256": "2230617783beac033e3a4f8a1222b7982749bbdd2dea7d2fcd193b8cfb61c016"
+    },
+    "vor-maschine.hr.r401.codex-hint.txt": {
+      "source": "/tmp/r401-hint-console.txt",
+      "sha256": "654e83ac42e5953c1703d5974b2819ea84d460221d5eaef28277969f6b46669f"
+    },
+    "vor-maschine.hr.r401.codex-hint-run.sh": {
+      "source": "/tmp/r401-hint-run.sh",
+      "sha256": "7d9927f1251c4f3c44d00c36e435f83ec1821ff716415552f7f297f26d7c4263"
+    },
+    "vor-maschine.rp5.r401.codex-pytest.txt": {
+      "source": "/tmp/r401-pytest.txt",
+      "sha256": "22d8ff5f0b8c9a40accd4ffe3b587752dc53dae7591cc84b023eeaee429d403f"
+    },
+    "vor-maschine.rp5.r401.codex-run.sh": {
+      "source": "/tmp/r401-python-run.sh",
+      "sha256": "a751396a91bd54b342db4c58be0210620c864ca0ba41ff122004eec99861caaf"
+    },
+    "vor-maschine.rp5.r401.codex-probes.py": {
+      "source": "/tmp/r401-probes.py",
+      "sha256": "7b176fcc2fc6a60bd26b5264f914f48348b8b914ed27821b59d90e347e18cf0b"
+    },
+    "vor-maschine.rp5.r401.codex-probes.json": {
+      "source": "/tmp/r401-probes.json",
+      "sha256": "612ba85bf5d558acfd3f930d99d35f2ea887a3b6a4a64a5f675d2192f716cef6"
+    },
+    "vor-maschine.rp5.r401.codex-duplicate-probe.py": {
+      "source": "/tmp/r401-duplicate-probe.py",
+      "sha256": "2c634d5171d82c1bbdb5d0c457e64975682966d797e2b0cbf8d53b8fe897c01a"
+    },
+    "vor-maschine.rp5.r401.codex-duplicate-probe.json": {
+      "source": "/tmp/r401-duplicate-probe.json",
+      "sha256": "57ddd22783bad021ef001cd805ff8c6cb2167659349e8cd7a79c1576d335f1d6"
+    },
+    "vor-maschine.rp5.r401.codex-result-fixture.test.ts": {
+      "source": "/tmp/codex-r401-hold/lcnc-webui/src/r401-duplicate.test.ts",
+      "sha256": "d7afac528c3a22b0caa1d1cf934545bce4b480944d0b7479f5050ebdebf4ae71"
+    },
+    "vor-maschine.rp5.r401.codex-result-list.json": {
+      "source": "/tmp/r401-result-list.json",
+      "sha256": "a89d2c6e5f8b467608a67d785bad0c1e9e498c29f1323dcd1da98702494fa5a3"
+    },
+    "vor-maschine.rp5.r401.codex-result-options.json": {
+      "source": "/tmp/r401-result-options.json",
+      "sha256": "0abb2499f3e42942598154f382015b201191b99fcac1d50112b6bffdc5fac391"
+    },
+    "vor-maschine.rp5.r401.codex-result-report.json": {
+      "source": "/tmp/r401-result-report.json",
+      "sha256": "8f6025a4645f2ea17091ead042f4f159f47f7485cf2f7076515e01abba3850bd"
+    },
+    "vor-maschine.rp5.r401.codex-result-console.txt": {
+      "source": "/tmp/r401-result-console.txt",
+      "sha256": "e228bb8e46b74ed3d3e4082d2d58d637075deb1960fd8b8aef896637429f7302"
+    },
+    "vor-maschine.rp5.r401.codex-result-probe.py": {
+      "source": "/tmp/r401-result-probe.py",
+      "sha256": "afc8f98b1f34e3f29a12909576c093b8f282e302e7a59a9dd2aaa416c056a89a"
+    },
+    "vor-maschine.rp5.r401.codex-result-probe.json": {
+      "source": "/tmp/r401-result-probe.json",
+      "sha256": "13383c6bb4f579254348347eef1bded6ee11d04ef947885fa01098b8b543263b"
+    },
+    "vor-maschine.rp5.r401.codex-result-run.sh": {
+      "source": "/tmp/r401-extra-run.sh",
+      "sha256": "64f7a232846d5d738e0d79f8e5962d19b7c1eab6354c67272e54c8249621291e"
+    }
+  },
+  "input_hashes": {
+    "gate-merge.json": "91516b432180f1e1b317b446a0c4c49ff997ceb249da092c9aa87c76bf1ed4ba",
+    "gate-merge.logs/list-run.json": "dc689e4158d4c9bf3a2eae3f6de5e6fdcd0430372bd14865cfb601c6b0ae1e78",
+    "gate-merge.logs/playwright.json": "5ad3997473ebbf2e0a5b50297058e2de8d4c005db320cc0eb708a2f87b6ab275",
+    "gate-merge.logs/firefox-list.json": "353b61fc15b02b75baead7713835bb538d6dcd9e6a618064f80b3260d1fc5dda",
+    "gate-merge.logs/firefox.json": "7afe667c55d793f7bd68e59ccdb99d40d7c9eec9d74fa71e3d52cca9f8f13617",
+    "gate-merge.logs/unit-light.list.json": "595d2bcaa35bb427ff7c2337061b1395f3055cfc8380dc098cab0e2fd8308910",
+    "gate-merge.logs/unit-light.json": "1191bea33e2ce91d3018b684af6a178368dd18d61a6d6e26a749078b5a3830de",
+    "gate-merge.logs/unit-heavy.list.json": "ba6db85463ed14fe503b1fddea14a81a6183fd46ac5a812be67a3e46bcf8e82d",
+    "gate-merge.logs/unit-heavy.json": "12c890ef9d349d3d269d718178552ab71bc667bfba2c55f4ea3415bfa150f6f8",
+    "gate-merge.logs/replay.json": "f53b867cc8c164cb556b9e9f0d49ee98ba9e527e1104b1bf537488746d02e4d1",
+    "gate-merge.logs/firefox-replay.json": "55c623d23e5554df0e901369d9b21246fe88cc80bcb8dcf69360cdfe67d49390",
+    "gate-merge.logs/unit-light.options.json": "7f9ae36ae9ccc4b0951ff430024f0b5baade4518aa638e8c3e46d02c0375bc73",
+    "gate-merge.logs/unit-heavy.options.json": "ebaf928b946da13e96df2c5cfdc883eed6303fd2759d56ad1155cb4b8364082b",
+    "gate-merge.logs/backend/backend.junit.xml": "5e930d143df42425388ea86a617dd63b4dde4de791e608d051657a9c4613840c"
+  }
+}

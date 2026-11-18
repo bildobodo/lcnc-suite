@@ -1,0 +1,118 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r401-hold/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/codex-r401-hold/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r401-hint",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r401-hold/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r401-hint",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r401-hold/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/codex-r401-hold\\/lcnc-webui\\/e2e\\/r401-hint\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r401-hint.spec.ts",
+      "file": "r401-hint.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R401: an old hint can excuse a later silent hold in the recorder",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4128,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R401-hint {\"before\":{\"downs\":[],\"ups\":[],\"hints\":[\"Page delayed — hold again\"],\"block\":null},\"after\":{\"downs\":[3173],\"ups\":[3973],\"hints\":[\"Page delayed — hold again\"],\"block\":null},\"whole\":true,\"fired\":0,\"originalAcceptance\":true}\n"
+                    },
+                    {
+                      "text": "R401-hint-control {\"downs\":[3993],\"ups\":[4793],\"hints\":[],\"block\":null}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T22:20:43.653Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ec88960b06d78efbcc68-798d0dd1939816bdfdf8",
+          "file": "r401-hint.spec.ts",
+          "line": 100,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T22:20:41.978Z",
+    "duration": 5949.83,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

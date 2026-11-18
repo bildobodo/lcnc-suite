@@ -1,0 +1,50 @@
+{
+  "complete_control": {
+    "verdict": "PASS",
+    "errors": [],
+    "checked": 109,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r401-duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "failed"
+      }
+    ]
+  },
+  "missing_failed_result_of_two": {
+    "verdict": "PASS",
+    "errors": [],
+    "checked": 110,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r401-duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "passed"
+      }
+    ]
+  },
+  "heavy_pass_hides_light_failure": {
+    "verdict": "PASS",
+    "errors": [],
+    "checked": 110,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r401-duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "passed"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+[1A[2K[2m[WebServer] [22m(node:1202956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:1202990) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1202990) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] [e2e] › e2e/r401-hint.spec.ts:100:1 › R401: an old hint can excuse a later silent hold in the recorder
+[1A[2K[e2e] › e2e/r401-hint.spec.ts:100:1 › R401: an old hint can excuse a later silent hold in the recorder
+R401-hint {"before":{"downs":[],"ups":[],"hints":["Page delayed — hold again"],"block":null},"after":{"downs":[3173],"ups":[3973],"hints":["Page delayed — hold again"],"block":null},"whole":true,"fired":0,"originalAcceptance":true}
+
+[1A[2KR401-hint-control {"downs":[3993],"ups":[4793],"hints":[],"block":null}
+
+[1A[2K  1 passed (5.9s)
