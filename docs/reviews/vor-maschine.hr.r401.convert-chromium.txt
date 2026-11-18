@@ -1,0 +1,142 @@
+# R401 · the seven converted/changed specs in Chromium, 3 workers, at c0785018's content
+
+
+Running 117 tests using 3 workers
+
+[1/117] [e2e] › e2e/hold-stall.spec.ts:79:3 › a block from the press's delivery to 520 ms: no real tap fires
+[2/117] [e2e] › e2e/hold-stall-mouse.spec.ts:86:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[3/117] [e2e] › e2e/disarmed.spec.ts:117:1 › disarmed at idle: every tab and sub-tab opens, nothing that acts is enabled, every closed control says why
+[4/117] [e2e] › e2e/disarmed.spec.ts:161:1 › disarmed and unhomed, and in E-Stop: still navigable, still nothing that acts
+[5/117] [e2e] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+[6/117] [e2e] › e2e/disarmed.spec.ts:176:1 › disarmed: the preselections take no command — step, speed, RPM, the MDI line
+[e2e] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: {"delivered":558.2999999523163,"hints":["Page delayed — hold again"]}
+
+[7/117] [e2e] › e2e/disarmed.spec.ts:206:1 › disarmed while a program runs: Pause, Abort and the jog Stop are reachable and act
+hold-stall-mouse block 100→700 ms, press 120 ms: {"delivered":707.3000001907349,"hints":["Page delayed — hold again"]}
+
+hold-stall-mouse block 100→700 ms, press 800 ms: {"delivered":806.7999999523163,"hints":["Page delayed — hold again"]}
+
+[8/117] [e2e] › e2e/hold-stall-mouse.spec.ts:123:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[9/117] [e2e] › e2e/disarmed.spec.ts:230:1 › disarmed at idle: the spindle stop is reachable (BG-18 — inside the strip's fieldset before package C)
+[e2e] › e2e/hold-stall.spec.ts:79:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":119.29999995231628,"delivered":520.7999999523163},{"fired":0,"pressed":122.20000004768372,"delivered":520.2999999523163},{"fired":0,"pressed":119,"delivered":520.4000000953674},{"fired":0,"pressed":121.09999990463257,"delivered":527.6999998092651},{"fired":0,"pressed":120.29999995231628,"delivered":520.5},{"fired":0,"pressed":118.20000004768372,"delivered":520.4000000953674},{"fired":0,"pressed":120,"delivered":520.5},{"fired":0,"pressed":120.40000009536743,"delivered":520.5}]
+
+[10/117] [e2e] › e2e/hold-stall.spec.ts:79:3 › a block from the press's delivery to 540 ms: no real tap fires
+[11/117] [e2e] › e2e/disarmed.spec.ts:241:1 › Files follows the load: closed with its reason disarmed and while a program runs; armed it browses; losing the load closes it (package F, operator 2026-10-28)
+[12/117] [e2e] › e2e/disarmed.spec.ts:282:1 › a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes
+[e2e] › e2e/hold-stall-mouse.spec.ts:123:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2954,3404],"ups":[3054,3518],"hints":["Hold to activate"]}
+
+[13/117] [e2e] › e2e/probe-click.spec.ts:47:3 › Outside: a held probe button sends its routine with the panel's numbers
+[14/117] [e2e] › e2e/disarmed.spec.ts:322:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27)
+[15/117] [e2e] › e2e/probe-click.spec.ts:47:3 › Boss/Pocket: a held probe button sends its routine with the panel's numbers
+[16/117] [e2e] › e2e/disarmed.spec.ts:373:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28)
+[17/117] [e2e] › e2e/probe-click.spec.ts:47:3 › Ridge/Valley: a held probe button sends its routine with the panel's numbers
+[18/117] [e2e] › e2e/disarmed.spec.ts:401:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29)
+[e2e] › e2e/hold-stall.spec.ts:79:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":116,"delivered":540.6000001430511},{"fired":0,"pressed":118.20000004768372,"delivered":540.4000000953674},{"fired":0,"pressed":120.29999995231628,"delivered":540.7999999523163},{"fired":0,"pressed":121.59999990463257,"delivered":570},{"fired":0,"pressed":123,"delivered":540.4000000953674},{"fired":0,"pressed":119.89999985694885,"delivered":558.4000000953674},{"fired":0,"pressed":119.30000019073486,"delivered":540.6000001430511},{"fired":0,"pressed":124.09999990463257,"delivered":554.4000000953674}]
+
+[19/117] [e2e] › e2e/hold-stall.spec.ts:79:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[20/117] [e2e] › e2e/probe-click.spec.ts:47:3 › Angle: a held probe button sends its routine with the panel's numbers
+[21/117] [e2e] › e2e/disarmed.spec.ts:441:1 › a late INI default never replaces a prepared RPM (R214 BG-27 rest)
+[22/117] [e2e] › e2e/probe-click.spec.ts:47:3 › Calibrate: a held probe button sends its routine with the panel's numbers
+[23/117] [e2e] › e2e/disarmed.spec.ts:453:1 › a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest)
+[24/117] [e2e] › e2e/disarmed.spec.ts:462:1 › a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest)
+[25/117] [e2e] › e2e/probe-click.spec.ts:67:1 › Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers
+[26/117] [e2e] › e2e/disarmed.spec.ts:474:1 › a late INI default fills an untouched RPM and jog speed (positive control, R214)
+[e2e] › e2e/hold-stall.spec.ts:79:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":119.40000009536743,"delivered":700.7999999523163},{"fired":0,"pressed":121.60000014305115,"delivered":700.5},{"fired":0,"pressed":120.5,"delivered":700.5999999046326},{"fired":0,"pressed":123.69999980926514,"delivered":700.5},{"fired":0,"pressed":120.39999985694885,"delivered":700.7000000476837},{"fired":0,"pressed":120.80000019073486,"delivered":714.2999999523163},{"fired":0,"pressed":121.10000014305115,"delivered":701},{"fired":0,"pressed":119.5,"delivered":700.7999999523163}]
+
+[27/117] [e2e] › e2e/hold-stall.spec.ts:93:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[28/117] [e2e] › e2e/probe-click.spec.ts:100:3 › z_surface: the job the button sends is the native stage's whole job
+[29/117] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[30/117] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[31/117] [e2e] › e2e/probe-click.spec.ts:100:3 › surface_scan: the job the button sends is the native stage's whole job
+[32/117] [e2e] › e2e/toolsetter-setup.spec.ts:70:1 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason
+[33/117] [e2e] › e2e/toolsetter-setup.spec.ts:82:1 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up
+[34/117] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[35/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZ landscape: unhome preserves control geometry
+[36/117] [e2e] › e2e/toolsetter-setup.spec.ts:91:1 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field
+[37/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false}
+[38/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop
+[39/117] [e2e] › e2e/toolsetter-setup.spec.ts:109:1 › a save the server never confirmed is no setup; its confirmation is
+[40/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZ landscape touch: unhome preserves control geometry
+[41/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off
+[42/117] [e2e] › e2e/toolsetter-setup.spec.ts:133:1 › Measure Current is ONE command: the tool_measure job — a refusal says why and nothing follows (Codex R16 XZ-06)
+[43/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZ portrait touch: unhome preserves control geometry
+[44/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false}
+[45/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop
+[46/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZAC landscape: unhome preserves control geometry
+[47/117] [e2e] › e2e/toolsetter-setup.spec.ts:153:1 › an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06)
+[48/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off
+[49/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+[50/117] [e2e] › e2e/toolsetter-setup.spec.ts:167:1 › Reset clears the section — no field counts as saved, nothing is pushed
+[51/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZAC landscape touch: unhome preserves control geometry
+[52/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop
+[53/117] [e2e] › e2e/toolsetter-setup.spec.ts:180:1 › Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 in the standard mode
+[54/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZAC portrait touch: unhome preserves control geometry
+[55/117] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+[56/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false}
+[57/117] [e2e] › e2e/toolsetter-setup.spec.ts:216:1 › the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed
+[58/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZABC TWP landscape: unhome preserves control geometry
+[59/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop
+[60/117] [e2e] › e2e/toolsetter-setup.spec.ts:229:1 › the line's "?" says which parameters it means (operator 2026-11-07)
+[61/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZABC TWP landscape touch: unhome preserves control geometry
+[62/117] [e2e] › e2e/toolsetter-setup.spec.ts:239:1 › not set up: no machine line beyond the setup note, which says nothing is written
+[63/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off
+[64/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false}
+[65/117] [e2e] › e2e/toolsetter-setup.spec.ts:247:1 › a save while the machine is not ready sends nothing; the line says it is not yet in the machine
+[66/117] [e2e] › e2e/touchoff.spec.ts:84:7 › strip layout › XYZABC TWP portrait touch: unhome preserves control geometry
+[67/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop
+[68/117] [e2e] › e2e/toolsetter-setup.spec.ts:265:1 › a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309)
+[69/117] [e2e] › e2e/touchoff.spec.ts:169:1 › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open
+[70/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off
+[71/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+[72/117] [e2e] › e2e/touchoff.spec.ts:208:1 › Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL limbo)
+[73/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop
+[74/117] [e2e] › e2e/touchoff.spec.ts:244:1 › TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Capture row
+[75/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+[76/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: arm sends arm {armed: false}
+[77/117] [e2e] › e2e/touchoff.spec.ts:272:1 › kinematics selector shows the FRAME the raw type means, and emits frames
+[78/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: estop sends estop
+[79/117] [e2e] › e2e/touchoff.spec.ts:310:1 › keypad names its target; a frame/fixture change while open cancels it with a message
+[80/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: machineOn sends machine_on/off
+[81/117] [e2e] › e2e/touchoff.spec.ts:343:1 › a disabled control explains itself to the keyboard, and sends no command
+[82/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): arm sends arm {armed: false}
+[83/117] [e2e] › e2e/touchoff.spec.ts:385:1 › asking why never starts, pauses or resumes a program
+[84/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): estop sends estop
+[85/117] [e2e] › e2e/touchoff.spec.ts:427:1 › Space on a focused control never reaches the Cycle Start shortcut
+[86/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): machineOn sends machine_on/off
+[87/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): arm sends arm {armed: false}
+[88/117] [e2e] › e2e/touchoff.spec.ts:463:1 › Space selects an ENABLED Plane radio; the explanation is only for the disabled one
+[89/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): estop sends estop
+[90/117] [e2e] › e2e/touchoff.spec.ts:502:1 › a disabled control explains itself: the reason on hover and on tap
+[91/117] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): machineOn sends machine_on/off
+[92/117] [e2e] › e2e/touchoff.spec.ts:544:1 › keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a valid value once
+[93/117] [e2e] › e2e/safety-during-edit.spec.ts:158:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press
+[94/117] [e2e] › e2e/touchoff.spec.ts:579:1 › tool number field: minimum 1 and whole numbers only, on Enter and on OK
+[95/117] [e2e] › e2e/safety-during-edit.spec.ts:158:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press
+[96/117] [e2e] › e2e/touchoff.spec.ts:635:1 › Offsets Clear: disabled without a real selection, hold-to-fire, hold cancels when the target moves
+[97/117] [e2e] › e2e/safety-during-edit.spec.ts:199:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once
+[98/117] [e2e] › e2e/safety-during-edit.spec.ts:213:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens
+[99/117] [e2e] › e2e/touchoff.spec.ts:695:1 › tool-change confirm: once per request, retry after a refusal, nothing without a request
+[100/117] [e2e] › e2e/touchoff.spec.ts:732:1 › tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12)
+[101/117] [e2e] › e2e/safety-during-edit.spec.ts:225:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › a release no click follows (the right button) ends the press after its 500 ms — the strip follows while nothing is pressed
+[102/117] [e2e] › e2e/safety-during-edit.spec.ts:252:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1
+[103/117] [e2e] › e2e/safety-during-edit.spec.ts:280:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2
+[104/117] [e2e] › e2e/safety-during-edit.spec.ts:305:3 › each pointer ends its own press (touch, landscape, two fingers) › a cancelled touch ends its press at once (control: the browser took it)
+[105/117] [e2e] › e2e/safety-during-edit.spec.ts:328:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows
+[106/117] [e2e] › e2e/safety-during-edit.spec.ts:364:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard kept while the mouse holds G55: target and scroll unchanged until the release
+[107/117] [e2e] › e2e/safety-during-edit.spec.ts:364:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release
+[108/117] [e2e] › e2e/safety-during-edit.spec.ts:403:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %)
+[109/117] [e2e] › e2e/safety-during-edit.spec.ts:435:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release
+[110/117] [e2e] › e2e/safety-during-edit.spec.ts:470:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into MDI: focused with inputmode="none", the strip keyboard opens
+[111/117] [e2e] › e2e/safety-during-edit.spec.ts:470:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into Search tools: focused with inputmode="none", the strip keyboard opens
+[112/117] [e2e] › e2e/safety-during-edit.spec.ts:499:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[113/117] [e2e] › e2e/safety-during-edit.spec.ts:499:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[114/117] [e2e] › e2e/safety-during-edit.spec.ts:499:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[115/117] [e2e] › e2e/touchoff.spec.ts:772:1 › a press begun on one tool-change request never confirms the next (Codex R205)
+[116/117] [e2e] › e2e/touchoff.spec.ts:805:1 › surface map: empty state without a toast, error with retry, points load without a grid
+[117/117] [e2e] › e2e/touchoff.spec.ts:855:1 › keypad owner: dialog close, gate change and a second field end or retarget the session
+  117 passed (4.1m)

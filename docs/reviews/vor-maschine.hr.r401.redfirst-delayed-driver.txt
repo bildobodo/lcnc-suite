@@ -1,0 +1,48 @@
+
+Running 2 tests using 1 worker
+
+[1/2] [e2e] › e2e/zzNewDelayed.spec.ts:66:1 › a short tap sends nothing and says why; a complete hold sends exactly one command
+[2/2] [e2e] › e2e/zzOldDelayed.spec.ts:62:1 › a short tap sends nothing and says why; a complete hold sends exactly one command
+  1) [e2e] › e2e/zzOldDelayed.spec.ts:62:1 › a short tap sends nothing and says why; a complete hold sends exactly one command 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: locator('[data-btn-hint]')
+    Expected: "Hold to activate"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" with timeout 10000ms
+      - waiting for locator('[data-btn-hint]')
+        9 × locator resolved to <span role="status" class="btnHint" data-btn-hint="">Busy — the last command is still running</span>
+          - unexpected value "Busy — the last command is still running"
+
+
+      66 |   await page.waitForTimeout(120);
+      67 |   await touch(cdp, "touchEnd", []);
+    > 68 |   await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate");
+         |                                                 ^
+      69 |   await page.waitForTimeout(300);
+      70 |   expect(await recorded("unhome_all")).toBe(0);
+      71 |   await touch(cdp, "touchStart", [p]);
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/zzOldDelayed.spec.ts:68:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/zzOldDelayed-a-short-tap-s-72d9f-d-sends-exactly-one-command-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/zzOldDelayed-a-short-tap-s-72d9f-d-sends-exactly-one-command-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/zzOldDelayed-a-short-tap-s-72d9f-d-sends-exactly-one-command-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/zzOldDelayed-a-short-tap-s-72d9f-d-sends-exactly-one-command-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [e2e] › e2e/zzOldDelayed.spec.ts:62:1 › a short tap sends nothing and says why; a complete hold sends exactly one command 
+  1 passed (19.9s)

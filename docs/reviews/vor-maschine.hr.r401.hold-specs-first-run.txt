@@ -1,0 +1,154 @@
+
+Running 99 tests using 3 workers
+
+[1/99] [e2e] › e2e/hold-stall-mouse.spec.ts:52:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/99] [e2e] › e2e/hold-stall.spec.ts:70:3 › a block from the press's delivery to 520 ms: no real tap fires
+[3/99] [e2e] › e2e/macros.spec.ts:46:1 › the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision
+[4/99] [e2e] › e2e/hold-stall-mouse.spec.ts:61:1 › mouse: a tap or a hold across a blocked page never fires
+[5/99] [e2e] › e2e/macros.spec.ts:62:1 › a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers
+[6/99] [e2e] › e2e/macros.spec.ts:83:1 › an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision
+[7/99] [e2e] › e2e/hold-stall-mouse.spec.ts:72:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall.spec.ts:70:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":122.20000004768372},{"fired":0,"pressed":118.70000004768372},{"fired":0,"pressed":120.90000009536743},{"fired":0,"pressed":125.39999985694885},{"fired":0,"pressed":119.90000009536743},{"fired":0,"pressed":119.89999985694885},{"fired":0,"pressed":125.5},{"fired":0,"pressed":119.5}]
+
+[8/99] [e2e] › e2e/hold-stall.spec.ts:70:3 › a block from the press's delivery to 540 ms: no real tap fires
+[9/99] [e2e] › e2e/macros.spec.ts:105:1 › another client's save under a draft is a conflict: Reload shows the disk; nothing is overwritten silently
+[10/99] [e2e] › e2e/run-hold.spec.ts:84:1 › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap
+[11/99] [e2e] › e2e/macros.spec.ts:128:1 › Save's refusal: a conflict rebases Keep editing on the gateway's revision; busy or unnamed is no conflict
+[12/99] [e2e] › e2e/macros.spec.ts:170:1 › a read overtaken by a save, a delete or a new file of the name never leaves an old clean editor
+[13/99] [e2e] › e2e/run-hold.spec.ts:114:1 › Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line
+[14/99] [e2e] › e2e/macros.spec.ts:218:1 › closing the editor over a draft asks first, by Cancel and by X: Keep editing stays, Discard closes; nothing saved
+[e2e] › e2e/hold-stall.spec.ts:70:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":111.70000004768372},{"fired":0,"pressed":119.70000004768372},{"fired":0,"pressed":122.20000004768372},{"fired":0,"pressed":113.29999995231628},{"fired":0,"pressed":122.40000009536743},{"fired":0,"pressed":121.80000019073486},{"fired":0,"pressed":120.5},{"fired":0,"pressed":119.70000004768372}]
+
+[15/99] [e2e] › e2e/hold-stall.spec.ts:70:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[16/99] [e2e] › e2e/macros.spec.ts:244:1 › another client's save during a bar hold cancels it; the next hold runs the new revision once
+[17/99] [e2e] › e2e/run-hold.spec.ts:134:1 › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)
+[18/99] [e2e] › e2e/macros.spec.ts:276:1 › the open parameter dialog follows its file: a new header shows its field; a file that may not run dims Execute with the reason
+[19/99] [e2e] › e2e/run-hold.spec.ts:191:1 › a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading
+[20/99] [e2e] › e2e/macros.spec.ts:302:1 › a late read never shows the earlier macro's text: editor closed, another opened
+[e2e] › e2e/hold-stall.spec.ts:70:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":119.70000004768372},{"fired":0,"pressed":121.39999985694885},{"fired":0,"pressed":119.70000004768372},{"fired":0,"pressed":124},{"fired":0,"pressed":119.89999985694885},{"fired":0,"pressed":120.79999995231628},{"fired":0,"pressed":120},{"fired":0,"pressed":120.90000009536743}]
+
+[21/99] [e2e] › e2e/hold-stall.spec.ts:82:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[22/99] [e2e] › e2e/macros.spec.ts:332:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 %
+[23/99] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[24/99] [e2e] › e2e/run-hold.spec.ts:216:1 › while a revision's text is still loading, Start and Step wait — a hold there runs nothing
+[25/99] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[26/99] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[27/99] [e2e] › e2e/macros.spec.ts:371:1 › after a delete the focus goes to the next row, else the previous, else More — never to body
+[28/99] [e2e] › e2e/run-hold.spec.ts:229:1 › Run from line: a new revision cancels the action's hold, closes the dialog when the text changed, and the next run carries the new entry
+[29/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false}
+[30/99] [e2e] › e2e/macros.spec.ts:402:1 › the editor dialog: name, title and description are the header lines; a rename moves the file and its place on the bar
+[31/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop
+[32/99] [e2e] › e2e/run-hold.spec.ts:251:1 › a line selection belongs to its program: another program clears it
+[33/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off
+[34/99] [e2e] › e2e/macros.spec.ts:453:1 › New: the name writes the subroutine's label, the title follows it until typed; Create makes the file
+[35/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false}
+[36/99] [e2e] › e2e/run-hold.spec.ts:267:1 › the Run-from-line preset and Settings' default preset never uncheck each other — both orders, every value
+[37/99] [e2e] › e2e/macros.spec.ts:483:1 › search, the bar filter and the sort narrow and order the rows
+[38/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop
+[39/99] [e2e] › e2e/macros.spec.ts:514:1 › a tap on a row selects it for Run; its name is one Tab stop whose keys select and never jog
+[40/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off
+[41/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+[42/99] [e2e] › e2e/macros.spec.ts:581:1 › Download saves the file as it is: the selected macro, the loaded program, the tool table
+[43/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop
+[44/99] [e2e] › e2e/macros.spec.ts:615:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More
+[45/99] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+[46/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false}
+[47/99] [e2e] › e2e/run-hold.spec.ts:311:1 › an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro
+[48/99] [e2e] › e2e/macros.spec.ts:739:1 › On bar and the order buttons move nothing in the list: no row height, column width or position changes
+[49/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop
+[50/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off
+[51/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false}
+[52/99] [e2e] › e2e/run-hold.spec.ts:376:1 › a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible revision once
+[53/99] [e2e] › e2e/macros.spec.ts:776:1 › a table that starts scrolling keeps its columns: the first macro on the bar moves no column
+[54/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop
+[55/99] [e2e] › e2e/macros.spec.ts:804:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort
+[56/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off
+[57/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+[58/99] [e2e] › e2e/macros.spec.ts:821:1 › More keeps ONE width: opened, and with the run options switched — Program, Tools, Macros
+[59/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop
+[60/99] [e2e] › e2e/run-hold.spec.ts:431:1 › a macro with parameters opens on a tap; Enter opens a field's keypad and never executes; Execute is a hold bound to the values
+[61/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+[62/99] [e2e] › e2e/strip-actions.spec.ts:44:1 › each override slider sends its own factor; its 100 % button sends 1.0
+[63/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: arm sends arm {armed: false}
+[64/99] [e2e] › e2e/strip-actions.spec.ts:64:1 › Flood and Mist send on against the reported off, off against the reported on — the switch shows the status
+[65/99] [e2e] › e2e/touch-hold.spec.ts:63:1 › a short tap sends nothing and says why; a complete hold sends exactly one command
+[66/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: estop sends estop
+[67/99] [e2e] › e2e/strip-actions.spec.ts:86:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status
+[68/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: machineOn sends machine_on/off
+[69/99] [e2e] › e2e/touch-hold.spec.ts:85:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero
+[70/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): arm sends arm {armed: false}
+[71/99] [e2e] › e2e/strip-actions.spec.ts:120:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing
+[72/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): estop sends estop
+[73/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): machineOn sends machine_on/off
+[74/99] [e2e] › e2e/strip-actions.spec.ts:150:1 › ± move the preselection while the spindle stands, and send increase / decrease while it turns
+[75/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): arm sends arm {armed: false}
+[76/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): estop sends estop
+[77/99] [e2e] › e2e/strip-actions.spec.ts:172:1 › Home All sends home_all on a hold — a tap sends nothing
+  1) [e2e] › e2e/touch-hold.spec.ts:85:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: locator('[data-btn-hint]')
+    Expected: "Unavailable — Machine off"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" with timeout 10000ms
+      - waiting for locator('[data-btn-hint]')
+
+
+      102 |     await page.clock.runFor(150);
+      103 |     await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, zero: false }, permission_reasons: { zero: "Machine off" } } });
+    > 104 |     await expect(page.locator("[data-btn-hint]")).toHaveText("Unavailable — Machine off");
+          |                                                   ^
+      105 |     await page.clock.runFor(500);
+      106 |     await touch(cdp, "touchEnd", []);
+      107 |   });
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/touch-hold.spec.ts:104:51
+        at onPageClock (/home/cnc/lcnc-suite-hr/lcnc-webui/e2e/holdClock.ts:27:5)
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/touch-hold.spec.ts:100:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/touch-hold-sliding-off-a-s-6657a--next-hold-starts-from-zero-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/touch-hold-sliding-off-a-s-6657a--next-hold-starts-from-zero-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/touch-hold-sliding-off-a-s-6657a--next-hold-starts-from-zero-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/touch-hold-sliding-off-a-s-6657a--next-hold-starts-from-zero-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[78/99] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): machineOn sends machine_on/off
+[79/99] [e2e] › e2e/touch-hold.spec.ts:152:1 › teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable
+[80/99] [e2e] › e2e/strip-actions.spec.ts:188:1 › Home per axis sends the axis and reads its homed state at the joint the gateway names
+[81/99] [e2e] › e2e/safety-during-edit.spec.ts:158:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press
+[82/99] [e2e] › e2e/safety-during-edit.spec.ts:158:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press
+[83/99] [e2e] › e2e/strip-actions.spec.ts:205:1 › a home group closes Home per axis with its reason; Unhome and Home All stay open
+[84/99] [e2e] › e2e/safety-during-edit.spec.ts:199:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once
+[85/99] [e2e] › e2e/safety-during-edit.spec.ts:213:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens
+[86/99] [e2e] › e2e/safety-during-edit.spec.ts:225:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › a release no click follows (the right button) ends the press after its 500 ms — the strip follows while nothing is pressed
+[87/99] [e2e] › e2e/safety-during-edit.spec.ts:252:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1
+[88/99] [e2e] › e2e/safety-during-edit.spec.ts:280:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2
+[89/99] [e2e] › e2e/safety-during-edit.spec.ts:305:3 › each pointer ends its own press (touch, landscape, two fingers) › a cancelled touch ends its press at once (control: the browser took it)
+[90/99] [e2e] › e2e/safety-during-edit.spec.ts:328:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows
+[91/99] [e2e] › e2e/safety-during-edit.spec.ts:364:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard kept while the mouse holds G55: target and scroll unchanged until the release
+[92/99] [e2e] › e2e/safety-during-edit.spec.ts:364:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release
+[93/99] [e2e] › e2e/safety-during-edit.spec.ts:403:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %)
+[94/99] [e2e] › e2e/safety-during-edit.spec.ts:435:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release
+[95/99] [e2e] › e2e/safety-during-edit.spec.ts:467:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into MDI: focused with inputmode="none", the strip keyboard opens
+[96/99] [e2e] › e2e/safety-during-edit.spec.ts:467:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into Search tools: focused with inputmode="none", the strip keyboard opens
+[97/99] [e2e] › e2e/safety-during-edit.spec.ts:496:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[98/99] [e2e] › e2e/safety-during-edit.spec.ts:496:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[99/99] [e2e] › e2e/safety-during-edit.spec.ts:496:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved
+  1 failed
+    [e2e] › e2e/touch-hold.spec.ts:85:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero 
+  98 passed (3.4m)

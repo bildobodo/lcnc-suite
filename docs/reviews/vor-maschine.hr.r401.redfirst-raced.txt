@@ -1,0 +1,137 @@
+# R401 · hold-stall.spec.ts: red first for the race count (c8c9af26)
+# 'hold-stall-redfirst' = the same spec with the block removed (gesture(..., null)); 'hold-stall' = the guard as committed.
+# Each row: fired (unhome_all sent), pressed (release stamp - press stamp, ms), delivered (release delivery - press delivery, ms).
+
+
+Running 8 tests using 1 worker
+
+[1/8] [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":120.39999985694885,"delivered":115.90000009536743},{"fired":0,"pressed":119.70000004768372,"delivered":133},{"fired":0,"pressed":119.70000004768372,"delivered":116.09999990463257},{"fired":0,"pressed":120,"delivered":133.89999985694885},{"fired":0,"pressed":120.20000004768372,"delivered":115.10000014305115},{"fired":0,"pressed":120.90000009536743,"delivered":116.40000009536743},{"fired":0,"pressed":118,"delivered":117.20000004768372},{"fired":0,"pressed":120.79999995231628,"delivered":132.59999990463257}]
+
+  1) [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 520 ms: no real tap fires 
+
+    Error: real taps (stamped under 500 ms) delivered past the due time (500 ms)
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 6
+    Received:    0
+
+      85 |                                    && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+      86 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+    > 87 |       .toBeGreaterThanOrEqual(6);
+         |        ^
+      88 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+      89 |   });
+      90 | }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-redfirst.spec.ts:87:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-redfirst-a-bloc-d1698-to-520-ms-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-redfirst-a-bloc-d1698-to-520-ms-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-redfirst-a-bloc-d1698-to-520-ms-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-redfirst-a-bloc-d1698-to-520-ms-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/8] [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":120.59999990463257,"delivered":117.10000014305115},{"fired":0,"pressed":119.5,"delivered":116.40000009536743},{"fired":0,"pressed":120.19999980926514,"delivered":116.70000004768372},{"fired":0,"pressed":120.09999990463257,"delivered":117.5},{"fired":0,"pressed":119.29999995231628,"delivered":110.20000004768372},{"fired":0,"pressed":119.89999985694885,"delivered":116},{"fired":0,"pressed":120.89999985694885,"delivered":117.29999995231628},{"fired":0,"pressed":119.10000014305115,"delivered":116}]
+
+  2) [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 540 ms: no real tap fires 
+
+    Error: real taps (stamped under 500 ms) delivered past the due time (500 ms)
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 6
+    Received:    0
+
+      85 |                                    && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+      86 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+    > 87 |       .toBeGreaterThanOrEqual(6);
+         |        ^
+      88 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+      89 |   });
+      90 | }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-redfirst.spec.ts:87:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-redfirst-a-bloc-009a3-to-540-ms-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-redfirst-a-bloc-009a3-to-540-ms-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-redfirst-a-bloc-009a3-to-540-ms-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-redfirst-a-bloc-009a3-to-540-ms-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/8] [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":116.39999985694885,"delivered":115.59999990463257},{"fired":0,"pressed":119,"delivered":116.79999995231628},{"fired":0,"pressed":120.5,"delivered":117.60000014305115},{"fired":0,"pressed":120.69999980926514,"delivered":117.09999990463257},{"fired":0,"pressed":120.20000004768372,"delivered":130.69999980926514},{"fired":0,"pressed":119.5,"delivered":117.20000004768372},{"fired":0,"pressed":118.70000004768372,"delivered":116.60000014305115},{"fired":0,"pressed":120.29999995231628,"delivered":115.79999995231628}]
+
+  3) [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from 100 to 700 ms after the delivery: no real tap fires 
+
+    Error: real taps (stamped under 500 ms) delivered past the due time (500 ms)
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 6
+    Received:    0
+
+      85 |                                    && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+      86 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+    > 87 |       .toBeGreaterThanOrEqual(6);
+         |        ^
+      88 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+      89 |   });
+      90 | }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-redfirst.spec.ts:87:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-redfirst-a-bloc-dfdd2--delivery-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-redfirst-a-bloc-dfdd2--delivery-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-redfirst-a-bloc-dfdd2--delivery-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-redfirst-a-bloc-dfdd2--delivery-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/8] [e2e] › e2e/hold-stall-redfirst.spec.ts:92:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[5/8] [e2e] › e2e/hold-stall.spec.ts:78:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:78:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":120,"delivered":521.0999999046326},{"fired":0,"pressed":121.40000009536743,"delivered":524},{"fired":0,"pressed":119.10000014305115,"delivered":520.3000001907349},{"fired":0,"pressed":122.39999985694885,"delivered":520.5999999046326},{"fired":0,"pressed":120.90000009536743,"delivered":520.7000000476837},{"fired":0,"pressed":119.30000019073486,"delivered":520.6999998092651},{"fired":0,"pressed":119.19999980926514,"delivered":520.3000001907349},{"fired":0,"pressed":120.09999990463257,"delivered":520.9000000953674}]
+
+[6/8] [e2e] › e2e/hold-stall.spec.ts:78:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:78:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":120.5,"delivered":541},{"fired":0,"pressed":122.59999990463257,"delivered":540.2999999523163},{"fired":0,"pressed":120.59999990463257,"delivered":540.3999998569489},{"fired":0,"pressed":120.09999990463257,"delivered":540.4000000953674},{"fired":0,"pressed":120.5,"delivered":540.7999999523163},{"fired":0,"pressed":120.29999995231628,"delivered":544.0999999046326},{"fired":0,"pressed":120.09999990463257,"delivered":540.7000000476837},{"fired":0,"pressed":120.09999990463257,"delivered":540.3999998569489}]
+
+[7/8] [e2e] › e2e/hold-stall.spec.ts:78:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:78:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":121.30000019073486,"delivered":708.5999999046326},{"fired":0,"pressed":120.79999995231628,"delivered":116.70000004768372},{"fired":0,"pressed":119.69999980926514,"delivered":700.4000000953674},{"fired":0,"pressed":119.40000009536743,"delivered":700.2999999523163},{"fired":0,"pressed":119.39999985694885,"delivered":700.4000000953674},{"fired":0,"pressed":120.29999995231628,"delivered":704.8999998569489},{"fired":0,"pressed":118.29999995231628,"delivered":700.7999999523163},{"fired":0,"pressed":121.20000004768372,"delivered":706.7999999523163}]
+
+[8/8] [e2e] › e2e/hold-stall.spec.ts:92:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+  3 failed
+    [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 520 ms: no real tap fires 
+    [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from the press's delivery to 540 ms: no real tap fires 
+    [e2e] › e2e/hold-stall-redfirst.spec.ts:78:3 › a block from 100 to 700 ms after the delivery: no real tap fires 
+  5 passed (1.5m)

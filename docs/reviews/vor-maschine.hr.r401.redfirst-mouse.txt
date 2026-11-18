@@ -1,0 +1,97 @@
+# R401 · hold-stall-mouse.spec.ts in Chromium: 'hold-stall-mouse-redfirst' = the same spec with the block removed and the second press at 600 ms (after the first one's due time); 'hold-stall-mouse' = the guard as committed.
+
+
+Running 6 tests using 1 worker
+
+[1/6] [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:80:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/6] [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:89:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:89:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: {"delivered":108.70000004768372,"hints":["Hold to activate"]}
+
+  1) [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:89:1 › mouse: a tap or a hold across a blocked page never fires 
+
+    Error: the release delivered at or past the due time
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 500
+    Received:    108.70000004768372
+
+      102 |     // time (a tap's release held back by the block); a hold across the block
+      103 |     // ended as stalled
+    > 104 |     expect(delivered, "the release delivered at or past the due time").toBeGreaterThanOrEqual(HOLD_FIRE_MS);
+          |                                                                        ^
+      105 |     if (ms > HOLD_FIRE_MS) expect(s.hints, "the hold ended as stalled").toContain("Page delayed — hold again");
+      106 |   }
+      107 | });
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse-redfirst.spec.ts:104:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-redfirst--84e56--a-blocked-page-never-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-redfirst--84e56--a-blocked-page-never-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-redfirst--84e56--a-blocked-page-never-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-mouse-redfirst--84e56--a-blocked-page-never-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/6] [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1268.2000000476837,1868.5],"ups":[1367.4000000953674,1982.1000001430511],"hints":["Hold to activate"]}
+
+  2) [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press) 
+
+    Error: the second press began before the first one's due time
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 1768.2000000476837
+    Received:   1868.5
+
+      123 |   const due = s.downs[0] + HOLD_FIRE_MS;
+      124 |   expect(s.ups[0], "the first press ended before the second began").toBeLessThan(s.downs[1]);
+    > 125 |   expect(s.downs[1], "the second press began before the first one's due time").toBeLessThan(due);
+          |                                                                                ^
+      126 |   expect(s.ups[1], "the second press was down at the first one's due time").toBeGreaterThan(due);
+      127 | });
+      128 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse-redfirst.spec.ts:125:80
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-redfirst--1ab4b--an-abort-then-a-new-press--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-redfirst--1ab4b--an-abort-then-a-new-press--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-redfirst--1ab4b--an-abort-then-a-new-press--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-mouse-redfirst--1ab4b--an-abort-then-a-new-press--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/6] [e2e] › e2e/hold-stall-mouse.spec.ts:80:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[5/6] [e2e] › e2e/hold-stall-mouse.spec.ts:89:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:89:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: {"delivered":560.9000000953674,"hints":["Page delayed — hold again"]}
+
+hold-stall-mouse block 100→700 ms, press 120 ms: {"delivered":708.7000000476837,"hints":["Page delayed — hold again"]}
+
+hold-stall-mouse block 100→700 ms, press 800 ms: {"delivered":795.2999999523163,"hints":["Page delayed — hold again"]}
+
+[6/6] [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1210.1000001430511,1646],"ups":[1297.1000001430511,1758.5],"hints":["Hold to activate"]}
+
+  2 failed
+    [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:89:1 › mouse: a tap or a hold across a blocked page never fires 
+    [e2e] › e2e/hold-stall-mouse-redfirst.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press) 
+  4 passed (24.1s)

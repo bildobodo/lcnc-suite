@@ -1,0 +1,54 @@
+# R401 · hold-stall-mouse in Firefox 160 x3 at 2abcdb0b's content
+
+
+Running 9 tests using 1 worker
+
+[1/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":147,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":813,"fired":1,"hints":[]}]}
+
+[2/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":680,"block":{"from":5,"to":540},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":705,"block":{"from":100,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":810,"block":{"from":100,"to":700},"hints":["Page delayed — hold again"]}]
+
+[3/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1439,1889],"ups":[1539,2003],"hints":["Hold to activate"],"block":null}
+
+[4/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":155,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":813,"fired":1,"hints":[]}]}
+
+[5/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":700,"block":{"from":5,"to":540},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":705,"block":{"from":101,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":809,"block":{"from":100,"to":700},"hints":["Page delayed — hold again"]}]
+
+[6/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1417,1867],"ups":[1517,1981],"hints":["Hold to activate"],"block":null}
+
+[7/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":184,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":816,"fired":1,"hints":[]}]}
+
+[8/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":682,"block":{"from":6,"to":540},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":709,"block":{"from":99,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":813,"block":{"from":102,"to":700},"hints":["Page delayed — hold again"]}]
+
+[9/9] [firefox-core] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1544,1994],"ups":[1644,2108],"hints":["Hold to activate"],"block":null}
+
+  9 passed (40.8s)

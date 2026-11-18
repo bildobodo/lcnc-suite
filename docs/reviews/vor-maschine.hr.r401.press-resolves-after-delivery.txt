@@ -1,0 +1,7 @@
+# R401 · does the press call return after the page's delivery? (probe, not committed)
+# A capture pointerdown listener busy-waits 300 ms; the Node side times the awaited call. 3 rounds each.
+Chromium (Playwright 1.60.0): mouse.down 317 / 363 / 311 ms, mouse.up 6 / 17 / 8 ms;
+  CDP Input.dispatchTouchEvent touchStart 670 / 329 / 328 ms, touchEnd 18 / 17 / 21 ms
+Firefox 160 (pinned, playwright.probe-ff.config.ts = the core config with the probe as its one file):
+  mouse.down 316 / 318 / 314 ms, mouse.up 28 / 10 / 9 ms
+=> the call returns after the page's handler ran: a t0 taken after it is bound to the delivery.

@@ -1,0 +1,1089 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "56e246ba75224fc0606d85575a48eef0929f3cea",
+  "head": "893356e16a6e5fab18014ae45b626dde7da32391",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser",
+    "firefox-core"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/holdGesture.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/holdGesture.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "lcnc-webui/src/MachineBtn.vue: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/holdGesture.ts: central: every surface, every dialog or every connection depends on it"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/e2e/firefox-core.json",
+        "lcnc-webui/e2e/hold-stall-mouse.spec.ts",
+        "lcnc-webui/src/MachineBtn.vue",
+        "lcnc-webui/src/holdGesture.ts"
+      ],
+      "reasons": [
+        "lcnc-webui/e2e/firefox-core.json: selects the Firefox core itself",
+        "lcnc-webui/e2e/hold-stall-mouse.spec.ts: selects the Firefox core itself",
+        "lcnc-webui/src/MachineBtn.vue: selects the Firefox core itself",
+        "lcnc-webui/src/holdGesture.ts: selects the Firefox core itself",
+        "the full browser run holds the core: lcnc-webui/src/MachineBtn.vue: central: every surface, every dialog or every connection depends on it",
+        "the full browser run holds the core: lcnc-webui/src/holdGesture.ts: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/MachineBtn.vue → dialogs (a core spec)",
+        "lcnc-webui/src/holdGesture.ts → dialogs (a core spec)",
+        "lcnc-webui/e2e/hold-stall-mouse.spec.ts → hold-stall-mouse (a core spec)",
+        "lcnc-webui/src/MachineBtn.vue → layout (a core spec)",
+        "lcnc-webui/src/holdGesture.ts → layout (a core spec)",
+        "lcnc-webui/src/MachineBtn.vue → visual (a core spec)",
+        "lcnc-webui/src/holdGesture.ts → visual (a core spec)"
+      ]
+    },
+    "live": {}
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1182653
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 458976
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 356497
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 310825
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 308766
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 265254
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 235832
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 159206
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 150719
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 118740
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 111370
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 106032
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 97500
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 90824
+    },
+    {
+      "file": "help-icons.spec.ts",
+      "ms": 88502
+    },
+    {
+      "file": "simulation-off.viewer.spec.ts",
+      "ms": 75848
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 66160
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 58772
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 51301
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 50521
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 48427
+    },
+    {
+      "file": "hold-stall.spec.ts",
+      "ms": 46632
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 46275
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 44508
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 42577
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 39960
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 38319
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 37135
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 35823
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 32139
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 30925
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 30797
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 30621
+    },
+    {
+      "file": "probe-visual.spec.ts",
+      "ms": 26271
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 24279
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 23987
+    },
+    {
+      "file": "devices.spec.ts",
+      "ms": 23772
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 23699
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 20882
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 19568
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 19160
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 18954
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 16408
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 15841
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 15337
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 15274
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 15006
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 13299
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 12842
+    },
+    {
+      "file": "hold-stall-mouse.spec.ts",
+      "ms": 12587
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 11484
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 10089
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 9227
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 8112
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 7936
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 7860
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 7844
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 6896
+    },
+    {
+      "file": "replay-origin.spec.ts",
+      "ms": 3556
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 3316
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 3145
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 2080
+    },
+    {
+      "file": "http-paths.spec.ts",
+      "ms": 1988
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1246
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 851
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 33
+    }
+  ],
+  "firefox": {
+    "pinned": "160.0",
+    "playwright": "Version 1.60.0",
+    "arch": "linux-aarch64",
+    "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+    "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+    "cache": "hit",
+    "newer": {
+      "status": "newer",
+      "latest": "160.0.1",
+      "pinned": "160.0"
+    },
+    "set": "required + build-up",
+    "started": [
+      "firefox 160.0"
+    ],
+    "caller_display": ":0",
+    "images_not_compared": [],
+    "workers": {
+      "asked": 3,
+      "report": 3,
+      "seconds": 122
+    },
+    "unloads": [
+      {
+        "title": "mouse: a tap sends nothing, a hold on a smooth page sends once",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "mouse: a tap or a hold across a blocked page never fires",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "mouse: an ended press's step never fires a new short press (an abort, then a new press)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Outside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Outside: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Inside: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Angle: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Calibrate: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Toolsetter: the procedure's grid cells and its reference image",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "z_surface: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "surface_scan: the job the button sends is the native stage's whole job",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "arrows move focus, Enter selects; every navigation key stays in the list — no jog",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "3axis-xyz desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "5axis-xyzac desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "6axis-twp desktop: Jog and Setup reference images",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a tab switch sends nothing — but a jog still running stops",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "a hidden panel is not focusable",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "the Run-from-line spindle preset is one option group: Rev, Stop, Fwd",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 3
+      },
+      {
+        "title": "dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      },
+      {
+        "title": "dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+        "beacons": 2,
+        "received": 2,
+        "posts": 2
+      }
+    ],
+    "unloads_skipped": [
+      {
+        "title": "app shell mounts with no gateway connected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "default-deny: machine controls are closed while disconnected",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      },
+      {
+        "title": "Arm control stays reachable",
+        "why": "the page is not the mock's app (http://localhost:4173/)"
+      }
+    ]
+  },
+  "verdict": "FAIL",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/round-gate-hr3.service",
+    "cpu_s": 8544,
+    "memory_peak_mb": 4580
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-hr/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 5
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 16
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rghr/gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 66,
+      "files": 169,
+      "tests": 2695,
+      "passed": 2695,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2695
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-hr/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rghr/gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 235
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "FAIL",
+      "exit": 1,
+      "seconds": 1845,
+      "tests": 957,
+      "passed": 955,
+      "failed": 2,
+      "flaky": 0,
+      "skipped": 0,
+      "why": [
+        "2 failed"
+      ]
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 957
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-ce9257f6-1695-4101-89e5-15de1c4dae58",
+      "mocks": 5
+    },
+    {
+      "name": "browser-replay",
+      "status": "PASS",
+      "report": "replay.json",
+      "frames": 9588,
+      "attempts": 957,
+      "http": {
+        "aborted": 2,
+        "rewritten": 3,
+        "replaced": 3786,
+        "fetched": 5,
+        "fetch-fallback": 1,
+        "fetch-unknown": 1,
+        "other-server": 33,
+        "redirect-chain": 1,
+        "served": 15792,
+        "fallback": 3318,
+        "contact-closed": 1,
+        "redirect-hop": 2,
+        "closing": 613,
+        "held": 5,
+        "aborted-early": 27
+      },
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+        "coverage against the inventory (step 5c)"
+      ]
+    },
+    {
+      "name": "firefox-fetch",
+      "status": "PASS",
+      "seconds": 0.0,
+      "cache": "hit"
+    },
+    {
+      "name": "firefox-static",
+      "status": "PASS"
+    },
+    {
+      "name": "firefox-set",
+      "status": "PASS",
+      "tests": 89
+    },
+    {
+      "name": "firefox-core",
+      "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/rghr/gate-round.logs/test-results",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 122,
+      "tests": 89,
+      "passed": 89,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "firefox-executed",
+      "status": "PASS",
+      "tests": 89
+    },
+    {
+      "name": "firefox-workers",
+      "status": "PASS",
+      "run": "firefox-23e92806-03ee-47ce-b5b0-a15558b05d77"
+    },
+    {
+      "name": "firefox-unload",
+      "status": "PASS",
+      "loaded": 85,
+      "unloads": 85,
+      "skipped": 3
+    },
+    {
+      "name": "firefox-unload-guard",
+      "status": "PASS",
+      "seconds": 10,
+      "run": "firefox-guard-92e9695a-7992-4244-8536-470b43a5d7d0"
+    },
+    {
+      "name": "firefox-browser",
+      "status": "PASS",
+      "version": "160.0"
+    },
+    {
+      "name": "firefox-graphics",
+      "status": "PASS",
+      "webgl": "none"
+    },
+    {
+      "name": "firefox-replay",
+      "status": "PASS",
+      "report": "firefox-replay.json",
+      "frames": 528,
+      "attempts": 89,
+      "http": {
+        "replaced": 23,
+        "ws-handshake": 88,
+        "other-server": 41,
+        "served": 1272,
+        "fallback": 288
+      },
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+        "coverage against the inventory (step 5c)"
+      ],
+      "seconds": 0.0
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": []
+}

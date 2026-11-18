@@ -1,0 +1,6 @@
+# R401 · realTimeHolds.test.ts red first: the five converted specs (and the two stall guards) restored to 893356e1
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: real-time presses: {"choices.spec.ts":["choices.spec.ts:298"],"disarmed.spec.ts":["disarmed.spec.ts:319"],"probe-click.spec.ts":["probe-click.spec.ts:29"],"safety-during-edit.spec.ts":["safety-during-edit.spec.ts:206","safety-during-edit.spec.ts:219","safety-during-edit.spec.ts:339","safety-during-edit.spec.ts:385","safety-during-edit.spec.ts:442"],"toolsetter-setup.spec.ts":["toolsetter-setup.spec.ts:60"],"touchoff.spec.ts":["touchoff.spec.ts:627"]}
+     76|     expect(counts, `real-time presses: ${JSON.stringify(found)} — a ho…
+      Tests  1 failed | 1 passed (2)

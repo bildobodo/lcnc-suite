@@ -1,0 +1,39 @@
+  1) [e2e] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires 
+
+    Error: the release delivered at or past the due time
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 500
+    Received:    7.599999904632568
+
+      116 |     // time (a tap's release held back by the block); a hold across the block
+      117 |     // ended as stalled
+    > 118 |     expect(delivered, "the release delivered at or past the due time").toBeGreaterThanOrEqual(HOLD_FIRE_MS);
+          |                                                                        ^
+      119 |     if (ms > HOLD_FIRE_MS) expect(s.hints, "the hold ended as stalled").toContain("Page delayed — hold again");
+      120 |   }
+      121 | });
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse.spec.ts:118:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+--
+  2) [e2e] › e2e/hold-stall.spec.ts:93:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires 
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: "Page delayed — hold again"
+    Received array: ["Hold to activate"]
+
+      105 |   const across = await gesture(page, cdp, p, 800, { from: 100, to: 700 });
+      106 |   expect(across.fired, "a hold the page could not watch").toBe(0);
+    > 107 |   expect(await hints(page)).toContain("Page delayed — hold again");
+          |                             ^
+      108 |   // the same hold, the page smooth — an attempt the loaded runner stalled must
+      109 |   // say so and is taken again, at most three
+      110 |   for (let attempt = 1; ; attempt++) {
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall.spec.ts:107:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-a-hold-across-a-b5b10-hold-on-a-smooth-page-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────

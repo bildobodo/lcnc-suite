@@ -1,0 +1,199 @@
+# R401 · red first at the head 2abcdb0b (a): both guards with the block removed (temp copies *-noblock.spec.ts, deleted after the run)
+
+
+Running 7 tests using 2 workers
+
+[1/7] [e2e] › e2e/hold-stall-mouse-noblock.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/7] [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse-noblock.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":130.5,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":832.7000000476837,"fired":1,"hints":[]}]}
+
+[3/7] [e2e] › e2e/hold-stall-mouse-noblock.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+  1) [e2e] › e2e/hold-stall-mouse-noblock.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires 
+
+    Error: the setting within three attempts: [{"delivered":151.5,"block":null,"hints":["Hold to activate"]},{"delivered":128.70000004768372,"block":null,"hints":["Hold to activate"]},{"delivered":128.40000009536743,"block":null,"hints":["Hold to activate"]}]
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 3
+    Received:   3
+
+      162 |         break;
+      163 |       }
+    > 164 |       expect(attempt, `the setting within three attempts: ${JSON.stringify(tried)}`).toBeLessThan(3);
+          |                                                                                      ^
+      165 |     }
+      166 |     console.log(`hold-stall-mouse block ${from}→${to} ms, press ${ms} ms: ${JSON.stringify(tried)}`);
+      167 |   }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse-noblock.spec.ts:164:86
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-noblock-m-dc6b7--a-blocked-page-never-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-noblock-m-dc6b7--a-blocked-page-never-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-noblock-m-dc6b7--a-blocked-page-never-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-mouse-noblock-m-dc6b7--a-blocked-page-never-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/7] [e2e] › e2e/hold-stall-mouse-noblock.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":149.10000014305115,"delivered":149.79999995231628,"block":null},{"fired":0,"pressed":184.19999980926514,"delivered":183,"block":null},{"fired":0,"pressed":187.20000004768372,"delivered":182.5,"block":null},{"fired":0,"pressed":180.5,"delivered":182.60000014305115,"block":null},{"fired":0,"pressed":184,"delivered":183,"block":null},{"fired":0,"pressed":177.09999990463257,"delivered":182.69999980926514,"block":null},{"fired":0,"pressed":177.80000019073486,"delivered":180.29999995231628,"block":null},{"fired":0,"pressed":188.60000014305115,"delivered":183,"block":null}]
+
+  2) [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires 
+
+    Error: real taps (stamped under 500 ms) delivered past the due time (500 ms)
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 6
+    Received:    0
+
+      126 |                                    && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+      127 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+    > 128 |       .toBeGreaterThanOrEqual(6);
+          |        ^
+      129 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+      130 |   });
+      131 | }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-noblock.spec.ts:128:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-block-1ee08-to-520-ms-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-noblock-a-block-1ee08-to-520-ms-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-block-1ee08-to-520-ms-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-noblock-a-block-1ee08-to-520-ms-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/7] [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse-noblock.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2444,2894],"ups":[2544,3008],"hints":["Hold to activate"],"block":null}
+
+[e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":157.90000009536743,"delivered":149.79999995231628,"block":null},{"fired":0,"pressed":157.30000019073486,"delivered":150.79999995231628,"block":null},{"fired":0,"pressed":152.5,"delivered":149.40000009536743,"block":null},{"fired":0,"pressed":161.40000009536743,"delivered":149.5,"block":null},{"fired":0,"pressed":152.79999995231628,"delivered":151.30000019073486,"block":null},{"fired":0,"pressed":152.90000009536743,"delivered":149.5,"block":null},{"fired":0,"pressed":154.30000019073486,"delivered":151.40000009536743,"block":null},{"fired":0,"pressed":150.20000004768372,"delivered":149.90000009536743,"block":null}]
+
+  3) [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires 
+
+    Error: real taps (stamped under 500 ms) delivered past the due time (500 ms)
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 6
+    Received:    0
+
+      126 |                                    && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+      127 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+    > 128 |       .toBeGreaterThanOrEqual(6);
+          |        ^
+      129 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+      130 |   });
+      131 | }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-noblock.spec.ts:128:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-block-b48eb-to-540-ms-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-noblock-a-block-b48eb-to-540-ms-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-block-b48eb-to-540-ms-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-noblock-a-block-b48eb-to-540-ms-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[6/7] [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":282.7000000476837,"delivered":283.89999985694885,"block":null},{"fired":0,"pressed":282.40000009536743,"delivered":283.5,"block":null},{"fired":0,"pressed":287,"delivered":282.2999999523163,"block":null},{"fired":0,"pressed":280.2000000476837,"delivered":281.40000009536743,"block":null},{"fired":0,"pressed":279.7999999523163,"delivered":283.7000000476837,"block":null},{"fired":0,"pressed":288.2999999523163,"delivered":282.60000014305115,"block":null},{"fired":0,"pressed":281.19999980926514,"delivered":282.90000009536743,"block":null},{"fired":0,"pressed":281.7999999523163,"delivered":284.7000000476837,"block":null}]
+
+  4) [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires 
+
+    Error: real taps (stamped under 500 ms) delivered past the due time (500 ms)
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 6
+    Received:    0
+
+      126 |                                    && r.delivered !== null && r.delivered >= HOLD_FIRE_MS);
+      127 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+    > 128 |       .toBeGreaterThanOrEqual(6);
+          |        ^
+      129 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+      130 |   });
+      131 | }
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-noblock.spec.ts:128:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-block-bb9ac--delivery-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-noblock-a-block-bb9ac--delivery-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-block-bb9ac--delivery-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-noblock-a-block-bb9ac--delivery-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[7/7] [e2e] › e2e/hold-stall-noblock.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+  5) [e2e] › e2e/hold-stall-noblock.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires 
+
+    Error: a hold the page could not watch: [{"fired":1,"pressed":834.5,"delivered":832.1000001430511,"block":null,"hints":[]}]
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      150 |     const across = await gesture(page, cdp, p, 800, null); // noblock
+      151 |     tried.push({ ...across, hints: await hints(page) });
+    > 152 |     expect(across.fired, `a hold the page could not watch: ${JSON.stringify(tried)}`).toBe(0);
+          |                                                                                       ^
+      153 |     if (across.block !== null && across.delivered !== null && across.delivered >= across.block.to) {
+      154 |       expect(tried[tried.length - 1]!.hints, "the hold ended as stalled").toContain("Page delayed — hold again");
+      155 |       break;
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-noblock.spec.ts:152:87
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-hold--ffb6a-hold-on-a-smooth-page-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-noblock-a-hold--ffb6a-hold-on-a-smooth-page-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-noblock-a-hold--ffb6a-hold-on-a-smooth-page-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-noblock-a-hold--ffb6a-hold-on-a-smooth-page-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  5 failed
+    [e2e] › e2e/hold-stall-mouse-noblock.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires 
+    [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires 
+    [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires 
+    [e2e] › e2e/hold-stall-noblock.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires 
+    [e2e] › e2e/hold-stall-noblock.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires 
+  2 passed (45.4s)

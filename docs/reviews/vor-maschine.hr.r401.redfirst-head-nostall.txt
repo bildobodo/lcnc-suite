@@ -1,0 +1,530 @@
+# R401 · red first at the head 2abcdb0b (b): the stall check off in holdGesture.ts (gap > stallMs * 1e9), rebuilt; the guards unchanged — then reverted and rebuilt
+## unit (holdGesture.test.ts)
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-hr/lcnc-webui
+
+ ❯ src/holdGesture.test.ts (20 tests | 7 failed) 10ms
+     × a stall over the hold time (blocked 100 → 520 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires 3ms
+     × a stall over the hold time (blocked 100 → 540 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires 1ms
+     × a stall over the hold time (blocked 100 → 600 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires 0ms
+     × a stall over the hold time (blocked 100 → 700 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires 0ms
+     × a stall before the hold time with the finger still down: stalled — hold again, never a later fire 1ms
+     × a gap just past the limit ends it 1ms
+     × the limit is exact: a gap of 150 ms keeps the watch, 151 ms ends it 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > a stall over the hold time (blocked 100 → 520 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > a stall over the hold time (blocked 100 → 540 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > a stall over the hold time (blocked 100 → 600 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > a stall over the hold time (blocked 100 → 700 ms): the due step runs before the queued release — the gesture ends as stalled, nothing fires
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/holdGesture.test.ts:61:25
+     59|       g.end("released");                 // … then the release queued …
+     60|       s.runUntil(2000);
+     61|       expect(log.fired).toBe(0);
+       |                         ^
+     62|       expect(log.ended).toEqual([["stalled", blockEnd]]);
+     63|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > a stall before the hold time with the finger still down: stalled — hold again, never a later fire
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/holdGesture.test.ts:69:23
+     67|     const s = new FakeScheduler(); const { log } = press(s);
+     68|     s.runUntil(100); s.block(400); s.runUntil(2000);
+     69|     expect(log.fired).toBe(0); expect(log.ended.map(e => e[0])).toEqua…
+       |                       ^
+     70|   });
+     71|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > a gap just past the limit ends it
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/holdGesture.test.ts:82:23
+     80|     const s = new FakeScheduler(); const { log } = press(s);
+     81|     s.runUntil(200); s.block(200 + HOLD_STALL_MS + 21); s.runDue(); s.…
+     82|     expect(log.fired).toBe(0); expect(log.ended.map(e => e[0])).toEqua…
+       |                       ^
+     83|   });
+     84|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/holdGesture.test.ts > a hold gesture (Codex R397, operator Q397-1) > the limit is exact: a gap of 150 ms keeps the watch, 151 ms ends it
+AssertionError: expected [] to deeply equal [ 'stalled' ]
+
+- Expected
++ Received
+
+- [
+-   "stalled",
+- ]
++ []
+
+ ❯ src/holdGesture.test.ts:103:40
+    101|       s.runUntil(200);                    // the last observation at 2…
+    102|       s.block(200 + gap); s.runDue(); s.runUntil(2000);
+    103|       expect(log.ended.map(e => e[0])).toEqual(stalled ? ["stalled"] :…
+       |                                        ^
+    104|       expect(log.fired).toBe(stalled ? 0 : 1);
+    105|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 13 passed (20)
+   Start at  23:13:09
+   Duration  113ms (transform 31ms, setup 0ms, import 37ms, tests 10ms, environment 0ms)
+
+
+## the two guards
+
+Running 7 tests using 2 workers
+
+[1/7] [e2e] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/7] [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:100:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":157.59999990463257,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":811.2000000476837,"fired":1,"hints":[]}]}
+
+[3/7] [e2e] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires
+  1) [e2e] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires 
+
+    Error: block 0→540 ms, press 120 ms: [{"delivered":672.7999999523163,"block":{"from":31,"to":540.0999999046326},"hints":[]}]
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      154 |       tried.push({ delivered, block: s.block, hints: s.hints });
+      155 |       // never a fire, whatever the attempt
+    > 156 |       expect(await unhomes(), `block ${from}→${to} ms, press ${ms} ms: ${JSON.stringify(tried)}`).toBe(0);
+          |                                                                                                   ^
+      157 |       // the setting, proven by the page: the block ran and the release came
+      158 |       // at or past the due time (a tap's release held back by the block; a
+      159 |       // hold down through the block) — then a hold ended as stalled
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse.spec.ts:156:99
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-mouse-a-t-86b78--a-blocked-page-never-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-mouse-a-t-86b78--a-blocked-page-never-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-mouse-a-t-86b78--a-blocked-page-never-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-mouse-mouse-a-t-86b78--a-blocked-page-never-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/7] [e2e] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall-mouse.spec.ts:170:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2530,2980],"ups":[2630,3094],"hints":["Hold to activate"],"block":null}
+
+[e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":1,"pressed":154.5,"delivered":539,"block":{"from":111.70000004768372,"to":520}},{"fired":1,"pressed":148.79999995231628,"delivered":538.5999999046326,"block":{"from":100.90000009536743,"to":520}},{"fired":1,"pressed":142.90000009536743,"delivered":547.2999999523163,"block":{"from":101.09999990463257,"to":520}},{"fired":1,"pressed":146.29999995231628,"delivered":538.9000000953674,"block":{"from":101.5,"to":520}},{"fired":1,"pressed":159.89999985694885,"delivered":540.5999999046326,"block":{"from":100.89999985694885,"to":520}},{"fired":1,"pressed":147.20000004768372,"delivered":538.7999999523163,"block":{"from":105.20000004768372,"to":520}},{"fired":1,"pressed":145.89999985694885,"delivered":534.1999998092651,"block":{"from":100.79999995231628,"to":520}},{"fired":1,"pressed":144.70000004768372,"delivered":535.9000000953674,"block":{"from":100.79999995231628,"to":520}}]
+
+  2) [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires 
+
+    Error: a real tap that fired
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 74
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "block": Object {
+    +       "from": 111.70000004768372,
+    +       "to": 520,
+    +     },
+    +     "delivered": 539,
+    +     "fired": 1,
+    +     "pressed": 154.5,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.90000009536743,
+    +       "to": 520,
+    +     },
+    +     "delivered": 538.5999999046326,
+    +     "fired": 1,
+    +     "pressed": 148.79999995231628,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.09999990463257,
+    +       "to": 520,
+    +     },
+    +     "delivered": 547.2999999523163,
+    +     "fired": 1,
+    +     "pressed": 142.90000009536743,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.5,
+    +       "to": 520,
+    +     },
+    +     "delivered": 538.9000000953674,
+    +     "fired": 1,
+    +     "pressed": 146.29999995231628,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.89999985694885,
+    +       "to": 520,
+    +     },
+    +     "delivered": 540.5999999046326,
+    +     "fired": 1,
+    +     "pressed": 159.89999985694885,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 105.20000004768372,
+    +       "to": 520,
+    +     },
+    +     "delivered": 538.7999999523163,
+    +     "fired": 1,
+    +     "pressed": 147.20000004768372,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 520,
+    +     },
+    +     "delivered": 534.1999998092651,
+    +     "fired": 1,
+    +     "pressed": 145.89999985694885,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 520,
+    +     },
+    +     "delivered": 535.9000000953674,
+    +     "fired": 1,
+    +     "pressed": 144.70000004768372,
+    +   },
+    + ]
+
+      127 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+      128 |       .toBeGreaterThanOrEqual(6);
+    > 129 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+          |                                                                                                             ^
+      130 |   });
+      131 | }
+      132 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall.spec.ts:129:109
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-a-block-from-th-f0524-to-520-ms-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-a-block-from-th-f0524-to-520-ms-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-a-block-from-th-f0524-to-520-ms-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-a-block-from-th-f0524-to-520-ms-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/7] [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":1,"pressed":145,"delivered":565,"block":{"from":101.10000014305115,"to":540.1000001430511}},{"fired":1,"pressed":152.09999990463257,"delivered":557.7999999523163,"block":{"from":100.79999995231628,"to":540}},{"fired":1,"pressed":144.59999990463257,"delivered":555.0999999046326,"block":{"from":100.79999995231628,"to":540}},{"fired":1,"pressed":147.60000014305115,"delivered":557.6000001430511,"block":{"from":100.80000019073486,"to":540}},{"fired":1,"pressed":156.20000004768372,"delivered":556.7000000476837,"block":{"from":101.09999990463257,"to":540}},{"fired":1,"pressed":158,"delivered":556.7000000476837,"block":{"from":101,"to":540}},{"fired":1,"pressed":154.19999980926514,"delivered":560.2999999523163,"block":{"from":100.79999995231628,"to":540}},{"fired":1,"pressed":150.39999985694885,"delivered":557.7999999523163,"block":{"from":100.79999995231628,"to":540}}]
+
+  3) [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires 
+
+    Error: a real tap that fired
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 74
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.10000014305115,
+    +       "to": 540.1000001430511,
+    +     },
+    +     "delivered": 565,
+    +     "fired": 1,
+    +     "pressed": 145,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 540,
+    +     },
+    +     "delivered": 557.7999999523163,
+    +     "fired": 1,
+    +     "pressed": 152.09999990463257,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 540,
+    +     },
+    +     "delivered": 555.0999999046326,
+    +     "fired": 1,
+    +     "pressed": 144.59999990463257,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.80000019073486,
+    +       "to": 540,
+    +     },
+    +     "delivered": 557.6000001430511,
+    +     "fired": 1,
+    +     "pressed": 147.60000014305115,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.09999990463257,
+    +       "to": 540,
+    +     },
+    +     "delivered": 556.7000000476837,
+    +     "fired": 1,
+    +     "pressed": 156.20000004768372,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101,
+    +       "to": 540,
+    +     },
+    +     "delivered": 556.7000000476837,
+    +     "fired": 1,
+    +     "pressed": 158,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 540,
+    +     },
+    +     "delivered": 560.2999999523163,
+    +     "fired": 1,
+    +     "pressed": 154.19999980926514,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 540,
+    +     },
+    +     "delivered": 557.7999999523163,
+    +     "fired": 1,
+    +     "pressed": 150.39999985694885,
+    +   },
+    + ]
+
+      127 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+      128 |       .toBeGreaterThanOrEqual(6);
+    > 129 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+          |                                                                                                             ^
+      130 |   });
+      131 | }
+      132 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall.spec.ts:129:109
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-a-block-from-th-54a4f-to-540-ms-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-a-block-from-th-54a4f-to-540-ms-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-a-block-from-th-54a4f-to-540-ms-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-a-block-from-th-54a4f-to-540-ms-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[6/7] [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":1,"pressed":280,"delivered":720.2000000476837,"block":{"from":101,"to":700}},{"fired":1,"pressed":279.7999999523163,"delivered":718.7999999523163,"block":{"from":101.19999980926514,"to":700}},{"fired":1,"pressed":274.7999999523163,"delivered":725.7999999523163,"block":{"from":101.09999990463257,"to":700}},{"fired":1,"pressed":279.7000000476837,"delivered":717.8999998569489,"block":{"from":100.90000009536743,"to":700}},{"fired":1,"pressed":283.89999985694885,"delivered":716.8000001907349,"block":{"from":101.29999995231628,"to":700}},{"fired":1,"pressed":275.2000000476837,"delivered":719.0999999046326,"block":{"from":100.79999995231628,"to":700}},{"fired":1,"pressed":289.19999980926514,"delivered":718.2000000476837,"block":{"from":100.79999995231628,"to":700}},{"fired":1,"pressed":277.2000000476837,"delivered":717.7000000476837,"block":{"from":100.90000009536743,"to":700}}]
+
+  4) [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires 
+
+    Error: a real tap that fired
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 74
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "block": Object {
+    +       "from": 101,
+    +       "to": 700,
+    +     },
+    +     "delivered": 720.2000000476837,
+    +     "fired": 1,
+    +     "pressed": 280,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.19999980926514,
+    +       "to": 700,
+    +     },
+    +     "delivered": 718.7999999523163,
+    +     "fired": 1,
+    +     "pressed": 279.7999999523163,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.09999990463257,
+    +       "to": 700,
+    +     },
+    +     "delivered": 725.7999999523163,
+    +     "fired": 1,
+    +     "pressed": 274.7999999523163,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.90000009536743,
+    +       "to": 700,
+    +     },
+    +     "delivered": 717.8999998569489,
+    +     "fired": 1,
+    +     "pressed": 279.7000000476837,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 101.29999995231628,
+    +       "to": 700,
+    +     },
+    +     "delivered": 716.8000001907349,
+    +     "fired": 1,
+    +     "pressed": 283.89999985694885,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 700,
+    +     },
+    +     "delivered": 719.0999999046326,
+    +     "fired": 1,
+    +     "pressed": 275.2000000476837,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.79999995231628,
+    +       "to": 700,
+    +     },
+    +     "delivered": 718.2000000476837,
+    +     "fired": 1,
+    +     "pressed": 289.19999980926514,
+    +   },
+    +   Object {
+    +     "block": Object {
+    +       "from": 100.90000009536743,
+    +       "to": 700,
+    +     },
+    +     "delivered": 717.7000000476837,
+    +     "fired": 1,
+    +     "pressed": 277.2000000476837,
+    +   },
+    + ]
+
+      127 |     expect(raced.length, `real taps (stamped under 500 ms) delivered past the due time (${HOLD_FIRE_MS} ms)`)
+      128 |       .toBeGreaterThanOrEqual(6);
+    > 129 |     expect(rows.filter(r => r.pressed !== null && r.pressed < 500 && r.fired > 0), "a real tap that fired").toEqual([]);
+          |                                                                                                             ^
+      130 |   });
+      131 | }
+      132 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall.spec.ts:129:109
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-a-block-from-10-3f62d--delivery-no-real-tap-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-a-block-from-10-3f62d--delivery-no-real-tap-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-a-block-from-10-3f62d--delivery-no-real-tap-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-a-block-from-10-3f62d--delivery-no-real-tap-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[7/7] [e2e] › e2e/hold-stall.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+  5) [e2e] › e2e/hold-stall.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires 
+
+    Error: a hold the page could not watch: [{"fired":1,"pressed":866.2000000476837,"delivered":846.1999998092651,"block":{"from":116.70000004768372,"to":700},"hints":["Busy — the last command is still running"]}]
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      150 |     const across = await gesture(page, cdp, p, 800, { from: 100, to: 700 });
+      151 |     tried.push({ ...across, hints: await hints(page) });
+    > 152 |     expect(across.fired, `a hold the page could not watch: ${JSON.stringify(tried)}`).toBe(0);
+          |                                                                                       ^
+      153 |     if (across.block !== null && across.delivered !== null && across.delivered >= across.block.to) {
+      154 |       expect(tried[tried.length - 1]!.hints, "the hold ended as stalled").toContain("Page delayed — hold again");
+      155 |       break;
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall.spec.ts:152:87
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-a-hold-across-a-b5b10-hold-on-a-smooth-page-fires-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-a-hold-across-a-b5b10-hold-on-a-smooth-page-fires-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-a-hold-across-a-b5b10-hold-on-a-smooth-page-fires-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-a-hold-across-a-b5b10-hold-on-a-smooth-page-fires-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  5 failed
+    [e2e] › e2e/hold-stall-mouse.spec.ts:141:1 › mouse: a tap or a hold across a blocked page never fires 
+    [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 520 ms: no real tap fires 
+    [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from the press's delivery to 540 ms: no real tap fires 
+    [e2e] › e2e/hold-stall.spec.ts:119:3 › a block from 100 to 700 ms after the delivery: no real tap fires 
+    [e2e] › e2e/hold-stall.spec.ts:133:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires 
+  2 passed (55.7s)

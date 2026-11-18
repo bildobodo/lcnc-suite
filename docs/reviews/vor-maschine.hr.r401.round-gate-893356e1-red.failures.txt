@@ -1,0 +1,51 @@
+hold-stall-mouse abort, then a new press: {"downs":[1403,2032],"ups":[1662.5999999046326,2039.7999999523163],"hints":["Hold to activate"]}
+
+  1) [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press) 
+
+    Error: the second press began before the first one's due time
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 1903
+    Received:   2032
+
+      123 |   const due = s.downs[0] + HOLD_FIRE_MS;
+      124 |   expect(s.ups[0], "the first press ended before the second began").toBeLessThan(s.downs[1]);
+    > 125 |   expect(s.downs[1], "the second press began before the first one's due time").toBeLessThan(due);
+          |                                                                                ^
+      126 |   expect(s.ups[1], "the second press was down at the first one's due time").toBeGreaterThan(due);
+      127 | });
+      128 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse.spec.ts:125:80
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-mouse-an--78fe6--an-abort-then-a-new-press--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-mouse-an--78fe6--an-abort-then-a-new-press--e2e/error-context.md
+--
+[518/957] [e2e] › e2e/scenes.viewer.spec.ts:496:1 › the box cells hang on the geometry: every transition at a world cell boundary k / N — parallel and perspective, three directions, across a zoom
+[519/957] [e2e] › e2e/safety-during-edit.spec.ts:435:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release
+  2) [e2e] › e2e/safety-during-edit.spec.ts:435:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      454 |     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      455 |     await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
+    > 456 |     await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.axis === 0).length, { timeout: 3000 }).toBe(1);
+          |                                                                                                                                                   ^
+      457 |   });
+      458 | });
+      459 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/safety-during-edit.spec.ts:456:147
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-the-fir-17b1e-zes-apply-after-the-release-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+

@@ -1,0 +1,52 @@
+# R401 · probe-click + hold-stall-mouse in the pinned Firefox 160, 3 workers, --repeat-each=2
+
+
+Running 22 tests using 3 workers
+
+[1/22] [firefox-core] › e2e/hold-stall-mouse.spec.ts:86:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/22] [firefox-core] › e2e/hold-stall-mouse.spec.ts:86:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[3/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Outside: a held probe button sends its routine with the panel's numbers
+[4/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Boss/Pocket: a held probe button sends its routine with the panel's numbers
+[5/22] [firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+[6/22] [firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: {"delivered":576,"hints":["Page delayed — hold again"]}
+
+[7/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Ridge/Valley: a held probe button sends its routine with the panel's numbers
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: {"delivered":568,"hints":["Page delayed — hold again"]}
+
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 120 ms: {"delivered":718,"hints":["Page delayed — hold again"]}
+
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 120 ms: {"delivered":711,"hints":["Page delayed — hold again"]}
+
+[8/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Angle: a held probe button sends its routine with the panel's numbers
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 800 ms: {"delivered":809,"hints":["Page delayed — hold again"]}
+
+[9/22] [firefox-core] › e2e/hold-stall-mouse.spec.ts:123:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:103:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 800 ms: {"delivered":804,"hints":["Page delayed — hold again"]}
+
+[10/22] [firefox-core] › e2e/hold-stall-mouse.spec.ts:123:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[11/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Calibrate: a held probe button sends its routine with the panel's numbers
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:123:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1851,2301],"ups":[1951,2415],"hints":["Hold to activate"]}
+
+[12/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Outside: a held probe button sends its routine with the panel's numbers
+[firefox-core] › e2e/hold-stall-mouse.spec.ts:123:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2066,2516],"ups":[2166,2630],"hints":["Hold to activate"]}
+
+[13/22] [firefox-core] › e2e/probe-click.spec.ts:67:1 › Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers
+[14/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Boss/Pocket: a held probe button sends its routine with the panel's numbers
+[15/22] [firefox-core] › e2e/probe-click.spec.ts:100:3 › z_surface: the job the button sends is the native stage's whole job
+[16/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Ridge/Valley: a held probe button sends its routine with the panel's numbers
+[17/22] [firefox-core] › e2e/probe-click.spec.ts:100:3 › surface_scan: the job the button sends is the native stage's whole job
+[18/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Angle: a held probe button sends its routine with the panel's numbers
+[19/22] [firefox-core] › e2e/probe-click.spec.ts:47:3 › Calibrate: a held probe button sends its routine with the panel's numbers
+[20/22] [firefox-core] › e2e/probe-click.spec.ts:67:1 › Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers
+[21/22] [firefox-core] › e2e/probe-click.spec.ts:100:3 › z_surface: the job the button sends is the native stage's whole job
+[22/22] [firefox-core] › e2e/probe-click.spec.ts:100:3 › surface_scan: the job the button sends is the native stage's whole job
+  22 passed (39.5s)
