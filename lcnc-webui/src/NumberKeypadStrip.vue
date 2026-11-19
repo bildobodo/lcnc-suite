@@ -309,8 +309,9 @@ function onKeydown(e: KeyboardEvent) {
 .nkPreview.invalid {
   color: var(--danger-text);
 }
-/* Fixed --key-size square keys (shared with TextKeypadStrip) — identical
-   in both orientations. The readout and the actions are explicitly placed;
+/* Landscape: fixed --key-size square keys (shared with TextKeypadStrip).
+   Portrait: the keys share the strip column in equal tracks (below). The
+   readout and the actions are explicitly placed;
    the keys auto-place around them (rows 2–5). Landscape: the readout over
    the five key columns, the X 44 × 44 at the right end of the action
    column, Discard · ═ · Apply (two rows, like the text keyboard's Enter)
@@ -335,12 +336,16 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 @media (orientation: portrait) {
-  /* Five key columns (the narrow strip): the readout over four, the X in
-     the fifth — still the top-right key — and the other actions a
-     full-width bottom row (Discard | ═ | Apply). */
-  .nkGrid { grid-template-columns: repeat(5, var(--key-size)); }
+  /* Five key columns (the narrow strip) in EQUAL shares of its width,
+     never narrower than --key-size (operator 2026-11-16: the keys stopped
+     16 px short of the rows above; plan leiste-tastatur K1): the readout
+     over four, the X in the fifth — still the top-right key, a whole track
+     like the key under it — and the other actions a full-width bottom row
+     (Discard | ═ | Apply). The rows stay --key-size high (150 % height
+     budget). */
+  .nkGrid { grid-template-columns: repeat(5, minmax(var(--key-size), 1fr)); }
   .nkDisplay { grid-column: 1 / 5; }
-  .nkClose   { grid-column: 5;     grid-row: 1; }
+  .nkClose   { grid-column: 5;     grid-row: 1; width: auto; justify-self: stretch; }
   .nkDiscard { grid-column: 1 / 3; grid-row: 6; }
   .nkEq      { grid-column: 3;     grid-row: 6; }
   .nkOk      { grid-column: 4 / 6; grid-row: 6; }

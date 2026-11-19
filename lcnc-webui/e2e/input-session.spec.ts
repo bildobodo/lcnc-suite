@@ -925,19 +925,31 @@ test.describe("D7, touch", () => {
       const x = controls.find(c => c.b.getAttribute("aria-label") === "Close keyboard")!;
       const others = controls.filter(c => c !== x);
       return { w: x.r.width, h: x.r.height,
+        // the widths of the keys in the X's column (portrait: a whole track)
+        column: others.filter(c => c.b.tagName === "BUTTON" && Math.abs(c.r.left - x.r.left) < 0.5 && Math.abs(c.r.right - x.r.right) < 0.5).map(c => c.r.width),
         above: others.filter(c => c.r.top < x.r.top - 0.5).map(c => c.b.getAttribute("aria-label") ?? c.b.className),
         right: others.filter(c => c.r.right > x.r.right + 0.5).map(c => c.b.getAttribute("aria-label") ?? c.b.className) };
     });
   }
 
-  test("the X is each helper's top-right key, 44 × 44 — number keypad and text keyboard, landscape and portrait", async ({ page }) => {
+  // Landscape: 44 × 44. Portrait: a whole key track (plan leiste-tastatur
+  // K2) — as wide as the keys under it, never narrower than 44, 44 high.
+  const xSize = (vp: { name: string }, what: string, a: { w: number; h: number; column: number[] }) => {
+    if (vp.name === "landscape") { expect([a.w, a.h], `${vp.name} ${what}: X is 44 × 44`).toEqual([44, 44]); return; }
+    expect(a.h, `${vp.name} ${what}: X is 44 high`).toBe(44);
+    expect(a.w, `${vp.name} ${what}: X at least 44 wide`).toBeGreaterThanOrEqual(44);
+    expect(a.column.length, `${vp.name} ${what}: keys under the X`).toBeGreaterThan(0);
+    for (const w of a.column) expect(Math.abs(w - a.w), `${vp.name} ${what}: X as wide as the keys under it (${a.w} vs ${w})`).toBeLessThan(0.01);
+  };
+
+  test("the X is each helper's top-right key — 44 × 44 in landscape, a whole key track in portrait — number keypad and text keyboard", async ({ page }) => {
     for (const vp of VIEWPORTS) {
       await openTouch(page, vp);
       await page.locator("input.setupInput").first().tap();
       const nk = page.locator(".nkStrip");
       await expect(nk).toBeVisible();
       const n = await xAnchor(nk);
-      expect([n.w, n.h], `${vp.name} number keypad: X is 44 × 44`).toEqual([44, 44]);
+      xSize(vp, "number keypad", n);
       expect(n.above, `${vp.name} number keypad: nothing above the X`).toEqual([]);
       expect(n.right, `${vp.name} number keypad: nothing right of the X`).toEqual([]);
       await tapKey(nk, "Close keyboard");
@@ -950,7 +962,7 @@ test.describe("D7, touch", () => {
       for (const p of ["Code keys", "ABC keys"]) {
         await tapKey(tk, p);
         const t = await xAnchor(tk);
-        expect([t.w, t.h], `${vp.name} keyboard ${p}: X is 44 × 44`).toEqual([44, 44]);
+        xSize(vp, `keyboard ${p}`, t);
         expect(t.above, `${vp.name} keyboard ${p}: nothing above the X`).toEqual([]);
         expect(t.right, `${vp.name} keyboard ${p}: nothing right of the X`).toEqual([]);
       }
@@ -1047,6 +1059,66 @@ test.describe("D7, touch", () => {
       }), `six axes, field ${i}: in view, not covered`).toBe(true);
       await tapKey(nk, "Discard");
       await expect(nk).toHaveCount(0);
+    }
+    await page.evaluate(() => { document.documentElement.style.zoom = ""; });
+    expectNoMachineAction(await cmds());
+  });
+
+  // Plan leiste-tastatur K3 (operator 2026-11-16: "die Buttons gleichmässig
+  // in der Breite anpassen"): in portrait both helpers' keys sit on FIVE
+  // equal tracks across the strip column — every key starts and ends on a
+  // track line (a word key spans whole tracks), the last track ends on the
+  // helper's content edge, a track is at least 44 px. The text keyboard's
+  // four grids share the tracks. At 100 % and 150 %.
+  test("portrait: the keys fill the strip column in five equal tracks — number keypad and every keyboard page, 100 % and 150 %", async ({ page }) => {
+    await openTouch(page, { width: 900, height: 1200 });
+    const tracks = (helper: Locator, gridSel: string, zoom: number) => helper.evaluate((el, [gridSel, zoom]) => {
+      const grid = el.querySelector(gridSel as string)!.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const z = zoom as number;
+      const contentRight = r.right - (parseFloat(cs.paddingRight) + parseFloat(cs.borderRightWidth)) * z;
+      const gap = parseFloat(getComputedStyle(el.querySelector(gridSel as string)!).columnGap) * z;
+      const track = (grid.width - 4 * gap) / 5;
+      const lines = Array.from({ length: 5 }, (_, i) => grid.left + i * (track + gap));
+      const ends = lines.map(l => l + track);
+      const off: string[] = [];
+      for (const b of el.querySelectorAll("button")) {
+        if ((b as HTMLElement).offsetParent === null) continue;
+        const q = b.getBoundingClientRect();
+        const start = lines.findIndex(l => Math.abs(q.left - l) < 0.6);
+        const end = ends.findIndex(e => Math.abs(q.right - e) < 0.6);
+        if (start < 0 || end < start) off.push(`${b.getAttribute("aria-label") ?? b.textContent?.trim()} ${q.left.toFixed(1)}–${q.right.toFixed(1)}`);
+      }
+      return { track, gridRight: grid.right, contentRight, off };
+    }, [gridSel, zoom] as const);
+    for (const zoom of [1, 1.5]) {
+      await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+      const field = page.locator("input.setupInput").first();
+      await field.scrollIntoViewIfNeeded();
+      await field.tap();
+      const nk = page.locator(".nkStrip");
+      await expect(nk).toBeVisible();
+      const n = await tracks(nk, ".nkGrid", zoom);
+      expect(n.off, `${zoom}: number keypad keys off the tracks`).toEqual([]);
+      expect(n.track, `${zoom}: number keypad track`).toBeGreaterThanOrEqual(44 * zoom - 0.5);
+      expect(Math.abs(n.gridRight - n.contentRight), `${zoom}: number keypad ends on the column's content edge`).toBeLessThan(0.6);
+      await tapKey(nk, "Discard");
+      await expect(nk).toHaveCount(0);
+      if (zoom === 1) await page.getByRole("tab", { name: "MDI", exact: true }).tap();
+      else await page.getByRole("combobox", { name: "Side panel", exact: true }).selectOption("mdi");
+      await page.locator(".mdiInput").tap();
+      const tk = page.locator(".tkStrip");
+      await expect(tk).toBeVisible();
+      for (const p of ["Code keys", "ABC keys", "123 keys", "#+= keys"]) {
+        await tapKey(tk, p);
+        const t = await tracks(tk, ".tkRows", zoom);
+        expect(t.off, `${zoom} ${p}: keyboard keys off the tracks`).toEqual([]);
+        expect(t.track, `${zoom} ${p}: keyboard track`).toBeGreaterThanOrEqual(44 * zoom - 0.5);
+        expect(Math.abs(t.gridRight - t.contentRight), `${zoom} ${p}: keyboard ends on the column's content edge`).toBeLessThan(0.6);
+      }
+      await tapKey(tk, "Close keyboard");
+      await expect(tk).toHaveCount(0);
     }
     await page.evaluate(() => { document.documentElement.style.zoom = ""; });
     expectNoMachineAction(await cmds());
