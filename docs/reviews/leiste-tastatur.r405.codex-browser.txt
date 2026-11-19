@@ -1,0 +1,17 @@
+[1A[2K[WebServer] (node:1936162) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:1936196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1936196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] [e2e] › e2e/r405-plan.spec.ts:25:1 › R405 A: every declared type and the proposed data-only scrolling under a long file error
+[1A[2K[2/2] [e2e] › e2e/r405-plan.spec.ts:49:1 › R405 K: full column keys including the close key
+[1A[2K  2 passed (6.2s)

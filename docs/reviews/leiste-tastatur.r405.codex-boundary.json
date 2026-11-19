@@ -1,0 +1,260 @@
+{
+  "wrappedDataOnly": {
+    "stripOver": 0,
+    "tool": {
+      "rect": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "clientW": 223,
+      "scrollW": 223,
+      "clientH": 264,
+      "scrollH": 391
+    },
+    "info": {
+      "rect": {
+        "x": 1655.5,
+        "y": 1171.5,
+        "width": 215,
+        "height": 8,
+        "top": 1171.5,
+        "right": 1870.5,
+        "bottom": 1179.5,
+        "left": 1655.5
+      },
+      "clientW": 205,
+      "scrollW": 205,
+      "clientH": 8,
+      "scrollH": 169
+    },
+    "note": {
+      "rect": {
+        "x": 1655.5,
+        "y": 857.5,
+        "width": 215,
+        "height": 306,
+        "top": 857.5,
+        "right": 1870.5,
+        "bottom": 1163.5,
+        "left": 1655.5
+      },
+      "clientW": 213,
+      "scrollW": 213,
+      "clientH": 304,
+      "scrollH": 304
+    },
+    "last": {
+      "rect": {
+        "x": 1663.5,
+        "y": 1155.5,
+        "width": 189,
+        "height": 19.5,
+        "top": 1155.5,
+        "right": 1852.5,
+        "bottom": 1175,
+        "left": 1663.5
+      },
+      "clientW": 189,
+      "scrollW": 189,
+      "clientH": 20,
+      "scrollH": 20
+    },
+    "retry": {
+      "rect": {
+        "x": 1664.5,
+        "y": 1122.5,
+        "width": 58,
+        "height": 36,
+        "top": 1122.5,
+        "right": 1722.5,
+        "bottom": 1158.5,
+        "left": 1664.5
+      },
+      "clientW": 56,
+      "scrollW": 56,
+      "clientH": 34,
+      "scrollH": 34
+    }
+  },
+  "commonScrollAtEnd": {
+    "stripOver": 0,
+    "tool": {
+      "rect": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "clientW": 223,
+      "scrollW": 223,
+      "clientH": 264,
+      "scrollH": 264
+    },
+    "info": {
+      "rect": {
+        "x": 1655.5,
+        "y": 884.5,
+        "width": 205,
+        "height": 168.5,
+        "top": 884.5,
+        "right": 1860.5,
+        "bottom": 1053,
+        "left": 1655.5
+      },
+      "clientW": 205,
+      "scrollW": 205,
+      "clientH": 169,
+      "scrollH": 169
+    },
+    "note": {
+      "rect": {
+        "x": 1655.5,
+        "y": 578.5,
+        "width": 205,
+        "height": 306,
+        "top": 578.5,
+        "right": 1860.5,
+        "bottom": 884.5,
+        "left": 1655.5
+      },
+      "clientW": 203,
+      "scrollW": 203,
+      "clientH": 304,
+      "scrollH": 304
+    },
+    "last": {
+      "rect": {
+        "x": 1663.5,
+        "y": 1029.5,
+        "width": 189,
+        "height": 19.5,
+        "top": 1029.5,
+        "right": 1852.5,
+        "bottom": 1049,
+        "left": 1663.5
+      },
+      "clientW": 189,
+      "scrollW": 189,
+      "clientH": 20,
+      "scrollH": 20
+    },
+    "retry": {
+      "rect": {
+        "x": 1664.5,
+        "y": 843.5,
+        "width": 58,
+        "height": 36,
+        "top": 843.5,
+        "right": 1722.5,
+        "bottom": 879.5,
+        "left": 1664.5
+      },
+      "clientW": 56,
+      "scrollW": 56,
+      "clientH": 34,
+      "scrollH": 34
+    }
+  },
+  "commonBox": {
+    "clientH": 196,
+    "scrollH": 475,
+    "scrollTop": 279,
+    "rect": {
+      "x": 1655.5,
+      "y": 857.5,
+      "width": 215,
+      "height": 195.5,
+      "top": 857.5,
+      "right": 1870.5,
+      "bottom": 1053,
+      "left": 1655.5
+    }
+  },
+  "axes": {
+    "X": {
+      "over": 0,
+      "sections": [
+        {
+          "name": "jog",
+          "width": 222
+        },
+        {
+          "name": "setup",
+          "width": 339
+        },
+        {
+          "name": "overrides",
+          "width": 192
+        },
+        {
+          "name": "spindle",
+          "width": 233
+        },
+        {
+          "name": "tool",
+          "width": 224
+        }
+      ]
+    },
+    "XY": {
+      "over": 0,
+      "sections": [
+        {
+          "name": "jog",
+          "width": 461.5
+        },
+        {
+          "name": "setup",
+          "width": 369
+        },
+        {
+          "name": "overrides",
+          "width": 192
+        },
+        {
+          "name": "spindle",
+          "width": 233
+        },
+        {
+          "name": "tool",
+          "width": 224
+        }
+      ]
+    },
+    "XYA": {
+      "over": 24,
+      "sections": [
+        {
+          "name": "jog",
+          "width": 579.5
+        },
+        {
+          "name": "setup",
+          "width": 369
+        },
+        {
+          "name": "overrides",
+          "width": 192
+        },
+        {
+          "name": "spindle",
+          "width": 233
+        },
+        {
+          "name": "tool",
+          "width": 224
+        }
+      ]
+    }
+  }
+}

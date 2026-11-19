@@ -1,0 +1,90 @@
+{
+  "review": "R405",
+  "kind": "plan review with measured supplied prototypes, not implementation approval",
+  "document_head": "a47c69c88f0d4c889b718c4ecb76df456d8c9e48",
+  "base": "5c48a7e13798738e71786f094f437a86efe8063d",
+  "root": "/tmp/codex-r405",
+  "setup": [
+    "git archive of exact base",
+    "own node_modules copy from /tmp/codex-r402-hold/lcnc-webui/node_modules",
+    "supplied prototyp-s.py A and prototyp-k.py applied in own copy only"
+  ],
+  "runs": [
+    "npm run build PASS",
+    "2 measurement cases PASS in 6.2s",
+    "2 boundary measurement cases PASS in 8.9s"
+  ],
+  "meaning": "Probe PASS means execution succeeded; raw geometry exposes plan counterexamples. No product gate or implementation approval.",
+  "boundary_variants": [
+    "data-only scroller via .toolInfo overflow:auto + scroll-thin",
+    "same plus statusNote overflow-wrap:anywhere",
+    "alternative bounded common scroller around note and data via temporary DOM manipulation"
+  ],
+  "findings": {
+    "LT405-01": "data-only scroller: 108-character error produces 113px horizontal strip overflow; 372-character error 1763px; wrapping removes horizontal overflow but pushes Retry and data beyond strip bottom (info 8px high). Common scroller comparison reaches last row.",
+    "LT405-02": "supplied A prototype X and XY no horizontal overflow; XYA (3 axes, no switchable kinematics) 24px overflow. XYZ control no overflow."
+  },
+  "confirmed": [
+    "all 26 built-in tool type labels fit without row overflow in the no-error prototype",
+    "portrait digit width 47.1875px at 44px height; explicit close width still 44px in prototype, K2 planned override needed"
+  ],
+  "limits": [
+    "Chromium on VM only, 100%",
+    "no Firefox re-run; supplied Firefox images/measurement inspected",
+    "no live-sim connection",
+    "no hardware acceptance",
+    "all processes ended, heavy lock released",
+    "live tree only review appendix and new evidence"
+  ],
+  "files": {
+    "leiste-tastatur.r405.codex-probe.spec.ts": {
+      "source": "/tmp/codex-r405/lcnc-webui/e2e/r405-plan.spec.ts",
+      "sha256": "bcf69e304ba2e1aecf51cbc1f8af5d20cbf437116ebe2481e1617ef96c1c77f1"
+    },
+    "leiste-tastatur.r405.codex-boundary.spec.ts": {
+      "source": "/tmp/codex-r405/lcnc-webui/e2e/r405-boundary.spec.ts",
+      "sha256": "c06c34ee8a619c624f92e8bfd5a5629aeef8974649963bfc26f7f90af74af76d"
+    },
+    "leiste-tastatur.r405.codex-probe.json": {
+      "source": "/tmp/r405-probe.json",
+      "sha256": "8c337bd82bbae4386b14a6a13e56a84226c866b948894aad62d15456fa2b3799"
+    },
+    "leiste-tastatur.r405.codex-boundary.json": {
+      "source": "/tmp/r405-boundary.json",
+      "sha256": "22d1983ea7b075470b25679f265f0bafe2bc739df4c40d33c7cd694025172610"
+    },
+    "leiste-tastatur.r405.codex-build.txt": {
+      "source": "/tmp/r405-build.txt",
+      "sha256": "6a2f215df191c8fe7d2025392466dd449674d31f9a0905b7f698112ffb11b251"
+    },
+    "leiste-tastatur.r405.codex-browser.txt": {
+      "source": "/tmp/r405-browser.txt",
+      "sha256": "bf46e3011421fb678c325dc30b6a18769bef120f0ca352a2fab31870b9eb5175"
+    },
+    "leiste-tastatur.r405.codex-boundary-browser.txt": {
+      "source": "/tmp/r405-boundary-browser.txt",
+      "sha256": "d6e0ac8d07cdfa891958c5c412bdd72428a48559343edfbf5d86d81a0bb9cec7"
+    },
+    "leiste-tastatur.r405.codex-run.sh": {
+      "source": "/tmp/r405-run.sh",
+      "sha256": "9b43e9a1e929ff0873527a23944d28fc2158d911eb2777334dca1be4644214a1"
+    },
+    "leiste-tastatur.r405.codex-boundary-run.sh": {
+      "source": "/tmp/r405-boundary-run.sh",
+      "sha256": "72bdd007aac6794c41b0a77d0bf2ba8d15f696d638d85ae862cc1ab7df7bacd1"
+    },
+    "leiste-tastatur.r405.codex-long-error.png": {
+      "source": "/tmp/r405-long-error.png",
+      "sha256": "b5467cf28847a532f3e5173a766ce0007a22e548ef85d33ba5d80edfccdb9c47"
+    },
+    "leiste-tastatur.r405.codex-wrapped-error.png": {
+      "source": "/tmp/r405-wrapped-error.png",
+      "sha256": "021d813cdd50b631c8eb2ec7eaa618854c34d11704d200403100b92998d6e924"
+    }
+  },
+  "prototype_hashes": {
+    "leiste-tastatur.plan.prototyp-s.py": "5cfa5b12b285238dd6d710835f228dc8043f6baeb27853357ae8a0641c33d0f3",
+    "leiste-tastatur.plan.prototyp-k.py": "a807267c79318316806d3f4173c62c10318fd2930ccf5deb8c4359cb7366ac26",
+    "leiste-tastatur.plan.messung.json": "b13b91828e3b39a9284f8dbbeed6fc14753b0b8eef63e94fb8e6a1ecb2172340"
+  }
+}

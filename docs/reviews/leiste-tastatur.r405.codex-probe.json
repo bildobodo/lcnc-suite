@@ -1,0 +1,3261 @@
+{
+  "types": {
+    "endmill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeEnd Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 52,
+          "valueScrollW": 52,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "reamer": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeReamer",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 50,
+          "valueScrollW": 50,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "ball": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeBall",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 25,
+          "valueScrollW": 25,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "bullnose": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeBull Nose",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 62,
+          "valueScrollW": 62,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "drill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeDrill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 26,
+          "valueScrollW": 26,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "blockdrill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeBlock Drill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 66,
+          "valueScrollW": 66,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "centerdrill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeCenter Drill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 72,
+          "valueScrollW": 72,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "chamfer": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeChamfer",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 56,
+          "valueScrollW": 56,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "cornerchamfer": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeCorner Chamfer End Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 158,
+          "valueScrollW": 158,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "circlebarrel": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeCircle Segment Barrel",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 142,
+          "valueScrollW": 142,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "circlelens": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeCircle Segment Lens",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 134,
+          "valueScrollW": 134,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "circleoval": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeCircle Segment Oval",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 133,
+          "valueScrollW": 133,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "circletaper": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeCircle Segment Taper",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 141,
+          "valueScrollW": 141,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "countersink": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeC/Sink",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 44,
+          "valueScrollW": 44,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "dovetail": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeDovetail",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 53,
+          "valueScrollW": 53,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "facemill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeFace Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 59,
+          "valueScrollW": 59,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "lollipop": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeLollipop",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 51,
+          "valueScrollW": 51,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "slotmill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeSlot Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 52,
+          "valueScrollW": 52,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "threadmill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeThread Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "formmill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeForm Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 60,
+          "valueScrollW": 60,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "radiusmill": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeRadius Mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 73,
+          "valueScrollW": 73,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "tapered": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeTapered",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 55,
+          "valueScrollW": 55,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "probe": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeProbe",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 38,
+          "valueScrollW": 38,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "tap": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeTap",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 25,
+          "valueScrollW": 25,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "engraver": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeEngraver",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 59,
+          "valueScrollW": 59,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    },
+    "other": {
+      "stripOver": 0,
+      "tool": {
+        "x": 1646.5,
+        "y": 789,
+        "width": 224,
+        "height": 264,
+        "top": 789,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1646.5
+      },
+      "info": {
+        "box": {
+          "x": 1655.5,
+          "y": 857.5,
+          "width": 215,
+          "height": 195.5,
+          "top": 857.5,
+          "right": 1870.5,
+          "bottom": 1053,
+          "left": 1655.5
+        },
+        "clientH": 196,
+        "scrollH": 196,
+        "clientW": 215,
+        "scrollW": 215,
+        "scrollTop": 0
+      },
+      "note": null,
+      "rows": [
+        {
+          "text": "ToolT12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 28,
+          "valueScrollW": 28,
+          "top": 861.5,
+          "bottom": 881
+        },
+        {
+          "text": "Pocket12",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 18,
+          "valueScrollW": 18,
+          "top": 885,
+          "bottom": 904.5
+        },
+        {
+          "text": "Diameter12.7000 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 83,
+          "valueScrollW": 83,
+          "top": 908.5,
+          "bottom": 928
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 108,
+          "valueScrollW": 108,
+          "top": 932,
+          "bottom": 951.5
+        },
+        {
+          "text": "In effectOther offset",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 75,
+          "valueScrollW": 75,
+          "top": 955.5,
+          "bottom": 975
+        },
+        {
+          "text": "TypeOther",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 35,
+          "valueScrollW": 35,
+          "top": 979,
+          "bottom": 998.5
+        },
+        {
+          "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+          "w": 199,
+          "h": 19.5,
+          "scrollW": 199,
+          "clientW": 199,
+          "valueW": 120,
+          "valueScrollW": 313,
+          "top": 1002.5,
+          "bottom": 1022
+        }
+      ]
+    }
+  },
+  "error_1": {
+    "error": "Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/customer_fixture_123456/tool.tbl",
+    "stripOver": 113,
+    "tool": {
+      "x": 1646.5,
+      "y": 789,
+      "width": 224,
+      "height": 264,
+      "top": 789,
+      "right": 1870.5,
+      "bottom": 1053,
+      "left": 1646.5
+    },
+    "info": {
+      "box": {
+        "x": 1655.5,
+        "y": 991.5,
+        "width": 215,
+        "height": 61.5,
+        "top": 991.5,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1655.5
+      },
+      "clientH": 62,
+      "scrollH": 169,
+      "clientW": 205,
+      "scrollW": 205,
+      "scrollTop": 107
+    },
+    "note": {
+      "box": {
+        "x": 1655.5,
+        "y": 857.5,
+        "width": 215,
+        "height": 126,
+        "top": 857.5,
+        "right": 1870.5,
+        "bottom": 983.5,
+        "left": 1655.5
+      },
+      "scrollH": 124,
+      "clientH": 124
+    },
+    "rows": [
+      {
+        "text": "ToolT12",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 28,
+        "valueScrollW": 28,
+        "top": 888.5,
+        "bottom": 908
+      },
+      {
+        "text": "Pocket12",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 18,
+        "valueScrollW": 18,
+        "top": 912,
+        "bottom": 931.5
+      },
+      {
+        "text": "Diameter12.7000 mm",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 83,
+        "valueScrollW": 83,
+        "top": 935.5,
+        "bottom": 955
+      },
+      {
+        "text": "Z Offset-1234.5670 mm",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 108,
+        "valueScrollW": 108,
+        "top": 959,
+        "bottom": 978.5
+      },
+      {
+        "text": "In effectOther offset",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 75,
+        "valueScrollW": 75,
+        "top": 982.5,
+        "bottom": 1002
+      },
+      {
+        "text": "TypeOther",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 35,
+        "valueScrollW": 35,
+        "top": 1006,
+        "bottom": 1025.5
+      },
+      {
+        "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 110,
+        "valueScrollW": 313,
+        "top": 1029.5,
+        "bottom": 1049
+      }
+    ]
+  },
+  "error_12": {
+    "error": "Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/customer_fixture_123456/tool.tbl",
+    "stripOver": 1763,
+    "tool": {
+      "x": 1646.5,
+      "y": 789,
+      "width": 224,
+      "height": 264,
+      "top": 789,
+      "right": 1870.5,
+      "bottom": 1053,
+      "left": 1646.5
+    },
+    "info": {
+      "box": {
+        "x": 1655.5,
+        "y": 991.5,
+        "width": 215,
+        "height": 61.5,
+        "top": 991.5,
+        "right": 1870.5,
+        "bottom": 1053,
+        "left": 1655.5
+      },
+      "clientH": 62,
+      "scrollH": 169,
+      "clientW": 205,
+      "scrollW": 205,
+      "scrollTop": 107
+    },
+    "note": {
+      "box": {
+        "x": 1655.5,
+        "y": 857.5,
+        "width": 215,
+        "height": 126,
+        "top": 857.5,
+        "right": 1870.5,
+        "bottom": 983.5,
+        "left": 1655.5
+      },
+      "scrollH": 124,
+      "clientH": 124
+    },
+    "rows": [
+      {
+        "text": "ToolT12",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 28,
+        "valueScrollW": 28,
+        "top": 888.5,
+        "bottom": 908
+      },
+      {
+        "text": "Pocket12",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 18,
+        "valueScrollW": 18,
+        "top": 912,
+        "bottom": 931.5
+      },
+      {
+        "text": "Diameter12.7000 mm",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 83,
+        "valueScrollW": 83,
+        "top": 935.5,
+        "bottom": 955
+      },
+      {
+        "text": "Z Offset-1234.5670 mm",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 108,
+        "valueScrollW": 108,
+        "top": 959,
+        "bottom": 978.5
+      },
+      {
+        "text": "In effectOther offset",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 75,
+        "valueScrollW": 75,
+        "top": 982.5,
+        "bottom": 1002
+      },
+      {
+        "text": "TypeOther",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 35,
+        "valueScrollW": 35,
+        "top": 1006,
+        "bottom": 1025.5
+      },
+      {
+        "text": "DescriptionTwelve mm three flute carbide roughing end mill",
+        "w": 189,
+        "h": 19.5,
+        "scrollW": 189,
+        "clientW": 189,
+        "valueW": 110,
+        "valueScrollW": 313,
+        "top": 1029.5,
+        "bottom": 1049
+      }
+    ]
+  },
+  "keypad": {
+    "w": 252,
+    "keys": [
+      {
+        "text": "7",
+        "x": 17,
+        "w": 47.1875,
+        "h": 44
+      },
+      {
+        "text": "8",
+        "x": 68.1875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "9",
+        "x": 119.390625,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Divide",
+        "x": 170.59375,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Backspace",
+        "x": 221.796875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "4",
+        "x": 17,
+        "w": 47.1875,
+        "h": 44
+      },
+      {
+        "text": "5",
+        "x": 68.1875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "6",
+        "x": 119.390625,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Multiply",
+        "x": 170.59375,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Clear entry",
+        "x": 221.796875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "1",
+        "x": 17,
+        "w": 47.1875,
+        "h": 44
+      },
+      {
+        "text": "2",
+        "x": 68.1875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "3",
+        "x": 119.390625,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Minus",
+        "x": 170.59375,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Negate",
+        "x": 221.796875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Open parenthesis",
+        "x": 17,
+        "w": 47.1875,
+        "h": 44
+      },
+      {
+        "text": "0",
+        "x": 68.1875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": ".",
+        "x": 119.390625,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Plus",
+        "x": 170.59375,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Close parenthesis",
+        "x": 221.796875,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Close keyboard",
+        "x": 225,
+        "w": 44,
+        "h": 44
+      },
+      {
+        "text": "Discard",
+        "x": 17,
+        "w": 98.390625,
+        "h": 44
+      },
+      {
+        "text": "Evaluate",
+        "x": 119.390625,
+        "w": 47.203125,
+        "h": 44
+      },
+      {
+        "text": "Apply",
+        "x": 170.59375,
+        "w": 98.40625,
+        "h": 44
+      }
+    ]
+  }
+}

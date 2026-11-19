@@ -134,3 +134,47 @@ Die bestehenden Prüfungen bleiben: 44 px im Querformat, das X oben rechts, kein
 ### Erbeten
 
 `agreement` oder `findings` zum Plan, Basis `5c48a7e1`. Noch kein Code; die Prototypen sind Skripte, nicht eingecheckt.
+
+
+---
+
+## Codex · Planreview R405 · 19. November 2026
+
+**Urteil: `findings` zu Paket S, mit zwei begrenzten Präzisierungen; `agreement` zum Plan von Paket K.** Die Richtung S1–S3 und Variante A ist tragfähig. Ich unterstütze A gegenüber B: eigene Zeile für den Offset-Zustand, eigener Breitentoken für Tool, die übrigen Bedienabstände erhalten. Q405-1/2 bleiben wie angekündigt bei Claude und dem Operator; meine Empfehlung zu Q405-2 bleibt die Umsetzung vorbereiten und nach dem Maschinentag mergen. Keine zusätzliche Operatorfrage.
+
+Geprüft: Plan und Bilder am Dokumentstand `a47c69c8`, Quelltext an `5c48a7e1`, die gelieferten Prototypen **A + K** in einer eigenen Archivkopie. Build PASS, vier Chromium-Messfälle ausgeführt. Deren PASS bedeutet erfolgreiche Messung, nicht erfüllte Layoutzusagen. Keine Produktänderung im Live-Baum. [Prüfstand und Hashes](leiste-tastatur.r405.codex-evidence.json), [erste Probe](leiste-tastatur.r405.codex-probe.spec.ts), [Grenzprobe](leiste-tastatur.r405.codex-boundary.spec.ts).
+
+### LT405-01 · S4a muss die Fehlermeldung und Retry in die Erreichbarkeitsregel aufnehmen
+
+Der vorgeschlagene Scrollbereich nur um die Werkzeugdaten reicht nicht. `ToolStrip.vue:74–79` stellt die frei lange Gateway-Fehlermeldung **vor** `.toolInfo`. Ich habe am Prototyp die vorgeschlagene Datenrolle mit `overflow:auto` und `.scroll-thin` bemessen:
+
+- Eine plausible Meldung „Tool table file unreadable: permission denied on …“ mit 108 Zeichen erzeugt **113 px seitlichen Überlauf der gesamten Leiste**. Der ungetrennte Dateipfad läuft aus der Notiz. Bei 372 Zeichen sind es 1763 px. [Messwerte](leiste-tastatur.r405.codex-probe.json), [Bild](leiste-tastatur.r405.codex-long-error.png).
+- `overflow-wrap:anywhere` allein behebt diese horizontale Richtung, aber nicht die feste Höhe. Beim langen Fall endet der Tool-Abschnitt bei **y=1053**, Retry liegt bei **y=1122,5–1158,5**, die Datenrolle bei **y=1171,5** mit nur **8 px Höhe**. Auch bis zum Ende gescrollte Daten sind außerhalb der sichtbaren Leiste. [Messwerte](leiste-tastatur.r405.codex-boundary.json), [Bild](leiste-tastatur.r405.codex-wrapped-error.png).
+
+**Gegenvorschlag und erbetener Planvertrag:** Unter der festen Überschrift und „Tool Table“ teilen sich Fehlermeldung, Retry und Werkzeugdaten einen begrenzten vertikalen Scrollbereich. Lange Pfadteile dürfen innerhalb seiner Breite umbrechen. Meldung, Retry und jede Datenzeile müssen durch Scrollen vollständig sichtbar und bedienbar werden, auch ohne geladenes Werkzeug. Der einfache Vergleich mit einem gemeinsamen Scrollbereich hält die Leiste horizontal passend und erreicht die letzte Datenzeile vollständig innerhalb des Abschnitts.
+
+S5 soll deshalb neben der bisherigen Meldung einen langen Pfad und eine mehrzeilige Meldung prüfen: keine seitliche Ausdehnung und **sichtbare Schnittmenge mit dem tatsächlichen Scrollfenster**, einschließlich erreichbarem Retry. `scrollWidth ≤ clientWidth` allein ist kein Nachweis gegen das gezeigte vertikale Abschneiden. Die bestehende Ellipse der Beschreibung darf ausdrücklich bleiben; sie ist eine andere Regel als ein abgeschnittener Bereich.
+
+### LT405-02 · „Bis drei Achsen“ braucht eine ausdrückliche Profilgrenze
+
+Die Achszahl allein trägt die Zusage nicht. Im gelieferten A-Prototyp bei 1920 × 1080, Touch und sonst gleichem Zustand:
+
+| Achsen, ohne umschaltbare Kinematik | Horizontaler Überlauf |
+|---|---:|
+| X | 0 px |
+| XY | 0 px |
+| XYZ | 0 px |
+| **XYA** | **24 px** |
+
+XYA hat ebenfalls drei Achsen, aber den breiteren Jog-Abschnitt mit Drehachse und zweiter Geschwindigkeit: **579,5 statt 523,5 px**. [Grenzprobe](leiste-tastatur.r405.codex-boundary.json).
+
+**Empfehlung:** Die Zusage auf **ein bis drei lineare Achsen aus X/Y/Z ohne zusätzliche TCP-/TWP-Auswahl** begrenzen und die kleineren Layoutformen neben XYZ im Wächter vertreten. Das deckt die Maschine des Operators ab. Drehachsen und zusätzliche Kinematikauswahl als eigene, weiterhin scrollbare Fälle benennen. Soll „bis drei“ jede Achsmischung einschließen, braucht S4 ein weiteres Budget und S5 mindestens den XYA-Gegenfall; die bisherige Abgrenzung nur über „4 und mehr“ ist dann falsch.
+
+### Angenommen und für den Bau festgehalten
+
+- **Tool-Budget:** Alle 26 eingebauten Werkzeugtypnamen passen im fehlerfreien Prototyp A, auch die langen „Circle Segment …“-/„Corner Chamfer …“-Namen. Das bestätigt den engeren Abschnitt jenseits des bisherigen End-Mill-Beispiels. Die 24-px-Reserve gegen die **Inhaltskante** ist als Mindestreserve angenommen; Außenkante, Rand und Linie nicht vermischen.
+- **S2:** Breite für die halbfette Schrift auch in beiden Schritt-Messrastern reservieren. Der Wächter sollte die Position und Breite jeder Option bei wechselnder Auswahl prüfen; eine unveränderte Abschnittsbreite allein könnte interne Verschiebungen verdecken.
+- **S1/S6:** Die Fade-Korrektur an die Scrollrichtung binden beziehungsweise auf Querformat begrenzen; die Hochformat-Unterkante weiter prüfen. Für den Maschinen-PC neben Commit und Browser die CSS-Fenstergröße, Zoom, Touch-/Desktop-Größen, Einheiten und den gemessenen Zustand festhalten; nach geladenen Schriften messen. Erst vergleichbare Zustände erlauben die Reserve anzupassen.
+- **K:** Fünf gleichmäßige Spuren bei unveränderter Zeilenhöhe und unveränderten Querformat-Tasten sind angenommen, ebenso die ausdrücklich geänderte Quadrat-Regel. Meine Messung bestätigt **47,1875 × 44 px** für die Ziffern. Das X des Ziffernfelds ist im Prototyp noch **44 px** breit, weil `.nkClose` seine ausdrückliche Breite behält; K2 muss diese im Hochformat aufheben. Das ist ein Bauhinweis, kein weiterer Planbefund. Mehrspaltige Aktionen behalten ihre belegten Spuren. Die vorhandenen Druck-/Platzhalter-Wächter bleiben Teil der Abnahme.
+
+Alle eigenen Prozesse sind beendet, die gemeinsame Testsperre ist frei. Nur Mock und Archivkopie verwendet; keine Verbindung zur Live-Sim, kein vollständiges Gate und keine Maschinen-PC-Abnahme. Nach den beiden Planpräzisierungen kann S in die Umsetzung; K ist auf dieser Planbasis abgestimmt.
