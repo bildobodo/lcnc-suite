@@ -871,3 +871,36 @@ def test_across_the_groups_the_stricter_state_stays(tmp_path):
     row = next(x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
                if x["layer"] == "unit" and x["file"] == e["file"] and x["title"] == e["title"])
     assert row["status"] == "expected to fail"          # the heavy group's plain never lowers the light group's fails
+
+
+# ── R402 class check: the same key twice in a JSON object, a native case twice ─
+
+def test_a_repeated_json_key_is_a_damaged_artefact_withheld_never_its_last_value(tmp_path):
+    # json keeps the LAST of a repeated key silently: a later record would hide an earlier one
+    r = replay("e2e", att(), per_attempt={ATT: {"touchoff": 1}})
+    text = json.dumps(r)
+    dup = text.replace('"per_attempt": {', '"per_attempt": {"' + ATT + '": {"touchoff": 0}, ', 1)
+    assert dup != text and dup.count(ATT) == text.count(ATT) + 1
+    c = _run_with(tmp_path / "dup", **ran("e2e", T1), **{"replay.json": dup})
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == "not sent"
+    assert any("twice in one object" in x and "replay.json" in x for x in c["errors"]), c["errors"]
+    c = _run_with(tmp_path / "ok", **ran("e2e", T1), **{"replay.json": text})          # the control
+    assert _fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"]["e2e"] == {"touchoff": 1}
+    # a live report the same way: no evidence, a reason
+    p = tmp_path / "live.json"
+    p.write_text('{"commit": "x", "scenarios": {"a": {"direct": {}}, "a": {"direct": {"skipped": "y"}}}}')
+    r2, why = live_drivers.load_report(p)
+    assert r2 is None and "twice in one object" in why
+
+
+def test_a_native_case_twice_in_one_report_rejects_the_report(tmp_path):
+    full = _full_rows(None)
+    twice = full + [dict(full[0])]
+    (tmp_path / "dup").mkdir()
+    (tmp_path / "ok").mkdir()
+    c = coverage.coverage(gate(tmp_path / "dup", dict(EMPTY_RUN)), [_native_report(tmp_path / "d.json", twice)], [])
+    assert any("twice" in x for x in _native_errors(c)), _native_errors(c)
+    rows = [x for f in c["functions"] for x in f["native"] if x.get("variant") is None]
+    assert rows and all(x["status"] == "invalid report of this commit" for x in rows)
+    c = coverage.coverage(gate(tmp_path / "ok", dict(EMPTY_RUN)), [_native_report(tmp_path / "o.json", full)], [])
+    assert _native_errors(c) == []                                                         # the control

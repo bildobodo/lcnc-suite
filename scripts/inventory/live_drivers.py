@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import ast
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -155,12 +156,32 @@ def scenario_status(report: Any, scenario: str) -> tuple[str, str]:
 _LIVE_RANK = {"passed": 0, "skip": 1, "failed": 2, "error": 3}
 
 
+class DuplicateKey(ValueError):
+    """A JSON object with a key twice — json keeps the LAST silently, so a
+    later record could hide an earlier one (the R402 class check)."""
+
+
+def _unique_object(pairs: list) -> dict:
+    n = Counter(k for k, _ in pairs)
+    dup = sorted(str(k) for k, c in n.items() if c > 1)
+    if dup:
+        raise DuplicateKey(f"key(s) {dup[:5]} twice in one object")
+    return dict(pairs)
+
+
+def loads_strict(text: str) -> Any:
+    """json.loads that refuses a repeated key in any object (DuplicateKey)."""
+    return json.loads(text, object_pairs_hook=_unique_object)
+
+
 def load_report(path: Path) -> tuple[dict | None, str]:
     """A live run report given as evidence — or why it is no evidence at all
     (a missing or unreadable file is an evaluation error: a run claimed and
     not shown)."""
     try:
-        r = json.loads(path.read_text())
+        r = loads_strict(path.read_text())
+    except DuplicateKey as e:
+        return None, f"{path}: {e} — a damaged report"
     except (OSError, ValueError) as e:
         return None, f"{path}: {type(e).__name__}"
     if not isinstance(r, dict):

@@ -11682,7 +11682,10 @@ identity invalid on either side of the listing/report join stays invalid (a
 clean report never replaces a contradictory listing, and admits no replay
 attempt), a unit name needs exactly as many results as its listing holds (a
 missing or an extra one is no complete run), and across the unit groups a
-result is only ever made stricter, like the options.
+result is only ever made stricter, like the options. The class check of R402
+over every index and join found two more: a key twice in a JSON object (json
+keeps the last silently — every artefact and report is now read strictly, a
+repeated key withholds it) and a native case twice in one report (rejected).
 
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 

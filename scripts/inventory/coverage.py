@@ -53,7 +53,11 @@ EVIDENCE = frozenset({"served", "fetched"})
 
 def _json(path: Path, missing: list[str]) -> Any:
     try:
-        return json.loads(path.read_text())
+        return live_drivers.loads_strict(path.read_text())
+    except live_drivers.DuplicateKey as e:
+        # json would keep the last of a repeated key: reported AND withheld (R402)
+        missing.append(f"{path.name}: {e} — a damaged artefact, withheld")
+        return None
     except (OSError, ValueError) as e:
         missing.append(f"{path.name}: {type(e).__name__} — an artefact of the run is missing")
         return None
@@ -363,7 +367,7 @@ def _sites(sides: tuple, key: str) -> list[dict]:
 
 def coverage(gate_path: Path, native_paths: list[Path], live_paths: list[Path], root: Path = ROOT) -> dict:
     """From a gate's record (its head and kind) and its logs folder."""
-    gate = json.loads(gate_path.read_text())
+    gate = live_drivers.loads_strict(gate_path.read_text())
     return coverage_of(gate_path.with_suffix(".logs"), gate.get("head", ""), gate.get("kind", ""),
                        native_paths, live_paths, root, gate_path.name, runs=gate_runs(gate.get("checks", [])))
 
@@ -497,6 +501,12 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
             continue
         if v not in declared:
             errors.append(f"native report {r.get('run_id', '')}: variant {v!r} declares no cases")
+            rejected.add((r.get("profile"), v))
+            continue
+        twice = sorted(str(c) for c, n in Counter(row.get("case") for row in r["rows"]).items() if n > 1)
+        if twice:
+            # a case twice in one report: one row would stand for another (R402 class check)
+            errors.append(f"native report (variant {v}): case(s) {twice[:10]} twice")
             rejected.add((r.get("profile"), v))
             continue
         got = {row.get("case") for row in r.get("rows", [])}
