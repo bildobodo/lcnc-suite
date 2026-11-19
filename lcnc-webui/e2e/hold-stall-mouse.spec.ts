@@ -23,6 +23,7 @@ import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { installHoldClock, onPageClock } from "./holdClock";
 import { judgeHold, STALL_HINT } from "./holdJudge";
+import { readHints, resetHints } from "./hintRecorder";
 import { HOLD_FIRE_MS } from "../src/machineControls";
 
 test.use({ viewport: { width: 1280, height: 800 } });
@@ -53,35 +54,29 @@ async function open(page: Page) {
 
 type Seen = { t: string; at: number };
 type Blk = { from: number; to: number } | null;
-/** From now on: every press and release the page delivers (`at`, its clock)
- *  and every hint the button shows AFTER this record's first press was
- *  delivered — never one before it, never the one on screen at this call
- *  while it stands unchanged (a hint shows 1.5 s; Codex R401: an old "Page
- *  delayed" re-read at any DOM change excused a silent whole press). */
-const record = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __rec?: boolean; __blk: Blk; __hintStale: { el: Element; text: string | null } | null };
-  w.__seen = [];
-  w.__hints = [];
-  w.__blk = null;
-  const shown = document.querySelector("[data-btn-hint]");
-  w.__hintStale = shown ? { el: shown, text: shown.textContent } : null;
-  if (w.__rec) return;
-  w.__rec = true;
-  for (const t of ["pointerdown", "pointerup"])
-    window.addEventListener(t, () => w.__seen.push({ t, at: performance.now() }), { capture: true });
-  new MutationObserver(() => {
-    if (!w.__seen.some(e => e.t === "pointerdown")) return;          // not this record's press yet
-    const el = document.querySelector("[data-btn-hint]");
-    if (!el || (w.__hintStale && el === w.__hintStale.el && el.textContent === w.__hintStale.text)) return;
-    const h = el.textContent?.trim();
-    if (h && w.__hints[w.__hints.length - 1] !== h) w.__hints.push(h);
-  }).observe(document.body, { subtree: true, childList: true, characterData: true });
-});
-const seen = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __seen: Seen[]; __hints: string[]; __blk: Blk };
-  return { downs: w.__seen.filter(e => e.t === "pointerdown").map(e => e.at),
-           ups: w.__seen.filter(e => e.t === "pointerup").map(e => e.at), hints: w.__hints, block: w.__blk };
-});
+/** From now on: every press and release the page delivers (`at`, its
+ *  clock), and the hints shown after the next press (hintRecorder.ts — the
+ *  one recorder, reset and disarmed in one step). */
+async function record(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __seen: Seen[]; __rec?: boolean; __blk: Blk };
+    w.__seen = [];
+    w.__blk = null;
+    if (w.__rec) return;
+    w.__rec = true;
+    for (const t of ["pointerdown", "pointerup"])
+      window.addEventListener(t, () => w.__seen.push({ t, at: performance.now() }), { capture: true });
+  });
+  await resetHints(page);
+}
+async function seen(page: Page) {
+  const s = await page.evaluate(() => {
+    const w = window as unknown as { __seen: Seen[]; __blk: Blk };
+    return { downs: w.__seen.filter(e => e.t === "pointerdown").map(e => e.at),
+             ups: w.__seen.filter(e => e.t === "pointerup").map(e => e.at), block: w.__blk };
+  });
+  return { ...s, hints: await readHints(page) };
+}
 /** The one press's release after its press, as the page delivered them. */
 const deliveredOf = (s: Awaited<ReturnType<typeof seen>>) =>
   s.downs.length === 1 && s.ups.length === 1 ? s.ups[0]! - s.downs[0]! : null;

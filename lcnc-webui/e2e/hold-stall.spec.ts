@@ -23,6 +23,7 @@ import { ctl, MOCK } from "./ctl";
 import { HOLD_STALL_MS } from "../src/holdGesture";
 import { HOLD_FIRE_MS } from "../src/machineControls";
 import { judgeHold, STALL_HINT } from "./holdJudge";
+import { readHints, resetHints } from "./hintRecorder";
 
 test.use({ hasTouch: true, viewport: { width: 1280, height: 800 } });
 
@@ -34,15 +35,9 @@ const PERMS_ALL = {
   parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-const hints = (page: Page) => page.evaluate(() => (window as unknown as { __hints: string[] }).__hints);
-/** From now on: the hints of the next gesture only — the one on screen now
- *  (its node and text) is ignored while it stands unchanged (Codex R401). */
-const clearHints = (page: Page) => page.evaluate(() => {
-  const w = window as unknown as { __hints: string[]; __hintStale: { el: Element; text: string | null } | null };
-  w.__hints = [];
-  const el = document.querySelector("[data-btn-hint]");
-  w.__hintStale = el ? { el, text: el.textContent } : null;
-});
+// the hints of the next gesture only: hintRecorder.ts, the one recorder (R401)
+const hints = readHints;
+const clearHints = resetHints;
 const unhomes = async () => ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? [])
   .filter(c => c.cmd === "unhome_all").length;
 
@@ -134,21 +129,6 @@ for (const [name, block, releaseAt] of [["a block from the press's delivery to 5
 test(`a hold across a block past ${HOLD_STALL_MS} ms is cancelled and says so; the same hold on a smooth page fires`, async ({ page }) => {
   test.setTimeout(60_000);
   const { cdp, p } = await open(page);
-  // every hint a gesture shows after ITS press was delivered (gesture() resets
-  // __hs, its pointerdown lands there), none still on screen from an older
-  // one (clearHints; Codex R401)
-  await page.evaluate(() => {
-    const w = window as unknown as { __hints: string[]; __hs?: { t: string }[]; __hintStale: { el: Element; text: string | null } | null };
-    w.__hints = [];
-    w.__hintStale = null;
-    new MutationObserver(() => {
-      if (!w.__hs?.some(e => e.t === "pointerdown")) return;          // not this gesture's press yet
-      const el = document.querySelector("[data-btn-hint]");
-      if (!el || (w.__hintStale && el === w.__hintStale.el && el.textContent === w.__hintStale.text)) return;
-      const h = el.textContent?.trim();
-      if (h && w.__hints[w.__hints.length - 1] !== h) w.__hints.push(h);
-    }).observe(document.body, { subtree: true, childList: true, characterData: true });
-  });
   // across the block: never a fire; counted once the page saw the press down
   // through the whole block — then it ended as stalled and says so
   const tried = [];

@@ -11636,11 +11636,14 @@ asserts "never fired" on every attempt while an attempt counts only when the
 page's record proves its setting (else named and taken again, at most
 three) — the round gate at c0785018 failed both guards because a press
 delivered late left the release right behind it (staged load: 15 of 28 red
-before, 28 of 28 after, 0 fires either way). Their hint recorders take a
-hint only after their own press was delivered and never the one still on
-screen (Codex R401: an old "Page delayed" re-read at any DOM change excused
-a silent whole press); one judgement for a smooth hold (`e2e/holdJudge.ts`),
-a guard that a silent whole press stays unexcused. Visible at the machine: a hold during a page stall over
+before, 28 of 28 after, 0 fires either way). ONE hint recorder
+(`e2e/hintRecorder.ts`) for both: armed by its own next press — that press
+closes the hint still on screen first (FloatingOverlays' window capture
+listener, registered at mount, runs before the recorder's) — and reset and
+disarmed in one step (Codex R401: an old "Page delayed" re-read at any DOM
+change excused a silent whole press); one judgement for a smooth hold
+(`e2e/holdJudge.ts`), a guard that a silent whole press stays unexcused (red
+under the arming removed and under a reset that does not disarm). Visible at the machine: a hold during a page stall over
 0.15 s is cancelled and says so; a hold on a smooth page is unchanged.
 Named sibling, its own package: a continuous jog's stop waits for a stall
 (Codex: an off-main-thread jog lease).
