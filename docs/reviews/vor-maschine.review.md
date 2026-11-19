@@ -9059,3 +9059,7 @@ Von den ausgelieferten Pfaden ändern sich **nur** `lcnc-webui/src/holdGesture.t
 - Die Ablehnungsrate am Maschinen-PC und mit Touch: aus dessen Traces per SSH (`mt_*`) und nach Schritt 4.4 der Checkliste für den Maschinentag.
 - Das Jog-Paket: eine außerhalb des Hauptthreads überwachte, kurzlebige Jog-Freigabe (Codex R399).
 - Vor main: die Live-Prüfungen und die Hardware-Validierung. #36 bleibt offen.
+
+**Nachtrag CI:**
+- development an `5c48a7e1`: Lauf 44455146016 **grün** (Frontend und Backend).
+- Replay 5c an `9f89a642`: Lauf 44446016559 **grün** (Frontend und Backend).
