@@ -126,11 +126,10 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite"),
         Read('readFileSync(new URL("../../scripts/inventory/atoms.py.json"', 1, ("scripts/inventory/atoms.py.json",),
              "the settings sections: a route's path parameter logged as its template unless enumerated (step 5b)")),
-    _E + "replay-origin.spec.ts": (
-        Read('readFileSync(file, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),),
     _E + "test.ts": (
         Read('readFileSync(file, "utf8")', 1, None,
-             "Firefox: this run's replay log its own worker's mock writes — the unload beacons arrived (R385)"),
+             "this run's replay log its own worker's mock writes, whole lines only (wholeJsonLines): Firefox's "
+             "unload beacons arrived (R385); replay-origin.spec reads its connections' origins through it"),
         Read('readdirSync(new URL("../dist/static/", import.meta.url))', 1, None,
              "Firefox: a built stylesheet's name (dist/) — a neutral document of the mock's origin (R385)")),
     _E + "mockFixture.ts": (
