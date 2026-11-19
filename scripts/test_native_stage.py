@@ -310,6 +310,37 @@ def test_a_lan_trip_before_the_take_over_refuses_it():
         rl.record(h)
 
 
+def test_no_running_lan_instance_refuses_the_take_over_by_name():
+    """Package 4: a down LAN sim was a TypeError (`Path(None)` in lan_trip)."""
+    for down in ("instance", "launcher"):
+        h = FakeHost()
+        if down == "instance":
+            h.instance = ()
+        else:
+            h.gateway_ini = lambda: None
+        h.lan_trip = lambda: (_ for _ in ()).throw(AssertionError("lan_trip read without a LAN instance"))
+        with pytest.raises(rl.TakeOverRefused, match="the LAN instance is not running"):
+            rl.record(h)
+
+
+def test_a_refused_take_over_ends_native_run_by_name_with_a_report(tmp_path, monkeypatch, capsys):
+    import native_run as nr   # noqa: PLC0415
+    import contextlib         # noqa: PLC0415
+    monkeypatch.setattr(nr, "in_restore_unit", lambda: True)
+    monkeypatch.setattr(nr, "heavy_lock", lambda *a, **k: contextlib.nullcontext())
+
+    def refuse(host, steps, run_dir):
+        run_dir.mkdir()
+        raise rl.TakeOverRefused("the LAN instance is not running — nothing to take over")
+    monkeypatch.setattr(nr, "run", refuse)
+    import test_support.system_host as shost   # noqa: PLC0415
+    monkeypatch.setattr(shost, "SystemHost", lambda: object())
+    rc = nr.main(["--run-dir", str(tmp_path / "run")])
+    assert rc == 2 and "native_run: refused — the LAN instance is not running" in capsys.readouterr().out
+    report = json.loads((tmp_path / "run" / "report.json").read_text())
+    assert report["verdict"] == "REFUSED" and "not running" in report["refused"]
+
+
 from test_support import system_host as sh  # noqa: E402
 
 

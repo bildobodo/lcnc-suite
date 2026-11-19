@@ -2983,7 +2983,16 @@ def main(argv=None) -> int:
                         io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
                         disconnect_cases(), clients_cases(), latch_cases()]
     with heavy_lock("native_run", wait=0):
-        report = run(SystemHost(), steps, a.run_dir)
+        try:
+            report = run(SystemHost(), steps, a.run_dir)
+        except rl.TakeOverRefused as e:
+            # refused before anything was touched (record): no LAN instance
+            # running, or a trip that is the operator's — named, never a
+            # traceback (package 4: a down LAN sim was a TypeError)
+            if a.run_dir.is_dir():
+                write_json(a.run_dir / "report.json", {"verdict": "REFUSED", "refused": str(e), "variant": a.variant})
+            print(f"native_run: refused — {e}")
+            return 2
     report["variant"] = a.variant
     report["verdict"] = verdict(report)
     write_json(a.run_dir / "report.json", report)

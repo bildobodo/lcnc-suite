@@ -38,7 +38,13 @@ class TakeOverRefused(RuntimeError):
 
 def record(host, units=UNITS) -> dict:
     """The LAN instance before the take-over. A trip waiting for its
-    acknowledgement refuses the take-over: it is the operator's."""
+    acknowledgement refuses the take-over: it is the operator's. No running
+    LAN instance (no linuxcncsvr, no launcher) refuses it too, by name —
+    there is nothing to take over or give back (package 4: it was a
+    TypeError, `Path(None)` in lan_trip)."""
+    if not host.lan_instance() or not host.gateway_ini():
+        raise TakeOverRefused("the LAN instance is not running — nothing to take over; start lcnc-sim-gates "
+                              "and run again")
     trip = host.lan_trip()
     if trip:
         raise TakeOverRefused(f"the LAN instance has an unacknowledged trip ({trip}) — the operator's to acknowledge")

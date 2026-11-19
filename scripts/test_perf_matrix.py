@@ -235,6 +235,34 @@ class RunVerdict(unittest.TestCase):
         self.assertEqual((rc, entry.get("FAIL")), (0, None))
         self.assertEqual((entry["trace"]["lag_windows"], entry["trace"]["marks"]), (0, ["end", "start"]))
 
+    def test_a_rotation_during_the_run_keeps_the_window_s_marks(self):
+        """Package 4: lcnc_trace rotates trace.ndjson at 50 MB (× 5 backups) —
+        a rotation between the start and the end mark moved the start into
+        trace.ndjson.1, and the run read "no start mark". The rotated set is
+        read; a line in two files (a rotation while reading) counts once."""
+        path = self.tmp / "trace.ndjson"
+        start = {"t_wall_ns": __import__("time").time_ns(), "proc": "gateway", "pid": self.GATEWAY,
+                 "tag": "browser.perfmatrix_mark", "run": pm.RUN_ID, "scenario": "probe", "at": "start"}
+        lag = {"t_wall_ns": start["t_wall_ns"] + 1, "pid": self.GATEWAY, "tag": "lag.window", "drift_ms": 7.0}
+        end = {**start, "t_wall_ns": start["t_wall_ns"] + 2, "at": "end"}
+        rotated = self.tmp / "trace.ndjson.1"
+        rotated.write_text(json.dumps(start) + "\n" + json.dumps(lag) + "\n")
+        path.write_text(json.dumps(lag) + "\n" + json.dumps(end) + "\n")     # the lag line twice
+        with mock.patch.object(pm, "TRACE", str(path)):
+            got = pm.trace_window(start["t_wall_ns"] - 1, end["t_wall_ns"] + 1, (pm.RUN_ID, "probe"))
+        self.assertEqual((got["marks"], got["mark_pids"], got["lag_windows"]), (["end", "start"], [self.GATEWAY], 1))
+        rotated.unlink()                                                        # the control: the base alone
+        with mock.patch.object(pm, "TRACE", str(path)):
+            got = pm.trace_window(start["t_wall_ns"] - 1, end["t_wall_ns"] + 1, (pm.RUN_ID, "probe"))
+        self.assertEqual(got["marks"], ["end"])
+
+    def test_the_backup_count_is_the_trace_writer_s(self):
+        import ast
+        src = (Path(__file__).resolve().parents[1] / "lcnc-gateway" / "lcnc_trace.py").read_text()
+        n = next(ast.literal_eval(a.value) for a in ast.parse(src).body
+                 if isinstance(a, ast.Assign) and any(getattr(x, "id", "") == "_TRACE_BACKUPS" for x in a.targets))
+        self.assertEqual(pm.TRACE_BACKUPS, n)
+
     def test_a_missing_trace_fails(self):            # Codex's trace_missing
         rc, entry = self.run_matrix(self.MEASURED, "missing")
         self.assertEqual(rc, 1)
