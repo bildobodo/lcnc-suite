@@ -90,6 +90,14 @@ async function measureFit(page: Page): Promise<Fit> {
         if (!rects.length) continue;
         const left = Math.min(...rects.map(q => q.left)), right = Math.max(...rects.map(q => q.right));
         if (left < b.left - 0.5 || right > b.right + 0.5) clipped.push(`${sec.dataset.strip ?? sec.className.split(' ')[0]}: ${el.className.split(' ')[0] || el.tagName} "${(el.textContent ?? '').trim().slice(0, 40)}" content ${Math.round(left)}–${Math.round(right)} past its box ${Math.round(b.left)}–${Math.round(b.right)}`);
+        // a Tool row is ONE line: a value that wraps grows the row (R405:
+        // the offset word behind the length made the widest row)
+        if (el.classList.contains('statusRow') && sec.dataset.strip === 'tool') {
+          const fs = parseFloat(getComputedStyle(el).fontSize);
+          const mids = rects.filter(q => q.height < 2 * fs).map(q => (q.top + q.bottom) / 2).sort((a, b) => a - b);
+          const lines = 1 + mids.slice(1).filter((m, i) => m - mids[i]! > 0.6 * fs).length;
+          if (lines > 1) clipped.push(`tool: statusRow "${(el.textContent ?? '').trim().slice(0, 40)}" wraps onto ${lines} lines`);
+        }
       }
     }
     return {
