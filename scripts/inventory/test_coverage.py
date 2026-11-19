@@ -967,7 +967,24 @@ def test_a_run_id_missing_everywhere_binds_nothing_of_that_project(tmp_path):
     trig, rows = _touchoff_and_rows(c)
     assert trig == {"e2e": "not sent", "firefox-core": {"touchoff": 1}}, trig
     assert rows["e2e"] != "passed" and rows["firefox-core"] == "passed", rows
-    assert any("no known run id" in x for x in c["errors"])
+    assert any(x.startswith("e2e (the gate): no known run id — nothing binds") for x in c["errors"]), c["errors"]
+    # an EMPTY id everywhere is no identity either ("" == "" binds nothing)
+    def empty(doc: dict) -> dict:
+        doc = json.loads(json.dumps(doc))
+        if "config" in doc:
+            doc["config"]["metadata"]["run"] = ""
+        if "attempt_list" in doc:
+            doc["run"] = ""
+        return doc
+    files = {**_touchoff_case(tmp_path / "empty"),
+             **{k: empty(v) for k, v in _touchoff_case(tmp_path / "empty").items()
+                if k in ("list-run.json", "playwright.json", "replay.json")}}
+    g = _with_checks(gate(tmp_path / "empty", files),
+                     lambda cs: [{**x, "run": ""} if x["name"] == "browser-workers" else x for x in cs])
+    c = coverage.coverage(g, [], [])
+    trig, rows = _touchoff_and_rows(c)
+    assert trig == {"e2e": "not sent", "firefox-core": {"touchoff": 1}} and rows["e2e"] != "passed", (trig, rows)
+    assert any(x.startswith("e2e (the gate): no known run id") for x in c["errors"])
     # after the fact (no gate ids): the listing's own missing id binds nothing either
     c = coverage.coverage_of(g.with_suffix(".logs"), HEAD, "merge", [], [], runs=None)
     trig, rows = _touchoff_and_rows(c)
