@@ -1,0 +1,3277 @@
+{
+ "base": "5c48a7e1",
+ "note": "widths in CSS px; over = strip.scrollWidth - clientWidth; spare = strip border-box right - last section right",
+ "strip_by_profile_viewport_state": {
+  "chromium": {
+   "3axis-xyz @ compact": {
+    "homed": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 917,
+     "sections": [
+      280,
+      523.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 917,
+     "sections": [
+      280,
+      523.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 916,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      367,
+      319
+     ]
+    }
+   },
+   "3axis-xyz @ desktop": {
+    "homed": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 341,
+     "sections": [
+      280,
+      523.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 341,
+     "sections": [
+      280,
+      523.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 340,
+     "sections": [
+      280,
+      522.5,
+      367,
+      183,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      367,
+      319
+     ]
+    }
+   },
+   "3axis-xyz @ touch-fullhd": {
+    "homed": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 30,
+     "sections": [
+      280,
+      523.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 30,
+     "sections": [
+      280,
+      523.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      367,
+      319
+     ]
+    }
+   },
+   "3axis-xyz @ touch-landscape": {
+    "homed": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 670,
+     "sections": [
+      280,
+      523.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 670,
+     "sections": [
+      280,
+      523.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 669,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      367,
+      319
+     ]
+    }
+   },
+   "5axis-xyzac @ compact": {
+    "homed": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 1152,
+     "sections": [
+      280,
+      662.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 1152,
+     "sections": [
+      280,
+      662.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 1151,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 88,
+     "sections": [
+      280,
+      463,
+      319
+     ]
+    }
+   },
+   "5axis-xyzac @ desktop": {
+    "homed": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 576,
+     "sections": [
+      280,
+      662.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 576,
+     "sections": [
+      280,
+      662.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 575,
+     "sections": [
+      280,
+      661.5,
+      463,
+      183,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      463,
+      319
+     ]
+    }
+   },
+   "5axis-xyzac @ touch-fullhd": {
+    "homed": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 265,
+     "sections": [
+      280,
+      662.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 265,
+     "sections": [
+      280,
+      662.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 264,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      463,
+      319
+     ]
+    }
+   },
+   "5axis-xyzac @ touch-landscape": {
+    "homed": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 905,
+     "sections": [
+      280,
+      662.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 905,
+     "sections": [
+      280,
+      662.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 904,
+     "sections": [
+      280,
+      661.5,
+      463,
+      192,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      463,
+      319
+     ]
+    }
+   },
+   "6axis-twp @ compact": {
+    "homed": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 1313,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 176,
+     "sections": [
+      280,
+      551,
+      319
+     ]
+    }
+   },
+   "6axis-twp @ desktop": {
+    "homed": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 737,
+     "sections": [
+      280,
+      735.5,
+      551,
+      183,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      551,
+      319
+     ]
+    }
+   },
+   "6axis-twp @ touch-fullhd": {
+    "homed": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 426,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      551,
+      319
+     ]
+    }
+   },
+   "6axis-twp @ touch-landscape": {
+    "homed": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "off": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "estop": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "running": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "paused": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 1066,
+     "sections": [
+      280,
+      735.5,
+      551,
+      192,
+      233,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      551,
+      319
+     ]
+    }
+   }
+  },
+  "firefox-160": {
+   "3axis-xyz @ touch-fullhd": {
+    "homed": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "unhomed": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "disarmed": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "off": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "estop": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "running": {
+     "over": 11,
+     "sections": [
+      280,
+      522.1,
+      360.9,
+      184.8,
+      228.9,
+      280
+     ]
+    },
+    "paused": {
+     "over": 11,
+     "sections": [
+      280,
+      522.1,
+      360.9,
+      184.8,
+      228.9,
+      280
+     ]
+    },
+    "joint-jog": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "spindle-preselect": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ]
+    },
+    "keypad-setup": {
+     "over": 0,
+     "sections": [
+      280,
+      360.9,
+      319
+     ]
+    }
+   }
+  }
+ },
+ "tool_states": {
+  "chromium": {
+   "mm": {
+    "applied": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 G43",
+       197,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "applied431": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 G43.1",
+       206,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "off49": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Off (G49)",
+       229,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other": {
+     "over": 29,
+     "sections": [
+      280,
+      522.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Other offset",
+       244,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other-running": {
+     "over": 30,
+     "sections": [
+      280,
+      523.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Other offset",
+       244,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "error": {
+     "over": 30,
+     "sections": [
+      280,
+      523.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Other offset",
+       244,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": {
+      "w": 271,
+      "h": 82,
+      "text": "Tool table: Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/x/tool.tblRetry"
+     }
+    }
+   },
+   "inch": {
+    "applied": {
+     "over": 32,
+     "sections": [
+      280,
+      525.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       143,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 G43",
+       201,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "applied431": {
+     "over": 32,
+     "sections": [
+      280,
+      525.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       143,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 G43.1",
+       210,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "off49": {
+     "over": 32,
+     "sections": [
+      280,
+      525.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       143,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Off (G49)",
+       233,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other": {
+     "over": 32,
+     "sections": [
+      280,
+      525.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       143,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Other offset",
+       208,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other-running": {
+     "over": 33,
+     "sections": [
+      280,
+      526.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       143,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Other offset",
+       208,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "error": {
+     "over": 33,
+     "sections": [
+      280,
+      526.5,
+      367,
+      192,
+      233,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       64,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       70,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       143,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Other offset",
+       208,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       83,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       384,
+       255
+      ]
+     ],
+     "note": {
+      "w": 271,
+      "h": 82,
+      "text": "Tool table: Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/x/tool.tblRetry"
+     }
+    }
+   }
+  },
+  "firefox-160": {
+   "mm": {
+    "applied": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       136,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 G43",
+       192,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "applied431": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       136,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 G43.1",
+       201,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "off49": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       136,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Off (G49)",
+       225,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other": {
+     "over": 11,
+     "sections": [
+      280,
+      522.3,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       136,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Other offset",
+       241,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other-running": {
+     "over": 11,
+     "sections": [
+      280,
+      522.1,
+      360.9,
+      184.8,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       136,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Other offset",
+       241,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "error": {
+     "over": 11,
+     "sections": [
+      280,
+      522.1,
+      360.9,
+      184.8,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 mm",
+       136,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 mm \u00b7 Other offset",
+       241,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": {
+      "w": 271,
+      "h": 82,
+      "text": "Tool table: Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/x/tool.tblRetry"
+     }
+    }
+   },
+   "inch": {
+    "applied": {
+     "over": 12,
+     "sections": [
+      280,
+      523,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 G43",
+       196,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "applied431": {
+     "over": 12,
+     "sections": [
+      280,
+      523,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 G43.1",
+       204,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "off49": {
+     "over": 12,
+     "sections": [
+      280,
+      523,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Off (G49)",
+       229,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other": {
+     "over": 12,
+     "sections": [
+      280,
+      523,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Other offset",
+       245,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "other-running": {
+     "over": 12,
+     "sections": [
+      280,
+      522.8,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Other offset",
+       245,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": null
+    },
+    "error": {
+     "over": 12,
+     "sections": [
+      280,
+      522.8,
+      360.9,
+      184.9,
+      228.9,
+      280
+     ],
+     "tool_rows": [
+      [
+       "Tool",
+       "T123",
+       60,
+       255
+      ],
+      [
+       "Pocket",
+       "123",
+       67,
+       255
+      ],
+      [
+       "Diameter",
+       "25.4000 inch",
+       139,
+       255
+      ],
+      [
+       "Z Offset",
+       "-1234.5670 inch \u00b7 Other offset",
+       245,
+       255
+      ],
+      [
+       "Type",
+       "End Mill",
+       79,
+       255
+      ],
+      [
+       "Description",
+       "Twelve mm three flute carbide roughing end mill",
+       372,
+       255
+      ]
+     ],
+     "note": {
+      "w": 271,
+      "h": 82,
+      "text": "Tool table: Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/x/tool.tblRetry"
+     }
+    }
+   }
+  }
+ },
+ "prototypes": {
+  "base-chromium": {
+   "homed": {
+    "over": 29,
+    "spare": -11,
+    "secs": [
+     280,
+     522.5,
+     367,
+     192,
+     233,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   "running": {
+    "over": 30,
+    "spare": -12,
+    "secs": [
+     280,
+     523.5,
+     367,
+     192,
+     233,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   }
+  },
+  "base-firefox": {
+   "homed": {
+    "over": 11,
+    "spare": 6,
+    "secs": [
+     280,
+     522.3,
+     360.9,
+     184.9,
+     228.9,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   "running": {
+    "over": 11,
+    "spare": 6,
+    "secs": [
+     280,
+     522.1,
+     360.9,
+     184.8,
+     228.9,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   }
+  },
+  "A-chromium": {
+   "homed": {
+    "over": 0,
+    "spare": 42,
+    "secs": [
+     280,
+     523.5,
+     369,
+     192,
+     233,
+     224
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   "running": {
+    "over": 0,
+    "spare": 42,
+    "secs": [
+     280,
+     523.5,
+     369,
+     192,
+     233,
+     224
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   }
+  },
+  "A-firefox": {
+   "homed": {
+    "over": 0,
+    "spare": 59,
+    "secs": [
+     280,
+     523.7,
+     363,
+     184.9,
+     228.9,
+     224
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   "running": {
+    "over": 0,
+    "spare": 59,
+    "secs": [
+     280,
+     523.7,
+     363,
+     184.9,
+     228.9,
+     224
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   }
+  },
+  "B-chromium": {
+   "homed": {
+    "over": 0,
+    "spare": 42,
+    "secs": [
+     280,
+     507.5,
+     365,
+     180,
+     229,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   "running": {
+    "over": 0,
+    "spare": 42,
+    "secs": [
+     280,
+     507.5,
+     365,
+     180,
+     229,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   }
+  },
+  "B-firefox": {
+   "homed": {
+    "over": 0,
+    "spare": 59,
+    "secs": [
+     280,
+     507.7,
+     359,
+     172.9,
+     224.9,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   "running": {
+    "over": 0,
+    "spare": 59,
+    "secs": [
+     280,
+     507.7,
+     359,
+     172.9,
+     224.9,
+     280
+    ],
+    "toolRowOver": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ]
+   }
+  }
+ },
+ "keys": {
+  "Kbase": {
+   "keypad-setup": {
+    "strip": {
+     "x": 8,
+     "w": 280,
+     "h": 1052
+    },
+    "stripClient": 268,
+    "stripPad": "8px/8px",
+    "helper": {
+     "x": 17,
+     "w": 252,
+     "h": 318
+    },
+    "keys": [
+     {
+      "label": "7",
+      "x": 17,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "8",
+      "x": 65,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "9",
+      "x": 113,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "Divide",
+      "x": 161,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "Backspace",
+      "x": 209,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "4",
+      "x": 17,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "5",
+      "x": 65,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "6",
+      "x": 113,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "Multiply",
+      "x": 161,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "Clear entry",
+      "x": 209,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "1",
+      "x": 17,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "2",
+      "x": 65,
+      "w": 44,
+      "h": 44
+     }
+    ],
+    "maxRight": 236
+   },
+   "gcode-keypad": {
+    "strip": {
+     "x": 8,
+     "w": 280,
+     "h": 1052
+    },
+    "stripClient": 268,
+    "stripPad": "8px/8px",
+    "helper": {
+     "x": 17,
+     "w": 252,
+     "h": 462
+    },
+    "keys": [
+     {
+      "label": "7",
+      "x": 17,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "8",
+      "x": 65,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "9",
+      "x": 113,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "G",
+      "x": 161,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "M",
+      "x": 209,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "4",
+      "x": 17,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "5",
+      "x": 65,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "6",
+      "x": 113,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "T",
+      "x": 161,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "F",
+      "x": 209,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "1",
+      "x": 17,
+      "w": 44,
+      "h": 44
+     },
+     {
+      "label": "2",
+      "x": 65,
+      "w": 44,
+      "h": 44
+     }
+    ],
+    "maxRight": 236
+   }
+  },
+  "K": {
+   "keypad-setup": {
+    "strip": {
+     "x": 8,
+     "w": 280,
+     "h": 1052
+    },
+    "stripClient": 268,
+    "stripPad": "8px/8px",
+    "helper": {
+     "x": 17,
+     "w": 252,
+     "h": 318
+    },
+    "keys": [
+     {
+      "label": "7",
+      "x": 17,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "8",
+      "x": 68,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "9",
+      "x": 119,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "Divide",
+      "x": 171,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "Backspace",
+      "x": 222,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "4",
+      "x": 17,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "5",
+      "x": 68,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "6",
+      "x": 119,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "Multiply",
+      "x": 171,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "Clear entry",
+      "x": 222,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "1",
+      "x": 17,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "2",
+      "x": 68,
+      "w": 47.2,
+      "h": 44
+     }
+    ],
+    "maxRight": 252
+   },
+   "gcode-keypad": {
+    "strip": {
+     "x": 8,
+     "w": 280,
+     "h": 1052
+    },
+    "stripClient": 268,
+    "stripPad": "8px/8px",
+    "helper": {
+     "x": 17,
+     "w": 252,
+     "h": 462
+    },
+    "keys": [
+     {
+      "label": "7",
+      "x": 17,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "8",
+      "x": 68,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "9",
+      "x": 119,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "G",
+      "x": 171,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "M",
+      "x": 222,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "4",
+      "x": 17,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "5",
+      "x": 68,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "6",
+      "x": 119,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "T",
+      "x": 171,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "F",
+      "x": 222,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "1",
+      "x": 17,
+      "w": 47.2,
+      "h": 44
+     },
+     {
+      "label": "2",
+      "x": 68,
+      "w": 47.2,
+      "h": 44
+     }
+    ],
+    "maxRight": 252
+   }
+  }
+ }
+}
