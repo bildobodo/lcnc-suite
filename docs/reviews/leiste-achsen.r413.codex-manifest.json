@@ -1,0 +1,203 @@
+{
+  "review": "R413",
+  "verdict": "findings",
+  "scope": "Stage B F2-F4 plan and injected B2 prototype; no product implementation",
+  "document": "bc9640fd3a77e3809a54b8abb99b2de4f2d30cae",
+  "productBase": "dc9dc3e4c29d3e90545474386d7f5f34fff50a3a",
+  "copy": "/tmp/codex-r411: isolated archive and own build from R411 reused; added e2e specs/configs only",
+  "lock": "scripts/test_support/heavy_lock.py --who codex-r413-review --wait 50",
+  "execution": "Own Chromium and pinned Firefox 160.0, per-worker mock only. No build, test, checkout or sim request in live tree; own test processes ended.",
+  "reproduce": "Restore the evidence specs/configs to their original paths from copies below in an isolated dc9dc3e4 archive; build that archive, use its dependencies and pinned Firefox; execute the two run scripts under heavy_lock. Scripts retain original /tmp paths. Countercheck tests assert the reproduced defect, not compliance with the proposed contract.",
+  "observations": [
+    "6 full Tab traversals: 404 focused controls, no bad geometry according to the original permissive predicate; this is not an independent proof of hit accessibility.",
+    "12 Setup/Spindle keypad envelope observations; not every keypad action or held helper transition.",
+    "Chromium mouse-down on native Step select with touch-sized layout: original focusin listener moves 83 px; removing only that listener leaves it still.",
+    "Transparent Safety pseudo-element receives hits instead of Stop in both browsers, yet supplied sample() still reports Stop and E-Stop whole.",
+    "Supplied 18 B2 cases and 10 safety cases audited, not fully rerun."
+  ],
+  "harnessLimits": [
+    "Initial Chromium run interrupted by reviewer after noticing the assumed Jog numeric-input owner does not exist on the base. Corrected to actual Setup/Spindle owners; original report preserved (2 expected, 9 skipped).",
+    "Firefox rendered Step as radio controls, not a select. Main select probe failed its presence assertion; the two countercheck select attempts timed out. These three harness errors provide no Firefox select claim. Raw reports retained; no all-green aggregate claim.",
+    "No Firefox touch, actual browser zoom, real panel, dragScroll gesture, or held multi-pointer/form-transition proof in this review.",
+    "The fourth Safety stop in this prototype is a DOM clone without a product action handler."
+  ],
+  "suppliedFiles": [
+    {
+      "path": "leiste-achsen.r413.stage-b-portrait.jsonl",
+      "sha256": "9276d91fc49c0827c95ced8e54250aef5c611d3292415f47d5723d21e49e194c"
+    },
+    {
+      "path": "leiste-achsen.r413.stage-b-run.sh",
+      "sha256": "8a454af35f82652bb9d04c66d3fcba1efc60bc20d4237e52fafec83ca3783ad0"
+    },
+    {
+      "path": "leiste-achsen.r413.stage-b-safety.jsonl",
+      "sha256": "f74d5327f14b95852c3bb0a38934e48782dcae47faace019893b9c91240b0c1f"
+    },
+    {
+      "path": "leiste-achsen.r413.stage-b.jsonl",
+      "sha256": "f614f31596c57e27289c29bb6c6bc4978e5d782edc8f9d57820e65898533abf3"
+    },
+    {
+      "path": "leiste-achsen.r413.stage-b.spec.ts",
+      "sha256": "0c42583654252ca132e0692a5ea88debf51cdb0d4238b54c047fc9ee816a4c9c"
+    }
+  ],
+  "copies": [
+    {
+      "path": "leiste-achsen.r413.codex-probe.spec.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r413-codex.spec.ts",
+      "sha256": "2c55635ba79e8b73af8b21309fe59cfc0acb2956319d02e43cd5303ab4ccd27b"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-countercheck.spec.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts",
+      "sha256": "9b07dd1a04ff827a17f44e3d9ecaa8717331abe1991bf8143fd0c3a406a692e3"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-prototype.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts",
+      "sha256": "7198a321af2796a356ea5287312963c44f93f9694f3d4b07229e4aab0863fd3b"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-firefox.config.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/playwright.r413-ff.config.ts",
+      "sha256": "ac6430ab1df66202bb58353e72c0a4c199d675304a89f96257e6ea47e65f20df"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-countercheck-firefox.config.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/playwright.r413-mut-ff.config.ts",
+      "sha256": "835013cd3f4407adf5dda2772acfe5d5cf9771169293f8ab62d10e9d5cd3fdaf"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-run.sh",
+      "source": "/tmp/r413/run.sh",
+      "sha256": "1ed4a39a5523ced8a31fbc1c4d57e6534d0f2ab75fc49d994efaf143e26999b1"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-countercheck-run.sh",
+      "source": "/tmp/r413/mutation-run.sh",
+      "sha256": "9e715d419b64f4f849662a2c3d8f0242eaa8dc49df67e1cd29819caad434cfe5"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-tab.jsonl",
+      "source": "/tmp/r413/tab.jsonl",
+      "sha256": "38f0674a02699b8b02c8692930866148061781aee56499c249608fd9eb719c0d"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-helper.jsonl",
+      "source": "/tmp/r413/helper.jsonl",
+      "sha256": "010227bee4fc4a62e2a901bf7a15f83a28411338632dba263f3bbf9281bf0cc6"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-pointer.jsonl",
+      "source": "/tmp/r413/pointer.jsonl",
+      "sha256": "63efb61763bf04ce33ee63eb45a5c3cc6a7aee87a534242767894d7fe2a801a7"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-select-control.jsonl",
+      "source": "/tmp/r413/select-control.jsonl",
+      "sha256": "7869b1f71d901f83aded64c6b64ce157715dfcd9d2121db8bffb8141993c5ca9"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-occlusion.jsonl",
+      "source": "/tmp/r413/mutation.jsonl",
+      "sha256": "a6a9b3015e0e875653e970750c97a5ae4e2250d3ba71c0b6c2590ad4791ea1a2"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-initial.spec.ts",
+      "source": "/tmp/r413/initial/probe.spec.ts",
+      "sha256": "79715b950a7e6dad5895b99ab937676d5a4fe46949849a0277a154dcabf6416c"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-initial-chromium.json",
+      "source": "/tmp/r413/initial/chromium.json",
+      "sha256": "b7e30fd417d6a492655a7f23ba3be135dd47357d385a972ed97367dec701f79c"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-initial-chromium.txt",
+      "source": "/tmp/r413/initial/chromium.txt",
+      "sha256": "873e3c58dc7f8ac9b5946ae40d594ba3fe79fe15110b544d58afe1b079a8e8b1"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-events.jsonl",
+      "source": "/tmp/r413/v2-events.jsonl",
+      "sha256": "79bc3a850acfbb4639a42b299a144bd01b4fcd0c1e201b5084c2267b56e2aae4"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-ff-events.jsonl",
+      "source": "/tmp/r413/v2-ff-events.jsonl",
+      "sha256": "5fa1cef68443cde07b51e90c9cb31029c1798f246ed2fe2db1fc91a8d0e31dd7"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-countercheck-events.jsonl",
+      "source": "/tmp/r413/mut-events.jsonl",
+      "sha256": "9717a97001772c79007918237524ac3630fd8e29c60606cd265ec96bc7295206"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-countercheck-ff-events.jsonl",
+      "source": "/tmp/r413/mut-ff-events.jsonl",
+      "sha256": "a69c40c2b115c50a936ef03b19f15e06ecb474f613fcad997341d036ffc09e3a"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-TWP1280-setup.png",
+      "source": "/tmp/r413/e2e-TWP1280-setup.png",
+      "sha256": "04a4726b37fd2c0b526fc428a4f028f5314dd31c3cc3d3075cc324726fa59d07"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-TWP1280-spindle.png",
+      "source": "/tmp/r413/e2e-TWP1280-spindle.png",
+      "sha256": "23af58b4b5938ad4f2324f612390d5bedb810fca9c26aff7efc51323c3a0ef67"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-chromium.json",
+      "source": "/tmp/r413/chromium.json",
+      "sha256": "56aa9a15231f92c30035aa1a7141bb23b71407e9a82219338b6de5c1ca99676b"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-chromium.txt",
+      "source": "/tmp/r413/chromium.txt",
+      "sha256": "4a110ce6ca293836dc1af77e976533b8981330d64ae98693131d2ee4374ed93d"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-firefox.json",
+      "source": "/tmp/r413/firefox.json",
+      "sha256": "4b5789345e4edbb950e81cc169cbf0a8e8a16d949c07dabb3afb113d37a2a772"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-firefox.txt",
+      "source": "/tmp/r413/firefox.txt",
+      "sha256": "19e752681bcb1e93dba3300e76bf3c7408209850eead9c5e401dafb8cfab8351"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-mutation-chromium.json",
+      "source": "/tmp/r413/mutation-chromium.json",
+      "sha256": "1e7aae26150f67df562cfa807e0a8e717cafb5a391faaaef76f1a46e5b66782e"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-mutation-chromium.txt",
+      "source": "/tmp/r413/mutation-chromium.txt",
+      "sha256": "5e014f799b81fbfed64bd9b748ceb61e42ccde7619130e1db2e137083c00220c"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-mutation-firefox.json",
+      "source": "/tmp/r413/mutation-firefox.json",
+      "sha256": "48744a8e051b7ae40dc357c467ce368bdc56a3c344dced87781c6d811d12dc68"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-mutation-firefox.txt",
+      "source": "/tmp/r413/mutation-firefox.txt",
+      "sha256": "7e8f569ddc8d62b9cf60714b98eb4c64a8db85471dc1ca2ba1e62552c1041824"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-check-evidence.py",
+      "source": "/tmp/r413/check_evidence.py",
+      "sha256": "28506fd77cff51bdc031994865c031cf62443a15da07838212993657afc7005b"
+    },
+    {
+      "path": "leiste-achsen.r413.codex-check-evidence.json",
+      "source": "/tmp/r413/check-evidence.json",
+      "sha256": "97cb7bf21549a4fb51cf3d823c07bc01026e9034135c957ae395091f5ce9a292"
+    }
+  ]
+}

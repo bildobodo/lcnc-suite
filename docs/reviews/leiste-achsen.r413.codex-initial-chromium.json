@@ -1,0 +1,379 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r411/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r411/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r413",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r411/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r413",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r411/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r413-codex.spec.ts",
+      "file": "r413-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R413 full Tab TWP1600",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15070,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T23:39:08.138Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "560469657ceba144f02f-f17a902e3fcc3c69afa1",
+          "file": "r413-codex.spec.ts",
+          "line": 28,
+          "column": 23
+        },
+        {
+          "title": "R413 full Tab XYZAC1280",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13517,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T23:39:23.324Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "560469657ceba144f02f-0dc4f77b61e3247a7aa6",
+          "file": "r413-codex.spec.ts",
+          "line": 28,
+          "column": 23
+        },
+        {
+          "title": "R413 full Tab TWP1280",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "interrupted",
+                  "duration": 4928,
+                  "error": {
+                    "message": "Error: page.evaluate: Test ended.",
+                    "stack": "Error: page.evaluate: Test ended.\n    at settled (/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts:171:14)\n    at /tmp/codex-r411/lcnc-webui/e2e/r413-codex.spec.ts:33:42",
+                    "location": {
+                      "file": "/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts",
+                      "column": 14,
+                      "line": 171
+                    },
+                    "snippet": "   at r413-prototype.ts:171\n\n  169 |\n  170 | async function settled(page: Page) {\n> 171 |   await page.evaluate(async () => {\n      |              ^\n  172 |     const s = document.querySelector('.strip')!; let prev = -1, n = 0;\n  173 |     for (let i = 0; i < 180 && n < 8; i++) { await new Promise(requestAnimationFrame); const x = s.scrollLeft; n = Math.abs(x - prev) < 0.01 ? n + 1 : 0; prev = x; }\n  174 |   });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts",
+                        "column": 14,
+                        "line": 171
+                      },
+                      "message": "Error: page.evaluate: Test ended.\n\n   at r413-prototype.ts:171\n\n  169 |\n  170 | async function settled(page: Page) {\n> 171 |   await page.evaluate(async () => {\n      |              ^\n  172 |     const s = document.querySelector('.strip')!; let prev = -1, n = 0;\n  173 |     for (let i = 0; i < 180 && n < 8; i++) { await new Promise(requestAnimationFrame); const x = s.scrollLeft; n = Math.abs(x - prev) < 0.01 ? n + 1 : 0; prev = x; }\n  174 |   });\n    at settled (/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts:171:14)\n    at /tmp/codex-r411/lcnc-webui/e2e/r413-codex.spec.ts:33:42"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T23:39:36.846Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-codex-R413-full-Tab-TWP1280-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-codex-R413-full-Tab-TWP1280-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-codex-R413-full-Tab-TWP1280-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts",
+                    "column": 14,
+                    "line": 171
+                  }
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-1db027cb78fbc176ca1f",
+          "file": "r413-codex.spec.ts",
+          "line": 28,
+          "column": 23
+        },
+        {
+          "title": "R413 helper TWP1600 spindle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-df21f474c55d9e979499",
+          "file": "r413-codex.spec.ts",
+          "line": 38,
+          "column": 70
+        },
+        {
+          "title": "R413 helper TWP1600 jog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-cab787e0548adaceb3e7",
+          "file": "r413-codex.spec.ts",
+          "line": 38,
+          "column": 70
+        },
+        {
+          "title": "R413 helper XYZAC1280 spindle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-ac59c7ad5623b5398560",
+          "file": "r413-codex.spec.ts",
+          "line": 38,
+          "column": 70
+        },
+        {
+          "title": "R413 helper XYZAC1280 jog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-9756296e69a74a23da82",
+          "file": "r413-codex.spec.ts",
+          "line": 38,
+          "column": 70
+        },
+        {
+          "title": "R413 helper TWP1280 spindle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-b0545b4eb3be5475f5f3",
+          "file": "r413-codex.spec.ts",
+          "line": 38,
+          "column": 70
+        },
+        {
+          "title": "R413 helper TWP1280 jog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-337601c3f49205cc9a59",
+          "file": "r413-codex.spec.ts",
+          "line": 38,
+          "column": 70
+        },
+        {
+          "title": "R413 pointer focus range",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-30b9a292f6c847fc000a",
+          "file": "r413-codex.spec.ts",
+          "line": 48,
+          "column": 51
+        },
+        {
+          "title": "R413 pointer focus select",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "560469657ceba144f02f-61d7bbb6dc8a8bd26dd6",
+          "file": "r413-codex.spec.ts",
+          "line": 48,
+          "column": 51
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T23:39:06.357Z",
+    "duration": 35979.16499999999,
+    "expected": 2,
+    "skipped": 9,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

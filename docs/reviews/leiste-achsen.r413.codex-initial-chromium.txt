@@ -1,0 +1,54 @@
+[1A[2K[WebServer] (node:3484093) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 11 tests using 1 worker
+
+[1A[2K(node:3484133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3484133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/11] [e2e] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab TWP1600
+[1A[2K[2/11] [e2e] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab XYZAC1280
+[1A[2K[3/11] [e2e] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab TWP1280
+[1A[2K  1) [e2e] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab TWP1280 ──────────────────────────────────
+
+    Test was interrupted.
+
+    Error: page.evaluate: Test ended.
+
+       at r413-prototype.ts:171
+
+      169 |
+      170 | async function settled(page: Page) {
+    > 171 |   await page.evaluate(async () => {
+          |              ^
+      172 |     const s = document.querySelector('.strip')!; let prev = -1, n = 0;
+      173 |     for (let i = 0; i < 180 && n < 8; i++) { await new Promise(requestAnimationFrame); const x = s.scrollLeft; n = Math.abs(x - prev) < 0.01 ? n + 1 : 0; prev = x; }
+      174 |   });
+        at settled (/tmp/codex-r411/lcnc-webui/e2e/r413-prototype.ts:171:14)
+        at /tmp/codex-r411/lcnc-webui/e2e/r413-codex.spec.ts:33:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r413-codex-R413-full-Tab-TWP1280-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r413-codex-R413-full-Tab-TWP1280-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r413-codex-R413-full-Tab-TWP1280-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r413-codex-R413-full-Tab-TWP1280-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 interrupted
+    [e2e] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab TWP1280 ───────────────────────────────────
+  8 did not run
+  2 passed (36.0s)

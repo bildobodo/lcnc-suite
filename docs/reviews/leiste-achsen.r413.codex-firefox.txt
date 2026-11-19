@@ -1,0 +1,59 @@
+[1A[2K[WebServer] (node:3486654) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 11 tests using 1 worker
+
+[1A[2K(node:3486695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3486695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/11] [firefox-core] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab TWP1600
+[1A[2K[2/11] [firefox-core] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab XYZAC1280
+[1A[2K[3/11] [firefox-core] › e2e/r413-codex.spec.ts:28:23 › R413 full Tab TWP1280
+[1A[2K[4/11] [firefox-core] › e2e/r413-codex.spec.ts:38:72 › R413 helper TWP1600 spindle
+[1A[2K[5/11] [firefox-core] › e2e/r413-codex.spec.ts:38:72 › R413 helper TWP1600 setup
+[1A[2K[6/11] [firefox-core] › e2e/r413-codex.spec.ts:38:72 › R413 helper XYZAC1280 spindle
+[1A[2K[7/11] [firefox-core] › e2e/r413-codex.spec.ts:38:72 › R413 helper XYZAC1280 setup
+[1A[2K[8/11] [firefox-core] › e2e/r413-codex.spec.ts:38:72 › R413 helper TWP1280 spindle
+[1A[2K[9/11] [firefox-core] › e2e/r413-codex.spec.ts:38:72 › R413 helper TWP1280 setup
+[1A[2K[10/11] [firefox-core] › e2e/r413-codex.spec.ts:48:51 › R413 pointer focus range
+[1A[2K[11/11] [firefox-core] › e2e/r413-codex.spec.ts:48:51 › R413 pointer focus select
+[1A[2K  1) [firefox-core] › e2e/r413-codex.spec.ts:48:51 › R413 pointer focus select ─────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0[39m
+    Received:   [31m0[39m
+
+      60 |  });
+      61 |  const loc=control==='range'?page.locator('[data-strip="jog"] input[type="range"]').first():page.locator('[data-strip="jog"] select').first();
+    > 62 |  expect(await loc.count()).toBeGreaterThan(0);
+         |                            ^
+      63 |  // Put its centre just beyond Safety. At least a piece of the control is hit-testable.
+      64 |  await loc.evaluate(el=>{const s=document.querySelector('.strip') as HTMLElement;const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;const r=el.getBoundingClientRect();s.scrollLeft+=(r.left+r.right)/2-edge-6;});await settled(page);
+      65 |  const point=await loc.evaluate(el=>{const r=el.getBoundingClientRect();const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;return{x:Math.max(edge+3,r.left+3),y:(r.top+r.bottom)/2};});
+        at /tmp/codex-r411/lcnc-webui/e2e/r413-codex.spec.ts:62:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r413-codex-R413-pointer-focus-select-firefox-core/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r413-codex-R413-pointer-focus-select-firefox-core/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r413-codex-R413-pointer-focus-select-firefox-core/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r413-codex-R413-pointer-focus-select-firefox-core/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [firefox-core] › e2e/r413-codex.spec.ts:48:51 › R413 pointer focus select ──────────────────────
+  10 passed (56.1s)

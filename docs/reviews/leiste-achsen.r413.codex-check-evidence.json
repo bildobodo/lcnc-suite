@@ -1,0 +1,73 @@
+{
+  "supplied": {
+    "b2Cases": 18,
+    "samplesPerCase": 47,
+    "safetyCases": 10,
+    "originalButtonHeights": [
+      56,
+      58
+    ],
+    "fourthButtonHeights": [
+      42,
+      44
+    ]
+  },
+  "own": {
+    "tabTraversals": 6,
+    "focusedControls": 404,
+    "keypadEnvelopes": 12,
+    "predicateLimit": "Tab/helper whole uses the supplied permissive ancestor rule; no independent occlusion proof",
+    "selectListenerOffDelta": 0,
+    "selectListenerOnDelta": -83,
+    "selectMovedOutsideHeldPress": true,
+    "occludingAncestorStillAcceptedBy": [
+      "e2e",
+      "firefox-core"
+    ]
+  },
+  "reports": {
+    "chromium": {
+      "startTime": "2026-11-19T23:40:00.556Z",
+      "duration": 66149.02399999999,
+      "expected": 11,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "firefox": {
+      "startTime": "2026-11-19T23:41:07.266Z",
+      "duration": 56143.093,
+      "expected": 10,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "mutation-chromium": {
+      "startTime": "2026-11-19T23:42:30.777Z",
+      "duration": 9317.909,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "mutation-firefox": {
+      "startTime": "2026-11-19T23:42:40.649Z",
+      "duration": 67860.318,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "initial-chromium": {
+      "startTime": "2026-11-19T23:39:06.357Z",
+      "duration": 35979.16499999999,
+      "expected": 2,
+      "skipped": 9,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "harnessErrors": "Firefox select absent (1 presence failure + 2 timeouts); initial wrong Jog numeric owner interrupted. These are not product findings.",
+  "audit": "All recorded-counterexample assertions verified; no claim that the proposed contract passes."
+}
+

@@ -1,0 +1,95 @@
+[1A[2K[WebServer] (node:3489991) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+[1A[2K(node:3490026) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3490026) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/3] [firefox-core] › e2e/r413-mutation.spec.ts:6:1 › R413 whole-box oracle excludes a covering Safety ancestor
+[1A[2K[2/3] [firefox-core] › e2e/r413-mutation.spec.ts:25:36 › R413 pointer on select focus-scroll false
+[1A[2K  1) [firefox-core] › e2e/r413-mutation.spec.ts:25:36 › R413 pointer on select focus-scroll false ──
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[data-strip="jog"] select').first()[22m
+
+
+      38 |  if(!enabled)await page.evaluate(()=>document.querySelector('.strip')!.removeEventListener('focusin',(window as any).__bFocus));
+      39 |  const loc=page.locator('[data-strip="jog"] select').first();
+    > 40 |  await loc.evaluate(el=>{const s=document.querySelector('.strip') as HTMLElement;const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;const r=el.getBoundingClientRect();s.scrollLeft+=(r.left+r.right)/2-edge-6;});await settled(page);
+         |            ^
+      41 |  const measure=()=>loc.evaluate(el=>{const r=el.getBoundingClientRect();return{scroll:document.querySelector('.strip')!.scrollLeft,left:r.left,right:r.right,focusVisible:el.matches(':focus-visible'),active:document.activeElement===el};});
+      42 |  const point=await loc.evaluate(el=>{const r=el.getBoundingClientRect();const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;return{x:Math.max(edge+3,r.left+3),y:(r.top+r.bottom)/2};});
+      43 |  const before=await measure();await page.mouse.move(point.x,point.y);await page.mouse.down();
+        at /tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts:40:12
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:3491165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3491165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[3/3] [firefox-core] › e2e/r413-mutation.spec.ts:25:36 › R413 pointer on select focus-scroll true
+[1A[2K  2) [firefox-core] › e2e/r413-mutation.spec.ts:25:36 › R413 pointer on select focus-scroll true ───
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[data-strip="jog"] select').first()[22m
+
+
+      38 |  if(!enabled)await page.evaluate(()=>document.querySelector('.strip')!.removeEventListener('focusin',(window as any).__bFocus));
+      39 |  const loc=page.locator('[data-strip="jog"] select').first();
+    > 40 |  await loc.evaluate(el=>{const s=document.querySelector('.strip') as HTMLElement;const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;const r=el.getBoundingClientRect();s.scrollLeft+=(r.left+r.right)/2-edge-6;});await settled(page);
+         |            ^
+      41 |  const measure=()=>loc.evaluate(el=>{const r=el.getBoundingClientRect();return{scroll:document.querySelector('.strip')!.scrollLeft,left:r.left,right:r.right,focusVisible:el.matches(':focus-visible'),active:document.activeElement===el};});
+      42 |  const point=await loc.evaluate(el=>{const r=el.getBoundingClientRect();const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;return{x:Math.max(edge+3,r.left+3),y:(r.top+r.bottom)/2};});
+      43 |  const before=await measure();await page.mouse.move(point.x,point.y);await page.mouse.down();
+        at /tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts:40:12
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  2 failed
+    [firefox-core] › e2e/r413-mutation.spec.ts:25:36 › R413 pointer on select focus-scroll false ───
+    [firefox-core] › e2e/r413-mutation.spec.ts:25:36 › R413 pointer on select focus-scroll true ────
+  1 passed (1.1m)

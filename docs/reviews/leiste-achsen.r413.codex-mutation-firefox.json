@@ -1,0 +1,243 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r411/lcnc-webui/playwright.r413-mut-ff.config.ts",
+    "rootDir": "/tmp/codex-r411/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r413-mut-ff",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r411/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r413-mut-ff",
+          "actualWorkers": 1
+        },
+        "id": "firefox-core",
+        "name": "firefox-core",
+        "testDir": "/tmp/codex-r411/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/r413-mutation\\.spec\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r413-mutation.spec.ts",
+      "file": "r413-mutation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R413 whole-box oracle excludes a covering Safety ancestor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2313,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T23:42:42.300Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586e99562409b872dd50-92de60e672e9b9a64149",
+          "file": "r413-mutation.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "R413 pointer on select focus-scroll false",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 30194,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts",
+                        "column": 12,
+                        "line": 40
+                      },
+                      "message": "Error: locator.evaluate: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-strip=\"jog\"] select').first()\u001b[22m\n\n\n  38 |  if(!enabled)await page.evaluate(()=>document.querySelector('.strip')!.removeEventListener('focusin',(window as any).__bFocus));\n  39 |  const loc=page.locator('[data-strip=\"jog\"] select').first();\n> 40 |  await loc.evaluate(el=>{const s=document.querySelector('.strip') as HTMLElement;const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;const r=el.getBoundingClientRect();s.scrollLeft+=(r.left+r.right)/2-edge-6;});await settled(page);\n     |            ^\n  41 |  const measure=()=>loc.evaluate(el=>{const r=el.getBoundingClientRect();return{scroll:document.querySelector('.strip')!.scrollLeft,left:r.left,right:r.right,focusVisible:el.matches(':focus-visible'),active:document.activeElement===el};});\n  42 |  const point=await loc.evaluate(el=>{const r=el.getBoundingClientRect();const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;return{x:Math.max(edge+3,r.left+3),y:(r.top+r.bottom)/2};});\n  43 |  const before=await measure();await page.mouse.move(point.x,point.y);await page.mouse.down();\n    at /tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts:40:12"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T23:42:45.649Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-mutation-R413-pointer-on-select-focus-scroll-false-firefox-core/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "586e99562409b872dd50-3f383e075991504b0c67",
+          "file": "r413-mutation.spec.ts",
+          "line": 25,
+          "column": 36
+        },
+        {
+          "title": "R413 pointer on select focus-scroll true",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 30253,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts",
+                        "column": 12,
+                        "line": 40
+                      },
+                      "message": "Error: locator.evaluate: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-strip=\"jog\"] select').first()\u001b[22m\n\n\n  38 |  if(!enabled)await page.evaluate(()=>document.querySelector('.strip')!.removeEventListener('focusin',(window as any).__bFocus));\n  39 |  const loc=page.locator('[data-strip=\"jog\"] select').first();\n> 40 |  await loc.evaluate(el=>{const s=document.querySelector('.strip') as HTMLElement;const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;const r=el.getBoundingClientRect();s.scrollLeft+=(r.left+r.right)/2-edge-6;});await settled(page);\n     |            ^\n  41 |  const measure=()=>loc.evaluate(el=>{const r=el.getBoundingClientRect();return{scroll:document.querySelector('.strip')!.scrollLeft,left:r.left,right:r.right,focusVisible:el.matches(':focus-visible'),active:document.activeElement===el};});\n  42 |  const point=await loc.evaluate(el=>{const r=el.getBoundingClientRect();const edge=document.querySelector('.safetyStrip')!.getBoundingClientRect().right;return{x:Math.max(edge+3,r.left+3),y:(r.top+r.bottom)/2};});\n  43 |  const before=await measure();await page.mouse.move(point.x,point.y);await page.mouse.down();\n    at /tmp/codex-r411/lcnc-webui/e2e/r413-mutation.spec.ts:40:12"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T23:43:16.613Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r413-mutation-R413-pointer-on-select-focus-scroll-true-firefox-core/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "586e99562409b872dd50-faf55938a3407856dfcb",
+          "file": "r413-mutation.spec.ts",
+          "line": 25,
+          "column": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T23:42:40.649Z",
+    "duration": 67860.318,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

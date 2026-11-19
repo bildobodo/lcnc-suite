@@ -509,3 +509,56 @@ Stufe B ändert das Hochformat nicht. Ich benenne es dem Operator als bestehende
 ### Fragen an den Operator (ich stelle sie)
 
 - **Q413-1** Der vierte Safety-Knopf „Jog stop“ in den scrollenden Formen, rechts neben „Power off“. Ich zeige dem Operator die Stelle und frage, wo er sitzen soll; als entschieden gilt sie nicht.
+
+---
+
+## Codex · Nachprüfung Stufe B · R413 · 20. November 2026
+
+**Urteil: `findings`.** B2 ist als Bauweise für F2–F4 plausibel: der zusätzliche Stop schafft einen festen Platz, und Overrides am rechten Ende des Flusses beseitigt das frühere Wandern. Offen bleiben zwei belegte Reste: Die Fokuskorrektur bewegt ein Bedienelement unter einem Zeigerdruck; die Trefferprüfung erkennt eine vollständig abfangende Fläche über Safety nicht. Stufe A aus R412 bleibt abgestimmt. Dies ist weiterhin ein Plan-/Prototypreview, keine Abnahme einer Produktimplementierung.
+
+Geprüft: Dokumentstand `bc9640fd`, Prototyp auf `dc9dc3e4`. Die gelieferten **18 B2-Fälle mit je 47 Proben** und **10 Safety-Raum-Fälle** sind in sich konsistent. Eigene Proben ergänzen vollständige Tab-Wege, die tatsächlichen Ziffernfeld-Besitzer und zwei gezielte Gegenfälle; [Manifest](leiste-achsen.r413.codex-manifest.json), [Auswertung](leiste-achsen.r413.codex-check-evidence.json).
+
+### LA413-01 · `:focus-visible` beweist keinen Tastaturfokus; das Select bewegt sich während `pointerdown`
+
+Der neue Handler in [stage-b.spec.ts:102](leiste-achsen.r413.stage-b.spec.ts#L102) ruft bei `focusin` und `:focus-visible` sofort `scrollIntoView` auf. Native Eingabefelder können auch nach Zeigerfokus `:focus-visible` erfüllen. Das widerspricht dem zugesagten „nie bei einem Zeigerfokus; ein Druck verschiebt nichts“ bereits im Prototyp.
+
+**Eigene Gegenprobe:** TWP, 1280 × 800, F4, Chromium mit Touch-Größen, echte Mausereignisse. Die native Step-Auswahl steht teilweise hinter Safety; gedrückt wird ihr noch sichtbarer Teil bei **x = 385,328 px**. Gemessen wird nach `mouse.down`, vor `mouse.up`:
+
+| Fall | scrollLeft vorher → unter Druck | Select links vorher → unter Druck | `:focus-visible` unter Druck |
+|---|---:|---:|---|
+| Nur den neuen Fokus-Handler entfernt, sonst dasselbe B2 | 657 → 657 | 307,828 → 307,828 | ja |
+| B2 mit dem neuen Handler | 657 → 574 | 307,828 → 390,828 | ja |
+
+Das Select wandert **83 px** nach rechts; der ursprüngliche Druckpunkt liegt danach sogar links außerhalb seiner Box. Die Kontrolle entfernt ausschließlich den von B2 hinzugefügten Listener. Die native Fokussierung allein verschiebt es in dieser Kontrolle nicht. [Gegenprobe](leiste-achsen.r413.codex-countercheck.spec.ts), [Rohdaten](leiste-achsen.r413.codex-select-control.jsonl), ergänzend [Fokusereignisse](leiste-achsen.r413.codex-pointer.jsonl).
+
+**Vertragskorrektur:** `:focus-visible` darf das Aussehen steuern, aber nicht allein die Ursache des Fokus feststellen. Das automatische Ins-Bild-Holen muss an die tatsächliche Tastaturnavigation gebunden sein und durch den bestehenden Druckvertrag gehen: keine automatische Verschiebung, solange ein Zeigerdruck noch seinen Klick/Abbruch schuldet. Auch Tab während eines anderen gehaltenen Zeigers darf diesen Vertrag nicht umgehen. Ein aufgeschobenes Scrollziel gilt nur, solange es noch der aktuelle Fokus ist; eine spätere Bedienhandlung darf nicht zurückgeholt werden. Native Select-Eingaben dafür nicht pauschal mit `preventDefault` unterbinden.
+
+**Wächter:** den obigen Zeigerfall rot vor/grün nach der Korrektur, daneben positives Tab zum teilweise verdeckten Ziel sowie Tab bei gehaltenem zweitem Zeiger und Fokuswechsel vor der Freigabe. Die bestehende Anforderung „Tastaturziel ganz ins Bild“ bleibt bestehen. Für Firefox liefert meine Select-Sonde hier keinen Nachweis: Dort rendert dieser Fall eine Radiogruppe, siehe Grenzen unten.
+
+### LA413-02 · Ein verdeckender Vorfahr zählt fälschlich als ganzer, erreichbarer Knopf
+
+`whole()` akzeptiert in [stage-b.spec.ts:190](leiste-achsen.r413.stage-b.spec.ts#L190) neben dem Knopf und seinen Kindern auch **jeden Vorfahren innerhalb desselben Abschnitts**. Damit erfüllt selbst Safety als Trefferfläche den Nachweis für einen von Safety verdeckten Stop. Dieselbe Lockerung steht in der Prüfung des letzten Bedienelements bei Zeile 286.
+
+**Gegenprobe in Chromium und Firefox:** B2, TWP1280/F4, `scrollLeft = 200`. Ein Jog-Knopf ist sichtbar, der Stop im Jog-Feld ist verdeckt; der reservierte Stop muss also tragen. Eine transparente, eingabeabfangende `::before`-Fläche über `.safetyStrip` wird hinzugefügt, ohne die Geometrie zu ändern. `elementFromPoint` liefert danach **DIV `.safetyStrip`**, weder den Stop noch dessen Kind. Trotzdem meldet die unveränderte Probe weiterhin `reservedWhole = true`, `stopOk = true` und `estop = true`. [Rohdaten beider Browser](leiste-achsen.r413.codex-occlusion.jsonl), [Gegenprobe](leiste-achsen.r413.codex-countercheck.spec.ts).
+
+Das ist ein Fehler des Nachweises, keine Behauptung, dass das unveränderte B2 diese Fläche bereits besitzt. Er verhindert aber, die 18 grünen Fälle als harten Beleg der geforderten Treffer-Erreichbarkeit anzunehmen.
+
+**Korrektur:** Für die aktiven Stop-/E-Stop-Ziele muss jeder Prüfpunkt den Knopf selbst oder ein Kind treffen. Falls ein absichtlich gesperrtes Bedienelement seine Erklärung über eine Hülle anbietet, diese konkrete Hülle und deren Funktion gesondert prüfen; ein beliebiger Abschnittsvorfahr ist kein Ersatz. Beide Prüfstellen müssen denselben Vertrag tragen. Die abfangende Fläche muss den Wächter rot machen, das unverdeckte B2 grün. Die Prüfung gegen visuelles Durchscheinen bleibt zusätzlich erforderlich, wie von dir benannt.
+
+### Was ich mittrage, und zwei Präzisierungen für den Bau
+
+- **F2/F3 ohne Snap, ein Scroller, feste rechte Gruppe:** Zustimmung zur Richtung. Die abweichende Sicht-/DOM-Reihenfolge von F3 ist benannt. Eigene vollständige Tab-Durchläufe über TWP1600/F2, XYZAC1280/F3 und TWP1280/F4 in beiden Browsern ergaben **404 Fokuspositionen ohne gemeldete Geometriefehler**. Das ist ein ergänzender Beobachtungsbeleg mit dem bisherigen Prädikat, kein unabhängiger Ersatz für LA413-02. [Tab-Rohdaten](leiste-achsen.r413.codex-tab.jsonl).
+- **Helfer:** Am Prüfstand besitzt Jog kein numerisches Eingabefeld. Geprüft habe ich deshalb die wirklichen Besitzer **Setup und Spindle**, jeweils in diesen drei Formen und beiden Browsern: alle **12 Ziffernfeld-Boxen** im Leistenfenster, reservierter Stop laut Probe ganz. Das beantwortet den Platzbedarf dieser Fälle; gehaltene Öffnungs-/Schließübergänge und jede einzelne Ziffernfeld-Aktion sind damit nicht bewiesen. [Rohdaten](leiste-achsen.r413.codex-helper.jsonl), Bilder [Setup](leiste-achsen.r413.codex-TWP1280-setup.png) / [Spindle](leiste-achsen.r413.codex-TWP1280-spindle.png).
+- **„So groß wie die drei anderen“ ist noch nicht gerendert.** Die vorhandenen drei Safety-Knöpfe sind laut Rohdaten 58 px hoch (Chromium Touch) bzw. 56 px (Firefox Desktop); der vierte misst 44 bzw. 42 px. Die gleiche Breite ist nachgewiesen, die gleiche Höhe nicht. Für den Bau den versprochenen vierten Knopf auch in der Höhe angleichen und alle vier Boxen prüfen. Das ändert nicht den hier belegten Bedarf von 93,3 px zusätzlicher Breite.
+- **Die Vergleichsspalte „heute“ hat bereits die Stufe-A-Transformation.** `toolRowsIntoSpindle()` und `HIDE_TOOL` laufen auch für diese Variante. Das ist für den Vergleich mit B sinnvoll und im Text teilweise erklärt; die Zahlen bitte ausdrücklich als „Basis mit A-Prototyp, ohne B“ bezeichnen, nicht als Messung des unveränderten `dc9dc3e4`. Die separate Hochformatmessung bleibt davon unberührt.
+- **Gemeinsame Stop-Aktion:** Der Vorschlag ist richtig; im Bau auch die bestehende sofortige Auslösung des Jog-Stops bei Zeigerdruck bzw. Enter/Leertaste bewahren, nicht nur dieselbe Funktion erst beim Loslassen aufrufen. Der DOM-Klon dieser Runde belegt noch keine Zustellung. Q413-1 bleibt bei dir und dem Operator; daraus mache ich keine weitere Operatorfrage.
+
+### Belege, eigene Testfehler und Grenzen
+
+- [Beobachtungsspec](leiste-achsen.r413.codex-probe.spec.ts), [Gegenproben](leiste-achsen.r413.codex-countercheck.spec.ts), [unverändert übernommene Prototyp-Helfer](leiste-achsen.r413.codex-prototype.ts), [Prüfskript der aufgezeichneten Daten](leiste-achsen.r413.codex-check-evidence.py). Dateihashes und Zuordnung zu den ursprünglichen Laufpfaden stehen im Manifest.
+- Beobachtungslauf: **Chromium 11 PASS; Firefox 10 PASS / 1 eigener Sondenfehler** (kein Select vorhanden). Gegenprobenlauf: **Chromium 3 PASS; Firefox 1 PASS / 2 eigene Sondenfehler** (dieselben nicht vorhandenen Selects, Timeout). Die grünen Gegenproben bestätigen ausdrücklich die oben beschriebenen Fehler, nicht die Einhaltung des Vertrags. Berichte: [Chromium](leiste-achsen.r413.codex-chromium.json), [Firefox](leiste-achsen.r413.codex-firefox.json), [Chromium Gegenproben](leiste-achsen.r413.codex-mutation-chromium.json), [Firefox Gegenproben](leiste-achsen.r413.codex-mutation-firefox.json).
+- Einen ersten Lauf habe ich nach der falschen Annahme eines Jog-Ziffernfelds selbst abgebrochen und auf Setup/Spindle korrigiert. [Ursprüngliche Sonde](leiste-achsen.r413.codex-initial.spec.ts) und [Abbruchbericht](leiste-achsen.r413.codex-initial-chromium.json) bleiben erhalten; es gibt hier keinen pauschalen „alles grün“-Befund.
+- Die neun gelieferten Geometriefälle je Browser habe ich anhand ihrer Rohdaten geprüft, nicht vollständig erneut ausgeführt. Kein Firefox-Touch, kein tatsächlicher Browserzoom/Panel, kein `dragScroll`-Ziehen, kein vollständiger Nachweis gehaltener Mehrzeiger-/Formwechsel. Diese benannten Bauprüfungen bleiben offen.
+- Ausschließlich isolierte Kopie und Mock, gemeinsamer Test-Lock; die eigenen Testprozesse sind beendet. Kein Produktcode geändert, kein Build/Test/Checkout im Live-Baum und kein Zugriff auf die Live-Sim.
+
+Nach Korrektur von LA413-01/-02 kann B mit denselben geometrischen Kriterien erneut vorgelegt werden; ein anderer Grundaufbau ist durch diese Befunde nicht gefordert.
