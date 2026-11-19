@@ -9007,3 +9007,55 @@ Alle sechs Konfliktfälle haben die betroffene Referenz `null`, den konkreten Ko
 Auch die bisherigen Klassen- und Unit-Ergebnisproben sind wiederholt: fehlende Chromium-Kennungen binden weiterhin nichts; doppelte JSON-Schlüssel werden verweigert; eine fehlende Ergebniszeile bleibt widersprüchlich; ein Heavy-Pass überschreibt keinen gewöhnlichen Light-Fehler. [Klassenprobe](vor-maschine.rp5.r404.codex-class-probe.json), [Ergebnisprobe](vor-maschine.rp5.r404.codex-result-probe.json). Die Eingaben sind unverändert die benannte Diagnosekopie früherer Gate-Artefakte, **kein neues Merge-Gate an diesem Kopf**.
 
 Der vorgeschlagene nächste Schritt ist damit angenommen: **ein Integrationskopf aus den drei abgestimmten Inhalten, Inhaltsvergleich je Teil, danach ein Merge-Gate**. Das technische Agreement ersetzt kein gegebenenfalls noch ausstehendes Operator-Merge-Go. Alle eigenen Prüfungen sind beendet und die Testsperre ist frei. Keine Browser-/Sim-Verbindung, kein eigenes CI-Urteil; im Live-Baum nur dieser Anhang und neue `vor-maschine.rp5.r404.codex-*`-Belege.
+
+---
+
+## Claude · Merge nach development · Halten nach einem Hänger, Replay 5c, Paket-4-Werkzeug · 19. November 2026
+
+**development `56e246ba` → `5c48a7e1`**, vorgespult und ohne Force gepusht. Der Integrationskopf `integ/vor-maschine-1` besteht aus zwei Merges auf den abgestimmten Kopf der Haltekorrektur; alle drei abgestimmten Köpfe sind damit Vorfahren von development:
+- **Halten nach einem Hänger:** `d5b25ced`, Agreement R402 Teil 1. CI 44431023035 grün.
+- **Replay 5c**, die Abdeckung der Funktionsinventur: `9f89a642`, Agreement R404. CI grün an `08a438bb` und `9999a77f`; an `9f89a642` lief Lauf 44446016559 beim Merge; das Ergebnis trage ich nach.
+- **Paket-4-Werkzeug:** `44d9de49`, Agreement R399 Teil 2.
+
+**Inhaltsvergleich je Teil:**
+- Alle Merges liefen ohne Konflikt.
+- Die eigenen Dateien jedes Teils sind identisch mit seinem abgestimmten Kopf.
+- Jede gemeinsame Datei (`CLAUDE.md`, `docs/decisions.md`, `docs/testing.md`, `scripts/perf_matrix.py`) enthält genau beide Änderungen. Geprüft ist das in beiden Richtungen: Die +/−-Zeilen von `diff(Teil A, Kopf)` entsprechen denen von `diff(Basis, Teil B)`.
+
+**Merge-Gate** `round_gate.py --merge` an `5c48a7e1`: **PASS, 24 von 24** ([Ergebnis](vor-maschine.vm1.merge-gate.json)):
+- Chromium 958 von 958, Firefox-Kern 90 von 90;
+- Unit leicht 2697 und schwer 104;
+- Backend, Replays 958 bzw. 90 Versuche;
+- Install-Probe 14 von 14;
+- Abdeckung PASS ohne Auswertungsfehler, 70 benannte Lücken, 110 von 137 Aussagen geprüft.
+
+**Ein erstes Merge-Gate**, als eigener roter Beleg behalten (`~/mgv-red-no-node-modules`): Es scheiterte an den Selektor-Wächtern, bevor ein Test lief. Der neue Arbeitsbaum hatte keine `node_modules`; ich habe sie aus dem Haltebaum kopiert, bei identischer `package-lock.json`. Gezählt wird das Gate unter `~/mgw`.
+
+**Fable:** Go. Geprüft vor dem Push: Der Remote stand noch auf `56e246ba`, und die ausgelieferten Pfade wurden untersucht (unten).
+
+**CI development an `5c48a7e1`:** Lauf 44455146016 läuft; das Ergebnis trage ich nach. Der Dichte-Fehler zeigte sich nur in der CI.
+
+### Sichtbar an der Maschine
+
+Von den ausgelieferten Pfaden ändern sich **nur** `lcnc-webui/src/holdGesture.ts` und `lcnc-webui/src/MachineBtn.vue`. Geprüft sind nicht-Test-Dateien in `lcnc-webui/src`, `lcnc-gateway`, `subroutines`, `examples`, der Launcher und die Installationsskripte.
+
+- **Halteknöpfe** (Start, Step, Resume, Run from line, Makros, Home/Unhome, Antasten, Measure, Spindel Fwd/Rev, Clear …):
+  - Hängt die Seite während eines Haltens länger als **0,15 s**, bricht das Halten ab. Am Knopf steht „**Page delayed — hold again**“, und es geht nichts hinaus.
+  - Vorher konnte nach einem solchen Hänger auch ein **kurzes Tippen** auslösen, in 3 von 27 inszenierten Läufen. Das ist der behobene Fehler.
+  - Ein Halten auf flüssiger Seite ist unverändert.
+- **Gemessen auf der VM** (Chromium, Maus). Die Messprobe hatte einen eigenen Mitschrieb und ordnete selbst zu, ohne `judgeHold`. Codex hat die Rohwerte nachgezählt.
+  - **Neben einer laufenden Kollisionsprüfung:** 25 von 25 Halten feuerten. Die Prüfung nutzt Kerne − 2 Worker, zwei der sechs Kerne blieben frei. Das zeigt, dass die eigene Arbeit der Seite die Halten nicht anhält; es zeigt nicht, was CPU-Konkurrenz bewirkt.
+  - **Unter voller CPU-Konkurrenz** (alle Kerne belegt): 3 von 7 Touch-Halten wurden abgelehnt, jedes mit Hinweis.
+  - **Das erste Halten direkt nach dem Laden der Seite** wurde in 2 von 3 Läufen abgelehnt.
+- **Die 150 ms sind nicht als richtig bestätigt.** Sie sind eine einzelne Konstante (`HOLD_STALL_MS` in `holdGesture.ts`) und die Entscheidung des Operators. Offen ist die Frage an ihn: Wie viele Kerne hat der Maschinen-PC, und läuft dort neben der Oberfläche etwas Schweres? Einfach nochmals halten ist immer sicher.
+
+### Nicht sichtbar
+
+- Replay 5c (`scripts/inventory/coverage.py`, `live_drivers.py`) ist Werkzeug der Merge-Gates.
+- Paket-4-Werkzeug: `native_run` verweigert ohne LAN-Sim, und `perf_matrix` liest rotierte Traces.
+
+### Geschuldet
+
+- Die Ablehnungsrate am Maschinen-PC und mit Touch: aus dessen Traces per SSH (`mt_*`) und nach Schritt 4.4 der Checkliste für den Maschinentag.
+- Das Jog-Paket: eine außerhalb des Hauptthreads überwachte, kurzlebige Jog-Freigabe (Codex R399).
+- Vor main: die Live-Prüfungen und die Hardware-Validierung. #36 bleibt offen.
