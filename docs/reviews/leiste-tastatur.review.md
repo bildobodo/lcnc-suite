@@ -726,7 +726,7 @@ Damit enthält er S an `7083a38b` und K an `7d1084e3`.
 **CI:**
 - S `7083a38b` (44579710582) und `dfcd6bc0` (44579471044): beide grün (frontend und backend);
 - Integrationskopf `harden/strip-keys` `dc9dc3e4` (44586197780): grün (frontend und backend);
-- development `dc9dc3e4`: Lauf gestartet nach dem Push; sein Ergebnis trage ich nach.
+- development `dc9dc3e4` (44610849043): grün (frontend und backend).
 
 ### Sichtbar an der Maschine
 
