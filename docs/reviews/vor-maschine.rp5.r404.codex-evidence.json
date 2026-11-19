@@ -1,0 +1,80 @@
+{
+  "review": "R404",
+  "verdict": "agreement",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "base": "56e246ba",
+  "previous_review_head": "9999a77f",
+  "document_head": "a126f2c6581bf7949d838532185e829e6f206992",
+  "root": "/tmp/codex-r404-replay",
+  "tests": "196 passed in 15.74s: scripts/inventory/test_coverage.py + scripts/test_select/test_replay.py",
+  "execution": "python3 -I /tmp/codex-r404-replay/scripts/test_support/heavy_lock.py --who codex-r404-review --wait 50 -- bash /tmp/r404-run.sh; exit 0; all subprocesses ended and shared lock released",
+  "probe_changes": "R403 scripts changed only by r403 to r404 path/prefix replacement; diagnostic input hashes unchanged",
+  "baseline": {
+    "gate": "/tmp/r401-input/gate-merge.json",
+    "head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+    "meaning": "Unchanged earlier diagnostic artifacts, with group-specific options. Not a fresh merge-gate at R403. Every probe copies the inputs and restores them between cases. Unit result probe uses actual R401 fixture/list/options/report with one inventory binding changed in memory."
+  },
+  "baseline_hashes": {
+    "gate-merge.json": "91516b432180f1e1b317b446a0c4c49ff997ceb249da092c9aa87c76bf1ed4ba",
+    "gate-merge.logs/list-run.json": "dc689e4158d4c9bf3a2eae3f6de5e6fdcd0430372bd14865cfb601c6b0ae1e78",
+    "gate-merge.logs/playwright.json": "5ad3997473ebbf2e0a5b50297058e2de8d4c005db320cc0eb708a2f87b6ab275",
+    "gate-merge.logs/firefox-list.json": "353b61fc15b02b75baead7713835bb538d6dcd9e6a618064f80b3260d1fc5dda",
+    "gate-merge.logs/firefox.json": "7afe667c55d793f7bd68e59ccdb99d40d7c9eec9d74fa71e3d52cca9f8f13617",
+    "gate-merge.logs/unit-light.list.json": "595d2bcaa35bb427ff7c2337061b1395f3055cfc8380dc098cab0e2fd8308910",
+    "gate-merge.logs/unit-light.json": "1191bea33e2ce91d3018b684af6a178368dd18d61a6d6e26a749078b5a3830de",
+    "gate-merge.logs/unit-heavy.list.json": "ba6db85463ed14fe503b1fddea14a81a6183fd46ac5a812be67a3e46bcf8e82d",
+    "gate-merge.logs/unit-heavy.json": "12c890ef9d349d3d269d718178552ab71bc667bfba2c55f4ea3415bfa150f6f8",
+    "gate-merge.logs/replay.json": "f53b867cc8c164cb556b9e9f0d49ee98ba9e527e1104b1bf537488746d02e4d1",
+    "gate-merge.logs/firefox-replay.json": "55c623d23e5554df0e901369d9b21246fe88cc80bcb8dcf69360cdfe67d49390",
+    "gate-merge.logs/unit-light.options.json": "7f9ae36ae9ccc4b0951ff430024f0b5baade4518aa638e8c3e46d02c0375bc73",
+    "gate-merge.logs/unit-heavy.options.json": "ebaf928b946da13e96df2c5cfdc883eed6303fd2759d56ad1155cb4b8364082b",
+    "gate-merge.logs/backend/backend.junit.xml": "5e930d143df42425388ea86a617dd63b4dde4de791e608d051657a9c4613840c"
+  },
+  "results": {
+    "reference_probe": "control PASS, all six duplicate-reference cases emit JSON and Markdown FAIL with normal summary, empty stderr, affected reference None; backend conflicts retain 0 passed gateway facts, 75 browser and 18 unit facts",
+    "class_probe": "both duplicate Chromium orders and absent Chromium ids withhold all Chromium triggers; valid Firefox retains 390; duplicate replay JSON key refused",
+    "result_probe": "duplicate-title ordinary failure retained; missing failed result contradictory; valid heavy pass cannot replace ordinary light failure"
+  },
+  "limits": [
+    "No product change",
+    "No browser or live-sim connection",
+    "No full merge gate",
+    "CI not independently checked",
+    "Old diagnostic artifacts are not a fresh gate at R404",
+    "Live tree: appendix and new evidence only"
+  ],
+  "files": {
+    "vor-maschine.rp5.r404.codex-pytest.txt": {
+      "source": "/tmp/r404-pytest.txt",
+      "sha256": "d0201af468b4371f501266e6c2dc319222d3c717897e1bbf29c4dd98aa212bf2"
+    },
+    "vor-maschine.rp5.r404.codex-run.sh": {
+      "source": "/tmp/r404-run.sh",
+      "sha256": "29e568a6f8af33bedaa9d5b7452743e44a75c5557a654128cf7a4f92d2b5e60f"
+    },
+    "vor-maschine.rp5.r404.codex-class-probe.py": {
+      "source": "/tmp/r404-class-probe.py",
+      "sha256": "7ec0d2e583097ee8fd73f2e4414e79d490c5fc20dcd43267b56a3eaa014c6555"
+    },
+    "vor-maschine.rp5.r404.codex-class-probe.json": {
+      "source": "/tmp/r404-class-probe.json",
+      "sha256": "1a60816df73400433269b91ae1e78fa69b6a769a9f5483d18b9e382206139cb8"
+    },
+    "vor-maschine.rp5.r404.codex-result-probe.py": {
+      "source": "/tmp/r404-result-probe.py",
+      "sha256": "e52f0f5625d8304b5306b0486b2c3db02e881d30c8ccaedbb82f8991084472f8"
+    },
+    "vor-maschine.rp5.r404.codex-result-probe.json": {
+      "source": "/tmp/r404-result-probe.json",
+      "sha256": "a25bdd8257d565da39ebcd7f19f488938341098af404fb641ecc80b5e2f140c9"
+    },
+    "vor-maschine.rp5.r404.codex-reference-probe.py": {
+      "source": "/tmp/r404-reference-probe.py",
+      "sha256": "492201a9714d6c49198876cf7d76972d2192b697bd0a3c79d3d963cf39292e90"
+    },
+    "vor-maschine.rp5.r404.codex-reference-probe.json": {
+      "source": "/tmp/r404-reference-probe.json",
+      "sha256": "a393453bfe8c62144c2c76a4d82182617a159d4dd673bef080f35661c822380e"
+    }
+  }
+}

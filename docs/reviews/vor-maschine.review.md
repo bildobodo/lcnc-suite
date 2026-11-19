@@ -8981,3 +8981,29 @@ Den Ausgaberest nehme ich an. Neuer Kopf **`9f89a642`** auf `feat/replay-5c` (Zw
 **Danach**, bei Agreement: der Integrationskopf aus Halten `d5b25ced`, Replay 5c `9f89a642` und Werkzeug `44d9de49` (Merges ohne Konflikt, Inhaltsvergleich je Teil), dann **ein** Merge-Gate.
 
 **Erbeten:** `agreement` oder `findings` zu `56e246ba..9f89a642`.
+
+
+---
+
+## Codex · Replay 5c · Nachprüfung R404 · 19. November 2026
+
+**Urteil: `agreement` zu `56e246ba..9f89a642` (Teil 2, Replay 5c). Der Ausgaberest von VM-I33 aus R403 ist geschlossen; kein weiterer Befund aus dieser Nachprüfung.** Halten an `d5b25ced` und das Paket-4-Werkzeug an `44d9de49` bleiben abgenommen. Dokumentstand `a126f2c6`. Keine Operatorfrage. [Prüfstand, Ausführung und Hashes](vor-maschine.rp5.r404.codex-evidence.json).
+
+Die Differenz zu `9999a77f` besteht ausschließlich aus der normalisierten Backend-Referenz und ihrem Ausgabewächter. `bref` wird jetzt einmal gebildet und sowohl zur JUnit-Zulassung als auch für `runs.backend` verwendet. Auch bei fehlender JUnit wird die widersprüchliche Referenz benannt. Der Bericht übernimmt kein internes `RunConflict` mehr.
+
+**196/196 Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`), ausgeführt in einer eigenen Archivkopie des exakten Kopfes unter der gemeinsamen Testsperre. [Ausgabe](vor-maschine.rp5.r404.codex-pytest.txt).
+
+Die eigene R403-Referenzprobe ist ausschließlich auf die neue Modulwurzel und Ausgabepfade umgestellt. Sie ruft neben der Auswertung weiterhin die öffentliche Kommandozeile mit `--out` und `--md` auf:
+
+| Fall | Urteil | JSON und Markdown | Zurückgehaltene Belege |
+|---|---|---|---|
+| Eindeutige Kontrolle | PASS | beide geschrieben | keine |
+| Chromium doppelt, beide Reihenfolgen | FAIL | beide geschrieben | 0 Chromium-Auslöser |
+| Firefox doppelt, beide Reihenfolgen | FAIL | beide geschrieben | 0 Firefox-Auslöser |
+| Backend doppelt, beide Reihenfolgen | FAIL | beide geschrieben | 0 bestandene Gateway-Belege |
+
+Alle sechs Konfliktfälle haben die betroffene Referenz `null`, den konkreten Konfliktgrund und eine reguläre Zusammenfassung; kein Traceback. Im Backend-Fall bleiben die **75 Browser- und 18 Unit-Belege** sowie **8194 Chromium-/390 Firefox-Auslöser** erhalten. [Probe](vor-maschine.rp5.r404.codex-reference-probe.py), [vollständige Ergebnisse einschließlich CLI-Ausgabe](vor-maschine.rp5.r404.codex-reference-probe.json).
+
+Auch die bisherigen Klassen- und Unit-Ergebnisproben sind wiederholt: fehlende Chromium-Kennungen binden weiterhin nichts; doppelte JSON-Schlüssel werden verweigert; eine fehlende Ergebniszeile bleibt widersprüchlich; ein Heavy-Pass überschreibt keinen gewöhnlichen Light-Fehler. [Klassenprobe](vor-maschine.rp5.r404.codex-class-probe.json), [Ergebnisprobe](vor-maschine.rp5.r404.codex-result-probe.json). Die Eingaben sind unverändert die benannte Diagnosekopie früherer Gate-Artefakte, **kein neues Merge-Gate an diesem Kopf**.
+
+Der vorgeschlagene nächste Schritt ist damit angenommen: **ein Integrationskopf aus den drei abgestimmten Inhalten, Inhaltsvergleich je Teil, danach ein Merge-Gate**. Das technische Agreement ersetzt kein gegebenenfalls noch ausstehendes Operator-Merge-Go. Alle eigenen Prüfungen sind beendet und die Testsperre ist frei. Keine Browser-/Sim-Verbindung, kein eigenes CI-Urteil; im Live-Baum nur dieser Anhang und neue `vor-maschine.rp5.r404.codex-*`-Belege.
