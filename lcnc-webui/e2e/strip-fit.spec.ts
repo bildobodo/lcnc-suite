@@ -293,8 +293,7 @@ const NOTES = {
 /** One error-note case: the note never widens the strip; each of its lines,
  *  Retry and every row (or the empty state) come whole into view by
  *  scrolling; Retry hit-testable. A row may wrap under the note (R408). */
-async function noteCase(page: Page, loadedTool: typeof TOOL | null, error: string): Promise<Fit> {
-  const profile = LINEAR[2]!;
+async function noteCase(page: Page, loadedTool: typeof TOOL | null, error: string, profile: Profile = LINEAR[2]!): Promise<Fit> {
   await openLayout(page, profile, FULLHD[0]!);
   if (loadedTool) { await publishToolTable([loadedTool]); await loadTool(page, OFFSETS['offset other']!); }
   const clean = await measureFit(page);
@@ -389,9 +388,13 @@ for (const loaded of [false, true]) {
 
 // The accepted wrap (Codex R407/R408): the longest built-in type name under
 // the note's scrollbar may take two lines — nothing cut sideways, every
-// row reached whole. Its wrap is reported, not required.
-test('strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable', async ({ page }, info) => {
-  const fit = await noteCase(page, { ...TOOL, type: 'cornerchamfer' }, NOTES['unbroken 372']);
+// row reached whole. Its wrap is reported, not required. On XYA, where Tool
+// stays at its minimum (224 px): with XYZ Tool takes the row's rest since
+// 2026-11-19 and the type no longer wraps there — the narrowest Tool is the
+// case that shows the wrap.
+test("strip fit: 3axis-xya @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill at Tool's minimum: its type may wrap, nothing cut, every row reachable", async ({ page }, info) => {
+  const fit = await noteCase(page, { ...TOOL, type: 'cornerchamfer' }, NOTES['unbroken 372'], { name: '3axis-xya', axes: ['X', 'Y', 'A'], kins: null });
+  expect(fit.toolW, 'Tool at its minimum').toBe(fit.toolMin);
   await expect(page.locator('[data-strip="tool"]')).toContainText('Corner Chamfer End Mill');
   info.annotations.push({ type: 'wraps', description: fit.wraps.join('; ') || 'none' });
 });
