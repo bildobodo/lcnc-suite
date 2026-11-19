@@ -1,0 +1,42 @@
+# R402 · red first (b): the old recorder and the two hint assertions removed — the judgement takes the silent whole press
+
+
+Running 1 test using 1 worker
+
+[1/1] [e2e] › e2e/hold-stall-mouse-oldrec2.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[e2e] › e2e/hold-stall-mouse-oldrec2.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":["Page delayed — hold again"]}
+
+  1) [e2e] › e2e/hold-stall-mouse-oldrec2.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused 
+
+    Error: the silent whole press is rejected
+
+    expect(received).toThrow()
+
+    Received function did not throw
+
+      222 |   expect(a.delivered, "a press the page saw whole").toBeGreaterThanOrEqual(HOLD_FIRE_MS);
+      223 |   expect(a.fired, "nothing sent").toBe(0);
+    > 224 |   expect(() => judgeHold(a, [a]), "the silent whole press is rejected").toThrow();
+          |                                                                         ^
+      225 | });
+      226 |
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse-oldrec2.spec.ts:224:73
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-oldrec2-m-b1958-whole-press-stays-unexcused-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-oldrec2-m-b1958-whole-press-stays-unexcused-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-oldrec2-m-b1958-whole-press-stays-unexcused-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-mouse-oldrec2-m-b1958-whole-press-stays-unexcused-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [e2e] › e2e/hold-stall-mouse-oldrec2.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused 

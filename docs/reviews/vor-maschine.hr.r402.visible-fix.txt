@@ -1,0 +1,14 @@
+# R402 · the seven specs (3 workers) and the dense test x10 beside the heavy unit set, at the visibility fix
+## seven specs
+[95/98] [e2e] › e2e/touchoff.spec.ts:733:1 › tool-change confirm without a reply says so, keeps its lock, and a late timeout never labels the next request (Codex R366 VM-I12)
+[96/98] [e2e] › e2e/touchoff.spec.ts:773:1 › a press begun on one tool-change request never confirms the next (Codex R205)
+[97/98] [e2e] › e2e/touchoff.spec.ts:806:1 › surface map: empty state without a toast, error with retry, points load without a grid
+[98/98] [e2e] › e2e/touchoff.spec.ts:856:1 › keypad owner: dialog close, gate change and a second field end or retarget the session
+  98 passed (4.5m)
+## dense x10 under load
+[8/10] [e2e] › e2e/macros.spec.ts:805:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort
+[9/10] [e2e] › e2e/macros.spec.ts:805:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort
+[10/10] [e2e] › e2e/macros.spec.ts:805:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort
+  10 passed (1.1m)
+load still running: yes
+done

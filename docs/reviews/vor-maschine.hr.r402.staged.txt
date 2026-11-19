@@ -1,0 +1,162 @@
+# R402 · staged load at c4f47253's content (stage.sh fix2)
+
+
+Running 32 tests using 2 workers
+
+[1/32] [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":229.59999990463257,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":899.6000001430511,"fired":1,"hints":[]}]}
+
+[3/32] [e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":734.7999999523163,"block":{"from":19.300000190734863,"to":540},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":206.30000019073486,"delivered":624.4000000953674,"block":{"from":152.69999980926514,"to":528.5999999046326}},{"fired":0,"pressed":182.59999990463257,"delivered":574.5,"block":{"from":151.80000019073486,"to":531.2000000476837}},{"fired":0,"pressed":162.59999990463257,"delivered":595.7000000476837,"block":{"from":106.89999985694885,"to":520}},{"fired":0,"pressed":173.79999995231628,"delivered":653,"block":{"from":118.59999990463257,"to":520.0999999046326}},{"fired":0,"pressed":183.19999980926514,"delivered":582.2000000476837,"block":{"from":102.80000019073486,"to":520.1000001430511}},{"fired":0,"pressed":160,"delivered":590.1000001430511,"block":{"from":122.10000014305115,"to":520}},{"fired":0,"pressed":234.5,"delivered":596.7999999523163,"block":{"from":148.19999980926514,"to":521.0999999046326}},{"fired":0,"pressed":189.39999985694885,"delivered":567.7999999523163,"block":{"from":129.20000004768372,"to":520}}]
+
+[4/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":765.9000000953674,"block":{"from":125.30000019073486,"to":701.5},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":831.8999998569489,"block":{"from":113.40000009536743,"to":700},"hints":["Page delayed — hold again"]}]
+
+[5/32] [e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[4903,5353],"ups":[5003,5467],"hints":["Hold to activate"],"block":null}
+
+[6/32] [e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":187.79999995231628,"delivered":569.5,"block":{"from":161.39999985694885,"to":541.8999998569489}},{"fired":0,"pressed":219.19999980926514,"delivered":629.4000000953674,"block":{"from":147.20000004768372,"to":541.9000000953674}},{"fired":0,"pressed":153.59999990463257,"delivered":585.2000000476837,"block":{"from":135.70000004768372,"to":543.8000001907349}},{"fired":0,"pressed":186.09999990463257,"delivered":601.2000000476837,"block":{"from":145.20000004768372,"to":540}},{"fired":0,"pressed":183.40000009536743,"delivered":600.2000000476837,"block":{"from":123.59999990463257,"to":540}},{"fired":0,"pressed":157.20000004768372,"delivered":594.4000000953674,"block":{"from":136.79999995231628,"to":540}},{"fired":0,"pressed":224,"delivered":641.5999999046326,"block":{"from":159.5,"to":543.2000000476837}},{"fired":0,"pressed":180.60000014305115,"delivered":560.6000001430511,"block":{"from":131.29999995231628,"to":540}}]
+
+[7/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":[]}
+
+[8/32] [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":281.80000019073486,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":928.0999999046326,"fired":1,"hints":[]}]}
+
+[9/32] [e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":743.3999998569489,"block":{"from":19.899999856948853,"to":540.2999999523163},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":426.10000014305115,"delivered":778.6999998092651,"block":{"from":156.60000014305115,"to":700}},{"fired":0,"pressed":308.30000019073486,"delivered":789.1000001430511,"block":{"from":143.5,"to":700.0999999046326}},{"fired":0,"pressed":309.5,"delivered":856.5,"block":{"from":139.5,"to":702.7000000476837}},{"fired":0,"pressed":336.89999985694885,"delivered":746.5,"block":{"from":109.5,"to":700}},{"fired":0,"pressed":289.7000000476837,"delivered":774.5999999046326,"block":{"from":103.30000019073486,"to":700}},{"fired":0,"pressed":391.89999985694885,"delivered":855.9000000953674,"block":{"from":144.60000014305115,"to":700}},{"fired":0,"pressed":309.2000000476837,"delivered":755,"block":{"from":102.20000004768372,"to":700}},{"fired":0,"pressed":316.59999990463257,"delivered":851.9000000953674,"block":{"from":154.5,"to":700}}]
+
+[10/32] [e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":761.7000000476837,"block":{"from":139.79999995231628,"to":700.0999999046326},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":853.9000000953674,"block":{"from":106,"to":701.2999999523163},"hints":["Page delayed — hold again"]}]
+
+[11/32] [e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+hold-stall across: [{"fired":0,"pressed":881.0999999046326,"delivered":885.8999998569489,"block":{"from":196.40000009536743,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall smooth: [{"fired":1,"pressed":869.5,"delivered":887.3999998569489,"block":null,"hints":[]}]
+
+[12/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[6170,6620],"ups":[6270,6734],"hints":["Hold to activate"],"block":null}
+
+[13/32] [e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":[]}
+
+[14/32] [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":277.5,"delivered":651.9000000953674,"block":{"from":104.90000009536743,"to":520.0999999046326}},{"fired":0,"pressed":218.29999995231628,"delivered":592.7999999523163,"block":{"from":180.30000019073486,"to":524}},{"fired":0,"pressed":204.29999995231628,"delivered":668.2000000476837,"block":{"from":191,"to":522.5}},{"fired":0,"pressed":238.20000004768372,"delivered":626.6000001430511,"block":{"from":118.20000004768372,"to":520}},{"fired":0,"pressed":198.10000014305115,"delivered":644.7999999523163,"block":{"from":115.59999990463257,"to":522.8999998569489}},{"fired":0,"pressed":275.2000000476837,"delivered":660.7999999523163,"block":{"from":212.30000019073486,"to":520.8000001907349}},{"fired":0,"pressed":254,"delivered":643.3999998569489,"block":{"from":165.40000009536743,"to":522.6000001430511}},{"fired":0,"pressed":219.90000009536743,"delivered":631.6000001430511,"block":{"from":171.39999985694885,"to":521.5}}]
+
+[15/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":216.59999990463257,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":929.2000000476837,"fired":1,"hints":[]}]}
+
+[16/32] [e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":731.5999999046326,"block":{"from":66.59999990463257,"to":540},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":740.9000000953674,"block":{"from":106.70000004768372,"to":700.0999999046326},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":902.5,"block":{"from":121.89999985694885,"to":700},"hints":["Page delayed — hold again"]}]
+
+[17/32] [e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":273.39999985694885,"delivered":541.8000001907349,"block":{"from":203.10000014305115,"to":540.7999999523163}},{"fired":0,"pressed":269.5,"delivered":573.9000000953674,"block":{"from":180,"to":540.7000000476837}},{"fired":0,"pressed":189.09999990463257,"delivered":569.2999999523163,"block":{"from":135.10000014305115,"to":542.9000000953674}},{"fired":0,"pressed":162.90000009536743,"delivered":599.6000001430511,"block":{"from":125.39999985694885,"to":540}},{"fired":0,"pressed":200.5,"delivered":621.9000000953674,"block":{"from":112.79999995231628,"to":540.2999999523163}},{"fired":0,"pressed":214.40000009536743,"delivered":600.2999999523163,"block":{"from":173.60000014305115,"to":540}},{"fired":0,"pressed":239,"delivered":619.6000001430511,"block":{"from":182.69999980926514,"to":540}},{"fired":0,"pressed":188.09999990463257,"delivered":613.2000000476837,"block":{"from":150.30000019073486,"to":540}}]
+
+[18/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[6892,7342],"ups":[6992,7456],"hints":["Hold to activate"],"block":null}
+
+[19/32] [e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":[]}
+
+[20/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":366.59999990463257,"delivered":742.0999999046326,"block":{"from":149.10000014305115,"to":700}},{"fired":0,"pressed":294.40000009536743,"delivered":753.4000000953674,"block":{"from":148.20000004768372,"to":700}},{"fired":0,"pressed":301.7999999523163,"delivered":741.7000000476837,"block":{"from":105.89999985694885,"to":700}},{"fired":0,"pressed":366.39999985694885,"delivered":780.2000000476837,"block":{"from":155.10000014305115,"to":700}},{"fired":0,"pressed":360.7000000476837,"delivered":740.4000000953674,"block":{"from":121.20000004768372,"to":700}},{"fired":0,"pressed":289.09999990463257,"delivered":833.4000000953674,"block":{"from":101,"to":700.4000000953674}},{"fired":0,"pressed":314.7999999523163,"delivered":765.5999999046326,"block":{"from":131.40000009536743,"to":700}},{"fired":0,"pressed":317.2000000476837,"delivered":829.9000000953674,"block":{"from":157.20000004768372,"to":700}}]
+
+[21/32] [e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+hold-stall across: [{"fired":0,"pressed":832.6000001430511,"delivered":917.7999999523163,"block":{"from":164.90000009536743,"to":700.0999999046326},"hints":["Page delayed — hold again"]}]
+
+hold-stall smooth: [{"fired":1,"pressed":838.1999998092651,"delivered":928,"block":null,"hints":[]}]
+
+[22/32] [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":229.79999995231628,"delivered":572.6999998092651,"block":{"from":105.89999985694885,"to":520}},{"fired":0,"pressed":262.80000019073486,"delivered":595.3999998569489,"block":{"from":127.59999990463257,"to":522.7000000476837}},{"fired":0,"pressed":248.59999990463257,"delivered":622.5,"block":{"from":138.40000009536743,"to":520.2999999523163}},{"fired":0,"pressed":178.5,"delivered":653.3999998569489,"block":{"from":107.80000019073486,"to":520}},{"fired":0,"pressed":219.59999990463257,"delivered":549.7000000476837,"block":{"from":134.59999990463257,"to":520}},{"fired":0,"pressed":160.5,"delivered":581.9000000953674,"block":{"from":115.79999995231628,"to":526.0999999046326}},{"fired":0,"pressed":272,"delivered":600.5999999046326,"block":{"from":159.70000004768372,"to":522.5}},{"fired":0,"pressed":224.09999990463257,"delivered":560.6999998092651,"block":{"from":136.29999995231628,"to":520}}]
+
+[23/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":204.59999990463257,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":902.5999999046326,"fired":1,"hints":[]}]}
+
+[24/32] [e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":822.5999999046326,"block":{"from":16.5,"to":540.4000000953674},"hints":["Page delayed — hold again"]}]
+
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":751.5999999046326,"block":{"from":122.10000014305115,"to":702.9000000953674},"hints":["Hold to activate"]}]
+
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":915,"block":{"from":132.79999995231628,"to":700},"hints":["Page delayed — hold again"]}]
+
+[25/32] [e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":241.39999985694885,"delivered":605.3999998569489,"block":{"from":170.20000004768372,"to":542.5999999046326}},{"fired":0,"pressed":221.39999985694885,"delivered":542.4000000953674,"block":{"from":183.5,"to":541.5999999046326}},{"fired":0,"pressed":234.90000009536743,"delivered":613.5,"block":{"from":156,"to":540}},{"fired":0,"pressed":165.79999995231628,"delivered":635.7999999523163,"block":{"from":119.20000004768372,"to":540}},{"fired":0,"pressed":169.59999990463257,"delivered":587.8000001907349,"block":{"from":108.5,"to":540}},{"fired":0,"pressed":270.7000000476837,"delivered":616.3000001907349,"block":{"from":104.19999980926514,"to":541.3999998569489}},{"fired":0,"pressed":241.70000004768372,"delivered":727.9000000953674,"block":{"from":123.09999990463257,"to":540.0999999046326}},{"fired":0,"pressed":274.09999990463257,"delivered":559.7000000476837,"block":{"from":112.09999990463257,"to":543.3999998569489}}]
+
+[26/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[8812,9262],"ups":[8912,9376],"hints":["Hold to activate"],"block":null}
+
+[27/32] [e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":[]}
+
+[28/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":308.90000009536743,"delivered":826,"block":{"from":156.59999990463257,"to":700}},{"fired":0,"pressed":395.60000014305115,"delivered":863.5999999046326,"block":{"from":140.70000004768372,"to":700}},{"fired":0,"pressed":292.39999985694885,"delivered":840.2000000476837,"block":{"from":142,"to":700}},{"fired":0,"pressed":409.90000009536743,"delivered":754.6000001430511,"block":{"from":123.59999990463257,"to":700.0999999046326}},{"fired":0,"pressed":345.2000000476837,"delivered":888.9000000953674,"block":{"from":108.20000004768372,"to":703.7999999523163}},{"fired":0,"pressed":346.59999990463257,"delivered":898.0999999046326,"block":{"from":207.80000019073486,"to":707}},{"fired":0,"pressed":409.59999990463257,"delivered":815.6000001430511,"block":{"from":167.79999995231628,"to":700}},{"fired":0,"pressed":342.5,"delivered":859.0999999046326,"block":{"from":210.60000014305115,"to":700}}]
+
+[29/32] [e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+hold-stall across: [{"fired":0,"pressed":931.2999999523163,"delivered":865.9000000953674,"block":{"from":119.79999995231628,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall smooth: [{"fired":0,"pressed":933.8999998569489,"delivered":894.7999999523163,"block":null,"hints":["Page delayed — hold again"]},{"fired":0,"pressed":924.0999999046326,"delivered":922.9000000953674,"block":null,"hints":["Page delayed — hold again"]},{"fired":1,"pressed":947.7999999523163,"delivered":996,"block":null,"hints":[]}]
+
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":234.29999995231628,"delivered":623.2999999523163,"block":{"from":134.40000009536743,"to":520.2999999523163}},{"fired":0,"pressed":293.09999990463257,"delivered":639.8000001907349,"block":{"from":151.90000009536743,"to":522.5}},{"fired":0,"pressed":259,"delivered":604.4000000953674,"block":{"from":140.39999985694885,"to":521}},{"fired":0,"pressed":212.20000004768372,"delivered":588.5999999046326,"block":{"from":147.10000014305115,"to":520}},{"fired":0,"pressed":264.39999985694885,"delivered":635.2000000476837,"block":{"from":163.20000004768372,"to":526.6000001430511}},{"fired":0,"pressed":270.5,"delivered":575.2000000476837,"block":{"from":179.20000004768372,"to":522.7999999523163}},{"fired":0,"pressed":262.2999999523163,"delivered":694.0999999046326,"block":{"from":106.70000004768372,"to":521.7000000476837}},{"fired":0,"pressed":218.20000004768372,"delivered":523.7000000476837,"block":{"from":223,"to":522.5}}]
+
+[30/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":197.90000009536743,"delivered":567.7999999523163,"block":{"from":125.29999995231628,"to":540}},{"fired":0,"pressed":323.2000000476837,"delivered":687.4000000953674,"block":{"from":103.20000004768372,"to":540}},{"fired":0,"pressed":238.40000009536743,"delivered":581.3999998569489,"block":{"from":146.70000004768372,"to":540}},{"fired":0,"pressed":247.90000009536743,"delivered":589.8999998569489,"block":{"from":151.40000009536743,"to":540.1000001430511}},{"fired":0,"pressed":254.29999995231628,"delivered":549.5,"block":{"from":152.90000009536743,"to":540}},{"fired":0,"pressed":216.5,"delivered":542.7999999523163,"block":{"from":187.70000004768372,"to":542.2999999523163}},{"fired":0,"pressed":263.7999999523163,"delivered":540.7000000476837,"block":{"from":187.09999990463257,"to":540}},{"fired":0,"pressed":276.5,"delivered":620,"block":{"from":141.09999990463257,"to":542.7000000476837}}]
+
+[31/32] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":429.10000014305115,"delivered":866.3999998569489,"block":{"from":144.70000004768372,"to":700.5999999046326}},{"fired":0,"pressed":337.40000009536743,"delivered":843.7999999523163,"block":{"from":143.70000004768372,"to":702.9000000953674}},{"fired":0,"pressed":399.10000014305115,"delivered":816.2999999523163,"block":{"from":165.30000019073486,"to":700}},{"fired":0,"pressed":362.90000009536743,"delivered":840.6000001430511,"block":{"from":156.29999995231628,"to":700}},{"fired":0,"pressed":390.7000000476837,"delivered":747.9000000953674,"block":{"from":147.59999990463257,"to":700}},{"fired":0,"pressed":385.2999999523163,"delivered":846.5999999046326,"block":{"from":174.39999985694885,"to":700}},{"fired":0,"pressed":378.19999980926514,"delivered":810.4000000953674,"block":{"from":156.59999990463257,"to":703.2000000476837}},{"fired":0,"pressed":373.2000000476837,"delivered":788.2000000476837,"block":{"from":198.5,"to":700}}]
+
+[32/32] [e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+hold-stall across: [{"fired":0,"pressed":971.0999999046326,"delivered":836.7999999523163,"block":{"from":207.79999995231628,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall smooth: [{"fired":0,"pressed":978,"delivered":919.9000000953674,"block":null,"hints":["Page delayed — hold again"]},{"fired":1,"pressed":945.2999999523163,"delivered":922,"block":null,"hints":[]}]
+
+  32 passed (4.9m)
+load still running: yes
+done

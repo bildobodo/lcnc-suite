@@ -1,0 +1,107 @@
+# R402 · red first for the stale-hint guard: hold-stall-mouse-oldrec = the guard with 2abcdb0b's recorder (temp copy, deleted); plus both guards as committed (Chromium, 2 workers)
+
+
+Running 12 tests using 2 workers
+
+[1/12] [e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:104:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[2/12] [e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[e2e] › e2e/hold-stall-mouse.spec.ts:109:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":129.29999995231628,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":837.5,"fired":1,"hints":[]}]}
+
+[e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:104:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":126.60000014305115,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":829.5999999046326,"fired":1,"hints":[]}]}
+
+[3/12] [e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+[4/12] [e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:139:1 › mouse: a tap or a hold across a blocked page never fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":555.2999999523163,"block":{"from":25.299999952316284,"to":540},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:139:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":674.4000000953674,"block":{"from":24.899999856948853,"to":540},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":714.7000000476837,"block":{"from":104.20000004768372,"to":700},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:139:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":709.9000000953674,"block":{"from":106.10000014305115,"to":700},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall-mouse.spec.ts:144:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":805.2999999523163,"block":{"from":101.89999985694885,"to":700},"hints":["Page delayed — hold again"]}]
+
+[e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:139:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":810.7000000476837,"block":{"from":107.70000004768372,"to":700},"hints":["Page delayed — hold again"]}]
+
+[5/12] [e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[6/12] [e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:168:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[e2e] › e2e/hold-stall-mouse.spec.ts:173:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2475,2925],"ups":[2575,3039],"hints":["Hold to activate"],"block":null}
+
+[e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:168:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[2492,2942],"ups":[2592,3056],"hints":["Hold to activate"],"block":null}
+
+[7/12] [e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[8/12] [e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+  1) [e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused 
+
+    Error: before the press: nothing of this record
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Page delayed — hold again",
+    + ]
+
+      210 |     await record(page);
+      211 |     await page.evaluate(() => { const el = document.createElement("i"); document.body.append(el); el.remove(); });
+    > 212 |     expect((await seen(page)).hints, "before the press: nothing of this record").toEqual([]);
+          |                                                                                  ^
+      213 |     await page.mouse.down();
+      214 |     await page.clock.runFor(100);
+      215 |     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse-oldrec.spec.ts:212:82
+        at onPageClock (/home/cnc/lcnc-suite-hr/lcnc-webui/e2e/holdClock.ts:27:5)
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/hold-stall-mouse-oldrec.spec.ts:203:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-oldrec-mo-63c60-whole-press-stays-unexcused-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/hold-stall-mouse-oldrec-mo-63c60-whole-press-stays-unexcused-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/hold-stall-mouse-oldrec-mo-63c60-whole-press-stays-unexcused-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/hold-stall-mouse-oldrec-mo-63c60-whole-press-stays-unexcused-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[9/12] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+[e2e] › e2e/hold-stall-mouse.spec.ts:205:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":[]}
+
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 520 ms: no real tap fires
+hold-stall a block from the press's delivery to 520 ms: [{"fired":0,"pressed":157.89999985694885,"delivered":533.0999999046326,"block":{"from":101.09999990463257,"to":520}},{"fired":0,"pressed":191.20000004768372,"delivered":523.9000000953674,"block":{"from":116,"to":520}},{"fired":0,"pressed":146.5,"delivered":531.7000000476837,"block":{"from":100.79999995231628,"to":520}},{"fired":0,"pressed":157.29999995231628,"delivered":533.6000001430511,"block":{"from":101,"to":520}},{"fired":0,"pressed":145.20000004768372,"delivered":531.7999999523163,"block":{"from":100.69999980926514,"to":520}},{"fired":0,"pressed":143,"delivered":532.7000000476837,"block":{"from":100.70000004768372,"to":520}},{"fired":0,"pressed":156.89999985694885,"delivered":534.8999998569489,"block":{"from":100.90000009536743,"to":520}},{"fired":0,"pressed":150.70000004768372,"delivered":534.2000000476837,"block":{"from":101.90000009536743,"to":520}}]
+
+[10/12] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from the press's delivery to 540 ms: no real tap fires
+hold-stall a block from the press's delivery to 540 ms: [{"fired":0,"pressed":170,"delivered":551.5999999046326,"block":{"from":101.09999990463257,"to":540}},{"fired":0,"pressed":151.5,"delivered":552.0999999046326,"block":{"from":101.20000004768372,"to":540}},{"fired":0,"pressed":153.69999980926514,"delivered":554.1000001430511,"block":{"from":101.10000014305115,"to":540}},{"fired":0,"pressed":144.79999995231628,"delivered":553,"block":{"from":101.19999980926514,"to":540}},{"fired":0,"pressed":153.5,"delivered":549.5,"block":{"from":101.20000004768372,"to":540}},{"fired":0,"pressed":157.90000009536743,"delivered":550.7999999523163,"block":{"from":100.90000009536743,"to":540}},{"fired":0,"pressed":150.10000014305115,"delivered":554.3999998569489,"block":{"from":101.39999985694885,"to":540.0999999046326}},{"fired":0,"pressed":147.70000004768372,"delivered":564.2999999523163,"block":{"from":101,"to":540}}]
+
+[11/12] [e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+[e2e] › e2e/hold-stall.spec.ts:120:3 › a block from 100 to 700 ms after the delivery: no real tap fires
+hold-stall a block from 100 to 700 ms after the delivery: [{"fired":0,"pressed":292.40000009536743,"delivered":716.9000000953674,"block":{"from":100.89999985694885,"to":700}},{"fired":0,"pressed":273.39999985694885,"delivered":716.2000000476837,"block":{"from":101.5,"to":700}},{"fired":0,"pressed":285.2000000476837,"delivered":716.5999999046326,"block":{"from":101.80000019073486,"to":700}},{"fired":0,"pressed":280,"delivered":716.6999998092651,"block":{"from":100.70000004768372,"to":700}},{"fired":0,"pressed":277.5,"delivered":718.6999998092651,"block":{"from":100.60000014305115,"to":700}},{"fired":0,"pressed":282.69999980926514,"delivered":713.5,"block":{"from":101,"to":700}},{"fired":0,"pressed":273.60000014305115,"delivered":721.2000000476837,"block":{"from":100.79999995231628,"to":700}},{"fired":0,"pressed":280.59999990463257,"delivered":716.5999999046326,"block":{"from":100.90000009536743,"to":700}}]
+
+[12/12] [e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+[e2e] › e2e/hold-stall.spec.ts:134:1 › a hold across a block past 150 ms is cancelled and says so; the same hold on a smooth page fires
+hold-stall across: [{"fired":0,"pressed":867.5999999046326,"delivered":833.5,"block":{"from":115.29999995231628,"to":700},"hints":["Page delayed — hold again"]}]
+
+hold-stall smooth: [{"fired":1,"pressed":826.8000001907349,"delivered":834.3000001907349,"block":null,"hints":[]}]
+
+  1 failed
+    [e2e] › e2e/hold-stall-mouse-oldrec.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused 
+  11 passed (1.1m)

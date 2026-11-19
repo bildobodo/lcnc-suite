@@ -1,0 +1,19 @@
+  1) [e2e] › e2e/macros.spec.ts:804:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort 
+
+    TypeError: Cannot read properties of null (reading 'height')
+
+      809 |     const want = touch ? 36 : 28;
+      810 |     for (const name of ["Park", "Face top", "Abort"]) {
+    > 811 |       const h = (await bar.getByRole("button", { name, exact: true }).boundingBox())!.height;
+          |                                                                                       ^
+      812 |       expect(Math.round(h), `${touch ? "touch" : "desktop"}: ${name} is ${want} px`).toBe(want);
+      813 |     }
+      814 |     await ctl({ op: "status_delta", data: { permissions: { abort: true, armed: true, always: true, probe: true } } });
+        at /home/cnc/lcnc-suite-hr/lcnc-webui/e2e/macros.spec.ts:811:87
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/macros-the-macro-bar-is-de-dec4a-nd-that-sends-exactly-abort-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/macros-the-macro-bar-is-de-dec4a-nd-that-sends-exactly-abort-e2e/error-context.md
+

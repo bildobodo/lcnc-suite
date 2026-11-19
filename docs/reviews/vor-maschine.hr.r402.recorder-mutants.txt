@@ -1,0 +1,17 @@
+## plain
+  8 passed (48.8s)
+1
+## M1: the arming removed
+  1) [e2e] › e2e/hold-stall-mouse.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused 
+    Error: before the press: nothing of this record
+    test-results/hold-stall-mouse-mouse-a-h-d69ce-whole-press-stays-unexcused-e2e/test-failed-1.png
+  1 failed
+  7 passed (49.9s)
+1
+## M2: the reset does not disarm
+  1) [e2e] › e2e/hold-stall-mouse.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused 
+    Error: before the press: nothing of this record
+    test-results/hold-stall-mouse-mouse-a-h-d69ce-whole-press-stays-unexcused-e2e/test-failed-1.png
+  1 failed
+  7 passed (51.3s)
+restored

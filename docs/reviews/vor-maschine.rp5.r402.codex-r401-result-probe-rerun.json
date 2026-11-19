@@ -1,0 +1,52 @@
+{
+  "complete_control": {
+    "verdict": "PASS",
+    "errors": [],
+    "checked": 109,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r401-duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "failed"
+      }
+    ]
+  },
+  "missing_failed_result_of_two": {
+    "verdict": "FAIL",
+    "errors": [
+      "unit-light.json: r401-duplicate.test.ts \u203a same title \u2014 1 result(s) for 2 listed test(s)"
+    ],
+    "checked": 109,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r401-duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "unknown status ['contradictory (1 results for 2 listed)']"
+      }
+    ]
+  },
+  "heavy_pass_hides_light_failure": {
+    "verdict": "PASS",
+    "errors": [],
+    "checked": 109,
+    "evidence": [
+      {
+        "layer": "unit",
+        "file": "r401-duplicate.test.ts",
+        "title": "same title",
+        "bound": [
+          "same title"
+        ],
+        "status": "failed"
+      }
+    ]
+  }
+}
