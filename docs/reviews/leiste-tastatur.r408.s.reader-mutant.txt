@@ -1,0 +1,3 @@
+ ❯ src/e2eJsonLines.test.ts (3 tests | 2 failed) 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
