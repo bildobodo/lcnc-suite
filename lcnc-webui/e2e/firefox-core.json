@@ -59,7 +59,7 @@
     {
       "file": "strip-fit.spec.ts",
       "titles": [
-        "strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+        "strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
         "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
         "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
         "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"

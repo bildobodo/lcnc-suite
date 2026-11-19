@@ -106,18 +106,29 @@ const currentToolData = computed(() =>
 
 <style scoped>
 /* The body: the section's last child takes the rest of the fixed height
-   (.stripSection > :last-child) and scrolls vertically. */
+   (.stripSection > :last-child) and scrolls vertically. Its own last child
+   (the tool card, or "No tool loaded") reaches the body's bottom like every
+   other section's last card — and grows past it under a note, which then
+   scrolls (operator 2026-11-19: the card ending after "Description" looked
+   shrunk). */
 .toolBody { overflow-y: auto; }
-/* Landscape: the section's own width (--strip-tool-w); portrait keeps the
-   column's (.stripFixed). */
+.toolBody > :last-child { flex: 1 0 auto; }
+/* Landscape: at least the section's own width (--strip-tool-w), and the
+   rest of the row: the strip ends at the same distance from its right edge
+   as Safety starts from its left (operator 2026-11-19, "symmetrisch"). The
+   room Tool has above its minimum is the strip's reserve — a wider font
+   takes it from Tool alone; the strip scrolls only once Tool is back at its
+   minimum. Portrait keeps the column's width (.stripFixed). */
 @media (orientation: landscape) {
-  .toolStrip { width: var(--strip-tool-w); }
+  .toolStrip { width: var(--strip-tool-w); flex-grow: 1; }
 }
 
+/* The description takes the room its row leaves (a wider Tool shows more
+   of it) and ends in an ellipsis. */
 .toolDesc {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 120px;
 }
 </style>

@@ -3,18 +3,23 @@
 // R405/R406). The promise: X, XY and XYZ without a kinematics choice, at
 // 1920 px in touch sizes (the machine's panel, full screen and in a
 // maximised window) and in desktop sizes (before the first touch) — no
-// sideways overflow, at least RESERVE px between the last section and the
-// strip's content edge, every section one width in every state, nothing
-// clipped sideways. A rotary axis (XYA), a kinematics choice and four or more
-// axes keep scrolling: measured and reported, never required.
+// sideways overflow, the strip's two ends even (Tool takes the rest of the
+// row — operator 2026-11-19, "symmetrisch"), Tool at least RESERVE px above
+// its minimum width, every section one width in every state, nothing clipped
+// sideways, the Tool card down to its body's bottom. A rotary axis (XYA), a
+// kinematics choice and four or more axes keep scrolling with Tool at its
+// minimum: the overflow is measured and reported, never required; Tool's
+// rows are required whole there too.
 import { test, expect, type Page } from './test';
 import { ctl, publishToolTable } from './ctl';
 import { VIEWPORTS, openLayout, setLayoutState, enterStripState, leaveStripState, settleLayout,
   type Profile, type LayoutState, type LayoutViewport } from './layout-fixtures';
 
-/** The least room the strip keeps free at its end (CSS px). The two
- *  engines measured 18 px apart on the VM (R405); the panel's fonts are
- *  calibrated on the machine day before this is tuned. */
+/** The least room Tool keeps above its minimum width (CSS px): a wider
+ *  font takes it from Tool alone before the strip scrolls. The two engines
+ *  measured 18 px apart on the VM (R405); the panel's fonts are calibrated on
+ *  the machine day before this is tuned. Until 2026-11-19 it was free room
+ *  after the last section — Tool now fills that room. */
 const RESERVE = 24;
 
 const LINEAR: Profile[] = [
@@ -40,7 +45,17 @@ const OFFSETS: Record<string, Record<string, unknown>> = {
 };
 
 interface Fit {
-  over: number; spare: number;
+  over: number;
+  /** the room after the last section to the strip's content edge: 0 once Tool fills the row */
+  spare: number;
+  /** Tool's width, its minimum (--strip-tool-w) and the room between them */
+  toolW: number; toolMin: number; room: number;
+  /** the first section's content from the strip's inner left edge, the last
+   *  section's content from its inner right edge (CSS px) */
+  insetLeft: number; insetRight: number;
+  /** the Tool body's inner bottom minus its last card's bottom: 0 = the card
+   *  reaches down; negative under a note (the body scrolls) */
+  cardGap: number;
   sections: { name: string; width: number }[];
   clipped: string[];
   /** Tool rows on more than one line — required away only WITHOUT a note
@@ -108,7 +123,24 @@ async function measureFit(page: Page): Promise<Fit> {
       }
     }
     const body = document.querySelector('[data-strip="tool"] .toolBody') as HTMLElement | null;
+    const toolSec = document.querySelector('[data-strip="tool"]') as HTMLElement;
+    const toolMin = parseFloat(getComputedStyle(toolSec).getPropertyValue('--strip-tool-w'));
+    const toolW = toolSec.getBoundingClientRect().width;
+    // a section's content box: Safety carries the strip's left gutter as its
+    // own padding, the strip's right padding follows the last section
+    const content = (s: HTMLElement) => {
+      const r = s.getBoundingClientRect(), c = getComputedStyle(s);
+      return { left: r.left + parseFloat(c.borderLeftWidth) + parseFloat(c.paddingLeft),
+               right: r.right - parseFloat(c.borderRightWidth) - parseFloat(c.paddingRight) };
+    };
+    const innerLeft = box.left + strip.clientLeft, innerRight = innerLeft + strip.clientWidth;
+    const card = body?.lastElementChild;
+    const r1 = (v: number) => Math.round(v * 10) / 10;
     return {
+      toolW: r1(toolW), toolMin, room: r1(toolW - toolMin),
+      insetLeft: r1(content(sections[0]!).left - innerLeft),
+      insetRight: r1(innerRight - content(sections[sections.length - 1]!).right),
+      cardGap: body && card ? r1(body.getBoundingClientRect().top + body.clientTop + body.clientHeight - card.getBoundingClientRect().bottom) : NaN,
       wraps,
       toolScroll: body ? body.scrollHeight - body.clientHeight : -1,
       over: strip.scrollWidth - strip.clientWidth,
@@ -121,13 +153,21 @@ async function measureFit(page: Page): Promise<Fit> {
 
 function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
-  expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+  expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+  expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+  rows(label, fit);
+  if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+}
+
+/** Tool's rows without a note, at any width Tool has: nothing cut, every row
+ *  one line, nothing to scroll, the card down to the body's bottom. */
+function rows(label: string, fit: Fit) {
   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
   // without a note every Tool row is one line
   expect(fit.wraps, `${label}: a Tool row wraps without a note`).toEqual([]);
-  if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
   // without a note the tool rows fit the section: its body has nothing to scroll
   expect(fit.toolScroll, `${label}: the Tool body scrolls ${fit.toolScroll} px without a note`).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(fit.cardGap), `${label}: the Tool card ends ${fit.cardGap} px above its body's bottom`).toBeLessThanOrEqual(0.5);
 }
 
 async function loadTool(page: Page, offset: Record<string, unknown>) {
@@ -139,7 +179,7 @@ async function loadTool(page: Page, offset: Record<string, unknown>) {
 
 for (const profile of LINEAR) {
   for (const viewport of FULLHD) {
-    test(`strip fit: ${profile.name} @ ${viewport.name} — no overflow, ${RESERVE} px spare, one width per section in every state`, async ({ page }, info) => {
+    test(`strip fit: ${profile.name} @ ${viewport.name} — no overflow, even ends, Tool ${RESERVE} px above its minimum, one width per section in every state`, async ({ page }, info) => {
       test.setTimeout(120_000);
       const evidence: { state: string; fit: Fit }[] = [];
       try {
@@ -356,15 +396,27 @@ test('strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a
   info.annotations.push({ type: 'wraps', description: fit.wraps.join('; ') || 'none' });
 });
 
-// Named, not required: a rotary axis (XYA) keeps scrolling. The measurement
-// is reported so a change in either direction is seen.
-test('strip fit: 3axis-xya @ touch-fullhd — measured, not required', async ({ page }, info) => {
+// A rotary axis (XYA) keeps scrolling — its overflow is named, not
+// required. Tool stays at its minimum there and never shrinks below it, and
+// its rows hold at that width in every offset state: the width a panel
+// whose fonts take Tool's room leaves it (advisor 2026-11-19).
+test('strip fit: 3axis-xya @ touch-fullhd — Tool at its minimum, its rows whole in every offset state; the overflow measured, not required', async ({ page }, info) => {
   const profile: Profile = { name: '3axis-xya', axes: ['X', 'Y', 'A'], kins: null };
   await openLayout(page, profile, FULLHD[0]!);
   const fit = await measureFit(page);
-  info.annotations.push({ type: 'xya', description: `over ${fit.over} px, spare ${fit.spare} px, sections ${fit.sections.map(s => `${s.name} ${s.width}`).join(', ')}` });
+  info.annotations.push({ type: 'xya', description: `over ${fit.over} px, Tool ${fit.toolW} px, sections ${fit.sections.map(s => `${s.name} ${s.width}`).join(', ')}` });
   await info.attach('strip-fit-xya.json', { body: JSON.stringify(fit, null, 1), contentType: 'application/json' });
   expect(fit.sections.length).toBe(6);
+  expect(fit.over, 'XYA scrolls').toBeGreaterThan(0);
+  expect(fit.toolW, 'Tool never shrinks below its minimum').toBe(fit.toolMin);
+  rows('xya, no tool', fit);
+  await publishToolTable([TOOL]);
+  for (const [name, offset] of Object.entries(OFFSETS)) {
+    await loadTool(page, offset);
+    const f = await measureFit(page);
+    expect(f.toolW, `xya ${name}: Tool at its minimum`).toBe(f.toolMin);
+    rows(`xya ${name}`, f);
+  }
 });
 
 // The lengths the record names are the guard's own (Codex R407: the report
