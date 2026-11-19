@@ -687,3 +687,67 @@ Die Verlegung des Corner-Chamfer-Wächters auf XYA ist richtig: Bei dem breitere
 Die ausdrücklich benannte große Tool-Breite bei wenigen Achsen oder breiteren Fenstern ist kein verdeckter Überlauf. Eine Obergrenze und die vollständige Sichtbarkeit bei mehr Achsen bleiben die angekündigten eigenen Fragen/Pakete. Die Schrift- und Browserkalibrierung am Maschinen-PC (S6/10b) ist weiterhin eine eigene Messung; meine VM-Ergebnisse ersetzen sie nicht.
 
 **Weiter wie angekündigt:** ein Integrationskopf mit S `7083a38b` und K `7d1084e3`, Inhaltsvergleich je Teil, benannte Dokumentkonflikt-Auflösung, Fables Go und Merge-Gate-PASS genau an diesem Kopf; danach gilt das erteilte Go zum Merge vor dem Maschinentag. Meine Prüfprozesse sind beendet, die Testsperre ist frei. Im Live-Baum nur dieser Anhang und neue `r410.codex-*`-Belege; keine Live-Sim-Verbindung.
+
+---
+
+## Claude · Merge nach development · Leiste bei Full HD, Tasten im Hochformat · 19. November 2026
+
+**development `5c48a7e1` → `dc9dc3e4`**, vorgespult und ohne Force gepusht.
+- **Zeitpunkt:** vor dem Maschinentag. Der Operator: „wir können die maschine frühestens am samstag testen. wir können also die neue symmetrisch variante A bauen und davor mergen.“
+- **Variante:** A, symmetrisch (Q405-1). Der Operator hat B und die zuerst gebaute Fassung von A aus den Vergleichsbildern nehmen lassen und um die symmetrische Fassung gebeten.
+
+Der Integrationskopf `integ/strip-keys` besteht aus drei Merges auf development:
+1. S `a9cd1da0` (Agreement R409);
+2. K `7d1084e3` (Agreement R407);
+3. S `7083a38b`, die symmetrische Fassung (Agreement R410).
+
+Damit enthält er S an `7083a38b` und K an `7d1084e3`.
+
+**Konflikte, aufgelöst:**
+- **`docs/decisions.md`, zweimal.**
+  - Beim ersten Merge hängen beide Pakete einen Eintrag vom 19. November ans Ende. Beide bleiben, S zuerst.
+  - Beim dritten Merge steht der neue Absatz „Symmetric“ von S am Ende von S' Eintrag, vor K' Eintrag.
+- **`e2e/test.ts`, `safety-during-edit.spec.ts`, `rules.py`:** K trug darin nur die übernommenen Harness-Commits, die gleichen Patches wie `18e6f7ce` und `8e2ed7f2` aus S. Es gilt die Fassung von S.
+
+**Inhaltsvergleich am Kopf `dc9dc3e4`:**
+- **Eigene Dateien:** die 39 nur von S geänderten Dateien identisch zu `7083a38b`, die 4 nur von K geänderten identisch zu `7d1084e3`. Der Kopf ändert gegenüber development genau die Vereinigung beider Mengen.
+- **Die vier Harness-Dateien** (`replay-origin.spec`, `safety-during-edit.spec`, `test.ts`, `rules.py`) sind gleich S.
+- **`CLAUDE.md`, `frontend-modules.md` und `decisions.md`:** In beiden Richtungen entsprechen die +/−-Zeilen von `diff(Teil A, Kopf)` exakt denen von `diff(Basis, Teil B)`.
+
+**Merge-Gate** `round_gate.py --merge` an `dc9dc3e4`: **PASS, 24 von 24** ([Ergebnis](leiste-tastatur.integ2.merge-gate.json)):
+- Chromium 983 von 983, Firefox-Kern 94 von 94;
+- Unit leicht 2700 und schwer 104, Backend;
+- Install-Probe 14 von 14, die LAN-Simulation danach zurück (`/ready` 204);
+- Abdeckung PASS (70 benannte Lücken).
+- Offen bleibt die Live-Prüfung `twp-buttons` vor main, weil `JogStrip.vue` geändert ist.
+
+**Fable:** Go für `dc9dc3e4`, mit einer Bedingung für den Push: Der CI-Lauf an `dc9dc3e4` muss grün sein. Bei Rot wird nicht gemergt; der Lauf bleibt als eigener Beleg, und ich suche die Ursache. Die Läufe an den S-Köpfen werden danach gelesen und eingetragen.
+
+**CI:**
+- S `7083a38b` (44579710582) und `dfcd6bc0` (44579471044): beide grün (frontend und backend);
+- Integrationskopf `harden/strip-keys` `dc9dc3e4` (44586197780): grün (frontend und backend);
+- development `dc9dc3e4`: Lauf gestartet nach dem Push; sein Ergebnis trage ich nach.
+
+### Sichtbar an der Maschine
+
+Ausgeliefert ändern sich `App.vue`, `ChoiceGroup.vue`, `JogStrip.vue`, `ToolStrip.vue`, `NumberKeypadStrip.vue`, `TextKeypadStrip.vue` und `style.css`.
+
+- **Die Leiste passt bei 1920 px ohne Scrollen**, mit X, XY oder XYZ, bei Touch- und Desktop-Größen, in jedem Zustand. Beide Enden liegen 8 px vom Rand, links wie rechts.
+- **Tool-Abschnitt:**
+  - Mindestens 224 px breit (vorher 280); er nimmt den Rest der Zeile. Bei XYZ ist er in Chromium 256,5 px breit (Touch) bzw. 265,5 px (Desktop), in Firefox 160 273,5 bzw. 284,4 px.
+  - Der Spielraum über 224 px ist die Reserve der Leiste. Die Leiste scrollt erst, wenn Tool wieder bei 224 px ist.
+  - Ein breiteres Fenster gibt Tool den ganzen Rest: bei 2560 px etwa 900 px, mit nur einer Achse bei 1920 px 588 px.
+  - Der Offset-Zustand steht in einer eigenen Zeile „In effect“ (G43 / G43.1 / Off (G49) / Other offset / —) statt „· G43“ hinter der Z-Offset-Zahl.
+  - Die Werkzeugdaten reichen bis zur Unterkante; die Beschreibung nutzt die Breite ihrer Zeile.
+  - Eine Fehlermeldung der Werkzeugtabelle scrollt samt Retry und Werkzeugdaten in einem Bereich, statt die Daten abzuschneiden.
+- **Auswahlgruppen** (Step, Mode, WCS, Kinematik): jede Option etwa 1 px breiter. Eine Wahl verschiebt keine Option mehr.
+- **Jog vor dem Homen**, sichtbar nur bei einer Achse: Die Kopfnotiz wird gekürzt (ihr „?“ zeigt sie ganz), statt den Abschnitt zu verbreitern.
+- **Mit Drehachse oder mehr Achsen** scrollt die Leiste weiter; Tool bleibt dann bei 224 px.
+- **Hochformat:** Die Tasten von Ziffernfeld und Tastatur füllen die Breite der Leistenspalte in fünf gleichen Spuren, bündig mit den Zeilen darüber. Im Querformat bleiben sie unverändert 44 × 44.
+
+### Geschuldet
+
+- Die Messung am Maschinen-PC: Schritt 10b der Checkliste, beide Browser, Zoom getrennt. Verlangt: `over` 0 und `room` mindestens 24.
+- Das eigene kleine Paket für die 67 Rechteck-Lesestellen (`boundingBox())!`).
+- Offene Fragen an den Operator: eine Obergrenze für Tool auf breiten Bildschirmen; ein Paket für mehr Achsen (Vorschläge V1 und V3 gerendert).
+- Vor main: Live-Prüfungen und Hardware-Validierung. #36 bleibt offen.
