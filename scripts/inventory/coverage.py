@@ -35,6 +35,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -261,6 +262,9 @@ def replay_attempts(project: str, r: dict | None, listed: dict[tuple, dict], ref
         errors.append(f"{label}: verdict {r.get('verdict')!r}, {len(r.get('findings') or [])} finding(s) — "
                       "a red replay is no source of triggers")
         return None
+    if not ref:
+        errors.append(f"{label}: this project has no known run id — no attempt is admitted (R402)")
+        return None
     if r.get("run") != ref:
         errors.append(f"{label}: run {r.get('run')!r}, this run {ref!r} — another run's replay")
         return None
@@ -376,11 +380,37 @@ def coverage(gate_path: Path, native_paths: list[Path], live_paths: list[Path], 
 RUN_CHECKS = {"e2e": "browser-workers", "firefox-core": "firefox-workers", "backend": "backend"}
 
 
+@dataclass(frozen=True)
+class RunConflict:
+    """The gate names one set's run check more than once: no reference — the
+    order of two sources never chooses (Codex R402 VM-I33)."""
+    check: str
+    runs: tuple
+
+
 def gate_runs(checks: list[dict]) -> dict[str, Any]:
     """The run ids the gate itself made — the known ids every record of the
-    run must carry (Codex R396 VM-I33)."""
-    by = {c.get("name"): c for c in checks}
-    return {k: (by.get(v) or {}).get("run") for k, v in RUN_CHECKS.items()}
+    run must carry (Codex R396 VM-I33); a check name twice is a RunConflict."""
+    out: dict[str, Any] = {}
+    for k, v in RUN_CHECKS.items():
+        named = [c for c in checks if isinstance(c, dict) and c.get("name") == v]
+        out[k] = (RunConflict(v, tuple(c.get("run") for c in named)) if len(named) > 1
+                  else named[0].get("run") if named else None)
+    return out
+
+
+def _reference(ref: Any, what: str, errors: list[str]) -> Any:
+    """A run reference as evidence may use it: a known id, or None (said why).
+    A missing id is no identity even where it is missing everywhere — None ==
+    None binds nothing (Codex R402 VM-I33 B)."""
+    if isinstance(ref, RunConflict):
+        errors.append(f"{what}: the gate names {ref.check} {len(ref.runs)} times (runs {list(ref.runs)}) — "
+                      "a contradictory reference binds nothing")
+        return None
+    if not ref:
+        errors.append(f"{what}: no known run id — nothing binds to an unknown run")
+        return None
+    return ref
 
 
 def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live_paths: list[Path],
@@ -400,13 +430,13 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
     refs: dict[str, Any] = {}
     for project, listing, report in PROJECTS:
         lst, rep = _json(logs / listing, errors), _json(logs / report, errors)
-        ref = (runs or {}).get(project) if runs is not None else run_of(lst)
-        if not ref:
-            errors.append(f"{project}: no run id {'from the gate' if runs is not None else 'in ' + listing} — "
-                          "nothing binds to an unknown run")
+        ref = _reference((runs or {}).get(project) if runs is not None else run_of(lst),
+                         f"{project} ({'the gate' if runs is not None else listing})", errors)
         foreign = set()
         for name, doc in ((listing, lst), (report, rep)):
-            if doc is not None and run_of(doc) != ref:
+            if ref is None:
+                foreign.add(name)            # an unknown reference: nothing of this set binds (R402)
+            elif doc is not None and run_of(doc) != ref:
                 errors.append(f"{name}: run {run_of(doc)!r}, this run {ref!r} — another run's record")
                 foreign.add(name)
         # another run's record is reported AND withheld: none of its tests or
@@ -445,6 +475,8 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
     gw = junit_tests(junit) if junit.is_file() else {}
     if not junit.is_file():
         errors.append(f"{junit.name}: an artefact of the run is missing")
+    elif runs is not None and _reference(runs.get("backend"), "backend (the gate)", errors) is None:
+        gw = {}                                    # an unknown reference binds nothing (R402)
     elif runs is not None and junit_suites(junit) != {runs.get("backend")}:
         errors.append(f"{junit.name}: suite {sorted(junit_suites(junit))}, this run {runs.get('backend')!r} — "
                       "another run's JUnit")

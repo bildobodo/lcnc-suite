@@ -904,3 +904,83 @@ def test_a_native_case_twice_in_one_report_rejects_the_report(tmp_path):
     assert rows and all(x["status"] == "invalid report of this commit" for x in rows)
     c = coverage.coverage(gate(tmp_path / "ok", dict(EMPTY_RUN)), [_native_report(tmp_path / "o.json", full)], [])
     assert _native_errors(c) == []                                                         # the control
+
+
+# ── R402 (VM-I33): the run reference itself ──────────────────────────────────
+
+def _with_checks(g: Path, fn) -> Path:
+    d = json.loads(g.read_text())
+    d["checks"] = fn(d["checks"])
+    g.write_text(json.dumps(d))
+    return g
+
+
+def _touchoff_case(tmp: Path, *, strip_e2e_run: bool = False) -> dict:
+    """Chromium and Firefox both list, run and replay T1 (touchoff counted) and
+    the first real browser evidence; Chromium's run id removed everywhere on ask."""
+    e = _browser_evidence()
+    t = ("c-1", e["file"], e["title"], "passed")
+    def strip(doc: dict) -> dict:
+        doc = json.loads(json.dumps(doc))
+        doc.get("config", {}).get("metadata", {}).pop("run", None)
+        doc.pop("run", None)
+        return doc
+    e2e = {"list-run.json": pw("e2e", T1, t, listing=True), "playwright.json": pw("e2e", T1, t),
+           "replay.json": replay("e2e", att(), per_attempt={ATT: {"touchoff": 1}})}
+    if strip_e2e_run:
+        e2e = {k: strip(v) for k, v in e2e.items()}
+    ff = {**ran("firefox-core", T1, t),
+          "firefox-replay.json": replay("firefox-core", att("firefox-core"), per_attempt={ATT: {"touchoff": 1}})}
+    tmp.mkdir(parents=True, exist_ok=True)
+    return {**dict(EMPTY_RUN), **e2e, **ff}
+
+
+def _touchoff_and_rows(c: dict) -> tuple[dict, dict]:
+    e = _browser_evidence()
+    return (_fn(c, "F-TOUCHOFF")["triggered"]["commands"]["touchoff"],
+            {x["project"]: x["status"] for x in _rows_of(c, e)})
+
+
+def test_gate_checks_of_one_name_twice_void_that_reference_in_either_order(tmp_path):
+    # Codex R402 A: gate_runs took the LAST check of a name — the order of two sources chose the verdict
+    other = {"name": "browser-workers", "run": "another-run"}
+    for name, fn in (("before", lambda cs: [other, *cs]), ("after", lambda cs: [*cs, other])):
+        files = _touchoff_case(tmp_path / name)
+        c = coverage.coverage(_with_checks(gate(tmp_path / name, files), fn), [], [])
+        trig, rows = _touchoff_and_rows(c)
+        assert trig == {"e2e": "not sent", "firefox-core": {"touchoff": 1}}, (name, trig)
+        assert rows["e2e"] != "passed" and rows["firefox-core"] == "passed", (name, rows)
+        assert any("browser-workers 2 times" in x for x in c["errors"]), name
+    files = _touchoff_case(tmp_path / "ok")                                                 # the control
+    trig, rows = _touchoff_and_rows(coverage.coverage(gate(tmp_path / "ok", files), [], []))
+    assert trig == {"e2e": {"touchoff": 1}, "firefox-core": {"touchoff": 1}} and rows == {"e2e": "passed", "firefox-core": "passed"}
+    assert isinstance(coverage.gate_runs([other, other])["e2e"], coverage.RunConflict)
+
+
+def test_a_run_id_missing_everywhere_binds_nothing_of_that_project(tmp_path):
+    # Codex R402 B: the gate check, the listing, the report and the replay all without Chromium's
+    # run id — None == None is no identity: no Chromium evidence, no admitted attempt; Firefox keeps its own
+    files = _touchoff_case(tmp_path / "none", strip_e2e_run=True)
+    g = _with_checks(gate(tmp_path / "none", files),
+                     lambda cs: [{k: v for k, v in x.items() if not (x["name"] == "browser-workers" and k == "run")} for x in cs])
+    c = coverage.coverage(g, [], [])
+    trig, rows = _touchoff_and_rows(c)
+    assert trig == {"e2e": "not sent", "firefox-core": {"touchoff": 1}}, trig
+    assert rows["e2e"] != "passed" and rows["firefox-core"] == "passed", rows
+    assert any("no known run id" in x for x in c["errors"])
+    # after the fact (no gate ids): the listing's own missing id binds nothing either
+    c = coverage.coverage_of(g.with_suffix(".logs"), HEAD, "merge", [], [], runs=None)
+    trig, rows = _touchoff_and_rows(c)
+    assert trig["e2e"] == "not sent" and rows["e2e"] != "passed", (trig, rows)
+
+
+def test_an_unknown_reference_admits_no_replay_attempt_by_itself():
+    # the replay's own check, apart from coverage_of's withheld tests (R402 B): None == None admits nothing
+    listed = {("t-1", "e2e"): {"results": {0: "passed"}}}
+    r = replay("e2e", att())
+    r.pop("run")
+    errors: list[str] = []
+    assert coverage.replay_attempts("e2e", r, listed, None, errors) is None
+    assert any("no known run id" in x for x in errors)
+    errors = []
+    assert coverage.replay_attempts("e2e", replay("e2e", att()), listed, RUNS["e2e"], errors) == {ATT} and errors == []

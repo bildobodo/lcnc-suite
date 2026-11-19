@@ -11686,6 +11686,10 @@ result is only ever made stricter, like the options. The class check of R402
 over every index and join found two more: a key twice in a JSON object (json
 keeps the last silently — every artefact and report is now read strictly, a
 repeated key withholds it) and a native case twice in one report (rejected).
+R402: the reference before those joins — a gate check of one name twice is
+a RunConflict (the order of two sources never chooses), and a run id that is
+missing binds nothing even where it is missing everywhere (None == None is
+no identity): no evidence of that project, no admitted replay attempt.
 
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
