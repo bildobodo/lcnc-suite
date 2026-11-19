@@ -171,3 +171,70 @@ Das entscheidet der Operator (Q411-2).
 - **Q411-2** Wer bei F1 den Rest nimmt: gleiche Abstände (mein Vorschlag) oder Spindle.
 - **Q411-3** „Tool T…“ als Knopf zur Werkzeugtabelle in Spindle.
 - **Q411-4** Breite Bildschirme: heute, W1 oder W2. Das wäre ein eigenes Paket.
+
+---
+
+## Codex · Planreview R411 · 19. November 2026
+
+**Urteil: findings.** Geprüft ist der Plan an `91f1ff8c`, mit eigenen Prototyp-Proben auf der genannten Produktbasis `dc9dc3e4`. Die Richtung F0–F4, Tool als erster weichender Abschnitt, die Werkzeugtabelle als voll hoher Knopf und die Bindung an das gehaltene Helferlayout sind nachvollziehbar. **`scroll-snap: mandatory` nehme ich als Zusicherung für Jogs Stop nicht an:** Der Gegenfall tritt bereits an einer ruhenden Endposition auf, auch in Firefox. Vor dem Bau sind die vier folgenden Verträge zu schließen. Q411-1–4 bleiben wie angekündigt beim Operator; ich stelle keine zusätzliche Operatorfrage.
+
+### LA411-01 · Einrasten garantiert den sichtbaren Jog-Stopp nicht
+
+Die verfügbare Mitte kann breiter als Jog sein, ohne dass der Scrollweg ausreicht, Jog ganz hinter Safety zu schieben und Setup an dessen Stelle auszurichten. Der Browser erreicht dann nur das Ende seines Scrollbereichs. `mandatory` macht daraus keine ganze Seite.
+
+Eigene Probe: das gelieferte M2-CSS auf `dc9dc3e4`, ergänzt um `scroll-snap-type: x mandatory`, `scroll-snap-align: start` auf Jog/Setup und beidseitiges `scroll-padding` nach den gemessenen festen Seiten. Nach dem Scrollen jeweils acht unveränderte Animationsframes abgewartet:
+
+| Fall | Scrollposition am Ende | Safety endet bei x | Stop von … bis x | Ergebnis |
+|---|---:|---:|---:|---|
+| Chromium, Touch, TWP, 1920 | 132 | 289 | 256,5–331 | Stop teilweise verdeckt; X+, Z±, A±, B± und C± vollständig erreichbar |
+| Firefox 160, Desktop, TWP, 1900 | 118,57 | 289 | 269,93–344,43 | derselbe Gegenfall |
+
+Die Mitte hält Jog in beiden Fällen ganz. Auch nach Fokus auf Setup bleibt der Gegenfall bestehen. Bei **F4** greift der Vorschlag ohnehin nicht: XYZ/1000, ein Viertel des Scrollwegs, zeigt in beiden Browsern fünf ganze Jog-Knöpfe bei teilweise verdecktem Stop. Nur Anfang/Mitte/Ende hätten diesen Fall übersehen.
+
+**Gegenvorschlag:** Die Erreichbarkeit des Stopps geometrisch unabhängig vom Einrasten herstellen. Ich bevorzuge für die scrollenden Formen einen fest reservierten Jog-Stopp außerhalb des bewegten Inhalts, mit derselben `jogStop`-Aktion. Alternativ ist ein mitgeführter Stopp im Jog-Bereich möglich, wenn dessen ganze Box in jeder Zwischenlage nachgewiesen wird. Einrasten kann eine Bedienhilfe sein, trägt aber keine Stopp-Zusage. F2, F3 **und F4** gehören in diesen Vertrag; der Stopp darf auch beim Übergang zwischen Formen nicht verschwinden oder einen laufenden Druck wechseln.
+
+**Wächter:** Gegenfälle oben, weitere Zwischenpositionen, Rad/Scrollbar/Drag und Fokus-Scroll, auch während des Scrollens. Je sichtbarer oder erreichbarer Jog-Fläche muss die ganze Stoppfläche erreichbar bleiben. Die Proben müssen die Seiten des Knopfs prüfen: In Chromium liegt dessen Mitte bei diesem Gegenfall bereits außerhalb von Safety, seine linke Seite aber noch darunter.
+
+### LA411-02 · F3 braucht einen tatsächlich festen rechten Platz und ein erreichbares Ende
+
+Im gelieferten M3 bleibt Overrides vor Spindle im selben Flex-Scrollfluss. `position: sticky; right: 0` hält ihn dort nicht am rechten Rand: Sobald die nachfolgende Spindle sichtbar wird, wandert Overrides nach links. Eigene XYZAC/1280-Probe: linke Kante von Overrides **1071 → 829,5 px** in Chromium, **1087,05 → 850,1 px** in Firefox. Die als Platz für Jog verwendete Mitte sinkt dadurch von 782 auf 540,5 px beziehungsweise von 798,05 auf 561,1 px. Sie hält Jog dann gerade nicht mehr ganz. Die Grundannahme für F3 und ein daraus einmal berechnetes `scroll-padding` stimmen nicht für den ganzen Scrollweg.
+
+Hinzu kommt eine zweite Wirkung des vorgeschlagenen Einrastens: Bei TWP/1280/F3 bleibt Chromium auf `scrollLeft = 743` statt des möglichen Endes 772 stehen. **Spindle Fwd bleibt selbst nach explizitem Fokus teilweise rechts abgeschnitten**: Knopf bis x=1291,5, Fensterende x=1272. In Firefox war Fwd in dieser Probe ganz sichtbar; das ist kein Befund für beide Browser.
+
+**Vertragsänderung:** Die feste rechte Gruppe braucht einen reservierten, über den ganzen Scrollweg gleich liegenden Platz. Ein eigenes mittleres Scrollfenster zwischen Safety und der rechten Gruppe ist dafür ein konkreter Gegenentwurf; Spindle gehört in F3 in diesen mittleren Inhalt. Eine andere Konstruktion ist möglich, muss dieselbe Geometrie erfüllen. Alle bewegten Abschnitte müssen bis zum letzten Bedienziel vollständig erreichbar bleiben; insbesondere darf eine Snap-Regel, die nur Jog und Setup kennt, Spindle nicht abschneiden. Beim Helferlayout gelten weiterhin die gehaltenen Plätze und die unmittelbare Nachbarschaft zum Eigentümer.
+
+**Wächter:** Position der festen Gruppen über den ganzen Weg, letzter Spindelknopf per Tab/Shift-Tab und Scrollen, volle Zielbox samt Trefferprüfung. Eine Abnahme nur der drei Stopps beziehungsweise der Knopfmitten reicht hierfür nicht.
+
+### LA411-03 · Die Basismessung muss von der gewählten Form unabhängig verfügbar sein
+
+Die Eingaben nennen die erklärte Kinematikfähigkeit; der Cache nennt dagegen nur Achsensatz und Dichte. Das ist nicht dieselbe Identität: Bereits die gelieferten Touch-Messungen für **XYZABC ohne Kinematikwahl** und **TWP mit demselben Achsensatz** haben Jog/Setup **719,5/465** beziehungsweise **735,5/553 px**. Diese Breiten dürfen keinen Cache-Eintrag teilen.
+
+Zudem ist „nur messen, wenn alle Abschnitte gezeigt sind“ noch kein vollständiger Ablauf: Nach F0 → F1 ist Tool verborgen; ein neuer Achsensatz, eine neue Dichte oder die Rückkehr aus Hochformat kann erstmals eintreffen, während ein Helfer offen ist. Es muss definiert sein, woher dann die neue vollständige Basis kommt und wann F0 wieder gewählt werden kann. Aus dem bereits verteilten Rest oder aus einem verborgenen Abschnitt darf sie nicht entstehen.
+
+**Ergänzung vor dem Bau:**
+
+- Cache/Invalidierung an alle breitenwirksamen Konfigurationsmerkmale binden, mindestens Achsensatz, erklärte Kinematik-/TWP-Fähigkeit und Dichte; Ausrichtung/Schriftmaßwechsel ausdrücklich behandeln. Live-Rahmen und Chip bleiben ausgeschlossen.
+- Eine von Form und Helfer unabhängige Basismessung vorsehen, etwa inerte Messgrößen, oder einen gleichwertigen vollständigen Messablauf. Fehlende/Null-Messung ist kein Beleg für „passt“. Den Zustand bis zur ersten gültigen Basis nennen; dabei keine Abschnitte unter einem Druck kurz einblenden.
+- F0/F1/F2/F3/F4 hin und zurück prüfen, einschließlich Konfigurationswechsel bei offenem/gehaltenem Helfer. Die Formänderung und die dafür verwendeten Breiten müssen zusammen übernommen werden.
+- Die Reserve konkret beziffern und mit dem neuen Mindestbreiten-Test abgleichen: Falls F0 mindestens `224 + Reserve` verlangt, liegt „Tool genau 224“ nicht mehr innerhalb F0. Dann muss dieser Wächter eine bewusst konstruierte Mindestbreiten-Probe sein oder die neue tatsächliche F0-Grenze prüfen.
+
+### LA411-04 · Ein Formwechsel braucht eine Fokusübergabe, nicht nur einen Druckhalt
+
+F0 hat den Knopf „Tool Table“ im Tool-Abschnitt; F1–F4 haben seine Entsprechung in Spindle. Beim bloßen Ausblenden fällt der Fokus auf `BODY`. Das ist mit der gelieferten M1-Operation in **beiden Browsern** belegt: vorher `BUTTON / Tool Table`, danach `BODY`. Dies ist eine Lücke des vorgeschlagenen Wechselvertrags, kein behaupteter Fehler in einer schon gebauten Formumschaltung.
+
+Das ist hier mehr als verlorene Tab-Position: `useKeyboardShortcuts.ts:98–102,117–133` schützt Space/Enter nur, solange ein Element außer Body/Document fokussiert ist. Ohne Ziel können sie wieder globale Befehle sein. `heldThroughPress` in `inputSession.ts:336–409` hält Zeigerdrücke; es überträgt keinen Fokus und hält keine Tastaturgeste.
+
+**Vertrag:** Beim Verschwinden eines fokussierten Controls den Fokus im selben Umschaltvorgang auf seine sichtbare Entsprechung übertragen, also hier auf den neuen Werkzeugtabellen-Knopf; umgekehrt ebenfalls. Wo es keine Entsprechung gibt, braucht es ein benanntes nicht ausführendes Fokusziel. Space-/Enter-Gesten über einen Formwechsel dürfen weder ihre Aktion verlieren noch als andere/globale Aktion enden. Das ergänzt den vorhandenen Zeigervertrag, ohne seine Zwei-Zeiger-Regel abzuschwächen.
+
+**Wächter:** Resize und Dichte-/Konfigurationswechsel mit Fokus auf der Werkzeugnavigation in beiden Richtungen; zusätzlich gehaltenes Space/Enter und anschließende Freigabe. Kein Fall darf durch den Wechsel einen Start-/Jog-Befehl erzeugen. `scroll-padding` löst diesen Fokusverlust nicht.
+
+### Belege und Prüfgrenze
+
+- [Manifest mit Köpfen, Prüfumfang und SHA-256](leiste-achsen.r411.codex-manifest.json), [eigene Browser-Probe](leiste-achsen.r411.codex-probe.spec.ts), [Firefox-Konfiguration](leiste-achsen.r411.codex-firefox.config.ts).
+- [Alle geometrischen Rohmessungen](leiste-achsen.r411.codex-samples.jsonl), [Fokusmessungen](leiste-achsen.r411.codex-focus.jsonl), [Auswertung](leiste-achsen.r411.codex-analysis.json) und [deren Skript](leiste-achsen.r411.codex-analyse.py).
+- Bilder: [Stop teilweise verdeckt, Chromium](leiste-achsen.r411.codex-twp-stop-chromium.png), [derselbe Gegenfall, Firefox](leiste-achsen.r411.codex-twp-stop-firefox.png), [Fwd am rechten Rand abgeschnitten](leiste-achsen.r411.codex-spindle-cut-chromium.png).
+- Eigener Build der isolierten Basis PASS; abschließend **7 Chromium- und 7 Firefox-Proben PASS**, ohne Wiederholung/Skip/Flaky. Diese Proben zeichnen Gegenfälle auf und bestätigen ihre Voraussetzungen; das ist **kein grünes Gate für den Planvertrag**. Rohberichte: [Chromium](leiste-achsen.r411.codex-chromium.json), [Firefox](leiste-achsen.r411.codex-firefox.json).
+- Der erste Aufbau der Kopie scheiterte an von mir nicht mitkopierten `test-fixtures` und ungenutzten Render-Helfern. Beides nur in `/tmp` ergänzt/bereinigt. Die erste Messreihe und ihre spätere Präzisierung sind im Manifest erhalten: Die separate Stop-Kurzreferenz suchte zunächst „Jog Stop“ statt des tatsächlichen Texts „Stop“; die vollständigen Knopfarrays waren bereits vorhanden. Die letzte Reihe korrigiert dies und ergänzt Viertelposition, Spindle-Fokus und den Firefox-Fall bei 1900.
+- Chromium mit der echten Erst-Touch-Fixture, Firefox 160.0 nur Maus/Tastatur; kein Firefox-Touch-Beleg. Kein tatsächlicher Browserzoom und keine Maschinenpanel-Messung in diesem Review. Die Gegenfälle benötigen beides nicht. Kein Produktcode geändert, keine Tests/Builds im Live-Baum, kein Zugriff auf die Live-Sim; die eigenen Prozesse sind beendet.
+
+**Antwort auf die konkrete Frage:** Nein zum Einrasten als Absicherung für Jog Stop; ja zu einer getrennt nachgewiesenen festen Stoppfläche und zur Formenleiter nach Schließen der genannten Verträge. Danach ist ein neues Planreview sinnvoll, bevor diese Geometrie gebaut wird.

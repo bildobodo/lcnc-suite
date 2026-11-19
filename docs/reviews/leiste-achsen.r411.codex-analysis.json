@@ -1,0 +1,429 @@
+{
+  "recordedCases": 12,
+  "focusCases": 2,
+  "violations": [
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "e2e",
+      "at": "end",
+      "scroll": 152,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 236.5,
+        "r": 311,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": false
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "e2e",
+      "at": "setup-focus",
+      "scroll": 152,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 236.5,
+        "r": 311,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": false
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "e2e",
+      "at": "spindle-focus",
+      "scroll": 152,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 236.5,
+        "r": 311,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": false
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1920-F2",
+      "browser": "e2e",
+      "at": "end",
+      "scroll": 132,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 256.5,
+        "r": 331,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1920-F2",
+      "browser": "e2e",
+      "at": "setup-focus",
+      "scroll": 132,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 256.5,
+        "r": 331,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1920-F2",
+      "browser": "e2e",
+      "at": "spindle-focus",
+      "scroll": 132,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 256.5,
+        "r": 331,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "F3 fixed right group",
+      "case": "XYZAC1280-F3",
+      "browser": "e2e",
+      "boundaryStart": 1071,
+      "boundaryEnd": 829.5,
+      "middleStart": 782,
+      "middleEnd": 540.5,
+      "jogWidth": 662.5
+    },
+    {
+      "claim": "F3 fixed right group",
+      "case": "TWP1280-F3",
+      "browser": "e2e",
+      "boundaryStart": 1071,
+      "boundaryEnd": 858.5,
+      "middleStart": 782,
+      "middleEnd": 569.5,
+      "jogWidth": 735.5
+    },
+    {
+      "claim": "focused Spindle Fwd wholly reachable",
+      "case": "TWP1280-F3",
+      "browser": "e2e",
+      "scroll": 743,
+      "max": 772,
+      "left": 1222.5,
+      "right": 1291.5,
+      "viewportRight": 1272,
+      "whole": false
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "XYZ1000-F4",
+      "browser": "e2e",
+      "at": "quarter",
+      "scroll": 164,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 224.5,
+        "r": 299,
+        "t": 616,
+        "b": 690.5,
+        "whole": false,
+        "centre": false
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "firefox-core",
+      "at": "mid",
+      "scroll": 118.56666564941406,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 269.933349609375,
+        "r": 344.433349609375,
+        "t": 620,
+        "b": 694.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "firefox-core",
+      "at": "end",
+      "scroll": 118.56666564941406,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 269.933349609375,
+        "r": 344.433349609375,
+        "t": 620,
+        "b": 694.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "firefox-core",
+      "at": "setup-focus",
+      "scroll": 118.56666564941406,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 269.933349609375,
+        "r": 344.433349609375,
+        "t": 620,
+        "b": 694.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "TWP1900-F2",
+      "browser": "firefox-core",
+      "at": "spindle-focus",
+      "scroll": 118.56666564941406,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 269.933349609375,
+        "r": 344.433349609375,
+        "t": 620,
+        "b": 694.5,
+        "whole": false,
+        "centre": true
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-",
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "C+",
+        "C-"
+      ]
+    },
+    {
+      "claim": "F3 fixed right group",
+      "case": "XYZAC1280-F3",
+      "browser": "firefox-core",
+      "boundaryStart": 1087.050048828125,
+      "boundaryEnd": 850.0999755859375,
+      "middleStart": 798.050048828125,
+      "middleEnd": 561.0999755859375,
+      "jogWidth": 655.7833251953125
+    },
+    {
+      "claim": "F3 fixed right group",
+      "case": "TWP1280-F3",
+      "browser": "firefox-core",
+      "boundaryStart": 1087.050048828125,
+      "boundaryEnd": 855.36669921875,
+      "middleStart": 798.050048828125,
+      "middleEnd": 566.36669921875,
+      "jogWidth": 726.2999877929688
+    },
+    {
+      "claim": "visible jog has whole Stop",
+      "case": "XYZ1000-F4",
+      "browser": "firefox-core",
+      "at": "quarter",
+      "scroll": 157,
+      "leftEdge": 289,
+      "stop": {
+        "label": "Stop",
+        "l": 231.5,
+        "r": 306,
+        "t": 620,
+        "b": 694.5,
+        "whole": false,
+        "centre": false
+      },
+      "visibleJog": [
+        "Jog X+ Y+",
+        "X+",
+        "Jog X+ Y-",
+        "Z+",
+        "Z-"
+      ]
+    },
+    {
+      "claim": "focus survives F0 -> F1",
+      "project": "e2e",
+      "before": {
+        "tag": "BUTTON",
+        "text": "Tool Table"
+      },
+      "after": {
+        "tag": "BODY",
+        "tabindex": null
+      }
+    },
+    {
+      "claim": "focus survives F0 -> F1",
+      "project": "firefox-core",
+      "before": {
+        "tag": "BUTTON",
+        "text": "Tool Table"
+      },
+      "after": {
+        "tag": "BODY",
+        "tabindex": null
+      }
+    }
+  ]
+}
