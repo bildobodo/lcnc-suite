@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
 import WebSocket from "ws";
-import { test, expect, ORIGIN_COOKIE, type ReplayOrigin } from "./test";
+import { test, expect, ORIGIN_COOKIE, wholeJsonLines, type ReplayOrigin } from "./test";
 import { MOCK } from "./ctl";
 import { replayFile } from "./mockFixture";
 
@@ -14,8 +13,9 @@ import { replayFile } from "./mockFixture";
 interface Line { kind: string; conn?: number; origin?: ReplayOrigin | { infra: string } | null;
   msg?: { cmd?: string }; method?: string; path?: string; op?: string | null }
 
-const lines = (file: string): Line[] =>
-  readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l) as Line);
+// the ONE reader of a log the mock may still be writing (a torn last line
+// is left for the next read — e2e/test.ts)
+const lines = (file: string): Line[] => wholeJsonLines<Line>(file);
 
 /** The origin each /ws connection that sent a `hello` was bound to. */
 const helloOrigins = (all: Line[]) => {
