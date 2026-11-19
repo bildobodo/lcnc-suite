@@ -1,0 +1,26 @@
+[1A[2K[WebServer] (node:2540790) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 11 tests using 1 worker
+
+[1A[2K(node:2540824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2540824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/11] [e2e] › e2e/strip-fit.spec.ts:142:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state
+[1A[2K[2/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[3/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[4/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[5/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[6/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[7/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[8/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[9/11] [e2e] › e2e/strip-fit.spec.ts:344:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[10/11] [e2e] › e2e/strip-fit.spec.ts:353:1 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable
+[1A[2K[11/11] [e2e] › e2e/strip-fit.spec.ts:372:1 › strip fit: the error notes are the lengths the record names
+[1A[2K  11 passed (26.7s)

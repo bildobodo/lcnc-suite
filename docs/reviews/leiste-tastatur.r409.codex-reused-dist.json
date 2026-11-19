@@ -1,0 +1,36 @@
+{
+  "source": "/tmp/codex-r408/lcnc-webui/dist",
+  "built_from": "3a86eb6e",
+  "product_unchanged_at": "a9cd1da0",
+  "diff_paths": [
+    "lcnc-webui/e2e/strip-fit.spec.ts"
+  ],
+  "sha256": {
+    "index.html": "776e7226551dcc71fe4690faaaf8bd11dacd75498df8fba0b29256158bfc2e30",
+    "static/index-BDn3r7Yc.css": "225471b85d16ceaeae016c2469e1f129b0bd1e8e5ea1f3f2786a940015a6a06d",
+    "static/three-D_Nc9AAY.js": "64c5c837e5b85ae40196ab384450bbccc4378a9278f67d3a9f0db023b8f2cb11",
+    "static/index-RU5U8z8q.js": "8997fb408df3f4d53c1afc0e53d8d932b2d8712cbbab5b478155735c0b8706bd",
+    "static/ThreeViewer-DF947ZS8.js": "2059f2fff2ffc2b2a7c8467d05f21e37ce0e51fa1ee93a709be652266384de1d",
+    "static/msgpack-BkQaaVuN.js": "17214a52f53085576967d71a6e66384420353f08d9b470d6461f265c40544bed",
+    "static/ToolPreview-CVhgQL5H.js": "b9e7f7f06b1d14e58c12052583f0cf3b74d17b1510b010496f2427e86db4b6ca",
+    "static/toolGeometry-jyJk4ZbQ.js": "020229cfff9d51d78832e94dd02b8326466eef2dfe7a54fcb02089820d2a89cd",
+    "static/index-BE60FhhY.js": "1c6613a558e2864af37cf445f266ac9cd04256b03d49e006c821d7417c4f7512",
+    "static/gcodeCmLanguage-3ZO1yr3F.js": "df77898f1c755b93cf01e215fdf2fce466f2c81cbaf06d3d62f846f89e4acd6a",
+    "static/index-tky6Dhx3.js": "bedbb20e9fbaeb445bb391f6fc75831e09a3a6e124c9c662efd379636f643fd6",
+    "static/index-o9DEOgyx.js": "0007256fff1e34d818cc1ffcd1b991a02509e91a4c47588b22e41da108bf71e0",
+    "static/index-CX_61fY8.js": "0167eff10e60810dfb7d8d959c125f3c922d5ddfb32cbe28b1ca79c0b70f1500",
+    "static/wsWorker-P733WBKL.js": "29f6a5c6a7a44619aec6f5a416b468cf3a628f809558510af33a8e4cc450f474",
+    "static/previewWorker-zTzcNKFy.js": "4eec189b259921d80bd88a72b85d2d4c0b4101100adf404224035c54f6fdba02",
+    "static/partFrameWorker-xK0qWczC.js": "a3061f4a7708cfcd5bf1e90ee3a9c92970c9a6ba23fdbe63b15b35f12d345b61",
+    "static/collisionWorker-vT9Lkn9S.js": "65600f01a33bff70bf43277f6d88a0d1099fdaac77be4ead7baac62c40ba09b1",
+    "static/reachWorker-DyxK9g4-.js": "c9d65b47d67bc77377448ee1adf75d591aab3f9baed52d791b4347d08a55277c",
+    "static/edgeWorker-eka59H6v.js": "057c2b25dd13c13775f4e790eb030396b339a1b13fd59091e6a23fb31f837249",
+    "static/machineNormalsWorker-DL0aYzwZ.js": "207015568e2185492f34ae25b21c70986adc34c02ebdf63e1c4891642b69834e",
+    "static/InterVariable-DiVDrmQJ.woff2": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+    "static/ThreeViewer-DigUCzo-.css": "626c10af601a2bcfa1ebe6116fd747b77ebada487352d9fada7da4cdfa6dc8a0",
+    "static/ToolPreview-h0nbom5n.css": "c2bccc46333f6ead4ca5168ef54342654dacd84e068d36002556eda10505a2bb",
+    "static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2": "918edad542a1da608fd2ba8daebaff9ac802309103fe760eed465b8b4e47faf1",
+    "static/JetBrainsMono-Regular-BQaDgvhP.woff2": "a9cb1cd82332b23a47e3a1239d25d13c86d16c4220695e34b243effa999f45f2",
+    "static/Inter-Regular-L-twW0ba.woff": "b58160a88d6764b1f0887c3d343e38216007f4ef8364a5a5791a99cdf0ef3c1d"
+  }
+}

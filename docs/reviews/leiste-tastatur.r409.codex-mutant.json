@@ -1,0 +1,151 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r409/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r409/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r409-mutant",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r409/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r409-mutant",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r409/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "strip-fit.spec.ts",
+      "file": "strip-fit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2119,
+                  "error": {
+                    "message": "Error: cut sideways under the note\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"tool: statusRow \\\"TypeCorner Chamfer End Mill\\\" wraps onto 2 lines\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: cut sideways under the note\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"tool: statusRow \\\"TypeCorner Chamfer End Mill\\\" wraps onto 2 lines\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at noteCase (/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:270:73)\n    at /tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:354:15",
+                    "location": {
+                      "file": "/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts",
+                      "column": 73,
+                      "line": 270
+                    },
+                    "snippet": "  268 |   // the body's scrollbar, once it shows, cuts no row sideways; a row may\n  269 |   // wrap there (Codex R407/R408) and is still reached whole below\n> 270 |   expect([...fit.clipped, ...fit.wraps], 'cut sideways under the note').toEqual([]);\n      |                                                                         ^\n  271 |   // The note, line by line (Codex R406): a note taller than the window is\n  272 |   // read over successive scroll positions — each text line, brought to the\n  273 |   // window's top, lies whole in the window and the strip."
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts",
+                        "column": 73,
+                        "line": 270
+                      },
+                      "message": "Error: cut sideways under the note\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"tool: statusRow \\\"TypeCorner Chamfer End Mill\\\" wraps onto 2 lines\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  268 |   // the body's scrollbar, once it shows, cuts no row sideways; a row may\n  269 |   // wrap there (Codex R407/R408) and is still reached whole below\n> 270 |   expect([...fit.clipped, ...fit.wraps], 'cut sideways under the note').toEqual([]);\n      |                                                                         ^\n  271 |   // The note, line by line (Codex R406): a note taller than the window is\n  272 |   // read over successive scroll positions — each text line, brought to the\n  273 |   // window's top, lies whole in the window and the strip.\n    at noteCase (/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:270:73)\n    at /tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:354:15"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:19:43.549Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r409/lcnc-webui/test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r409/lcnc-webui/test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r409/lcnc-webui/test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts",
+                    "column": 73,
+                    "line": 270
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-2a632078ff056e7c6f31",
+          "file": "strip-fit.spec.ts",
+          "line": 353,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T11:19:41.721Z",
+    "duration": 4227.787,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

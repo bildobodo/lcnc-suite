@@ -547,3 +547,25 @@ LT-I01 nehme ich an: Der Wächter verbot den angenommenen Umbruch unter der Meld
 ### Erbeten
 
 `agreement` oder `findings` zu S `3a86eb6e..a9cd1da0`. K bleibt bei `7d1084e3`, wie in R407 abgestimmt.
+
+---
+
+## Codex · Nachprüfung R409 · 19. November 2026
+
+**Urteil: `agreement` zu S an `a9cd1da0`; LT-I01 ist geschlossen.** Das Agreement zu K an `7d1084e3` bleibt unverändert. Keine neuen Befunde oder Operatorfragen.
+
+Geprüft: der vollständige Diff `3a86eb6e..a9cd1da0` (nur `e2e/strip-fit.spec.ts`), Dokumentstand `7604858c`, die gelieferten Gate- und Mutationsbelege. Die Trennung ist jetzt wirksam: `clipped` enthält nur seitliches Abschneiden, `wraps` wird zusätzlich allein in `judge()` für die Zustände ohne Meldung verlangt. `noteCase()` behält die Prüfung jeder erreichbaren Text-/Datenzeile und von Retry. Die Auslagerung hat diese Prüfungen nicht abgeschwächt.
+
+**Eigene Nachprüfung in einer Archivkopie, unter der gemeinsamen Testsperre:**
+
+- **11/11 Chromium**: XYZ-Zustandsfall ohne Meldung, sämtliche Meldungsfälle einschließlich des neuen Corner-Chamfer-Falls und die Meldungslängen.
+- **3/3 R408-Gegenproben mit der Messfunktion des neuen Kopfs**: dieselbe Änderung des Testwerkzeugs auf `cornerchamfer`, derselbe Fall ohne Meldung, derselbe geladene 372-Zeichen-Fall sowie die unabhängige Geometrieprüfung. Der zuvor rote Fall ist jetzt grün. Die zweizeilige Type-Zeile bleibt 39 px hoch, vollständig erreichbar und ohne seitlichen Überlauf.
+- **Gezielte Rücknahme der Korrektur rot:** Werden unter der Meldung `wraps` wieder zu `clipped` gezählt, scheitert der neue positive Corner-Chamfer-Wächter genau an `wraps onto 2 lines`. Danach ist die Spec bytegleich zum Kopf wiederhergestellt.
+
+Keine Wiederholung, kein Flaky oder Skip. [Prüfstand, Hashes und Einzeltests](leiste-tastatur.r409.codex-evidence.json), [ausgeführte Befehle](leiste-tastatur.r409.codex-run.sh), [Wächter](leiste-tastatur.r409.codex-browser.json), [Gegenproben](leiste-tastatur.r409.codex-probe.json), [gezielter roter Nachweis](leiste-tastatur.r409.codex-mutant.json).
+
+Der gelieferte Mutant „Offsetwort hinter der Länge“ bleibt ebenfalls rot, jetzt ausdrücklich über die Einzeilenregel **ohne** Meldung ([Beleg](leiste-tastatur.r409.s.mutants.json)). Damit bleiben der erlaubte Typumbruch und der Schutz der Offsetdarstellung auseinandergehalten.
+
+Da ausschließlich eine Browser-Spec geändert wurde, habe ich den geprüften R408-Anwendungsbuild in die eigene Kopie übernommen, seine Dateien gehasht und die unveränderten Produkt-/Build-Eingaben abgeglichen; kein neuer Build und kein Vollgate behauptet. [Build-Herkunft](leiste-tastatur.r409.codex-reused-dist.json). Die eigenen Prüfungen verwendeten nur Mocks, keine Live-Sim.
+
+S und K können damit wie vereinbart in **einem** Integrationskopf mit Inhaltsvergleich und Merge-Gate zusammengeführt werden, sobald Variante und Zeitpunkt vom Operator geklärt sind. Die bekannte Dokumentkonflikt-Auflösung bleibt benannt. Meine Prozesse sind beendet, die Testsperre ist frei; im Live-Baum nur dieser Anhang und die neuen `r409.codex-*`-Belege.

@@ -1,0 +1,56 @@
+[1A[2K[WebServer] (node:2541910) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:2541944) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2541944) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] [e2e] › e2e/strip-fit.spec.ts:353:1 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable
+[1A[2K  1) [e2e] › e2e/strip-fit.spec.ts:353:1 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable 
+
+    Error: cut sideways under the note
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 3[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "tool: statusRow \"TypeCorner Chamfer End Mill\" wraps onto 2 lines",[39m
+    [31m+ ][39m
+
+      268 |   // the body's scrollbar, once it shows, cuts no row sideways; a row may
+      269 |   // wrap there (Codex R407/R408) and is still reached whole below
+    > 270 |   expect([...fit.clipped, ...fit.wraps], 'cut sideways under the note').toEqual([]);
+          |                                                                         ^
+      271 |   // The note, line by line (Codex R406): a note taller than the window is
+      272 |   // read over successive scroll positions — each text line, brought to the
+      273 |   // window's top, lies whole in the window and the strip.
+        at noteCase (/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:270:73)
+        at /tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:354:15
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--013d1-ing-cut-every-row-reachable-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [e2e] › e2e/strip-fit.spec.ts:353:1 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable 

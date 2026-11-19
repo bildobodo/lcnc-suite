@@ -1,0 +1,18 @@
+[1A[2K[WebServer] (node:2541540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+[1A[2K(node:2541573) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2541573) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/3] [e2e] › e2e/r409-codex.spec.ts:142:5 › codex R409: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state
+[1A[2K[2/3] [e2e] › e2e/r409-codex.spec.ts:344:5 › codex R409: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[3/3] [e2e] › e2e/r409-codex.spec.ts:450:1 › codex R409: approved wrapped type remains reachable
+[1A[2K  3 passed (11.4s)

@@ -1,0 +1,277 @@
+{
+  "round": "R409",
+  "document_head": "7604858cda3e22a750a00b5fed530f1bf8493d97",
+  "base": "3a86eb6ed51691a4fbccf9758b99606dd4bcd140",
+  "head": "a9cd1da0996ecf7fe3b1daaa5a2a8d7203bf743a",
+  "K_unchanged": "7d1084e3b4cdb695a5c54c67cfab9369cab41d05",
+  "scope": "Single test-file change. Independent archive and node_modules copy; reused R408 application build because all build/product inputs are unchanged (hash manifest included). No live simulation connection, no live-tree tests/build/checkout.",
+  "checks": {
+    "browser": {
+      "stats": {
+        "startTime": "2026-11-19T11:19:02.871Z",
+        "duration": 26651.199999999997,
+        "expected": 11,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "cases": [
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 142,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 353,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": [
+            {
+              "type": "wraps",
+              "description": "tool: statusRow \"TypeCorner Chamfer End Mill\" wraps onto 2 lines"
+            }
+          ]
+        },
+        {
+          "title": "strip fit: the error notes are the lengths the record names",
+          "file": "strip-fit.spec.ts",
+          "line": 372,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        }
+      ]
+    },
+    "probe": {
+      "stats": {
+        "startTime": "2026-11-19T11:19:29.921Z",
+        "duration": 11413.77,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "cases": [
+        {
+          "title": "codex R409: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "file": "r409-codex.spec.ts",
+          "line": 142,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "codex R409: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "r409-codex.spec.ts",
+          "line": 344,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "codex R409: approved wrapped type remains reachable",
+          "file": "r409-codex.spec.ts",
+          "line": 450,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        }
+      ]
+    },
+    "mutant": {
+      "stats": {
+        "startTime": "2026-11-19T11:19:41.721Z",
+        "duration": 4227.787,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "errors": [],
+      "cases": [
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 353,
+          "status": "unexpected",
+          "attempts": [
+            "failed"
+          ],
+          "annotations": [],
+          "errors": [
+            "Error: cut sideways under the note\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"tool: statusRow \\\"TypeCorner Chamfer End Mill\\\" wraps onto 2 lines\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  268 |   // the body's scrollbar, once it shows, cuts no row sideways; a row may\n  269 |   // wrap there (Codex R407/R408) and is still reached whole below\n> 270 |   expect([...fit.clipped, ...fit.wraps], 'cut sideways under the note').toEqual([]);\n      |                                                                         ^\n  271 |   // The note, line by line (Codex R406): a note taller than the window is\n  272 |   // read over successive scroll positions — each text line, brought to the\n  273 |   // window's top, lies whole in the window and the strip.\n    at noteCase (/tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:270:73)\n    at /tmp/codex-r409/lcnc-webui/e2e/strip-fit.spec.ts:354:15"
+          ]
+        }
+      ]
+    }
+  },
+  "witness": {
+    "height": 39,
+    "rowWidth": 189,
+    "bodyHeight": 196,
+    "vertical": true,
+    "horizontal": true,
+    "bandOverflow": 0,
+    "text": "TypeCorner Chamfer End Mill"
+  },
+  "LT-I01": "closed",
+  "counterprobe": "R408 fixture substitution endmill -> cornerchamfer applied to the current head test helpers; identical three behavioural expectations. Not a rerun of the stale R408 copied measurement implementation.",
+  "mutant": "The accepted wrap is wrongly merged back into clipped under the note; own new positive guard fails by assertion. Product unchanged; test file restored exactly to head afterward.",
+  "heavy_lock_free_at_end": true,
+  "files": {
+    "leiste-tastatur.r409.codex-run.sh": {
+      "sha256": "99c8a905e0047beda2b060bf46c471a5907beaf01a24de8453c596e2932bd583",
+      "bytes": 893,
+      "source": "/tmp/r409-run.sh"
+    },
+    "leiste-tastatur.r409.codex-prepare-probe.py": {
+      "sha256": "31777cc65ffd619f2182c812f6732e23216000d1137a8ef19471ff9d260f9870",
+      "bytes": 2126,
+      "source": "/tmp/r409-prepare-probe.py"
+    },
+    "leiste-tastatur.r409.codex-probe.spec.ts": {
+      "sha256": "eb6d02b7c39cfc30814bca7368035823bec33563ef37d2bd23346ee29e997849",
+      "bytes": 29167,
+      "source": "/tmp/codex-r409/lcnc-webui/e2e/r409-codex.spec.ts"
+    },
+    "leiste-tastatur.r409.codex-reused-dist.json": {
+      "sha256": "1d59e24f54070fd80990e6eba78f89e2b9e4d8f5cb8f27bd34504c394a12ba60",
+      "bytes": 2945,
+      "source": "/tmp/r409-reused-dist.json"
+    },
+    "leiste-tastatur.r409.codex-browser.txt": {
+      "sha256": "d8094c559d7f98650be8a6feb9c92edfe2b6cf252e3112c59c87374b9f04c93a",
+      "bytes": 2617,
+      "source": "/tmp/r409-browser.txt"
+    },
+    "leiste-tastatur.r409.codex-browser.json": {
+      "sha256": "49bf00bec2048f1bcb228d5377136d7edd80302c8be0387d7c0c7291ba52ddc2",
+      "bytes": 25426,
+      "source": "/tmp/r409-browser.json"
+    },
+    "leiste-tastatur.r409.codex-probe.txt": {
+      "sha256": "73f90ad4748f94e0fc1724c59acd95f90541ef5197f52921361cb089dd365965",
+      "bytes": 1085,
+      "source": "/tmp/r409-probe.txt"
+    },
+    "leiste-tastatur.r409.codex-probe.json": {
+      "sha256": "c16cc4d0ba0151c2050ca96e58b2c9a4f8773490e75c5b5f57bae6bc8245fcfd",
+      "bytes": 16460,
+      "source": "/tmp/r409-probe.json"
+    },
+    "leiste-tastatur.r409.codex-mutant.py": {
+      "sha256": "ffd6cb2075d1671c735bf72241777f54e9291fda36e6f18e79e40bd1ffd69588",
+      "bytes": 978,
+      "source": "/tmp/r409-mutant.py"
+    },
+    "leiste-tastatur.r409.codex-mutant.txt": {
+      "sha256": "fdbbc16272260443d18383461047ccc3ea2406024361fd3fe8c3e534e63191c5",
+      "bytes": 3793,
+      "source": "/tmp/r409-mutant.txt"
+    },
+    "leiste-tastatur.r409.codex-mutant.json": {
+      "sha256": "22959bb10c49952a200f9cd01c0bb82e9751ed85f7b38eef3c766a8446c0769e",
+      "bytes": 7388,
+      "source": "/tmp/r409-mutant.json"
+    }
+  }
+}
