@@ -43,6 +43,8 @@ interface Fit {
   over: number; spare: number;
   sections: { name: string; width: number }[];
   clipped: string[];
+  /** how far the Tool body scrolls (scrollHeight − clientHeight, CSS px) */
+  toolScroll: number;
 }
 
 /** The strip's fit: overflow, the room after the last section (to the
@@ -100,7 +102,9 @@ async function measureFit(page: Page): Promise<Fit> {
         }
       }
     }
+    const body = document.querySelector('[data-strip="tool"] .toolBody') as HTMLElement | null;
     return {
+      toolScroll: body ? body.scrollHeight - body.clientHeight : -1,
       over: strip.scrollWidth - strip.clientWidth,
       spare: Math.round((contentRight - last) * 10) / 10,
       sections: sections.map(s => ({ name: s.dataset.strip ?? s.className.split(' ')[0]!, width: Math.round(s.getBoundingClientRect().width * 100) / 100 })),
@@ -114,6 +118,8 @@ function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+  // without a note the tool rows fit the section: its body has nothing to scroll
+  expect(fit.toolScroll, `${label}: the Tool body scrolls ${fit.toolScroll} px without a note`).toBeLessThanOrEqual(0.5);
 }
 
 async function loadTool(page: Page, offset: Record<string, unknown>) {
@@ -226,9 +232,15 @@ test('strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option',
 // never widens the strip, and the note, its Retry and every tool row come
 // fully into view by scrolling the Tool section's body — with and without a
 // loaded tool.
+// Gateway messages (the note shows "Tool table: " before them): a path (96
+// characters), a long message of words (689), and Codex's R405 inputs — ONE
+// unbroken path token of 108 and of 372 characters.
+const CODEX_PATH = (n: number) => 'Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/' + 'customer_fixture_123456/'.repeat(n) + 'tool.tbl';
 const NOTES = {
   path: 'Tool table file unreadable: permission denied on /home/cnc/linuxcnc/configs/x/very/long/tool.tbl',
   long: 'Tool table file unreadable: ' + Array.from({ length: 12 }, (_, i) => `line ${i + 1} of a long gateway message about the tool table`).join('; '),
+  'unbroken 108': CODEX_PATH(1),
+  'unbroken 372': CODEX_PATH(12),
 };
 for (const loaded of [false, true]) {
   for (const [kind, error] of Object.entries(NOTES)) {
@@ -328,3 +340,81 @@ test('strip fit: 3axis-xya @ touch-fullhd — measured, not required', async ({ 
   await info.attach('strip-fit-xya.json', { body: JSON.stringify(fit, null, 1), contentType: 'application/json' });
   expect(fit.sections.length).toBe(6);
 });
+
+// The lengths the record names are the guard's own (Codex R407: the report
+// said 108 and 372 where the guard held 96 and 689).
+test('strip fit: the error notes are the lengths the record names', () => {
+  expect(Object.fromEntries(Object.entries(NOTES).map(([k, v]) => [k, v.length])))
+    .toEqual({ path: 96, long: 689, 'unbroken 108': 108, 'unbroken 372': 372 });
+});
+
+// The Tool body scrolls under a real gesture (advisor 2026-11-19: the guard
+// above set scrollTop): a touch drag and the mouse wheel inside it move the
+// body, never the strip — on XYZAC, whose strip itself scrolls sideways.
+// Chromium (CDP): the browser synthesizes the touch gesture, no touch context
+// needed — this file is in the Firefox core, which takes no touch call; the
+// core does not list this test.
+test('strip fit: 5axis-xyzac @ touch-fullhd — a touch drag and the wheel scroll the Tool body, not the strip', async ({ page }) => {
+    const profile: Profile = { name: '5axis-xyzac', axes: ['X', 'Y', 'Z', 'A', 'C'],
+      kins: { module: 'xyzac-trt-kins', type: 'xyzac-trt', identity_first: true, params: {} } };
+    await openLayout(page, profile, FULLHD[0]!);
+    await publishToolTable([TOOL]);
+    await loadTool(page, OFFSETS['offset other']!);
+    await ctl({ op: 'replyFor', cmd: 'get_tool_table', reply: { ok: false, error: NOTES['unbroken 372'] } });
+    await ctl({ op: 'raw', frame: { type: 'tool_table_changed', version: 9100 } });
+    const tool = page.locator('[data-strip="tool"]');
+    await expect(tool.locator('.statusNote')).toBeVisible();
+    const strip = page.locator('.strip');
+    await strip.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+    await settleLayout(page);
+    const read = () => page.evaluate(() => ({
+      body: (document.querySelector('[data-strip="tool"] .toolBody') as HTMLElement).scrollTop,
+      strip: (document.querySelector('.strip') as HTMLElement).scrollLeft,
+    }));
+    const start = await read();
+    expect(start.strip, 'the strip scrolled to its end').toBeGreaterThan(0);
+    expect(start.body).toBe(0);
+    const body = (await tool.locator('.toolBody').boundingBox())!;
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.synthesizeScrollGesture', { x: Math.round(body.x + body.width / 2), y: Math.round(body.y + body.height * 0.8),
+      yDistance: -120, gestureSourceType: 'touch', speed: 600 });
+    await expect.poll(async () => (await read()).body, { message: 'a touch drag scrolls the Tool body' }).toBeGreaterThan(0);
+    expect((await read()).strip, 'the strip stays where it was').toBe(start.strip);
+    const afterTouch = (await read()).body;
+    await page.mouse.move(body.x + body.width / 2, body.y + body.height / 2);
+    await page.mouse.wheel(0, 120);
+    await expect.poll(async () => (await read()).body, { message: 'the wheel scrolls the Tool body' }).toBeGreaterThan(afterTouch);
+    expect((await read()).strip, 'the strip stays where it was').toBe(start.strip);
+});
+
+// S1 (plan R405): the gap before the end fade is gone, the fade is not. On
+// XYZAC, whose strip overflows at 1920 px: shown at the strip's content edge
+// (where it sat before S1) while more lies to the right, gone at the scroll end; in portrait the
+// bottom fade keeps no horizontal shift.
+test('strip fit: 5axis-xyzac @ touch-fullhd — the end fade shows at the content edge while more lies right, gone at the end', async ({ page }) => {
+  const profile: Profile = { name: '5axis-xyzac', axes: ['X', 'Y', 'Z', 'A', 'C'],
+    kins: { module: 'xyzac-trt-kins', type: 'xyzac-trt', identity_first: true, params: {} } };
+  await openLayout(page, profile, FULLHD[0]!);
+  const fade = () => page.evaluate(() => {
+    const strip = document.querySelector('.strip') as HTMLElement;
+    const f = strip.querySelector(':scope > .stripFade') as HTMLElement;
+    const r = f.getBoundingClientRect(), s = strip.getBoundingClientRect();
+    return { more: strip.classList.contains('strip-more'), opacity: getComputedStyle(f).opacity,
+      right: Math.round(r.right * 10) / 10,
+      // the content edge: the scrollport less the strip's end padding (where the
+      // fade sat before S1 too — 1903 of 1911 px at 5c48a7e1 and at the head)
+      edge: Math.round((s.left + strip.clientLeft + strip.clientWidth - parseFloat(getComputedStyle(strip).paddingRight)) * 10) / 10 };
+  });
+  const at0 = await fade();
+  expect(at0.more, 'more lies to the right').toBe(true);
+  await expect.poll(async () => (await fade()).opacity).toBe('1');
+  expect(Math.abs(at0.right - at0.edge), `the fade at the strip's content edge (${at0.right} vs ${at0.edge})`).toBeLessThanOrEqual(0.5);
+  await page.locator('.strip').evaluate(el => { el.scrollLeft = el.scrollWidth; });
+  await expect.poll(async () => (await fade()).more, { message: 'nothing more at the end' }).toBe(false);
+  await expect.poll(async () => (await fade()).opacity).toBe('0');
+  // portrait: the bottom fade, no horizontal shift
+  await page.setViewportSize({ width: 900, height: 1200 });
+  await settleLayout(page);
+  expect(await page.locator('.strip > .stripFade').evaluate(f => getComputedStyle(f).marginLeft), 'portrait: no horizontal shift').toBe('0px');
+});
+

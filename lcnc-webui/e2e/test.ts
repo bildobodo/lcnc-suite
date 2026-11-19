@@ -37,7 +37,8 @@
 //                log; in Firefox it must be the pinned one, and its WebGL
 //                answer is recorded beside it (none: no display, R387).
 import { randomUUID } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { wholeJsonLines } from "./jsonLines";
 import { relative } from "node:path";
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { appConnectFrames, ctl, MOCK } from "./ctl";
@@ -81,17 +82,8 @@ async function forbidTouch(page: Page): Promise<void> {
   }
 }
 
-/** This mock's replay log so far, line by line. The mock appends each line
- *  with ONE write, but a reader in another process can still see that write
- *  half done (Linux reads a regular file without the writer's lock): a
- *  trailing piece with no newline yet is a line still being written and is
- *  left for the next read — a Firefox core run read one torn and failed on
- *  its JSON (strip-fit round gate, 2026-11-19). */
-export function wholeJsonLines<T>(file: string): T[] {
-  const text = readFileSync(file, "utf8");
-  const whole = text.endsWith("\n") ? text : text.slice(0, text.lastIndexOf("\n") + 1);
-  return whole.split("\n").filter(Boolean).map(line => JSON.parse(line) as T);
-}
+/** This mock's replay log so far, its finished lines (e2e/jsonLines.ts). */
+export { wholeJsonLines };
 const replayLines = (file: string): ReplayLine[] => wholeJsonLines<ReplayLine>(file);
 const postsIn = (lines: ReplayLine[]) => lines.filter(l => l.kind === "http" && l.method === "POST").length;
 

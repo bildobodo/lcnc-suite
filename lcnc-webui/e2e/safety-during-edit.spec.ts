@@ -436,9 +436,9 @@ test.describe("the first touch: the switch to touch sizes waits for its press", 
     await open(page, { width: 1280, height: 800 });
     await expect(page.locator("html"), "no touch yet").not.toHaveClass(/touch-device/);
     const homeX = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) X$/ });
-    // the arm's permissions re-render it (the dimmed form is a wrapper): measure
-    // the enabled node, never the one being swapped (strip-fit round gate,
-    // 2026-11-19: a box read null under the full run's load)
+    // measure the enabled node (strip-fit round gate, 2026-11-19: a box read
+    // null under the full run's load — the cause NOT reproduced; consistent
+    // with the arm's permissions swapping the dimmed wrapper for the button)
     await expect(homeX).toBeEnabled();
     const before = await box(homeX);
     const cdp = await page.context().newCDPSession(page);
