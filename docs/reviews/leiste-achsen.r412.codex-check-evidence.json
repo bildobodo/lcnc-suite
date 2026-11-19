@@ -1,0 +1,102 @@
+{
+  "suppliedSpindleEvidence": [
+    {
+      "browser": "chromium",
+      "viewport": "touch-1920",
+      "rows": 15,
+      "base": 233,
+      "height": 36
+    },
+    {
+      "browser": "chromium",
+      "viewport": "desktop-1920",
+      "rows": 15,
+      "base": 233,
+      "height": 33
+    },
+    {
+      "browser": "firefox",
+      "viewport": "desktop-1920",
+      "rows": 15,
+      "base": 228.9499969482422,
+      "height": 33
+    }
+  ],
+  "suppliedSha256": "bacfa8434b3081a645f826280da925866eb257914128c8ac8be73384a5722a4b",
+  "ownKeyCases": [
+    {
+      "browser": "e2e",
+      "when": "none",
+      "events": [
+        "keyup",
+        "click:old"
+      ],
+      "swapped": false,
+      "clickOld": 1,
+      "clickNew": 0
+    },
+    {
+      "browser": "e2e",
+      "when": "microtask",
+      "events": [
+        "keyup",
+        "swap",
+        "click:old",
+        "focus:new"
+      ],
+      "swapped": true,
+      "clickOld": 1,
+      "clickNew": 0
+    },
+    {
+      "browser": "e2e",
+      "when": "task",
+      "events": [
+        "keyup",
+        "click:old",
+        "swap",
+        "focus:new"
+      ],
+      "swapped": true,
+      "clickOld": 1,
+      "clickNew": 0
+    },
+    {
+      "browser": "firefox-core",
+      "when": "none",
+      "events": [
+        "keyup",
+        "click:old"
+      ],
+      "swapped": false,
+      "clickOld": 1,
+      "clickNew": 0
+    },
+    {
+      "browser": "firefox-core",
+      "when": "microtask",
+      "events": [
+        "keyup",
+        "swap",
+        "click:old",
+        "focus:new"
+      ],
+      "swapped": true,
+      "clickOld": 1,
+      "clickNew": 0
+    },
+    {
+      "browser": "firefox-core",
+      "when": "task",
+      "events": [
+        "keyup",
+        "click:old",
+        "swap",
+        "focus:new"
+      ],
+      "swapped": true,
+      "clickOld": 1,
+      "clickNew": 0
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "review": "R412",
+  "verdict": "agreement",
+  "scope": "Plan stage A F0/F1; no implementation approval; B remains open",
+  "document": "bbe851bd3a9df7806d451d04b710b47d1e7d90ea",
+  "productBase": "dc9dc3e4c29d3e90545474386d7f5f34fff50a3a",
+  "copy": "/tmp/codex-r411, archive and own build from R411 reused; only additional prototype spec/config in this round",
+  "productFilesChecked": [
+    {
+      "path": "lcnc-webui/src/inputSession.ts",
+      "sha256": "8944c3407efa91e653ea14a03f69584354e41784211f8a34c2c3d1deef090286"
+    },
+    {
+      "path": "lcnc-webui/src/useKeyboardShortcuts.ts",
+      "sha256": "6a362d6d3bf6d28defc508b8dfb9effc8c4d360f7cef2c4675fdc896cc34a258"
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "2c42c64638dbad18c352428d36bc2f0eba51651a1b97c27760bc93c02a89984a"
+    }
+  ],
+  "checkNotes": [
+    "45 supplied Spindle records audited, not independently rerun",
+    "Own browser event-order probe, 3 Chromium + 3 Firefox 160.0 desktop, native Space down/up; no live machine",
+    "Injected form changes only; future Vue form state, key tracker and returnFocusTo integration not yet built/tested",
+    "Original mounted navigation button gets one click in all six cases; no claim that microtask ordering is generally safe for removal/replacement",
+    "No builds/tests/checkouts in live tree; no actual zoom or machine-panel calibration; shared heavy lock used; test processes ended"
+  ],
+  "files": [
+    {
+      "path": "leiste-achsen.r412.codex-key-release.spec.ts",
+      "sha256": "a2385183aadbe4999600c92dc79c53df180e5180ab3bdf0d3904a7bdcbd3e7c1"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-firefox.config.ts",
+      "sha256": "57f884da54db2cc5d28eea53d140ad56f38b64b1bf9569d3905ea51379d576cc"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-key-release.jsonl",
+      "sha256": "3116e1d042503184107f108dc0f28c76dd82366922dcd6a972028ff8becb1feb"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-check-evidence.py",
+      "sha256": "845fcfbbed0a65e561d01f757940948b694359c6710c39c79fab55b960a97650"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-check-evidence.json",
+      "sha256": "a540dc8e376cd3e203dc815200dc1016f96a8276c90faf920f0931f863894544"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-run.sh",
+      "sha256": "b61add92e8d4ae27355406939ad15e764770d69d660d8c434e2608eb45d6aae8"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-chromium.json",
+      "sha256": "1506caf5b31bac60ab5819827d9f0b977a3b31d3f30e6ad9cbbfe7e492d60047"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-firefox.json",
+      "sha256": "7229d5d73abfffde8c051627fe08fab7108d0991d4f4c137f16ba89cbf7955d5"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-chromium.txt",
+      "sha256": "477f17bb76bdf33a865001807e9a91f09dcc23bfaa1e761d811907725e46c548"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-firefox.txt",
+      "sha256": "ce575ec8d70416fa44cffa2f00485597e31f79b1baeb0e50deae65e12f27fbfd"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-events.jsonl",
+      "sha256": "0a1daae87fc0999e7475a46a8b384145f43cd18596d6206d5973669a567a5146"
+    },
+    {
+      "path": "leiste-achsen.r412.codex-ff-events.jsonl",
+      "sha256": "538153c6c018fb43ca8e6f1e6ae93f50492fefa8e26a3d2d0646d0a72ac2d116"
+    }
+  ]
+}

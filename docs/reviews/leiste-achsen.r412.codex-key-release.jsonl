@@ -1,0 +1,6 @@
+{"browser":"e2e","when":"none","events":["keyup","click:old"],"swapped":false,"clickOld":1,"clickNew":0}
+{"browser":"e2e","when":"microtask","events":["keyup","swap","click:old","focus:new"],"swapped":true,"clickOld":1,"clickNew":0}
+{"browser":"e2e","when":"task","events":["keyup","click:old","swap","focus:new"],"swapped":true,"clickOld":1,"clickNew":0}
+{"browser":"firefox-core","when":"none","events":["keyup","click:old"],"swapped":false,"clickOld":1,"clickNew":0}
+{"browser":"firefox-core","when":"microtask","events":["keyup","swap","click:old","focus:new"],"swapped":true,"clickOld":1,"clickNew":0}
+{"browser":"firefox-core","when":"task","events":["keyup","click:old","swap","focus:new"],"swapped":true,"clickOld":1,"clickNew":0}
