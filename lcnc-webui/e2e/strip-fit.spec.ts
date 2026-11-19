@@ -43,6 +43,9 @@ interface Fit {
   over: number; spare: number;
   sections: { name: string; width: number }[];
   clipped: string[];
+  /** Tool rows on more than one line — required away only WITHOUT a note
+   *  (Codex R407/R408: under a note's scrollbar a long type name may wrap) */
+  wraps: string[];
   /** how far the Tool body scrolls (scrollHeight − clientHeight, CSS px) */
   toolScroll: number;
 }
@@ -61,6 +64,7 @@ async function measureFit(page: Page): Promise<Fit> {
     const contentRight = box.left + strip.clientLeft + strip.clientWidth - parseFloat(cs.paddingRight);
     const last = sections[sections.length - 1]!.getBoundingClientRect().right;
     const clipped: string[] = [];
+    const wraps: string[] = [];
     for (const sec of sections) {
       // What an element SHOWS against its own box: the rectangles of its
       // rendered contents (text and child boxes), never scrollWidth — a help
@@ -92,18 +96,20 @@ async function measureFit(page: Page): Promise<Fit> {
         if (!rects.length) continue;
         const left = Math.min(...rects.map(q => q.left)), right = Math.max(...rects.map(q => q.right));
         if (left < b.left - 0.5 || right > b.right + 0.5) clipped.push(`${sec.dataset.strip ?? sec.className.split(' ')[0]}: ${el.className.split(' ')[0] || el.tagName} "${(el.textContent ?? '').trim().slice(0, 40)}" content ${Math.round(left)}–${Math.round(right)} past its box ${Math.round(b.left)}–${Math.round(b.right)}`);
-        // a Tool row is ONE line: a value that wraps grows the row (R405:
-        // the offset word behind the length made the widest row)
+        // how many lines a Tool row takes (R405: the offset word behind the
+        // length made the widest row — the "In effect" row is the contract);
+        // judged apart from a sideways cut (Codex R408 LT-I01)
         if (el.classList.contains('statusRow') && sec.dataset.strip === 'tool') {
           const fs = parseFloat(getComputedStyle(el).fontSize);
           const mids = rects.filter(q => q.height < 2 * fs).map(q => (q.top + q.bottom) / 2).sort((a, b) => a - b);
           const lines = 1 + mids.slice(1).filter((m, i) => m - mids[i]! > 0.6 * fs).length;
-          if (lines > 1) clipped.push(`tool: statusRow "${(el.textContent ?? '').trim().slice(0, 40)}" wraps onto ${lines} lines`);
+          if (lines > 1) wraps.push(`tool: statusRow "${(el.textContent ?? '').trim().slice(0, 40)}" wraps onto ${lines} lines`);
         }
       }
     }
     const body = document.querySelector('[data-strip="tool"] .toolBody') as HTMLElement | null;
     return {
+      wraps,
       toolScroll: body ? body.scrollHeight - body.clientHeight : -1,
       over: strip.scrollWidth - strip.clientWidth,
       spare: Math.round((contentRight - last) * 10) / 10,
@@ -117,6 +123,8 @@ function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+  // without a note every Tool row is one line
+  expect(fit.wraps, `${label}: a Tool row wraps without a note`).toEqual([]);
   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
   // without a note the tool rows fit the section: its body has nothing to scroll
   expect(fit.toolScroll, `${label}: the Tool body scrolls ${fit.toolScroll} px without a note`).toBeLessThanOrEqual(0.5);
@@ -242,93 +250,111 @@ const NOTES = {
   'unbroken 108': CODEX_PATH(1),
   'unbroken 372': CODEX_PATH(12),
 };
+/** One error-note case: the note never widens the strip; each of its lines,
+ *  Retry and every row (or the empty state) come whole into view by
+ *  scrolling; Retry hit-testable. A row may wrap under the note (R408). */
+async function noteCase(page: Page, loadedTool: typeof TOOL | null, error: string): Promise<Fit> {
+  const profile = LINEAR[2]!;
+  await openLayout(page, profile, FULLHD[0]!);
+  if (loadedTool) { await publishToolTable([loadedTool]); await loadTool(page, OFFSETS['offset other']!); }
+  const clean = await measureFit(page);
+  await ctl({ op: 'replyFor', cmd: 'get_tool_table', reply: { ok: false, error } });
+  await ctl({ op: 'raw', frame: { type: 'tool_table_changed', version: 9000 + (loadedTool ? 1 : 0) } });
+  const tool = page.locator('[data-strip="tool"]');
+  await expect(tool.locator('.statusNote')).toBeVisible();
+  const fit = await measureFit(page);
+  expect(fit.over, 'the note widens the strip').toBeLessThanOrEqual(clean.over);
+  expect(fit.sections, 'the note changes a section width').toEqual(clean.sections);
+  // the body's scrollbar, once it shows, cuts no row sideways; a row may
+  // wrap there (Codex R407/R408) and is still reached whole below
+  expect(fit.clipped, 'cut sideways under the note').toEqual([]);
+  // The note, line by line (Codex R406): a note taller than the window is
+  // read over successive scroll positions — each text line, brought to the
+  // window's top, lies whole in the window and the strip.
+  const lines = await tool.locator('.statusNote').evaluate(note => {
+    const strip = document.querySelector('.strip') as HTMLElement;
+    let scroller: HTMLElement | null = note.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+    if (!scroller || scroller === strip || !strip.contains(scroller)) return [{ ok: false, why: 'the note has no scroll area of its own in the Tool section' }];
+    const area = scroller;
+    const range = document.createRange();
+    range.selectNodeContents(note.querySelector(':scope > span') ?? note);   // the note's words, without Retry
+    const lineRects = () => {
+      const byTop = new Map<number, { top: number; bottom: number; left: number; right: number }>();
+      for (const q of range.getClientRects()) {
+        if (q.width === 0) continue;
+        const k = Math.round(q.top);
+        const l = byTop.get(k);
+        byTop.set(k, l ? { top: Math.min(l.top, q.top), bottom: Math.max(l.bottom, q.bottom), left: Math.min(l.left, q.left), right: Math.max(l.right, q.right) }
+          : { top: q.top, bottom: q.bottom, left: q.left, right: q.right });
+      }
+      return [...byTop.values()].sort((x, y) => x.top - y.top);
+    };
+    const out: { ok: boolean; why: string }[] = [];
+    const count = lineRects().length;
+    for (let i = 0; i < count; i++) {
+      area.scrollTop += lineRects()[i]!.top - (area.getBoundingClientRect().top + area.clientTop);   // line i to the window's top
+      const line = lineRects()[i]!;
+      const a = area.getBoundingClientRect(), st = strip.getBoundingClientRect();
+      const win = { top: a.top + area.clientTop, bottom: a.top + area.clientTop + area.clientHeight, left: a.left + area.clientLeft, right: a.left + area.clientLeft + area.clientWidth };
+      const within = (o: { top: number; bottom: number; left: number; right: number }) =>
+        line.top >= o.top - 0.5 && line.bottom <= o.bottom + 0.5 && line.left >= o.left - 0.5 && line.right <= o.right + 0.5;
+      const ok = within(win) && within(st);
+      out.push({ ok, why: ok ? '' : `line ${i + 1}: ${Math.round(line.top)}–${Math.round(line.bottom)} × ${Math.round(line.left)}–${Math.round(line.right)}; window ${Math.round(win.top)}–${Math.round(win.bottom)} × ${Math.round(win.left)}–${Math.round(win.right)}` });
+    }
+    area.scrollTop = 0;
+    return out;
+  });
+  expect(lines.length, 'the note has text lines').toBeGreaterThan(0);
+  expect(lines.filter(l => !l.ok).map(l => l.why), 'a note line out of reach').toEqual([]);
+  const targets = [tool.getByRole('button', { name: 'Retry', exact: true }),
+    ...(loadedTool ? Array.from({ length: await tool.locator('.statusRow').count() }, (_, i) => tool.locator('.statusRow').nth(i)) : [tool.locator('.emptyState')])];
+  for (const t of targets) {
+    await t.evaluate(el => el.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+    await settleLayout(page);
+    const seen = await t.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      const inside = (outer: DOMRect) => r.top >= outer.top - 0.5 && r.bottom <= outer.bottom + 0.5 && r.left >= outer.left - 0.5 && r.right <= outer.right + 0.5;
+      let p: HTMLElement | null = el.parentElement;
+      const clips: string[] = [];
+      while (p) {
+        const s = getComputedStyle(p);
+        if ((s.overflowX !== 'visible' || s.overflowY !== 'visible') && !inside(p.getBoundingClientRect())) clips.push(p.className.split(' ')[0] || p.tagName);
+        p = p.parentElement;
+      }
+      const vis = r.top >= 0 && r.bottom <= innerHeight + 0.5 && r.left >= 0 && r.right <= innerWidth + 0.5;
+      return { clips, vis, text: (el.textContent ?? '').trim().slice(0, 30) };
+    });
+    expect(seen.clips, `"${seen.text}" cut by its scroller`).toEqual([]);
+    expect(seen.vis, `"${seen.text}" off the screen`).toBe(true);
+  }
+  // Retry is operable where it shows: its centre hits the button itself
+  const retry = tool.getByRole('button', { name: 'Retry', exact: true });
+  await retry.evaluate(el => el.scrollIntoView({ block: 'nearest' }));
+  expect(await retry.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!at && (at === el || el.contains(at));
+  }), 'Retry hit-testable').toBe(true);
+  return fit;
+}
+
 for (const loaded of [false, true]) {
   for (const [kind, error] of Object.entries(NOTES)) {
     test(`strip fit: 3axis-xyz @ touch-fullhd — the ${kind} error note${loaded ? ' over a loaded tool' : ''}: the strip keeps its width, note, Retry and rows reachable`, async ({ page }) => {
-      const profile = LINEAR[2]!;
-      await openLayout(page, profile, FULLHD[0]!);
-      if (loaded) { await publishToolTable([TOOL]); await loadTool(page, OFFSETS['offset other']!); }
-      const clean = await measureFit(page);
-      await ctl({ op: 'replyFor', cmd: 'get_tool_table', reply: { ok: false, error } });
-      await ctl({ op: 'raw', frame: { type: 'tool_table_changed', version: 9000 + (loaded ? 1 : 0) } });
-      const tool = page.locator('[data-strip="tool"]');
-      await expect(tool.locator('.statusNote')).toBeVisible();
-      const fit = await measureFit(page);
-      expect(fit.over, 'the note widens the strip').toBeLessThanOrEqual(clean.over);
-      expect(fit.sections, 'the note changes a section width').toEqual(clean.sections);
-      // the body's scrollbar, once it shows, cuts no row sideways
-      expect(fit.clipped, 'cut sideways under the note').toEqual([]);
-      // The note, line by line (Codex R406): a note taller than the window is
-      // read over successive scroll positions — each text line, brought to the
-      // window's top, lies whole in the window and the strip.
-      const lines = await tool.locator('.statusNote').evaluate(note => {
-        const strip = document.querySelector('.strip') as HTMLElement;
-        let scroller: HTMLElement | null = note.parentElement;
-        while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
-        if (!scroller || scroller === strip || !strip.contains(scroller)) return [{ ok: false, why: 'the note has no scroll area of its own in the Tool section' }];
-        const area = scroller;
-        const range = document.createRange();
-        range.selectNodeContents(note.querySelector(':scope > span') ?? note);   // the note's words, without Retry
-        const lineRects = () => {
-          const byTop = new Map<number, { top: number; bottom: number; left: number; right: number }>();
-          for (const q of range.getClientRects()) {
-            if (q.width === 0) continue;
-            const k = Math.round(q.top);
-            const l = byTop.get(k);
-            byTop.set(k, l ? { top: Math.min(l.top, q.top), bottom: Math.max(l.bottom, q.bottom), left: Math.min(l.left, q.left), right: Math.max(l.right, q.right) }
-              : { top: q.top, bottom: q.bottom, left: q.left, right: q.right });
-          }
-          return [...byTop.values()].sort((x, y) => x.top - y.top);
-        };
-        const out: { ok: boolean; why: string }[] = [];
-        const count = lineRects().length;
-        for (let i = 0; i < count; i++) {
-          area.scrollTop += lineRects()[i]!.top - (area.getBoundingClientRect().top + area.clientTop);   // line i to the window's top
-          const line = lineRects()[i]!;
-          const a = area.getBoundingClientRect(), st = strip.getBoundingClientRect();
-          const win = { top: a.top + area.clientTop, bottom: a.top + area.clientTop + area.clientHeight, left: a.left + area.clientLeft, right: a.left + area.clientLeft + area.clientWidth };
-          const within = (o: { top: number; bottom: number; left: number; right: number }) =>
-            line.top >= o.top - 0.5 && line.bottom <= o.bottom + 0.5 && line.left >= o.left - 0.5 && line.right <= o.right + 0.5;
-          const ok = within(win) && within(st);
-          out.push({ ok, why: ok ? '' : `line ${i + 1}: ${Math.round(line.top)}–${Math.round(line.bottom)} × ${Math.round(line.left)}–${Math.round(line.right)}; window ${Math.round(win.top)}–${Math.round(win.bottom)} × ${Math.round(win.left)}–${Math.round(win.right)}` });
-        }
-        area.scrollTop = 0;
-        return out;
-      });
-      expect(lines.length, 'the note has text lines').toBeGreaterThan(0);
-      expect(lines.filter(l => !l.ok).map(l => l.why), 'a note line out of reach').toEqual([]);
-      const targets = [tool.getByRole('button', { name: 'Retry', exact: true }),
-        ...(loaded ? Array.from({ length: await tool.locator('.statusRow').count() }, (_, i) => tool.locator('.statusRow').nth(i)) : [tool.locator('.emptyState')])];
-      for (const t of targets) {
-        await t.evaluate(el => el.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
-        await settleLayout(page);
-        const seen = await t.evaluate(el => {
-          const r = el.getBoundingClientRect();
-          const inside = (outer: DOMRect) => r.top >= outer.top - 0.5 && r.bottom <= outer.bottom + 0.5 && r.left >= outer.left - 0.5 && r.right <= outer.right + 0.5;
-          let p: HTMLElement | null = el.parentElement;
-          const clips: string[] = [];
-          while (p) {
-            const s = getComputedStyle(p);
-            if ((s.overflowX !== 'visible' || s.overflowY !== 'visible') && !inside(p.getBoundingClientRect())) clips.push(p.className.split(' ')[0] || p.tagName);
-            p = p.parentElement;
-          }
-          const vis = r.top >= 0 && r.bottom <= innerHeight + 0.5 && r.left >= 0 && r.right <= innerWidth + 0.5;
-          return { clips, vis, text: (el.textContent ?? '').trim().slice(0, 30) };
-        });
-        expect(seen.clips, `"${seen.text}" cut by its scroller`).toEqual([]);
-        expect(seen.vis, `"${seen.text}" off the screen`).toBe(true);
-      }
-      // Retry is operable where it shows: its centre hits the button itself
-      const retry = tool.getByRole('button', { name: 'Retry', exact: true });
-      await retry.evaluate(el => el.scrollIntoView({ block: 'nearest' }));
-      expect(await retry.evaluate(el => {
-        const r = el.getBoundingClientRect();
-        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return !!at && (at === el || el.contains(at));
-      }), 'Retry hit-testable').toBe(true);
+      await noteCase(page, loaded ? TOOL : null, error);
     });
   }
 }
+
+// The accepted wrap (Codex R407/R408): the longest built-in type name under
+// the note's scrollbar may take two lines — nothing cut sideways, every
+// row reached whole. Its wrap is reported, not required.
+test('strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable', async ({ page }, info) => {
+  const fit = await noteCase(page, { ...TOOL, type: 'cornerchamfer' }, NOTES['unbroken 372']);
+  await expect(page.locator('[data-strip="tool"]')).toContainText('Corner Chamfer End Mill');
+  info.annotations.push({ type: 'wraps', description: fit.wraps.join('; ') || 'none' });
+});
 
 // Named, not required: a rotary axis (XYA) keeps scrolling. The measurement
 // is reported so a change in either direction is seen.
