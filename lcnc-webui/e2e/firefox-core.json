@@ -52,7 +52,17 @@
       "titles": [
         "mouse: a tap sends nothing, a hold on a smooth page sends once",
         "mouse: a tap or a hold across a blocked page never fires",
-        "mouse: an ended press's step never fires a new short press (an abort, then a new press)", "mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused"
+        "mouse: an ended press's step never fires a new short press (an abort, then a new press)",
+        "mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused"
+      ]
+    },
+    {
+      "file": "strip-fit.spec.ts",
+      "titles": [
+        "strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+        "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+        "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+        "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"
       ]
     }
   ],

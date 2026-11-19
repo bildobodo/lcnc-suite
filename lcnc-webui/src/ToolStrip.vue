@@ -69,33 +69,50 @@ const currentToolData = computed(() =>
     <div class="stripSection">
       <div class="sub">Tool</div>
       <MachineBtn type="nav" @click="emit('openToolTable')" block>Tool Table</MachineBtn>
-      <!-- the tool table's read failure looks and acts like it does in the
-           Tools tab: an error note with a re-read (design wave D1, UI-N28) -->
-      <div v-if="tableError" class="statusNote error" role="alert">
-        <span>Tool table: {{ tableError }}</span>
-        <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
-      </div>
+      <!-- The body under the fixed head scrolls as ONE area (plan
+           leiste-tastatur S4a, Codex R405 LT405-01): a long read failure
+           pushed the tool rows out of the fixed section — now the note, its
+           Retry and every row are reached by scrolling, and nothing in it
+           widens the strip. -->
+      <div class="toolBody stack-controls scroll-thin">
+        <!-- the tool table's read failure looks and acts like it does in the
+             Tools tab: an error note with a re-read (design wave D1, UI-N28) -->
+        <div v-if="tableError" class="statusNote error" role="alert">
+          <span>Tool table: {{ tableError }}</span>
+          <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
+        </div>
 
-      <div v-if="currentTool > 0" class="toolInfo inset-panel stack-tight">
-        <div class="statusRow"><span class="label-muted md">Tool</span><span class="val-status md mono">T{{ currentTool }}</span></div>
-        <div class="statusRow"><span class="label-muted md">Pocket</span><span class="val-status md mono">{{ currentToolData?.P ?? NO_VALUE }}</span></div>
-        <div class="statusRow"><span class="label-muted md">Diameter</span><span class="val-status md mono">{{ fmtQty(toolDiameter, linearUnit) }}</span></div>
-        <!-- The table length AND whether it is in effect (operator
-             2026-10-01: under G49 the DRO and zeroing refer to the spindle
-             nose, though the drawn tool sticks out): "· G43" while the
-             spindle tool's own offset applies, a warn word when not. -->
-        <div class="statusRow"><span class="label-muted md">Z Offset</span>
-          <span class="val-status md"><span class="mono">{{ fmtQty(toolLength, linearUnit) }}</span>
-            <span v-if="offsetWord" data-tool-offset class="val-status md" :class="{ warn: offsetWarn }"> · {{ offsetWord }}</span></span></div>
-        <div class="statusRow"><span class="label-muted md">Type</span><span class="val-status md">{{ currentToolData ? toolTypeLabel(currentToolData.type) : NO_VALUE }}</span></div>
-        <div class="statusRow"><span class="label-muted md">Description</span><span class="val-status md toolDesc">{{ currentToolData?.description || NO_VALUE }}</span></div>
+        <div v-if="currentTool > 0" class="toolInfo inset-panel stack-tight">
+          <div class="statusRow"><span class="label-muted md">Tool</span><span class="val-status md mono">T{{ currentTool }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Pocket</span><span class="val-status md mono">{{ currentToolData?.P ?? NO_VALUE }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Diameter</span><span class="val-status md mono">{{ fmtQty(toolDiameter, linearUnit) }}</span></div>
+          <!-- The table length, and on its own row whether it is in effect
+               (operator 2026-10-01: under G49 the DRO and zeroing refer to
+               the spindle nose, though the drawn tool sticks out): the mode
+               while the spindle tool's own offset applies, a warn word when
+               not, "—" without a claim. Its own row since plan
+               leiste-tastatur S4 (variant A): behind the length it made the
+               widest row and held the section at 280 px. -->
+          <div class="statusRow"><span class="label-muted md">Z Offset</span><span class="val-status md mono">{{ fmtQty(toolLength, linearUnit) }}</span></div>
+          <div class="statusRow"><span class="label-muted md">In effect</span><span data-tool-offset class="val-status md" :class="{ warn: offsetWarn }">{{ offsetWord ?? NO_VALUE }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Type</span><span class="val-status md">{{ currentToolData ? toolTypeLabel(currentToolData.type) : NO_VALUE }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Description</span><span class="val-status md toolDesc">{{ currentToolData?.description || NO_VALUE }}</span></div>
+        </div>
+        <div v-else class="emptyState">No tool loaded</div>
       </div>
-      <div v-else class="emptyState">No tool loaded</div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* The body: the section's last child takes the rest of the fixed height
+   (.stripSection > :last-child) and scrolls vertically. */
+.toolBody { overflow-y: auto; }
+/* Landscape: the section's own width (--strip-tool-w); portrait keeps the
+   column's (.stripFixed). */
+@media (orientation: landscape) {
+  .toolStrip { width: var(--strip-tool-w); }
+}
 
 .toolDesc {
   overflow: hidden;

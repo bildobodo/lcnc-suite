@@ -324,9 +324,15 @@
      (11px × 1.5 line-height) + --gap-controls + 5 × --key-size rows with
      4 × --gap-tight gaps = 260.5px, plus rounding margin. */
   --strip-section-h: 264px;
-  /* The fixed-width strip sections (Safety, Tool) and the portrait strip
-     column: ONE width (design wave D6, N91 — was three copies of 280 px). */
+  /* The fixed-width strip sections (Safety; Tool in portrait — landscape
+     takes --strip-tool-w) and the portrait strip column: ONE width (design
+     wave D6, N91 — was three copies of 280 px). */
   --strip-fixed-w: 280px;
+  /* The Tool section in landscape: narrower than Safety (plan
+     leiste-tastatur S4, variant A) so the strip fits at 1920 px with one to
+     three linear axes. Its widest row is "Z Offset −1234.5670 in" — the
+     offset state has its own row. The portrait column keeps --strip-fixed-w. */
+  --strip-tool-w: 224px;
   /* Action-rail minimum width — the wider grid track holding word-labeled
      keys (Send, Clear, Cancel, OK) beside the square character keys. */
   --key-action-w: 70px;
@@ -1404,7 +1410,10 @@ label:has(input:disabled, select:disabled) {
    child": a note whose words are bare text starts with its close X, and a
    first-child rule stretched the X across the note (round 4, VK-I03). */
 .statusNote > :is(button, .btnTip, .row-tight) { flex: none; }
-.statusNote > :not(button, .btnTip, .row-tight) { flex: 1 1 12em; min-width: 0; }
+/* A word longer than the line (a file path in a gateway error) breaks inside
+   it: a note never runs out of its box sideways (plan leiste-tastatur S4a —
+   a 108-character read failure widened the whole strip). */
+.statusNote > :not(button, .btnTip, .row-tight) { flex: 1 1 12em; min-width: 0; overflow-wrap: break-word; }
 .statusNote.warn {
   background: color-mix(in oklab, var(--warn) var(--tint-note), var(--panel));
   border: 1px solid color-mix(in srgb, var(--warn) var(--tint-fill), transparent);
@@ -2537,6 +2546,19 @@ html:not(.touch-device) .choice:hover:not(.dimmed) { background: var(--hl-hover)
   background: color-mix(in oklab, var(--info) var(--tint-active), var(--button-bg));
   font-weight: var(--fw-semibold);
   box-shadow: inset 0 -3px 0 var(--info);
+}
+/* A checked option is semibold; every option keeps the room of its semibold
+   label (an invisible, zero-high copy), so a choice never moves an option
+   or widens its group — "Auto" checked was 1 px wider than "Manual" checked
+   and grew the Jog column in a run (plan leiste-tastatur S2). Hidden from
+   the accessible name by visibility. */
+.choice[data-label]::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: var(--fw-semibold);
 }
 .choice.pending { box-shadow: inset 0 -3px 0 var(--warn); }
 .choice.dimmed { opacity: var(--opacity-disabled); cursor: not-allowed; }

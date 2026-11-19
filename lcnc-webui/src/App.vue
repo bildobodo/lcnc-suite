@@ -3041,6 +3041,9 @@ watch(viewerGcode, (newGcode) => {
   transition: opacity 0.2s;
   pointer-events: none;
   z-index: var(--z-raised);
+  /* zero width, and no gap before it either: the strip's gap in front of
+     the fade was 8 px of empty strip at its end (plan leiste-tastatur S1) */
+  margin-left: calc(-1 * var(--gap-controls));
 }
 .strip > .stripFade { right: 0; }
 .strip > .stripFade::before {
@@ -3362,6 +3365,7 @@ watch(viewerGcode, (newGcode) => {
     bottom: 0;
     border-top: none;
     padding-top: 0;
+    margin-left: 0;   /* the landscape gap cancel (S1) is horizontal only */
   }
   .wrap > .strip > .stripFade::before {
     top: auto;
