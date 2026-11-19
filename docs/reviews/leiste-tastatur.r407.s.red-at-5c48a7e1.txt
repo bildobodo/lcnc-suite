@@ -1,0 +1,646 @@
+
+Running 16 tests using 1 worker
+
+[1A[2K[1/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, 24 px spare, one width per section in every state
+[1A[2K  1) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, 24 px spare, one width per section in every state 
+
+    Error: touch-fullhd running: a section changed its width with the state
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -3,11 +3,11 @@[39m
+    [2m      "name": "safetyStrip",[22m
+    [2m      "width": 280,[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "jog",[22m
+    [32m-     "width": 221,[39m
+    [31m+     "width": 222,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "setup",[22m
+    [2m      "width": 337,[22m
+    [2m    },[22m
+
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+    > 92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+         |                                                                                            ^
+      93 | }
+      94 |
+      95 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:92:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:116:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--16148--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-1axis--16148--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--16148--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-1axis--16148--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[2/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state
+[1A[2K  2) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state 
+
+    Error: touch-fullhd-window running: a section changed its width with the state
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -3,11 +3,11 @@[39m
+    [2m      "name": "safetyStrip",[22m
+    [2m      "width": 280,[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "jog",[22m
+    [32m-     "width": 221,[39m
+    [31m+     "width": 222,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "setup",[22m
+    [2m      "width": 337,[22m
+    [2m    },[22m
+
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+    > 92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+         |                                                                                            ^
+      93 | }
+      94 |
+      95 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:92:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:116:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--dde14--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-1axis--dde14--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--dde14--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-1axis--dde14--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[3/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state
+[1A[2K  3) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state 
+
+    Error: fullhd-desktop running: a section changed its width with the state
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -3,11 +3,11 @@[39m
+    [2m      "name": "safetyStrip",[22m
+    [2m      "width": 280,[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "jog",[22m
+    [32m-     "width": 221,[39m
+    [31m+     "width": 222,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "setup",[22m
+    [2m      "width": 337,[22m
+    [2m    },[22m
+
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+    > 92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+         |                                                                                            ^
+      93 | }
+      94 |
+      95 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:92:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:116:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--62da2--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-1axis--62da2--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--62da2--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-1axis--62da2--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[4/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, 24 px spare, one width per section in every state
+[1A[2K  4) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, 24 px spare, one width per section in every state 
+
+    Error: touch-fullhd running: a section changed its width with the state
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -3,11 +3,11 @@[39m
+    [2m      "name": "safetyStrip",[22m
+    [2m      "width": 280,[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "jog",[22m
+    [32m-     "width": 460.5,[39m
+    [31m+     "width": 461.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "setup",[22m
+    [2m      "width": 367,[22m
+    [2m    },[22m
+
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+    > 92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+         |                                                                                            ^
+      93 | }
+      94 |
+      95 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:92:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:116:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--4c81a--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-2axis--4c81a--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--4c81a--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-2axis--4c81a--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[5/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state
+[1A[2K  5) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state 
+
+    Error: touch-fullhd-window running: a section changed its width with the state
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -3,11 +3,11 @@[39m
+    [2m      "name": "safetyStrip",[22m
+    [2m      "width": 280,[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "jog",[22m
+    [32m-     "width": 460.5,[39m
+    [31m+     "width": 461.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "setup",[22m
+    [2m      "width": 367,[22m
+    [2m    },[22m
+
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+    > 92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+         |                                                                                            ^
+      93 | }
+      94 |
+      95 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:92:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:116:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--c9e18--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-2axis--c9e18--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--c9e18--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-2axis--c9e18--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[6/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state
+[1A[2K  6) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state 
+
+    Error: fullhd-desktop running: a section changed its width with the state
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -3,11 +3,11 @@[39m
+    [2m      "name": "safetyStrip",[22m
+    [2m      "width": 280,[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "jog",[22m
+    [32m-     "width": 460.5,[39m
+    [31m+     "width": 461.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "name": "setup",[22m
+    [2m      "width": 367,[22m
+    [2m    },[22m
+
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+    > 92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+         |                                                                                            ^
+      93 | }
+      94 |
+      95 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:92:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:116:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--87039--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-2axis--87039--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--87039--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-2axis--87039--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[7/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state
+[1A[2K  7) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state 
+
+    Error: touch-fullhd homed: the strip runs 29 px past its width
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m0[39m
+    Received:    [31m29[39m
+
+      87 |
+      88 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+    > 89 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+         |                                                                              ^
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+      92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:89:78)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:111:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--1df3d--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--1df3d--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--1df3d--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--1df3d--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[8/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state
+[1A[2K  8) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state 
+
+    Error: touch-fullhd-window homed: the strip runs 29 px past its width
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m0[39m
+    Received:    [31m29[39m
+
+      87 |
+      88 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+    > 89 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+         |                                                                              ^
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+      92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:89:78)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:111:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--16b9f--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--16b9f--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--16b9f--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--16b9f--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[9/16] [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state
+[1A[2K  9) [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state 
+
+    Error: fullhd-desktop homed: the strip runs 20 px past its width
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m0[39m
+    Received:    [31m20[39m
+
+      87 |
+      88 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+    > 89 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+         |                                                                              ^
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+      92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:89:78)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:111:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--9bd8b--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--9bd8b--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--9bd8b--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--9bd8b--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[10/16] [e2e] › e2e/strip-fit.spec.ts:145:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths
+[1A[2K  10) [e2e] › e2e/strip-fit.spec.ts:145:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths 
+
+    Error: mm: the strip runs 29 px past its width
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m0[39m
+    Received:    [31m29[39m
+
+      87 |
+      88 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+    > 89 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+         |                                                                              ^
+      90 |   expect(fit.spare, `${label}: ${fit.spare} px free after the last section, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+      91 |   expect(fit.clipped, `${label}: cut sideways`).toEqual([]);
+      92 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:89:78)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:150:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[11/16] [e2e] › e2e/strip-fit.spec.ts:171:1 › strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option
+[1A[2K  11) [e2e] › e2e/strip-fit.spec.ts:171:1 › strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option 
+
+    Error: mode Auto: Jog step
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 3[39m
+    [31m+ Received  + 3[39m
+
+    [2m  Array [[22m
+    [2m    "Cont 675.5 46",[22m
+    [32m-   ".001 725.5 45",[39m
+    [32m-   ".01 774.5 45",[39m
+    [31m+   ".001 725.5 45.5",[39m
+    [31m+   ".01 775 45.5",[39m
+    [2m    ".1 675.5 46",[22m
+    [32m-   "1 725.5 45",[39m
+    [31m+   "1 725.5 45.5",[39m
+    [2m  ][22m
+
+      190 |     await ctl({ op: 'status_delta', data: { task_mode: mode } });
+      191 |     await expect(options('Task mode').filter({ hasText: word })).toHaveAttribute('aria-checked', 'true');
+    > 192 |     for (const g of groups) expect(await boxes(g), `mode ${word}: ${g}`).toEqual(before[g]);
+          |                                                                          ^
+      193 |   }
+      194 |   for (let i = 1; i <= 9; i++) {
+      195 |     await ctl({ op: 'status_delta', data: { g5x_index: i } });
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:192:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--b210d-cked-choice-moves-no-option-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--b210d-cked-choice-moves-no-option-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--b210d-cked-choice-moves-no-option-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--b210d-cked-choice-moves-no-option-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[12/16] [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K  12) [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable 
+
+    Error: the note widens the strip
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m29[39m
+    Received:    [31m30[39m
+
+      219 |       await expect(tool.locator('.statusNote')).toBeVisible();
+      220 |       const fit = await measureFit(page);
+    > 221 |       expect(fit.over, 'the note widens the strip').toBeLessThanOrEqual(clean.over);
+          |                                                     ^
+      222 |       expect(fit.sections, 'the note changes a section width').toEqual(clean.sections);
+      223 |       // The note, line by line (Codex R406): a note taller than the window is
+      224 |       // read over successive scroll positions — each text line, brought to the
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:221:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--9e279-te-Retry-and-rows-reachable-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--9e279-te-Retry-and-rows-reachable-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--9e279-te-Retry-and-rows-reachable-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--9e279-te-Retry-and-rows-reachable-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[13/16] [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K  13) [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable 
+
+    Error: a note line out of reach
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 3[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "the note has no scroll area of its own in the Tool section",[39m
+    [31m+ ][39m
+
+      259 |       });
+      260 |       expect(lines.length, 'the note has text lines').toBeGreaterThan(0);
+    > 261 |       expect(lines.filter(l => !l.ok).map(l => l.why), 'a note line out of reach').toEqual([]);
+          |                                                                                    ^
+      262 |       const targets = [tool.getByRole('button', { name: 'Retry', exact: true }),
+      263 |         ...(loaded ? Array.from({ length: await tool.locator('.statusRow').count() }, (_, i) => tool.locator('.statusRow').nth(i)) : [tool.locator('.emptyState')])];
+      264 |       for (const t of targets) {
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:261:84
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--3b834-te-Retry-and-rows-reachable-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--3b834-te-Retry-and-rows-reachable-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--3b834-te-Retry-and-rows-reachable-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--3b834-te-Retry-and-rows-reachable-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[14/16] [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K  14) [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable 
+
+    Error: the note widens the strip
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m29[39m
+    Received:    [31m30[39m
+
+      219 |       await expect(tool.locator('.statusNote')).toBeVisible();
+      220 |       const fit = await measureFit(page);
+    > 221 |       expect(fit.over, 'the note widens the strip').toBeLessThanOrEqual(clean.over);
+          |                                                     ^
+      222 |       expect(fit.sections, 'the note changes a section width').toEqual(clean.sections);
+      223 |       // The note, line by line (Codex R406): a note taller than the window is
+      224 |       // read over successive scroll positions — each text line, brought to the
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:221:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--350d4-te-Retry-and-rows-reachable-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--350d4-te-Retry-and-rows-reachable-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--350d4-te-Retry-and-rows-reachable-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--350d4-te-Retry-and-rows-reachable-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[15/16] [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K  15) [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable 
+
+    Error: a note line out of reach
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 3[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "the note has no scroll area of its own in the Tool section",[39m
+    [31m+ ][39m
+
+      259 |       });
+      260 |       expect(lines.length, 'the note has text lines').toBeGreaterThan(0);
+    > 261 |       expect(lines.filter(l => !l.ok).map(l => l.why), 'a note line out of reach').toEqual([]);
+          |                                                                                    ^
+      262 |       const targets = [tool.getByRole('button', { name: 'Retry', exact: true }),
+      263 |         ...(loaded ? Array.from({ length: await tool.locator('.statusRow').count() }, (_, i) => tool.locator('.statusRow').nth(i)) : [tool.locator('.emptyState')])];
+      264 |       for (const t of targets) {
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:261:84
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--2ff07-te-Retry-and-rows-reachable-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--2ff07-te-Retry-and-rows-reachable-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--2ff07-te-Retry-and-rows-reachable-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--2ff07-te-Retry-and-rows-reachable-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[16/16] [e2e] › e2e/strip-fit.spec.ts:297:1 › strip fit: 3axis-xya @ touch-fullhd — measured, not required
+[1A[2K  15 failed
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:104:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:145:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths 
+    [e2e] › e2e/strip-fit.spec.ts:171:1 › strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option 
+    [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable 
+    [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable 
+    [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable 
+    [e2e] › e2e/strip-fit.spec.ts:211:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable 
+  1 passed (49.4s)

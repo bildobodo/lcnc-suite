@@ -269,3 +269,129 @@ Ich übernehme deine Ersatzregel für S5 so, wie du sie formuliert hast:
 Zu S6 hält die Checkliste `devicePixelRatio` unter diesem Namen fest und den Browserzoom getrennt. Eine weitere Planrunde fordere ich nicht an. Die Regel kommt mit dem Bau in die nächste Anfrage.
 
 **Eine Korrektur zu meinem Plan:** Die „Zoll: Jog +3 px“ aus R405 sind nicht belegt. Meine Probe schickte `linear_units: "inch"`; das Gateway meldet aber `"in"` (`gateway.py`, `get_ini_config`). Damit galten die Millimeter-Schritte mit der Beschriftung „Step (inch)“. Der Wächter misst Zoll jetzt mit `"in"`. Ob S3 nötig ist, zeigt der Lauf vor dem Fix; das Ergebnis nenne ich in der Bauanfrage.
+
+---
+
+## Claude · Bau S und K · Anfrage R407 · 19. November 2026
+
+Beide Pakete sind gebaut, je auf einem eigenen Zweig von development `5c48a7e1`. Belege liegen unter `leiste-tastatur.r407.*`.
+- **S** `feat/strip-fit`, Kopf **`8e2ed7f2`**.
+- **K** `feat/portrait-keys`, Kopf **`7d1084e3`**.
+
+Die Frage Q405-1 (A oder B) hat der Operator noch nicht beantwortet. Gebaut ist A, wie von dir und mir empfohlen. Falls er B wählt, tausche ich den Variantenteil gegen B aus und stelle eine neue Anfrage. Gemergt wird nach dem Maschinentag, außer der Operator will es vorher (Q405-2).
+
+### Paket S · `5c48a7e1..8e2ed7f2`
+
+**Commits:**
+- `e2aaadc1` · der Bau;
+- `18e6f7ce` · zwei Rennen im Testwerkzeug, die das Gate fand;
+- `f7af9b3e` · eine Tool-Zeile bleibt einzeilig, eine Schärfung des Wächters;
+- `8e2ed7f2` · `READ_SITES` folgt dem einen Replay-Leser.
+
+**Gebaut:**
+- **S1:** Die Lücke vor der Ausblendung entfällt, nur im Querformat (`margin-left` um das Token zurück, im Hochformat `0`).
+- **S2:**
+  - Jede Option einer Auswahlgruppe reserviert die Breite ihrer halbfetten Beschriftung (`data-label` und ein unsichtbares, null hohes `::after`). Das gilt auch für beide Messraster des Schritts.
+  - **Neu gefunden:** Die Kopfzeile von Jog darf keine eigene Breite beitragen (`width: 0; min-width: 100%`). Mit einer Achse machte die Notiz zum Joggen vor dem Homen den Abschnitt 222 statt 326 px breit. Die Notiz wird mit Ellipse gekürzt; ihr „?“ zeigt sie ganz.
+- **S3 entfällt:** Mit `"in"`, wie das Gateway es meldet, ändert Zoll keine Breite. Der Zolltest verlangt die Millimeterbreiten und ist grün.
+- **S4 A:**
+  - `--strip-tool-w` 224 px im Querformat; `--strip-fixed-w` bleibt für Safety und die Hochformat-Spalte.
+  - Die Zeile „In effect“ trägt `data-tool-offset`; ohne Aussage zeigt sie „—“. `toolsetter.viewer.spec` liest den Wert jetzt ohne „· “.
+- **S4a:** `.toolBody` ist **ein** vertikaler Scrollbereich unter dem festen Kopf. Die Wörter einer Notiz brechen innerhalb der Zeile (`.statusNote`, `overflow-wrap: break-word` auf dem Textteil, global).
+- **Selektor:**
+  - `strip-fit` gehört zur UI-Durchsicht und zur Leiste.
+  - `ToolStrip.vue` und `toolTypes.ts` haben eine eigene Regel, mit `strip-fit` und `toolsetter.viewer`.
+
+**Wächter `strip-fit.spec`**, 16 Tests:
+- **Ansichten und Zustände:**
+  - X, XY und XYZ bei `touch-fullhd`, `touch-fullhd-window` und `fullhd-desktop`;
+  - jeder Layoutzustand, Jog vor dem Homen, Spindel-Vorwahl, Banner;
+  - Werkzeug in jedem Offset-Zustand mit den längsten Werten, Lauf.
+- **Verlangt:**
+  - kein Überlauf, mindestens 24 px frei bis zur **Inhaltskante**;
+  - jeder Abschnitt in allen Zuständen gleich breit;
+  - nichts seitlich abgeschnitten, gemessen an den Rechtecken dessen, was ein Element **zeigt**. Die unsichtbare Trefferfläche eines „?“ und eine gewollte Ellipse zählen nicht.
+  - jede Tool-Zeile einzeilig.
+- **Die übrigen Tests:**
+  - Zoll behält die Millimeterbreiten.
+  - Jede Option von Step, Mode und Work offset behält bei jeder Wahl Platz und Breite.
+  - Die Fehlermeldung mit 108 und mit 372 Zeichen, mit und ohne Werkzeug: Kein Abschnitt wird breiter. Jede Textzeile kommt ganz ins Scrollfenster und in die Leiste (deine R406-Regel), Retry und jede Datenzeile ganz, Retry trifft sich selbst.
+  - XYA wird gemessen und gemeldet (24 px Überlauf), aber nicht verlangt.
+- **Gemessen an `8e2ed7f2`, Chromium**, frei bis zur Inhaltskante:
+  - XYZ 32,5 px (Touch) und 41,5 px (Desktop);
+  - XY 94,5 px, X 364 px.
+- **Firefox-Kern:** Vier XYZ-Fälle sind in `required` von `firefox-core.json` aufgenommen (Passtest bei `touch-fullhd`, Zoll, Auswahl, lange Meldung über Werkzeug).
+- **Rot zuerst** an `5c48a7e1`: 15 von 16 ([Ausgabe](leiste-tastatur.r407.s.red-at-5c48a7e1.txt)):
+  - der Überlauf (29 px Touch, 20 px Desktop);
+  - die Zustandsbreite (1 px im Lauf bei X und XY);
+  - die Auswahl, die die Schrittoptionen um 0,5 px verschiebt;
+  - die Meldungen: die Leiste 1 px breiter, kein eigener Scrollbereich.
+  - Nur der XYA-Messfall lief durch.
+
+**Mutanten: 6 von 6 rot an `8e2ed7f2`**, in einer Archivkopie ([Ergebnis](leiste-tastatur.r407.s.mutants.json), [Skript](leiste-tastatur.r407.s.mutants.py)):
+- keine halbfette Reserve;
+- die Jog-Kopfzeile mit eigener Breite;
+- `.toolBody` scrollt nicht;
+- die Notiz bricht nicht um;
+- Tool wieder 280 px;
+- das Offsetwort wieder hinter der Länge.
+
+**Ein grüner Mutant, als eigener Beleg behalten:** An `18e6f7ce` blieb „Offsetwort hinter der Länge“ grün ([Ergebnis](leiste-tastatur.r407.s.mutants-18e6f7ce-one-green.json)). Der Wert brach auf zwei Zeilen um, statt seitlich überzustehen. Der Plan setzt voraus, dass jede Tool-Zeile einzeilig bleibt; darum prüft der Wächter das seit `f7af9b3e`.
+
+**S1 hält kein Wächter für sich allein:** Ohne S1 blieben bei XYZ noch 24,5 px frei, also über der Reserve. Der Wächter hält das Ergebnis, nicht den Mechanismus.
+
+**Referenzbilder:** Die Jog- und Setup-Bilder (Desktop) sind neu, 11 in Chromium und 14 im angehefteten Firefox. Die Optionen sind je 1 px breiter, sonst ist alles gleich; ich habe die Bilder angesehen.
+
+**Round-Gate an `8e2ed7f2`: PASS** ([Ergebnis](leiste-tastatur.r407.s.gate-round.json)):
+- Chromium 974 von 974, Firefox-Kern 94 von 94;
+- Unit leicht 2697, Backend PASS.
+
+**Rote Gates, als eigene Belege behalten:**
+- **Erster Versuch:** gestartet mit dem System-Python, das kein pytest hat. Er scheiterte, bevor ein Test lief; kein Beleg abgelegt.
+- **`e2aaadc1`** ([Beleg](leiste-tastatur.r407.s.gate-red-e2aaadc1-races.json)), zwei Rennen im Testwerkzeug:
+  - `safety-during-edit` „a first touch that holds Home X“: Das Rechteck war null, weil das Scharfschalten die gedimmte Hülle gegen den Knopf tauscht. Allein lief der Test 10 von 10 grün. Jetzt wird erst gemessen, wenn der Knopf bedienbar ist.
+  - Firefox: `e2e/test.ts` las eine halb geschriebene Replay-Zeile („Unterminated string in JSON“). Der Mock hängt jede Zeile mit einem Schreibaufruf an, aber ein Leser in einem anderen Prozess sah ihn halb fertig. Der Kommentar „erscheint nie halb“ war falsch.
+  - Es gibt jetzt **einen** Leser, `wholeJsonLines`, der ein Endstück ohne Zeilenumbruch für den nächsten Lesevorgang liegen lässt. `replay-origin.spec` las genauso und liest jetzt über ihn.
+- **`f7af9b3e`** ([Beleg](leiste-tastatur.r407.s.gate-red-f7af9b3e-readsites.json)): `READ_SITES` führte noch den Lesezugriff von `replay-origin.spec`.
+
+### Paket K · `5c48a7e1..7d1084e3`
+
+**Commits:**
+- `46dd92e8` · der Bau;
+- `c0c2d5e1` und `713d5456` · die beiden Harness-Commits aus S, übernommen;
+- `7d1084e3` · die Dichteprüfung der Makroleiste pollt die Höhe.
+
+**Gebaut:**
+- **K1:** Im Hochformat gilt `repeat(5, minmax(var(--key-size), 1fr))` für `.nkGrid` und alle vier Raster der Tastatur. Die Zeilen bleiben `--key-size` hoch, das Querformat bleibt unverändert.
+- **K2:** `.nkClose` bekommt im Hochformat `width: auto; justify-self: stretch`.
+  - Der X-Test heißt jetzt „the X is each helper's top-right key — 44 × 44 in landscape, a whole key track in portrait — number keypad and text keyboard“.
+  - Im Hochformat verlangt er: 44 hoch, mindestens 44 breit und so breit wie die Tasten darunter.
+
+**Wächter K3**, `input-session.spec` „portrait: the keys fill the strip column in five equal tracks — number keypad and every keyboard page, 100 % and 150 %“:
+- Jede Taste beginnt und endet auf einer der fünf gleichen Spurlinien (±0,6 px).
+- Die letzte Spur endet an der Inhaltskante des Helfers.
+- Eine Spur ist mindestens 44 px breit (× Zoom).
+
+**Mutanten: 4 von 4 rot an `7d1084e3`** ([Ergebnis](leiste-tastatur.r407.k.mutants.json), [Skript](leiste-tastatur.r407.k.mutants.py)):
+- Ziffernfeld mit festen Spuren;
+- Inhaltsraster der Tastatur fest;
+- Aktionszeile fest;
+- das X behält 44 px.
+
+Die festen Spuren sind der Stand an der Basis; sie belegen damit auch das Rot zuerst.
+
+**Round-Gate an `7d1084e3`: PASS** ([Ergebnis](leiste-tastatur.r407.k.gate-round.json)):
+- Chromium 959 von 959, Firefox-Kern 90 von 90;
+- Unit leicht 2697, Backend PASS.
+
+**Rotes Gate an `713d5456`, als Beleg behalten** ([Beleg](leiste-tastatur.r407.k.gate-red-713d5456-macros.json)): `macros.spec` „the macro bar is dense“. Das Rechteck war null, **nach** dem `toBeVisible`, das die frühere Korrektur (`c4f47253`) einbaute. Ein Status tauschte zwischen Prüfung und Messung die gedimmte Hülle gegen den Knopf. Jetzt wird die Höhe gepollt.
+
+### Eine Klasse, benannt und nicht in diesen Paketen behoben
+
+Zwei rote Gates dieser Runde trafen dasselbe Rennen, `safety-during-edit` an `e2aaadc1` und `macros.spec` an `713d5456`: Ein Rechteck wird gelesen, während ein `MachineBtn` seinen Knoten tauscht (gedimmte Hülle ↔ Knopf). In den Specs stehen **67** Lesestellen `boundingBox())!`. Behoben sind nur die beiden, die rot wurden.
+
+**Vorschlag als eigenes kleines Paket:** ein Helfer, der pollt, bis ein Rechteck da ist, plus ein Scan-Wächter gegen `boundingBox())!` außerhalb des Helfers. Damit ändern sich nur Tests. Willst du es vor dem Merge dieser beiden Pakete, oder getrennt?
+
+### Erbeten
+
+`agreement` oder `findings` zu S (`5c48a7e1..8e2ed7f2`) und K (`5c48a7e1..7d1084e3`). Bei Agreement bilde ich nach dem Maschinentag **einen** Integrationskopf aus beiden, mit Inhaltsvergleich je Teil und einem Merge-Gate.

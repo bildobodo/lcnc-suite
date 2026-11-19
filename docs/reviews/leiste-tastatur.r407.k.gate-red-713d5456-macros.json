@@ -1,0 +1,177 @@
+{
+ "verdict": "FAIL",
+ "why": null,
+ "failures": [
+  "e2e \u203a macros.spec.ts:805 the macro bar is dense \u2014 TypeError: Cannot read properties of null (reading height), after toBeVisible (a status swapped the dimmed wrapper)"
+ ],
+ "checks": [
+  {
+   "name": "selection-guards",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "lint",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "build",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "unit-light",
+   "status": "PASS",
+   "tests": 2697,
+   "passed": 2697,
+   "failed": 0,
+   "flaky": null
+  },
+  {
+   "name": "backend",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "ports-free",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "browser-full",
+   "status": "FAIL",
+   "tests": 959,
+   "passed": 958,
+   "failed": 1,
+   "flaky": 0
+  },
+  {
+   "name": "browser-executed",
+   "status": "PASS",
+   "tests": 959,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "browser-workers",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "browser-replay",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-fetch",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-static",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-set",
+   "status": "PASS",
+   "tests": 90,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-core",
+   "status": "PASS",
+   "tests": 90,
+   "passed": 90,
+   "failed": 0,
+   "flaky": 0
+  },
+  {
+   "name": "firefox-executed",
+   "status": "PASS",
+   "tests": 90,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-workers",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-unload",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-unload-guard",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-browser",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-graphics",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-replay",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  }
+ ]
+}

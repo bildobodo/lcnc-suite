@@ -1,0 +1,99 @@
+{
+ "root": "/home/cnc/claude-work/stripfit/mut/tree",
+ "results": [
+  {
+   "mutant": "S2: no semibold room",
+   "file": "src/style.css",
+   "grep": "a checked choice moves no option",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:195:1 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 a checked choice moves no option"
+   ],
+   "errors": [
+    "Error: mode Auto: Jog step"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "S2: jog head adds its width",
+   "file": "src/JogStrip.vue",
+   "grep": "1axis-x @ touch-fullhd \u2014",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:128:5 \u203a strip fit: 1axis-x @ touch-fullhd \u2014 no overflow, 24 px spare, one width per section in every state"
+   ],
+   "errors": [
+    "Error: touch-fullhd joint-jog: a section changed its width with the state"
+   ],
+   "seconds": 13
+  },
+  {
+   "mutant": "S4a: tool body does not scroll",
+   "file": "src/ToolStrip.vue",
+   "grep": "the long error note",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:235:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the long error note: the strip keeps its width, note, Retry and rows reachable",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:235:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"
+   ],
+   "errors": [
+    "Error: a note line out of reach"
+   ],
+   "seconds": 14
+  },
+  {
+   "mutant": "S4a: note words do not break",
+   "file": "src/style.css",
+   "grep": "the path error note",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:235:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the path error note: the strip keeps its width, note, Retry and rows reachable",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:235:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"
+   ],
+   "errors": [
+    "Error: a note line out of reach"
+   ],
+   "seconds": 14
+  },
+  {
+   "mutant": "S4: Tool back to 280 px",
+   "file": "src/style.css",
+   "grep": "3axis-xyz @ touch-fullhd \u2014",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:128:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 no overflow, 24 px spare, one width per section in every state",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:169:1 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 inch keeps the millimetre widths"
+   ],
+   "errors": [
+    "Error: mm: the strip runs 24 px past its width",
+    "Error: touch-fullhd homed: the strip runs 24 px past its width"
+   ],
+   "seconds": 28
+  },
+  {
+   "mutant": "S4: offset word back behind the length",
+   "file": "src/ToolStrip.vue",
+   "grep": "3axis-xyz @ touch-fullhd \u2014",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:128:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 no overflow, 24 px spare, one width per section in every state",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:169:1 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 inch keeps the millimetre widths",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:235:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:235:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"
+   ],
+   "errors": [
+    "Error: cut sideways under the note",
+    "Error: inch offset G43.1: cut sideways",
+    "Error: touch-fullhd offset G43: cut sideways"
+   ],
+   "seconds": 33
+  }
+ ],
+ "restored_build": 0
+}

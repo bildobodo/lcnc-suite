@@ -1,0 +1,19 @@
+{
+ "verdict": "FAIL",
+ "why": [
+  "the selection's guards are red: the rule table does not hold for this tree, nothing may be left out"
+ ],
+ "failures": [
+  "selection-guards \u203a test_every_read_site_is_declared_exactly: replay-origin.spec readFileSync found 0 times, the table says 1"
+ ],
+ "checks": [
+  {
+   "name": "selection-guards",
+   "status": "FAIL",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  }
+ ]
+}

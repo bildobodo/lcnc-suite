@@ -1,0 +1,178 @@
+{
+ "verdict": "FAIL",
+ "why": null,
+ "failures": [
+  "e2e \u203a safety-during-edit.spec.ts:435 a first touch that holds Home X \u2014 TypeError: Cannot read properties of null (reading x) (boundingBox null after the arm re-render)",
+  "firefox-core \u203a layout.spec.ts:160 touch-fullhd, homed: a probe grid\u2026 \u2014 SyntaxError: Unterminated string in JSON at position 195 (e2e/test.ts replayLines read a torn line)"
+ ],
+ "checks": [
+  {
+   "name": "selection-guards",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "lint",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "build",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "unit-light",
+   "status": "PASS",
+   "tests": 2697,
+   "passed": 2697,
+   "failed": 0,
+   "flaky": null
+  },
+  {
+   "name": "backend",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "ports-free",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "browser-full",
+   "status": "FAIL",
+   "tests": 974,
+   "passed": 973,
+   "failed": 1,
+   "flaky": 0
+  },
+  {
+   "name": "browser-executed",
+   "status": "PASS",
+   "tests": 974,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "browser-workers",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "browser-replay",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-fetch",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-static",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-set",
+   "status": "PASS",
+   "tests": 94,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-core",
+   "status": "FAIL",
+   "tests": 94,
+   "passed": 93,
+   "failed": 1,
+   "flaky": 0
+  },
+  {
+   "name": "firefox-executed",
+   "status": "FAIL",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-workers",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-unload",
+   "status": "FAIL",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-unload-guard",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-browser",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-graphics",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  },
+  {
+   "name": "firefox-replay",
+   "status": "PASS",
+   "tests": null,
+   "passed": null,
+   "failed": null,
+   "flaky": null
+  }
+ ]
+}

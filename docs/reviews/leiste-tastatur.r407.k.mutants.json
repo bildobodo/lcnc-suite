@@ -1,0 +1,62 @@
+{
+ "root": "/home/cnc/claude-work/stripfit/mutk/tree",
+ "results": [
+  {
+   "mutant": "K1: number keypad tracks fixed",
+   "file": "src/NumberKeypadStrip.vue",
+   "grep": "portrait: the keys fill the strip column",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/input-session.spec.ts:1073:3 \u203a D7, touch \u203a portrait: the keys fill the strip column in five equal tracks \u2014 number keypad and every keyboard page, 100 % and 150 %"
+   ],
+   "errors": [
+    "Error: 1: number keypad keys off the tracks"
+   ],
+   "seconds": 10
+  },
+  {
+   "mutant": "K1: keyboard content grid fixed",
+   "file": "src/TextKeypadStrip.vue",
+   "grep": "portrait: the keys fill the strip column",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/input-session.spec.ts:1073:3 \u203a D7, touch \u203a portrait: the keys fill the strip column in five equal tracks \u2014 number keypad and every keyboard page, 100 % and 150 %"
+   ],
+   "errors": [
+    "Error: 1 Code keys: keyboard keys off the tracks"
+   ],
+   "seconds": 11
+  },
+  {
+   "mutant": "K1: keyboard action row fixed",
+   "file": "src/TextKeypadStrip.vue",
+   "grep": "portrait: the keys fill the strip column",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/input-session.spec.ts:1073:3 \u203a D7, touch \u203a portrait: the keys fill the strip column in five equal tracks \u2014 number keypad and every keyboard page, 100 % and 150 %"
+   ],
+   "errors": [
+    "Error: 1 Code keys: keyboard keys off the tracks"
+   ],
+   "seconds": 11
+  },
+  {
+   "mutant": "K2: the X keeps its 44 px",
+   "file": "src/NumberKeypadStrip.vue",
+   "grep": "the X is each helper",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/input-session.spec.ts:945:3 \u203a D7, touch \u203a the X is each helper's top-right key \u2014 44 \u00d7 44 in landscape, a whole key track in portrait \u2014 number keypad and text keyboard"
+   ],
+   "errors": [
+    "Error: portrait number keypad: keys under the X"
+   ],
+   "seconds": 13
+  }
+ ],
+ "restored_build": 0
+}
