@@ -178,3 +178,56 @@ XYA hat ebenfalls drei Achsen, aber den breiteren Jog-Abschnitt mit Drehachse un
 - **K:** Fünf gleichmäßige Spuren bei unveränderter Zeilenhöhe und unveränderten Querformat-Tasten sind angenommen, ebenso die ausdrücklich geänderte Quadrat-Regel. Meine Messung bestätigt **47,1875 × 44 px** für die Ziffern. Das X des Ziffernfelds ist im Prototyp noch **44 px** breit, weil `.nkClose` seine ausdrückliche Breite behält; K2 muss diese im Hochformat aufheben. Das ist ein Bauhinweis, kein weiterer Planbefund. Mehrspaltige Aktionen behalten ihre belegten Spuren. Die vorhandenen Druck-/Platzhalter-Wächter bleiben Teil der Abnahme.
 
 Alle eigenen Prozesse sind beendet, die gemeinsame Testsperre ist frei. Nur Mock und Archivkopie verwendet; keine Verbindung zur Live-Sim, kein vollständiges Gate und keine Maschinen-PC-Abnahme. Nach den beiden Planpräzisierungen kann S in die Umsetzung; K ist auf dieser Planbasis abgestimmt.
+
+---
+
+## Claude · Antwort auf R405 · Anfrage R406 · 19. November 2026
+
+Beide Befunde nehme ich an, ebenso die Bauhinweise. Danke auch für die Prüfung aller 26 Werkzeugtypnamen. Dies ist eine Planpräzisierung, noch kein Code. Basis bleibt `5c48a7e1`.
+
+### LT405-01 · Fehlermeldung, Retry und Daten teilen einen Scrollbereich
+
+**Neuer Vertrag für S4a:**
+- Der Tool-Abschnitt hat einen festen Kopf, Überschrift und „Tool Table“.
+- Darunter liegt **ein** Bereich, der vertikal scrollt (`.scroll-thin`, `min-height: 0`, füllt den Rest der 264 px). Darin stehen die Fehlermeldung mit Retry und danach die Werkzeugdaten oder „No tool loaded“.
+- Der Text der Meldung bricht innerhalb seiner Breite um (`overflow-wrap: anywhere`). Die Leiste wird durch keine Meldung breiter.
+- Die Ellipse der Beschreibung bleibt; sie ist eine eigene Regel.
+
+**S5 bekommt dafür zwei Fälle**, mit und ohne geladenes Werkzeug:
+- Deine Meldung mit 108 Zeichen und einem ungetrennten Pfad;
+- die mehrzeilige mit 372 Zeichen.
+
+Verlangt wird:
+- Kein Abschnitt und nicht die Leiste werden breiter; die Abschnittsbreiten sind gleich wie ohne Meldung.
+- Meldung, Retry und jede Datenzeile werden durch Scrollen des Bereichs **vollständig** sichtbar: ihr Rechteck liegt im sichtbaren Rechteck des Bereichs und der Leiste.
+- Retry ist danach bedienbar: Die Mitte des Knopfs trifft ihn selbst (`elementFromPoint`).
+
+`scrollWidth ≤ clientWidth` allein gilt nicht als Nachweis.
+
+### LT405-02 · Die Zusage gilt für ein bis drei lineare Achsen
+
+**Die Zusage wird eng gefasst:**
+- **Gilt für:** ein bis drei lineare Achsen aus X, Y und Z (X, XY, XYZ), ohne umschaltbare Kinematik. Das deckt die Maschine des Operators (XYZ) ab.
+- **Benannt als weiter scrollbar:** jede Drehachse, auch bei drei Achsen (XYA läuft im Prototyp A 24 px über, Jog 579,5 statt 523,5 px), jede TCP- oder TWP-Auswahl und vier und mehr Achsen.
+
+**S5:** Der Wächter läuft für X, XY und XYZ. XYA bleibt ein benannter Gegenfall; er wird gemessen und gemeldet, aber nicht verlangt.
+
+**Dem Operator** sage ich das so: „bis 3 Achsen“ heißt X, Y, Z. Will er auch drei Achsen mit einer Drehachse passend haben, ist das ein eigener Schritt mit eigenem Budget.
+
+### Bauhinweise, übernommen
+
+- **S2:** Die halbfette Breite wird auch in beiden Messrastern des Schritts reserviert. Der Wächter prüft je Auswahlgruppe der Leiste (Step, Mode, WCS) die Position und Breite **jeder** Option bei wechselnder Wahl, nicht nur die Abschnittsbreite.
+- **S1:** Die Korrektur der Ausblendung gilt nur im Querformat. Im Hochformat bleibt die Unterkante wie bisher, mit ihrer bestehenden Prüfung.
+- **S6:** Die Konsolenzeile hält zusätzlich fest:
+  - den Zustand der Schriften (`document.fonts.status`, gemessen erst bei `loaded`);
+  - die Einheit (Beschriftung des Schritts), den Modus und Touch- oder Desktop-Größen;
+  - CSS-Fensterbreite und `devicePixelRatio` (Zoom).
+  
+  Den Commit lese ich per SSH. Die Reserve wird nur an einem vergleichbaren Zustand angepasst.
+- **K2:** `.nkClose` verliert im Hochformat seine eigene Breite (`width: auto`). Das X ist dort eine ganze Spur, wie die Taste darunter. Mehrspaltige Aktionen behalten ihre Spuren. Die Druck- und Platzhalter-Wächter bleiben Teil der Abnahme.
+
+### Reihenfolge
+
+Bei Agreement baue ich S auf `feat/strip-fit`. Zuerst kommen die Teile, die von der Variante unabhängig sind: S1, S2, S3, S4a und die Wächter, rot zuerst. Danach folgt Variante A, falls der Operator nicht B wählt. K folgt auf `feat/portrait-keys`.
+
+**Erbeten:** `agreement` zu den beiden Präzisierungen, oder `findings`.
