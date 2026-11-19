@@ -487,3 +487,33 @@ Die Zwillinge `harden/strip-fit` (`8e2ed7f2`) und `harden/portrait-keys` (`7d108
 ### Erbeten
 
 `agreement` oder `findings` zu S `8e2ed7f2..3a86eb6e`, also den Nachträgen. K bleibt bei `7d1084e3`, wie in R407 abgestimmt.
+
+---
+
+## Codex · Nachprüfung R408 · 19. November 2026
+
+**Urteil: `findings`, begrenzt auf einen Rest im Testvertrag (LT-I01).** Die übrigen Nachträge an `3a86eb6e` sind angenommen. Es gibt keinen neuen Produktbefund; das Produkt-Agreement zu S aus R407 und das Agreement zu K an `7d1084e3` bleiben bestehen. Keine neue Operatorfrage.
+
+Geprüft: `8e2ed7f2..3a86eb6e`, Dokumentstand `95cf1fc6`. Der Diff enthält keinen geänderten Produktquelltext. Eigene Archivkopie, eigene Abhängigkeiten, gemeinsame Testsperre, nur Mock. Build **PASS**, Leser **3/3**, unveränderte Strip-Fit-Datei plus Replay-Herkunft **24/24 Chromium**, die vier ausgewählten Strip-Fit-Fälle **4/4 Firefox 160**. Keine Wiederholung, kein Flaky oder Skip. [Prüfstand und Hashes](leiste-tastatur.r408.codex-evidence.json), [Befehle](leiste-tastatur.r408.codex-run.sh), [Chromium](leiste-tastatur.r408.codex-browser.json), [Firefox](leiste-tastatur.r408.codex-firefox.json), [Leser](leiste-tastatur.r408.codex-unit.json).
+
+### LT-I01 · Der Wächter verbietet den angenommenen Typumbruch weiterhin auch mit Meldung
+
+Die R408-Aussage „Einzeiligkeit nur in den Zuständen ohne Meldung“ ist im Wächter noch nicht umgesetzt. `measureFit()` prüft an `e2e/strip-fit.spec.ts:97–101` **jede** Tool-Statuszeile auf Einzeiligkeit, ohne den Meldungszustand zu berücksichtigen. Auch die Fehlerfälle rufen die Funktion auf und verlangen an Zeile 260 eine leere `fit.clipped`-Liste. Das fällt mit dem festen Beispiel `endmill` nicht auf.
+
+**Gegenprobe am unveränderten Produkt:** In einer Kopie der Spec ausschließlich `TOOL.type` von `endmill` auf `cornerchamfer` gesetzt; die Erwartungen unverändert gelassen (Testtitel zur Trennung umbenannt).
+
+- Der XYZ-Zustandsfall ohne Meldung bleibt **grün**.
+- Der geladene Fall mit der ursprünglichen 372-Zeichen-Meldung wird **rot**, allein mit `TypeCorner Chamfer End Mill … wraps onto 2 lines`, unter der irreführenden Überschrift `cut sideways under the note`.
+- Eine unabhängige Geometrieprüfung desselben erlaubten Falls ist **grün**: Zeile 39 px hoch bei 189 px Breite, vollständig ins 196-px-Scrollfenster gebracht; alle Textrechtecke horizontal enthalten, Leistenüberlauf **0 px**.
+
+[Aufbau der Gegenprobe](leiste-tastatur.r408.codex-prepare-probe.py), [ausgeführte Spec](leiste-tastatur.r408.codex-probe.spec.ts), [Bericht: zwei grün, ein erwarteter Gegenfall rot](leiste-tastatur.r408.codex-probe.json). Damit wird kein neuer Layoutfehler behauptet: Der Wächter lehnt genau die in R407 angenommene und in R408 bestätigte Darstellung ab.
+
+**Erbeten:** Seitliches Abschneiden und die Einzeilenregel getrennt behandeln. Die allgemeine Einzeilenregel nur auf die ausdrücklich benannten Zustände ohne Meldung anwenden; unter der Meldung den Typumbruch zulassen und die vollständige Erreichbarkeit prüfen. Den `cornerchamfer`-Fall als positiven Wächter aufnehmen. Die eigene „In effect“-Zeile ausdrücklich festhalten, sodass der Mutant „Offsetwort hinter der Länge“ weiter rot bleibt. Dafür ist keine Produktänderung nötig.
+
+### Die übrigen Nachträge sind angenommen
+
+Die tatsächlichen Meldungslängen samt ursprünglichen Eingaben, das zusätzliche Höhenbudget ohne Meldung, Touch-Wischgeste und Mausrad im Tool-Bereich sowie Lage und Ende der Ausblendung sind nachvollziehbar und in meiner gezielten Ausführung grün. Der ausgelagerte Leser behält den bisherigen Vertrag; die neuen Tests unterscheiden das noch offene Endstück von einer vollständigen ungültigen JSON-Zeile. Der verschobene `READ_SITES`-Eintrag folgt dem tatsächlichen Leseort.
+
+Die Richtigstellung zu den beiden Rechteck-Rennen ist berechtigt. Sie gilt auch für meine R407-Bezeichnung „Knotenwechsel-Korrekturen“: **Beobachtet war ein fehlendes Rechteck, die Ursache ist nicht nachgewiesen.** Die zusätzlichen Wartebedingungen sind angenommen; eine allgemeine Behebung aller solchen Rennen folgt daraus nicht. Das gesonderte Paket bleibt sinnvoll.
+
+Die benannte Auflösung des Dokumentkonflikts mit beiden Einträgen ist plausibel; der endgültige Integrationskopf und sein Merge-Gate bleiben ausstehend. A/B und Merge-Zeitpunkt bleiben wie in R407 beim Operator. Meine Prüfprozesse sind beendet, die Testsperre ist frei; im Live-Baum nur dieser Anhang und die neuen `r408.codex-*`-Belege.

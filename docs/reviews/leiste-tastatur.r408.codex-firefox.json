@@ -1,0 +1,225 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r408/lcnc-webui/playwright.firefox.config.ts",
+    "rootDir": "/tmp/codex-r408/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r408-s-ff",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r408/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r408-s-ff",
+          "actualWorkers": 1
+        },
+        "id": "firefox-core",
+        "name": "firefox-core",
+        "testDir": "/tmp/codex-r408/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/\\/(probe-visual\\.spec\\.ts|layout\\.spec\\.ts|smoke\\.spec\\.ts|dialogs\\.spec\\.ts|hold-stall-mouse\\.spec\\.ts|strip-fit\\.spec\\.ts|probe-click\\.spec\\.ts|tabs\\.spec\\.ts|visual\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "strip-fit.spec.ts",
+      "file": "strip-fit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5275,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:04:22.647Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "strip-fit.json",
+                      "contentType": "application/json",
+                      "body": "WwogewogICJzdGF0ZSI6ICJob21lZCIsCiAgImZpdCI6IHsKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDQ5LjUsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDIyNAogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAiaG9tZWQiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogInVuaG9tZWQiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZiIsCiAgImZpdCI6IHsKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDQ5LjUsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDIyNAogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAiZXN0b3AiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogImRpc2FybWVkIiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJydW5uaW5nIiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJwYXVzZWQiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogImhvbWVkIiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJqb2ludC1qb2ciLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogInNwaW5kbGUtcHJlc2VsZWN0IiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJiYW5uZXItbWVzc2FnZSIsCiAgImZpdCI6IHsKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDQ5LjUsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDIyNAogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAib2Zmc2V0IEc0MyIsCiAgImZpdCI6IHsKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDQ5LjUsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDIyNAogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAib2Zmc2V0IEc0My4xIiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJvZmZzZXQgRzQ5IiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJvZmZzZXQgb3RoZXIiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZnNldCBvdGhlciwgcnVubmluZyIsCiAgImZpdCI6IHsKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDQ5LjUsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDIyNAogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfQpd"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-f5659a090ca6b5cdbae5",
+          "file": "strip-fit.spec.ts",
+          "line": 134,
+          "column": 5
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1633,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:04:28.936Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "strip-fit-inch.json",
+                      "contentType": "application/json",
+                      "body": "WwogewogICJzdGF0ZSI6ICJvZmZzZXQgRzQzIiwKICAiZml0IjogewogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogNDkuNSwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjI0CiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJvZmZzZXQgRzQzLjEiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZnNldCBHNDkiLAogICJmaXQiOiB7CiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiA0OS41LAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyMjQKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZnNldCBvdGhlciIsCiAgImZpdCI6IHsKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDQ5LjUsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDIyNAogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfQpd"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-769fb7889a8135e08cfa",
+          "file": "strip-fit.spec.ts",
+          "line": 175,
+          "column": 1
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2225,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:04:30.575Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-0407f3c70f0822d0f52e",
+          "file": "strip-fit.spec.ts",
+          "line": 201,
+          "column": 1
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1671,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:04:32.805Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-4cc2fedee7a0dabc2448",
+          "file": "strip-fit.spec.ts",
+          "line": 247,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T11:04:20.963Z",
+    "duration": 13755.113,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

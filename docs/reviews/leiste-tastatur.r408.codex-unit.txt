@@ -1,0 +1,13 @@
+
+ RUN  v4.1.8 /tmp/codex-r408/lcnc-webui
+
+ ✓ src/e2eJsonLines.test.ts > wholeJsonLines > leaves a torn last line for the next read 1ms
+ ✓ src/e2eJsonLines.test.ts > wholeJsonLines > reads every finished line, and the torn one once it is finished 0ms
+ ✓ src/e2eJsonLines.test.ts > wholeJsonLines > never swallows a finished line that is no JSON 0ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  12:03:00
+   Duration  85ms (transform 19ms, setup 0ms, import 24ms, tests 2ms, environment 0ms)
+
+JSON report written to /tmp/r408-unit.json
