@@ -8897,3 +8897,44 @@ Den Rest von Teil 2 nehme ich an. Neuer Kopf **`9999a77f`** auf `feat/replay-5c`
 Bei Agreement gibt es einen Integrationskopf: Halten `d5b25ced`, Replay 5c `9999a77f` und das Paket-4-Werkzeug `44d9de49` (Agreement R399). Je Teil wird belegt, dass der Inhalt dem abgestimmten Kopf gleicht. Dann läuft **ein** Merge-Gate.
 
 **Erbeten:** `agreement` oder `findings` zu `56e246ba..9999a77f`.
+
+---
+
+## Codex · Replay 5c · Nachprüfung R403 · 19. November 2026
+
+**Urteil: `findings` zu `56e246ba..9999a77f`, begrenzt auf einen Ausgaberest von VM-I33. Die beiden R402-Zulassungsbefunde sind geschlossen.** Halten an `d5b25ced` und Paket-4-Werkzeug an `44d9de49` bleiben abgenommen. Dokumentstand `684009d3`. Keine Operatorfrage. [Stand, Ausführung und Hashes](vor-maschine.rp5.r403.codex-evidence.json).
+
+### Bestätigt
+
+**195/195 Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`). [Ausgabe](vor-maschine.rp5.r403.codex-pytest.txt).
+
+Die R402-Klassenprobe und die R401-Ergebnisprobe sind mit dem neuen Leser wiederholt, jeweils nur Modulwurzel und Ausgabepfad angepasst. Die Kontrolle bleibt PASS mit 110 geprüften Aussagen. Beide Reihenfolgen des doppelten Chromium-Checks und die überall fehlende Chromium-Kennung ergeben jetzt dasselbe Ergebnis: FAIL, 59 geprüfte Aussagen, **0 Chromium-Auslöser**, `estop_reset: not sent`. Die 390 Firefox-Auslöser bleiben erhalten. Die frühere Unit-Ergebnis-Korrektur bleibt ebenfalls wirksam. [Klassenprobe](vor-maschine.rp5.r403.codex-class-probe.json), [Ergebnisprobe](vor-maschine.rp5.r403.codex-result-probe.json).
+
+Auch die Erweiterung auf alle drei Referenzen verweigert intern richtig: Bei doppeltem Backend-Check bleiben **0 bestandene Gateway-Belege**, während die gültigen Browser-Belege erhalten bleiben. Damit ist die eigentliche Zulassungsregel angenommen. Die Eingaben sind weiterhin die benannte Diagnosekopie älterer Gate-Artefakte, kein neues Merge-Gate an diesem Kopf.
+
+### VM-I33 · Ausgaberest: Das Backend-Konfliktobjekt gelangt unverändert in den Bericht
+
+`_reference()` normalisiert den Backend-Konflikt für die JUnit-Zulassung korrekt auf `None`. Bei der Rückgabe in `coverage.py:698` wird für `runs.backend` jedoch erneut der **rohe** Wert aus `runs` eingesetzt. Das ist bei einem doppelten Check eine `RunConflict`-Instanz. Die Browserreferenzen stammen dagegen aus dem normalisierten `refs`.
+
+Meine zusätzliche Probe setzt denselben Konflikt für **Chromium, Firefox und Backend**, jeweils in beiden Reihenfolgen, und ruft danach auch die öffentliche Kommandozeile mit `--gate … --out … --md …` auf:
+
+| Referenz | Intern korrekt verweigert | JSON- und Markdown-Bericht geschrieben |
+|---|---|---|
+| Eindeutige Kontrolle | nicht betroffen, PASS | ja |
+| Chromium doppelt, beide Reihenfolgen | ja | ja, FAIL |
+| Firefox doppelt, beide Reihenfolgen | ja | ja, FAIL |
+| **Backend doppelt, beide Reihenfolgen** | **ja** | **nein** |
+
+Der Backend-Fall scheitert an `coverage.py:745` beim Serialisieren:
+
+```text
+TypeError: Object of type RunConflict is not JSON serializable
+```
+
+[Ausführbare Probe](vor-maschine.rp5.r403.codex-reference-probe.py), [Ergebnisse samt vollständiger CLI-Ausgabe](vor-maschine.rp5.r403.codex-reference-probe.json). Exit 1 allein unterscheidet den Fall nicht vom beabsichtigten FAIL; hier fehlen beide Ergebnisdateien und die reguläre Zusammenfassung. Es entsteht keine falsch-positive Zulassung mehr, aber der benannte Konflikt und die unabhängigen gültigen Belege werden nicht als Bericht abgegeben.
+
+**Erbeten:** Die normalisierte Backend-Referenz ebenso wie die Browserreferenzen für die Ausgabe behalten: bei unbekannter oder widersprüchlicher Referenz `null`, mit dem konkreten Grund in `errors`. Den Wächter bis zur Serialisierung beziehungsweise CLI-Abgabe führen. Für beide Reihenfolgen muss ein lesbarer FAIL-Bericht mit dem doppelten Check als Grund, ohne positive Gateway-Belege und mit den gültigen anderen Belegen entstehen. Das ist der einzige offene Punkt dieser Nachprüfung.
+
+### Weiterer Ablauf
+
+Nach dieser begrenzten Korrektur ist der vorgeschlagene Ablauf passend: ein Integrationskopf der drei abgestimmten Inhalte mit Inhaltsvergleich, danach ein Merge-Gate. Dieses Review führt weder die Merges noch das Gate vorzeitig aus. Alle eigenen Prüfungen sind beendet, die gemeinsame Testsperre ist frei. Keine Browser-/Sim-Verbindung; im Live-Baum nur dieser Anhang und neue `vor-maschine.rp5.r403.codex-*`-Belege. Für den laufenden CI-Lauf behaupte ich kein eigenes Ergebnis.

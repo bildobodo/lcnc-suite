@@ -1,0 +1,77 @@
+{
+  "review": "R403",
+  "head": "9999a77faa9fba1c0becda9cf68ed36276d010a0",
+  "base": "56e246ba",
+  "document_head": "684009d3fa59d99c5cd2ab5dec7114ff737a4907",
+  "root": "/tmp/codex-r403-replay",
+  "tests": "195 passed: test_coverage.py + test_replay.py",
+  "baseline": {
+    "gate": "/tmp/r401-input/gate-merge.json",
+    "head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+    "meaning": "Unchanged earlier diagnostic artifacts, with group-specific options. Not a fresh merge-gate at R403. Every probe copies the inputs and restores them between cases. Unit result probe uses actual R401 fixture/list/options/report with one inventory binding changed in memory."
+  },
+  "probe_changes": "R402 class/result scripts: only module root and output changed. New reference probe tests every RUN_CHECKS source in both orders and executes the public CLI with --out/--md after each evaluation.",
+  "results": {
+    "r402_counterexamples": "closed; same failure and withheld Chromium evidence in either duplicate order and on absent ids; valid Firefox evidence retained",
+    "new": "backend RunConflict retained in output runs.backend: json.dumps raises TypeError; public CLI writes neither JSON nor Markdown. Browser conflicts emit proper FAIL artifacts."
+  },
+  "limits": [
+    "No browser run",
+    "No product changes",
+    "No live-sim connection",
+    "No full merge gate",
+    "CI not independently checked",
+    "All own subprocesses ended; shared heavy lock released",
+    "Live tree: appendix and new evidence only"
+  ],
+  "files": {
+    "vor-maschine.rp5.r403.codex-pytest.txt": {
+      "source": "/tmp/r403-pytest.txt",
+      "sha256": "ddc7fafe71d98fb476fd0b1af7d051cab99da72ab5b52fd802730695ddf91d24"
+    },
+    "vor-maschine.rp5.r403.codex-run.sh": {
+      "source": "/tmp/r403-run.sh",
+      "sha256": "a8157789782e1238aa28366a430296ad6f2bc03c0492349dbc953eee08944f3c"
+    },
+    "vor-maschine.rp5.r403.codex-class-probe.py": {
+      "source": "/tmp/r403-class-probe.py",
+      "sha256": "72abdc3457d8502b8ea4807e29222fa6490fcc98079f63232c193c56c0f9bc96"
+    },
+    "vor-maschine.rp5.r403.codex-class-probe.json": {
+      "source": "/tmp/r403-class-probe.json",
+      "sha256": "1a60816df73400433269b91ae1e78fa69b6a769a9f5483d18b9e382206139cb8"
+    },
+    "vor-maschine.rp5.r403.codex-result-probe.py": {
+      "source": "/tmp/r403-result-probe.py",
+      "sha256": "1a7907d801b55efbcb31459fda4b93621ad85c0925a3cae8c6ded1b0fc2c3b1d"
+    },
+    "vor-maschine.rp5.r403.codex-result-probe.json": {
+      "source": "/tmp/r403-result-probe.json",
+      "sha256": "a25bdd8257d565da39ebcd7f19f488938341098af404fb641ecc80b5e2f140c9"
+    },
+    "vor-maschine.rp5.r403.codex-reference-probe.py": {
+      "source": "/tmp/r403-reference-probe.py",
+      "sha256": "c379d9628143a58310771c1b4c1bdc4ff66522dffb3e9675765a0613dc84807c"
+    },
+    "vor-maschine.rp5.r403.codex-reference-probe.json": {
+      "source": "/tmp/r403-reference-probe.json",
+      "sha256": "fa5570f1a7013447f12a7b17879e5d236fbce53d5dcd66311ba6cac4420ee9f6"
+    }
+  },
+  "baseline_hashes": {
+    "gate-merge.json": "91516b432180f1e1b317b446a0c4c49ff997ceb249da092c9aa87c76bf1ed4ba",
+    "gate-merge.logs/list-run.json": "dc689e4158d4c9bf3a2eae3f6de5e6fdcd0430372bd14865cfb601c6b0ae1e78",
+    "gate-merge.logs/playwright.json": "5ad3997473ebbf2e0a5b50297058e2de8d4c005db320cc0eb708a2f87b6ab275",
+    "gate-merge.logs/firefox-list.json": "353b61fc15b02b75baead7713835bb538d6dcd9e6a618064f80b3260d1fc5dda",
+    "gate-merge.logs/firefox.json": "7afe667c55d793f7bd68e59ccdb99d40d7c9eec9d74fa71e3d52cca9f8f13617",
+    "gate-merge.logs/unit-light.list.json": "595d2bcaa35bb427ff7c2337061b1395f3055cfc8380dc098cab0e2fd8308910",
+    "gate-merge.logs/unit-light.json": "1191bea33e2ce91d3018b684af6a178368dd18d61a6d6e26a749078b5a3830de",
+    "gate-merge.logs/unit-heavy.list.json": "ba6db85463ed14fe503b1fddea14a81a6183fd46ac5a812be67a3e46bcf8e82d",
+    "gate-merge.logs/unit-heavy.json": "12c890ef9d349d3d269d718178552ab71bc667bfba2c55f4ea3415bfa150f6f8",
+    "gate-merge.logs/replay.json": "f53b867cc8c164cb556b9e9f0d49ee98ba9e527e1104b1bf537488746d02e4d1",
+    "gate-merge.logs/firefox-replay.json": "55c623d23e5554df0e901369d9b21246fe88cc80bcb8dcf69360cdfe67d49390",
+    "gate-merge.logs/unit-light.options.json": "7f9ae36ae9ccc4b0951ff430024f0b5baade4518aa638e8c3e46d02c0375bc73",
+    "gate-merge.logs/unit-heavy.options.json": "ebaf928b946da13e96df2c5cfdc883eed6303fd2759d56ad1155cb4b8364082b",
+    "gate-merge.logs/backend/backend.junit.xml": "5e930d143df42425388ea86a617dd63b4dde4de791e608d051657a9c4613840c"
+  }
+}
