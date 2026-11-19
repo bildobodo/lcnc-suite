@@ -11874,3 +11874,16 @@ operator's Q248-1.
 
 **Guard** (`strip-fit.spec`, red first at `5c48a7e1`: 15 of 16): X, XY and XYZ at `touch-fullhd`, `touch-fullhd-window` and `fullhd-desktop`, every layout state, joint jog, spindle preselection, a banner, a loaded tool in every offset state with the widest values, a run — no overflow, ≥ 24 px free, one width per section, nothing cut sideways (the rectangles of what an element SHOWS: a help icon's hit area and an intended ellipsis are no cut text); without a note the Tool body has nothing to scroll; every Tool row one line in those states (a long type name — "Corner Chamfer End Mill" — may wrap under the body's scrollbar with a note: accepted, Codex R407; the offset state's own row is the contract); inch keeps the millimetre widths; every option of Step, Mode and Work offset keeps its place and width under every selection; the error note — the guard's 96-character path and 689-character message, Codex's single unbroken paths of 108 and 372 characters, each with and without a tool — widens nothing, each of its lines comes whole into the scroll window, Retry and every row too, Retry hit-testable (R406: a 306 px note never fits a 196 px window — line by line); on XYZAC, whose strip scrolls, a synthesized touch drag and the wheel scroll the Tool body and never the strip, and the end fade sits at the content edge while more lies right (where it sat before S1) and is gone at the end. The XYZ cases run in the Firefox core too. XYA is measured and reported.
 
+## 2026-11-19 — Portrait keys in equal tracks (plan leiste-tastatur K, operator 2026-11-16; Codex R405)
+
+**Wish.** The operator (2026-11-16): "im Portrait-Modus verwendet die Tastatur und das Keypad nicht die Breite des Action Strips richtig? Können wir die Buttons gleichmässig in der Breite anpassen, damit das etwas besser aussieht."
+
+**Measured at `5c48a7e1`** (900 × 1200, touch): the strip column is 280 px, 252 px inside; both helpers' keys were 5 × 44 + 4 × 4 = 236 px — 16 px short of the Safety and Setup rows above them.
+
+**Decided** (Codex R405: agreement on K).
+- In portrait the five key columns take EQUAL shares of the column, never narrower than `--key-size`: `repeat(5, minmax(var(--key-size), 1fr))` for the number keypad and for all four grids of the text keyboard (pages, actions, navigation, content), so their keys line up. Fractions, not a new key size: the column's inner width depends on the browser's scrollbar band. 47.2 px at the 280 px column.
+- The rows stay `--key-size` high (the 150 % height budget). Landscape is unchanged: fixed 44 × 44 keys.
+- **Changed rule:** "square keys, identical in both orientations" and the pinned "the X is 44 × 44 in both orientations" become: landscape 44 × 44; portrait a whole track — the X as wide as the keys under it (`.nkClose` drops its own width there), 44 high. Multi-column actions (Discard, Apply, Space) keep their spanned tracks.
+
+**Guard** (`input-session.spec`): in portrait at 100 % and 150 %, the number keypad and every keyboard page — every key starts and ends on one of five equal track lines, the last track ends on the helper's content edge, a track is at least 44 px; the X test in its new form. The press and place guards (`heldThroughPress`, `helperPlace`) stay part of the acceptance: the helper's box was already the column's width — only the keys inside it widen.
+

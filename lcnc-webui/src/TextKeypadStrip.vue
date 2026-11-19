@@ -165,21 +165,24 @@ function keyLabel(k: string): string {
 .tkEmpty { display: block; }
 
 @media (orientation: portrait) {
-  /* Width-limited (280 px column → 5 cells of 44 px): pages, actions and
+  /* Width-limited (the strip column → 5 cells): pages, actions and
      navigation become full-width rows ABOVE six content rows, so page
-     switch and Enter sit in the first three rows, never below the keys. */
+     switch and Enter sit in the first three rows, never below the keys.
+     The cells take EQUAL shares of the column, never narrower than
+     --key-size — the four grids the same tracks, so their keys line up
+     (operator 2026-11-16; plan leiste-tastatur K1). Rows stay --key-size. */
   .tkRows {
-    grid-template-columns: repeat(5, var(--key-size));
+    grid-template-columns: repeat(5, minmax(var(--key-size), 1fr));
     grid-template-areas: "pages pages pages pages pages" "actions actions actions actions actions" "nav nav nav nav nav" "content content content content content";
     gap: var(--gap-tight);
   }
   .tkContent {
     grid-template-rows: repeat(6, var(--key-size));
-    grid-template-columns: repeat(5, var(--key-size));
+    grid-template-columns: repeat(5, minmax(var(--key-size), 1fr));
   }
   .tkActions {
     grid-template-rows: var(--key-size);
-    grid-template-columns: repeat(5, var(--key-size));
+    grid-template-columns: repeat(5, minmax(var(--key-size), 1fr));
   }
   .tkShift { grid-row: 1; grid-column: 1; }
   .tkSpace { grid-row: 1; grid-column: 2 / 4; }
@@ -187,7 +190,7 @@ function keyLabel(k: string): string {
   .tkEnter { grid-row: 1; grid-column: 5; }
   .tkNav, .tkPages {
     grid-template-rows: var(--key-size);
-    grid-template-columns: repeat(5, var(--key-size));
+    grid-template-columns: repeat(5, minmax(var(--key-size), 1fr));
     grid-auto-flow: column;
   }
   /* The end of the page row — the top-right key here too. */
