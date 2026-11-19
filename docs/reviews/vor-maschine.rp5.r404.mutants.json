@@ -1,0 +1,645 @@
+{
+ "baseline": {
+  "exit": 0,
+  "tail": [
+   "196 passed in 16.19s"
+  ]
+ },
+ "C1": {
+  "what": "a listed test without a result counted as passed",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_every_bound_test_must_pass_and_a_listed_name_that_never_ran_is_no_run",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_every_bound_test_must_pass_and_a_listed_name_that_never_ran_is_no_run[statuses3-not run]",
+   "FAILED scripts/inventory/test_coverage.py::test_a_firefox_pass_never_stands_in_for_chromium",
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C2": {
+  "what": "a template's instance matched as a substring of a capture",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_template_binds_by_its_captures_never_a_substring",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_template_binds_by_its_captures_never_a_substring"
+  ]
+ },
+ "C3": {
+  "what": "a skipped scenario counted as passed",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_status_is_decided_by_result_kind_in_the_agreed_order",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_status_is_decided_by_result_kind_in_the_agreed_order[r0-want0]",
+   "FAILED scripts/inventory/test_coverage.py::test_a_scenario_is_its_worst_over_every_report_of_this_commit"
+  ]
+ },
+ "C4": {
+  "what": "an early error record without success fields an evaluation error (R391)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_status_is_decided_by_result_kind_in_the_agreed_order",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_status_is_decided_by_result_kind_in_the_agreed_order[r2-want2]",
+   "FAILED scripts/inventory/test_coverage.py::test_the_status_is_decided_by_result_kind_in_the_agreed_order[r3-want3]"
+  ]
+ },
+ "C5": {
+  "what": "a live report of another commit taken",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_report_of_another_commit_or_a_dirty_tree_is_no_run_at_this_commit",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_report_of_another_commit_or_a_dirty_tree_is_no_run_at_this_commit"
+  ]
+ },
+ "C6": {
+  "what": "a missing artefact of the run is no error",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_missing_artefact_is_red",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_missing_artefact_is_red - a..."
+  ]
+ },
+ "C7": {
+  "what": "an expected refusal counted as a trigger",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_an_expected_refusal_is_no_trigger_of_its_command",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_expected_refusal_is_no_trigger_of_its_command"
+  ]
+ },
+ "C8": {
+  "what": "a route the fallback answered is no gap",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence"
+  ]
+ },
+ "C9": {
+  "what": "a Firefox pass stands in for Chromium",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_firefox_pass_never_stands_in_for_chromium",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_firefox_pass_never_stands_in_for_chromium"
+  ]
+ },
+ "C11": {
+  "what": "a status the report does not know counted as passed",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_status_the_report_does_not_know_is_never_passed",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_status_the_report_does_not_know_is_never_passed",
+   "FAILED scripts/inventory/test_coverage.py::test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass",
+   "FAILED scripts/inventory/test_coverage.py::test_a_contradictory_listing_survives_the_join_and_admits_no_attempt",
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C12": {
+  "what": "a title outside the Firefox core red again",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_title_outside_the_firefox_core_is_named_never_red",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_title_outside_the_firefox_core_is_named_never_red"
+  ]
+ },
+ "C13": {
+  "what": "the JUnit keeps the last result of a node, not its worst",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_junit_keeps_the_worst_result_per_node",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_junit_keeps_the_worst_result_per_node"
+  ]
+ },
+ "C14": {
+  "what": "a native report of another commit taken",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_report_counts_only_at_this_commit_and_its_counter_flag_decides",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_report_counts_only_at_this_commit_and_its_counter_flag_decides"
+  ]
+ },
+ "C15": {
+  "what": "a merge ends without the coverage",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_merge_ends_with_the_install_probe_then_the_coverage_and_a_round_omits_it",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_merge_ends_with_the_install_probe_then_the_coverage_and_a_round_omits_it"
+  ]
+ },
+ "C16": {
+  "what": "triggering merged across the projects again",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_triggering_is_kept_per_project",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_triggering_is_kept_per_project",
+   "FAILED scripts/inventory/test_coverage.py::test_gate_checks_of_one_name_twice_void_that_reference_in_either_order",
+   "FAILED scripts/inventory/test_coverage.py::test_a_run_id_missing_everywhere_binds_nothing_of_that_project"
+  ]
+ },
+ "C17": {
+  "what": "a report's result joins the listing's set (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_listing_bounds_the_results_and_every_record_is_this_runs",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_listing_bounds_the_results_and_every_record_is_this_runs"
+  ]
+ },
+ "C18": {
+  "what": "another run's listing or report accepted (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_listing_bounds_the_results_and_every_record_is_this_runs",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_listing_bounds_the_results_and_every_record_is_this_runs",
+   "FAILED scripts/inventory/test_coverage.py::test_without_the_gate_s_ids_each_listing_s_own_run_is_the_reference",
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C19": {
+  "what": "another run's JUnit accepted (VM-I33's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_listing_bounds_the_results_and_every_record_is_this_runs",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_listing_bounds_the_results_and_every_record_is_this_runs",
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_junit_feeds_no_gateway_evidence"
+  ]
+ },
+ "C20": {
+  "what": "a red replay a source of triggers (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run"
+  ]
+ },
+ "C21": {
+  "what": "a replay attempt not bound to a listed test (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run"
+  ]
+ },
+ "C22": {
+  "what": "the report's result at the attempt's retry unchecked (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run",
+   "FAILED scripts/inventory/test_coverage.py::test_a_contradictory_listing_survives_the_join_and_admits_no_attempt",
+   "FAILED scripts/inventory/test_coverage.py::test_a_retry_without_one_result_admits_no_attempt"
+  ]
+ },
+ "C23": {
+  "what": "an expected failure read as passed (VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_real_reporter_forms_an_expected_failure_is_no_pass_and_every_repeat_counts",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_real_reporter_forms_an_expected_failure_is_no_pass_and_every_repeat_counts"
+  ]
+ },
+ "C24": {
+  "what": "the instances of a repeat collapse by title (VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_real_reporter_forms_an_expected_failure_is_no_pass_and_every_repeat_counts",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_expected_refusal_is_no_trigger_of_its_command",
+   "FAILED scripts/inventory/test_coverage.py::test_a_route_only_the_fallback_answered_is_a_gap_never_server_evidence",
+   "FAILED scripts/inventory/test_coverage.py::test_triggering_is_kept_per_project",
+   "FAILED scripts/inventory/test_coverage.py::test_the_listing_bounds_the_results_and_every_record_is_this_runs",
+   "FAILED scripts/inventory/test_coverage.py::test_a_replay_attempt_counts_only_as_a_passed_listed_instance_of_this_run",
+   "FAILED scripts/inventory/test_coverage.py::test_the_real_reporter_forms_an_expected_failure_is_no_pass_and_every_repeat_counts"
+  ]
+ },
+ "C25": {
+  "what": "the same id twice: the later overwrites (VM-I34's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_same_test_id_twice_in_one_record_is_an_error_never_an_overwrite",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_same_test_id_twice_in_one_record_is_an_error_never_an_overwrite",
+   "FAILED scripts/inventory/test_coverage.py::test_a_contradictory_listing_survives_the_join_and_admits_no_attempt",
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C26": {
+  "what": "a Vitest result outside its listing accepted (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_vitest_result_outside_its_listing_is_an_error_and_a_repeated_name_keeps_the_worst",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_vitest_result_outside_its_listing_is_an_error_and_a_repeated_name_keeps_the_worst"
+  ]
+ },
+ "C27": {
+  "what": "native evidence binds without the declared set (VM-I35)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_native_evidence_binds_only_to_a_declared_case_of_its_variant_and_profile",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_native_evidence_binds_only_to_a_declared_case_of_its_variant_and_profile"
+  ]
+ },
+ "C28": {
+  "what": "a native report's undeclared cases unchecked (VM-I35)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_report_of_this_commit_is_held_against_the_declared_set",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_report_of_this_commit_is_held_against_the_declared_set"
+  ]
+ },
+ "C29": {
+  "what": "the last native row wins (VM-I34's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_case_is_its_worst_row_over_every_report_of_this_commit",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_case_is_its_worst_row_over_every_report_of_this_commit"
+  ]
+ },
+ "C30": {
+  "what": "a present null scenario read as absent (VM-I36)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_present_scenario_without_a_record_is_an_error_never_a_missing_run",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_present_scenario_without_a_record_is_an_error_never_a_missing_run"
+  ]
+ },
+ "C31": {
+  "what": "the latest live report wins (VM-I34's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_scenario_is_its_worst_over_every_report_of_this_commit",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_scenario_is_its_worst_over_every_report_of_this_commit"
+  ]
+ },
+ "C32": {
+  "what": "the open variants left out of the report (VM-I37)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_report_keeps_the_inventory_s_open_variants_and_exclusions_with_their_origin",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_report_keeps_the_inventory_s_open_variants_and_exclusions_with_their_origin"
+  ]
+ },
+ "C33": {
+  "what": "the merge gate's coverage without its run ids (VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_merge_gate_binds_the_coverage_to_the_run_ids_its_own_checks_made",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_merge_gate_binds_the_coverage_to_the_run_ids_its_own_checks_made"
+  ]
+ },
+ "C34": {
+  "what": "the backend step without the gate's run id (VM-I33's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_gate_names_the_backend_s_run_and_hands_it_to_the_step",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_gate_names_the_backend_s_run_and_hands_it_to_the_step"
+  ]
+ },
+ "C35": {
+  "what": "an expected refusal of an attempt that does not count counted (VM-I33's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_an_expected_refusal_counts_only_from_an_attempt_that_counts",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_expected_refusal_counts_only_from_an_attempt_that_counts"
+  ]
+ },
+ "C36": {
+  "what": "a native report's rows unchecked (VM-I36's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_report_whose_rows_are_no_objects_is_an_evaluation_error",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_report_whose_rows_are_no_objects_is_an_evaluation_error"
+  ]
+ },
+ "C37": {
+  "what": "a bound unit test with an expected failure read as passed (R398 VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_bound_unit_test_that_declares_an_expected_failure_is_no_pass",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_bound_unit_test_that_declares_an_expected_failure_is_no_pass",
+   "FAILED scripts/inventory/test_coverage.py::test_a_foreign_options_record_never_lowers_a_known_expected_failure",
+   "FAILED scripts/inventory/test_coverage.py::test_a_name_listed_twice_needs_a_record_for_each",
+   "FAILED scripts/inventory/test_coverage.py::test_across_the_groups_the_stricter_state_stays"
+  ]
+ },
+ "C38": {
+  "what": "one attempt identity under two names counted twice (R398 VM-I33 A)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_one_attempt_identity_under_two_names_counts_once_and_is_an_error",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_one_attempt_identity_under_two_names_counts_once_and_is_an_error"
+  ]
+ },
+ "C39": {
+  "what": "two results for one retry overwrite (R398 VM-I33 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_two_results_for_one_retry_are_an_error_never_an_overwrite",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_two_results_for_one_retry_are_an_error_never_an_overwrite",
+   "FAILED scripts/inventory/test_coverage.py::test_a_retry_without_one_result_admits_no_attempt"
+  ]
+ },
+ "C40": {
+  "what": "a native report of an unknown profile accepted (R398 VM-I35)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_report_of_another_profile_or_with_rows_of_another_variant_is_an_error",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_report_of_another_profile_or_with_rows_of_another_variant_is_an_error"
+  ]
+ },
+ "C41": {
+  "what": "a native report's rows of another variant accepted (R398 VM-I35)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_report_of_another_profile_or_with_rows_of_another_variant_is_an_error",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_report_of_another_profile_or_with_rows_of_another_variant_is_an_error",
+   "FAILED scripts/inventory/test_coverage.py::test_a_rejected_native_report_is_named_invalid_never_a_pass_source"
+  ]
+ },
+ "C42": {
+  "what": "a unit test without its options record unchecked (R398 VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_bound_unit_test_that_declares_an_expected_failure_is_no_pass",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_bound_unit_test_that_declares_an_expected_failure_is_no_pass",
+   "FAILED scripts/inventory/test_coverage.py::test_an_options_record_without_a_boolean_fails_leaves_the_test_unknown_never_passed"
+  ]
+ },
+ "C43": {
+  "what": "the gate's unit step without the options reporter (R398 VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_the_gate_s_unit_steps_write_each_test_s_options",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_the_gate_s_unit_steps_write_each_test_s_options"
+  ]
+ },
+ "C44": {
+  "what": "an options record's fails not checked as a boolean (R400 VM-I34 A)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_an_options_record_without_a_boolean_fails_leaves_the_test_unknown_never_passed",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_options_record_without_a_boolean_fails_leaves_the_test_unknown_never_passed"
+  ]
+ },
+ "C45": {
+  "what": "a record outside the group's listing accepted silently (R400 VM-I34 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_foreign_options_record_never_lowers_a_known_expected_failure",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_foreign_options_record_never_lowers_a_known_expected_failure"
+  ]
+ },
+ "C46": {
+  "what": "one record for a name listed twice (R400 VM-I34 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_name_listed_twice_needs_a_record_for_each",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_name_listed_twice_needs_a_record_for_each"
+  ]
+ },
+ "C47": {
+  "what": "a later group lowers an expected failure (R400 VM-I34 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_across_the_groups_the_stricter_state_stays",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_across_the_groups_the_stricter_state_stays"
+  ]
+ },
+ "C48": {
+  "what": "an unknown expected failure reads passed (R400 VM-I34 A)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_an_options_record_without_a_boolean_fails_leaves_the_test_unknown_never_passed",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_options_record_without_a_boolean_fails_leaves_the_test_unknown_never_passed",
+   "FAILED scripts/inventory/test_coverage.py::test_a_name_listed_twice_needs_a_record_for_each"
+  ]
+ },
+ "C49": {
+  "what": "a retry with two results still admits its attempt (R400 VM-I33 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_retry_without_one_result_admits_no_attempt",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_retry_without_one_result_admits_no_attempt"
+  ]
+ },
+ "C50": {
+  "what": "another run's report still feeds evidence (R400's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_another_run_s_record_or_a_renamed_id_feeds_no_evidence",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C51": {
+  "what": "a renamed id keeps the report's status (R400's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_another_run_s_record_or_a_renamed_id_feeds_no_evidence",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C52": {
+  "what": "an id twice keeps its first instance as evidence (R400's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_another_run_s_record_or_a_renamed_id_feeds_no_evidence",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_contradictory_listing_survives_the_join_and_admits_no_attempt",
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_record_or_a_renamed_id_feeds_no_evidence"
+  ]
+ },
+ "C53": {
+  "what": "another run's JUnit still feeds evidence (R400's class)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_another_run_s_junit_feeds_no_gateway_evidence",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_another_run_s_junit_feeds_no_gateway_evidence"
+  ]
+ },
+ "C54": {
+  "what": "a rejected native report still feeds evidence (R400 VM-I35)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_rejected_native_report_is_named_invalid_never_a_pass_source",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_rejected_native_report_is_named_invalid_never_a_pass_source",
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_case_twice_in_one_report_rejects_the_report"
+  ]
+ },
+ "C55": {
+  "what": "a rejected native report reads as not run (R400 VM-I35)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_rejected_native_report_is_named_invalid_never_a_pass_source",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_rejected_native_report_is_named_invalid_never_a_pass_source",
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_case_twice_in_one_report_rejects_the_report"
+  ]
+ },
+ "C56": {
+  "what": "a clean report replaces a contradictory listing (R401 VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_contradictory_listing_survives_the_join_and_admits_no_attempt",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_contradictory_listing_survives_the_join_and_admits_no_attempt"
+  ]
+ },
+ "C57": {
+  "what": "a unit name's result count unchecked against its listing (R401 VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_unit_name_needs_exactly_as_many_results_as_the_listing_holds",
+   "FAILED scripts/inventory/test_coverage.py::test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass"
+  ]
+ },
+ "C58": {
+  "what": "a later group's result overwrites an earlier group's (R401 VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass"
+  ]
+ },
+ "C59": {
+  "what": "a unit name's result count unchecked: the index guard (R401 VM-I34)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_unit_name_needs_exactly_as_many_results_as_the_listing_holds",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_unit_name_needs_exactly_as_many_results_as_the_listing_holds",
+   "FAILED scripts/inventory/test_coverage.py::test_a_missing_unit_result_or_a_passing_group_never_makes_a_failure_pass"
+  ]
+ },
+ "C60": {
+  "what": "a repeated JSON key in a gate artefact keeps its last value (R402 class check)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_repeated_json_key_is_a_damaged_artefact_withheld_never_its_last_value",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_repeated_json_key_is_a_damaged_artefact_withheld_never_its_last_value"
+  ]
+ },
+ "C61": {
+  "what": "a repeated JSON key in a live report keeps its last value (R402 class check)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_repeated_json_key_is_a_damaged_artefact_withheld_never_its_last_value",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_repeated_json_key_is_a_damaged_artefact_withheld_never_its_last_value"
+  ]
+ },
+ "C62": {
+  "what": "a native case twice in one report accepted (R402 class check)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_native_case_twice_in_one_report_rejects_the_report",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_native_case_twice_in_one_report_rejects_the_report"
+  ]
+ },
+ "C63": {
+  "what": "a gate check of one name twice: the first chosen (R402 VM-I33 A)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_gate_checks_of_one_name_twice_void_that_reference_in_either_order",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_gate_checks_of_one_name_twice_void_that_reference_in_either_order",
+   "FAILED scripts/inventory/test_coverage.py::test_a_doubled_run_check_of_any_set_gives_a_readable_fail_report"
+  ]
+ },
+ "C64": {
+  "what": "an unknown run reference passes as a reference (R402 VM-I33 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_run_id_missing_everywhere_binds_nothing_of_that_project",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_run_id_missing_everywhere_binds_nothing_of_that_project"
+  ]
+ },
+ "C65": {
+  "what": "the replay admits attempts under an unknown reference (R402 VM-I33 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_an_unknown_reference_admits_no_replay_attempt_by_itself",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_an_unknown_reference_admits_no_replay_attempt_by_itself"
+  ]
+ },
+ "C66": {
+  "what": "an unknown reference still binds records that lack the id too (R402 VM-I33 B)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_run_id_missing_everywhere_binds_nothing_of_that_project",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_run_id_missing_everywhere_binds_nothing_of_that_project"
+  ]
+ },
+ "C67": {
+  "what": "the report carries the backend's raw reference (R403 VM-I33)",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_a_doubled_run_check_of_any_set_gives_a_readable_fail_report",
+  "failed": [
+   "FAILED scripts/inventory/test_coverage.py::test_a_doubled_run_check_of_any_set_gives_a_readable_fail_report"
+  ]
+ },
+ "C10": {
+  "what": "the replay counts an expected refusal as a valid frame of its own",
+  "head": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "red": true,
+  "named": "test_an_expected_refusal_is_counted_apart_with_its_variant_key",
+  "failed": [
+   "FAILED scripts/test_select/test_replay.py::test_an_expected_refusal_is_counted_apart_with_its_variant_key"
+  ]
+ }
+}

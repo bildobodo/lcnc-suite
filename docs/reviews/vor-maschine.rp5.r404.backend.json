@@ -1,0 +1,268 @@
+{
+  "mode": "offline",
+  "started": "2026-11-19T02:59:52.779084+00:00",
+  "root": "/home/cnc/lcnc-suite-5c",
+  "gates": [
+    {
+      "name": "ruff",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "ruff",
+        "check",
+        "--no-cache"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "ruff.log",
+      "started": "2026-11-19T02:59:52.786361+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.07,
+      "finished": "2026-11-19T02:59:52.855630+00:00",
+      "notes": []
+    },
+    {
+      "name": "pyright",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-5c/scripts/run_pyright.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "pyright.log",
+      "started": "2026-11-19T02:59:52.855828+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 15.83,
+      "finished": "2026-11-19T03:00:08.684099+00:00",
+      "notes": []
+    },
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "--junitxml=/home/cnc/claude-work/replay5c/backend-397/run-9f89a642/backend.junit.xml"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-11-19T03:00:08.684366+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 103.77,
+      "finished": "2026-11-19T03:01:52.451918+00:00",
+      "notes": []
+    },
+    {
+      "name": "5axis-model",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-5c/scripts/test_5axis_xyzac.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "5axis-model.log",
+      "started": "2026-11-19T03:01:52.452119+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.72,
+      "finished": "2026-11-19T03:01:53.174222+00:00",
+      "notes": []
+    },
+    {
+      "name": "audit-css",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_audit_scoped_css.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "audit-css.log",
+      "started": "2026-11-19T03:01:53.174435+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 1.39,
+      "finished": "2026-11-19T03:01:54.564393+00:00",
+      "notes": []
+    },
+    {
+      "name": "review-handshake",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_review_handshake.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "review-handshake.log",
+      "started": "2026-11-19T03:01:54.564585+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.63,
+      "finished": "2026-11-19T03:01:59.196060+00:00",
+      "notes": []
+    },
+    {
+      "name": "readback-target",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_toolsetter_readback_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "readback-target.log",
+      "started": "2026-11-19T03:01:59.196218+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.17,
+      "finished": "2026-11-19T03:01:59.362374+00:00",
+      "notes": []
+    },
+    {
+      "name": "parity-compare",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_parity_compare.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "parity-compare.log",
+      "started": "2026-11-19T03:01:59.362541+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.17,
+      "finished": "2026-11-19T03:01:59.533787+00:00",
+      "notes": []
+    },
+    {
+      "name": "test-select",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_select/test_selector.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "test-select.log",
+      "started": "2026-11-19T03:01:59.533979+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.96,
+      "finished": "2026-11-19T03:02:04.489512+00:00",
+      "notes": []
+    },
+    {
+      "name": "replay",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_select/test_replay.py",
+        "/home/cnc/lcnc-suite-5c/scripts/test_select/test_http_paths.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "replay.log",
+      "started": "2026-11-19T03:02:04.489699+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.27,
+      "finished": "2026-11-19T03:02:04.758373+00:00",
+      "notes": []
+    },
+    {
+      "name": "firefox-units",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_fetch_firefox.py",
+        "/home/cnc/lcnc-suite-5c/scripts/test_select/test_firefox.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "firefox-units.log",
+      "started": "2026-11-19T03:02:04.758612+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.27,
+      "finished": "2026-11-19T03:02:05.028576+00:00",
+      "notes": []
+    },
+    {
+      "name": "inventory",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/inventory/test_inventory.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "inventory.log",
+      "started": "2026-11-19T03:02:05.028770+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 1.53,
+      "finished": "2026-11-19T03:02:06.559334+00:00",
+      "notes": []
+    },
+    {
+      "name": "native-stage",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_native_stage.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "native-stage.log",
+      "started": "2026-11-19T03:02:06.559521+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 54.16,
+      "finished": "2026-11-19T03:03:00.716850+00:00",
+      "notes": []
+    },
+    {
+      "name": "install-probe",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_install_probe.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "install-probe.log",
+      "started": "2026-11-19T03:03:00.717060+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 44.21,
+      "finished": "2026-11-19T03:03:44.931357+00:00",
+      "notes": []
+    },
+    {
+      "name": "perf-matrix",
+      "command": [
+        "/home/cnc/lcnc-suite-pl/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-5c/scripts/test_perf_matrix.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-5c",
+      "log": "perf-matrix.log",
+      "started": "2026-11-19T03:03:44.931529+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.44,
+      "finished": "2026-11-19T03:03:49.367311+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "9f89a642a78886c90728974d33dbae78e21dc7f7",
+  "tracked_changes": [],
+  "runner_sha256": "f38a8e687a5d29d8474409dd97cca785bc9febb649248cd97aa46d7096738c7f",
+  "status": "pass",
+  "changed_file_sha256": {},
+  "not_run": [],
+  "finished": "2026-11-19T03:03:49.367486+00:00"
+}
