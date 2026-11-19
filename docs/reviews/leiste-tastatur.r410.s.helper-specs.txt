@@ -1,0 +1,82 @@
+helper-specs: waiting for the heavy lock — proposals (pid 2980863, since 2026-11-19T19:05:01)
+
+Running 72 tests using 2 workers
+
+[1/72] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[2/72] [e2e] › e2e/input-session.spec.ts:86:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner
+[3/72] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[4/72] [e2e] › e2e/input-session.spec.ts:123:1 › number A → number B: A is not confirmed, its draft returns marked as draft
+[5/72] [e2e] › e2e/safety-during-edit.spec.ts:101:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+[6/72] [e2e] › e2e/input-session.spec.ts:153:1 › a click, double click or drag on the open number field selects nothing and the keyboard keeps typing
+[7/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false}
+[8/72] [e2e] › e2e/input-session.spec.ts:194:1 › number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus
+[9/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop
+[10/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off
+[11/72] [e2e] › e2e/input-session.spec.ts:236:1 › number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard throws it away; both return focus, nothing is sent
+[12/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false}
+[13/72] [e2e] › e2e/input-session.spec.ts:270:1 › drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is
+[14/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop
+[15/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off
+[16/72] [e2e] › e2e/input-session.spec.ts:342:1 › tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens
+[17/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+[18/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop
+[19/72] [e2e] › e2e/input-session.spec.ts:393:1 › the keyboards: X and Discard are red, the confirm key reads Apply in both (operator 2026-10-01)
+[20/72] [e2e] › e2e/safety-during-edit.spec.ts:129:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+[21/72] [e2e] › e2e/input-session.spec.ts:420:1 › the number keypad shows the result of a calculation in a second line under the entry (operator 2026-10-01)
+[22/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false}
+[23/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop
+[24/72] [e2e] › e2e/input-session.spec.ts:443:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine
+[25/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off
+[26/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false}
+[27/72] [e2e] › e2e/input-session.spec.ts:473:1 › physical typing into the MDI line is kept with the helper open and closed; Enter sends the whole line once, the history recalls it, on-screen keys append
+[28/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop
+[29/72] [e2e] › e2e/input-session.spec.ts:505:1 › field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name
+[30/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off
+[31/72] [e2e] › e2e/input-session.spec.ts:544:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session
+[32/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+[33/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop
+[34/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+[35/72] [e2e] › e2e/input-session.spec.ts:594:1 › offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once
+[36/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: arm sends arm {armed: false}
+[37/72] [e2e] › e2e/input-session.spec.ts:629:1 › offset drafts end with the probe gate, not with a sibling cell's OK
+[38/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: estop sends estop
+[39/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: machineOn sends machine_on/off
+[40/72] [e2e] › e2e/input-session.spec.ts:688:3 › touch › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text
+[41/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): arm sends arm {armed: false}
+[42/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): estop sends estop
+[43/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): machineOn sends machine_on/off
+[44/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): arm sends arm {armed: false}
+[45/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): estop sends estop
+[46/72] [e2e] › e2e/input-session.spec.ts:739:1 › a page switch keeps the field's selection
+[47/72] [e2e] › e2e/safety-during-edit.spec.ts:145:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): machineOn sends machine_on/off
+[48/72] [e2e] › e2e/safety-during-edit.spec.ts:158:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press
+[49/72] [e2e] › e2e/input-session.spec.ts:751:3 › landscape light: every page fits the strip budget and never changes the frame
+[50/72] [e2e] › e2e/input-session.spec.ts:751:3 › landscape dark: every page fits the strip budget and never changes the frame
+[51/72] [e2e] › e2e/safety-during-edit.spec.ts:158:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press
+[52/72] [e2e] › e2e/input-session.spec.ts:769:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 %
+[53/72] [e2e] › e2e/safety-during-edit.spec.ts:199:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once
+[54/72] [e2e] › e2e/input-session.spec.ts:828:3 › portrait, touch › editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls
+[55/72] [e2e] › e2e/safety-during-edit.spec.ts:213:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens
+[e2e] › e2e/input-session.spec.ts:828:3 › portrait, touch › editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls
+EDITOR_LINES zoom 1: 21.43
+
+EDITOR_LINES zoom 1.5: 10.34
+
+[56/72] [e2e] › e2e/safety-during-edit.spec.ts:225:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › a release no click follows (the right button) ends the press after its 500 ms — the strip follows while nothing is pressed
+[57/72] [e2e] › e2e/input-session.spec.ts:933:3 › D7, touch › the X is each helper's top-right key, 44 × 44 — number keypad and text keyboard, landscape and portrait
+[58/72] [e2e] › e2e/safety-during-edit.spec.ts:252:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1
+[59/72] [e2e] › e2e/input-session.spec.ts:963:3 › D7, touch › the Code page: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order; every page reads row by row
+[60/72] [e2e] › e2e/safety-during-edit.spec.ts:280:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2
+[61/72] [e2e] › e2e/input-session.spec.ts:995:3 › D7, touch › the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered
+[62/72] [e2e] › e2e/safety-during-edit.spec.ts:305:3 › each pointer ends its own press (touch, landscape, two fingers) › a cancelled touch ends its press at once (control: the browser took it)
+[63/72] [e2e] › e2e/safety-during-edit.spec.ts:328:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows
+[64/72] [e2e] › e2e/safety-during-edit.spec.ts:364:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard kept while the mouse holds G55: target and scroll unchanged until the release
+[65/72] [e2e] › e2e/safety-during-edit.spec.ts:364:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release
+[66/72] [e2e] › e2e/safety-during-edit.spec.ts:403:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %)
+[67/72] [e2e] › e2e/safety-during-edit.spec.ts:435:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release
+[68/72] [e2e] › e2e/safety-during-edit.spec.ts:474:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into MDI: focused with inputmode="none", the strip keyboard opens
+[69/72] [e2e] › e2e/safety-during-edit.spec.ts:474:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into Search tools: focused with inputmode="none", the strip keyboard opens
+[70/72] [e2e] › e2e/safety-during-edit.spec.ts:503:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[71/72] [e2e] › e2e/safety-during-edit.spec.ts:503:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[72/72] [e2e] › e2e/safety-during-edit.spec.ts:503:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved
+  72 passed (2.3m)

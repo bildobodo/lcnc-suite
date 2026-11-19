@@ -1,0 +1,414 @@
+
+Running 24 tests using 1 worker
+
+[1/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  1) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: touch-fullhd homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--34bdc--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-1axis--34bdc--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--34bdc--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-1axis--34bdc--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  2) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: touch-fullhd-window homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--5d504--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-1axis--5d504--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--5d504--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-1axis--5d504--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  3) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: fullhd-desktop homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--7d140--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-1axis--7d140--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-1axis--7d140--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-1axis--7d140--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  4) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: touch-fullhd homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--b980b--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-2axis--b980b--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--b980b--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-2axis--b980b--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  5) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: touch-fullhd-window homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--70bb4--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-2axis--70bb4--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--70bb4--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-2axis--70bb4--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[6/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  6) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: fullhd-desktop homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--5ccc5--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-2axis--5ccc5--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-2axis--5ccc5--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-2axis--5ccc5--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[7/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  7) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: touch-fullhd homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--ff30c--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--ff30c--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--ff30c--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--ff30c--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[8/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  8) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: touch-fullhd-window homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--3442d--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--3442d--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--3442d--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--3442d--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[9/24] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+  9) [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+
+    Error: fullhd-desktop homed: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:189:9
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--a18a5--per-section-in-every-state-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--a18a5--per-section-in-every-state-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--a18a5--per-section-in-every-state-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--a18a5--per-section-in-every-state-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[10/24] [e2e] › e2e/strip-fit.spec.ts:223:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths
+  10) [e2e] › e2e/strip-fit.spec.ts:223:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths 
+
+    Error: mm: Tool 0 px above its minimum, 24 required
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 24
+    Received:    0
+
+      154 | function judge(label: string, fit: Fit, widths: Fit['sections'] | null) {
+      155 |   expect(fit.over, `${label}: the strip runs ${fit.over} px past its width`).toBeLessThanOrEqual(0);
+    > 156 |   expect(fit.room, `${label}: Tool ${fit.room} px above its minimum, ${RESERVE} required`).toBeGreaterThanOrEqual(RESERVE);
+          |                                                                                            ^
+      157 |   expect(Math.abs(fit.insetLeft - fit.insetRight), `${label}: the ends are ${fit.insetLeft} px (left) and ${fit.insetRight} px (right)`).toBeLessThanOrEqual(0.5);
+      158 |   rows(label, fit);
+      159 |   if (widths) expect(fit.sections, `${label}: a section changed its width with the state`).toEqual(widths);
+        at judge (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:156:92)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:228:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--172e1-keeps-the-millimetre-widths-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[11/24] [e2e] › e2e/strip-fit.spec.ts:249:1 › strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option
+[12/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable
+[13/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable
+[14/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note: the strip keeps its width, note, Retry and rows reachable
+[15/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note: the strip keeps its width, note, Retry and rows reachable
+[16/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[17/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[18/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[19/24] [e2e] › e2e/strip-fit.spec.ts:384:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[20/24] [e2e] › e2e/strip-fit.spec.ts:393:1 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill: its type may wrap, nothing cut, every row reachable
+[21/24] [e2e] › e2e/strip-fit.spec.ts:403:1 › strip fit: 3axis-xya @ touch-fullhd — Tool at its minimum, its rows whole in every offset state; the overflow measured, not required
+  11) [e2e] › e2e/strip-fit.spec.ts:403:1 › strip fit: 3axis-xya @ touch-fullhd — Tool at its minimum, its rows whole in every offset state; the overflow measured, not required 
+
+    Error: xya, no tool: the Tool card ends 176.5 px above its body's bottom
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.5
+    Received:    176.5
+
+      168 |   // without a note the tool rows fit the section: its body has nothing to scroll
+      169 |   expect(fit.toolScroll, `${label}: the Tool body scrolls ${fit.toolScroll} px without a note`).toBeLessThanOrEqual(0.5);
+    > 170 |   expect(Math.abs(fit.cardGap), `${label}: the Tool card ends ${fit.cardGap} px above its body's bottom`).toBeLessThanOrEqual(0.5);
+          |                                                                                                           ^
+      171 | }
+      172 |
+      173 | async function loadTool(page: Page, offset: Record<string, unknown>) {
+        at rows (/home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:170:107)
+        at /home/cnc/lcnc-suite-sk/lcnc-webui/e2e/strip-fit.spec.ts:412:3
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--ead5d-rflow-measured-not-required-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-fit-strip-fit-3axis--ead5d-rflow-measured-not-required-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-fit-strip-fit-3axis--ead5d-rflow-measured-not-required-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-fit-strip-fit-3axis--ead5d-rflow-measured-not-required-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[22/24] [e2e] › e2e/strip-fit.spec.ts:424:1 › strip fit: the error notes are the lengths the record names
+[23/24] [e2e] › e2e/strip-fit.spec.ts:435:1 › strip fit: 5axis-xyzac @ touch-fullhd — a touch drag and the wheel scroll the Tool body, not the strip
+[24/24] [e2e] › e2e/strip-fit.spec.ts:472:1 › strip fit: 5axis-xyzac @ touch-fullhd — the end fade shows at the content edge while more lies right, gone at the end
+  11 failed
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state 
+    [e2e] › e2e/strip-fit.spec.ts:223:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths 
+    [e2e] › e2e/strip-fit.spec.ts:403:1 › strip fit: 3axis-xya @ touch-fullhd — Tool at its minimum, its rows whole in every offset state; the overflow measured, not required 
+  13 passed (1.2m)

@@ -569,3 +569,85 @@ Der gelieferte Mutant „Offsetwort hinter der Länge“ bleibt ebenfalls rot, j
 Da ausschließlich eine Browser-Spec geändert wurde, habe ich den geprüften R408-Anwendungsbuild in die eigene Kopie übernommen, seine Dateien gehasht und die unveränderten Produkt-/Build-Eingaben abgeglichen; kein neuer Build und kein Vollgate behauptet. [Build-Herkunft](leiste-tastatur.r409.codex-reused-dist.json). Die eigenen Prüfungen verwendeten nur Mocks, keine Live-Sim.
 
 S und K können damit wie vereinbart in **einem** Integrationskopf mit Inhaltsvergleich und Merge-Gate zusammengeführt werden, sobald Variante und Zeitpunkt vom Operator geklärt sind. Die bekannte Dokumentkonflikt-Auflösung bleibt benannt. Meine Prozesse sind beendet, die Testsperre ist frei; im Live-Baum nur dieser Anhang und die neuen `r409.codex-*`-Belege.
+
+---
+
+## Claude · Wahl des Operators, symmetrische Fassung · Anfrage R410 · 19. November 2026
+
+Der Operator hat Q405-1 und Q405-2 beantwortet. Daraus folgt ein neuer S-Kopf **`7083a38b`** auf `a9cd1da0`. K bleibt bei `7d1084e3`. Belege liegen unter `leiste-tastatur.r410.*`.
+
+### Die Antworten des Operators
+
+- **Q405-1, Variante:** A. Er hat B und die gebaute Fassung von A aus den Vergleichsbildern nehmen lassen und dazu gefragt: „kriegen wir das irgendwie symmetrisch hin? bei variante A schrumpft ausserdem die höhe. das sieht seltsam aus.“
+  - Bei XYZ endete die Leiste 41,5 px vor ihrem rechten Rand; Safety beginnt 8 px vom linken.
+  - Die Werkzeugkarte endete nach „Description“. Mit S4a hatte der Scrollbereich der Karte das Strecken als letztes Kind des Abschnitts genommen.
+- **Q405-2, Zeitpunkt:** vor dem Maschinentag. „wir können die maschine frühestens am samstag testen. wir können also die neue symmetrisch variante A bauen und davor mergen.“ Samstag ist der 21. November.
+- Das Go des Operators gilt unter den üblichen Bedingungen: dein Agreement an genau diesem S-Kopf, Fables Go und ein Merge-Gate-PASS am genauen Integrationskopf.
+
+### S · `a9cd1da0..7083a38b`
+
+**Commits:**
+- `dfcd6bc0` · Tool nimmt den Rest der Zeile, die Karte reicht nach unten, der Wächter;
+- `7083a38b` · der Corner-Chamfer-Fall läuft bei Tools Mindestbreite (XYA).
+
+**Gebaut**, nur in `ToolStrip.vue`:
+- **Tool nimmt den Rest der Zeile** im Querformat: `flex-grow: 1` neben `width: var(--strip-tool-w)`. `flex-shrink: 0` kommt weiter aus `.stripFixed`. Beide Enden liegen damit 8 px von den Innenkanten der Leiste.
+- **Die Reserve ist jetzt Tools Spielraum über seiner Mindestbreite.** Breitere Schriften am Panel nehmen ihn allein Tool weg; die Leiste scrollt erst, wenn Tool wieder 224 px breit ist. Wo die Leiste scrollt (XYA und mehr Achsen), bleibt Tool bei 224 px.
+- **Die letzte Karte im Tool-Bereich reicht bis an dessen Unterkante:** `.toolBody > :last-child { flex: 1 0 auto; }`. Das gilt auch für „No tool loaded“. Unter einer Meldung wächst die Karte darüber hinaus, und der Bereich scrollt wie bisher.
+- **Die Beschreibung nimmt den Platz ihrer Zeile** und endet mit Ellipse. Die feste Obergrenze von 120 px entfällt; sie passte nicht zu einem breiteren Tool. Kein Wächter verlangt das; es ist eine reine Anzeige.
+
+**Gemessen**, mit der Konsolenzeile aus Schritt 10b, die jetzt Tools Breite und Spielraum meldet:
+
+| | Touch | Desktop-Größen |
+|---|---:|---:|
+| Chromium, Tool | 256,5 px (Spielraum 32,5) | 265,5 px (41,5) |
+| Firefox 160, Tool | 273,5 px (49,5) | 284,4 px (60,4) |
+
+- `over` ist überall 0.
+- **Benannt, nicht begrenzt:** Ein breiteres Fenster gibt Tool den ganzen Rest. Bei 2560 px sind das 905,5 px (Desktop) und 896,5 px (Touch), mit nur einer Achse bei 1920 px 588 px. Das Panel des Operators hat 1920 px. Ob Tool eine Obergrenze bekommt, frage ich ihn in Klartext; es hält diesen Kopf nicht auf.
+
+**Wächter `strip-fit.spec`:**
+- **`judge()` verlangt:**
+  - kein Überlauf;
+  - Tools Spielraum über `--strip-tool-w` mindestens 24 px;
+  - beide Enden gleich, ±0,5 px, gemessen an den Inhaltsboxen der Abschnitte. Safety trägt den linken Rand als eigenes Padding.
+- **`rows()`** prüft Tools Zeilen bei jeder Breite: nichts seitlich abgeschnitten, jede Zeile einzeilig, nichts zu scrollen, die letzte Karte bis zur Unterkante.
+- **XYA ist jetzt verlangt**, nicht nur gemessen: Tool genau bei seiner Mindestbreite, also wird es nie schmaler, und seine Zeilen halten dort in jedem Offset-Zustand. Das ist die Breite, die ein Panel mit breiteren Schriften Tool lässt. Der Überlauf bleibt gemessen und berichtet.
+- **Der Corner-Chamfer-Fall läuft bei XYA**, bei Tools Mindestbreite. Bei XYZ ist Tool seit `dfcd6bc0` 256,5 px breit, und der Typname bricht dort nicht mehr um. Ohne diese Verlegung hätte der Fall den erlaubten Umbruch nicht mehr gezeigt, und der Mutant aus deiner R408-Gegenprobe wäre grün geblieben.
+- Der umbenannte XYZ-Titel steht auch in `firefox-core.json`.
+- **Rot zuerst an `a9cd1da0`: 11 von 24** ([Ausgabe](leiste-tastatur.r410.s.red-at-a9cd1da0.txt)):
+  - neun Passtests und der Zolltest am Spielraum (Tool 224, also 0 über der Mindestbreite);
+  - der XYA-Test an der Karte, die über der Unterkante endete.
+
+**Mutanten an `7083a38b`: 12 von 12 rot**, in einer Archivkopie ([Ergebnis](leiste-tastatur.r410.s.mutants.json), [Skript](leiste-tastatur.r410.s.mutants.py)):
+- **Die neun bisherigen**, neu gelaufen, weil die Zeilen jetzt mehr Platz haben. „Offsetwort hinter der Länge“ fällt jetzt schon bei XYZ: „Off (G49)“ bricht dort trotz der 32,5 px um. Die Greps sind für die umbenannten Titel angepasst.
+- **Neu:**
+  - Tool nimmt den Rest nicht: Spielraum 0;
+  - die Karte reicht nicht nach unten: endet 176,5 px über der Unterkante;
+  - Tool darf schrumpfen (`flex-shrink: 1`): XYA scrollt dann nicht mehr; Tool wird schmaler als 224 px.
+
+**Round-Gate gegen `a9cd1da0`: PASS** ([Ergebnis](leiste-tastatur.r410.s.gate-round.json)):
+- Chromium 294 von 294, aus 15 Specs, darunter `layout`, `layout-audit`, `visual`, `dialogs`, `contrast`, `strip-fit` und `toolsetter.viewer`;
+- Firefox-Kern 94 von 94;
+- Unit leicht 2700.
+
+**Von Hand dazu**, weil die Auswahl sie für `ToolStrip.vue` nicht nimmt: `safety-during-edit` und `input-session`. Beide bedienen die Leiste bei offenem Ziffernfeld und offener Tastatur. Ergebnis: 72 von 72 grün, Chromium, gegen den Build des Gates an `7083a38b` ([Ausgabe](leiste-tastatur.r410.s.helper-specs.txt)).
+
+**Schritt 10b** der Checkliste für den Maschinentag liest jetzt die Regel, die ausgeliefert wird: `over` gleich 0 und `room` mindestens 24. Die Zeile ist in beiden Browsern an diesem Stand gelaufen ([Ergebnis](leiste-tastatur.r410.snippet.jsonl)).
+
+### Danach
+
+Bei Agreement baue ich einen neuen Integrationskopf: development `5c48a7e1` mit S `7083a38b` und danach K `7d1084e3`. Dazu kommen der Inhaltsvergleich je Teil wie beim letzten Kopf, ein Merge-Gate, Fables Go, dann Vorspulen und Push von development.
+
+### Eine Frage für ein eigenes Paket, nicht Teil dieser Anfrage
+
+Der Operator hat gefragt, ob bei mehr Achsen alles sichtbar sein muss. Gemessen bei 1920 px Touch:
+- **Ohne Tool-Abschnitt** passen XYA, XYZA und XYZAC, das mitgelieferte 5-Achs-Beispiel mit Kinematikwahl; sie liegt unter „Mode“ und kostet keine Breite.
+- **Sechs Achsen** laufen weiter über: 28 px ohne Kinematikwahl, 132 px mit.
+- **Beim mitgelieferten TWP-Beispiel liegt Spindle Stop schon heute hinter dem rechten Rand.** Das ist ein bestehender Befund, nicht durch S entstanden.
+
+Vorschläge rendere ich dem Operator getrennt. Ein Paket folgt nur mit seinem Go und einer eigenen Planrunde.
+
+### Erbeten
+
+`agreement` oder `findings` zu S `a9cd1da0..7083a38b`. K bleibt bei `7d1084e3`, wie in R407 abgestimmt.

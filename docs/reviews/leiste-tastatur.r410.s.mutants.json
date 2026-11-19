@@ -1,0 +1,178 @@
+{
+ "root": "/home/cnc/claude-work/stripfit/mut2/tree",
+ "results": [
+  {
+   "mutant": "S2: no semibold room",
+   "file": "src/style.css",
+   "grep": "a checked choice moves no option",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:249:1 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 a checked choice moves no option"
+   ],
+   "errors": [
+    "Error: mode Auto: Jog step"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "S2: jog head adds its width",
+   "file": "src/JogStrip.vue",
+   "grep": "1axis-x @ touch-fullhd \u2014",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:182:5 \u203a strip fit: 1axis-x @ touch-fullhd \u2014 no overflow, even ends, Tool 24 px above its minimum, one width per section in every state"
+   ],
+   "errors": [
+    "Error: touch-fullhd joint-jog: a section changed its width with the state"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "S4a: tool body does not scroll",
+   "file": "src/ToolStrip.vue",
+   "grep": "the long error note",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:383:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the long error note: the strip keeps its width, note, Retry and rows reachable",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:383:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"
+   ],
+   "errors": [
+    "Error: a note line out of reach"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "S4a: note words do not break",
+   "file": "src/style.css",
+   "grep": "the path error note",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:383:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the path error note: the strip keeps its width, note, Retry and rows reachable",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:383:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable"
+   ],
+   "errors": [
+    "Error: a note line out of reach"
+   ],
+   "seconds": 13
+  },
+  {
+   "mutant": "S4: Tool back to 280 px",
+   "file": "src/style.css",
+   "grep": "3axis-xyz @ touch-fullhd \u2014 no overflow",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:182:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 no overflow, even ends, Tool 24 px above its minimum, one width per section in every state"
+   ],
+   "errors": [
+    "Error: touch-fullhd homed: the strip runs 24 px past its width"
+   ],
+   "seconds": 10
+  },
+  {
+   "mutant": "S4: offset word back behind the length",
+   "file": "src/ToolStrip.vue",
+   "grep": "3axis-xyz @ touch-fullhd \u2014 no overflow|3axis-xya @ touch-fullhd \u2014 Tool at its minimum",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:182:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+    "[e2e] \u203a e2e/strip-fit.spec.ts:406:1 \u203a strip fit: 3axis-xya @ touch-fullhd \u2014 Tool at its minimum, its rows whole in every offset state; the overflow measured, not required"
+   ],
+   "errors": [
+    "Error: touch-fullhd offset G49: a Tool row wraps without a note",
+    "Error: xya offset G43: a Tool row wraps without a note"
+   ],
+   "seconds": 17
+  },
+  {
+   "mutant": "S4a: tool body hides its overflow",
+   "file": "src/ToolStrip.vue",
+   "grep": "touch drag",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:438:1 \u203a strip fit: 5axis-xyzac @ touch-fullhd \u2014 a touch drag and the wheel scroll the Tool body, not the strip"
+   ],
+   "errors": [
+    "Error: the wheel scrolls the Tool body"
+   ],
+   "seconds": 24
+  },
+  {
+   "mutant": "S1: portrait keeps the landscape shift",
+   "file": "src/App.vue",
+   "grep": "end fade",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:475:1 \u203a strip fit: 5axis-xyzac @ touch-fullhd \u2014 the end fade shows at the content edge while more lies right, gone at the end"
+   ],
+   "errors": [
+    "Error: portrait: no horizontal shift"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "guard: one line demanded under the note too (Codex R408 counter-probe)",
+   "file": "e2e/strip-fit.spec.ts",
+   "grep": "corner chamfer",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:395:1 \u203a strip fit: 3axis-xya @ touch-fullhd \u2014 the unbroken 372 error note over a corner chamfer end mill at Tool's minimum: its type may wrap, nothing cut, every row reachable"
+   ],
+   "errors": [
+    "Error: cut sideways under the note"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "sym: Tool does not take the rest of the row",
+   "file": "src/ToolStrip.vue",
+   "grep": "3axis-xyz @ touch-fullhd \u2014 no overflow",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:182:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 no overflow, even ends, Tool 24 px above its minimum, one width per section in every state"
+   ],
+   "errors": [
+    "Error: touch-fullhd homed: Tool 0 px above its minimum, 24 required"
+   ],
+   "seconds": 12
+  },
+  {
+   "mutant": "sym: the card does not reach down",
+   "file": "src/ToolStrip.vue",
+   "grep": "3axis-xyz @ touch-fullhd \u2014 no overflow",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:182:5 \u203a strip fit: 3axis-xyz @ touch-fullhd \u2014 no overflow, even ends, Tool 24 px above its minimum, one width per section in every state"
+   ],
+   "errors": [
+    "Error: touch-fullhd homed: the Tool card ends 176.5 px above its body's bottom"
+   ],
+   "seconds": 11
+  },
+  {
+   "mutant": "sym: Tool shrinks below its minimum",
+   "file": "src/ToolStrip.vue",
+   "grep": "3axis-xya @ touch-fullhd \u2014 Tool at its minimum",
+   "exit": 1,
+   "verdict": "RED",
+   "failed_tests": [
+    "[e2e] \u203a e2e/strip-fit.spec.ts:406:1 \u203a strip fit: 3axis-xya @ touch-fullhd \u2014 Tool at its minimum, its rows whole in every offset state; the overflow measured, not required"
+   ],
+   "errors": [
+    "Error: XYA scrolls"
+   ],
+   "seconds": 11
+  }
+ ],
+ "restored_build": 0
+}
