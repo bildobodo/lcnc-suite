@@ -651,3 +651,39 @@ Vorschläge rendere ich dem Operator getrennt. Ein Paket folgt nur mit seinem Go
 ### Erbeten
 
 `agreement` oder `findings` zu S `a9cd1da0..7083a38b`. K bleibt bei `7d1084e3`, wie in R407 abgestimmt.
+
+---
+
+## Codex · Implementierungsreview R410 · 19. November 2026
+
+**Urteil: `agreement` zu S an `7083a38b`, der symmetrischen Variante A.** K bleibt an `7d1084e3` angenommen. Q405-1 und Q405-2 sind mit der hier übermittelten Operatorentscheidung beantwortet: A symmetrisch, Merge vor dem Maschinentag am 21. November. Keine neuen Befunde oder Operatorfragen.
+
+Geprüft: `a9cd1da0..7083a38b`, Dokumentstand `1637048f`, einschließlich der geänderten Zusage, Wächter, Dokumentation und gelieferten Gate-/Mutationsbelege. **Die neue Bedeutung der Reserve ist angenommen:** Sie liegt nun innerhalb von Tool als Breite oberhalb der 224-px-Basis. `flex-grow: 1` nutzt den Rest im Querformat; das beibehaltene `flex-shrink: 0` schützt die Basis bei Überlauf. Die letzte Karte füllt den Tool-Bereich und darf unter einer Meldung darüber hinauswachsen. Die Beschreibung nutzt den verfügbaren Platz mit Ellipse.
+
+### Eigene Nachprüfung
+
+Eigene Archivkopie und Abhängigkeiten, eigener Build, gemeinsame Testsperre, ausschließlich lokale Mocks:
+
+- **Build PASS.**
+- **Chromium 28/28:** die 24 Strip-Fit-Wächter plus vier eigene Proben.
+- **Firefox 160 4/4:** die ausgewählten Strip-Fit-Fälle einschließlich des umbenannten Symmetrietests.
+- Keine Wiederholung, kein Flaky oder Skip. Kein erneutes Vollgate und noch kein gemeinsamer S/K-Integrationslauf.
+
+[Prüfstand, Einzeltests und Hashes](leiste-tastatur.r410.codex-evidence.json), [Befehle](leiste-tastatur.r410.codex-run.sh), [Chromium](leiste-tastatur.r410.codex-browser.json), [Firefox](leiste-tastatur.r410.codex-firefox.json).
+
+Die eigene Messung bei XYZ/1920/Touch bestätigt:
+
+| Browser | Abstand links/rechts | Tool | Spielraum über 224 px | Überlauf |
+|---|---:|---:|---:|---:|
+| Chromium | 8 / 8 px | 256,5 px | 32,5 px | 0 px |
+| Firefox 160 | 8 / 8 px | 273,5 px | 49,5 px | 0 px |
+
+Die Kartenunterkante liegt innerhalb der vereinbarten 0,5-px-Toleranz am Ende des Bereichs. Auch die [eigene Aufnahme](leiste-tastatur.r410.codex-symmetric-xyz.png) zeigt die gleichen Außenabstände und die durchgehende Kartenhöhe.
+
+**Zusätzliche Gegenfälle:** Eine sehr lange ungetrennte Beschreibung verändert die Tool-Breite, den Leistenüberlauf und das Höhenbudget nicht — geprüft bei XYZ/1920 und 2560, X/1920 sowie XYA/1920, jeweils mit Desktop- und Touch-Größen. Auf dem breiten Fenster nutzt die Beschreibung tatsächlich mehr als die früheren 120 px. Alle **26 eingebauten Typen**, jeweils ohne und mit Meldung, bleiben bei XYA an der 224-px-Basis vollständig erreichbar; der erlaubte Corner-Chamfer-Umbruch ist dort weiterhin vorhanden. Im Hochformat bleiben Meldung, Retry und alle sieben Datenzeilen bei **100 und 150 % CSS-Zoom** erreichbar, auch unter Berücksichtigung der angehefteten Safety-Fläche. [Sonde](leiste-tastatur.r410.codex-probe.spec.ts), [Rohmessungen](leiste-tastatur.r410.codex-measurements.json).
+
+Die Verlegung des Corner-Chamfer-Wächters auf XYA ist richtig: Bei dem breiteren XYZ-Tool würde der frühere Gegenfall nicht mehr umbrechen. Die gelieferten zwölf roten Mutanten halten sowohl LT-I01 als auch Mindestbreite, Streckung und die bisherige Offsetdarstellung fest. Den zusätzlichen 72er-Lauf der Helfer-Specs habe ich als gelieferten Beleg gelesen, nicht erneut vollständig ausgeführt.
+
+Die ausdrücklich benannte große Tool-Breite bei wenigen Achsen oder breiteren Fenstern ist kein verdeckter Überlauf. Eine Obergrenze und die vollständige Sichtbarkeit bei mehr Achsen bleiben die angekündigten eigenen Fragen/Pakete. Die Schrift- und Browserkalibrierung am Maschinen-PC (S6/10b) ist weiterhin eine eigene Messung; meine VM-Ergebnisse ersetzen sie nicht.
+
+**Weiter wie angekündigt:** ein Integrationskopf mit S `7083a38b` und K `7d1084e3`, Inhaltsvergleich je Teil, benannte Dokumentkonflikt-Auflösung, Fables Go und Merge-Gate-PASS genau an diesem Kopf; danach gilt das erteilte Go zum Merge vor dem Maschinentag. Meine Prüfprozesse sind beendet, die Testsperre ist frei. Im Live-Baum nur dieser Anhang und neue `r410.codex-*`-Belege; keine Live-Sim-Verbindung.

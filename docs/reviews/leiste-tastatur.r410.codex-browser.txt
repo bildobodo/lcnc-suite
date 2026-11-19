@@ -1,0 +1,43 @@
+[1A[2K[WebServer] (node:3036176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 28 tests using 1 worker
+
+[1A[2K(node:3036211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3036211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/28] [e2e] › e2e/r410-codex.spec.ts:35:1 › codex R410: a long description does not consume the reserve or grow the row
+[1A[2K[2/28] [e2e] › e2e/r410-codex.spec.ts:51:1 › codex R410: every built-in type remains whole at the minimum with and without a note
+[1A[2K[3/28] [e2e] › e2e/r410-codex.spec.ts:74:27 › codex R410: portrait tool data and error are reachable at zoom 1
+[1A[2K[4/28] [e2e] › e2e/r410-codex.spec.ts:74:27 › codex R410: portrait tool data and error are reachable at zoom 1.5
+[1A[2K[5/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[6/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[7/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 1axis-x @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[8/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[9/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[10/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 2axis-xy @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[11/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[12/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[13/28] [e2e] › e2e/strip-fit.spec.ts:182:5 › strip fit: 3axis-xyz @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state
+[1A[2K[14/28] [e2e] › e2e/strip-fit.spec.ts:223:1 › strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths
+[1A[2K[15/28] [e2e] › e2e/strip-fit.spec.ts:249:1 › strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option
+[1A[2K[16/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[17/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[18/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[19/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[20/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[21/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[22/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[23/28] [e2e] › e2e/strip-fit.spec.ts:383:5 › strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable
+[1A[2K[24/28] [e2e] › e2e/strip-fit.spec.ts:395:1 › strip fit: 3axis-xya @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill at Tool's minimum: its type may wrap, nothing cut, every row reachable
+[1A[2K[25/28] [e2e] › e2e/strip-fit.spec.ts:406:1 › strip fit: 3axis-xya @ touch-fullhd — Tool at its minimum, its rows whole in every offset state; the overflow measured, not required
+[1A[2K[26/28] [e2e] › e2e/strip-fit.spec.ts:427:1 › strip fit: the error notes are the lengths the record names
+[1A[2K[27/28] [e2e] › e2e/strip-fit.spec.ts:438:1 › strip fit: 5axis-xyzac @ touch-fullhd — a touch drag and the wheel scroll the Tool body, not the strip
+[1A[2K[28/28] [e2e] › e2e/strip-fit.spec.ts:475:1 › strip fit: 5axis-xyzac @ touch-fullhd — the end fade shows at the content edge while more lies right, gone at the end
+[1A[2K  28 passed (1.9m)

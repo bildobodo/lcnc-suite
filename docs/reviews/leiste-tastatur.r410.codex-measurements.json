@@ -1,0 +1,1294 @@
+{
+  "description": [
+    {
+      "touch": false,
+      "axes": [
+        "X",
+        "Y",
+        "Z"
+      ],
+      "viewport": 1920,
+      "before": {
+        "width": 265.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 256.5
+        },
+        "card": {
+          "height": 198.5,
+          "width": 256.5
+        }
+      },
+      "after": {
+        "width": 265.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 162,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 256.5
+        },
+        "card": {
+          "height": 198.5,
+          "width": 256.5
+        }
+      }
+    },
+    {
+      "touch": false,
+      "axes": [
+        "X",
+        "Y",
+        "Z"
+      ],
+      "viewport": 2560,
+      "before": {
+        "width": 905.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 896.5
+        },
+        "card": {
+          "height": 198.5,
+          "width": 896.5
+        }
+      },
+      "after": {
+        "width": 905.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 802,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 896.5
+        },
+        "card": {
+          "height": 198.5,
+          "width": 896.5
+        }
+      }
+    },
+    {
+      "touch": false,
+      "axes": [
+        "X"
+      ],
+      "viewport": 1920,
+      "before": {
+        "width": 597,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 588
+        },
+        "card": {
+          "height": 198.5,
+          "width": 588
+        }
+      },
+      "after": {
+        "width": 597,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 493,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 588
+        },
+        "card": {
+          "height": 198.5,
+          "width": 588
+        }
+      }
+    },
+    {
+      "touch": false,
+      "axes": [
+        "X",
+        "Y",
+        "A"
+      ],
+      "viewport": 1920,
+      "before": {
+        "width": 224,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 15,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 215
+        },
+        "card": {
+          "height": 198.5,
+          "width": 215
+        }
+      },
+      "after": {
+        "width": 224,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 15,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 120,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 198.5,
+          "width": 215
+        },
+        "card": {
+          "height": 198.5,
+          "width": 215
+        }
+      }
+    },
+    {
+      "touch": true,
+      "axes": [
+        "X",
+        "Y",
+        "Z"
+      ],
+      "viewport": 1920,
+      "before": {
+        "width": 256.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 247.5
+        },
+        "card": {
+          "height": 195.5,
+          "width": 247.5
+        }
+      },
+      "after": {
+        "width": 256.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 153,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 247.5
+        },
+        "card": {
+          "height": 195.5,
+          "width": 247.5
+        }
+      }
+    },
+    {
+      "touch": true,
+      "axes": [
+        "X",
+        "Y",
+        "Z"
+      ],
+      "viewport": 2560,
+      "before": {
+        "width": 896.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 887.5
+        },
+        "card": {
+          "height": 195.5,
+          "width": 887.5
+        }
+      },
+      "after": {
+        "width": 896.5,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 793,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 887.5
+        },
+        "card": {
+          "height": 195.5,
+          "width": 887.5
+        }
+      }
+    },
+    {
+      "touch": true,
+      "axes": [
+        "X"
+      ],
+      "viewport": 1920,
+      "before": {
+        "width": 588,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 579
+        },
+        "card": {
+          "height": 195.5,
+          "width": 579
+        }
+      },
+      "after": {
+        "width": 588,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 0,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 484,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 579
+        },
+        "card": {
+          "height": 195.5,
+          "width": 579
+        }
+      }
+    },
+    {
+      "touch": true,
+      "axes": [
+        "X",
+        "Y",
+        "A"
+      ],
+      "viewport": 1920,
+      "before": {
+        "width": 224,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 24,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": null,
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 215
+        },
+        "card": {
+          "height": 195.5,
+          "width": 215
+        }
+      },
+      "after": {
+        "width": 224,
+        "toolMin": 224,
+        "flexGrow": "1",
+        "stripOverflow": 24,
+        "bodyOverflow": 0,
+        "cardGap": 0.5,
+        "description": {
+          "client": 120,
+          "scroll": 12864,
+          "overflow": "hidden",
+          "ellipsis": "ellipsis"
+        },
+        "strip": {
+          "top": 780,
+          "bottom": 1072
+        },
+        "safety": {
+          "bottom": 1053
+        },
+        "body": {
+          "height": 195.5,
+          "width": 215
+        },
+        "card": {
+          "height": 195.5,
+          "width": 215
+        }
+      }
+    }
+  ],
+  "types": [
+    {
+      "error": false,
+      "type": "endmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "reamer",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "ball",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "bullnose",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "drill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "blockdrill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "centerdrill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "chamfer",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "cornerchamfer",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "circlebarrel",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "circlelens",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "circleoval",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "circletaper",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "countersink",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "dovetail",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "facemill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "lollipop",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "slotmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "threadmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "formmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "radiusmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "tapered",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "probe",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "tap",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "engraver",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": false,
+      "type": "other",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 0
+    },
+    {
+      "error": true,
+      "type": "endmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "reamer",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "ball",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "bullnose",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "drill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "blockdrill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "centerdrill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "chamfer",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "cornerchamfer",
+      "geometry": {
+        "height": 39,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 306
+    },
+    {
+      "error": true,
+      "type": "circlebarrel",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "circlelens",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "circleoval",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "circletaper",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "countersink",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "dovetail",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "facemill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "lollipop",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "slotmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "threadmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "formmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "radiusmill",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "tapered",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "probe",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "tap",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "engraver",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    },
+    {
+      "error": true,
+      "type": "other",
+      "geometry": {
+        "height": 19.5,
+        "visible": true,
+        "textInside": true
+      },
+      "bodyOverflow": 287
+    }
+  ],
+  "portrait_1": {
+    "geometry": {
+      "width": 252,
+      "toolMin": 224,
+      "flexGrow": "0",
+      "stripOverflow": 0,
+      "bodyOverflow": 0,
+      "cardGap": 0.5,
+      "description": {
+        "client": 157,
+        "scroll": 12864,
+        "overflow": "hidden",
+        "ellipsis": "ellipsis"
+      },
+      "strip": {
+        "top": 140,
+        "bottom": 1192
+      },
+      "safety": {
+        "bottom": 410.09375
+      },
+      "body": {
+        "height": 474.5,
+        "width": 252
+      },
+      "card": {
+        "height": 168.5,
+        "width": 252
+      }
+    },
+    "targets": [
+      {
+        "text": "Retry",
+        "top": 1154.59375,
+        "bottom": 1190.59375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 202,
+        "right": 260,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "ToolT12",
+        "top": 1171.59375,
+        "bottom": 1191.09375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "Pocket12",
+        "top": 1171.09375,
+        "bottom": 1190.59375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "Diameter25.4000 mm",
+        "top": 1171.59375,
+        "bottom": 1191.09375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "Z Offset-1234.5670 mm",
+        "top": 1171.09375,
+        "bottom": 1190.59375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "In effectOther offset",
+        "top": 1171.59375,
+        "bottom": 1191.09375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "TypeCorner Chamfer End Mill",
+        "top": 1171.09375,
+        "bottom": 1190.59375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      },
+      {
+        "text": "DescriptionA_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_",
+        "top": 1171.59375,
+        "bottom": 1191.09375,
+        "minTop": 410.09375,
+        "maxBottom": 1192,
+        "left": 25,
+        "right": 261,
+        "stripLeft": 8,
+        "stripRight": 288
+      }
+    ],
+    "noteLines": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "portrait_1.5": {
+    "geometry": {
+      "width": 384,
+      "toolMin": 224,
+      "flexGrow": "0",
+      "stripOverflow": 0,
+      "bodyOverflow": 0,
+      "cardGap": 0.25,
+      "description": {
+        "client": 163,
+        "scroll": 12800,
+        "overflow": "hidden",
+        "ellipsis": "ellipsis"
+      },
+      "strip": {
+        "top": 209,
+        "bottom": 1188
+      },
+      "safety": {
+        "bottom": 610.625
+      },
+      "body": {
+        "height": 656.75,
+        "width": 384
+      },
+      "card": {
+        "height": 252.75,
+        "width": 384
+      }
+    },
+    "targets": [
+      {
+        "text": "Retry",
+        "top": 1132.875,
+        "bottom": 1186.875,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 312,
+        "right": 396,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "ToolT12",
+        "top": 1157.875,
+        "bottom": 1187.125,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "Pocket12",
+        "top": 1158.125,
+        "bottom": 1187.375,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "Diameter25.4000 mm",
+        "top": 1157.375,
+        "bottom": 1186.625,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "Z Offset-1234.5670 mm",
+        "top": 1157.625,
+        "bottom": 1186.875,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "In effectOther offset",
+        "top": 1157.875,
+        "bottom": 1187.125,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "TypeCorner Chamfer End Mill",
+        "top": 1158.125,
+        "bottom": 1187.375,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      },
+      {
+        "text": "DescriptionA_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_A_Long_Unbroken_Description_",
+        "top": 1157.375,
+        "bottom": 1186.625,
+        "minTop": 610.625,
+        "maxBottom": 1188,
+        "left": 37,
+        "right": 397,
+        "stripLeft": 12,
+        "stripRight": 432
+      }
+    ],
+    "noteLines": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  }
+}

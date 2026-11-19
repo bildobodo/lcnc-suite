@@ -1,0 +1,517 @@
+{
+  "round": "R410",
+  "document_head": "1637048f4477d3844902ef51b1c80967e216dc49",
+  "base": "a9cd1da0996ecf7fe3b1daaa5a2a8d7203bf743a",
+  "head": "7083a38b7229735ba8edc680686cac1f1d90e3dd",
+  "K_unchanged": "7d1084e3b4cdb695a5c54c67cfab9369cab41d05",
+  "archive": "/tmp/codex-r410",
+  "scope": "Independent archive, separate node_modules copy, own build, local mock only, sequential under shared heavy lock; no live-tree test/build/checkout or simulation connection.",
+  "build": "PASS",
+  "checks": {
+    "browser": {
+      "stats": {
+        "startTime": "2026-11-19T18:13:01.024Z",
+        "duration": 115164.85100000001,
+        "expected": 28,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "cases": [
+        {
+          "title": "codex R410: a long description does not consume the reserve or grow the row",
+          "file": "r410-codex.spec.ts",
+          "line": 35,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "codex R410: every built-in type remains whole at the minimum with and without a note",
+          "file": "r410-codex.spec.ts",
+          "line": 51,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "codex R410: portrait tool data and error are reachable at zoom 1",
+          "file": "r410-codex.spec.ts",
+          "line": 74,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "codex R410: portrait tool data and error are reachable at zoom 1.5",
+          "file": "r410-codex.spec.ts",
+          "line": 74,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 1axis-x @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 1axis-x @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 1axis-x @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 2axis-xy @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 2axis-xy @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 2axis-xy @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ fullhd-desktop — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+          "file": "strip-fit.spec.ts",
+          "line": 223,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+          "file": "strip-fit.spec.ts",
+          "line": 249,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 108 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the unbroken 372 error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xya @ touch-fullhd — the unbroken 372 error note over a corner chamfer end mill at Tool's minimum: its type may wrap, nothing cut, every row reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 395,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": [
+            {
+              "type": "wraps",
+              "description": "tool: statusRow \"TypeCorner Chamfer End Mill\" wraps onto 2 lines"
+            }
+          ]
+        },
+        {
+          "title": "strip fit: 3axis-xya @ touch-fullhd — Tool at its minimum, its rows whole in every offset state; the overflow measured, not required",
+          "file": "strip-fit.spec.ts",
+          "line": 406,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": [
+            {
+              "type": "xya",
+              "description": "over 24 px, Tool 224 px, sections safetyStrip 280, jog 579.5, setup 369, overrides 192, spindle 233, tool 224"
+            }
+          ]
+        },
+        {
+          "title": "strip fit: the error notes are the lengths the record names",
+          "file": "strip-fit.spec.ts",
+          "line": 427,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 5axis-xyzac @ touch-fullhd — a touch drag and the wheel scroll the Tool body, not the strip",
+          "file": "strip-fit.spec.ts",
+          "line": 438,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 5axis-xyzac @ touch-fullhd — the end fade shows at the content edge while more lies right, gone at the end",
+          "file": "strip-fit.spec.ts",
+          "line": 475,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        }
+      ]
+    },
+    "firefox": {
+      "stats": {
+        "startTime": "2026-11-19T18:14:56.776Z",
+        "duration": 14794.996,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "cases": [
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+          "file": "strip-fit.spec.ts",
+          "line": 223,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+          "file": "strip-fit.spec.ts",
+          "line": 249,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ],
+          "annotations": []
+        }
+      ]
+    }
+  },
+  "symmetry": [
+    {
+      "browser": "browser",
+      "homed": {
+        "toolW": 256.5,
+        "toolMin": 224,
+        "room": 32.5,
+        "insetLeft": 8,
+        "insetRight": 8,
+        "cardGap": 0.5,
+        "wraps": [],
+        "toolScroll": 0,
+        "over": 0,
+        "spare": 0,
+        "sections": [
+          {
+            "name": "safetyStrip",
+            "width": 280
+          },
+          {
+            "name": "jog",
+            "width": 523.5
+          },
+          {
+            "name": "setup",
+            "width": 369
+          },
+          {
+            "name": "overrides",
+            "width": 192
+          },
+          {
+            "name": "spindle",
+            "width": 233
+          },
+          {
+            "name": "tool",
+            "width": 256.5
+          }
+        ],
+        "clipped": []
+      }
+    },
+    {
+      "browser": "firefox",
+      "homed": {
+        "toolW": 273.5,
+        "toolMin": 224,
+        "room": 49.5,
+        "insetLeft": 8,
+        "insetRight": 8,
+        "cardGap": 0.5,
+        "wraps": [],
+        "toolScroll": 0,
+        "over": 0,
+        "spare": 0,
+        "sections": [
+          {
+            "name": "safetyStrip",
+            "width": 280
+          },
+          {
+            "name": "jog",
+            "width": 523.72
+          },
+          {
+            "name": "setup",
+            "width": 362.97
+          },
+          {
+            "name": "overrides",
+            "width": 184.85
+          },
+          {
+            "name": "spindle",
+            "width": 228.95
+          },
+          {
+            "name": "tool",
+            "width": 273.52
+          }
+        ],
+        "clipped": []
+      }
+    }
+  ],
+  "extra_probes": {
+    "description_layouts": 8,
+    "type_cases": 52,
+    "portrait_CSS_zoom": [
+      1,
+      1.5
+    ],
+    "all_passed": true
+  },
+  "limitations": [
+    "No machine-PC font/browser/zoom calibration (S6).",
+    "No combined S+K integration build or merge gate; supplied gate and helper-spec reports read separately.",
+    "No guarantee that all controls in higher-axis profiles fit without scrolling."
+  ],
+  "operator_decisions": "A symmetric and merge before 2026-11-21 machine day accepted as stated in R410; merge still requires exact integration gate and Fable review.",
+  "heavy_lock_free_at_end": true,
+  "files": {
+    "leiste-tastatur.r410.codex-run.sh": {
+      "sha256": "ba5dbbcf95faeb5061f1468367f53d120d642d64d7d58715023ff60c788fd991",
+      "bytes": 829,
+      "source": "/tmp/r410-run.sh"
+    },
+    "leiste-tastatur.r410.codex-probe.spec.ts": {
+      "sha256": "e7a7b244974f6bcc86f51b981c030de3f77580eb5f9106c6852dfe98896d9626",
+      "bytes": 7432,
+      "source": "/tmp/codex-r410/lcnc-webui/e2e/r410-codex.spec.ts"
+    },
+    "leiste-tastatur.r410.codex-build.txt": {
+      "sha256": "d5c9a6f558cdfb0f31eb21f6a658a7225b138a294aa542685f5595e247599e70",
+      "bytes": 2438,
+      "source": "/tmp/r410-build.txt"
+    },
+    "leiste-tastatur.r410.codex-browser.txt": {
+      "sha256": "3ae23618a825dc5eba497ddf4818f069ceaa39e6534a4d629efbaf83b42ff63f",
+      "bytes": 5515,
+      "source": "/tmp/r410-browser.txt"
+    },
+    "leiste-tastatur.r410.codex-browser.json": {
+      "sha256": "fb12e722d9c82cf09ef51c5cbd6f3914e26d7a305e5d943ccae9e4465b7acabe",
+      "bytes": 160541,
+      "source": "/tmp/r410-browser.json"
+    },
+    "leiste-tastatur.r410.codex-firefox.txt": {
+      "sha256": "7b797c2857ffea856f37dccd9e4977d201f69d6d2a2d5ceef1e217e5683513a6",
+      "bytes": 1286,
+      "source": "/tmp/r410-ff.txt"
+    },
+    "leiste-tastatur.r410.codex-firefox.json": {
+      "sha256": "45a7ab808a8b82b5f647e19af8c4c5a4cf8bcc1e11cdbc54c0524fb4fe611d38",
+      "bytes": 23623,
+      "source": "/tmp/r410-ff.json"
+    },
+    "leiste-tastatur.r410.codex-measurements.json": {
+      "sha256": "c968f98838de9455019bdeab5496ab362af6ac7d675324fbc98ce35979c02501",
+      "bytes": 29136,
+      "source": "/tmp/r410-own.json"
+    },
+    "leiste-tastatur.r410.codex-symmetric-xyz.png": {
+      "sha256": "e50d85edddede2bb43e2d3993d62b08907b79e86c1e9d696ba5608d7361623dd",
+      "bytes": 180015,
+      "source": "/tmp/r410-symmetric-xyz.png"
+    }
+  }
+}
