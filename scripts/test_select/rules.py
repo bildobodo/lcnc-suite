@@ -126,13 +126,13 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite"),
         Read('readFileSync(new URL("../../scripts/inventory/atoms.py.json"', 1, ("scripts/inventory/atoms.py.json",),
              "the settings sections: a route's path parameter logged as its template unless enumerated (step 5b)")),
-    _E + "replay-origin.spec.ts": (
-        Read('readFileSync(file, "utf8")', 1, None, "this run's replay log its own worker's mock writes"),),
-    _E + "test.ts": (
+    _E + "jsonLines.ts": (
         Read('readFileSync(file, "utf8")', 1, None,
-             "Firefox: this run's replay log its own worker's mock writes — the unload beacons arrived (R385)"),
+             "this run's replay log its own worker's mock writes, whole lines only (wholeJsonLines): e2e/test.ts "
+             "reads Firefox's unload beacons through it (R385), replay-origin.spec its connections' origins"),),
+    _E + "test.ts": (
         Read('readdirSync(new URL("../dist/static/", import.meta.url))', 1, None,
-             "Firefox: a built stylesheet's name (dist/) — a neutral document of the mock's origin (R385)")),
+             "Firefox: a built stylesheet's name (dist/) — a neutral document of the mock's origin (R385)"),),
     _E + "mockFixture.ts": (
         Read("spawn(process.execPath, [MOCK_SCRIPT]", 1, ("lcnc-webui/e2e/mock-gateway.mjs",),
              "starts the worker's own mock"),
@@ -155,7 +155,7 @@ FULL_ONLY = {
 
 # ── Spec groups ──────────────────────────────────────────────────────────
 # Every rendered surface: what any component change can move or recolour.
-UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons")
+UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons", "strip-fit")
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer", "simulation-off.viewer",
           "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
@@ -169,7 +169,7 @@ PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "hold-stall", "hold-stall-mouse", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
-         "jog-buttons")
+         "jog-buttons", "strip-fit")
 SETTINGS = ("forms", "devices", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer", "feature-switches")
 MACROS = ("macros", "devices", "run-hold", "disarmed", "feature-switches")
@@ -286,9 +286,12 @@ RULES: tuple[Rule, ...] = (
     Rule(src("ToolsetterSettings.vue", "toolsetterSetup.ts", "toolsetterVars.ts",
              "g30Form.ts", "g30Shared.ts", "toolsetterState.ts"),
          "the toolsetter form and G30", browser=TOOLSETTER, live=("toolsetter-readback",)),
-    Rule(src("ToolTablePanel.vue", "ToolPreview.vue", "ToolStrip.vue", "toolHolder.ts",
-             "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts", "toolTypes.ts"),
+    Rule(src("ToolTablePanel.vue", "ToolPreview.vue", "toolHolder.ts",
+             "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts"),
          "the tool table, import and preview", browser=TOOLS),
+    Rule(src("ToolStrip.vue", "toolTypes.ts"),
+         "the strip's Tool section and the ONE tool type labels it shows: the tool table read, its fit at "
+         "Full HD (plan leiste-tastatur) and the offset row the toolsetter viewer spec reads", browser=TOOLS + ("strip-fit", "toolsetter.viewer")),
     Rule(src("toolGeometry.ts"), "tool geometry: the table's preview and the 3D tool",
          browser=TOOLS + VIEWER),
     Rule(src("OffsetPanel.vue", "offsetRows.ts", "useTouchoffMath.ts", "SetupStrip.vue",

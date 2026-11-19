@@ -150,7 +150,7 @@ function onKeydown(e: KeyboardEvent) {
          :style="columns ? { '--choice-columns': columns } : rows ? { '--choice-rows': rows } : undefined">
       <MachineChoice v-for="(o, i) in options" :key="String(o.value)" :gate="o.gate"
                      :disabled="o.disabled" :reason="o.reason" :title="o.title"
-                     :checked="o.value === modelValue" :pending="o.value === pending"
+                     :data-label="o.label" :checked="o.value === modelValue" :pending="o.value === pending"
                      :tabindex="i === stopIndex() ? 0 : -1"
                      @choose="el => choose(o, el)">{{ o.label }}</MachineChoice>
     </div>

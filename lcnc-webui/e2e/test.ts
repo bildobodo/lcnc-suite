@@ -37,7 +37,8 @@
 //                log; in Firefox it must be the pinned one, and its WebGL
 //                answer is recorded beside it (none: no display, R387).
 import { randomUUID } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { wholeJsonLines } from "./jsonLines";
 import { relative } from "node:path";
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { appConnectFrames, ctl, MOCK } from "./ctl";
@@ -81,11 +82,9 @@ async function forbidTouch(page: Page): Promise<void> {
   }
 }
 
-/** This mock's replay log so far, line by line (a line the mock is still
- *  writing never shows: each is appended whole). */
-function replayLines(file: string): ReplayLine[] {
-  return readFileSync(file, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line) as ReplayLine);
-}
+/** This mock's replay log so far, its finished lines (e2e/jsonLines.ts). */
+export { wholeJsonLines };
+const replayLines = (file: string): ReplayLine[] => wholeJsonLines<ReplayLine>(file);
 const postsIn = (lines: ReplayLine[]) => lines.filter(l => l.kind === "http" && l.method === "POST").length;
 
 const BEACONS_KEY = "e2e.unloadBeacons";

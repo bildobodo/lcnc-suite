@@ -676,10 +676,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </MachineSelect>
           <!-- the row's and the two rows' measures: never focusable, never read -->
           <div ref="stepSizer" class="choiceRow stepSizer" aria-hidden="true" inert>
-            <span v-for="o in incrementOptions" :key="o.value" class="choice">{{ o.label }}</span>
+            <span v-for="o in incrementOptions" :key="o.value" class="choice" :data-label="o.label">{{ o.label }}</span>
           </div>
           <div ref="stepGridSizer" class="choiceRow grid natural stepSizer" :style="{ '--choice-columns': stepGridCols }" aria-hidden="true" inert>
-            <span v-for="o in incrementOptions" :key="o.value" class="choice">{{ o.label }}</span>
+            <span v-for="o in incrementOptions" :key="o.value" class="choice" :data-label="o.label">{{ o.label }}</span>
           </div>
         </div>
         <div class="choiceBlock stack-tight">
@@ -708,6 +708,12 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 <style scoped>
 .jogContent > * { flex-shrink: 0; }
 .jogHead { white-space: nowrap; min-width: 0; }
+/* The head line takes the width the controls under it set and adds none of
+   its own (width 0 + min-width 100 %, as .choiceRow.grid.fill): with one
+   axis the joint-jog note widened the section 222 → 326 px (plan
+   leiste-tastatur S5 — the section is one width in every state). The note
+   ellipsizes; its "?" says it whole. */
+.stripSection > .jogHead { width: 0; min-width: 100%; }
 .jogNote { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Left: XY grid + Z + extra axes ── */

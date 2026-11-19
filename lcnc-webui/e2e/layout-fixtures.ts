@@ -12,7 +12,10 @@ export const PROFILES = [
   { name: '6axis-twp', axes: ['X', 'Y', 'Z', 'A', 'B', 'C'],
     kins: { module: 'xyzacb_trsrn', type: 'xyzacb-trsrn', identity_first: false, params: {} } },
 ] as const;
-export type Profile = typeof PROFILES[number];
+/** A machine profile for the layout sweeps: the shipped three above, or a
+ *  smaller one a spec builds (strip-fit: X, XY — plan leiste-tastatur R406). */
+export type Profile = { readonly name: string; readonly axes: readonly string[];
+  readonly kins: { module: string; type: string; identity_first: boolean; params: Record<string, never> } | null };
 export const VIEWPORTS = [
   { name: 'desktop', width: 1600, height: 1000, touch: false },
   { name: 'compact', width: 1024, height: 768, touch: false },
@@ -23,7 +26,7 @@ export const VIEWPORTS = [
   { name: 'touch-fullhd', width: 1920, height: 1080, touch: true },
   { name: 'touch-fullhd-window', width: 1920, height: 940, touch: true },
 ] as const;
-export type LayoutViewport = typeof VIEWPORTS[number];
+export type LayoutViewport = { readonly name: string; readonly width: number; readonly height: number; readonly touch: boolean };
 export const PANELS = {
   safety: '.safetyStrip', jog: '[data-strip="jog"]', setup: '[data-strip="setup"]',
   overrides: '[data-strip="overrides"]', spindle: '[data-strip="spindle"]', tool: '[data-strip="tool"]',
