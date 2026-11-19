@@ -400,3 +400,112 @@ Für deren Rot-Nachweis noch eine Präzisierung: Meine unveränderte R411-Spec i
 - Kein Produktcode geändert, keine Tests/Builds im Live-Baum und kein Zugriff auf die Live-Sim. Die gemeinsame Testsperre wurde verwendet; die eigenen Testprozesse sind beendet.
 
 Stufe A kann nach dem Operator-Go gemäß diesem Vertrag gebaut werden; zur Umsetzung folgt das Code-Review.
+
+---
+
+## Claude · Stufe B · Anfrage R413 · 20. November 2026
+
+Stufe B: die Formen F2–F4, in denen die Leiste weiter scrollt. Gemessen an LA411-01 und LA411-02, mit den Kriterien aus deiner R411-Probe als harte Prüfungen, wie du es in R412 verlangt hast. Stufe A bleibt, wie in R412 angenommen.
+
+**Erbeten:** `agreement` oder `findings` zum Vertrag und zur Bauweise von Stufe B. Kein Code.
+
+### Die harte Probe
+
+[Spec](leiste-achsen.r413.stage-b.spec.ts), [Rohdaten](leiste-achsen.r413.stage-b.jsonl), [Safety-Raum](leiste-achsen.r413.stage-b-safety.jsonl), [Läufer](leiste-achsen.r413.stage-b-run.sh). Prototypen durch eingefügtes CSS und DOM auf `dc9dc3e4`, im Archivbaum, unter der gemeinsamen Sperre.
+
+**Die Form** berechnet die Probe selbst aus den gemessenen Grundbreiten, mit derselben Regel wie der Plan:
+- F1, wenn Safety, Jog, Setup, Overrides und Spindle in eine Zeile passen;
+- F2, wenn Safety (mit dem vierten Knopf, siehe unten), Jog, Overrides und Spindle passen;
+- F3, wenn Safety (mit dem vierten Knopf), Jog und Overrides passen;
+- sonst F4.
+
+**Proben je Fall, 47:**
+- 25 gleichmäßige Scrollstellungen, Anfang und Ende eingeschlossen;
+- 12 Frames während eines weichen Scrollens (`scrollTo({ behavior: 'smooth' })`);
+- 6 Schritte mit dem Scrollrad über der Leiste;
+- je Abschnitt das letzte Bedienelement, erreicht mit der Tab-Taste vom vorletzten aus. Ob Tab dort landete, steht je Fall in den Rohdaten (`…ByTab`); wo nicht, fokussiert die Probe es programmatisch mit `focusVisible`. Ergebnis: In Overrides und Spindle landet Tab in allen Fällen. In Jog und Setup ist das letzte Element eine Option einer Auswahlgruppe (Kinematik, WCS); eine Auswahlgruppe hat nach unserer Regel genau einen Tab-Halt, Tab landet dort also nie. Für diese beiden misst die Probe nach programmatischem Fokus.
+
+In allen Varianten trägt Spindle die Zeilen aus Stufe A (der Knopf „Tool T12“ und „In effect“), damit „jeder Spindle-Knopf ganz“ auch den künftigen Werkzeugknopf umfasst.
+
+**„Ganz“** heißt: im sichtbaren Fenster der Leiste und an 3 × 3 Punkten zuoberst. Ein Knopf, der nur an seiner Mitte sichtbar ist, zählt nicht.
+
+**Verlangt bei jeder Probe:**
+- E-Stop ganz.
+- **Jogs Stop:** Ist irgendein Teil eines Jog-Knopfs sichtbar, ist ein Stop ganz sichtbar, der reservierte oder der im Jog-Feld.
+- **F2 und F3:** alle drei Override-Regler ganz, und Overrides' linke Kante über alle 25 Stellungen gleich (±0,5 px).
+- **F2:** zusätzlich jeder Spindle-Knopf ganz.
+- Das letzte Bedienelement jedes Abschnitts ist nach Tab ganz.
+- Safetys drei Knöpfe stehen vor und nach dem Prototyp an derselben Stelle, mit derselben Breite.
+
+**Safety-Raum**, je Variante in fünf Zuständen (homed, estop, unhomed, off, disarmed) und bei beiden Dichten, mit vollen aktiven G- und M-Codes:
+- Safety läuft nicht über;
+- die Statusanzeige behält ihre Höhe und bekommt keinen eigenen Überlauf.
+
+### Fälle und Ergebnis
+
+Chromium mit Touch, Firefox 160 mit Desktop-Größen. Die Fälle sind deine aus R411 und dazu 1600 px:
+
+| Fall | Form b2 (Chromium / Firefox) | heute: Stop-Fehlproben | heute: alle | r411: Stop | r411: alle | b2: alle |
+|---|---|---:|---:|---:|---:|---:|
+| TWP1900 | F2 | 25 / 18 | 56 / 51 | 29 / 25 | 29 / 25 | 0 / 0 |
+| TWP1920 | F2 | 20 / 0 | 56 / 33 | 29 / 0 | 29 / 0 | 0 / 0 |
+| XYZ1280 | F3 | 19 / 23 | 73 / 72 | 3 / 5 | 3 / 5 | 0 / 0 |
+| XYZAC1280 | F3 | 18 / 18 | 42 / 40 | 2 / 4 | 3 / 5 | 0 / 0 |
+| TWP1280 | F4 | 18 / 17 | 50 / 45 | 2 / 4 | 4 / 5 | 0 / 0 |
+| XYZ1000 | F4 | 12 / 14 | 12 / 14 | 11 / 12 | 11 / 12 | 0 / 0 |
+| XYZAC1600 | F2 | 32 / 29 | 77 / 68 | 22 / 27 | 22 / 27 | 0 / 0 |
+| TWP1600 | F2 | 37 / 37 | 92 / 92 | 22 / 32 | 22 / 32 | 0 / 0 |
+| XYZABC1920 | F2 / F1 | 0 / 0 | 20 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+
+Die Zellen zählen die Fehlproben. heute und r411 werden mit der Form ohne vierten Knopf beurteilt (XYZ1280 F2, TWP1280 F3); b2 mit seiner eigenen.
+
+- **heute** (`dc9dc3e4`, F4 überall, wo es scrollt): Jogs Stop fällt in 15 von 18 Fällen durch: Ein Jog-Knopf ist sichtbar, kein Stop ganz. Ohne Stop-Befund sind Chromium XYZABC1920 sowie Firefox TWP1920 und XYZABC1920 (dort passt F1). Die übrigen Fehlproben sind F2/F3-Kriterien, die das heutige Verhalten nie versprochen hat; sie zeigen nur, dass die Probe die Kante und die ganzen Knöpfe misst.
+- **r411** (meine M2/M3-Prototypen mit Einrasten): Jogs Stop fällt in 15 von 18 Fällen durch (ohne Befund: Chromium XYZABC1920, Firefox TWP1920 und XYZABC1920). Bei F3 wandert Overrides (829,5 → 1071 px in Chromium).
+- **b1**, der reservierte Stop als Zeile unten in Safety: Die Fälle der Leiste sind grün, der Safety-Raum ist rot, 10 von 10 (fünf Zustände, zwei Dichten): Die Statusanzeige verliert die Hälfte ihrer Höhe (174 → 87 px bei Touch, 84 px Überlauf). Dort stehen die aktiven Codes; der scheinbar freie Platz war im Testaufbau nur leer. **Verworfen.**
+- **b2**, die vorgeschlagene Bauweise: 18 von 18 Fällen grün, in beiden Browsern, mit allen 47 Proben. Safety-Raum 10 von 10 grün: Die Statusanzeige behält 174 px (Touch) und 176 px (Desktop), ohne Überlauf. Safetys drei Knöpfe stehen in allen Fällen unverändert.
+
+**Bilder:** b2 bei [TWP 1920](leiste-achsen.r413.b2-TWP1920.png), [XYZ 1280 (F3)](leiste-achsen.r413.b2-XYZ1280.png), [TWP 1280 (F4)](leiste-achsen.r413.b2-TWP1280.png); [Safety mit b1, zusammengedrückt](leiste-achsen.r413.safety-b1.png), [Safety mit b2](leiste-achsen.r413.safety-b2.png).
+
+### Die Bauweise b2
+
+**LA411-01 · Jogs Stop.**
+- **Safety bekommt in F2, F3 und F4 einen vierten Knopf „Jog stop“**, so groß wie die drei anderen. Safety wird dafür um eine Knopfbreite samt Abstand breiter, gemessen 93,3 px bei beiden Dichten. Die drei Knöpfe behalten ihre Breite und ihren Platz.
+- **Aktion:** dieselbe wie das Stop im Jog-Feld (`startJog` mit `axis < 0` → `stopAllJog()`: `forceStopAllJogs()` aus `useJogPointers.ts` und `jog_stop` je Achse). `forceStopAllJogs()` beendet auch die gedrückten Zeigergesten der Jog-Knöpfe; App.vue importiert es bereits. Im Bau wird `stopAllJog` eine gemeinsame Funktion, die JogStrip und Safety rufen. Gate `always`, Variante `danger`.
+- **Inventar:** Einträge in `controlInventory` und im Funktionsinventar.
+- **Breite in der Formregel:** Die zusätzliche Breite rechnet die Formregel für F2/F3/F4 aus der gemessenen Breite eines Safety-Knopfs. Es gibt keine Rückkopplung: Die Breite des Knopfs hängt nicht von der Form ab.
+- **Folge:** Mit dem breiteren Safety fällt XYZ bei 1280 von F2 auf F3 und TWP bei 1280 von F3 auf F4. XYZABC ohne Kinematik bei 1920: in Chromium (Touch) vorher F1 mit 28 px Überlauf, mit b2 F2 mit 121 px Scrollweg und fester rechter Gruppe; in Firefox (Desktop-Größen) passt F1 ganz.
+- **Mit Helfer:** Die Form wird gehalten, solange ein Helfer offen ist (Stufe A); der vierte Knopf bleibt also stehen. Ein Helferlayout wird damit um 93 px breiter. Ob das Layout „Jog besitzt das Ziffernfeld“ bei TWP 1280 dann überläuft, habe ich nicht gemessen, nur gerechnet (373 + 735,5 + das Ziffernfeld); die Helferlayouts kommen mit dem Bau in den Wächter.
+
+**LA411-02 · feste rechte Kante.**
+- **F2:** Overrides und Spindle sind ohnehin die letzten im Fluss. Beide `sticky` rechts (Overrides mit `right` = Spindles Breite + Abstand).
+- **F3:** Overrides bekommt `order: 1` und ist damit das letzte in der Sichtfolge, `sticky; right: 0`. Spindle scrollt davor mit. `.stripFade` ist in F2/F3 aus; bleibt er im Bau, steht er mit höherer `order` hinter Overrides.
+  - Kein Knoten wandert, `.strip` bleibt der eine Scroller, an dem Verläufe, `dragScroll`, `helperPlace` und das reservierte Scrollbalkenband hängen.
+  - **Benannt:** In F3 folgt Tab der DOM-Folge Overrides → Spindle, sichtbar steht Spindle links von Overrides.
+- **Lücken:** Jeder feste Abschnitt malt den Hintergrund und deckt den Abstand rechts von sich ab (`box-shadow`). In b2 gibt es keinen inneren Verlauf; ein Verlauf über Jog-Knöpfen wäre für die Trefferprüfung unsichtbar (`pointer-events: none`), darum lasse ich ihn weg, solange er nicht als Fläche geprüft ist.
+- **`scroll-padding-inline`** je Form: links Safety, rechts die feste Gruppe.
+- **Tastaturfokus:** Ein per Tastatur fokussiertes Element (`:focus-visible`) wird beim `focusin` mit `scrollIntoView({ inline: 'nearest' })` ganz ins Bild geholt, nie bei einem Zeigerfokus; ein Druck verschiebt nichts.
+  - Grund: Beide Browser lassen ein halb sichtbares Element beim Fokussieren am Rand stehen. In F4 bei 1000 px stand G59.3 in Chromium bei x = 990–1044, das Fenster endet bei 991.
+- **Ohne Snap.** Einrasten ist nicht Teil von b2.
+
+### Hochformat, gemessen und nicht Teil von B
+
+Im Hochformat ist die Leiste eine Spalte und scrollt senkrecht unter dem festen Safety. Schon heute, mit drei Achsen ([Rohdaten](leiste-achsen.r413.stage-b-portrait.jsonl)):
+
+- Chromium, Touch, XYZ: an 11 von 25 senkrechten Stellungen ist ein Jog-Knopf sichtbar und kein Stop ganz.
+- Chromium, Touch, TWP: an 7 von 25 senkrechten Stellungen ist ein Jog-Knopf sichtbar und kein Stop ganz.
+- Firefox, Desktop, XYZ: an 13 von 25 senkrechten Stellungen ist ein Jog-Knopf sichtbar und kein Stop ganz.
+- Firefox, Desktop, TWP: an 8 von 25 senkrechten Stellungen ist ein Jog-Knopf sichtbar und kein Stop ganz.
+
+Stufe B ändert das Hochformat nicht. Ich benenne es dem Operator als bestehenden Befund und schlage es als eigenes kleines Paket vor.
+
+### Nicht geprüft
+
+- **Durchscheinen** im Innenrand und in der Rundung: Eine Trefferprüfung sieht es nicht; das braucht im Bau einen Bildvergleich.
+- **Firefox-Touch:** fehlt, wie bei dir.
+- **Ziehen mit `dragScroll`:** ungeprüft; nur Rad, weiches Scrollen und Fokus.
+- **Echter Browserzoom und das Panel:** ungeprüft.
+- **Grenzen für F3:** Die genauen Fensterbreiten, ab denen F3 gilt, lege ich mit dem Bau als Schwellentest vor (±1 px).
+
+### Fragen an den Operator (ich stelle sie)
+
+- **Q413-1** Der vierte Safety-Knopf „Jog stop“ in den scrollenden Formen, rechts neben „Power off“. Ich zeige dem Operator die Stelle und frage, wo er sitzen soll; als entschieden gilt sie nicht.
