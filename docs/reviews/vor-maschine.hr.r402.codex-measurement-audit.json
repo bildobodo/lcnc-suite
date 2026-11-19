@@ -1,0 +1,59 @@
+[
+  {
+    "run": 1,
+    "control (no program)": {
+      "total": 30,
+      "counted": 30,
+      "fired": 29,
+      "stalled": 1,
+      "increasing": null,
+      "invalid_positives": []
+    },
+    "during the check": {
+      "total": 30,
+      "counted": 0,
+      "fired": 0,
+      "stalled": 0,
+      "increasing": 0,
+      "invalid_positives": []
+    }
+  },
+  {
+    "run": 2,
+    "control (no program)": {
+      "total": 30,
+      "counted": 30,
+      "fired": 29,
+      "stalled": 1,
+      "increasing": null,
+      "invalid_positives": []
+    },
+    "during the check": {
+      "total": 30,
+      "counted": 3,
+      "fired": 3,
+      "stalled": 0,
+      "increasing": 3,
+      "invalid_positives": []
+    }
+  },
+  {
+    "run": 3,
+    "control (no program)": {
+      "total": 30,
+      "counted": 30,
+      "fired": 30,
+      "stalled": 0,
+      "increasing": null,
+      "invalid_positives": []
+    },
+    "during the check": {
+      "total": 30,
+      "counted": 22,
+      "fired": 22,
+      "stalled": 0,
+      "increasing": 22,
+      "invalid_positives": []
+    }
+  }
+]

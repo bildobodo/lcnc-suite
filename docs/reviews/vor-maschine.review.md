@@ -8770,3 +8770,66 @@ Nach R396, R398, R400 und R401 kam jedes Mal ein Rest derselben Klasse. Darum ha
 **Erbeten:** `agreement` oder `findings`, je Teil:
 - Teil 1 zu `56e246ba..d5b25ced`;
 - Teil 2 zu `56e246ba..6cb1f0af`.
+
+---
+
+## Codex · Halten und Replay 5c · Nachprüfung R402 · 19. November 2026
+
+**Teil 1: `agreement` zu `56e246ba..d5b25ced`. VM397-03 ist geschlossen. Teil 2: `findings` zu `56e246ba..6cb1f0af`; die konkreten R401-Reste sind geschlossen, in der Klassenprüfung bleibt die Ermittlung und Zulassung der Laufkennung selbst offen (VM-I33).** Dokumentstand `e8d664fb`. Keine neue Operatorfrage. [Stand, Ausführung, Eingaben, Hashes und Grenzen](vor-maschine.rp5.r402.codex-evidence.json).
+
+### Teil 1 · Agreement
+
+Der gemeinsame `hintRecorder` entschärft und leert den Mitschrieb in einem Schritt; der neue Druck aktiviert ihn nach dem bereits registrierten Capture-Handler der Oberfläche. Die alte Hinweisgeneration wird so im hier verwendeten Ablauf nicht mehr übernommen. Beide Wächter verwenden dieselbe Aufzeichnung und dieselbe `judgeHold`-Entscheidung. Der Gegenwächter prüft sowohl das leere Ergebnis vor dem Druck als auch die Ablehnung des danach stumm beendeten vollständigen Drucks. Ein späterer Erfolg kann diese Ablehnung nicht aufheben.
+
+Eigene Prüfungen in einer Archivkopie von `d5b25ced`:
+
+- **22/22 Unitprüfungen**, Build PASS. [Unitbericht](vor-maschine.hr.r402.codex-unit.json), [Build](vor-maschine.hr.r402.codex-build.txt).
+- **9/9 Chromium-Fälle:** beide Stall-Specs einschließlich des Hinweis-Gegenwächters sowie die korrigierte Makroleisten-Dichteprüfung. Die drei Touch-Reihen trafen je acht kurze, erst nach der Fälligkeit zugestellte Gesten, **0 Auslösungen**. [Bericht](vor-maschine.hr.r402.codex-chromium.json), [Zeiten und Aktionen](vor-maschine.hr.r402.codex-chromium.txt).
+- **4/4 Firefox-160-Mausfälle** mit der gepinnten Konfiguration ohne Display. Der Hinweis-Gegenwächter liefert in beiden Browsern `delivered: 800`, `fired: 0`, `hints: []`, und `judgeHold` verweigert ihn wie verlangt. [Bericht](vor-maschine.hr.r402.codex-firefox.json), [Rohdaten](vor-maschine.hr.r402.codex-firefox.txt).
+
+Das Sichtbarkeitssignal vor der Geometrieabfrage schließt die benannte Dichte-Rennbedingung an der richtigen Stelle. Die präzisierte CI-Historie und die getrennt erhaltenen roten Läufe sind angenommen. Den neuen CI-Lauf habe ich nicht abgewartet; mein Agreement behauptet dafür kein Ergebnis.
+
+**Lastmessung:** Die vorgelegten Rohdaten habe ich unabhängig nachgezählt, keinen weiteren Lastlauf gestartet. Lauf 1 liefert keinen gezählten Versuch während der Prüfung; Lauf 2 liefert drei, Lauf 3 weitere 22. Bei allen **25** steigt die Abdeckung zwischen den Ablesungen, jeder Druck dauert mindestens 500 ms und sendet genau einmal. Die Kontrollen ergeben zusammen 88 Auslösungen und zwei erklärte Abbrüche; beide Abbrüche stehen am Anfang ihres Laufs. [Nachrechnung](vor-maschine.hr.r402.codex-measurement-audit.json).
+
+Damit ist die zugesagte begrenzte VM-Messung erbracht. Die Kernkonkurrenz-/Touch-/Maschinen-PC-Grenzen und die Weitergabe beider Lastzahlen an den Operator vor dem Merge bleiben wie benannt. Eine kleine Textkorrektur für den Messbericht: Die beigefügte Probe ruft `judgeHold` nicht auf, sondern ordnet die Ergebnisse selbst zu und besitzt noch einen eigenen Mitschrieb. Die gelesenen Rohwerte tragen die oben genannten Zahlen trotzdem; aus ihrem grünen Teststatus allein folgt das nicht. Bei weiterer Verwendung bitte die gemeinsamen Helfer nehmen oder den Messaufbau entsprechend beschreiben. Das ist kein offener Produkt- oder Agreement-Befund.
+
+### Teil 2 · R401-Korrekturen und neue Schutzregeln bestätigt
+
+**192/192 Pythonprüfungen PASS** (`test_coverage.py`, `test_replay.py`). [Ausgabe](vor-maschine.rp5.r402.codex-pytest.txt).
+
+Die bisherige Hauptprobe läuft unverändert mit dem neuen Leser. Die R401-Ergebnisprobe ist nur auf die neue Modulwurzel und Ausgabe umgestellt. Eingabe bleibt die benannte Diagnosekopie alter `mg5c7`-Artefakte mit nach Listung aufgeteilten Optionssätzen, kein neues Merge-Gate an diesem Kopf.
+
+Bestätigt sind:
+
+- Die doppelte ID in der **Listung** bleibt widersprüchlich; 109 statt 110 geprüfte Aussagen, kein `estop_reset` aus dem Versuch, dieselbe zurückgehaltene Auslösersumme wie beim doppelten Retry.
+- Ein Ergebnis für zwei gelistete gleichnamige Unitfälle ist widersprüchlich und fügt keine bestandene Aussage hinzu. Ein später bestandener Heavy-Satz überschreibt den Fehler im Light-Satz nicht mehr. Die vollständige negative Kontrolle bleibt `failed`, ohne Auswertungsfehler.
+- Die früheren Options-, Retry- und nativen Gegenfälle bleiben korrekt. Die drei unveränderten positiven Kontrollen bleiben PASS.
+- Die neue Verweigerung doppelter JSON-Schlüssel und doppelter nativer Fälle ist angenommen. Mein zusätzlicher doppelter `run`-Schlüssel in `replay.json` wird als beschädigtes Artefakt gemeldet und liefert **0 Chromium-Auslöser**; die gültigen Browser-Testberichte können davon unabhängig ihre geprüften Aussagen behalten.
+
+[Hauptprobe](vor-maschine.rp5.r402.codex-probes.json), [Ergebnisprobe](vor-maschine.rp5.r402.codex-result-probe.json), [zusätzliche Klassenprobe](vor-maschine.rp5.r402.codex-class-probe.py) und [Ergebnisse](vor-maschine.rp5.r402.codex-class-probe.json). Native Berichte in den Gegenproben sind synthetisch; kein nativer Treiber wurde gestartet.
+
+### Teil 2 · VM-I33 Rest: Die Referenz vor den geprüften Joins muss selbst eindeutig und vorhanden sein
+
+Die neue Matrix deckt die Test- und Ergebnisindizes ab. Davor steht noch ein Index, dessen letzter Wert gewinnt: `gate_runs()` bildet in `coverage.py:379–383` ein Wörterbuch aus `checks` nach `name`. Der strikte JSON-Lader sieht das nicht — es sind zwei gültige Objekte in einer Liste, kein doppeltes Mitglied eines JSON-Objekts.
+
+**A · Zwei Gate-Checks desselben Namens mit verschiedenen Laufkennungen.** Zur unveränderten Diagnosekontrolle einen zweiten `browser-workers`-Check mit `run: "another-run"` hinzugefügt, alle Laufartefakte unverändert:
+
+| Lage des zusätzlichen Checks | Gesamturteil | Auswertungsfehler | Geprüfte Aussagen | Chromium-Auslösersumme |
+|---|---|---:|---:|---:|
+| Kein zusätzlicher Check | PASS | 0 | 110 | 8194 |
+| Vor dem gültigen Check | **PASS** | **0** | **110** | **8194** |
+| Nach dem gültigen Check | FAIL | 73 | 59 | 0 |
+
+In der ersten beschädigten Fassung verschwindet der Widerspruch vollständig. Dieselben zwei Quellen ergeben allein durch ihre Reihenfolge ein anderes Urteil. Betroffen ist die Offline-Auswertung über `coverage(gate_path)`; ein laufendes Merge-Gate, das seine bereits erzeugten Kennungen direkt übergibt, benutzt diesen Index nicht.
+
+**Erbeten:** Die für die Laufreferenzen verwendeten Gate-Checks vor dem Wörterbuchaufbau auf Eindeutigkeit prüfen. Widersprüchliche Quellen verwerfen, statt eine davon durch ihre Reihenfolge zu wählen. Das darf den Gate-Datensatz insgesamt oder die betroffene Laufreferenz ungültig machen; daraus darf keine positive Zulassung entstehen. Wächter mit beiden Reihenfolgen und einer eindeutigen Kontrolle.
+
+**B · Fehlende Kennungen sind nicht dadurch eine Identität, dass sie überall fehlen.** In einer separaten Kopie ausschließlich die Chromium-Kennung entfernt: aus dessen Gate-Check, Listung, Ergebnisbericht und Replay. Firefox und Backend bleiben unverändert. `coverage_of()` meldet zwar an `:404–406` „nothing binds to an unknown run“. Danach erfüllen die Dokumente jedoch `run_of(doc) == ref`, weil beide Seiten `None` sind. `replay_attempts()` nimmt denselben Vergleich vor.
+
+Ergebnis: **FAIL mit genau einem Fehler**, aber weiterhin **110 geprüfte Aussagen**, **8194 Chromium-Auslöser** und darunter ein `estop_reset`. Das ist wieder „gemeldet, aber nicht zurückgehalten“; die Warnung über die unbekannte Referenz stimmt nicht mit den positiven Detailaussagen überein. [Fälle `duplicate_gate_check_before`, `duplicate_gate_check_after` und `unknown_chromium_run`](vor-maschine.rp5.r402.codex-class-probe.json).
+
+**Erbeten:** Eine positiv bekannte, eindeutige Laufkennung muss Voraussetzung der Zuordnung sein. Ohne sie keine Browser-Testbelege und keine Replay-Zulassung für dieses Projekt — auch nicht bei übereinstimmend fehlenden Feldern. Ein bloßer Gleichheitstest mit einem fehlenden Wert ersetzt diese Voraussetzung nicht. Die unabhängigen gültigen Belege anderer Projekte dürfen erhalten bleiben. Den Wächter auf die fehlenden positiven Belege und Auslöser richten, nicht nur auf FAIL. Diese Referenzprüfung auch in die Klassenübersicht aufnehmen; die nachgelagerten R401-Joins sind damit nicht erneut beanstandet.
+
+### Abschluss
+
+Teil 1 ist technisch abgenommen; Teil 2 braucht die begrenzte Korrektur an der Laufreferenz. Alle eigenen Läufe sind beendet, die gemeinsame Testsperre ist frei. Nur eigene Archivkopien und Mock-Server verwendet, keine Verbindung zur Live-Sim. Im Live-Baum nur dieser Anhang und neue `*.r402.codex-*`-Belege. Kein volles Merge-Gate und keine eigene CI-Abnahme; das vereinbarte einmalige Merge-Gate bleibt am danach abgestimmten Kopf.

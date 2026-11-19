@@ -1,0 +1,35 @@
+[1A[2K[2m[WebServer] [22m(node:1568277) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 4 tests using 1 worker
+
+[1A[2K(node:1568311) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1568311) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/4] [firefox-core] › e2e/hold-stall-mouse.spec.ts:104:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+[1A[2K[firefox-core] › e2e/hold-stall-mouse.spec.ts:104:1 › mouse: a tap sends nothing, a hold on a smooth page sends once
+hold-stall-mouse smooth: {"taps":[{"delivered":166,"fired":0,"hints":["Hold to activate"]}],"holds":[{"delivered":827,"fired":1,"hints":[]}]}
+
+[1A[2K[2/4] [firefox-core] › e2e/hold-stall-mouse.spec.ts:139:1 › mouse: a tap or a hold across a blocked page never fires
+[1A[2K[firefox-core] › e2e/hold-stall-mouse.spec.ts:139:1 › mouse: a tap or a hold across a blocked page never fires
+hold-stall-mouse block 0→540 ms, press 120 ms: [{"delivered":680,"block":{"from":11,"to":540},"hints":["Page delayed — hold again"]}]
+
+[1A[2Khold-stall-mouse block 100→700 ms, press 250 ms: [{"delivered":705,"block":{"from":100,"to":700},"hints":["Page delayed — hold again"]}]
+
+[1A[2Khold-stall-mouse block 100→700 ms, press 800 ms: [{"delivered":810,"block":{"from":101,"to":700},"hints":["Page delayed — hold again"]}]
+
+[1A[2K[3/4] [firefox-core] › e2e/hold-stall-mouse.spec.ts:168:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+[1A[2K[firefox-core] › e2e/hold-stall-mouse.spec.ts:168:1 › mouse: an ended press's step never fires a new short press (an abort, then a new press)
+hold-stall-mouse abort, then a new press: {"downs":[1467,1917],"ups":[1567,2031],"block":null,"hints":["Hold to activate"]}
+
+[1A[2K[4/4] [firefox-core] › e2e/hold-stall-mouse.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+[1A[2K[firefox-core] › e2e/hold-stall-mouse.spec.ts:200:1 › mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused
+hold-stall-mouse stale hint: {"delivered":800,"fired":0,"hints":[]}
+
+[1A[2K  4 passed (16.2s)

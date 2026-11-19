@@ -1,0 +1,154 @@
+{
+  "review": "R402",
+  "document_head": "e8d664fbf45340042a582ca6d39abe3cb72f315e",
+  "hold_head": "d5b25ced906a6b6f0a91d9d843acddf94b8fd89e",
+  "replay_head": "6cb1f0af74ba46c595713e9a6e4414c65c53ae8c",
+  "base": "56e246ba",
+  "roots": [
+    "/tmp/codex-r402-hold",
+    "/tmp/codex-r402-replay"
+  ],
+  "runs": {
+    "python": "192 passed",
+    "hold_unit": "22 passed: 20 gestures + 2 source-scan tests",
+    "build": "PASS",
+    "chromium": {
+      "startTime": "2026-11-19T01:45:33.537Z",
+      "duration": 69087.809,
+      "expected": 9,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "firefox": {
+      "startTime": "2026-11-19T01:46:43.191Z",
+      "duration": 16153.761,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "touch_rows": [
+      {
+        "case": "a block from the press's delivery to 520 ms",
+        "rows": 8,
+        "raced": 8,
+        "fires": 0
+      },
+      {
+        "case": "a block from the press's delivery to 540 ms",
+        "rows": 8,
+        "raced": 8,
+        "fires": 0
+      },
+      {
+        "case": "a block from 100 to 700 ms after the delivery",
+        "rows": 8,
+        "raced": 8,
+        "fires": 0
+      }
+    ]
+  },
+  "diagnostic_baseline": {
+    "gate": "/tmp/r401-input/gate-merge.json",
+    "gate_head": "d79d7d2857e7d0614d65edf3e1084ea49eedcdab",
+    "provenance": "Unchanged R401 diagnostic copy of older mg5c7 artifacts. R400 full options split by each group listing: light 2675/heavy 104. No fresh merge run at either R402 head.",
+    "old_fixtures": "Actual Vitest reports from R400 and R401; main probe unchanged. Result probe changes only module root and output from R401. One unit binding changed in memory; native reports synthetic.",
+    "class_probe": "Every case copies the whole diagnostic input; mutates only gate checks/run identities or duplicate JSON key. Restores each input before the next case."
+  },
+  "measurement": "Read and recounted supplied collision-hold runs 1/2/3. No new load measurement. All 25 counted running-check rows increase coverage and fire exactly once from a >=500ms press. The supplied probe classifies outcomes inline; it does not call judgeHold despite the request wording.",
+  "limits": [
+    "No live-sim connection",
+    "No full/merge gate",
+    "No independent CI check",
+    "No machine-PC/touchscreen acceptance",
+    "Only review appendix and new evidence in live tree",
+    "Own processes ended; shared heavy lock released"
+  ],
+  "files": {
+    "vor-maschine.hr.r402.codex-unit.json": {
+      "source": "/tmp/r402-hold-unit.json",
+      "sha256": "67b63d17e9a56fdbbc0afb96a5e4f0b6115c7ed01ff5fcda2277c269a5ac5860"
+    },
+    "vor-maschine.hr.r402.codex-unit.txt": {
+      "source": "/tmp/r402-hold-unit.txt",
+      "sha256": "7dde8b2c068a0af185dd8a734710ce954b62f35ef203e6e9a04fdcdce49abd2f"
+    },
+    "vor-maschine.hr.r402.codex-build.txt": {
+      "source": "/tmp/r402-build.txt",
+      "sha256": "62c46f732c58a710c2638f3c4d868ba210c175894c19dadaac102ca752fc828c"
+    },
+    "vor-maschine.hr.r402.codex-chromium.json": {
+      "source": "/tmp/r402-browser.json",
+      "sha256": "34ae48eb529d1ba855369400beb388f0f866f0a806e2c5798e37c5a9da3cf15f"
+    },
+    "vor-maschine.hr.r402.codex-chromium.txt": {
+      "source": "/tmp/r402-browser-console.txt",
+      "sha256": "f3c7204fe27059be6f8663d1330737f2c553947a1922014f4ea8108ff270b8f2"
+    },
+    "vor-maschine.hr.r402.codex-firefox.json": {
+      "source": "/tmp/r402-firefox.json",
+      "sha256": "8f8facdc32ce303362be32380cc584a43349f215ef41b9b439e1d1e75014f834"
+    },
+    "vor-maschine.hr.r402.codex-firefox.txt": {
+      "source": "/tmp/r402-firefox-console.txt",
+      "sha256": "124e7bb76aadf6b5700dfd8cadd36472295180d9d92038d3eab5afda5aec5726"
+    },
+    "vor-maschine.hr.r402.codex-run.sh": {
+      "source": "/tmp/r402-hold-run.sh",
+      "sha256": "3fb45b63fd1d1ea528c23f728739f9b10b0af76554c9ea76bc15a18982131e7b"
+    },
+    "vor-maschine.hr.r402.codex-measurement-audit.json": {
+      "source": "/tmp/r402-measurement-audit.json",
+      "sha256": "cc28ea32b4298a7ede6f0f0ae520aee914a668614a0dcfd3640f2bf25d92652c"
+    },
+    "vor-maschine.rp5.r402.codex-pytest.txt": {
+      "source": "/tmp/r402-pytest.txt",
+      "sha256": "6c073f5de960f0e2f43d21655484ed51a8488ead1bbf5c6c344da4b3361d2b0b"
+    },
+    "vor-maschine.rp5.r402.codex-run.sh": {
+      "source": "/tmp/r402-python-run.sh",
+      "sha256": "2dff51213b66a5d935ebcbaf1b7637874d820e08e868a8b7497ed4f861baac83"
+    },
+    "vor-maschine.rp5.r402.codex-probes.py": {
+      "source": "/tmp/r401-probes.py",
+      "sha256": "7b176fcc2fc6a60bd26b5264f914f48348b8b914ed27821b59d90e347e18cf0b"
+    },
+    "vor-maschine.rp5.r402.codex-probes.json": {
+      "source": "/tmp/r402-probes.json",
+      "sha256": "dc173a202029cbb13a2dc4fed212354d7a0acd64de965e6b600de3c3cbb3c488"
+    },
+    "vor-maschine.rp5.r402.codex-result-probe.py": {
+      "source": "/tmp/r402-result-probe.py",
+      "sha256": "51f6972eac25c4a8b5ecf139ead5396b41b72e97c78fbe3c19fe944cefa3789d"
+    },
+    "vor-maschine.rp5.r402.codex-result-probe.json": {
+      "source": "/tmp/r402-result-probe.json",
+      "sha256": "a25bdd8257d565da39ebcd7f19f488938341098af404fb641ecc80b5e2f140c9"
+    },
+    "vor-maschine.rp5.r402.codex-class-probe.py": {
+      "source": "/tmp/r402-class-probe.py",
+      "sha256": "8394e4f0926f46c305a2277aa8615c46fc451e75bc4db14814c27a8a159d0a0e"
+    },
+    "vor-maschine.rp5.r402.codex-class-probe.json": {
+      "source": "/tmp/r402-class-probe.json",
+      "sha256": "cb2acf84894b4c8915d5de475196b45e4be650c0baa3427c292cc2a64135fe98"
+    }
+  },
+  "baseline_hashes": {
+    "gate-merge.json": "91516b432180f1e1b317b446a0c4c49ff997ceb249da092c9aa87c76bf1ed4ba",
+    "gate-merge.logs/list-run.json": "dc689e4158d4c9bf3a2eae3f6de5e6fdcd0430372bd14865cfb601c6b0ae1e78",
+    "gate-merge.logs/playwright.json": "5ad3997473ebbf2e0a5b50297058e2de8d4c005db320cc0eb708a2f87b6ab275",
+    "gate-merge.logs/firefox-list.json": "353b61fc15b02b75baead7713835bb538d6dcd9e6a618064f80b3260d1fc5dda",
+    "gate-merge.logs/firefox.json": "7afe667c55d793f7bd68e59ccdb99d40d7c9eec9d74fa71e3d52cca9f8f13617",
+    "gate-merge.logs/unit-light.list.json": "595d2bcaa35bb427ff7c2337061b1395f3055cfc8380dc098cab0e2fd8308910",
+    "gate-merge.logs/unit-light.json": "1191bea33e2ce91d3018b684af6a178368dd18d61a6d6e26a749078b5a3830de",
+    "gate-merge.logs/unit-heavy.list.json": "ba6db85463ed14fe503b1fddea14a81a6183fd46ac5a812be67a3e46bcf8e82d",
+    "gate-merge.logs/unit-heavy.json": "12c890ef9d349d3d269d718178552ab71bc667bfba2c55f4ea3415bfa150f6f8",
+    "gate-merge.logs/replay.json": "f53b867cc8c164cb556b9e9f0d49ee98ba9e527e1104b1bf537488746d02e4d1",
+    "gate-merge.logs/firefox-replay.json": "55c623d23e5554df0e901369d9b21246fe88cc80bcb8dcf69360cdfe67d49390",
+    "gate-merge.logs/unit-light.options.json": "7f9ae36ae9ccc4b0951ff430024f0b5baade4518aa638e8c3e46d02c0375bc73",
+    "gate-merge.logs/unit-heavy.options.json": "ebaf928b946da13e96df2c5cfdc883eed6303fd2759d56ad1155cb4b8364082b",
+    "gate-merge.logs/backend/backend.junit.xml": "5e930d143df42425388ea86a617dd63b4dde4de791e608d051657a9c4613840c"
+  }
+}
