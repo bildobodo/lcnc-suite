@@ -430,6 +430,10 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
     shapes, rules, var_sets = members(), _reader_rules(), _var_sets()
     cmds: Counter = Counter()
     per_attempt: dict[tuple[str, int], Counter] = {k: Counter() for k in attempts}
+    # replay step 5c: the frames whose refusal was EXPECTED, per attempt and
+    # with per_attempt's own variant key — the payload checker's counter-check,
+    # never a trigger (per_attempt keeps every frame, as since R374)
+    per_attempt_expected: dict[tuple[str, int], Counter] = {k: Counter() for k in attempts}
     expected: list[dict] = []
     loaded: set[tuple[str, int]] = set()
     hello: set[tuple[str, int]] = set()
@@ -553,6 +557,8 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
                 if hit is not None:
                     used[hit] = True
                     expected.append({"where": where(key), "cmd": cmd, "refusal": refusals[hit]["refusal"]})
+                    if cls == "test":
+                        per_attempt_expected[key][_variant(cmd, msg)] += 1
                 else:
                     findings += [f"{label}: {cmd} {p}" for p in problems_]
         findings += [f"{inst} conn {c}: {n} frame(s) on a connection with no open line" for c, n in orphans.items()]
@@ -600,6 +606,8 @@ def check(replay_dir: Path, events_path: Path, run: str, refusals: list[dict] | 
         "commands": dict(sorted(cmds.items())), "attempts": len(attempts),
         "per_attempt": {where(k): dict(sorted(c.items())) for k, c in sorted(per_attempt.items(), key=lambda kv: where(kv[0]))},
         "attempt_list": attempt_list, "no_cookie": no_cookie,
+        "per_attempt_expected": {where(k): dict(sorted(c.items())) for k, c in
+                                 sorted(per_attempt_expected.items(), key=lambda kv: where(kv[0])) if c},
         "var_files": sorted(var_sets), "expected": expected,
         "findings": findings, "outside": OUTSIDE if paths is None else OUTSIDE_5B,
         **({"http_paths": paths} if paths is not None else {}),

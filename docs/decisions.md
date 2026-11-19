@@ -11674,6 +11674,70 @@ needs both forms — red before the fix (269.75 / 308.75 px), green after.
 Visible at the machine: in "Not checked" the card's icon and the "?" stand at
 the row's right end, where they stand beside the bar.
 
+## 2026-11-17 — The coverage of a run (step 5c; Codex FI265-03, R389, R390–R392)
+
+**Why.** The inventory named every function and its statements; whether a
+statement's evidence RAN, passed, at which head, stayed outside every gate.
+A test name that exists proves nothing (FI265-03).
+
+**Decided.**
+- **From the run's own artefacts only:** the listings and reports of the
+  gate, the backend's JUnit, the replay's frames and HTTP paths; native and
+  live reports only when given, and only of this commit.
+- **Five kinds apart, no percentage, every gap named** — the 17 commands no
+  test sends, the routes no server answers, the statements with no gate
+  evidence.
+- **Binding by listed test ids, never text:** the rules of the dry run over
+  all 347 entries (exact, fragment, template captures equal to each
+  instance); every bound test must pass.
+- **Red only for an evaluation error** (Q389-2): a missing artefact, an
+  evidence that binds nothing, a claimed report not shown.
+- **Live scenarios ordered by result kind** (R392): a skip is SKIP, an error
+  record is "run, not passed", only complete success data is passed.
+- **The merge gate runs it;** a round lists it omitted.
+
+**Amended after R396 (Codex VM-I33–VM-I37).** The listings bounded nothing
+(empty listings, another run's report and ids, a red replay all stayed PASS
+with 110 statements checked); `test.fail()` read as passed and a repeat
+overwrote its twin; any string of `native_run.py` was a case; a `null`
+scenario read as a missing run; the open variants were not in the report.
+Now: the gate's own run ids bind every record (the backend's JUnit by its
+suite name); the listings are the collected sets; a replay counts only green,
+of this run, each attempt bound to a listed test's result at its retry;
+statuses from the reporter's own fields, every instance by its id; native
+cases DECLARED per variant (`native_cases.REPORT_CASES`) and every native
+report of this commit held against them — a scan of the 113 producer sites
+cannot tell a case from a part name (`eval_probe_z("probe", …)` inside
+`combine` vs `eval_probe_z("probe-z", …)` as a row); the worst over every
+report of a commit; the source inventory's sites under `inventory`. Codex's
+R396 probe script runs unchanged: its control PASS, every damage red for its
+own reason.
+Before R398 the class check found three siblings, fixed the same way: an
+expected refusal of a failed or unlisted attempt counted, a native report
+with `rows: null` raised, and Vitest's `it.fails` reads as passed in its JSON
+report (measured — no mark). R398 closed the rests: the attempt identity and
+one result per retry are unique, a native report's profile and row variants
+are its own, and the expected failure is read from the run's own artefact —
+the unit steps' options reporter (`TestCase.options.fails`, every spelling:
+`.fails (`, `.fails.each`, `{ fails: true }`, an alias), not a text search.
+R400: a unit found invalid is reported AND withheld — the error alone left
+its results counting (a contradictory retry's attempt, a rejected native
+report's rows, an options record without a boolean `fails` read as plain);
+the class check found three more (another run's record or JUnit, a renamed
+or doubled id). R401: the same rule across the JOIN and the GROUPS — an
+identity invalid on either side of the listing/report join stays invalid (a
+clean report never replaces a contradictory listing, and admits no replay
+attempt), a unit name needs exactly as many results as its listing holds (a
+missing or an extra one is no complete run), and across the unit groups a
+result is only ever made stricter, like the options. The class check of R402
+over every index and join found two more: a key twice in a JSON object (json
+keeps the last silently — every artefact and report is now read strictly, a
+repeated key withholds it) and a native case twice in one report (rejected).
+R402: the reference before those joins — a gate check of one name twice is
+a RunConflict (the order of two sources never chooses), and a run id that is
+missing binds nothing even where it is missing everywhere (None == None is
+no identity): no evidence of that project, no admitted replay attempt.
+
 ## 2026-11-14 — The MDI line in bytes; the M6 confirmation without a reply (package 3a; Codex R366 VM-I11 / VM-I12, R367)
 
 **Decision.** Every MDI line the gateway writes — the raw text and every line

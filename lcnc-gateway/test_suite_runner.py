@@ -134,6 +134,17 @@ class TestSuiteRunner(unittest.TestCase):
             self.assertEqual(raised.exception.code, 2)
             spawn.assert_not_called()
 
+    def test_the_backend_junit_carries_the_gate_s_run_id_as_its_suite_name(self):
+        """Replay 5c (Codex R396, VM-I33's class): the coverage binds the
+        gateway's evidence to the backend step's JUnit only under the run id the
+        gate made — pytest writes it as the suite name."""
+        out = Path("/tmp/out")
+        cmd = next(c for c in suite.offline_commands("backend", out, "backend-r1") if c[0] == "backend")[1]
+        self.assertIn(f"--junitxml={out / 'backend.junit.xml'}", cmd)
+        self.assertEqual(cmd[cmd.index("-o") + 1], "junit_suite_name=backend-r1")
+        plain = next(c for c in suite.offline_commands("backend") if c[0] == "backend")[1]
+        self.assertNotIn("-o", plain)
+
     def test_offline_discovers_tests_and_contains_no_live_gate(self):
         commands = suite.offline_commands("all")
         # the Python lint and type check first (issue #36, plan vor-maschine), then the backend pytest

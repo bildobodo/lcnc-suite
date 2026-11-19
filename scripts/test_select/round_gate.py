@@ -172,14 +172,21 @@ def listening(port: int) -> bool:
     return False
 
 
+#: replay 5c (Codex R398 VM-I34): writes each test's resolved options — Vitest's
+#: JSON report reads `it.fails` as passed with no mark
+OPTIONS_REPORTER = ROOT / "scripts" / "test_select" / "vitest_options_reporter.mjs"
+
+
 def unit(name: str, files: list[str], exclude: list[str], logs: Path) -> dict:
     """A vitest run matched to its own listing; `.only` refused."""
     listed, report = logs / f"{name}.list.json", logs / f"{name}.json"
+    options = logs / f"{name}.options.json"       # each test's resolved options (`fails`) — the coverage reads it
     args = [*files, *[x for f in exclude for x in ("--exclude", f)]]
     lst = subprocess.run(["npx", "vitest", "list", *args, f"--json={listed}"], cwd=WEB,
                          capture_output=True, text=True)
     c = run(name, ["npx", "vitest", "run", *args, "--allowOnly=false", "--retry=0", "--reporter=default",
-                   "--reporter=json", f"--outputFile.json={report}"], WEB, logs)
+                   "--reporter=json", f"--outputFile.json={report}", f"--reporter={OPTIONS_REPORTER}"], WEB, logs,
+            {"LCNC_VITEST_OPTIONS_OUT": str(options)})
     judge(c, vitest_counts(report))
     if lst.returncode != 0 or not listed.is_file():
         fail(c, f"vitest list failed: {lst.stderr.strip()[-300:]}")
@@ -515,8 +522,10 @@ def main(argv: list[str] | None = None) -> int:
             omitted.append({"check": "unit-heavy", "reason": "no heavy file changed, reached or read for"})
 
         if sel["backend"]["run"]:
-            checks.append(run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
-                                          "backend", "--out-dir", str(logs / "backend")], ROOT, logs))
+            backend_run = f"backend-{uuid.uuid4()}"      # the JUnit's suite name: what the coverage binds to
+            checks.append({**run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
+                                             "backend", "--out-dir", str(logs / "backend"), "--run-id", backend_run],
+                                 ROOT, logs), "run": backend_run})
         else:
             omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
 
@@ -543,18 +552,48 @@ def main(argv: list[str] | None = None) -> int:
         else:
             omitted.append({"check": "firefox-core", "reason": "no path selects the Firefox core"})
 
-    if a.merge:
-        # the installer, from a fresh clone, and what it installed started
-        # (package I) — a merge only; it takes the VM's one LinuxCNC. AFTER
-        # the heavy section: the probe holds the heavy lock itself, through its
-        # restore, whatever happens to this process (Codex R330 FI-I60)
-        checks.append(install_probe(logs, sel["head"]))
+    tail, left_out = merge_tail(a.merge, logs, sel["head"], checks)
+    checks += tail
+    omitted += left_out
 
     pending = [firefox_pending] if firefox_pending else []
     for check, paths in sel["live"].items():
         pending.append({"check": check, "status": "pending: a live check, run before main", "paths": paths})
     return finish("PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",
                   checks=checks, omitted=omitted, pending=pending)
+
+
+#: why a round runs no coverage (replay step 5c, plan R389)
+COVERAGE_ROUND = "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+
+
+def merge_tail(merge: bool, logs: Path, head: str, checks: list[dict]) -> tuple[list[dict], list[dict]]:
+    """The gate's last steps: in a merge the installer, from a fresh clone,
+    and what it installed started (package I; it takes the VM's one
+    LinuxCNC, AFTER the heavy section: the probe holds the heavy lock
+    itself, through its restore — Codex R330 FI-I60), then the coverage of
+    this run (replay step 5c: it reads the artefacts only, bound to the run
+    ids the gate's own checks made). A round lists the coverage omitted,
+    with its reason. → (checks, omitted)."""
+    if merge:
+        return [install_probe(logs, head), coverage_check(logs, head, checks)], []
+    return [], [{"check": "coverage", "reason": COVERAGE_ROUND}]
+
+
+def coverage_check(logs: Path, head: str, checks: list[dict]) -> dict:
+    """The function inventory × the cases this run ran (replay step 5c,
+    scripts/inventory/coverage.py): PASS when the report is complete and
+    consistent — a gap is listed, never red; an evaluation error is red."""
+    try:
+        sys.path.insert(0, str(ROOT / "scripts/inventory"))
+        import coverage   # noqa: PLC0415 — the inventory's module, by its own path
+        c = coverage.coverage_of(logs, head, "merge", [], [], runs=coverage.gate_runs(checks))
+    except Exception as e:  # noqa: BLE001 — a check that could not run is no PASS
+        return {"name": "coverage", "status": "FAIL", "why": [f"the coverage did not run: {type(e).__name__}: {e}"]}
+    (logs / "coverage.json").write_text(json.dumps(c, indent=1, ensure_ascii=False) + "\n")
+    (logs / "coverage.md").write_text(coverage.markdown(c))
+    return {"name": "coverage", "status": c["verdict"], "report": "coverage.json",
+            **({"why": c["errors"][:20]} if c["errors"] else {"gaps": len(c["gaps"])})}
 
 
 def guarded(argv: list[str] | None = None) -> int:

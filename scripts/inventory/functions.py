@@ -337,7 +337,8 @@ def native_status(e: dict, reports: list[dict], commit: str) -> str:
 
 def evidence_problems(e: dict, root: Path) -> list[str]:
     """Step 1 binds a named test STATICALLY: its file exists and holds its
-    title. Whether it ran and passed comes from the run artifacts (step 2)."""
+    title. Whether it ran and passed is the coverage of a run's artefacts
+    (replay step 5c, coverage.py — the merge gate's `coverage` step)."""
     layer, file, title = e.get("layer"), e.get("file"), e.get("title")
     if layer not in EVIDENCE_LAYERS:
         return [f"evidence layer {layer!r} unknown"]
@@ -370,7 +371,8 @@ def render(web: dict, py: dict, fns: dict) -> str:
               "- **Anzeigen** (was die Oberfläche zusagt, etwa „Kompensation bestätigt aktiv“) haben keine Quelle mit Atomen; "
               "ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.",
               "- **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, "
-              "kommt aus den Laufberichten (nächster Schritt).", ""]
+              "zeigt die Abdeckung eines Laufs: der Schritt `coverage` des Merge-Gates (scripts/inventory/coverage.py, "
+              "`coverage.md` in seinen Logs).", ""]
     open_ = [(f, st) for f in fns["functions"] for st in f.get("statements", []) if not st.get("evidence")]
     lines += ["## Offene Aussagen", "",
               f"{len(open_)} Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.", "",

@@ -1,0 +1,337 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status.config.mjs",
+    "rootDir": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r396-status-output",
+        "repeatEach": 2,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r396-status-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "status.spec.mjs",
+      "file": "status.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "expected assertion failure is not a passing assertion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fail",
+                  "location": {
+                    "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                    "line": 3,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "failed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at /tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs:4:17",
+                    "location": {
+                      "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                      "column": 17,
+                      "line": 4
+                    },
+                    "snippet": "  2 | test('expected assertion failure is not a passing assertion', () => {\n  3 |   test.fail();\n> 4 |   expect(false).toBe(true);\n    |                 ^\n  5 | });\n  6 | test('both repeated instances must pass', ({}, info) => {\n  7 |   expect(info.repeatEachIndex).toBe(1);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                        "column": 17,
+                        "line": 4
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  2 | test('expected assertion failure is not a passing assertion', () => {\n  3 |   test.fail();\n> 4 |   expect(false).toBe(true);\n    |                 ^\n  5 | });\n  6 | test('both repeated instances must pass', ({}, info) => {\n  7 |   expect(info.repeatEachIndex).toBe(1);\n    at /tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs:4:17"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:19:19.269Z",
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                        "line": 3,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r396-status-output/status-expected-assertion-failure-is-not-a-passing-assertion-e2e/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                    "column": 17,
+                    "line": 4
+                  }
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "493891edc92020861ca8-28f1b018cf1c6a740100",
+          "file": "status.spec.mjs",
+          "line": 2,
+          "column": 1
+        },
+        {
+          "title": "both repeated instances must pass",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at /tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs:7:32",
+                    "location": {
+                      "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                      "column": 32,
+                      "line": 7
+                    },
+                    "snippet": "  5 | });\n  6 | test('both repeated instances must pass', ({}, info) => {\n> 7 |   expect(info.repeatEachIndex).toBe(1);\n    |                                ^\n  8 | });\n  9 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                        "column": 32,
+                        "line": 7
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n  5 | });\n  6 | test('both repeated instances must pass', ({}, info) => {\n> 7 |   expect(info.repeatEachIndex).toBe(1);\n    |                                ^\n  8 | });\n  9 |\n    at /tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs:7:32"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:19:19.288Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r396-status-output/status-both-repeated-instances-must-pass-e2e/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                    "column": 32,
+                    "line": 7
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "493891edc92020861ca8-c38ee677afa1085fac50",
+          "file": "status.spec.mjs",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "expected assertion failure is not a passing assertion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fail",
+                  "location": {
+                    "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                    "line": 3,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "failed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at /tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs:4:17",
+                    "location": {
+                      "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                      "column": 17,
+                      "line": 4
+                    },
+                    "snippet": "  2 | test('expected assertion failure is not a passing assertion', () => {\n  3 |   test.fail();\n> 4 |   expect(false).toBe(true);\n    |                 ^\n  5 | });\n  6 | test('both repeated instances must pass', ({}, info) => {\n  7 |   expect(info.repeatEachIndex).toBe(1);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                        "column": 17,
+                        "line": 4
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  2 | test('expected assertion failure is not a passing assertion', () => {\n  3 |   test.fail();\n> 4 |   expect(false).toBe(true);\n    |                 ^\n  5 | });\n  6 | test('both repeated instances must pass', ({}, info) => {\n  7 |   expect(info.repeatEachIndex).toBe(1);\n    at /tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs:4:17"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:19:19.505Z",
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                        "line": 3,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r396-status-output/status-expected-assertion-failure-is-not-a-passing-assertion-e2e-repeat1/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r396-fftzthfz/lcnc-webui/r396-status-probe/status.spec.mjs",
+                    "column": 17,
+                    "line": 4
+                  }
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "493891edc92020861ca8-1f4d83bb2e09f2bef52c",
+          "file": "status.spec.mjs",
+          "line": 2,
+          "column": 1
+        },
+        {
+          "title": "both repeated instances must pass",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T20:19:19.524Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "493891edc92020861ca8-963a12a467a6b55518da",
+          "file": "status.spec.mjs",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-17T20:19:19.049Z",
+    "duration": 488.02700000000004,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

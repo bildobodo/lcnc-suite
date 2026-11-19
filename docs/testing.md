@@ -485,6 +485,82 @@ it with the mocks' lines (`scripts/test_select/http_paths.py`, `replay.py
   `test_http_paths.py` synthetic (every class, every finding, the four red
   counter-cases of the synthetic-redirect bound); `src/routeProjection.test.ts`.
 
+## The coverage of a run (step 5c; Codex FI265-03, R389, R390–R392, R396)
+
+The merge gate ends with `coverage` (`scripts/inventory/coverage.py`): the
+function inventory × the cases THIS run ran, written to `coverage.json` and
+`coverage.md` in its logs; a round lists it as omitted (it needs every set).
+By hand on a merge gate's record:
+
+    python3 -I scripts/inventory/coverage.py --gate <gate-merge.json> \
+        [--native-report <report.json> ...] [--live-report <perf_matrix.json> ...] --out c.json --md c.md
+
+- **One run, by its ids** (R396 VM-I33): the merge gate hands the coverage
+  the run ids its own checks made (`browser-workers`, `firefox-workers`,
+  `backend` — `gate_runs`; `--gate` reads them from the record). Every
+  listing, report and replay carries its run's id, the backend's JUnit it as
+  its suite name (`test_suite.py --run-id` → `-o junit_suite_name`). The
+  LISTINGS are the collected sets: a result outside them, another run's
+  record, the same test id twice or with another title is an evaluation
+  error. A replay counts only green and of this run, each attempt bound to a
+  listed test of its project whose report result at that retry is "passed".
+  Without the gate's ids (`coverage_of(…)` after the fact) each listing's own
+  id is the reference and the JUnit is not compared — the report says so.
+- **The reporter's own forms** (R396 VM-I34): a Playwright test is passed only
+  when it was expected to pass and its last result passed; `test.fail()`
+  failing as expected is "expected to fail", never passed; every instance is
+  its own id (a repeat too) and every bound one must pass; two results for
+  one retry, or one attempt identity (run, test id, project, retry) under two
+  names, are evaluation errors (R398). Vitest's JSON report writes `it.fails`
+  as passed with no mark (measured), so the gate's unit steps also run
+  `scripts/test_select/vitest_options_reporter.mjs`: each test's RESOLVED
+  options (`<name>.options.json`) — a bound unit test that declares an
+  expected failure, in any spelling, reads "expected to fail"; pytest
+  writes `xfail` as `<skipped type="pytest.xfail">` (read as skipped) and a
+  non-strict XPASS as a pass. A native case and a live scenario are their
+  WORST over every report of this commit; an expected refusal is
+  counter-evidence only of an attempt that counts; a native report whose
+  rows are no list of objects, of an unknown profile, or with rows of another
+  variant than its own is an evaluation error (R398 VM-I35). Every unit found
+  invalid is REPORTED AND WITHHELD (R400): another run's record or JUnit, an id
+  twice or renamed, a retry with two results, an options record without a
+  boolean `fails` or outside its group's listing (one per listed test, a
+  later group never lowers a state), a rejected native report (named "invalid
+  report of this commit") — none of them feeds a positive statement.
+- **Five kinds, kept apart, never a percentage** (FI265-03): inventoried (the
+  claimed atoms and the claims of role variant; the source inventory's
+  unresolved, excluded and open-variant sites with their origin under
+  `inventory` — assigned to no function, never counted as gaps, R396 VM-I37),
+  triggered (each command and route atom seen in a PASSED
+  attempt — a command by its valid frames, a route by its 5b path; "served by
+  the mock" is never gateway evidence), checked (each statement's evidence
+  bound to LISTED test ids and their results), counter (the payload
+  checker's expected refusals — `per_attempt_expected` in the replay — and
+  native counter rows), native (a report of THIS commit). Every gap by name.
+- **Binding** (the R393 dry run, all 347 entries): browser and unit evidence
+  by the exact title or title path, a fragment, or a template whose captures
+  equal each declared instance (or vitest's quoted form) — never a substring;
+  every bound test must pass; Chromium and Firefox apart. Gateway evidence by
+  its node in the backend step's JUnit (`backend.junit.xml`, written by
+  `test_suite.py`). Native evidence: a DECLARED case of its variant
+  (`native_cases.REPORT_CASES`, from the full reports of 39a73679 and cad9ac77
+  — a string somewhere in the source is no case, R396 VM-I35) and a profile of
+  `native_run.PROFILES`; its status only from a report of the same commit,
+  profile and variant, and every native report of this commit is held
+  against the declared set (a row of another case, a complete run without
+  one of its cases: an evaluation error). Script evidence (`live: true`): `live_drivers.py` resolves it
+  by `ast`; a perf_matrix scenario counts only from a report with this full
+  commit and a clean tree, its status ordered by result kind (R392); a
+  scenario present without a record (`null`) is an error, never a missing run
+  (R396 VM-I36); the TWP drivers write no report — "not proven".
+- **Red** (an evaluation error, never a gap): an artefact of the run missing,
+  evidence that binds no listed test, a report given as run evidence missing
+  or malformed, a script binding that does not resolve.
+- **Guards:** `scripts/inventory/test_coverage.py` (with Codex's real
+  Playwright status report, `scripts/test_fixtures/coverage/`),
+  `test_replay.py` (`per_attempt_expected`), `test_suite_runner.py` (the
+  JUnit's suite name).
+
 ## Function inventory (Codex R265–R269)
 
 Every operator function, complete with respect to the named sources: the
@@ -531,8 +607,8 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
   `tsconfig.app.json` include), a guard holds the two lists equal.
 
 Evidence is bound statically in this step (the named file holds the title);
-whether it ran and passed comes from the run artifacts with the measurement
-(step 5, Replay).
+whether it ran and passed is the coverage of a run (step 5c, "The coverage of a
+run": the merge gate's `coverage` step).
 
 ## Scoped-CSS / design-token linter
 

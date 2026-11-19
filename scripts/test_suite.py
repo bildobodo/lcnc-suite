@@ -121,7 +121,7 @@ def materialize_corpus(ini, out):
     return dest, programs / "twp_simple_example.ngc"
 
 
-def offline_commands(component, out=None):
+def offline_commands(component, out=None, run_id=None):
     commands = []
     if component in ("all", "backend"):
         # The Python lint FIRST, before the expensive suites (issue #36, Codex
@@ -135,7 +135,15 @@ def offline_commands(component, out=None):
         # root pyrightconfig.json, this interpreter's import paths); a missing
         # pyright fails the step with its reason.
         commands.append(("pyright", [python(), str(ROOT / "scripts/run_pyright.py")], ROOT))
-        commands.append(("backend", [python(), "-m", "pytest"], ROOT / "lcnc-gateway"))
+        # replay step 5c (plan R389): the gateway's tests with their own result
+        # each — the coverage binds a statement's evidence to them
+        # (scripts/inventory/coverage.py reads <out>/backend.junit.xml); the
+        # gate's run id is its suite name — a JUnit of another run is no
+        # evidence of this one (Codex R396, VM-I33's class)
+        commands.append(("backend", [python(), "-m", "pytest",
+                                     *([f"--junitxml={out / 'backend.junit.xml'}"] if out is not None else []),
+                                     *(["-o", f"junit_suite_name={run_id}"] if run_id else [])],
+                         ROOT / "lcnc-gateway"))
         commands.append(("5axis-model", [python(), str(ROOT / "scripts/test_5axis_xyzac.py")], ROOT))
         # Explicit: the backend pytest runs in lcnc-gateway with testpaths=["."]
         # and never discovers scripts/ — the CSS linter's own pins ride here.
@@ -207,6 +215,7 @@ def main(argv=None):
     sub.add_parser("list", help="show the offline and live gates")
     offline = sub.add_parser("offline", help="lint, build, discovered unit tests and browser tests")
     offline.add_argument("--component", choices=("all", "backend", "frontend"), default="all")
+    offline.add_argument("--run-id", help="the gate's run id: the backend JUnit's suite name")
     live = sub.add_parser("live-twp", help="motion tests on the running standard TWP simulator")
     live.add_argument("--ini", type=Path, required=True)
     live.add_argument("--allow-sim-motion", action="store_true", help="permit the listed motion tests")
@@ -243,7 +252,7 @@ def main(argv=None):
     session = None
     try:
         if args.mode == "offline":
-            commands = offline_commands(args.component, out)
+            commands = offline_commands(args.component, out, args.run_id)
         else:
             import linuxcnc
             stat = linuxcnc.stat()
