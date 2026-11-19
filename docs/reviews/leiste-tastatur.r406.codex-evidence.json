@@ -1,0 +1,22 @@
+{
+  "review": "R406",
+  "kind": "read-only plan check using existing R405 measurement; no new browser run",
+  "document_head": "382c80e86e50d72cf2e6db050e1fe346f26ba307",
+  "product_basis": "5c48a7e1",
+  "source": "leiste-tastatur.r405.codex-boundary.json",
+  "source_sha256": "22d1983ea7b075470b25679f265f0bafe2bc739df4c40d33c7cd694025172610",
+  "measured_variant": "R405 commonScrollAtEnd: temporary common scroll container in supplied prototype A, on own archive and Mock",
+  "message_note_height": 306,
+  "scroll_viewport_client_height": 196,
+  "scroll_viewport_border_box_height": 195.5,
+  "minimum_height_excess_over_client": 110,
+  "last_data_row_height": 19.5,
+  "conclusion": "No scrollTop can place the entire 306px note rectangle inside the 196px client viewport. Per-text-line or contiguous-band reachability is feasible; Retry and ordinary data rows must fit entirely at some scroll position.",
+  "review_result": "findings limited to LT405-01 acceptance predicate; shared-scroll architecture and LT405-02 scope accepted",
+  "limits": [
+    "No build",
+    "No tests started",
+    "No live-sim connection",
+    "Only appendix and new evidence written"
+  ]
+}
