@@ -1,0 +1,3036 @@
+{
+  "types": {
+    "clean": [
+      {
+        "type": "endmill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT1",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket1",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeEnd Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "reamer",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT2",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket2",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeReamer",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "ball",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT3",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket3",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeBall",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "bullnose",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT4",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket4",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeBull Nose",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "drill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT5",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket5",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeDrill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "blockdrill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT6",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket6",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeBlock Drill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "centerdrill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT7",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket7",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeCenter Drill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "chamfer",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT8",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket8",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeChamfer",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "cornerchamfer",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT9",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket9",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeCorner Chamfer End Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "circlebarrel",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT10",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket10",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeCircle Segment Barrel",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "circlelens",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT11",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket11",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeCircle Segment Lens",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "circleoval",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT12",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket12",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeCircle Segment Oval",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "circletaper",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT13",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket13",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeCircle Segment Taper",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "countersink",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT14",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket14",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeC/Sink",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "dovetail",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT15",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket15",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeDovetail",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "facemill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT16",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket16",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeFace Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "lollipop",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT17",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket17",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeLollipop",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "slotmill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT18",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket18",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeSlot Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "threadmill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT19",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket19",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeThread Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "formmill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT20",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket20",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeForm Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "radiusmill",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT21",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket21",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeRadius Mill",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "tapered",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT22",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket22",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeTapered",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "probe",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT23",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket23",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeProbe",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "tap",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT24",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket24",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeTap",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "engraver",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT25",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket25",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeEngraver",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      },
+      {
+        "type": "other",
+        "over": 0,
+        "body": {
+          "w": 215,
+          "h": 196,
+          "scrollW": 215,
+          "scrollH": 196
+        },
+        "rows": [
+          {
+            "text": "ToolT26",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Pocket26",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "TypeOther",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 199,
+            "scrollW": 199
+          }
+        ]
+      }
+    ],
+    "error": [
+      {
+        "type": "endmill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT1",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket1",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeEnd Mill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "reamer",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT2",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket2",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeReamer",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "ball",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT3",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket3",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeBall",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "bullnose",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT4",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket4",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeBull Nose",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "drill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT5",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket5",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeDrill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "blockdrill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT6",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket6",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeBlock Drill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "centerdrill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT7",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket7",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeCenter Drill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "chamfer",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT8",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket8",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeChamfer",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "cornerchamfer",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 340
+        },
+        "rows": [
+          {
+            "text": "ToolT9",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket9",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeCorner Chamfer End Mill",
+            "height": 39,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "circlebarrel",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT10",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket10",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeCircle Segment Barrel",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "circlelens",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT11",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket11",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeCircle Segment Lens",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "circleoval",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT12",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket12",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeCircle Segment Oval",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "circletaper",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT13",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket13",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeCircle Segment Taper",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "countersink",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT14",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket14",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeC/Sink",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "dovetail",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT15",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket15",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeDovetail",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "facemill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT16",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket16",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeFace Mill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "lollipop",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT17",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket17",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeLollipop",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "slotmill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT18",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket18",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeSlot Mill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "threadmill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT19",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket19",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeThread Mill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "formmill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT20",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket20",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeForm Mill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "radiusmill",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT21",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket21",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeRadius Mill",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "tapered",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT22",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket22",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeTapered",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "probe",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT23",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket23",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeProbe",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "tap",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT24",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket24",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeTap",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "engraver",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT25",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket25",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeEngraver",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      },
+      {
+        "type": "other",
+        "over": 0,
+        "body": {
+          "w": 205,
+          "h": 196,
+          "scrollW": 205,
+          "scrollH": 321
+        },
+        "rows": [
+          {
+            "text": "ToolT26",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Pocket26",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Diameter25.4000 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "Z Offset-1234.5670 mm",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "In effectOther offset",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "TypeOther",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          },
+          {
+            "text": "DescriptionFull description remains available in the tool table",
+            "height": 19.5,
+            "width": 189,
+            "scrollW": 189
+          }
+        ]
+      }
+    ]
+  },
+  "paths_false": [
+    {
+      "messageLength": 108,
+      "lines": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "over": 0,
+      "body": {
+        "w": 215,
+        "h": 196,
+        "scrollW": 215,
+        "scrollH": 196
+      },
+      "rows": [],
+      "commands": {
+        "ok": true,
+        "op": "lastCmds",
+        "cmds": [
+          {
+            "cmd": "get_tool_table",
+            "req_id": "aons83-7"
+          }
+        ]
+      }
+    },
+    {
+      "messageLength": 372,
+      "lines": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "over": 0,
+      "body": {
+        "w": 205,
+        "h": 196,
+        "scrollW": 205,
+        "scrollH": 334
+      },
+      "rows": [],
+      "commands": {
+        "ok": true,
+        "op": "lastCmds",
+        "cmds": [
+          {
+            "cmd": "get_tool_table",
+            "req_id": "aons83-10"
+          }
+        ]
+      }
+    }
+  ],
+  "paths_true": [
+    {
+      "messageLength": 108,
+      "lines": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "over": 0,
+      "body": {
+        "w": 205,
+        "h": 196,
+        "scrollW": 205,
+        "scrollH": 321
+      },
+      "rows": [
+        {
+          "text": "ToolT12",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "Pocket12",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "Diameter25.4000 mm",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "In effectOff",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "TypeEnd Mill",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "DescriptionA long description",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        }
+      ],
+      "commands": {
+        "ok": true,
+        "op": "lastCmds",
+        "cmds": [
+          {
+            "cmd": "get_tool_table",
+            "req_id": "3awtkg-10"
+          }
+        ]
+      }
+    },
+    {
+      "messageLength": 372,
+      "lines": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "over": 0,
+      "body": {
+        "w": 205,
+        "h": 196,
+        "scrollW": 205,
+        "scrollH": 483
+      },
+      "rows": [
+        {
+          "text": "ToolT12",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "Pocket12",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "Diameter25.4000 mm",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "Z Offset-1234.5670 mm",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "In effectOff",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "TypeEnd Mill",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        },
+        {
+          "text": "DescriptionA long description",
+          "height": 19.5,
+          "width": 189,
+          "scrollW": 189
+        }
+      ],
+      "commands": {
+        "ok": true,
+        "op": "lastCmds",
+        "cmds": [
+          {
+            "cmd": "get_tool_table",
+            "req_id": "3awtkg-13"
+          }
+        ]
+      }
+    }
+  ]
+}

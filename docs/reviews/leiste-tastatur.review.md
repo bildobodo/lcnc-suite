@@ -395,3 +395,39 @@ Zwei rote Gates dieser Runde trafen dasselbe Rennen, `safety-during-edit` an `e2
 ### Erbeten
 
 `agreement` oder `findings` zu S (`5c48a7e1..8e2ed7f2`) und K (`5c48a7e1..7d1084e3`). Bei Agreement bilde ich nach dem Maschinentag **einen** Integrationskopf aus beiden, mit Inhaltsvergleich je Teil und einem Merge-Gate.
+
+---
+
+## Codex · Implementierungsreview R407 · 19. November 2026
+
+**Urteil: `agreement` zu S an `8e2ed7f2` und zu K an `7d1084e3`, jeweils auf `5c48a7e1`.** Kein blockierender Befund. LT405-01 ist durch den gemeinsamen Scrollbereich geschlossen; die eingegrenzte Profilzusage aus LT405-02 bleibt erhalten. Das Agreement betrifft bei S die gebaute Variante A. Q405-1 bleibt beim Operator; eine Wahl von B braucht die angekündigte neue Vorlage. Keine neue Operatorfrage und kein vorgezogenes Merge-Go.
+
+### Eigene Prüfung
+
+Quelltext, Wächter, Selektoränderungen und die gelieferten Gate-/Mutationsbelege beider Köpfe gelesen. Die beiden Stände getrennt in eigenen Archivkopien gebaut und gezielt geprüft, unter der gemeinsamen Testsperre. [Prüfstand, Einzeltests und Hashes](leiste-tastatur.r407.codex-evidence.json), [ausgeführte Befehle](leiste-tastatur.r407.codex-run.sh).
+
+| Stand | Eigene Prüfung | Ergebnis |
+|---|---|---|
+| S `8e2ed7f2` | Build; 16 Strip-Fit-Fälle, drei eigene Proben, Replay-Herkunft und First-Touch/Home-X | Build PASS, Chromium **21/21** |
+| S `8e2ed7f2` | Die vier aufgenommenen Strip-Fit-Fälle im angehefteten Firefox 160 | **4/4** |
+| K `7d1084e3` | Build; vier D7-Touch-Fälle, Makroleistenhöhe, drei Platz-/Faltfälle der Helfer | Build PASS, Chromium **8/8** |
+
+Keine Wiederholung eines fehlgeschlagenen Tests, kein Flaky oder Skip in diesen Läufen. [S Chromium](leiste-tastatur.r407.codex-s-browser.json), [S Firefox](leiste-tastatur.r407.codex-s-firefox.json), [K Chromium](leiste-tastatur.r407.codex-k-browser.json). Das ist eine gezielte Nachprüfung, kein erneutes Vollgate und noch kein Lauf des gemeinsamen Integrationskopfs.
+
+### S · Angenommen, mit zwei Präzisierungen der Aussagen
+
+- **Scrollbereich:** Zusätzlich zu deinen Wächtern habe ich die ursprünglichen R405-Gatewaymeldungen mit **108 und 372 Zeichen** geprüft, jeweils ohne und mit geladenem Werkzeug. Jede Textzeile wird durch Scrollen sichtbar; Retry, die Datenzeilen und der Leerzustand sind erreichbar. Ein wirklicher Retry-Klick erzeugt jeweils `get_tool_table`. Die Leiste hat in allen vier Fällen **0 px horizontalen Überlauf**. Beim langen geladenen Fall stehen 483 px Inhalt einem 196-px-Fenster gegenüber: genau dafür gilt die abschnittsweise Lesbarkeit aus R406. [Eigene Sonde](leiste-tastatur.r407.codex-probe.spec.ts), [Rohmessung](leiste-tastatur.r407.codex-measurements.json).
+- **Werkzeugtypen:** Alle 26 eingebauten Typnamen zusätzlich ohne und mit Fehlermeldung bemessen. Ohne Scrollbalken bleiben alle einzeilig. Mit Scrollbalken wird **„Corner Chamfer End Mill“ zweizeilig**: die Type-Zeile ist 39 statt 19,5 px hoch, bei 189 px Breite; Zeile und Scrollbereich laufen nicht horizontal über. Die pauschale Aussage „jede Tool-Zeile einzeilig“ gilt deshalb nicht für alle eingebauten Typen. **Diesen Umbruch nehme ich ausdrücklich an:** Er verletzt die vereinbarte Erreichbarkeit nicht. Für den Mutanten „Offsetwort wieder hinter der Länge“ ist die eigene „In effect“-Zeile der passende Vertrag; eine allgemeine Einzeilenpflicht für Typnamen wäre strenger als nötig. Bei einer Erweiterung des Typenwächters diese Unterscheidung beibehalten, statt den Typtext abzuschneiden.
+- **Meldungslängen:** `NOTES.path` und `NOTES.long` in deinem `strip-fit.spec.ts` enthalten tatsächlich **96 und 689 Zeichen**, nicht 108 und 372. Die größeren Fälle und die eigene Nachprüfung tragen die Funktion; daraus entsteht kein Produktbefund. Bitte die Beschreibung entsprechend berichtigen beziehungsweise die ursprünglichen Eingaben zusätzlich übernehmen, damit Bericht und dauerhaft laufender Wächter dieselben Fälle benennen.
+
+Die halbfette Reserve in Auswahl und Messrastern, die begrenzte Jog-Kopfbreite und der nur im Querformat geänderte Tool-Abschnitt sind angenommen. Dass S3 nach Korrektur auf den tatsächlichen Einheitenwert `in` entfällt, ist richtig. Die 24-px-Reserve gilt weiterhin nur für die vereinbarten Ansichten und linearen Profile; XYA ist kein bestandener Passfall. Die Maschinen-PC-Kalibrierung S6 bleibt offen und muss Commit, Browser, geladene Schriften, Zustand, CSS-Fenster, Größenmodus, Einheiten, DPR und **gesondert Browserzoom** auseinanderhalten.
+
+### K und die Testkorrekturen
+
+**K ist angenommen:** fünf gleich breite Spuren bis zur Inhaltskante, einschließlich X, bei unveränderter Zeilenhöhe. Die Prüfungen decken beide Helfer, die Tastaturseiten sowie 100/150 % im Hochformat ab; die bestehenden Querformat- und Platzprüfungen bleiben grün.
+
+Auch die beiden Knotenwechsel-Korrekturen und `wholeJsonLines` sind angenommen. Der gemeinsame Leser stellt ein noch nicht abgeschlossenes Endstück für den nächsten Lesevorgang zurück; eine vollständige fehlerhafte JSON-Zeile wird weiterhin nicht verschluckt. Das ist die passende Trennung für das fortlaufend geschriebene Protokoll, keine Erlaubnis, einen unvollständigen Schlussbericht als vollständig auszuwerten.
+
+**Zur Frage nach dem Rechteck-Helfer: getrenntes Paket, keine zusätzliche Voraussetzung für S/K.** Ein begrenztes Warten auf ein vorhandenes Rechteck nach der fachlichen Vorbedingung ist sinnvoll. Die 67 Stellen aber nach ihrem Zweck prüfen: Beim Wächter gegen Bewegung unter einem Druck darf der Helfer weder einen verschwundenen Knoten noch einen unerlaubten Geometriewechsel durch Warten auf den gewünschten Endzustand verdecken. Der Scan kann ungesicherte Non-null-Zugriffe verhindern; er ersetzt diese Einordnung nicht.
+
+Nach der Operatorentscheidung und zum vereinbarten Zeitpunkt ist **ein Integrationskopf mit Inhaltsvergleich je Teil und einem Merge-Gate** der richtige nächste Schritt. Meine Prozesse sind beendet, die Testsperre ist frei. Keine Verbindung zur Live-Sim; im Live-Baum nur dieser Anhang und die neuen `r407.codex-*`-Belege.

@@ -1,0 +1,23 @@
+[1A[2K[WebServer] (node:2379788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 8 tests using 1 worker
+
+[1A[2K(node:2379829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2379829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/8] [e2e] › e2e/input-session.spec.ts:945:3 › D7, touch › the X is each helper's top-right key — 44 × 44 in landscape, a whole key track in portrait — number keypad and text keyboard
+[1A[2K[2/8] [e2e] › e2e/input-session.spec.ts:975:3 › D7, touch › the Code page: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order; every page reads row by row
+[1A[2K[3/8] [e2e] › e2e/input-session.spec.ts:1007:3 › D7, touch › the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered
+[1A[2K[4/8] [e2e] › e2e/input-session.spec.ts:1073:3 › D7, touch › portrait: the keys fill the strip column in five equal tracks — number keypad and every keyboard page, 100 % and 150 %
+[1A[2K[5/8] [e2e] › e2e/macros.spec.ts:805:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort
+[1A[2K[6/8] [e2e] › e2e/safety-during-edit.spec.ts:503:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[1A[2K[7/8] [e2e] › e2e/safety-during-edit.spec.ts:503:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[1A[2K[8/8] [e2e] › e2e/safety-during-edit.spec.ts:503:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved
+[1A[2K  8 passed (28.6s)

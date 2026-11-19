@@ -1,0 +1,517 @@
+{
+  "round": "R407",
+  "document_head": "444ac735b7aa269a6ae2a51d683ce9454fc2ce8c",
+  "base": "5c48a7e13798738e71786f094f437a86efe8063d",
+  "S": "8e2ed7f2512193d34ffb30600a14cf5128a95fa3",
+  "K": "7d1084e3b4cdb695a5c54c67cfab9369cab41d05",
+  "review_scope": "Separate exact archive copies; no combined integration head tested. No live simulation connection, no live-tree build/test/checkout.",
+  "locations": {
+    "S": "/tmp/codex-r407-s",
+    "K": "/tmp/codex-r407-k"
+  },
+  "execution": "Sequential under heavy_lock.py --who codex-r407-review --wait 50; real copied node_modules; local mock only.",
+  "heavy_lock_free_at_evidence": true,
+  "builds": {
+    "S": "PASS",
+    "K": "PASS"
+  },
+  "browser": {
+    "s-browser": {
+      "stats": {
+        "startTime": "2026-11-19T10:06:46.804Z",
+        "duration": 76395.481,
+        "expected": 21,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "playwright": "1.60.0",
+      "cases": [
+        {
+          "file": "r407-codex.spec.ts",
+          "line": 20,
+          "title": "codex R407 S: all tool types without and with the data scrollbar",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "r407-codex.spec.ts",
+          "line": 39,
+          "title": "codex R407 S: original R405 paths reachable, loaded=false",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "r407-codex.spec.ts",
+          "line": 39,
+          "title": "codex R407 S: original R405 paths reachable, loaded=true",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "replay-origin.spec.ts",
+          "line": 26,
+          "title": "every connection a test opens carries its attempt; a socket without the cookie has none",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "safety-during-edit.spec.ts",
+          "line": 435,
+          "title": "a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 1axis-x @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 1axis-x @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 1axis-x @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 2axis-xy @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 2axis-xy @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 2axis-xy @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd-window — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 3axis-xyz @ fullhd-desktop — no overflow, 24 px spare, one width per section in every state",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 169,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 195,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 235,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the path error note: the strip keeps its width, note, Retry and rows reachable",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 235,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note: the strip keeps its width, note, Retry and rows reachable",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 235,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the path error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 235,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 323,
+          "title": "strip fit: 3axis-xya @ touch-fullhd — measured, not required",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    "s-firefox": {
+      "stats": {
+        "startTime": "2026-11-19T10:08:03.716Z",
+        "duration": 12888.941,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "playwright": "1.60.0",
+      "cases": [
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 128,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, 24 px spare, one width per section in every state",
+          "project": "firefox-core",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 169,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+          "project": "firefox-core",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 195,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+          "project": "firefox-core",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "strip-fit.spec.ts",
+          "line": 235,
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "project": "firefox-core",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    "k-browser": {
+      "stats": {
+        "startTime": "2026-11-19T10:08:33.553Z",
+        "duration": 28603.906000000003,
+        "expected": 8,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "playwright": "1.60.0",
+      "cases": [
+        {
+          "file": "input-session.spec.ts",
+          "line": 945,
+          "title": "the X is each helper's top-right key — 44 × 44 in landscape, a whole key track in portrait — number keypad and text keyboard",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "input-session.spec.ts",
+          "line": 975,
+          "title": "the Code page: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order; every page reads row by row",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "input-session.spec.ts",
+          "line": 1007,
+          "title": "the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "input-session.spec.ts",
+          "line": 1073,
+          "title": "portrait: the keys fill the strip column in five equal tracks — number keypad and every keyboard page, 100 % and 150 %",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "macros.spec.ts",
+          "line": 805,
+          "title": "the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "safety-during-edit.spec.ts",
+          "line": 503,
+          "title": "keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "safety-during-edit.spec.ts",
+          "line": 503,
+          "title": "keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        },
+        {
+          "file": "safety-during-edit.spec.ts",
+          "line": 503,
+          "title": "keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved",
+          "project": "e2e",
+          "status": "expected",
+          "attempts": [
+            "passed"
+          ]
+        }
+      ]
+    }
+  },
+  "additional_probes": {
+    "tool_types": {
+      "clean": 26,
+      "with_error": 26,
+      "mode": "measurement, not a one-line assertion",
+      "wraps": [
+        {
+          "phase": "error",
+          "type": "cornerchamfer",
+          "row": {
+            "text": "TypeCorner Chamfer End Mill",
+            "height": 39,
+            "width": 189,
+            "scrollW": 189
+          },
+          "body": {
+            "w": 205,
+            "h": 196,
+            "scrollW": 205,
+            "scrollH": 340
+          }
+        }
+      ]
+    },
+    "original_messages": {
+      "False": [
+        {
+          "characters": 108,
+          "visible_lines": 5,
+          "all_lines_reachable": true,
+          "strip_overflow": 0,
+          "retry_get_tool_table": true
+        },
+        {
+          "characters": 372,
+          "visible_lines": 14,
+          "all_lines_reachable": true,
+          "strip_overflow": 0,
+          "retry_get_tool_table": true
+        }
+      ],
+      "True": [
+        {
+          "characters": 108,
+          "visible_lines": 5,
+          "all_lines_reachable": true,
+          "strip_overflow": 0,
+          "retry_get_tool_table": true
+        },
+        {
+          "characters": 372,
+          "visible_lines": 14,
+          "all_lines_reachable": true,
+          "strip_overflow": 0,
+          "retry_get_tool_table": true
+        }
+      ]
+    },
+    "provided_fixture_lengths": {
+      "NOTES.path": 96,
+      "NOTES.long": 689
+    }
+  },
+  "limitations": [
+    "No full round gate rerun; supplied gate reports read separately.",
+    "No machine-PC measurement (S6), no new golden-image approval.",
+    "Q405-1 variant choice and merge timing remain with the operator."
+  ],
+  "files": {
+    "leiste-tastatur.r407.codex-run.sh": {
+      "sha256": "f44e3f88480dc1c5b996176aca6582fa26275f831a546d3cdf5c9f5aec4e4a93",
+      "bytes": 1518,
+      "source": "/tmp/r407-run.sh"
+    },
+    "leiste-tastatur.r407.codex-probe.spec.ts": {
+      "sha256": "bd7b20a14f00eb382382800cd123d725bcc3923e9e7fecee6e54c29fed84eda4",
+      "bytes": 4918,
+      "source": "/tmp/codex-r407-s/lcnc-webui/e2e/r407-codex.spec.ts"
+    },
+    "leiste-tastatur.r407.codex-measurements.json": {
+      "sha256": "4e8b09bf1629f51e29187cc2f569c2124d3e53a2a82e4b80303c26fa15b37305",
+      "bytes": 70314,
+      "source": "/tmp/r407-s-own.json"
+    },
+    "leiste-tastatur.r407.codex-s-build.txt": {
+      "sha256": "1b7864ee315f371f6379e245b7c3f5d30b151111481c8e01cbb272d77aa5e290",
+      "bytes": 2438,
+      "source": "/tmp/r407-s-build.txt"
+    },
+    "leiste-tastatur.r407.codex-s-browser.txt": {
+      "sha256": "56f2c57379d0ad495bdb7b1ea91866c8227eb5a332d3c4a05e0592314412e51d",
+      "bytes": 3939,
+      "source": "/tmp/r407-s-browser.txt"
+    },
+    "leiste-tastatur.r407.codex-s-browser.json": {
+      "sha256": "ebe25ce3c12728fb9de8bd2b44c8d460d639187a0cd35b996591d1f2fc6965f3",
+      "bytes": 121780,
+      "source": "/tmp/r407-s-browser.json"
+    },
+    "leiste-tastatur.r407.codex-s-firefox.txt": {
+      "sha256": "9bbf2781b2df5b5de200e01182a9c4409cea56d14cb618ff364c681463d5d460",
+      "bytes": 1258,
+      "source": "/tmp/r407-s-ff.txt"
+    },
+    "leiste-tastatur.r407.codex-s-firefox.json": {
+      "sha256": "226ce4d18bf9d7a2637f61554953115b6260a7d7c520d95c12660b7828bde085",
+      "bytes": 19439,
+      "source": "/tmp/r407-s-ff.json"
+    },
+    "leiste-tastatur.r407.codex-k-build.txt": {
+      "sha256": "19caef96cf05df22390bfbd73ed742bd5de50cbc4094ef6a1d78b31e9f85c1b3",
+      "bytes": 2438,
+      "source": "/tmp/r407-k-build.txt"
+    },
+    "leiste-tastatur.r407.codex-k-browser.txt": {
+      "sha256": "75fa58db7c59620191ceae6ec1b0506428a4bfac2d366f065401446eafad737b",
+      "bytes": 2356,
+      "source": "/tmp/r407-k-browser.txt"
+    },
+    "leiste-tastatur.r407.codex-k-browser.json": {
+      "sha256": "cf6f7a5725f295c7ad2b932a16525c1641cb77e0878ace0ed6ed4d0a59edfad9",
+      "bytes": 12305,
+      "source": "/tmp/r407-k-browser.json"
+    }
+  }
+}
