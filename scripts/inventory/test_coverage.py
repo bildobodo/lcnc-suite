@@ -1001,3 +1001,32 @@ def test_an_unknown_reference_admits_no_replay_attempt_by_itself():
     assert any("no known run id" in x for x in errors)
     errors = []
     assert coverage.replay_attempts("e2e", replay("e2e", att()), listed, RUNS["e2e"], errors) == {ATT} and errors == []
+
+
+def test_a_doubled_run_check_of_any_set_gives_a_readable_fail_report(tmp_path):
+    # Codex R403: a backend RunConflict reached the report raw — no JSON, no Markdown. For each of the
+    # three references and both orders: the CLI writes both files, the reference is null with its
+    # reason, nothing of that set is evidence, the other sets keep theirs
+    e = _browser_evidence()
+    for check, key in (("browser-workers", "e2e"), ("firefox-workers", "firefox-core"), ("backend", "backend")):
+        for order in ("before", "after"):
+            d = tmp_path / f"{key}-{order}"
+            files = _touchoff_case(d)
+            files["backend/backend.junit.xml"] = (f'<testsuites><testsuite name="{RUNS["backend"]}"><testcase '
+                                                 'classname="test_command_dispatch.X" name="test_not_armed_denied"/>'
+                                                 '</testsuite></testsuites>')
+            other = {"name": check, "run": "another-run"}
+            g = _with_checks(gate(d, files), (lambda cs, o=other: [o, *cs]) if order == "before" else (lambda cs, o=other: [*cs, o]))
+            out, md = d / "c.json", d / "c.md"
+            assert coverage.main(["--gate", str(g), "--out", str(out), "--md", str(md)]) == 1
+            c = json.loads(out.read_text())
+            assert md.is_file() and c["verdict"] == "FAIL", (key, order)
+            assert c["runs"][key] is None and any(f"names {check} 2 times" in x for x in c["errors"]), (key, order)
+            gw_rows = [x for f in c["functions"] for s in f["statements"] for x in s["evidence"]
+                       if x["layer"] == "gateway" and x["title"] == "test_not_armed_denied"]
+            rows = {x["project"]: x["status"] for x in _rows_of(c, e)}
+            if key == "backend":
+                assert gw_rows and all(x["status"] != "passed" for x in gw_rows), (key, order)
+                assert rows == {"e2e": "passed", "firefox-core": "passed"}, (key, order, rows)
+            else:
+                assert rows.get(key) != "passed" and gw_rows and all(x["status"] == "passed" for x in gw_rows), (key, order)

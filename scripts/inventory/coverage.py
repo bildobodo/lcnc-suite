@@ -473,12 +473,15 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
             unit_fails[key] = max(unit_fails.get(key, "plain"), s, key=_FAILS_RANK.__getitem__)
     junit = logs / "backend" / "backend.junit.xml"
     gw = junit_tests(junit) if junit.is_file() else {}
+    # the backend's reference normalised ONCE — for the JUnit and for the report (a RunConflict
+    # reached the report raw and broke its serialisation, Codex R403)
+    bref = _reference(runs.get("backend"), "backend (the gate)", errors) if runs is not None else None
     if not junit.is_file():
         errors.append(f"{junit.name}: an artefact of the run is missing")
-    elif runs is not None and _reference(runs.get("backend"), "backend (the gate)", errors) is None:
+    elif runs is not None and bref is None:
         gw = {}                                    # an unknown reference binds nothing (R402)
-    elif runs is not None and junit_suites(junit) != {runs.get("backend")}:
-        errors.append(f"{junit.name}: suite {sorted(junit_suites(junit))}, this run {runs.get('backend')!r} — "
+    elif runs is not None and junit_suites(junit) != {bref}:
+        errors.append(f"{junit.name}: suite {sorted(junit_suites(junit))}, this run {bref!r} — "
                       "another run's JUnit")
         gw = {}                                    # reported AND withheld (R400)
     # each project's replay apart (R389: Chromium and Firefox stay distinguishable)
@@ -695,7 +698,7 @@ def coverage_of(logs: Path, head: str, kind: str, native_paths: list[Path], live
                           "assigned to no function, counted apart from the gaps (Codex R396 VM-I37)"}
     return {
         "verdict": "FAIL" if errors else "PASS", "head": head, "gate": label or logs.name,
-        "runs": {**refs, "backend": (runs or {}).get("backend")} if runs is not None else {**refs, "given": False},
+        "runs": {**refs, "backend": bref} if runs is not None else {**refs, "given": False},
         "inventory": inventory,
         "functions": out_fns, "gaps": gaps, "errors": errors,
         "payload_checker_refusals": sum(len(v) for v in refused.values()),
