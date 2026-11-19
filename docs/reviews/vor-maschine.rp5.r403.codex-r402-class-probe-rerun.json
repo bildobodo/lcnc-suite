@@ -1,0 +1,372 @@
+{
+  "control": {
+    "verdict": "PASS",
+    "errors": [],
+    "runs": {
+      "e2e": "gate-b526fe27-8367-479b-94d5-fe674af3b13b",
+      "firefox-core": "firefox-a1edb880-b9a1-49b0-99e1-b3ece2c3f1eb",
+      "backend": "backend-734aa868-4dda-4a11-a243-6c19c2e97e1f"
+    },
+    "checked": 110,
+    "estop": {
+      "commands": {
+        "estop": {
+          "e2e": {
+            "estop": 44
+          },
+          "firefox-core": {
+            "estop": 25
+          }
+        },
+        "estop_reset": {
+          "e2e": {
+            "estop_reset": 1
+          },
+          "firefox-core": "not sent"
+        }
+      },
+      "routes": {}
+    },
+    "trigger_totals": {
+      "e2e": 8194,
+      "firefox-core": 390
+    }
+  },
+  "duplicate_gate_check_before": {
+    "verdict": "FAIL",
+    "errors": [
+      "e2e (the gate): the gate names browser-workers 2 times (runs ['another-run', 'gate-b526fe27-8367-479b-94d5-fe674af3b13b']) — a contradictory reference binds nothing",
+      "replay.json: this project has no known run id — no attempt is admitted (R402)",
+      "F-ARM.S2: setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement  [e2e]: not collected — no listed test of that title",
+      "F-ESTOP.S1: keyboard-guards.spec.ts › number keypad open: Space/Backspace send nothing, Escape sends exactly estop [e2e]: not collected — no listed test of that title",
+      "F-ESTOP.S1: keyboard-guards.spec.ts › repeated Escape in E-Stop never sends estop_reset [e2e]: not collected — no listed test of that title",
+      "F-TRIP.S1b: feedback-channels.spec.ts › a safety trip: the banner with Acknowledge; the click sends the ack, the trip st [e2e]: not collected — no listed test of that title",
+      "F-TRIP.S1d: feedback-channels.spec.ts › a safety trip and its confirmed acknowledgement each stand ONCE in the message c [e2e]: not collected — no listed test of that title",
+      "F-MODE.S1: setup-gates.spec.ts › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with t [e2e]: not collected — no listed test of that title",
+      "F-HOME.S1: touch-hold.spec.ts › a short tap sends nothing and says why; a complete hold sends exactly one comman [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2: strip-actions.spec.ts › Home All sends home_all on a hold — a tap sends nothing [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2b: strip-actions.spec.ts › Home per axis sends the axis and reads its homed state at the joint the gateway  [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2b: strip-actions.spec.ts › a home group closes Home per axis with its reason; Unhome and Home All stay open [e2e]: not collected — no listed test of that title",
+      "F-JOG.S4: joint-jog.spec.ts › before homing every open axis jogs in amber, the diagonals are closed with their [e2e]: not collected — no listed test of that title",
+      "F-JOG.S5b: jog-buttons.spec.ts › every jog button on ${name}: its press starts exactly its axis and direction, it [e2e]: instance(s) ['XYZABCUVW', 'XYZAC'] bind no listed test",
+      "F-OVERRIDE.S1: strip-actions.spec.ts › each override slider sends its own factor; its 100 % button sends 1.0 [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S2: setup-gates.spec.ts › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S3: strip-actions.spec.ts › Fwd and Rev send the preselected speed on a hold — a tap sends nothing [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S3: strip-actions.spec.ts › ± move the preselection while the spindle stands, and send increase / decrease w [e2e]: not collected — no listed test of that title",
+      "F-COOLANT.S1: strip-actions.spec.ts › Flood and Mist send on against the reported off, off against the reported on — t [e2e]: not collected — no listed test of that title",
+      "F-TOUCHOFF.S3: touchoff.spec.ts › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays  [e2e]: not collected — no listed test of that title",
+      "F-WCS.S1: offsets.spec.ts › unknown is never zero: the summary names what is unknown, and says 'none' only w [e2e]: not collected — no listed test of that title",
+      "F-WCS.S3: offsets.spec.ts › the active fixture is named, not only tinted; a row click selects for Clear and  [e2e]: not collected — no listed test of that title",
+      "F-KINS.S1: touchoff.spec.ts › kinematics selector shows the FRAME the raw type means, and emits frames [e2e]: not collected — no listed test of that title",
+      "F-LOAD.S1: setup-gates.spec.ts › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG- [e2e]: not collected — no listed test of that title",
+      "F-LOAD.S3: editor-guards.spec.ts › Reload sends load_file with the loaded program's own path (F-LOAD.S3) [e2e]: not collected — no listed test of that title",
+      "F-EDIT.S1: editor-guards.spec.ts › external program change keeps buffer A, shows the conflict, saves A only [e2e]: not collected — no listed test of that title",
+      "F-EDIT.S2: editor-guards.spec.ts › discard: clean closes at once, dirty asks and Keep editing keeps the edit [e2e]: not collected — no listed test of that title",
+      "F-RUN.S2: setup-gates.spec.ts › Start by the shortcut waits for the program text like the button (one admission, [e2e]: not collected — no listed test of that title",
+      "F-RUN.S3: run-hold.spec.ts › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stay [e2e]: not collected — no listed test of that title",
+      "F-RUN.S4: run-hold.spec.ts › a new revision of the same program cancels a Start, Step or Resume hold — at its [e2e]: not collected — no listed test of that title",
+      "F-RUN.S4: run-hold.spec.ts › while a revision's text is still loading, Start and Step wait — a hold there run [e2e]: not collected — no listed test of that title",
+      "F-RFL.S1: run-hold.spec.ts › Run from line: Start only opens the dialog on a tap; the dialog's action is a ho [e2e]: not collected — no listed test of that title",
+      "F-RFL.S1: run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's v [e2e]: not collected — no listed test of that title",
+      "F-OPTSTOP.S1: strip-actions.spec.ts › M01 and /BD send the opposite of the reported switch; the switch shows the statu [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S1: tool-import.spec.ts › existing tools default to reviewed metadata refresh, not full replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S2: tool-import.spec.ts › full replacement requires selecting that mode and shows length replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S2: tool-import.spec.ts › stale review stays visible as an error and never falls back to replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S3: freecad-import.spec.ts › FreeCAD preview retains measured offsets, renders a custom shape, and explains n [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S1: toolsetter-setup.spec.ts › Measure Current is ONE command: the tool_measure job [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S2: run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's v [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S3: toolsetter-setup.spec.ts › without the server's settings, and without a saved section, Measure Current and  [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S6: toolsetter-setup.spec.ts › Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 i [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S1: toolsetter-setup.spec.ts › a save the server never confirmed is no setup; its confirmation is [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S1: toolsetter-setup.spec.ts › a partial section: the form names what is missing, shows unset fields empty, and [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › the machine line follows the gateway's booking: not known, confirmed, pending, n [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › not set up: no machine line beyond the setup note, which says nothing is written [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › a save while the machine is not ready sends nothing; the line says it is not yet [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › a save the read-back already confirms pushes nothing; one it does not gets the c [e2e]: not collected — no listed test of that title",
+      "F-PROBE.S1: probe-click.spec.ts › ${form.sub}: a held probe button sends its routine with the panel's numbers [e2e]: instance(s) ['Outside', 'Boss/Pocket', 'Ridge/Valley', 'Angle', 'Calibrate'] bind no listed test",
+      "F-PROBE.S4: probe-click.spec.ts › ${key}: the job the button sends is the native stage's whole job [e2e]: instance(s) ['z_surface'] bind no listed test",
+      "F-PROBECAL.S1: probe-click.spec.ts › ${form.sub}: a held probe button sends its routine with the panel's numbers [e2e]: instance(s) ['Calibrate'] bind no listed test",
+      "F-SURFACE.S1: probe-click.spec.ts › Surface: a held Start Scan sends the surface_scan_run job with the panel's numbe [e2e]: not collected — no listed test of that title",
+      "F-SURFACE.S2b: probe-click.spec.ts › ${key}: the job the button sends is the native stage's whole job [e2e]: instance(s) ['surface_scan'] bind no listed test",
+      "F-COMP.S1: compensation.spec.ts › unread pins are never OFF or Cubic: the state reads —, no method is checked, the [e2e]: not collected — no listed test of that title",
+      "F-COMP.S1: compensation.spec.ts › the reported state: ON with its method checked, OFF once the status says so [e2e]: not collected — no listed test of that title",
+      "F-COMP.S2: compensation.spec.ts › unread pins are never OFF or Cubic: the state reads —, no method is checked, the [e2e]: not collected — no listed test of that title",
+      "F-COMP.S2: compensation.spec.ts › a chosen method is sent once and pending; the reported one stays checked, 'Not c [e2e]: not collected — no listed test of that title",
+      "F-MACROFILES.S1: macros.spec.ts › Save's refusal: a conflict rebases Keep editing on the gateway's revision [e2e]: not collected — no listed test of that title",
+      "F-MACROFILES.S2: macros.spec.ts › a rename moves the file and its place on the bar [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S1: macros.spec.ts › the Macros tab lists the folder; a file put on the bar runs on a hold bound to i [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S1: macros.spec.ts › an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save re [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S2: macros.spec.ts › a macro file with parameters opens its dialog with the header's fields; Execute  [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › a first start with functions off never shows them: no Probing, no Macros, no mac [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › the tab in use stays with a note until it is left [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › gamepad: its commands say so; off, the pad is not read; on again, a held button  [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › positive control: Space on the bare page sends cycle_start [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: touchoff.spec.ts › Space on a focused control never reaches the Cycle Start shortcut [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › editor open: Space never starts the program [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › keypad OK: Space through the whole focus return never starts the program; Escape [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S2: keyboard-guards.spec.ts › settings dialog and key capture: only Escape passes, and it cancels the capture [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S2: keyboard-guards.spec.ts › tool dialog, messages and reference dialogs block Space/Enter/Backspace [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S3: keyboard-guards.spec.ts › every bound jog key jogs its own axis in its direction and stops it on release;  [e2e]: not collected — no listed test of that title"
+    ],
+    "runs": {
+      "e2e": null,
+      "firefox-core": "firefox-a1edb880-b9a1-49b0-99e1-b3ece2c3f1eb",
+      "backend": "backend-734aa868-4dda-4a11-a243-6c19c2e97e1f"
+    },
+    "checked": 59,
+    "estop": {
+      "commands": {
+        "estop": {
+          "e2e": "not sent",
+          "firefox-core": {
+            "estop": 25
+          }
+        },
+        "estop_reset": {
+          "e2e": "not sent",
+          "firefox-core": "not sent"
+        }
+      },
+      "routes": {}
+    },
+    "trigger_totals": {
+      "e2e": 0,
+      "firefox-core": 390
+    }
+  },
+  "duplicate_gate_check_after": {
+    "verdict": "FAIL",
+    "errors": [
+      "e2e (the gate): the gate names browser-workers 2 times (runs ['gate-b526fe27-8367-479b-94d5-fe674af3b13b', 'another-run']) — a contradictory reference binds nothing",
+      "replay.json: this project has no known run id — no attempt is admitted (R402)",
+      "F-ARM.S2: setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement  [e2e]: not collected — no listed test of that title",
+      "F-ESTOP.S1: keyboard-guards.spec.ts › number keypad open: Space/Backspace send nothing, Escape sends exactly estop [e2e]: not collected — no listed test of that title",
+      "F-ESTOP.S1: keyboard-guards.spec.ts › repeated Escape in E-Stop never sends estop_reset [e2e]: not collected — no listed test of that title",
+      "F-TRIP.S1b: feedback-channels.spec.ts › a safety trip: the banner with Acknowledge; the click sends the ack, the trip st [e2e]: not collected — no listed test of that title",
+      "F-TRIP.S1d: feedback-channels.spec.ts › a safety trip and its confirmed acknowledgement each stand ONCE in the message c [e2e]: not collected — no listed test of that title",
+      "F-MODE.S1: setup-gates.spec.ts › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with t [e2e]: not collected — no listed test of that title",
+      "F-HOME.S1: touch-hold.spec.ts › a short tap sends nothing and says why; a complete hold sends exactly one comman [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2: strip-actions.spec.ts › Home All sends home_all on a hold — a tap sends nothing [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2b: strip-actions.spec.ts › Home per axis sends the axis and reads its homed state at the joint the gateway  [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2b: strip-actions.spec.ts › a home group closes Home per axis with its reason; Unhome and Home All stay open [e2e]: not collected — no listed test of that title",
+      "F-JOG.S4: joint-jog.spec.ts › before homing every open axis jogs in amber, the diagonals are closed with their [e2e]: not collected — no listed test of that title",
+      "F-JOG.S5b: jog-buttons.spec.ts › every jog button on ${name}: its press starts exactly its axis and direction, it [e2e]: instance(s) ['XYZABCUVW', 'XYZAC'] bind no listed test",
+      "F-OVERRIDE.S1: strip-actions.spec.ts › each override slider sends its own factor; its 100 % button sends 1.0 [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S2: setup-gates.spec.ts › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S3: strip-actions.spec.ts › Fwd and Rev send the preselected speed on a hold — a tap sends nothing [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S3: strip-actions.spec.ts › ± move the preselection while the spindle stands, and send increase / decrease w [e2e]: not collected — no listed test of that title",
+      "F-COOLANT.S1: strip-actions.spec.ts › Flood and Mist send on against the reported off, off against the reported on — t [e2e]: not collected — no listed test of that title",
+      "F-TOUCHOFF.S3: touchoff.spec.ts › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays  [e2e]: not collected — no listed test of that title",
+      "F-WCS.S1: offsets.spec.ts › unknown is never zero: the summary names what is unknown, and says 'none' only w [e2e]: not collected — no listed test of that title",
+      "F-WCS.S3: offsets.spec.ts › the active fixture is named, not only tinted; a row click selects for Clear and  [e2e]: not collected — no listed test of that title",
+      "F-KINS.S1: touchoff.spec.ts › kinematics selector shows the FRAME the raw type means, and emits frames [e2e]: not collected — no listed test of that title",
+      "F-LOAD.S1: setup-gates.spec.ts › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG- [e2e]: not collected — no listed test of that title",
+      "F-LOAD.S3: editor-guards.spec.ts › Reload sends load_file with the loaded program's own path (F-LOAD.S3) [e2e]: not collected — no listed test of that title",
+      "F-EDIT.S1: editor-guards.spec.ts › external program change keeps buffer A, shows the conflict, saves A only [e2e]: not collected — no listed test of that title",
+      "F-EDIT.S2: editor-guards.spec.ts › discard: clean closes at once, dirty asks and Keep editing keeps the edit [e2e]: not collected — no listed test of that title",
+      "F-RUN.S2: setup-gates.spec.ts › Start by the shortcut waits for the program text like the button (one admission, [e2e]: not collected — no listed test of that title",
+      "F-RUN.S3: run-hold.spec.ts › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stay [e2e]: not collected — no listed test of that title",
+      "F-RUN.S4: run-hold.spec.ts › a new revision of the same program cancels a Start, Step or Resume hold — at its [e2e]: not collected — no listed test of that title",
+      "F-RUN.S4: run-hold.spec.ts › while a revision's text is still loading, Start and Step wait — a hold there run [e2e]: not collected — no listed test of that title",
+      "F-RFL.S1: run-hold.spec.ts › Run from line: Start only opens the dialog on a tap; the dialog's action is a ho [e2e]: not collected — no listed test of that title",
+      "F-RFL.S1: run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's v [e2e]: not collected — no listed test of that title",
+      "F-OPTSTOP.S1: strip-actions.spec.ts › M01 and /BD send the opposite of the reported switch; the switch shows the statu [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S1: tool-import.spec.ts › existing tools default to reviewed metadata refresh, not full replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S2: tool-import.spec.ts › full replacement requires selecting that mode and shows length replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S2: tool-import.spec.ts › stale review stays visible as an error and never falls back to replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S3: freecad-import.spec.ts › FreeCAD preview retains measured offsets, renders a custom shape, and explains n [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S1: toolsetter-setup.spec.ts › Measure Current is ONE command: the tool_measure job [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S2: run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's v [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S3: toolsetter-setup.spec.ts › without the server's settings, and without a saved section, Measure Current and  [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S6: toolsetter-setup.spec.ts › Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 i [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S1: toolsetter-setup.spec.ts › a save the server never confirmed is no setup; its confirmation is [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S1: toolsetter-setup.spec.ts › a partial section: the form names what is missing, shows unset fields empty, and [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › the machine line follows the gateway's booking: not known, confirmed, pending, n [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › not set up: no machine line beyond the setup note, which says nothing is written [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › a save while the machine is not ready sends nothing; the line says it is not yet [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › a save the read-back already confirms pushes nothing; one it does not gets the c [e2e]: not collected — no listed test of that title",
+      "F-PROBE.S1: probe-click.spec.ts › ${form.sub}: a held probe button sends its routine with the panel's numbers [e2e]: instance(s) ['Outside', 'Boss/Pocket', 'Ridge/Valley', 'Angle', 'Calibrate'] bind no listed test",
+      "F-PROBE.S4: probe-click.spec.ts › ${key}: the job the button sends is the native stage's whole job [e2e]: instance(s) ['z_surface'] bind no listed test",
+      "F-PROBECAL.S1: probe-click.spec.ts › ${form.sub}: a held probe button sends its routine with the panel's numbers [e2e]: instance(s) ['Calibrate'] bind no listed test",
+      "F-SURFACE.S1: probe-click.spec.ts › Surface: a held Start Scan sends the surface_scan_run job with the panel's numbe [e2e]: not collected — no listed test of that title",
+      "F-SURFACE.S2b: probe-click.spec.ts › ${key}: the job the button sends is the native stage's whole job [e2e]: instance(s) ['surface_scan'] bind no listed test",
+      "F-COMP.S1: compensation.spec.ts › unread pins are never OFF or Cubic: the state reads —, no method is checked, the [e2e]: not collected — no listed test of that title",
+      "F-COMP.S1: compensation.spec.ts › the reported state: ON with its method checked, OFF once the status says so [e2e]: not collected — no listed test of that title",
+      "F-COMP.S2: compensation.spec.ts › unread pins are never OFF or Cubic: the state reads —, no method is checked, the [e2e]: not collected — no listed test of that title",
+      "F-COMP.S2: compensation.spec.ts › a chosen method is sent once and pending; the reported one stays checked, 'Not c [e2e]: not collected — no listed test of that title",
+      "F-MACROFILES.S1: macros.spec.ts › Save's refusal: a conflict rebases Keep editing on the gateway's revision [e2e]: not collected — no listed test of that title",
+      "F-MACROFILES.S2: macros.spec.ts › a rename moves the file and its place on the bar [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S1: macros.spec.ts › the Macros tab lists the folder; a file put on the bar runs on a hold bound to i [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S1: macros.spec.ts › an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save re [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S2: macros.spec.ts › a macro file with parameters opens its dialog with the header's fields; Execute  [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › a first start with functions off never shows them: no Probing, no Macros, no mac [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › the tab in use stays with a note until it is left [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › gamepad: its commands say so; off, the pad is not read; on again, a held button  [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › positive control: Space on the bare page sends cycle_start [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: touchoff.spec.ts › Space on a focused control never reaches the Cycle Start shortcut [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › editor open: Space never starts the program [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › keypad OK: Space through the whole focus return never starts the program; Escape [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S2: keyboard-guards.spec.ts › settings dialog and key capture: only Escape passes, and it cancels the capture [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S2: keyboard-guards.spec.ts › tool dialog, messages and reference dialogs block Space/Enter/Backspace [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S3: keyboard-guards.spec.ts › every bound jog key jogs its own axis in its direction and stops it on release;  [e2e]: not collected — no listed test of that title"
+    ],
+    "runs": {
+      "e2e": null,
+      "firefox-core": "firefox-a1edb880-b9a1-49b0-99e1-b3ece2c3f1eb",
+      "backend": "backend-734aa868-4dda-4a11-a243-6c19c2e97e1f"
+    },
+    "checked": 59,
+    "estop": {
+      "commands": {
+        "estop": {
+          "e2e": "not sent",
+          "firefox-core": {
+            "estop": 25
+          }
+        },
+        "estop_reset": {
+          "e2e": "not sent",
+          "firefox-core": "not sent"
+        }
+      },
+      "routes": {}
+    },
+    "trigger_totals": {
+      "e2e": 0,
+      "firefox-core": 390
+    }
+  },
+  "unknown_chromium_run": {
+    "verdict": "FAIL",
+    "errors": [
+      "e2e (the gate): no known run id — nothing binds to an unknown run",
+      "replay.json: this project has no known run id — no attempt is admitted (R402)",
+      "F-ARM.S2: setup-gates.spec.ts › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement  [e2e]: not collected — no listed test of that title",
+      "F-ESTOP.S1: keyboard-guards.spec.ts › number keypad open: Space/Backspace send nothing, Escape sends exactly estop [e2e]: not collected — no listed test of that title",
+      "F-ESTOP.S1: keyboard-guards.spec.ts › repeated Escape in E-Stop never sends estop_reset [e2e]: not collected — no listed test of that title",
+      "F-TRIP.S1b: feedback-channels.spec.ts › a safety trip: the banner with Acknowledge; the click sends the ack, the trip st [e2e]: not collected — no listed test of that title",
+      "F-TRIP.S1d: feedback-channels.spec.ts › a safety trip and its confirmed acknowledgement each stand ONCE in the message c [e2e]: not collected — no listed test of that title",
+      "F-MODE.S1: setup-gates.spec.ts › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with t [e2e]: not collected — no listed test of that title",
+      "F-HOME.S1: touch-hold.spec.ts › a short tap sends nothing and says why; a complete hold sends exactly one comman [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2: strip-actions.spec.ts › Home All sends home_all on a hold — a tap sends nothing [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2b: strip-actions.spec.ts › Home per axis sends the axis and reads its homed state at the joint the gateway  [e2e]: not collected — no listed test of that title",
+      "F-HOME.S2b: strip-actions.spec.ts › a home group closes Home per axis with its reason; Unhome and Home All stay open [e2e]: not collected — no listed test of that title",
+      "F-JOG.S4: joint-jog.spec.ts › before homing every open axis jogs in amber, the diagonals are closed with their [e2e]: not collected — no listed test of that title",
+      "F-JOG.S5b: jog-buttons.spec.ts › every jog button on ${name}: its press starts exactly its axis and direction, it [e2e]: instance(s) ['XYZABCUVW', 'XYZAC'] bind no listed test",
+      "F-OVERRIDE.S1: strip-actions.spec.ts › each override slider sends its own factor; its 100 % button sends 1.0 [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S2: setup-gates.spec.ts › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S3: strip-actions.spec.ts › Fwd and Rev send the preselected speed on a hold — a tap sends nothing [e2e]: not collected — no listed test of that title",
+      "F-SPINDLE.S3: strip-actions.spec.ts › ± move the preselection while the spindle stands, and send increase / decrease w [e2e]: not collected — no listed test of that title",
+      "F-COOLANT.S1: strip-actions.spec.ts › Flood and Mist send on against the reported off, off against the reported on — t [e2e]: not collected — no listed test of that title",
+      "F-TOUCHOFF.S3: touchoff.spec.ts › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays  [e2e]: not collected — no listed test of that title",
+      "F-WCS.S1: offsets.spec.ts › unknown is never zero: the summary names what is unknown, and says 'none' only w [e2e]: not collected — no listed test of that title",
+      "F-WCS.S3: offsets.spec.ts › the active fixture is named, not only tinted; a row click selects for Clear and  [e2e]: not collected — no listed test of that title",
+      "F-KINS.S1: touchoff.spec.ts › kinematics selector shows the FRAME the raw type means, and emits frames [e2e]: not collected — no listed test of that title",
+      "F-LOAD.S1: setup-gates.spec.ts › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG- [e2e]: not collected — no listed test of that title",
+      "F-LOAD.S3: editor-guards.spec.ts › Reload sends load_file with the loaded program's own path (F-LOAD.S3) [e2e]: not collected — no listed test of that title",
+      "F-EDIT.S1: editor-guards.spec.ts › external program change keeps buffer A, shows the conflict, saves A only [e2e]: not collected — no listed test of that title",
+      "F-EDIT.S2: editor-guards.spec.ts › discard: clean closes at once, dirty asks and Keep editing keeps the edit [e2e]: not collected — no listed test of that title",
+      "F-RUN.S2: setup-gates.spec.ts › Start by the shortcut waits for the program text like the button (one admission, [e2e]: not collected — no listed test of that title",
+      "F-RUN.S3: run-hold.spec.ts › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stay [e2e]: not collected — no listed test of that title",
+      "F-RUN.S4: run-hold.spec.ts › a new revision of the same program cancels a Start, Step or Resume hold — at its [e2e]: not collected — no listed test of that title",
+      "F-RUN.S4: run-hold.spec.ts › while a revision's text is still loading, Start and Step wait — a hold there run [e2e]: not collected — no listed test of that title",
+      "F-RFL.S1: run-hold.spec.ts › Run from line: Start only opens the dialog on a tap; the dialog's action is a ho [e2e]: not collected — no listed test of that title",
+      "F-RFL.S1: run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's v [e2e]: not collected — no listed test of that title",
+      "F-OPTSTOP.S1: strip-actions.spec.ts › M01 and /BD send the opposite of the reported switch; the switch shows the statu [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S1: tool-import.spec.ts › existing tools default to reviewed metadata refresh, not full replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S2: tool-import.spec.ts › full replacement requires selecting that mode and shows length replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S2: tool-import.spec.ts › stale review stays visible as an error and never falls back to replacement [e2e]: not collected — no listed test of that title",
+      "F-TOOLIMPORT.S3: freecad-import.spec.ts › FreeCAD preview retains measured offsets, renders a custom shape, and explains n [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S1: toolsetter-setup.spec.ts › Measure Current is ONE command: the tool_measure job [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S2: run-hold.spec.ts › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's v [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S3: toolsetter-setup.spec.ts › without the server's settings, and without a saved section, Measure Current and  [e2e]: not collected — no listed test of that title",
+      "F-TOOLMEASURE.S6: toolsetter-setup.spec.ts › Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 i [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S1: toolsetter-setup.spec.ts › a save the server never confirmed is no setup; its confirmation is [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S1: toolsetter-setup.spec.ts › a partial section: the form names what is missing, shows unset fields empty, and [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › the machine line follows the gateway's booking: not known, confirmed, pending, n [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › not set up: no machine line beyond the setup note, which says nothing is written [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › a save while the machine is not ready sends nothing; the line says it is not yet [e2e]: not collected — no listed test of that title",
+      "F-TOOLSETTER.S3: toolsetter-setup.spec.ts › a save the read-back already confirms pushes nothing; one it does not gets the c [e2e]: not collected — no listed test of that title",
+      "F-PROBE.S1: probe-click.spec.ts › ${form.sub}: a held probe button sends its routine with the panel's numbers [e2e]: instance(s) ['Outside', 'Boss/Pocket', 'Ridge/Valley', 'Angle', 'Calibrate'] bind no listed test",
+      "F-PROBE.S4: probe-click.spec.ts › ${key}: the job the button sends is the native stage's whole job [e2e]: instance(s) ['z_surface'] bind no listed test",
+      "F-PROBECAL.S1: probe-click.spec.ts › ${form.sub}: a held probe button sends its routine with the panel's numbers [e2e]: instance(s) ['Calibrate'] bind no listed test",
+      "F-SURFACE.S1: probe-click.spec.ts › Surface: a held Start Scan sends the surface_scan_run job with the panel's numbe [e2e]: not collected — no listed test of that title",
+      "F-SURFACE.S2b: probe-click.spec.ts › ${key}: the job the button sends is the native stage's whole job [e2e]: instance(s) ['surface_scan'] bind no listed test",
+      "F-COMP.S1: compensation.spec.ts › unread pins are never OFF or Cubic: the state reads —, no method is checked, the [e2e]: not collected — no listed test of that title",
+      "F-COMP.S1: compensation.spec.ts › the reported state: ON with its method checked, OFF once the status says so [e2e]: not collected — no listed test of that title",
+      "F-COMP.S2: compensation.spec.ts › unread pins are never OFF or Cubic: the state reads —, no method is checked, the [e2e]: not collected — no listed test of that title",
+      "F-COMP.S2: compensation.spec.ts › a chosen method is sent once and pending; the reported one stays checked, 'Not c [e2e]: not collected — no listed test of that title",
+      "F-MACROFILES.S1: macros.spec.ts › Save's refusal: a conflict rebases Keep editing on the gateway's revision [e2e]: not collected — no listed test of that title",
+      "F-MACROFILES.S2: macros.spec.ts › a rename moves the file and its place on the bar [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S1: macros.spec.ts › the Macros tab lists the folder; a file put on the bar runs on a hold bound to i [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S1: macros.spec.ts › an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save re [e2e]: not collected — no listed test of that title",
+      "F-MACRORUN.S2: macros.spec.ts › a macro file with parameters opens its dialog with the header's fields; Execute  [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › a first start with functions off never shows them: no Probing, no Macros, no mac [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › the tab in use stays with a note until it is left [e2e]: not collected — no listed test of that title",
+      "F-FEATURES.S4: feature-switches.spec.ts › gamepad: its commands say so; off, the pad is not read; on again, a held button  [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › positive control: Space on the bare page sends cycle_start [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: touchoff.spec.ts › Space on a focused control never reaches the Cycle Start shortcut [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › editor open: Space never starts the program [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S1: keyboard-guards.spec.ts › keypad OK: Space through the whole focus return never starts the program; Escape [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S2: keyboard-guards.spec.ts › settings dialog and key capture: only Escape passes, and it cancels the capture [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S2: keyboard-guards.spec.ts › tool dialog, messages and reference dialogs block Space/Enter/Backspace [e2e]: not collected — no listed test of that title",
+      "F-KEYBOARD.S3: keyboard-guards.spec.ts › every bound jog key jogs its own axis in its direction and stops it on release;  [e2e]: not collected — no listed test of that title"
+    ],
+    "runs": {
+      "e2e": null,
+      "firefox-core": "firefox-a1edb880-b9a1-49b0-99e1-b3ece2c3f1eb",
+      "backend": "backend-734aa868-4dda-4a11-a243-6c19c2e97e1f"
+    },
+    "checked": 59,
+    "estop": {
+      "commands": {
+        "estop": {
+          "e2e": "not sent",
+          "firefox-core": {
+            "estop": 25
+          }
+        },
+        "estop_reset": {
+          "e2e": "not sent",
+          "firefox-core": "not sent"
+        }
+      },
+      "routes": {}
+    },
+    "trigger_totals": {
+      "e2e": 0,
+      "firefox-core": 390
+    }
+  },
+  "duplicate_json_run": {
+    "verdict": "FAIL",
+    "errors": [
+      "replay.json: key(s) ['run'] twice in one object — a damaged artefact, withheld"
+    ],
+    "runs": {
+      "e2e": "gate-b526fe27-8367-479b-94d5-fe674af3b13b",
+      "firefox-core": "firefox-a1edb880-b9a1-49b0-99e1-b3ece2c3f1eb",
+      "backend": "backend-734aa868-4dda-4a11-a243-6c19c2e97e1f"
+    },
+    "checked": 110,
+    "estop": {
+      "commands": {
+        "estop": {
+          "e2e": "not sent",
+          "firefox-core": {
+            "estop": 25
+          }
+        },
+        "estop_reset": {
+          "e2e": "not sent",
+          "firefox-core": "not sent"
+        }
+      },
+      "routes": {}
+    },
+    "trigger_totals": {
+      "e2e": 0,
+      "firefox-core": 390
+    }
+  }
+}
