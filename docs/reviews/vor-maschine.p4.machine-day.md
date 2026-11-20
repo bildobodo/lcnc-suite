@@ -86,9 +86,9 @@ Set the work zero so that the program runs safely above the table.
 | 7.3 | Measure a tool from the UI (Measure Current) | as 7.2 | — |
 | 7.4 | In 6.4: count the measurements | the tool is measured **once**; the program's own M600 does not measure it again (#3116) | — |
 
-## 8 · Probing (the test table and the round test piece)
+## 8 · Probing (the test table and the calibration ring)
 
-The probe is in the spindle and its tool number is set. Each routine starts a few millimetres from its feature.
+The probe is in the spindle and its tool number is set (#3014 = 99); the tool table holds its ball diameter. Each routine starts a few millimetres from its feature. The ring (20 mm bore) is clamped, so no touch can shift it.
 
 | # | Do | Expect | Note |
 |---|---|---|---|
@@ -96,8 +96,8 @@ The probe is in the spindle and its tool number is set. Each routine starts a fe
 | 8.2 | **Outside**, one edge of the test table (X, then Y) | the edge where it is | the values |
 | 8.3 | **Outside**, a corner of the test table (top corner) | X and Y of the corner | the values |
 | 8.4 | **Angle**, along one table edge | a small angle (the table's alignment) | the angle |
-| 8.5 | The round test piece: **Boss/Pocket** › Round Boss for a cylinder; Round Pocket for a ring (start at its edge) or Round Pocket C (start at its centre) | a plausible centre and diameter. The moves between the touches now run at the traverse feed `#3017` (1000 mm/min); before this update the pocket routines took the number 3017 as the feed | centre, diameter |
-| 8.6 | **Calibrate** on the round test piece, only if its diameter is known precisely | the tip offset (#3036) is new | the value, the piece's diameter |
+| 8.5 | The calibration ring: **Boss/Pocket** › Round Pocket C — the ball inside the bore, below its top edge, roughly centred (the routine makes no Z move). Or Round Pocket: start above the ring's top face, left of the bore, closer to the bore than the step-off width (#3023) and lower than the max Z distance (#3020) above the face | the centre, and a diameter near 20 mm (before 8.6 it may be off by a few hundredths). The moves between the touches run at the traverse feed `#3017` (1000 mm/min); before this update the pocket routines took the number 3017 as the feed | centre, diameter |
+| 8.6 | **Calibrate** › Round Hole: Diameter = the value on the ring (engraving or certificate), Calibrate On = Avg XY; start as for Round Pocket (above the top face, left of the bore). Then 8.5 again | the Calibration Offset (#3032) is new; 8.5 again reads close to the ring's value | the offset; the diameter before and after |
 | 8.7 | Surface scan on the test table, then compensation ON and OFF | with ON, Z follows the surface; with OFF it does not. The chosen method (e.g. Linear) now really applies; before this update it was always Cubic | the method |
 
 ## 9 · G30
