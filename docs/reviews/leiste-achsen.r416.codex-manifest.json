@@ -1,0 +1,122 @@
+{
+  "review": "R416",
+  "verdict": "agreement",
+  "document": "5fc9b608ef729862b1f7d280c1a9e20fc709f0cb",
+  "productBase": "dc9dc3e4c29d3e90545474386d7f5f34fff50a3a",
+  "scope": "Stage B F2-F4 plan and injected prototype; no product implementation approval",
+  "results": [
+    "LA415-01 closed: dialog owner handles one step, new fallback respects defaultPrevented.",
+    "LA415-02 closed: neutral strip starts by tree position, including negative tabindex.",
+    "Held Jog Tab and ShiftTab remain still; own keypad-container Tab and backward navigation preserve identical DOM target."
+  ],
+  "copy": "Reused isolated /tmp/codex-r411 archive and own built dist from R411; only new specs/configs, no product build in this round.",
+  "execution": "Own Chromium and pinned Firefox 160.0; per-worker mock; shared heavy_lock.py --who codex-r416-review. Both completed 8/8, zero skips/flakies/errors.",
+  "reproduce": "Restore copied spec/config/helper to original source paths in an isolated dc9dc3e4 archive with its build/dependencies and pinned Firefox; execute run.sh through shared heavy_lock. Original /tmp paths retained.",
+  "limits": [
+    "Supplied complete geometry matrix and old/new comparisons audited offline, not all rerun.",
+    "No Firefox touch, real zoom/panel, dragScroll, bleed-image or full multi-pointer/click-completion/helper-transition proof.",
+    "Global HTMLElement.prototype.focus wrapper is prototype only; named production helper and current pressure/focus validation remain implementation work under the agreed contract.",
+    "Q413-1 and implementation go remain with Claude and the operator; this review creates no new operator question."
+  ],
+  "noLive": "No product edits, builds/tests/checkouts in live tree or requests to live sim. Own test processes ended.",
+  "suppliedFiles": [
+    {
+      "path": "leiste-achsen.r416.focus.jsonl",
+      "sha256": "e6ed7b804610f2ac1b8c84b3da24591e45c210c13cbbc1cb78622ed4a8e215c6"
+    },
+    {
+      "path": "leiste-achsen.r416.runs.txt",
+      "sha256": "367c96c9cba8c59d0eb58207bd568eab757304f012429de3c30379dcdcc36497"
+    },
+    {
+      "path": "leiste-achsen.r416.stage-b.spec.ts",
+      "sha256": "40ecbd92a6989f03a0d45e4d092847c55053689fc8c936c8fcc03d1c240365d5"
+    },
+    {
+      "path": "leiste-achsen.r416.strip.jsonl",
+      "sha256": "c59b15eca0b805360b06e0c15bf8b83ffb4ff456038c4b9397a7591715ae412b"
+    }
+  ],
+  "files": [
+    {
+      "path": "leiste-achsen.r416.codex-probe.spec.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r416-codex.spec.ts",
+      "sha256": "5d50ed13134508de46e3d63d6e0e34eb489ce5804abe3fdb16dab72a727679f3"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-prototype.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r416-prototype.ts",
+      "sha256": "cb74c5d0c8bf302a247b221690d439b84c0bd84fddc16a9c8f2ac60d91a91d2e"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-firefox.config.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/playwright.r416-ff.config.ts",
+      "sha256": "f2768abef784b52ba3c4bc794f18895645d37d1d8e00af216a292d9e453b092c"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-run.sh",
+      "source": "/tmp/r416/run.sh",
+      "sha256": "1999a1ea4041cc5b352814e03041e4242129b61fee79e2a97d4ef53f24336fa1"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-check-evidence.py",
+      "source": "/tmp/r416/check_evidence.py",
+      "sha256": "d30b7962cf08897314e7bf0f482ea3ffc31fe596b798ca755e141522add51cc3"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-held.jsonl",
+      "source": "/tmp/r416/held.jsonl",
+      "sha256": "52abb1888d592f41f749decf43acc82a3072b48924a037b2ec67f1c902c5ba90"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-neutral.jsonl",
+      "source": "/tmp/r416/neutral.jsonl",
+      "sha256": "3fcd8a320267ecdff972e986636a4252cb44e664e3ae7aed0d0bee0bd0090173"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-dialog.jsonl",
+      "source": "/tmp/r416/dialog.jsonl",
+      "sha256": "f689fa614f7879ff01884b63ae76f2ec2e251f5025c63345943052ccfa6c27d1"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-extra.jsonl",
+      "source": "/tmp/r416/extra.jsonl",
+      "sha256": "bc2af1d32763c52f668fc7a5c34d5b197eee9ef84a0c83df8eb2fa3ef62be2a0"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-events.jsonl",
+      "source": "/tmp/r416/events.jsonl",
+      "sha256": "0a5b00d3b7de6877ceb49808854e517cdb70639c9cba9aad7eba9ecd8f8d731c"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-ff-events.jsonl",
+      "source": "/tmp/r416/ff-events.jsonl",
+      "sha256": "35069e0b4ef6bdff484623919785474fe3b776425165354f717060ac35845671"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-chromium.json",
+      "source": "/tmp/r416/chromium.json",
+      "sha256": "3dd28495f9cb013f93b2a213cc37b9e6401e0a22de280a12fe94ca2cfd8f9d32"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-chromium.txt",
+      "source": "/tmp/r416/chromium.txt",
+      "sha256": "fd8e290e3ebc3a6f8d3a37496847463e3074e8b9476d48dd0fb5e19fb185f409"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-firefox.json",
+      "source": "/tmp/r416/firefox.json",
+      "sha256": "b79dd70377e4a34370c099e604b5b3b33884b867abe383daa27971f59a210329"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-firefox.txt",
+      "source": "/tmp/r416/firefox.txt",
+      "sha256": "2c65db4a1d82c2b53687f95a0d737511ea6cd541334885496599645fcbc1d46d"
+    },
+    {
+      "path": "leiste-achsen.r416.codex-check-evidence.json",
+      "source": "/tmp/r416/check-evidence.json",
+      "sha256": "34d1a47693c5abd95347be49ac9b35ec81d1b8a064df3cdc0f14e45e0ac369df"
+    }
+  ]
+}

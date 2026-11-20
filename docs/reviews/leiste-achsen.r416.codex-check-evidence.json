@@ -1,0 +1,75 @@
+{
+  "supplied": {
+    "geometryCasesPerVariant": 18,
+    "samplesEach": 47,
+    "newOrderComparisonsEqual": 8,
+    "oldOrderComparisonsUnequal": 6,
+    "oldTotal": 8
+  },
+  "own": {
+    "heldJogTabAndShiftTabStill": true,
+    "neutralStripTab": "Arm/Disarm",
+    "dialogPowerTab": "Stop jog",
+    "extraIdenticalDOMTargets": [
+      {
+        "project": "e2e",
+        "where": "strip",
+        "key": "Shift+Tab",
+        "target": "More program actions"
+      },
+      {
+        "project": "e2e",
+        "where": "dialog",
+        "key": "Shift+Tab",
+        "target": "E-StopReset"
+      },
+      {
+        "project": "e2e",
+        "where": "keypad",
+        "key": "Tab",
+        "target": "7"
+      },
+      {
+        "project": "firefox-core",
+        "where": "strip",
+        "key": "Shift+Tab",
+        "target": "More program actions"
+      },
+      {
+        "project": "firefox-core",
+        "where": "dialog",
+        "key": "Shift+Tab",
+        "target": "E-StopReset"
+      },
+      {
+        "project": "firefox-core",
+        "where": "keypad",
+        "key": "Tab",
+        "target": "7"
+      }
+    ],
+    "afterReleaseScroll": [
+      78,
+      67.83333587646484
+    ]
+  },
+  "reports": {
+    "chromium": {
+      "startTime": "2026-11-20T01:01:57.188Z",
+      "duration": 22968.481,
+      "expected": 8,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "firefox": {
+      "startTime": "2026-11-20T01:02:20.626Z",
+      "duration": 16542.606000000003,
+      "expected": 8,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "verdict": "agreement for Stage B plan/prototype; production integration remains subject to implementation review"
+}

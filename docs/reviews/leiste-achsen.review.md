@@ -796,3 +796,32 @@ Der Wächter im Bau zählt diese Stellen.
 ### Erbeten
 
 `agreement` oder `findings` zu Stufe B.
+
+---
+
+## Codex · Nachprüfung Stufe B · R416 · 20. November 2026
+
+**Urteil: `agreement` zum Plan und zur Bauweise von Stufe B in Fassung R416.** LA415-01 und LA415-02 sind geschlossen. Die bereits bestätigten Korrekturen von LA413-01/-02 bleiben bestehen. Stufe A aus R412 bleibt abgestimmt; eine Produktimplementierung wird mit diesem Agreement noch nicht abgenommen.
+
+Prüfstand: Dokument `5fc9b608`, R416-Prototyp auf `dc9dc3e4`. [Manifest](leiste-achsen.r416.codex-manifest.json), [Auswertung](leiste-achsen.r416.codex-check-evidence.json).
+
+### Die beiden Fokusbefunde sind geschlossen
+
+**LA415-01:** Die Tab-Übernahme als unbehandelter Standardfall in der `window`-Bubble respektiert den zuvor entscheidenden Dialogbesitzer, `defaultPrevented` und die Modifikatortasten. Im eigenen Vergleich landet Tab von Power mit und ohne gehaltenen Zeiger auf **Jog stop**, Shift+Tab auf **E-Stop**. Der zweite Schritt desselben Ereignisses ist damit beseitigt. [Tab-Vergleich](leiste-achsen.r416.codex-dialog.jsonl), [Rückwärtsvergleich](leiste-achsen.r416.codex-extra.jsonl).
+
+**LA415-02:** Der Start an der Baumposition erhält auch den neutralen Fokusanker. Von `.strip` führt Tab mit und ohne Druck zu **Arm/Disarm**, Shift+Tab zu **More program actions**. Zusätzlich habe ich den neutralen Ziffernfeld-Container geprüft: Sein Tab erreicht in beiden Fällen dieselbe Taste **7**. Die Zusatzproben vergleichen die tatsächliche DOM-Identität des Ziels, nicht nur dessen Beschriftung. [Leistenvergleich](leiste-achsen.r416.codex-neutral.jsonl), [Zusatzfälle](leiste-achsen.r416.codex-extra.jsonl).
+
+Der ursprüngliche Haltefall bleibt ebenfalls grün: **Zero X → Tab → Unhome X → Shift+Tab → Zero X** bei tatsächlich gehaltenem X+-Jog, ohne Änderung von Scrollposition oder Knopfbox. Nach dem abschließenden Tab und Loslassen wird das Ziel mit 78 px in Chromium beziehungsweise 67,83 px in Firefox ins Bild geholt. [Rohfolgen](leiste-achsen.r416.codex-held.jsonl).
+
+### Vereinbarter Übergang zum Bau
+
+Die ergänzte Stellenliste einschließlich `returnFocusTo`, Fallback, Dialogfokus und Auswahlgruppen ist angenommen. Der Bau verwendet die benannte gemeinsame Fokusfunktion und den bestehenden Druckbesitzer; die globale `HTMLElement.prototype.focus`-Hülle bleibt ein Prototypmittel. Die Freigabe muss nach dem vereinbarten Vertrag den dann aktuellen Druck- und Fokuszustand lesen, bis zum Abschluss jedes Zeigers warten und einen durch spätere Bedienung überholten Auftrag verwerfen. Das ist weiterhin Implementierungsarbeit, die die vereinfachte Zeigermenge dieser Probe nicht vorwegnimmt.
+
+Die bereits benannten Bauprüfungen bleiben bestehen: Stop-Zustellung auf den vereinbarten Ereignissen, gehaltene Form-/Helferwechsel, Schwellen ±1 px, `dragScroll`, Bildprüfung auf Durchscheinen sowie die benannten Zoom-/Panel-Grenzen. Dafür entsteht hier keine weitere Planfrage. Q413-1 und das Operator-Go zum Bau bleiben bei dir und dem Operator.
+
+### Belege und Grenzen
+
+- Eigene Läufe: **8/8 Chromium + 8/8 Firefox 160 PASS**, keine Skips, Flakies oder Testfehler. [Sonde](leiste-achsen.r416.codex-probe.spec.ts), [Chromium-Bericht](leiste-achsen.r416.codex-chromium.json), [Firefox-Bericht](leiste-achsen.r416.codex-firefox.json), [Prüfskript der Daten](leiste-achsen.r416.codex-check-evidence.py).
+- Die gelieferten Daten wurden zusätzlich geprüft: 18 korrigierte Leistenfälle mit je 47 fehlerfreien Proben; alle acht neuen Fokusvergleiche gleich, dagegen sechs von acht Vergleichen der R415-Fassung ungleich. Die vollständige Geometriematrix wurde nicht nochmals ausgeführt.
+- Kein Firefox-Touch, echter Zoom/Panel oder vollständiger Mehrzeiger-/Klickabschlussnachweis. Das Agreement gilt dem Plan und dem hier geprüften Prototyp, die Integration folgt im Implementierungsreview.
+- Isolierte Kopie und eigener Mock unter der gemeinsamen Testsperre; alle eigenen Testprozesse beendet. Keine Produktänderung, kein Test/Build/Checkout im Live-Baum und kein Zugriff auf die Live-Sim.
