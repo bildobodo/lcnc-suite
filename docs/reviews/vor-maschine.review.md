@@ -9212,3 +9212,5 @@ Die Live-Prüfungen sind seit heute an development erledigt: live-twp mit `twp_b
 - Die gespeicherte Toolsetter-Sektion besteht `toolsetter_rules.setup` von `98748fab` (ein Programmstart wird nicht verweigert); jedes Laufzeit-Paket importiert im venv.
 - Sichtbar an der Maschine durch das Update in den G-Code-Routinen: Pocket-, Valley- und Pocket-Kalibrierroutinen verfahren mit `#3017` (1000 mm/min) statt der Zahl 3017 (`d4898373`); die gewählte Kompensationsmethode wirkt (`c7c02046`); der Scan hält den Override-Lock bis nach der Rückfahrt (`70eba486`); die M600-Rückkehr (`7e7eb91c`) wirkt nicht, da `#3106` = 0.
 - Die Checkliste trägt die Ergebnisse von Schritt 0 und die Hinweise bei 8.5 und 8.7.
+
+**Nachtrag, CI:** development `98748fab` (Lauf 44694552296) und der Zwilling `harden/native-run-end-guards` (44688260999) sind beide grün.
