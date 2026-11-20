@@ -1,32 +1,32 @@
 # Machine day · checklist (Saturday 2026-11-21)
 
-For the operator at the machine: 3 axes XYZ, Full HD touch panel in landscape, Chromium. Configuration `milling-machine-webui`, `DISPLAY = lcnc-suite-development`.
+For the operator at the machine: 3 axes XYZ, Full HD touch panel in landscape, Chromium. Configuration `milling_machine_webui_development`, `DISPLAY = lcnc-suite-development`. The machine PC (Intel N100) keeps 2 of its 4 cores for realtime, so browser and gateway share 2.
 
 Each step has three columns: **Do**, **Expect** and **Note**. Record one result per step: PASS; FAIL with a short note; or "skipped, because …".
 - On a FAIL, repair nothing; note it and carry on.
 - Every move with a hand on the E-stop.
 - Programs run in the air, Z up.
 
-Values marked † come from the machine's config repo on GitHub, which is older than the machine (HAL and INI from 2026-05-29). If the machine shows something else, note the difference; it is no FAIL.
+The values below were read on the machine itself over SSH (Friday 2026-11-20).
 
 Steps marked **(SSH)** I do myself over SSH, read-only, once the key is in. Anything that changes the install or can move waits for your go, and moves only with you at the machine.
 
-## 0 · Preparation (the day before, or before power-on)
+## 0 · Preparation — done Friday evening over SSH
 
 | # | Do | Expect | Note |
 |---|---|---|---|
-| 0.0 | SSH: on the VM `ssh-keygen -t ed25519 -C claude-vm-to-machine -f ~/.ssh/id_ed25519_machine` (or tell me to run it); add the `.pub` line to the machine PC's `~/.ssh/authorized_keys`; tell me the machine's address | I can log in (read only) | — (without SSH you run 0.1–0.5 yourself and send me the output) |
-| 0.1 | Update development and build: `git pull` in the suite folder (`~/linuxcnc/configs/lcnc-suite-development` †), then `cd lcnc-webui && npm run build` (SSH after your go) | the build ends without errors; the commit is `98748fab` (or `dc9dc3e4`: the same shipped files) or later | the commit (`git log -1 --oneline`) |
-| 0.2 | **(SSH)** `lcnc-gateway/.venv/bin/python3 lcnc-gateway/venv_check.py` (#42) | `OK: numpy … from /usr/lib/…` | the output and `pip show opencv-python-headless` (version) |
-| 0.3 | **(SSH)** the var file has a line `3116 0` | present (if missing: add it, after asking) | — |
-| 0.4 | **(SSH)** the log folder: `<suite folder>/runlogs`, or `LOG_DIR` from the INI | — | the path |
-| 0.5 | **(SSH)** the machine's `lcnc_webui.hal`: `loadrt estop_latch names=webui-hb-latch`, and no `webui-safety.trip-latch` | present. The copy on GitHub is from 2026-05-29 and still has the old latch; the machine's file must be newer, since the current suite would not start with it. Please push the machine's config, so I read its real state | the file's latch lines |
+| 0.0 | SSH: on the VM `ssh-keygen -t ed25519 -C claude-vm-to-machine -f ~/.ssh/id_ed25519_machine` (or tell me to run it); add the `.pub` line to the machine PC's `~/.ssh/authorized_keys`; tell me the machine's address | I can log in (read only) | **done** 2026-11-20: `cnc@192.168.50.171` |
+| 0.1 | Update development and build: `git pull` in the suite folder (`~/linuxcnc/configs/lcnc-suite-development`), then `cd lcnc-webui && npm run build` (SSH after your go) | the build ends without errors; the commit is `98748fab` or later | **done** 2026-11-20: 1adfc403 (2026-10-23) → `98748fab`, a fast-forward; build OK in 45 s. Four weeks of changes reach the machine at once |
+| 0.2 | **(SSH)** `lcnc-gateway/.venv/bin/python3 lcnc-gateway/venv_check.py` (#42) | `OK: numpy … from /usr/lib/…` | **done**: `OK: numpy 1.24.2 from /usr/lib/python3/dist-packages/numpy`; opencv 4.13 (outside the pin) loads, used only by the camera, which is off |
+| 0.3 | **(SSH)** the var file has a line `3116 0` | present (if missing: add it, after asking) | **done**: present (0); every WebUI number of the current template is declared |
+| 0.4 | **(SSH)** the log folder: `<suite folder>/runlogs`, or `LOG_DIR` from the INI | — | **done**: no `LOG_DIR`, so `<suite folder>/runlogs` (last written 2026-10-24) |
+| 0.5 | **(SSH)** the machine's `lcnc_webui.hal`: `loadrt estop_latch names=webui-hb-latch`, and no `webui-safety.trip-latch` | present | **done**: `loadrt estop_latch names=webui-hb-latch`, no old latch. (The copy on GitHub is older: the machine's config changes are not committed. Toolsetter settings pass today's rule.) |
 
 ## 1 · Start and safety chain
 
 | # | Do | Expect | Note |
 |---|---|---|---|
-| 1.1 | `linuxcnc milling_machine_webui_development.ini` | the browser opens the UI; **no** red "safety chain incomplete" banner | a photo if a banner shows |
+| 1.1 | `linuxcnc milling_machine_webui_development.ini` | the browser opens the UI; **no** red "safety chain incomplete" banner; your settings as before (the first start of the four weeks' changes) | a photo if a banner shows; anything that looks different |
 | 1.2 | Arm → E-Stop Reset → Machine On | the order works; a control that is still closed says why at the control | — |
 | 1.3 | E-stop (Escape or the button), then Reset → On again | the machine goes off, then on again | — |
 | 1.4 | No other device has the UI open. Close the browser tab, wait 5 s, open it again | the machine goes to E-stop about 3.5 s after the tab closed (3 s grace, then the 0.5 s watchdog; 3.6 s measured on the VM sim); after reopening a red banner "SAFETY TRIPPED (…) — Acknowledge, re-Arm if needed, then E-Stop Reset" with an Acknowledge button. Arm works only after Acknowledge, then Reset, then On | a photo of the banner |
@@ -35,7 +35,7 @@ Steps marked **(SSH)** I do myself over SSH, read-only, once the key is in. Anyt
 
 | # | Do | Expect | Note |
 |---|---|---|---|
-| 2.1 | Tap a single axis Home | closed, with the reason at the control: "Homes X Y Z together (HOME_SEQUENCE -1) — Home All" (HOME_SEQUENCE −1 on all three joints †) | — |
+| 2.1 | Tap a single axis Home | closed, with the reason at the control: "Homes X Y Z together (HOME_SEQUENCE -1) — Home All" (HOME_SEQUENCE −1 on all three joints) | — |
 | 2.2 | Home All (hold) | all three axes home | — |
 | 2.3 | Unhome one axis | only that axis | — |
 
@@ -82,7 +82,7 @@ Set the work zero so that the program runs safely above the table.
 | # | Do | Expect | Note |
 |---|---|---|---|
 | 7.1 | M6 in a program or in MDI | a dialog to confirm; Confirm continues | — |
-| 7.2 | M600 at the toolsetter (the usual path; G30 0/0/0 at Z top †) | measures; the tool length in the table is new | the measured length |
+| 7.2 | M600 at the toolsetter (the usual path; G30 0/0/0 at Z top) | measures; the tool length in the table is new | the measured length |
 | 7.3 | Measure a tool from the UI (Measure Current) | as 7.2 | — |
 | 7.4 | In 6.4: count the measurements | the tool is measured **once**; the program's own M600 does not measure it again (#3116) | — |
 
@@ -96,9 +96,9 @@ The probe is in the spindle and its tool number is set. Each routine starts a fe
 | 8.2 | **Outside**, one edge of the test table (X, then Y) | the edge where it is | the values |
 | 8.3 | **Outside**, a corner of the test table (top corner) | X and Y of the corner | the values |
 | 8.4 | **Angle**, along one table edge | a small angle (the table's alignment) | the angle |
-| 8.5 | The round test piece: **Boss/Pocket** › Round Boss for a cylinder; Round Pocket for a ring (start at its edge) or Round Pocket C (start at its centre) | a plausible centre and diameter | centre, diameter |
+| 8.5 | The round test piece: **Boss/Pocket** › Round Boss for a cylinder; Round Pocket for a ring (start at its edge) or Round Pocket C (start at its centre) | a plausible centre and diameter. The moves between the touches now run at the traverse feed `#3017` (1000 mm/min); before this update the pocket routines took the number 3017 as the feed | centre, diameter |
 | 8.6 | **Calibrate** on the round test piece, only if its diameter is known precisely | the tip offset (#3036) is new | the value, the piece's diameter |
-| 8.7 | Surface scan on the test table, then compensation ON and OFF | with ON, Z follows the surface; with OFF it does not | — |
+| 8.7 | Surface scan on the test table, then compensation ON and OFF | with ON, Z follows the surface; with OFF it does not. The chosen method (e.g. Linear) now really applies; before this update it was always Cubic | the method |
 
 ## 9 · G30
 
@@ -106,7 +106,7 @@ In MANUAL or MDI: after a program the machine is in AUTO, where the read says "G
 
 | # | Do | Expect | Note |
 |---|---|---|---|
-| 9.1 | Read G30 (Refresh) | 0/0/0 †, confirmed | the values |
+| 9.1 | Read G30 (Refresh) | 0/0/0, confirmed | the values |
 | 9.2 | Use Current Position, without saving | a draft; nothing written | — |
 
 ## 10 · Load on the machine PC

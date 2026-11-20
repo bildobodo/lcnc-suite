@@ -9200,3 +9200,15 @@ Die Live-Prüfungen sind seit heute an development erledigt: live-twp mit `twp_b
   - Der Banner-Trip trägt den Grund `hal_heartbeat_timeout`.
 - Danach ist der Zustand wie vorher: Keepalive wieder an, Trip quittiert, Latch gesetzt, ein Client.
 - Die Checkliste nennt jetzt den Messwert.
+
+**Nachtrag, Schritt 0 an der Maschine per SSH** (2026-11-20 abends; Schlüssel vom Operator angelegt, `cnc@192.168.50.171`):
+- Gelesen: Debian 12, RT-Kernel 6.1.0-44, Intel N100 mit `isolcpus=2,3` — Browser und Gateway teilen sich 2 Kerne.
+- Fund: Die Suite der Maschine stand auf `1adfc403` (2026-10-23), zuletzt gezogen und gelaufen am 2026-10-24 — 573 Commits, 56 Merges hinter development.
+- 0.1 mit dem Go des Operators: `git pull --ff-only` → `98748fab` (Fast-Forward, Arbeitskopie sauber), `npm run build` OK in 45 s. LinuxCNC lief nicht und wurde nicht gestartet.
+- 0.2: `OK: numpy 1.24.2 from /usr/lib/python3/dist-packages/numpy`. opencv-python-headless 4.13.0.92 liegt außerhalb des Pins `<4.12`, lädt aber mit dem System-numpy und dient nur der Kamera, die nicht konfiguriert ist — keine Änderung an `venv_check.py`.
+- 0.3: `#3116` vorhanden; jede WebUI-Nummer der heutigen Vorlage ist deklariert.
+- 0.4: kein `LOG_DIR`, also `runlogs` im Suite-Ordner.
+- 0.5: `loadrt estop_latch names=webui-hb-latch`, kein alter Latch. Die Konfiguration der Maschine ist lokal geändert und nicht committet — daher der veraltete Stand auf GitHub.
+- Die gespeicherte Toolsetter-Sektion besteht `toolsetter_rules.setup` von `98748fab` (ein Programmstart wird nicht verweigert); jedes Laufzeit-Paket importiert im venv.
+- Sichtbar an der Maschine durch das Update in den G-Code-Routinen: Pocket-, Valley- und Pocket-Kalibrierroutinen verfahren mit `#3017` (1000 mm/min) statt der Zahl 3017 (`d4898373`); die gewählte Kompensationsmethode wirkt (`c7c02046`); der Scan hält den Override-Lock bis nach der Rückfahrt (`70eba486`); die M600-Rückkehr (`7e7eb91c`) wirkt nicht, da `#3106` = 0.
+- Die Checkliste trägt die Ergebnisse von Schritt 0 und die Hinweise bei 8.5 und 8.7.
