@@ -658,3 +658,43 @@ Der Druckpunkt liegt in beiden Fällen weiterhin bei x ≈ 601,58 px; der gehalt
 - Isolierte Kopie und eigener Mock unter der gemeinsamen Testsperre; alle eigenen Testprozesse beendet. Keine Produktänderung, kein Test/Build/Checkout im Live-Baum und kein Zugriff auf die Live-Sim.
 
 Der B2-Grundaufbau bleibt tragfähig; offen ist jetzt dieser eine zusätzliche Eintrittsweg in das Scrollen unter Druck.
+
+---
+
+## Claude · Antwort auf R414 · Anfrage R415 · 20. November 2026
+
+Den Rest von LA413-01 nehme ich an. Die Standardaktion des Browsers gehört jetzt zum Druckvertrag. Belege: [Spec](leiste-achsen.r415.stage-b.spec.ts), [Fokusfälle](leiste-achsen.r415.focus.jsonl), [Leiste](leiste-achsen.r415.strip.jsonl) und die Zusammenfassung der [Läufe](leiste-achsen.r415.runs.txt).
+
+### Vertrag
+
+**Solange ein Druck seinen Abschluss schuldet:**
+- **Tab und Shift+Tab** übernimmt die Leiste: `preventDefault`, dann Fokus auf den nächsten bzw. vorigen Tab-Halt mit `preventScroll`. Das Ins-Bild-Holen wird wie bisher bis nach dem Loslassen vorgemerkt.
+  - **Tab-Folge:** Die Folge der Tab-Halte ist die DOM-Folge. Die App hat keinen positiven `tabindex` (geprüft per Suche über `src/`).
+  - **Am Dokumentende** gibt es keinen nächsten Halt; dann bleibt Tab beim Browser.
+- **Jeder programmatische Fokus** nimmt `preventScroll`. Das betrifft die Pfeile einer Auswahlgruppe, `returnFocusTo` und jeden anderen `focus()`-Aufruf. In `src/` stehen 35 `.focus(`-Stellen.
+  - **Im Prototyp** geschieht das durch eine Hülle um `HTMLElement.prototype.focus`. Im Bau ist es eine benannte Hilfsfunktion, die die Leiste und `choiceGroup.ts` rufen. Für `returnFocusTo` gilt, dass seine Rückgabe ohnehin erst nach dem Klick landet.
+  - **Der Wächter** für den Bau zählt die Stellen, die unter einem Druck fokussieren können.
+- **Prüfung beim Loslassen:** Die Freigabe prüft den aktuellen Druck- und Fokuszustand. Eine neuere Bedienung verwirft den alten Auftrag (bestehender Fall „später gewechselter Fokus“).
+- **Der Druckbesitzer im Bau** ist `heldThroughPress`, je Zeiger. Der Prototyp nimmt die Menge der gedrückten Zeiger.
+
+### Wächter, rot vor und grün nach der Korrektur
+
+Dein Fall: TWP 1280, F4, Scrollanfang. Der erste Setup-Knopf hat den Fokus, der zweite liegt ganz rechts außerhalb. X+ im Jog-Feld wird mit der Maus gehalten, dann einmal Tab.
+
+| Browser | ohne Tab-Übernahme (Stand R414) | mit Tab-Übernahme |
+|---|---|---|
+| Chromium, Touch | Scroll 0 → **490** unter dem Druck, X+ 564,3 → **74,3** px | 0 → 0, X+ bleibt bei 564,3. Nach dem Loslassen 78 px gescrollt; das Ziel endet an der Fensterkante (1271). |
+| Firefox 160, Desktop | 0 → **480,4**, X+ 564,3 → **84,0** | 0 → 0, X+ bleibt. Nach dem Loslassen 67,8 px; das Ziel endet bei 1271. |
+
+- **Der Fokus** landet in beiden Fällen unter dem Druck auf dem Ziel.
+- **Die übrigen Fälle bleiben grün:**
+  - die 9 Leistenfälle je Browser;
+  - die 5 Fälle für den Safety-Raum;
+  - dein Auswahlfeld-Fall (657 → 657);
+  - Tab auf ein halb verdecktes Ziel;
+  - gehaltener Zeiger mit späterem Fokuswechsel.
+- **Ergebnis:** Chromium 18 von 18, Firefox 17 von 17; der Auswahlfeld-Fall entfällt in Firefox mangels Auswahlfeld. Die Variante ohne Tab-Übernahme fällt nur an diesem einen Fall durch.
+
+### Erbeten
+
+`agreement` oder `findings` zu Stufe B.

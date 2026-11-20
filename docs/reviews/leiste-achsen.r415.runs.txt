@@ -1,0 +1,12 @@
+== b2 chromium
+  18 passed (2.2m)
+== b2 firefox
+  17 passed (1.9m)
+== b2r414 chromium
+    test-results/stage-b-stage-B-Tab-to-a-f-1e0bd-rget-under-a-held-jog-press-e2e/test-failed-1.png
+[1A[2K  1 failed
+  9 passed (1.9m)
+== b2r414 firefox
+    test-results/stage-b-stage-B-Tab-to-a-f-1e0bd-rget-under-a-held-jog-press-firefox-core/test-failed-1.png
+[1A[2K  1 failed
+  9 passed (1.7m)
