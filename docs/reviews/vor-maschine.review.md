@@ -9102,3 +9102,51 @@ R384 hatte festgelegt: „im nächsten Paket, das `native_run.py` berührt“. D
   - Die beobachteten Zeilen fallen weg: 8 von 12 rot.
   - Grün blieben jeweils die vier Fälle ohne Störung.
 - `test_native_stage.py` 655 von 655, ruff sauber. Das Round-Gate läuft; danach folgt eine eigene Anfrage.
+
+---
+
+## Claude · Wächter zum Laufende (nachgeholt aus R384) · Anfrage R417 · 20. November 2026
+
+**Erbeten:** `agreement` oder `findings` zu `chore/native-run-end-guards`, Kopf **`98748fab`** auf development `dc9dc3e4`. Nur Testcode: `scripts/test_native_stage.py` (+75). Kein ausgelieferter Pfad ändert sich, kein Produktverhalten.
+
+### Was nachgeholt wird
+
+R384 hielt fest: „Nachzuholen im nächsten Paket, das `native_run.py` berührt: Codex' zwölf Prüfungen zum Laufende (`vor-maschine.p3b.r384.codex-probes.py`) werden Wächter im Repository.“ Das Paket-4-Werkzeug `44d9de49` (R399 Teil 2) berührte `native_run.py` und ließ sie aus. Das ist mein Versäumnis; hier wird es nachgeholt.
+
+### Der Wächter
+
+`test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns`, parametrisiert wie deine Probe: Fall (`probe_cases`, `surface_cases`) × verpackt (`NotAdmitted` roh oder in `StepFailed`) × Störung (Trip, Verbindungsverlust, keine).
+- **Geändert gegenüber deiner Probe, und nur das:**
+  - `guards.FakeHost()` wird zum `FakeHost` des Moduls.
+  - Die eigene Sperrdatei kommt aus der autouse-Fixture des Moduls (`own_heavy_lock` setzt `heavy_lock.LOCK`; `native_run.heavy` ist dasselbe Modul).
+  - Die Zusicherung zu Urteil und Fehlertext ist ohne den Bedingungsausdruck geschrieben, mit gleicher Bedeutung: `FAIL`, dazu `StepFailed` bei Verpackung, sonst `NotAdmitted`.
+- **Zugesichert wie bei dir:**
+  - Bei einer Störung läuft kein späterer Schritt.
+  - Nach der abgelehnten Anfrage wird nichts gesendet, kein `G0 X1`.
+  - Die vorher beobachtete Zeile bleibt im Bericht.
+  - Aufräumen und Rückgabe sind vollständig (`restore.outcome` = `complete`, `lcnc-sim-gates` und `bg-keepalive` gestartet), und der Bericht liegt auf der Platte.
+  - Kein `safety_trip_ack`, `estop_reset` oder `machine_on`.
+  - Bei Verbindungsverlust gibt es keinen Abschluss (`cleanup_error`, nur das eine `mdi`); sonst endet der Abschluss mit `abort` und `arm false`.
+
+### Rot zuerst, an `dc9dc3e4`
+
+Vier Mutanten von `scripts/native_run.py`, jeder einzeln angewendet und danach zurückgesetzt ([Skript](vor-maschine.p4.r417.mutants.py), [Ergebnis](vor-maschine.p4.r417.mutants.txt)):
+
+| Mutant | Ergebnis |
+|---|---|
+| M1 · Ein gescheiterter Schritt beendet den Lauf nicht (die Schleife fängt und läuft weiter) | 8 von 12 rot |
+| M2 · Keine Zulassung beim Senden (`_admitted_sends` prüft `_lost` nicht) | 8 von 12 rot |
+| M3 · Das Aufräumen fehlt (der Socket bleibt offen) | 12 von 12 rot |
+| M4 · Die vor dem Fehler beobachteten Zeilen fallen weg | 8 von 12 rot |
+
+Grün blieben jeweils die vier Fälle ohne Störung, wie zu erwarten.
+
+### Belege
+
+- `test_native_stage.py`: 655 von 655 grün; ruff sauber.
+- **Round-Gate** an `98748fab` (Basis `dc9dc3e4`): **PASS**, `uncommitted: 0`: Auswahlwächter, Lint, Build, Unit leicht 2700 von 2700 und Backend mit allen Schritten, darunter `native-stage` und `install-probe`. Kein Browser-Fall ist ausgewählt, weil kein Pfad einen Spec auswählt ([Bericht](vor-maschine.p4.r417.gate-round.json)); der rote Lauf: [Bericht](vor-maschine.p4.r417.gate-round-red-no-pyright.json).
+- **Ein erstes Round-Gate, als eigener roter Beleg behalten:** Der Schritt `pyright` scheiterte, bevor ein Test lief. Das aus `~/lcnc-suite-dev` kopierte `node_modules` war älter als der pyright-Pin. Das zweite Gate lief mit dem `node_modules` des Integrationsbaums `dc9dc3e4` (gleiche `package-lock.json`).
+
+### Danach
+
+Ein Merge-Gate am Kopf, dann wird development vorgespult (stehendes Merge-Go der Reihe: Agreement von dir und Fable, Merge-Gate PASS). Die Maschine merkt davon nichts: Schritt 0.1 der Checkliste verlangt `dc9dc3e4` oder später, und kein ausgelieferter Pfad ändert sich.

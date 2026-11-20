@@ -1,0 +1,5 @@
+RED  M1 a failed step does not end the run (the loop goes on): 8 failed, 4 passed, 643 deselected in 0.62s
+RED  M2 the admission is not judged at the send: 8 failed, 4 passed, 643 deselected in 0.62s
+RED  M3 the cleanup is skipped (the client's socket stays open): 12 failed, 643 deselected in 0.88s
+RED  M4 the rows observed before the failure are dropped: 8 failed, 4 passed, 643 deselected in 0.63s
+restored: 12 passed, 643 deselected in 0.09s

@@ -1,0 +1,116 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "dc9dc3e4c29d3e90545474386d7f5f34fff50a3a",
+  "head": "98748fab420d1da6db7c1b4580e1c81bba314055",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [],
+      "reasons": [
+        "no path selects a browser spec"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/test_native_stage.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "heavy_lock_wait_s": 0.0,
+  "verdict": "FAIL",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/round-gate-re.service",
+    "cpu_s": 365,
+    "memory_peak_mb": 2193
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-rg/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 4
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 14
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/rgre/gate-round.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-rg/scripts/test_select/vitest_options_reporter.mjs",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 55,
+      "files": 171,
+      "tests": 2700,
+      "passed": 2700,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2700
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-rg/scripts/test_suite.py offline --component backend --out-dir /home/cnc/rgre/gate-round.logs/backend --run-id backend-cddfb787-0487-49c3-9b18-48c8a772c18f",
+      "status": "FAIL",
+      "exit": 1,
+      "seconds": 0,
+      "run": "backend-cddfb787-0487-49c3-9b18-48c8a772c18f"
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "browser",
+      "reason": "no path selects a browser spec"
+    },
+    {
+      "check": "firefox-core",
+      "reason": "no path selects the Firefox core"
+    },
+    {
+      "check": "coverage",
+      "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+    }
+  ],
+  "pending": []
+}
