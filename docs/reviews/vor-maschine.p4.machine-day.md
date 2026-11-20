@@ -7,6 +7,8 @@ Each step has three columns: **Do**, **Expect** and **Note**. Record one result 
 - Every move with a hand on the E-stop.
 - Programs run in the air, Z up.
 
+Values marked † come from the machine's config repo on GitHub, which is older than the machine (HAL and INI from 2026-05-29). If the machine shows something else, note the difference; it is no FAIL.
+
 Steps marked **(SSH)** I do myself over SSH, read-only, once the key is in. Anything that changes the install or can move waits for your go, and moves only with you at the machine.
 
 ## 0 · Preparation (the day before, or before power-on)
@@ -14,7 +16,7 @@ Steps marked **(SSH)** I do myself over SSH, read-only, once the key is in. Anyt
 | # | Do | Expect | Note |
 |---|---|---|---|
 | 0.0 | SSH: on the VM `ssh-keygen -t ed25519 -C claude-vm-to-machine -f ~/.ssh/id_ed25519_machine` (or tell me to run it); add the `.pub` line to the machine PC's `~/.ssh/authorized_keys`; tell me the machine's address | I can log in (read only) | — (without SSH you run 0.1–0.5 yourself and send me the output) |
-| 0.1 | Update development and build: `git pull` in the suite folder (`~/linuxcnc/configs/lcnc-suite-development`), then `cd lcnc-webui && npm run build` (SSH after your go) | the build ends without errors; the commit is `dc9dc3e4` or later | the commit (`git log -1 --oneline`) |
+| 0.1 | Update development and build: `git pull` in the suite folder (`~/linuxcnc/configs/lcnc-suite-development` †), then `cd lcnc-webui && npm run build` (SSH after your go) | the build ends without errors; the commit is `98748fab` (or `dc9dc3e4`: the same shipped files) or later | the commit (`git log -1 --oneline`) |
 | 0.2 | **(SSH)** `lcnc-gateway/.venv/bin/python3 lcnc-gateway/venv_check.py` (#42) | `OK: numpy … from /usr/lib/…` | the output and `pip show opencv-python-headless` (version) |
 | 0.3 | **(SSH)** the var file has a line `3116 0` | present (if missing: add it, after asking) | — |
 | 0.4 | **(SSH)** the log folder: `<suite folder>/runlogs`, or `LOG_DIR` from the INI | — | the path |
@@ -33,7 +35,7 @@ Steps marked **(SSH)** I do myself over SSH, read-only, once the key is in. Anyt
 
 | # | Do | Expect | Note |
 |---|---|---|---|
-| 2.1 | Tap a single axis Home | closed, with the reason at the control: "Homes X Y Z together (HOME_SEQUENCE -1) — Home All" | — |
+| 2.1 | Tap a single axis Home | closed, with the reason at the control: "Homes X Y Z together (HOME_SEQUENCE -1) — Home All" (HOME_SEQUENCE −1 on all three joints †) | — |
 | 2.2 | Home All (hold) | all three axes home | — |
 | 2.3 | Unhome one axis | only that axis | — |
 
@@ -80,7 +82,7 @@ Set the work zero so that the program runs safely above the table.
 | # | Do | Expect | Note |
 |---|---|---|---|
 | 7.1 | M6 in a program or in MDI | a dialog to confirm; Confirm continues | — |
-| 7.2 | M600 at the toolsetter (the usual path; G30 0/0/0 at Z top) | measures; the tool length in the table is new | the measured length |
+| 7.2 | M600 at the toolsetter (the usual path; G30 0/0/0 at Z top †) | measures; the tool length in the table is new | the measured length |
 | 7.3 | Measure a tool from the UI (Measure Current) | as 7.2 | — |
 | 7.4 | In 6.4: count the measurements | the tool is measured **once**; the program's own M600 does not measure it again (#3116) | — |
 
@@ -104,7 +106,7 @@ In MANUAL or MDI: after a program the machine is in AUTO, where the read says "G
 
 | # | Do | Expect | Note |
 |---|---|---|---|
-| 9.1 | Read G30 (Refresh) | 0/0/0, confirmed | — |
+| 9.1 | Read G30 (Refresh) | 0/0/0 †, confirmed | the values |
 | 9.2 | Use Current Position, without saving | a draft; nothing written | — |
 
 ## 10 · Load on the machine PC

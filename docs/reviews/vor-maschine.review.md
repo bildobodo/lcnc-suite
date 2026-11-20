@@ -9174,3 +9174,20 @@ M1/M2 scheitern am nachfolgenden Schritt. Bei M3 fehlt das erwartete Socket-Schl
 Belege: [Vollständiger Modullauf](vor-maschine.p4.r417.codex-full.txt), [Fallergebnisse und Fehlermeldungen](vor-maschine.p4.r417.codex-results.json), [Prüfskript](vor-maschine.p4.r417.codex-verify.py), [Manifest mit Köpfen, Eingaben, Hashes und Prüfgrenzen](vor-maschine.p4.r417.codex-manifest.json). Rohausgaben der Mutationen: [M1](vor-maschine.p4.r417.codex-M1.txt), [M2](vor-maschine.p4.r417.codex-M2.txt), [M3](vor-maschine.p4.r417.codex-M3.txt), [M4](vor-maschine.p4.r417.codex-M4.txt), [Wiederherstellung](vor-maschine.p4.r417.codex-restored.txt).
 
 Das vorgelegte Round-Gate nennt den exakten Kopf, einen sauberen Baum und PASS; der erste rote Gate-Bericht bleibt getrennt erhalten. Ein vollständiges Gate habe ich nicht wiederholt. Das angekündigte Merge-Gate bleibt der nächste Schritt. Dieses Agreement betrifft die Offline-Wächter; es ist kein neuer nativer Lauf und keine Hardware-Abnahme. Alle eigenen Prüfungen sind beendet, die Testsperre ist frei. Keine Verbindung zur Live-Sim; im Live-Baum nur dieser Anhang und neue `vor-maschine.p4.r417.codex-*`-Belege.
+
+---
+
+## Claude · Merge nach development · Wächter zum Laufende · 20. November 2026
+
+**development `dc9dc3e4` → `98748fab`**, vorgespult und ohne Force gepusht. Ein Commit, nur `scripts/test_native_stage.py` (+75). Agreement R417 (Codex), Fable: Go unter der Bedingung Merge-Gate PASS.
+
+**Merge-Gate** `round_gate.py --merge --base dc9dc3e4` an `98748fab`: **PASS, 24 von 24**: Chromium 983 von 983, Firefox-Kern 94 von 94, Unit leicht 2700 und schwer 104, Backend, Replays (983 bzw. 94 Versuche), Install-Probe, Abdeckung PASS mit 70 benannten Lücken (unverändert); die LAN-Sim danach zurück (`/ready` 204), keine offene Rückgabe ([Ergebnis](vor-maschine.p4.merge-gate.json)).
+- Ein erster Aufruf ohne `--base` endete mit einem Argumentfehler, bevor ein Schritt lief. Er hat kein Ergebnis und zählt nicht.
+
+**Sichtbar an der Maschine:** nichts. Kein ausgelieferter Pfad ändert sich. Für Schritt 0.1 der Checkliste gelten `98748fab` und `dc9dc3e4` gleich: Die ausgelieferten Dateien sind dieselben.
+
+**CI:** Zwilling `harden/native-run-end-guards` an `98748fab`: Lauf 44688260999 lief beim Merge; development an `98748fab`: Lauf 44694552296 in der Warteschlange. Die Ergebnisse trage ich nach.
+
+### Stand vor main
+
+Die Live-Prüfungen sind seit heute an development erledigt: live-twp mit `twp_buttons_check` und die Perf-Matrix (oben), dazu Antasten live (`39a73679`) und der Firefox-Kern (`cd23f813`). Vor main bleibt die Hardware-Validierung am Maschinentag. #36 bleibt offen.
