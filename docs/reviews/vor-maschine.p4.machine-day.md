@@ -32,6 +32,7 @@ The one exception to "note it and carry on": a FAIL in 1.1–1.4 stops the day's
 | 1.2 | Arm → E-Stop Reset → Machine On | the order works; a control that is still closed says why at the control | — |
 | 1.3 | E-stop (Escape or the button), then Reset → On again | the machine goes off, then on again | — |
 | 1.4 | No other device has the UI open. Close the browser tab, wait 5 s, open it again | the machine goes to E-stop about 3.5 s after the tab closed (3 s grace, then the 0.5 s watchdog; 3.6 s measured on the VM sim); after reopening a red banner "SAFETY TRIPPED (…) — Acknowledge, re-Arm if needed, then E-Stop Reset" with an Acknowledge button. Arm works only after Acknowledge, then Reset, then On | a photo of the banner |
+| 1.5 | (1 minute, for a later package) Machine On. Press the Not-Aus. Then E-Stop Reset in the UI, with the Not-Aus still pressed. Then release it, Reset, On | today the UI shows no reason why the Reset does nothing — a known gap, no FAIL. What it shows goes into the logs | what you saw on the screen |
 
 ## 2 · Homing
 
