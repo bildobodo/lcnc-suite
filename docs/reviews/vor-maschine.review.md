@@ -9150,3 +9150,27 @@ Grün blieben jeweils die vier Fälle ohne Störung, wie zu erwarten.
 ### Danach
 
 Ein Merge-Gate am Kopf, dann wird development vorgespult (stehendes Merge-Go der Reihe: Agreement von dir und Fable, Merge-Gate PASS). Die Maschine merkt davon nichts: Schritt 0.1 der Checkliste verlangt `dc9dc3e4` oder später, und kein ausgelieferter Pfad ändert sich.
+
+---
+
+## Codex · Review R417 · Nachgeholte Laufende-Wächter · 20. November 2026
+
+**Urteil: `agreement` für `dc9dc3e4..98748fab`.** Der Nachtrag erfüllt die aus R384 offene Übernahme der zwölf Ablaufprüfungen ins Repository. Kein neuer Befund und keine Operatorfrage in diesem Umfang.
+
+Geprüft sind der vollständige Diff (ausschließlich `scripts/test_native_stage.py`, +75), der R384-Vertrag samt Originalprobe, die verwendeten Lauf-/Fallhüllen und der Client-Abschluss sowie Anfrage und Belege. Der AST-Vergleich zur Originalprobe ist nach den benannten Anpassungen gleich; zusätzlich wandert derselbe `SimulatorClient`-Import vom Modul in die Testfunktion. Die autouse-Fixture und `native_run.heavy` verwenden nachweislich dasselbe Sperrmodul. Die zwölf Fälle werden vom bestehenden Backend-Schritt `native-stage` mit ausgeführt.
+
+**Eigene Ausführung in einer Archivkopie des exakten Kopfes unter der gemeinsamen Testsperre: 655/655 PASS**, ohne Fehler oder Skips. Beide Fallarten, beide Fehlerformen und alle drei Zustände sind enthalten. Nach jeder einzeln angewendeten Mutation wurde der Ausgangstext wiederhergestellt:
+
+| Gegenfall | Eigenes Ergebnis |
+|---|---|
+| M1: Nach dem gescheiterten Schritt weiterlaufen | 8 FAIL, 4 PASS |
+| M2: Zulassung an der Anfrage entfernen | 8 FAIL, 4 PASS |
+| M3: Client-Aufräumen überspringen | 12 FAIL |
+| M4: Bereits beobachtete Zeilen verlieren | 8 FAIL, 4 PASS |
+| Unveränderter Kopf nach allen Mutationen | 12 PASS |
+
+M1/M2 scheitern am nachfolgenden Schritt. Bei M3 fehlt das erwartete Socket-Schließen, bei M4 die bereits beobachtete Zeile; deren Indexzugriffe innerhalb der Zusicherungen werden rot. Das sind Fehler der geprüften Testkörper, keine Import-, Collection- oder Setup-Fehler. Die vier ungestörten Kontrollen bleiben bei M1/M2/M4 grün; das fehlende Aufräumen betrifft auch sie. Der ursprüngliche `native_run.py`-Inhalt ist abschließend per Hash bestätigt.
+
+Belege: [Vollständiger Modullauf](vor-maschine.p4.r417.codex-full.txt), [Fallergebnisse und Fehlermeldungen](vor-maschine.p4.r417.codex-results.json), [Prüfskript](vor-maschine.p4.r417.codex-verify.py), [Manifest mit Köpfen, Eingaben, Hashes und Prüfgrenzen](vor-maschine.p4.r417.codex-manifest.json). Rohausgaben der Mutationen: [M1](vor-maschine.p4.r417.codex-M1.txt), [M2](vor-maschine.p4.r417.codex-M2.txt), [M3](vor-maschine.p4.r417.codex-M3.txt), [M4](vor-maschine.p4.r417.codex-M4.txt), [Wiederherstellung](vor-maschine.p4.r417.codex-restored.txt).
+
+Das vorgelegte Round-Gate nennt den exakten Kopf, einen sauberen Baum und PASS; der erste rote Gate-Bericht bleibt getrennt erhalten. Ein vollständiges Gate habe ich nicht wiederholt. Das angekündigte Merge-Gate bleibt der nächste Schritt. Dieses Agreement betrifft die Offline-Wächter; es ist kein neuer nativer Lauf und keine Hardware-Abnahme. Alle eigenen Prüfungen sind beendet, die Testsperre ist frei. Keine Verbindung zur Live-Sim; im Live-Baum nur dieser Anhang und neue `vor-maschine.p4.r417.codex-*`-Belege.

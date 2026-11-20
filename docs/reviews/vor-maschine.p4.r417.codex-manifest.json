@@ -1,0 +1,87 @@
+{
+  "round": "R417",
+  "verdict": "agreement",
+  "document_head": "300c0e810cb322f1551ca25c556a550cb4b2ba84",
+  "base": "dc9dc3e4c29d3e90545474386d7f5f34fff50a3a",
+  "head": "98748fab420d1da6db7c1b4580e1c81bba314055",
+  "scope": "scripts/test_native_stage.py +75 only",
+  "archive": "/tmp/codex-r417",
+  "command": "python3 -I /tmp/codex-r417/scripts/test_support/heavy_lock.py --who codex-r417-review --wait 50 -- python3 -B /tmp/r417/verify.py",
+  "lock": "/home/cnc/claude-work/live-tier/heavy.lock",
+  "results": {
+    "full": [
+      655,
+      0
+    ],
+    "M1": [
+      12,
+      8
+    ],
+    "M2": [
+      12,
+      8
+    ],
+    "M3": [
+      12,
+      12
+    ],
+    "M4": [
+      12,
+      8
+    ],
+    "restored": [
+      12,
+      0
+    ]
+  },
+  "inputs": {
+    "vor-maschine.p3b.r384.codex-probes.py": "e89da722134c0f119748c2dec686698739d80b49190f1e7b84b3da69b8267b50",
+    "vor-maschine.p4.r417.mutants.py": "1123ec91c9258ab498e08df10b4143aa623ad6c20c02ccbcf98e3313085681e6",
+    "vor-maschine.p4.r417.mutants.txt": "886acb058bba325e8c2cac89d4bbfe62de8925759c880f301d46efa67cfed5b4",
+    "vor-maschine.p4.r417.gate-round.json": "44bcdeef669ba89e0ec4544888a2a7a764919c7b4355e091e22255cefe2275e5",
+    "vor-maschine.p4.r417.gate-round-red-no-pyright.json": "112df72d9df8e8c5e5ac349ba26b3d12b1b897c20ac0c5ee342a7fb067c0a99a"
+  },
+  "outputs": {
+    "vor-maschine.p4.r417.codex-verify.py": {
+      "sha256": "0d82e508e409506da0957e930e23df3899a7da81282e112ea5dee37b1eb99cc3",
+      "source": "/tmp/r417/verify.py"
+    },
+    "vor-maschine.p4.r417.codex-results.json": {
+      "sha256": "163954a650fd12382144dffeec197d57c20c2fe47cc0bcbe0ad7d0d455055c74",
+      "source": "/tmp/r417/results.json"
+    },
+    "vor-maschine.p4.r417.codex-full.txt": {
+      "sha256": "5a5cccb448dcf5d328259a5f9f4a8285c8a0796b7d80629c4c67c09f34424fc6",
+      "source": "/tmp/r417/full.txt"
+    },
+    "vor-maschine.p4.r417.codex-M1.txt": {
+      "sha256": "97ea9cde29e9ab74bfd4c0d16d762967ebb55614431329e8b2add483c905f0e0",
+      "source": "/tmp/r417/M1.txt"
+    },
+    "vor-maschine.p4.r417.codex-M2.txt": {
+      "sha256": "def34f8d6405f7a8638c15a1c8ec8cbc75693b8ee1c187b92fbfb46989e743e3",
+      "source": "/tmp/r417/M2.txt"
+    },
+    "vor-maschine.p4.r417.codex-M3.txt": {
+      "sha256": "87336ecb40b352cc96c1bb74adb8a07ee54de2561c97839cde3da4c4f370c48b",
+      "source": "/tmp/r417/M3.txt"
+    },
+    "vor-maschine.p4.r417.codex-M4.txt": {
+      "sha256": "dc79704df06a5e956e845d07717ac4243b326e4b3adef2821b56c0b9a724f39f",
+      "source": "/tmp/r417/M4.txt"
+    },
+    "vor-maschine.p4.r417.codex-restored.txt": {
+      "sha256": "fbf888b6a0d12aea36fabe0389288d2f253c122262399a5798c1df5f9b184aa7",
+      "source": "/tmp/r417/restored.txt"
+    }
+  },
+  "limits": [
+    "Offline only: real run/case wrappers/client close with FakeHost and local fake socket; no live sim or browser connection.",
+    "No independent full round/merge gate; supplied gate metadata checked.",
+    "M3 and M4 fail by IndexError evaluating assertions for absent socket-close events or prior rows, not by setup/collection errors."
+  ],
+  "harness_notes": [
+    "Initial AST comparator stopped before tests because SimulatorClient import moved from module to test scope. Exact import relocation added to comparison.",
+    "After the completed run only the final human-readable print in verify.py was corrected from failed by assertions to failed inside the test body; logic and test execution unchanged."
+  ]
+}

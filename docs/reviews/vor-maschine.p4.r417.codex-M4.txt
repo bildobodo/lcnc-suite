@@ -1,0 +1,513 @@
+FFFFFFFF....                                                             [100%]
+=================================== FAILURES ===================================
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-probe_cases-_probe_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8e0916e0>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm0')
+case = 'probe_cases', body = '_probe_steps', wrapped = False, hazard = 'trip'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-surface_cases-_surface_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8e091220>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm1')
+case = 'surface_cases', body = '_surface_steps', wrapped = False
+hazard = 'trip'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-probe_cases-_probe_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8c8579b0>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm2')
+case = 'probe_cases', body = '_probe_steps', wrapped = True, hazard = 'trip'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-surface_cases-_surface_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8be7abe0>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm3')
+case = 'surface_cases', body = '_surface_steps', wrapped = True, hazard = 'trip'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-probe_cases-_probe_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8be7a470>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm4')
+case = 'probe_cases', body = '_probe_steps', wrapped = False
+hazard = 'disconnect'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-surface_cases-_surface_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8be68150>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm5')
+case = 'surface_cases', body = '_surface_steps', wrapped = False
+hazard = 'disconnect'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-probe_cases-_probe_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8be68f50>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm6')
+case = 'probe_cases', body = '_probe_steps', wrapped = True
+hazard = 'disconnect'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+_ test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-surface_cases-_surface_steps] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff8d4e0050>
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4307/test_a_case_that_loses_its_adm7')
+case = 'surface_cases', body = '_surface_steps', wrapped = True
+hazard = 'disconnect'
+
+    @pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+    @pytest.mark.parametrize("wrapped", [False, True])
+    @pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+    def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                       wrapped, hazard):
+        from test_support.live_session import SimulatorClient
+        c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+        wire, events = [], []
+    
+        class Socket:
+            def send(self, raw):
+                command = json.loads(raw)
+                wire.append(command)
+                c.replies.put({"cmd": command["cmd"], "ok": True})
+    
+            def close(self):
+                events.append("socket-close")
+    
+        c.ws = Socket()
+    
+        def setup(ctx):
+            ctx["client"] = c
+            ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+    
+        def stub_body(ctx):
+            ctx["client"].request("mdi", text="G4 P0")
+            ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+            if hazard == "trip":
+                c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                        "safety_trip": {"id": "r384.synthetic-trip"}})
+            elif hazard == "disconnect":
+                c.error = "synthetic connection lost"
+            try:
+                ctx["client"].request("mdi", text="G0 X1")
+            except nr.NotAdmitted as exc:
+                if wrapped:
+                    raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+                raise
+            return ctx["rows"]
+    
+        monkeypatch.setattr(nr, body, stub_body)
+    
+        def later(ctx):
+            events.append("later-step")
+            return [{"case": "later", "status": "PASS"}]
+    
+        host = FakeHost()
+        report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+        assert report["restore"]["outcome"] == "complete", report
+        assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+        assert events[-1] == "socket-close" and "request" not in vars(c)
+>       assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+               ^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+test_native_stage.py:7566: IndexError
+=========================== short test summary info ============================
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-probe_cases-_probe_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-surface_cases-_surface_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-probe_cases-_probe_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-surface_cases-_surface_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-probe_cases-_probe_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-surface_cases-_surface_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-probe_cases-_probe_steps]
+FAILED test_native_stage.py::test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-surface_cases-_surface_steps]
+8 failed, 4 passed, 643 deselected in 0.93s

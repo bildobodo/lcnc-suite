@@ -1,0 +1,285 @@
+{
+  "r384_ast_equal_after_named_adaptations": true,
+  "lock_module_identity": "same heavy_lock module",
+  "source_sha256": "4b8b2a993a31cd9a445515730a8faca881585f1883899e675a026c5ceb9638b5",
+  "runs": [
+    {
+      "label": "full",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "test_native_stage.py",
+        "--junitxml=/tmp/r417/full.xml"
+      ],
+      "exit": 0,
+      "tests": 655,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "label": "M1",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "test_native_stage.py",
+        "--junitxml=/tmp/r417/M1.xml",
+        "-k",
+        "loses_its_admission"
+      ],
+      "exit": 1,
+      "tests": 12,
+      "failed": 8,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        }
+      ]
+    },
+    {
+      "label": "M2",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "test_native_stage.py",
+        "--junitxml=/tmp/r417/M2.xml",
+        "-k",
+        "loses_its_admission"
+      ],
+      "exit": 1,
+      "tests": 12,
+      "failed": 8,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' not in ['later-step', 'socket-close'])"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert 'NotAdmitted' in 'TransportLost: synthetic connection lost'"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert 'NotAdmitted' in 'TransportLost: synthetic connection lost'"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert 'StepFailed' in 'TransportLost: synthetic connection lost'"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert 'StepFailed' in 'TransportLost: synthetic connection lost'"
+        }
+      ]
+    },
+    {
+      "label": "M3",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "test_native_stage.py",
+        "--junitxml=/tmp/r417/M3.xml",
+        "-k",
+        "loses_its_admission"
+      ],
+      "exit": 1,
+      "tests": 12,
+      "failed": 12,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[None-False-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' == 'socket-close'\n  \n  - socket-close\n  + later-step)"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[None-False-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' == 'socket-close'\n  \n  - socket-close\n  + later-step)"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[None-True-probe_cases-_probe_steps]",
+          "message": "AssertionError: assert ('later-step' == 'socket-close'\n  \n  - socket-close\n  + later-step)"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[None-True-surface_cases-_surface_steps]",
+          "message": "AssertionError: assert ('later-step' == 'socket-close'\n  \n  - socket-close\n  + later-step)"
+        }
+      ]
+    },
+    {
+      "label": "M4",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "test_native_stage.py",
+        "--junitxml=/tmp/r417/M4.xml",
+        "-k",
+        "loses_its_admission"
+      ],
+      "exit": 1,
+      "tests": 12,
+      "failed": 8,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-False-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[trip-True-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-False-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-probe_cases-_probe_steps]",
+          "message": "IndexError: list index out of range"
+        },
+        {
+          "case": "test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns[disconnect-True-surface_cases-_surface_steps]",
+          "message": "IndexError: list index out of range"
+        }
+      ]
+    },
+    {
+      "label": "restored",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "test_native_stage.py",
+        "--junitxml=/tmp/r417/restored.xml",
+        "-k",
+        "loses_its_admission"
+      ],
+      "exit": 0,
+      "tests": 12,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": []
+    }
+  ]
+}
