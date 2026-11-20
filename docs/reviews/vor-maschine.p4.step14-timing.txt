@@ -1,0 +1,10 @@
+Failed to reset failed state of unit bg-keepalive.service: Unit bg-keepalive.service not loaded.
+Running as unit: bg-keepalive.service; invocation ID: 8b68a88b1f11483da3f06803f1bf8099
+before: fault-out TRUE emc-enable-in FALSE
+estop_reset {'type': 'reply', 'cmd': 'estop_reset', 'ok': True}
+latch cleared after 0.0010977131314575672 s
+keepalive stopped → connected FALSE after 3.1 s; latch TRUE after 3.61 s (from the stop)
+after: emc-enable-in FALSE
+banner trip: {'reason': 'hal_heartbeat_timeout', 'id': 'e0cadb25-1'}
+ack {'type': 'reply', 'ok': True}
+end: fault-out TRUE emc-enable-in FALSE

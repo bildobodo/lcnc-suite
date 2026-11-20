@@ -9191,3 +9191,12 @@ Das vorgelegte Round-Gate nennt den exakten Kopf, einen sauberen Baum und PASS; 
 ### Stand vor main
 
 Die Live-Prüfungen sind seit heute an development erledigt: live-twp mit `twp_buttons_check` und die Perf-Matrix (oben), dazu Antasten live (`39a73679`) und der Firefox-Kern (`cd23f813`). Vor main bleibt die Hardware-Validierung am Maschinentag. #36 bleibt offen.
+
+**Nachtrag, Schritt 1.4 einmal gemessen** (LAN-Sim an `dc9dc3e4`, nur der Keepalive verbunden; [Skript](vor-maschine.p4.step14-timing.py), [Ausgabe](vor-maschine.p4.step14-timing.txt)):
+- Vorbereitung: Der Latch wurde von einem bewaffneten Client zurückgesetzt.
+- Messung: Der Keepalive wurde gestoppt, gelesen wurde direkt am HAL mit `halcmd`, ohne Client.
+  - `webui-safety.connected` fällt nach **3,1 s**.
+  - `webui-hb-latch.fault-out` fällt nach **3,6 s**.
+  - Der Banner-Trip trägt den Grund `hal_heartbeat_timeout`.
+- Danach ist der Zustand wie vorher: Keepalive wieder an, Trip quittiert, Latch gesetzt, ein Client.
+- Die Checkliste nennt jetzt den Messwert.
