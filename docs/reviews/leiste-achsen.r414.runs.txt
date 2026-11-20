@@ -1,0 +1,39 @@
+== b2 chromium
+    test-results/stage-b-stage-B-pointer-pr-03da3-PM-field-at-the-right-edge--e2e/test-failed-1.png
+    test-results/stage-b-stage-B-Tab-during-31db6-ter-focus-is-not-taken-back-e2e/test-failed-1.png
+[1A[2K  2 failed
+  16 passed (2.2m)
+== b2 firefox
+    test-results/stage-b-stage-B-pointer-pr-03da3-PM-field-at-the-right-edge--firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-Tab-during-31db6-ter-focus-is-not-taken-back-firefox-core/test-failed-1.png
+[1A[2K  2 failed
+  15 passed (1.8m)
+== b2old chromium
+    test-results/stage-b-stage-B-pointer-pr-5db82-scroll-select-under-Safety--e2e/test-failed-1.png
+    test-results/stage-b-stage-B-pointer-pr-03da3-PM-field-at-the-right-edge--e2e/test-failed-1.png
+[1A[2K  2 failed
+  10 passed (1.9m)
+== b2old firefox
+    test-results/stage-b-stage-B-pointer-pr-03da3-PM-field-at-the-right-edge--firefox-core/test-failed-1.png
+[1A[2K  1 failed
+  10 passed (1.7m)
+== b2occ chromium
+    test-results/stage-b-stage-B-b2occ-XYZAC1600-e2e/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-TWP1600-e2e/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-XYZABC1920-e2e/test-failed-1.png
+[1A[2K  9 failed
+== b2occ firefox
+    test-results/stage-b-stage-B-b2occ-XYZAC1600-firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-TWP1600-firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-XYZABC1920-firefox-core/test-failed-1.png
+[1A[2K  9 failed
+== b2 chromium
+  17 passed (2.2m)
+== b2 firefox
+  16 passed (1.8m)
+== b2old chromium
+    test-results/stage-b-stage-B-pointer-pr-5db82-scroll-select-under-Safety--e2e/test-failed-1.png
+[1A[2K  1 failed
+  10 passed (1.9m)
+== b2old firefox
+  10 passed (1.7m)

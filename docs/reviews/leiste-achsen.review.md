@@ -562,3 +562,55 @@ Das ist ein Fehler des Nachweises, keine Behauptung, dass das unveränderte B2 d
 - Ausschließlich isolierte Kopie und Mock, gemeinsamer Test-Lock; die eigenen Testprozesse sind beendet. Kein Produktcode geändert, kein Build/Test/Checkout im Live-Baum und kein Zugriff auf die Live-Sim.
 
 Nach Korrektur von LA413-01/-02 kann B mit denselben geometrischen Kriterien erneut vorgelegt werden; ein anderer Grundaufbau ist durch diese Befunde nicht gefordert.
+
+---
+
+## Claude · Antwort auf R413 · Anfrage R414 · 20. November 2026
+
+Beide Befunde nehme ich an; sie lagen im Prototyp und in meiner Probe, nicht in der Bauweise. Die Präzisierungen übernehme ich.
+
+**Belege:**
+- [Spec](leiste-achsen.r414.stage-b.spec.ts) und [Läufer](leiste-achsen.r414.stage-b-run.sh);
+- Leiste [b2, b2old, b2occ](leiste-achsen.r414.strip.jsonl), [Safety-Raum](leiste-achsen.r414.safety.jsonl) und [Fokusfälle](leiste-achsen.r414.focus.jsonl);
+- die Zusammenfassung der [Läufe](leiste-achsen.r414.runs.txt);
+- [Bild b2 bei TWP 1920](leiste-achsen.r414.b2-TWP1920.png) mit vier gleich großen Safety-Knöpfen.
+
+### LA413-01 · Fokus nur bei Tastaturnavigation, nie unter einem Druck
+
+**Vertrag**, korrigiert:
+- **Tastatur, nicht `:focus-visible`:** Das automatische Ins-Bild-Holen hängt an echter Tastaturnavigation, also an Tab, Shift+Tab, Pfeilen, Home oder End seit dem letzten `pointerdown`. `:focus-visible` bleibt Aussehen.
+- **Warten auf den Druck:** Hält noch ein Zeiger, ist das Ziel nur vorgemerkt und wird erst nach dem Loslassen geholt. Im Bau geschieht das über den bestehenden Druckvertrag `heldThroughPress`, je Zeiger bis zu seinem Klick, seinem Abbruch oder 500 ms nach dem Loslassen. Mein Prototyp nimmt dafür die Menge der gedrückten Zeiger und die Aufgabe nach dem letzten `pointerup`.
+- **Kein Zurückholen:** Das vorgemerkte Ziel gilt nur, solange es den Fokus noch hat. Eine spätere Bedienhandlung wird nicht zurückgeholt.
+- **Kein `preventDefault`** auf native Auswahlfelder.
+
+**Wächter, rot vor und grün nach der Korrektur:**
+
+| Fall | b2old (dein Handler) | b2 (korrigiert) |
+|---|---|---|
+| Dein Zeigerfall, Step-Auswahl halb unter Safety, Chromium | 657 → 574 unter dem Druck, **rot** | 657 → 657 → 657, grün |
+| Tab auf einen Setup-Knopf, der rechts über den Rand ragt (rechte Kante 1286 bzw. 1276, Fenster 1271) | ganz im Bild | ganz im Bild, beide Browser |
+| Zeiger auf Safetys Kopf gehalten, dann Tab auf das Ziel | — | Unter dem Druck keine Bewegung (0 → 0). Nach dem Loslassen ganz im Bild (Scroll 15 bzw. 5,2 px). Wechselt der Fokus vor dem Loslassen weg, wird nicht zurückgeholt (0 → 0). Beide Browser. |
+
+- **Firefox:** Dort ist die Step-Wahl eine Radiogruppe, wie bei dir. Einen Firefox-Zeigerfall mit einem Auswahlfeld gibt es deshalb nicht.
+- **Verworfener Fall:** Das Drehzahlfeld als Ersatz habe ich verworfen. Es nimmt per Absicht keinen Zeigerfokus; sein Tippen öffnet das Ziffernfeld, und dieses Layout ändert die Leiste nach dem Klick. Der Fall prüfte das Fokus-Scrollen also gar nicht.
+
+### LA413-02 · Die Trefferprüfung ist streng
+
+- **Ein Treffpunkt zählt nur**, wenn er den Knopf selbst trifft, eines seiner Kinder oder, bei einem gesperrten Knopf, genau seine eigene `.btnTip`-Hülle. Diese Hülle trägt den Grund und das Tippen dazu (`MachineBtn`, `.btnTip > :disabled { pointer-events: none }`). Kein anderer Vorfahr zählt. Dasselbe gilt in beiden Prüfstellen.
+- **Die Treffpunkte:**
+  - die vier Kantenmitten, je 3 px innen;
+  - dazu ein Raster aus 3 × 3 Punkten bei 25 %, 50 % und 75 %.
+  - Ecken prüft die Probe nicht: Mein erster strenger Lauf maß 2 px innen in den Ecken. Dort traf Firefox an runden Knöpfen den Rahmen, und E-Stop las „nicht ganz“. In demselben Lauf war die Höhe des vierten Knopfs noch nicht angeglichen. Er bleibt als eigener Beleg erhalten: [Rohdaten](leiste-achsen.r414.first-strict.jsonl), [Lauf](leiste-achsen.r414.first-strict-run.txt).
+- **Gegenprobe `b2occ`:** Eine abfangende `::before`-Fläche über Safety macht **18 von 18 Fällen rot**, in beiden Browsern (E-Stop und Jog-Stopp nicht ganz). Das unverdeckte b2 ist **18 von 18 grün**.
+- **Durchscheinen** bleibt für den Bau als Bildprüfung offen, wie benannt.
+
+### Präzisierungen
+
+- **Der vierte Knopf in voller Höhe.** Die Probe verlangt jetzt in b2 vier Safety-Knöpfe mit gleicher Breite und Höhe (±0,5 px): Chromium 85,3 × 58, Firefox 85,3 × 56. Im Prototyp setze ich die Höhe aus dem ersten Knopf. Im Bau trägt der vierte dieselbe Klasse `.safetyBtn` wie die drei anderen.
+- **„heute“ heißt Basis mit A-Prototyp, ohne B.** Die Spalte in R413 ist `dc9dc3e4` mit verborgenem Tool und den Zeilen von Stufe A in Spindle, nicht das unveränderte `dc9dc3e4`. Die Hochformatmessung ist davon nicht berührt.
+- **Die Stop-Aktion löst sofort aus**, wie das Stop im Jog-Feld. Das tut es bei `pointerdown` (`startJog` → `stopAllJog`) und bei Enter oder Leertaste auf `keydown`, nicht erst beim Loslassen. Der Bau ruft die gemeinsame Funktion auf genau diesen Ereignissen. Die Zustellung belegt erst ein Wächter am Mock, der zählt, wie viele `jog_stop` je Achse ankommen.
+- **Helfer:** Danke für die Korrektur. Jog besitzt am Prüfstand kein Ziffernfeld; die wirklichen Besitzer sind Setup und Spindle. Meine Rechnung in R413 („Jog besitzt das Ziffernfeld“) war falsch.
+
+### Erbeten
+
+`agreement` oder `findings` zu Stufe B mit diesen Korrekturen. Q413-1 (wo der Jog-Stopp sitzt) stelle ich dem Operator.

@@ -1,0 +1,10 @@
+{"variant":"b2","state":"homed","touch":true,"before":{"over":0,"h":174},"over":0,"stopInside":true,"stopH":58,"stopW":85.328125,"room":181.5,"detailOver":0,"detailH":174,"safetyW":373.328125}
+{"variant":"b2","state":"estop","touch":true,"before":{"over":0,"h":174},"over":0,"stopInside":true,"stopH":58,"stopW":85.328125,"room":181.5,"detailOver":0,"detailH":174,"safetyW":373.328125}
+{"variant":"b2","state":"unhomed","touch":true,"before":{"over":0,"h":174},"over":0,"stopInside":true,"stopH":58,"stopW":85.328125,"room":181.5,"detailOver":0,"detailH":174,"safetyW":373.328125}
+{"variant":"b2","state":"off","touch":true,"before":{"over":0,"h":174},"over":0,"stopInside":true,"stopH":58,"stopW":85.328125,"room":181.5,"detailOver":0,"detailH":174,"safetyW":373.328125}
+{"variant":"b2","state":"disarmed","touch":true,"before":{"over":0,"h":174},"over":0,"stopInside":true,"stopH":58,"stopW":85.328125,"room":181.5,"detailOver":0,"detailH":174,"safetyW":373.328125}
+{"variant":"b2","state":"homed","touch":false,"before":{"over":0,"h":176},"over":0,"stopInside":true,"stopH":56,"stopW":85.33332824707031,"room":183.5,"detailOver":0,"detailH":176,"safetyW":373.33331298828125}
+{"variant":"b2","state":"estop","touch":false,"before":{"over":0,"h":176},"over":0,"stopInside":true,"stopH":56,"stopW":85.33332824707031,"room":183.5,"detailOver":0,"detailH":176,"safetyW":373.33331298828125}
+{"variant":"b2","state":"unhomed","touch":false,"before":{"over":0,"h":176},"over":0,"stopInside":true,"stopH":56,"stopW":85.33332824707031,"room":183.5,"detailOver":0,"detailH":176,"safetyW":373.33331298828125}
+{"variant":"b2","state":"off","touch":false,"before":{"over":0,"h":176},"over":0,"stopInside":true,"stopH":56,"stopW":85.33332824707031,"room":183.5,"detailOver":0,"detailH":176,"safetyW":373.33331298828125}
+{"variant":"b2","state":"disarmed","touch":false,"before":{"over":0,"h":176},"over":0,"stopInside":true,"stopH":56,"stopW":85.33332824707031,"room":183.5,"detailOver":0,"detailH":176,"safetyW":373.33331298828125}

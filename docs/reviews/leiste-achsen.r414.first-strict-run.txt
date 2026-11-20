@@ -1,0 +1,30 @@
+== b2 chromium
+    test-results/stage-b-stage-B-b2-XYZABC1920-e2e/test-failed-1.png
+    test-results/stage-b-stage-B-Tab-brings-a-partly-covered-target-in-e2e/test-failed-1.png
+[1A[2K  10 failed
+  8 passed (2.5m)
+== b2 firefox
+    test-results/stage-b-stage-B-b2-XYZABC1920-firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-Tab-brings-a-partly-covered-target-in-firefox-core/test-failed-1.png
+[1A[2K  10 failed
+  7 passed (2.2m)
+== b2old chromium
+    test-results/stage-b-stage-B-b2old-XYZABC1920-e2e/test-failed-1.png
+    test-results/stage-b-stage-B-Tab-brings-a-partly-covered-target-in-e2e/test-failed-1.png
+[1A[2K  10 failed
+  2 passed (2.3m)
+== b2old firefox
+    test-results/stage-b-stage-B-b2old-XYZABC1920-firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-Tab-brings-a-partly-covered-target-in-firefox-core/test-failed-1.png
+[1A[2K  10 failed
+  1 passed (2.0m)
+== b2occ chromium
+    test-results/stage-b-stage-B-b2occ-XYZAC1600-e2e/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-TWP1600-e2e/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-XYZABC1920-e2e/test-failed-1.png
+[1A[2K  9 failed
+== b2occ firefox
+    test-results/stage-b-stage-B-b2occ-XYZAC1600-firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-TWP1600-firefox-core/test-failed-1.png
+    test-results/stage-b-stage-B-b2occ-XYZABC1920-firefox-core/test-failed-1.png
+[1A[2K  9 failed
