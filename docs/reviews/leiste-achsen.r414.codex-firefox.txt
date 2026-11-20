@@ -1,0 +1,19 @@
+[1A[2K[WebServer] (node:3575072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 4 tests using 1 worker
+
+[1A[2K(node:3575107) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3575107) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/4] [firefox-core] › e2e/r414-codex.spec.ts:21:54 › R414 held Tab partial
+[1A[2K[2/4] [firefox-core] › e2e/r414-codex.spec.ts:21:54 › R414 held Tab next
+[1A[2K[3/4] [firefox-core] › e2e/r414-codex.spec.ts:21:54 › R414 held Tab far
+[1A[2K[4/4] [firefox-core] › e2e/r414-codex.spec.ts:47:1 › R414 strict Safety overlay and fourth height
+[1A[2K  4 passed (10.3s)

@@ -1,0 +1,94 @@
+[1A[2K[WebServer] (node:3577273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:3577308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3577308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] [e2e] › e2e/r414-native-tab.spec.ts:5:36 › R414 native Tab with held Jog focus-listener false
+[1A[2K  1) [e2e] › e2e/r414-native-tab.spec.ts:5:36 › R414 native Tab with held Jog focus-listener false ─
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.boundingBox: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Jog X+', exact: true })[22m
+
+
+      19 |  await page.locator('.strip').evaluate(el=>{el.scrollLeft=0;});await settled(page);
+      20 |  const jog=page.getByRole('button',{name:'Jog X+',exact:true});
+    > 21 |  const r=(await jog.boundingBox())!;const point={x:r.x+r.width/2,y:r.y+r.height/2};
+         |                     ^
+      22 |  const measure=async()=>({
+      23 |   ...(await page.evaluate(()=>{
+      24 |    const s=document.querySelector('.strip') as HTMLElement,f=(window as any).__focusScroll;
+        at /tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts:21:21
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:3577962) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3577962) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/2] [e2e] › e2e/r414-native-tab.spec.ts:5:36 › R414 native Tab with held Jog focus-listener true
+[1A[2K  2) [e2e] › e2e/r414-native-tab.spec.ts:5:36 › R414 native Tab with held Jog focus-listener true ──
+
+    Test was interrupted.
+
+    Error: locator.boundingBox: Test ended.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Jog X+', exact: true })[22m
+
+
+      19 |  await page.locator('.strip').evaluate(el=>{el.scrollLeft=0;});await settled(page);
+      20 |  const jog=page.getByRole('button',{name:'Jog X+',exact:true});
+    > 21 |  const r=(await jog.boundingBox())!;const point={x:r.x+r.width/2,y:r.y+r.height/2};
+         |                     ^
+      22 |  const measure=async()=>({
+      23 |   ...(await page.evaluate(()=>{
+      24 |    const s=document.querySelector('.strip') as HTMLElement,f=(window as any).__focusScroll;
+        at /tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts:21:21
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [e2e] › e2e/r414-native-tab.spec.ts:5:36 › R414 native Tab with held Jog focus-listener false ──
+  1 interrupted
+    [e2e] › e2e/r414-native-tab.spec.ts:5:36 › R414 native Tab with held Jog focus-listener true ───

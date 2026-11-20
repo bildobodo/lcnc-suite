@@ -1,0 +1,217 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r411/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r411/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r414-native",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r411/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r414-native",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r411/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r414-native-tab.spec.ts",
+      "file": "r414-native-tab.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R414 native Tab with held Jog focus-listener false",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 31031,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts",
+                        "column": 21,
+                        "line": 21
+                      },
+                      "message": "Error: locator.boundingBox: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Jog X+', exact: true })\u001b[22m\n\n\n  19 |  await page.locator('.strip').evaluate(el=>{el.scrollLeft=0;});await settled(page);\n  20 |  const jog=page.getByRole('button',{name:'Jog X+',exact:true});\n> 21 |  const r=(await jog.boundingBox())!;const point={x:r.x+r.width/2,y:r.y+r.height/2};\n     |                     ^\n  22 |  const measure=async()=>({\n  23 |   ...(await page.evaluate(()=>{\n  24 |    const s=document.querySelector('.strip') as HTMLElement,f=(window as any).__focusScroll;\n    at /tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts:21:21"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-20T00:30:57.411Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r414-native-tab-R414-nativ-b70c7-ld-Jog-focus-listener-false-e2e/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "b8a58c6e47d36dd8d58c-911832b05c122650ab14",
+          "file": "r414-native-tab.spec.ts",
+          "line": 5,
+          "column": 36
+        },
+        {
+          "title": "R414 native Tab with held Jog focus-listener true",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "interrupted",
+                  "duration": 23693,
+                  "error": {
+                    "message": "Error: locator.boundingBox: Test ended.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Jog X+', exact: true })\u001b[22m\n",
+                    "stack": "Error: locator.boundingBox: Test ended.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Jog X+', exact: true })\u001b[22m\n\n    at /tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts:21:21",
+                    "location": {
+                      "file": "/tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts",
+                      "column": 21,
+                      "line": 21
+                    },
+                    "snippet": "  19 |  await page.locator('.strip').evaluate(el=>{el.scrollLeft=0;});await settled(page);\n  20 |  const jog=page.getByRole('button',{name:'Jog X+',exact:true});\n> 21 |  const r=(await jog.boundingBox())!;const point={x:r.x+r.width/2,y:r.y+r.height/2};\n     |                     ^\n  22 |  const measure=async()=>({\n  23 |   ...(await page.evaluate(()=>{\n  24 |    const s=document.querySelector('.strip') as HTMLElement,f=(window as any).__focusScroll;"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts",
+                        "column": 21,
+                        "line": 21
+                      },
+                      "message": "Error: locator.boundingBox: Test ended.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Jog X+', exact: true })\u001b[22m\n\n\n  19 |  await page.locator('.strip').evaluate(el=>{el.scrollLeft=0;});await settled(page);\n  20 |  const jog=page.getByRole('button',{name:'Jog X+',exact:true});\n> 21 |  const r=(await jog.boundingBox())!;const point={x:r.x+r.width/2,y:r.y+r.height/2};\n     |                     ^\n  22 |  const measure=async()=>({\n  23 |   ...(await page.evaluate(()=>{\n  24 |    const s=document.querySelector('.strip') as HTMLElement,f=(window as any).__focusScroll;\n    at /tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts:21:21"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-20T00:31:29.943Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r411/lcnc-webui/test-results/r414-native-tab-R414-nativ-7d939-eld-Jog-focus-listener-true-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r411/lcnc-webui/e2e/r414-native-tab.spec.ts",
+                    "column": 21,
+                    "line": 21
+                  }
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "b8a58c6e47d36dd8d58c-582daf258af6b587e342",
+          "file": "r414-native-tab.spec.ts",
+          "line": 5,
+          "column": 36
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-20T00:30:55.686Z",
+    "duration": 59087.934,
+    "expected": 0,
+    "skipped": 1,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

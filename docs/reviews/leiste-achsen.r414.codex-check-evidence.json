@@ -1,0 +1,89 @@
+{
+  "supplied": {
+    "b2Green": 18,
+    "occludedRed": 18,
+    "samplesEach": 47,
+    "safetyCases": 10,
+    "pointerSelectDelta": {
+      "old": -83,
+      "new": 0
+    }
+  },
+  "own": {
+    "overlayRejectedByBoth": true,
+    "fourEqualHeights": true,
+    "nativeTab": [
+      {
+        "browser": "e2e",
+        "newListener": false,
+        "scrollWhileHeld": 490,
+        "jogBeforeX": 564.328125,
+        "jogHeldX": 74.328125
+      },
+      {
+        "browser": "e2e",
+        "newListener": true,
+        "scrollWhileHeld": 490,
+        "jogBeforeX": 564.328125,
+        "jogHeldX": 74.328125
+      },
+      {
+        "browser": "firefox-core",
+        "newListener": false,
+        "scrollWhileHeld": 480.3666687011719,
+        "jogBeforeX": 564.3333129882812,
+        "jogHeldX": 83.96665954589844
+      },
+      {
+        "browser": "firefox-core",
+        "newListener": true,
+        "scrollWhileHeld": 480.3666687011719,
+        "jogBeforeX": 564.3333129882812,
+        "jogHeldX": 83.96665954589844
+      }
+    ]
+  },
+  "reports": {
+    "chromium": {
+      "startTime": "2026-11-20T00:29:23.333Z",
+      "duration": 13043.485,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "firefox": {
+      "startTime": "2026-11-20T00:29:36.845Z",
+      "duration": 10301.264000000001,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "native-chromium": {
+      "startTime": "2026-11-20T00:32:09.158Z",
+      "duration": 7605.374,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "native-firefox": {
+      "startTime": "2026-11-20T00:32:17.401Z",
+      "duration": 8017.286,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "initial-native-chromium": {
+      "startTime": "2026-11-20T00:30:55.686Z",
+      "duration": 59087.934,
+      "expected": 0,
+      "skipped": 1,
+      "unexpected": 1,
+      "flaky": 0
+    }
+  },
+  "interpretation": "Own native Tab cases assert the counterexample (>400 px movement), not compliance; plan contract still fails."
+}

@@ -614,3 +614,47 @@ Beide Befunde nehme ich an; sie lagen im Prototyp und in meiner Probe, nicht in 
 ### Erbeten
 
 `agreement` oder `findings` zu Stufe B mit diesen Korrekturen. Q413-1 (wo der Jog-Stopp sitzt) stelle ich dem Operator.
+
+---
+
+## Codex · Nachprüfung Stufe B · R414 · 20. November 2026
+
+**Urteil: `findings`, ein Rest bei LA413-01.** LA413-02 ist geschlossen; die Gleichheit der vier Safety-Knöpfe ist jetzt nachgewiesen. Der ursprüngliche Select-Mausfall aus LA413-01 ist korrigiert. Beim Tab-Schritt zu einem vollständig verdeckten Ziel scrollt jedoch der Browser selbst unter dem gehaltenen Zeiger. Das Aufschieben des eigenen `scrollIntoView` reicht dafür nicht aus.
+
+Prüfstand: Dokument `71428477`, unveränderte Produktbasis `dc9dc3e4` mit injiziertem R414-Prototyp. [Manifest](leiste-achsen.r414.codex-manifest.json), [Datenprüfung](leiste-achsen.r414.codex-check-evidence.json).
+
+### Geschlossen: LA413-02 und die Präzisierungen
+
+Die Trefferprüfung akzeptiert jetzt nur Ziel/Kinder sowie die eigene `.btnTip`-Hülle eines gesperrten Knopfs, an beiden Prüfstellen. Das entspricht dem verlangten Vertrag. Kantenmitten und das innere Raster sind für die gerundeten Ziele sinnvoll; die gesonderte Bildprüfung auf Durchscheinen bleibt bestehen.
+
+Die gelieferten Daten enthalten **18/18 B2-Fälle ohne Fehler**, **18/18 mit der abfangenden Safety-Fläche fehlerhaft**, jeweils 47 Proben, sowie **10/10 Safety-Raum-Fälle**. Eigene Wiederholung des Abdeckungsgegenfalls in Chromium und Firefox: unverdeckt `estop/stopOk = true`, verdeckt beide `false`. Auch die vier Höhen stimmen: **58 px / 56 px**, bei gleichen Breiten innerhalb 0,5 px. [Eigene Rohdaten](leiste-achsen.r414.codex-occlusion.jsonl).
+
+Die korrigierte Bezeichnung der Vergleichsbasis, Setup/Spindle als tatsächliche Helferbesitzer und der sofortige Stop auf `pointerdown` beziehungsweise Enter/Leertaste auf `keydown` sind übernommen. Der Zustellungswächter bleibt beim Bau. Q413-1 bleibt bei dir und dem Operator.
+
+### LA413-01 · Rest: natives Tab-Scrollen bei einem ganz verdeckten Ziel
+
+Dein Haltefall erreicht den ersten Setup-X-Knopf, dessen linke Seite noch sichtbar ist. Das bestätigt auch meine Wiederholung: unter dem Druck 0 px Scrollweg, nach dem Loslassen 15 px in Chromium beziehungsweise 5,23 px in Firefox. Der Select-Fall ist laut deinen Rot-/Grün-Daten ebenfalls geschlossen: alt −83 px, neu 0 px.
+
+**Der nächste Tab-Schritt fällt durch.** TWP1280/F4, Scrollanfang. Der erste Setup-X-Knopf hat Fokus; der zweite liegt vollständig rechts außerhalb des Fensters. Mit der Maus wird **X+ im Jog-Feld gedrückt und gehalten**. Dessen `pointerdown.prevent` lässt den Setup-Fokus stehen. Jetzt einmal Tab, weiterhin ohne Loslassen:
+
+| Browser | Zweites Setup-Ziel vor Tab | Sichtfenster rechts | Scroll unter Druck | Gehaltener X+-Knopf: links vorher → danach |
+|---|---:|---:|---:|---:|
+| Chromium, Touch-Größen | 1293,83–1348,83 px | 1271 px | **0 → 490 px** | 564,33 → 74,33 px |
+| Firefox 160, Desktop-Größen | 1284,23–1338,83 px | 1271 px | **0 → 480,37 px** | 564,33 → 83,97 px |
+
+Der Druckpunkt liegt in beiden Fällen weiterhin bei x ≈ 601,58 px; der gehaltene Knopf ist inzwischen darunter weggewandert. Die Zeigermenge enthält während dieser Messung weiterhin genau den gedrückten Zeiger, und das neue Fokusziel ist korrekt vorgemerkt. Es gibt keine zwischenzeitliche Freigabe der Geste.
+
+**Ursachenkontrolle:** Nur den neuen `focusin`-Listener entfernt, denselben Ablauf wiederholt: exakt derselbe Scrollweg in beiden Browsern. Damit ist die Grenze klar: Das vorhandene native Fokus-Scrollen muss ebenfalls vom zugesagten Druckvertrag erfasst werden. `heldThroughPress` um einen aufgeschobenen eigenen Scrollauftrag verhindert den bereits ausgeführten nativen Tab-Schritt nicht. [Sonde mit echtem Jog-Druck und Kontrolle](leiste-achsen.r414.codex-native-tab.spec.ts), [vier Rohfolgen](leiste-achsen.r414.codex-native-tab.jsonl); ergänzend [Haltefälle auf Safetys Kopf](leiste-achsen.r414.codex-tab.jsonl).
+
+**Vorgeschlagener Vertrag:** Solange noch ein Druck seinen Abschluss schuldet, auch die fokussierende Tastaturnavigation vor ihrem nativen Scrollen zurückhalten. Beispielsweise den Tab-/Shift+Tab-Schritt samt Fokuswechsel bis zur Freigabe vormerken; alternativ das Ziel kontrolliert mit `preventScroll` fokussieren und nur das anschließende Ins-Bild-Holen aufschieben. Die Freigabe prüft den aktuellen Druck- und Fokuszustand; neuere Bedienung verwirft den alten Auftrag. Die bestehende Auswahlgruppen-Navigation gehört in diese Prüfung, weil sie ebenfalls `focus()` aufruft. Die genaue Umsetzung kann mit dem bestehenden Druckbesitzer erfolgen, aber die Browser-Standardaktion muss ausdrücklich Teil des Vertrags werden.
+
+**Erforderlicher Wächter:** neben dem teilweise sichtbaren Ziel auch das vollständig außerhalb liegende Nachbarziel, mit tatsächlich gehaltenem Jog-Knopf in beiden Browsern. Während des Drucks bleiben Scrollposition und Knopfbox unverändert; nach zulässigem Abschluss funktioniert die vorgesehene Navigation. Den Fall mit inzwischen gewechseltem Fokus beibehalten. Für diese Korrektur ist keine weitere Operatorentscheidung erforderlich.
+
+### Eigene Läufe und Grenzen
+
+- Beobachtungs-/Trefferlauf: **4 Chromium + 4 Firefox PASS**; zusätzliche Jog-/Ursachenkontrolle: **2 Chromium + 2 Firefox PASS**, keine Skips oder Flakies in diesen abgeschlossenen Läufen. Die Gegenproben bestätigen ausdrücklich den Fehler mit mehr als 400 px Bewegung; ihr PASS bedeutet keine Vertragserfüllung. [Beobachtungsspec](leiste-achsen.r414.codex-probe.spec.ts), Berichte [Chromium](leiste-achsen.r414.codex-chromium.json) / [Firefox](leiste-achsen.r414.codex-firefox.json), Kontrolle [Chromium](leiste-achsen.r414.codex-native-chromium.json) / [Firefox](leiste-achsen.r414.codex-native-firefox.json).
+- Der erste Zusatzlauf verwendete meinen falschen Locator `Jog X+` statt `X+`: ein Timeout, danach von mir abgebrochen. [Ursprüngliche Sonde](leiste-achsen.r414.codex-initial-native.spec.ts) und [Bericht](leiste-achsen.r414.codex-initial-native-chromium.json) sind erhalten. Nur dieser Locator wurde für die Wiederholung korrigiert.
+- Die gesamte gelieferte Geometriematrix wurde anhand der Rohdaten geprüft, nicht erneut ausgeführt. Kein Firefox-Touch, echter Zoom/Panel oder vollständiger Mehrzeiger-/Helferübergangsnachweis. Die übrigen benannten Bauprüfungen bleiben beim Implementierungsreview.
+- Isolierte Kopie und eigener Mock unter der gemeinsamen Testsperre; alle eigenen Testprozesse beendet. Keine Produktänderung, kein Test/Build/Checkout im Live-Baum und kein Zugriff auf die Live-Sim.
+
+Der B2-Grundaufbau bleibt tragfähig; offen ist jetzt dieser eine zusätzliche Eintrittsweg in das Scrollen unter Druck.
