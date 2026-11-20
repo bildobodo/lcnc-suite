@@ -7503,3 +7503,78 @@ def test_a_probe_job_is_sent_only_from_a_free_override_and_starts_on_a_lock_afte
     never = _JobClient(True, [(True, 2, False), (True, 1, True)])
     r = nr._probe_job(never, "probe-run", "probe_run", {"routine": "probe_z_minus_wco", "vars": {}}, deadline=0.5)
     assert r["error"] and r["start"]["status"] == "FAIL", r
+
+
+# ── Codex R384's run-end proof as a guard (owed since R384: "the next package
+# touching native_run.py"; the package-4 tooling 44d9de49 left it out). A
+# case that loses its admission — a trip or a lost link received mid-case —
+# ends the RUN: no later step, nothing more sent after the refused request,
+# the rows observed before it kept, the restore complete and the report on
+# disk; a lost link sends no finish. Codex's twelve checks (case × wrapped ×
+# hazard), run unchanged but for the module's own FakeHost and lock fixture.
+@pytest.mark.parametrize("case,body", [("probe_cases", "_probe_steps"), ("surface_cases", "_surface_steps")])
+@pytest.mark.parametrize("wrapped", [False, True])
+@pytest.mark.parametrize("hazard", ["trip", "disconnect", None])
+def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_returns(monkeypatch, tmp_path, case, body,
+                                                                                   wrapped, hazard):
+    from test_support.live_session import SimulatorClient
+    c = SimulatorClient("unused", auto_confirm=False, keep=nr.FRAME_KEYS)
+    wire, events = [], []
+
+    class Socket:
+        def send(self, raw):
+            command = json.loads(raw)
+            wire.append(command)
+            c.replies.put({"cmd": command["cmd"], "ok": True})
+
+        def close(self):
+            events.append("socket-close")
+
+    c.ws = Socket()
+
+    def setup(ctx):
+        ctx["client"] = c
+        ctx["cleanup"] = lambda: nr._stop_copy(ctx)
+
+    def stub_body(ctx):
+        ctx["client"].request("mdi", text="G4 P0")
+        ctx["rows"].append({"case": "already-observed", "status": "PASS"})
+        if hazard == "trip":
+            c.take({"type": "status", "data": {"interp_state": 1, "inpos": True},
+                    "safety_trip": {"id": "r384.synthetic-trip"}})
+        elif hazard == "disconnect":
+            c.error = "synthetic connection lost"
+        try:
+            ctx["client"].request("mdi", text="G0 X1")
+        except nr.NotAdmitted as exc:
+            if wrapped:
+                raise nr.StepFailed(ctx["rows"], str(exc)) from exc
+            raise
+        return ctx["rows"]
+
+    monkeypatch.setattr(nr, body, stub_body)
+
+    def later(ctx):
+        events.append("later-step")
+        return [{"case": "later", "status": "PASS"}]
+
+    host = FakeHost()
+    report = nr.run(host, [("setup", setup), getattr(nr, case)(), ("later", later)], tmp_path / "run")
+    assert report["restore"]["outcome"] == "complete", report
+    assert host.started == ["lcnc-sim-gates", "bg-keepalive"]
+    assert events[-1] == "socket-close" and "request" not in vars(c)
+    assert report["rows"][0] == {"case": "already-observed", "status": "PASS"}
+    assert json.loads((tmp_path / "run/report.json").read_text()) == report
+    if hazard:
+        assert "later-step" not in events and report["steps"][-1] in ("probe", "surface")
+        assert nr.verdict(report) == "FAIL"
+        assert ("StepFailed" if wrapped else "NotAdmitted") in report["error"]
+        assert not [m for m in wire if m.get("text") == "G0 X1"]
+    else:
+        assert "later-step" in events and nr.verdict(report) == "PASS", report
+    assert not any(m["cmd"] in ("safety_trip_ack", "estop_reset", "machine_on") for m in wire)
+    if hazard == "disconnect":
+        assert "cleanup_error" in report
+        assert [m["cmd"] for m in wire] == ["mdi"]
+    else:
+        assert wire[-2:] == [{"cmd": "abort"}, {"cmd": "arm", "armed": False}]
