@@ -24,6 +24,8 @@ Steps marked **(SSH)** I do myself over SSH, read-only, once the key is in. Anyt
 
 ## 1 · Start and safety chain
 
+The one exception to "note it and carry on": a FAIL in 1.1–1.4 stops the day's motion tests. Without the safety chain every later step would run without it; tell me first.
+
 | # | Do | Expect | Note |
 |---|---|---|---|
 | 1.1 | `linuxcnc milling_machine_webui_development.ini` | the browser opens the UI; **no** red "safety chain incomplete" banner; your settings as before (the first start of the four weeks' changes) | a photo if a banner shows; anything that looks different |
