@@ -1,0 +1,20 @@
+[1A[2K[WebServer] (node:3600611) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 5 tests using 1 worker
+
+[1A[2K(node:3600646) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:3600646) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/5] [firefox-core] › e2e/r415-codex.spec.ts:23:1 › R415 held Jog Tab and ShiftTab keep the button still
+[1A[2K[2/5] [firefox-core] › e2e/r415-codex.spec.ts:39:32 › R415 Tab from neutral strip held false
+[1A[2K[3/5] [firefox-core] › e2e/r415-codex.spec.ts:39:32 › R415 Tab from neutral strip held true
+[1A[2K[4/5] [firefox-core] › e2e/r415-codex.spec.ts:48:32 › R415 dialog Tab scope held false
+[1A[2K[5/5] [firefox-core] › e2e/r415-codex.spec.ts:48:32 › R415 dialog Tab scope held true
+[1A[2K  5 passed (10.9s)

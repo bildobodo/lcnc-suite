@@ -1,0 +1,186 @@
+{
+  "review": "R415",
+  "verdict": "findings",
+  "document": "511926150dbad44c1b76b345f990504834de5f2a",
+  "productBase": "dc9dc3e4c29d3e90545474386d7f5f34fff50a3a",
+  "scope": "Stage B plan/prototype only; no product implementation",
+  "results": [
+    "LA413-01 held Jog Tab/ShiftTab countercase closed in own browser runs; LA413-02 remains closed.",
+    "LA415-01 document-level Tab handler advances a second time after modalRegistry handled the same event, skipping Stop jog.",
+    "LA415-02 active .strip has tabindex=-1; list.indexOf returns -1 and Tab goes to first document stop instead of first Safety control."
+  ],
+  "copy": "Reused /tmp/codex-r411 archive and own built dist from R411; additional specs/configs only, no new product build.",
+  "execution": "Own Chromium and pinned Firefox 160.0; per-worker mocks; shared heavy_lock.py with codex-r415-review and codex-r415-walk. All own runs ended.",
+  "reproduce": "Copy evidence specs/configs to original source paths in an isolated dc9dc3e4 archive with its build and dependencies. Run run.sh and walk-run.sh through heavy_lock. Paths intentionally retain original /tmp locations.",
+  "limits": [
+    "Supplied full geometry matrix audited, not rerun in full. R415 safety room has run summary but no separate raw artifact in this request; unchanged R414 acceptance retained.",
+    "No Firefox touch, real zoom/panel, multi-pointer/click-completion or full helper transition proof.",
+    "No dialog scope escape was observed in the extra ten Tab steps per browser; the proven dialog defect is double advancement.",
+    "Own observation specs record actual destinations; their green reports are not an all-green contract verdict.",
+    "Global HTMLElement.prototype.focus wrapper is prototype only. The planned named production helper and full focus-call inventory are not implemented or verified."
+  ],
+  "noLive": "No product edits, tests, builds or checkouts in live tree; no live-sim requests.",
+  "productFilesRead": [
+    {
+      "path": "lcnc-webui/src/modalRegistry.ts",
+      "sha256": "7001dfaaa7769264a6eb6ce9ec488b87c791c39aee4bbf6d4153eceb54750421"
+    },
+    {
+      "path": "lcnc-webui/src/inputSession.ts",
+      "sha256": "8944c3407efa91e653ea14a03f69584354e41784211f8a34c2c3d1deef090286"
+    },
+    {
+      "path": "lcnc-webui/src/ChoiceGroup.vue",
+      "sha256": "a3b9dbeed63b70033d31502209ef65e78bdc15f15404e3ae9fca2d9246001e64"
+    },
+    {
+      "path": "lcnc-webui/src/choiceGroup.ts",
+      "sha256": "f7636af19b7c5adb4a201bda77aeeb343081e9a953b78e8a78655e401eda22c1"
+    }
+  ],
+  "suppliedFiles": [
+    {
+      "path": "leiste-achsen.r415.focus.jsonl",
+      "sha256": "870acb9b200e06e7bd56324f466a2e8dd7b391054b8cd304a0de15f839375d9c"
+    },
+    {
+      "path": "leiste-achsen.r415.runs.txt",
+      "sha256": "5d1980b918efa0c7ce1d56125bc06c536863b52ece8b6892cde1f0af2688dc8c"
+    },
+    {
+      "path": "leiste-achsen.r415.stage-b.spec.ts",
+      "sha256": "de8fc61a5e5eeda8bed5a9bba92d73bd6613f70cad1b4c5e24784d57df34f90c"
+    },
+    {
+      "path": "leiste-achsen.r415.strip.jsonl",
+      "sha256": "db4001fefc91184f0bf002bc492570eb267714b71e59297a985d351e1d48538c"
+    }
+  ],
+  "files": [
+    {
+      "path": "leiste-achsen.r415.codex-probe.spec.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r415-codex.spec.ts",
+      "sha256": "195aa7e72271260733df6d78070a279f051c0f8a597046726b93496bd341485e"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-dialog-walk.spec.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r415-dialog-walk.spec.ts",
+      "sha256": "370cfe8a1c0e4d7e911836fe119ddc57faa2cdc0e6b328f4686b1b493307fb06"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-prototype.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/e2e/r415-prototype.ts",
+      "sha256": "70db02b6b03c09b8eacfa5d82062cf058b5677e65120f3087ad56f431944bf08"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-firefox.config.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/playwright.r415-ff.config.ts",
+      "sha256": "95565f51d68dcb47d65d048c1adc672339d0141e5a3a3aa4535bfa67e9fb5d94"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-firefox.config.ts",
+      "source": "/tmp/codex-r411/lcnc-webui/playwright.r415-walk-ff.config.ts",
+      "sha256": "8c18d3d2e6ec5696e2693019d54f0387a8c3e6c144f049bc5dba09fd44e51fe4"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-run.sh",
+      "source": "/tmp/r415/run.sh",
+      "sha256": "db45cb38319a964537d18aef75a084fce5eebd772ac9bcf1226e5ad86b2f96b5"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-run.sh",
+      "source": "/tmp/r415/walk-run.sh",
+      "sha256": "130c84463c7989faeb1fe02ce74398e04b11b5a88a0153db226adfbff34e1dc3"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-held.jsonl",
+      "source": "/tmp/r415/held.jsonl",
+      "sha256": "52abb1888d592f41f749decf43acc82a3072b48924a037b2ec67f1c902c5ba90"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-neutral.jsonl",
+      "source": "/tmp/r415/neutral.jsonl",
+      "sha256": "4da8648b95238d748308f61d25c26cb8fc13e0e960a53dff3c1ec2ca6f3c336f"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-dialog.jsonl",
+      "source": "/tmp/r415/dialog.jsonl",
+      "sha256": "07c44220ecf0bf174dcd282c80b3fe6f390cc6e00d699cfbffa2fb393d38d700"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-dialog-walk.jsonl",
+      "source": "/tmp/r415/dialog-walk.jsonl",
+      "sha256": "3b5ad45287aaa519f7a0ef155baa4458ebb9f0d68f86c9189916f5d0846598dc"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-check-evidence.py",
+      "source": "/tmp/r415/check_evidence.py",
+      "sha256": "6ea4894cf0afb99a62f0670661edadb8eb14692800db262503a94a56991f7821"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-chromium.json",
+      "source": "/tmp/r415/chromium.json",
+      "sha256": "206b605e40238bc6a80644ef764e24d03a66fa46d8759c1321773f62b44d72ea"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-chromium.txt",
+      "source": "/tmp/r415/chromium.txt",
+      "sha256": "a5efbecf2375ce45b453d79ea5a1a570ed62d59ce5ad42d91f404a27375bb92f"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-firefox.json",
+      "source": "/tmp/r415/firefox.json",
+      "sha256": "d4424eff4f11976b04af90f2fb73e779e81e11c6996d639ad14f5e6581930117"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-firefox.txt",
+      "source": "/tmp/r415/firefox.txt",
+      "sha256": "4abb8c31dd2fd872920d4034830950a170e8096deb4ca85d1c141e60326f6710"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-chromium.json",
+      "source": "/tmp/r415/walk-chromium.json",
+      "sha256": "b409287f130476b265895c2e700b917e39f01e84b80acc52a71f77cabb6d1cfa"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-chromium.txt",
+      "source": "/tmp/r415/walk-chromium.txt",
+      "sha256": "363777f102a845209695cd12a086d5123de65dfdfba3f4e2b5d9f2274a6a4dc3"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-firefox.json",
+      "source": "/tmp/r415/walk-firefox.json",
+      "sha256": "488e3e22d3c71f6f3245713bbbfbc2addb6255a1b98ef192fbed693f8e69ee1a"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-firefox.txt",
+      "source": "/tmp/r415/walk-firefox.txt",
+      "sha256": "0bf2f2d00814fb839df2e709f730873a0870931a42ee8454fa4bd2adb7b77075"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-events.jsonl",
+      "source": "/tmp/r415/events.jsonl",
+      "sha256": "b583676c207b2fcc29a45c46af42d84e0267814093a200a66097b09f3362a07c"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-ff-events.jsonl",
+      "source": "/tmp/r415/ff-events.jsonl",
+      "sha256": "43c9587ae6de71d1d874288fbde8b8381c9b8ddde805c56e686453a26f17c174"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-events.jsonl",
+      "source": "/tmp/r415/walk-events.jsonl",
+      "sha256": "5563b0982d923da88d701864b31df38ecc631899d0acffea3a9951672d6a65b0"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-walk-ff-events.jsonl",
+      "source": "/tmp/r415/walk-ff-events.jsonl",
+      "sha256": "8205cc3ae1147c4c0968604c4e821c2e14f1daf06a06cb889720b21d47d88a47"
+    },
+    {
+      "path": "leiste-achsen.r415.codex-check-evidence.json",
+      "source": "/tmp/r415/check-evidence.json",
+      "sha256": "528a4a6ca4d3af1cfa2b3da86b312bb6bf6341081a880c990d5b3153a2d5a9ea"
+    }
+  ]
+}

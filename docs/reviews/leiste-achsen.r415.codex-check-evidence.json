@@ -1,0 +1,55 @@
+{
+  "supplied": {
+    "casesPerVariant": 18,
+    "samplesEach": 47,
+    "bothVariantsGeometryGreen": true,
+    "heldJogOldRedNewGreen": true
+  },
+  "own": {
+    "heldJogTabAndShiftTabStill": true,
+    "afterReleaseScroll": [
+      78,
+      67.83333587646484
+    ],
+    "neutralTabWithoutHold": "Safety Arm/Disarm",
+    "neutralTabWithHold": "Connection details",
+    "dialogTabWithoutHold": "Stop jog",
+    "dialogTabWithHold": "Active codes \u2014 open in the G-code reference",
+    "dialogScopeEscapeInExtra20Steps": false
+  },
+  "reports": {
+    "chromium": {
+      "startTime": "2026-11-20T00:46:27.873Z",
+      "duration": 14364.303,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "firefox": {
+      "startTime": "2026-11-20T00:46:42.695Z",
+      "duration": 10941.86,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "walk-chromium": {
+      "startTime": "2026-11-20T00:47:32.276Z",
+      "duration": 5953.201,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "walk-firefox": {
+      "startTime": "2026-11-20T00:47:38.685Z",
+      "duration": 6106.692,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "interpretation": "PASS means observations were recorded and their preconditions met; offline checks confirm the two changed Tab destinations, not contract compliance."
+}
