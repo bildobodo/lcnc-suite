@@ -1,0 +1,13 @@
+== start 2026-11-20T07:10:11+01:00, tree /home/cnc/lcnc-suite-dev at dc9dc3e4
+build rc=0
+configs-d4 installed already (first run 07:09); .local/bin links added by hand like the earlier trees
+install-d4 rc=0 2026-11-20T07:10:24+01:00
+d4-live-twp rc=0 2026-11-20T07:17:20+01:00
+d4-perf rc=0 2026-11-20T07:20:25+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: a6b7070e64314798a9ca3cb361273778
+Running as unit: bg-keepalive.service; invocation ID: 331ce31181b047329747b846a73eff68
+dc9dc3e4 Merge feat/strip-fit (7083a38b, Codex R410 agreement) into the strip-and-keys integration: the symmetric variant A
+lan-to rc=0 2026-11-20T07:20:26+01:00
+active
+active
+== end 2026-11-20T07:20:26+01:00

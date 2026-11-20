@@ -1,0 +1,23 @@
+== start 2026-11-20T07:09:03+01:00, tree /home/cnc/lcnc-suite-dev at dc9dc3e4
+build rc=0
+install-d4 rc=0 2026-11-20T07:09:22+01:00
+d4-live-twp rc=98 2026-11-20T07:09:23+01:00
+d4-perf rc=98 2026-11-20T07:09:24+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: fbccd20a2039427880edf69fd5b9240c
+Running as unit: bg-keepalive.service; invocation ID: 9f3c9d8de6924750a6e21e0d5bd977f9
+dc9dc3e4 Merge feat/strip-fit (7083a38b, Codex R410 agreement) into the strip-and-keys integration: the symmetric variant A
+lan-to rc=0 2026-11-20T07:09:26+01:00
+active
+active
+== end 2026-11-20T07:09:26+01:00
+== d4-live-twp at dc9dc3e4 on lcnc_suite_sim_6axis_twp_xyzabc.ini, 2026-11-20T07:09:22+01:00
+Running as unit: lc-sim.service; invocation ID: 1072693c96294a2da4b04dfb3a4db522
+lc-sim ended before ready
+
+== cause (home-d4/linuxcnc_print.txt, tail): the fake HOME had no .local/bin links into the tree
+
+twopass: Error in file ./hallib/lcnc_webui.hal:
+    Pin 'webui-safety.heartbeat' does not exist
+Shutting down and cleaning up LinuxCNC...
+Removing HAL_LIB, RTAPI, and Real Time OS modules
+Removing NML shared memory segments

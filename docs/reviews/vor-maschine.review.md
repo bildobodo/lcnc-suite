@@ -9063,3 +9063,42 @@ Von den ausgelieferten Pfaden ändern sich **nur** `lcnc-webui/src/holdGesture.t
 **Nachtrag CI:**
 - development an `5c48a7e1`: Lauf 44455146016 **grün** (Frontend und Backend).
 - Replay 5c an `9f89a642`: Lauf 44446016559 **grün** (Frontend und Backend).
+
+---
+
+## Claude · Vor dem Maschinentag · Live-Prüfungen an development `dc9dc3e4`, Checkliste, Wächter zum Laufende · 20. November 2026
+
+Der Operator: „jetzt einfach mal alles andere geplante vor dem Maschinentag fertig stellen“. Die Leiste für mehr Achsen wartet auf seine Entscheidung und ist hier nicht enthalten.
+
+### Live-Prüfungen, die die letzten Merge-Gates offen ließen
+
+Die Merge-Gates an `5c48a7e1` und `dc9dc3e4` nannten `twp-buttons` als offen („a live check, run before main“). Beide Prüfungen liefen auf einer Scratch-Installation von development `dc9dc3e4` (`~/lcnc-suite-dev`, `LC_TREE=d4`), danach ging die LAN-Sim auf `dc9dc3e4` zurück (`/ready` 204, `lcnc-sim-gates` und `bg-keepalive` aktiv).
+- **live-twp: PASS, 9 von 9**, darunter `twp_buttons_check` ([Protokoll](vor-maschine.d4.live-twp.txt), [Bericht](vor-maschine.d4.live-twp.report.json)). `twp_buttons_check` fährt die Knöpfe über den WebSocket. Die geänderte Vue-Datei (`JogStrip.vue`) prüft es nicht; die deckte das Browser-Gate des Merges ab.
+- **perf-matrix: PASS**, alle neun Szenarien gemessen, Lauf `12c557627820` ([Protokoll](vor-maschine.d4.perf.txt), [Artefakt](vor-maschine.d4.perf-matrix.json)).
+- **Ein erster Lauf, als eigener roter Beleg behalten** ([Beleg](vor-maschine.d4.run1-red-nolinks.txt)): Die Sim startete nicht, `hal_reader.py` wurde nicht gefunden. Dem Scratch-HOME fehlten die `.local/bin`-Verweise in den Baum; frühere Bäume hatten sie von Hand. Mit den Verweisen lief derselbe Treiber durch.
+
+Seit `39a73679` hat sich im Gateway nur `test_suite_runner.py` geändert; die native Stufe ist daher nicht neu geschuldet.
+
+### Die Checkliste für den Maschinentag
+
+Abgeglichen mit dem Quelltext an `dc9dc3e4` ([Checkliste](vor-maschine.p4.machine-day.md)). Berichtigt:
+- **1.4:** Der Bannertext lautet „SAFETY TRIPPED (…) — Acknowledge, re-Arm if needed, then E-Stop Reset“. Der Trip kommt etwa 3,5 s nach dem letzten Client: 3 s Gnadenfrist (`_DISCONNECT_GRACE_SEC`), dann der Watchdog mit 0,5 s. Bedingung: Kein anderes Gerät hat die Oberfläche offen.
+- **6.4 / 7.4:** Run from line misst das Werkzeug nur bei **genau einem** M600 vor der Zeile. Der Knopf lautet dann „Measure T‹n› + Run from Line ‹N›“. Bei mehreren Wechseln verweigert der Dialog. „Safe Z“ ist eine Option und entfällt, wenn Z schon oben steht. 7.4 prüft, dass das Werkzeug nur einmal gemessen wird; das alte „nach einer Messung aus MDI“ war ungenau.
+- **7.3:** Der Knopf heißt „Measure Current“.
+- **8.5:** Round Pocket C für den Start in der Mitte eines Rings.
+- **9:** G30 nur in MANUAL oder MDI lesen. In AUTO bestätigt der Lesevorgang nicht.
+- **Neu 0.0:** Der SSH-Schlüssel. Ihn anzulegen hat die Sicherheitsprüfung dieser Sitzung abgelehnt; der Operator legt ihn an oder erlaubt es.
+- **Neu 0.5:** Das Konfigurations-Repo der Maschine auf GitHub ist veraltet. `lcnc_webui.hal` ist dort vom 29.05.2026 und verbindet noch `webui-safety.trip-latch`; diesen Pin gibt es seit `f09a7fd7` (6. Juni) nicht mehr, und eine solche HAL lädt nicht. Weil der Operator development täglich fährt, muss die Datei an der Maschine neuer sein. Schritt 0.5 liest sie per SSH. In der `machine.var` des Repos fehlt `#3116` (Schritt 0.3). Die Nummern fürs Antasten und den Werkzeugtaster stehen alle drin.
+
+### Nachgeholt: Codex' Prüfungen zum Laufende als Wächter
+
+R384 hatte festgelegt: „im nächsten Paket, das `native_run.py` berührt“. Das Paket-4-Werkzeug `44d9de49` berührte die Datei und ließ die Prüfungen aus.
+- **Zweig** `chore/native-run-end-guards`, Kopf `98748fab` auf `dc9dc3e4`. Nur `scripts/test_native_stage.py` (+75), kein ausgelieferter Pfad.
+- **Inhalt:** Codex' zwölf Fälle (Fall × verpackt × Störung), unverändert bis auf den `FakeHost` des Moduls und dessen eigene Sperre.
+- **Rot zuerst** an `dc9dc3e4`: vier Mutanten von `native_run.py`, jeder einzeln angewendet und zurückgesetzt.
+  - Ein gescheiterter Schritt beendet den Lauf nicht: 8 von 12 rot.
+  - Keine Zulassung beim Senden: 8 von 12 rot.
+  - Das Aufräumen fehlt: 12 von 12 rot.
+  - Die beobachteten Zeilen fallen weg: 8 von 12 rot.
+  - Grün blieben jeweils die vier Fälle ohne Störung.
+- `test_native_stage.py` 655 von 655, ruff sauber. Das Round-Gate läuft; danach folgt eine eigene Anfrage.

@@ -1,0 +1,23 @@
+== d4-live-twp at dc9dc3e4 on lcnc_suite_sim_6axis_twp_xyzabc.ini, 2026-11-20T07:10:24+01:00
+Running as unit: lc-sim.service; invocation ID: 82a24ee11e8f40578db2d6d5a91aea29
+ready after 3s: lcnc_suite_sim_6axis_twp_xyzabc.ini
+RUN  preview-goldens → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/preview-goldens.log
+PASS preview-goldens (0.16s)
+RUN  live-parity → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/live-parity.log
+PASS live-parity (188.9s)
+RUN  twp_buttons_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_buttons_check.log
+PASS twp_buttons_check (71.64s)
+RUN  twp_reorient_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_reorient_check.log
+PASS twp_reorient_check (11.55s)
+RUN  twp_capture_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_capture_check.log
+PASS twp_capture_check (45.79s)
+RUN  twp_touchoff_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_touchoff_check.log
+PASS twp_touchoff_check (12.32s)
+RUN  twp_touchoff_plane_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_touchoff_plane_check.log
+PASS twp_touchoff_plane_check (23.9s)
+RUN  twp_g683_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_g683_check.log
+PASS twp_g683_check (9.27s)
+RUN  twp_adverse_check → /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/twp_adverse_check.log
+PASS twp_adverse_check (39.31s)
+PASS: /home/cnc/lcnc-suite-dev/runlogs/test-suite/20261120T061030Z-live-twp/report.json
+== d4-live-twp exit 0, 2026-11-20T07:17:14+01:00
