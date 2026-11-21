@@ -1,0 +1,69 @@
+[1A[2K[WebServer] (node:1188473) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+[1A[2K(node:1188508) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1188508) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/3] [e2e] › e2e/r420-base.spec.ts:85:1 › R420 a real six-pixel scroll gesture must not turn into Power
+[1A[2K[e2e] › e2e/r420-base.spec.ts:85:1 › R420 a real six-pixel scroll gesture must not turn into Power
+R420 six-pixel {"got":[{"cmd":"machine_off","req_id":"87rli9-5"}],"events":[{"kind":"pointerdown","target":"b lg default active block safetyBtn","trusted":true,"x":246.3359375,"id":3},{"kind":"gotpointercapture","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"pointermove","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"gotpointercapture","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3},{"kind":"pointerup","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3},{"kind":"click","target":"b lg default active block safetyBtn","trusted":true,"x":246,"id":3}]}
+
+[1A[2K  1) [e2e] › e2e/r420-base.spec.ts:85:1 › R420 a real six-pixel scroll gesture must not turn into Power 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "machine_off", "req_id": "87rli9-5"}][39m
+
+       99 |   const got = await settled(page);
+      100 |   console.log("R420 six-pixel", JSON.stringify({got, events:await page.evaluate(() => (window as any).__events)}));
+    > 101 |   expect(got.filter(c => c.cmd === "machine_on" || c.cmd === "machine_off")).toHaveLength(0);
+          |                                                                              ^
+      102 | });
+      103 |
+      104 | test("R420 a panel long press with a six-pixel scroll never powers off", async ({page})=>{
+        at /tmp/codex-r420-base/lcnc-webui/e2e/r420-base.spec.ts:101:78
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1188663) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1188663) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/3] [e2e] › e2e/r420-base.spec.ts:104:1 › R420 a panel long press with a six-pixel scroll never powers off
+[1A[2K[e2e] › e2e/r420-base.spec.ts:104:1 › R420 a panel long press with a six-pixel scroll never powers off
+R420 panel scroll []
+
+[1A[2K[3/3] [e2e] › e2e/r420-base.spec.ts:112:1 › R420 the disabled Flood control stays inert on a long touch
+[1A[2K[e2e] › e2e/r420-base.spec.ts:112:1 › R420 the disabled Flood control stays inert on a long touch
+R420 disabled flood {"got":[],"changes":[]}
+
+[1A[2K  1 failed
+    [e2e] › e2e/r420-base.spec.ts:85:1 › R420 a real six-pixel scroll gesture must not turn into Power 
+  2 passed (11.1s)

@@ -1,0 +1,250 @@
+[1A[2K[WebServer] (node:1184100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 19 tests using 1 worker
+
+[1A[2K(node:1184134) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1184134) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/19] [e2e] › e2e/press-release.spec.ts:86:1 › a long press on a click control acts once, on its release — the panel's sequence
+[1A[2K[2/19] [e2e] › e2e/press-release.spec.ts:103:1 › a long press on a tab switches it on release
+[1A[2K[3/19] [e2e] › e2e/press-release.spec.ts:110:1 › a long press on Reset resets once, on its release
+[1A[2K[4/19] [e2e] › e2e/press-release.spec.ts:120:1 › a long touch the browser still clicks acts exactly once
+[1A[2K[5/19] [e2e] › e2e/press-release.spec.ts:131:1 › a short tap acts once — nothing doubles it
+[1A[2K[6/19] [e2e] › e2e/press-release.spec.ts:138:1 › a swipe that starts on a click control acts nowhere
+[1A[2K[7/19] [e2e] › e2e/press-release.spec.ts:146:1 › the E-Stop stops at the press — and the same press never resets it
+[1A[2K[8/19] [e2e] › e2e/press-release.spec.ts:163:1 › a tap on the E-Stop stops once; the next tap on Reset resets
+[1A[2K[9/19] [e2e] › e2e/press-release.spec.ts:176:1 › the panel's long press on the E-Stop stops at the press and does nothing at the release
+[1A[2K[10/19] [e2e] › e2e/press-release.spec.ts:183:1 › a swipe that starts on the E-Stop still stops (the press is the stop)
+[1A[2K[11/19] [e2e] › e2e/press-release.spec.ts:190:1 › a second finger stops while the first holds a jog
+[1A[2K[12/19] [e2e] › e2e/press-release.spec.ts:206:1 › the mouse: the E-Stop stops at the button press; the click of that press never resets
+[1A[2K[13/19] [e2e] › e2e/press-release.spec.ts:219:1 › the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset
+[1A[2K[14/19] [e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent
+R420 keyboard [{"cmd":"abort","req_id":"vqq9nh-5"}]
+
+[1A[2K  1) [e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m2[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "abort", "req_id": "vqq9nh-5"}][39m
+
+      94 |   const got = await settled(page);
+      95 |   console.log("R420 keyboard", JSON.stringify(got));
+    > 96 |   expect(got.filter(c => c.cmd === "abort")).toHaveLength(2);
+         |                                              ^
+      97 | });
+      98 |
+      99 | test("R420 a real six-pixel scroll gesture must not turn into Power", async ({ page }) => {
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:96:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1185147) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1185147) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[15/19] [e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power
+R420 six-pixel {"got":[{"cmd":"machine_off","req_id":"o2s0cf-5"}],"events":[{"kind":"pointerdown","target":"b lg default active block safetyBtn","trusted":true,"x":246.3359375,"id":3},{"kind":"gotpointercapture","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"pointermove","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"gotpointercapture","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3},{"kind":"pointerup","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3},{"kind":"click","target":"b lg default active block safetyBtn","trusted":true,"x":246,"id":3}]}
+
+[1A[2K  2) [e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "machine_off", "req_id": "o2s0cf-5"}][39m
+
+      113 |   const got = await settled(page);
+      114 |   console.log("R420 six-pixel", JSON.stringify({got, events:await page.evaluate(() => (window as any).__events)}));
+    > 115 |   expect(got.filter(c => c.cmd === "machine_on" || c.cmd === "machine_off")).toHaveLength(0);
+          |                                                                              ^
+      116 | });
+      117 |
+      118 | test("R420 each E-Stop pointer keeps its release even after a second stop", async ({ page }) => {
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:115:78
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1185304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1185304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[16/19] [e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop
+R420 two devices [{"cmd":"estop","req_id":"chz72v-5"},{"cmd":"estop","req_id":"chz72v-6"},{"cmd":"estop_reset","req_id":"chz72v-7"}]
+
+[1A[2K  3) [e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "estop_reset", "req_id": "chz72v-7"}][39m
+
+      132 |   const got=await settled(page);
+      133 |   console.log("R420 two devices",JSON.stringify(got));
+    > 134 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(0);
+          |                                                ^
+      135 | });
+      136 |
+      137 | test("R420 a fresh Reset gesture with the reused pointer ID is not swallowed", async ({ page }) => {
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:134:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1185461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1185461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[17/19] [e2e] › e2e/r420-codex.spec.ts:137:1 › R420 a fresh Reset gesture with the reused pointer ID is not swallowed
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:137:1 › R420 a fresh Reset gesture with the reused pointer ID is not swallowed
+R420 reused pointer [{"cmd":"estop","req_id":"zjw9j0-5"},{"cmd":"estop_reset","req_id":"zjw9j0-6"}]
+
+[1A[2K[18/19] [e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset
+R420 delayed click [{"cmd":"estop","req_id":"nx4ry9-5"},{"cmd":"estop_reset","req_id":"nx4ry9-6"}]
+
+[1A[2K  4) [e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "estop_reset", "req_id": "nx4ry9-6"}][39m
+
+      162 |   const got=await settled(page);
+      163 |   console.log("R420 delayed click",JSON.stringify(got));
+    > 164 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(0);
+          |                                                ^
+      165 | });
+      166 |
+      167 | test("R420 Jog Stop follows the new release contract", async ({ page }) => {
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:164:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1185704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1185704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[19/19] [e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract
+R420 jog stop {"before":[{"cmd":"jog_stop","axis":0,"req_id":"as5ttv-5"},{"cmd":"jog_stop","axis":1,"req_id":"as5ttv-6"},{"cmd":"jog_stop","axis":2,"req_id":"as5ttv-7"}],"after":[{"cmd":"jog_stop","axis":0,"req_id":"as5ttv-5"},{"cmd":"jog_stop","axis":1,"req_id":"as5ttv-6"},{"cmd":"jog_stop","axis":2,"req_id":"as5ttv-7"}]}
+
+[1A[2K  5) [e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract ─────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m3[39m
+    Received array:  [31m[{"axis": 0, "cmd": "jog_stop", "req_id": "as5ttv-5"}, {"axis": 1, "cmd": "jog_stop", "req_id": "as5ttv-6"}, {"axis": 2, "cmd": "jog_stop", "req_id": "as5ttv-7"}][39m
+
+      177 |   const after=await settled(page);
+      178 |   console.log("R420 jog stop",JSON.stringify({before,after}));
+    > 179 |   expect(before.filter(c=>String(c.cmd).startsWith('jog_stop'))).toHaveLength(0);
+          |                                                                  ^
+      180 |   expect(after.filter(c=>String(c.cmd).startsWith('jog_stop')).length).toBeGreaterThan(0);
+      181 | });
+      182 |
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:179:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  5 failed
+    [e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent 
+    [e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power 
+    [e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop 
+    [e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset 
+    [e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract ──────────
+  14 passed (57.8s)

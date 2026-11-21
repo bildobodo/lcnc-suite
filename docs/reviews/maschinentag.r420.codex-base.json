@@ -1,0 +1,231 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r420-base/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r420-base/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r420-base",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r420-base/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r420-base",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r420-base/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r420-base.spec.ts",
+      "file": "r420-base.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 a real six-pixel scroll gesture must not turn into Power",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3007,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"87rli9-5\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"87rli9-5\"}]\u001b[39m\n    at /tmp/codex-r420-base/lcnc-webui/e2e/r420-base.spec.ts:101:78",
+                    "location": {
+                      "file": "/tmp/codex-r420-base/lcnc-webui/e2e/r420-base.spec.ts",
+                      "column": 78,
+                      "line": 101
+                    },
+                    "snippet": "   99 |   const got = await settled(page);\n  100 |   console.log(\"R420 six-pixel\", JSON.stringify({got, events:await page.evaluate(() => (window as any).__events)}));\n> 101 |   expect(got.filter(c => c.cmd === \"machine_on\" || c.cmd === \"machine_off\")).toHaveLength(0);\n      |                                                                              ^\n  102 | });\n  103 |\n  104 | test(\"R420 a panel long press with a six-pixel scroll never powers off\", async ({page})=>{"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420-base/lcnc-webui/e2e/r420-base.spec.ts",
+                        "column": 78,
+                        "line": 101
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"87rli9-5\"}]\u001b[39m\n\n   99 |   const got = await settled(page);\n  100 |   console.log(\"R420 six-pixel\", JSON.stringify({got, events:await page.evaluate(() => (window as any).__events)}));\n> 101 |   expect(got.filter(c => c.cmd === \"machine_on\" || c.cmd === \"machine_off\")).toHaveLength(0);\n      |                                                                              ^\n  102 | });\n  103 |\n  104 | test(\"R420 a panel long press with a six-pixel scroll never powers off\", async ({page})=>{\n    at /tmp/codex-r420-base/lcnc-webui/e2e/r420-base.spec.ts:101:78"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 six-pixel {\"got\":[{\"cmd\":\"machine_off\",\"req_id\":\"87rli9-5\"}],\"events\":[{\"kind\":\"pointerdown\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":246.3359375,\"id\":3},{\"kind\":\"gotpointercapture\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"pointermove\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"gotpointercapture\",\"target\":\"strip bordered-panel scroll-thin strip-more\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"pointerup\",\"target\":\"strip bordered-panel scroll-thin strip-more\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"click\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":246,\"id\":3}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:31:50.526Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420-base/lcnc-webui/test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420-base/lcnc-webui/test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420-base/lcnc-webui/test-results/r420-base-R420-a-real-six--ac887-re-must-not-turn-into-Power-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420-base/lcnc-webui/e2e/r420-base.spec.ts",
+                    "column": 78,
+                    "line": 101
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "85b7a1bde43ba05aaab0-2ab6ac1e61f27fdc2240",
+          "file": "r420-base.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "R420 a panel long press with a six-pixel scroll never powers off",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2854,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 panel scroll []\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:31:54.198Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "85b7a1bde43ba05aaab0-8ce37471a1d396e7bfb4",
+          "file": "r420-base.spec.ts",
+          "line": 104,
+          "column": 1
+        },
+        {
+          "title": "R420 the disabled Flood control stays inert on a long touch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2705,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 disabled flood {\"got\":[],\"changes\":[]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:31:57.155Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "85b7a1bde43ba05aaab0-63e719febcbf77dc7d36",
+          "file": "r420-base.spec.ts",
+          "line": 112,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T15:31:48.833Z",
+    "duration": 11086.911,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

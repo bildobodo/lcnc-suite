@@ -1,0 +1,319 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r420/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r420/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r420-more",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r420/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r420-more",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r420/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r420-more.spec.ts",
+      "file": "r420-more.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 press ownership reaches the actual DOM buttons",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1575,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:92:63",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                      "column": 63,
+                      "line": 92
+                    },
+                    "snippet": "  90 |   const jog=page.locator('[data-strip=\"jog\"] .jogBtn').first();\n  91 |   console.log('R420 owned',JSON.stringify({estop:await loc.getAttribute('data-press-owned'),jog:await jog.getAttribute('data-press-owned')}));\n> 92 |   expect.soft(await loc.getAttribute('data-press-owned')).not.toBeNull();\n     |                                                               ^\n  93 |   expect.soft(await jog.getAttribute('data-press-owned')).not.toBeNull();\n  94 | });\n  95 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                        "column": 63,
+                        "line": 92
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n\n  90 |   const jog=page.locator('[data-strip=\"jog\"] .jogBtn').first();\n  91 |   console.log('R420 owned',JSON.stringify({estop:await loc.getAttribute('data-press-owned'),jog:await jog.getAttribute('data-press-owned')}));\n> 92 |   expect.soft(await loc.getAttribute('data-press-owned')).not.toBeNull();\n     |                                                               ^\n  93 |   expect.soft(await jog.getAttribute('data-press-owned')).not.toBeNull();\n  94 | });\n  95 |\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:92:63"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                        "column": 63,
+                        "line": 93
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n\n  91 |   console.log('R420 owned',JSON.stringify({estop:await loc.getAttribute('data-press-owned'),jog:await jog.getAttribute('data-press-owned')}));\n  92 |   expect.soft(await loc.getAttribute('data-press-owned')).not.toBeNull();\n> 93 |   expect.soft(await jog.getAttribute('data-press-owned')).not.toBeNull();\n     |                                                               ^\n  94 | });\n  95 |\n  96 | test(\"R420 a panel long press with a six-pixel scroll never powers off\", async ({page})=>{\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:93:63"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 owned {\"estop\":null,\"jog\":null}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:30:56.842Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                    "column": 63,
+                    "line": 92
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "8e06a1a2fa9dbd61844b-cf5f689e5d3da1b1799c",
+          "file": "r420-more.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "R420 a panel long press with a six-pixel scroll never powers off",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2900,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"rlowp1-5\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"rlowp1-5\"}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:101:70",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                      "column": 70,
+                      "line": 101
+                    },
+                    "snippet": "   99 |   const got=await settled(page);\n  100 |   console.log('R420 panel scroll',JSON.stringify(got));\n> 101 |   expect(got.filter(c=>c.cmd==='machine_on'||c.cmd==='machine_off')).toHaveLength(0);\n      |                                                                      ^\n  102 | });\n  103 |\n  104 | test(\"R420 the disabled Flood control stays inert on a long touch\", async ({page})=>{"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                        "column": 70,
+                        "line": 101
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"rlowp1-5\"}]\u001b[39m\n\n   99 |   const got=await settled(page);\n  100 |   console.log('R420 panel scroll',JSON.stringify(got));\n> 101 |   expect(got.filter(c=>c.cmd==='machine_on'||c.cmd==='machine_off')).toHaveLength(0);\n      |                                                                      ^\n  102 | });\n  103 |\n  104 | test(\"R420 the disabled Flood control stays inert on a long touch\", async ({page})=>{\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:101:70"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 panel scroll [{\"cmd\":\"machine_off\",\"req_id\":\"rlowp1-5\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:30:58.940Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                    "column": 70,
+                    "line": 101
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "8e06a1a2fa9dbd61844b-6e37fbd10138872e092b",
+          "file": "r420-more.spec.ts",
+          "line": 96,
+          "column": 1
+        },
+        {
+          "title": "R420 the disabled Flood control stays inert on a long touch",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2945,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"checked\": true, \"disabled\": true, \"target\": \"coolant\", \"trusted\": true}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"checked\": true, \"disabled\": true, \"target\": \"coolant\", \"trusted\": true}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:122:19",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                      "column": 19,
+                      "line": 122
+                    },
+                    "snippet": "  120 |   const changes=await page.evaluate(()=>(window as any).__changes);\n  121 |   console.log('R420 disabled flood',JSON.stringify({got,changes}));\n> 122 |   expect(changes).toHaveLength(0);\n      |                   ^\n  123 | });\n  124 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                        "column": 19,
+                        "line": 122
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"checked\": true, \"disabled\": true, \"target\": \"coolant\", \"trusted\": true}]\u001b[39m\n\n  120 |   const changes=await page.evaluate(()=>(window as any).__changes);\n  121 |   console.log('R420 disabled flood',JSON.stringify({got,changes}));\n> 122 |   expect(changes).toHaveLength(0);\n      |                   ^\n  123 | });\n  124 |\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:122:19"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 disabled flood {\"got\":[],\"changes\":[{\"target\":\"coolant\",\"disabled\":true,\"checked\":true,\"trusted\":true}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:31:02.464Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts",
+                    "column": 19,
+                    "line": 122
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "8e06a1a2fa9dbd61844b-3b28113e5b5ee2a2610b",
+          "file": "r420-more.spec.ts",
+          "line": 104,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T15:30:55.136Z",
+    "duration": 10688.418,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

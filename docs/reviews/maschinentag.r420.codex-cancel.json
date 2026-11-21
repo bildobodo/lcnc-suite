@@ -1,0 +1,155 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r420/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r420/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r420-cancel",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r420/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r420-cancel",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r420/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r420-cancel.spec.ts",
+      "file": "r420-cancel.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 new pen Reset after a cancelled E-Stop press must be accepted",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1953,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m1\u001b[39m\nReceived length: \u001b[31m0\u001b[39m\nReceived array:  \u001b[31m[]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m1\u001b[39m\nReceived length: \u001b[31m0\u001b[39m\nReceived array:  \u001b[31m[]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-cancel.spec.ts:81:48",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-cancel.spec.ts",
+                      "column": 48,
+                      "line": 81
+                    },
+                    "snippet": "  79 |   const got=await settled(page);\n  80 |   console.log('R420 cancel then reset',JSON.stringify({gap,got}));\n> 81 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(1);\n     |                                                ^\n  82 | });\n  83 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-cancel.spec.ts",
+                        "column": 48,
+                        "line": 81
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m1\u001b[39m\nReceived length: \u001b[31m0\u001b[39m\nReceived array:  \u001b[31m[]\u001b[39m\n\n  79 |   const got=await settled(page);\n  80 |   console.log('R420 cancel then reset',JSON.stringify({gap,got}));\n> 81 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(1);\n     |                                                ^\n  82 | });\n  83 |\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-cancel.spec.ts:81:48"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 cancel then reset {\"gap\":29,\"got\":[{\"cmd\":\"estop\",\"req_id\":\"hen4m9-5\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:33:14.250Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-cancel.spec.ts",
+                    "column": 48,
+                    "line": 81
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "5e8e081e88e34902d854-ee763b2fcff4ff253ffb",
+          "file": "r420-cancel.spec.ts",
+          "line": 59,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T15:33:12.548Z",
+    "duration": 3964.5919999999996,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

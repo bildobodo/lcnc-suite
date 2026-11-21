@@ -1,0 +1,152 @@
+[1A[2K[WebServer] (node:1187152) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+[1A[2K(node:1187187) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1187187) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/3] [e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons
+[1A[2K[e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons
+R420 owned {"estop":null,"jog":null}
+
+[1A[2K  1) [e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons ──────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBeNull[2m()[22m
+
+    Received: [31mnull[39m
+
+      90 |   const jog=page.locator('[data-strip="jog"] .jogBtn').first();
+      91 |   console.log('R420 owned',JSON.stringify({estop:await loc.getAttribute('data-press-owned'),jog:await jog.getAttribute('data-press-owned')}));
+    > 92 |   expect.soft(await loc.getAttribute('data-press-owned')).not.toBeNull();
+         |                                                               ^
+      93 |   expect.soft(await jog.getAttribute('data-press-owned')).not.toBeNull();
+      94 | });
+      95 |
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:92:63
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBeNull[2m()[22m
+
+    Received: [31mnull[39m
+
+      91 |   console.log('R420 owned',JSON.stringify({estop:await loc.getAttribute('data-press-owned'),jog:await jog.getAttribute('data-press-owned')}));
+      92 |   expect.soft(await loc.getAttribute('data-press-owned')).not.toBeNull();
+    > 93 |   expect.soft(await jog.getAttribute('data-press-owned')).not.toBeNull();
+         |                                                               ^
+      94 | });
+      95 |
+      96 | test("R420 a panel long press with a six-pixel scroll never powers off", async ({page})=>{
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:93:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-more-R420-press-owner-56736-ches-the-actual-DOM-buttons-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1187321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1187321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/3] [e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off
+[1A[2K[e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off
+R420 panel scroll [{"cmd":"machine_off","req_id":"rlowp1-5"}]
+
+[1A[2K  2) [e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "machine_off", "req_id": "rlowp1-5"}][39m
+
+       99 |   const got=await settled(page);
+      100 |   console.log('R420 panel scroll',JSON.stringify(got));
+    > 101 |   expect(got.filter(c=>c.cmd==='machine_on'||c.cmd==='machine_off')).toHaveLength(0);
+          |                                                                      ^
+      102 | });
+      103 |
+      104 | test("R420 the disabled Flood control stays inert on a long touch", async ({page})=>{
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:101:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-more-R420-a-panel-lon-a1575-xel-scroll-never-powers-off-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1187466) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1187466) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[3/3] [e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch
+[1A[2K[e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch
+R420 disabled flood {"got":[],"changes":[{"target":"coolant","disabled":true,"checked":true,"trusted":true}]}
+
+[1A[2K  3) [e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"checked": true, "disabled": true, "target": "coolant", "trusted": true}][39m
+
+      120 |   const changes=await page.evaluate(()=>(window as any).__changes);
+      121 |   console.log('R420 disabled flood',JSON.stringify({got,changes}));
+    > 122 |   expect(changes).toHaveLength(0);
+          |                   ^
+      123 | });
+      124 |
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-more.spec.ts:122:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-more-R420-the-disable-3889a-stays-inert-on-a-long-touch-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  3 failed
+    [e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons ───────
+    [e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off 
+    [e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch 

@@ -1,0 +1,955 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r420/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r420/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r420",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r420/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r420",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r420/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "press-release.spec.ts",
+      "file": "press-release.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a long press on a click control acts once, on its release — the panel's sequence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6798,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:28:45.213Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-a01531ddecacbbdc102f",
+          "file": "press-release.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "a long press on a tab switches it on release",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2265,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:28:52.146Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-1e29d136e84716e266f1",
+          "file": "press-release.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "a long press on Reset resets once, on its release",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2681,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:28:54.417Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-5e9caef32bd651e8bdc6",
+          "file": "press-release.spec.ts",
+          "line": 110,
+          "column": 1
+        },
+        {
+          "title": "a long touch the browser still clicks acts exactly once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2813,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:28:57.103Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-3cbf7098e1ba133a5d2d",
+          "file": "press-release.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "a short tap acts once — nothing doubles it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1779,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:28:59.921Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-10f1fb04212515a65ed3",
+          "file": "press-release.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "a swipe that starts on a click control acts nowhere",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3595,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:01.704Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-e10a96e3c4c1d09ac3f3",
+          "file": "press-release.spec.ts",
+          "line": 138,
+          "column": 1
+        },
+        {
+          "title": "the E-Stop stops at the press — and the same press never resets it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2013,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:05.303Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-47a9139bca290eb67e8c",
+          "file": "press-release.spec.ts",
+          "line": 146,
+          "column": 1
+        },
+        {
+          "title": "a tap on the E-Stop stops once; the next tap on Reset resets",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2328,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:07.321Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-570c9ee6b2544db56685",
+          "file": "press-release.spec.ts",
+          "line": 163,
+          "column": 1
+        },
+        {
+          "title": "the panel's long press on the E-Stop stops at the press and does nothing at the release",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2720,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:09.654Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-a0b147d47c69abab69dd",
+          "file": "press-release.spec.ts",
+          "line": 176,
+          "column": 1
+        },
+        {
+          "title": "a swipe that starts on the E-Stop still stops (the press is the stop)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2620,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:12.378Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-d56e83e203125220c85a",
+          "file": "press-release.spec.ts",
+          "line": 183,
+          "column": 1
+        },
+        {
+          "title": "a second finger stops while the first holds a jog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1868,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:15.003Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-3fe4043c42b31fe13a4a",
+          "file": "press-release.spec.ts",
+          "line": 190,
+          "column": 1
+        },
+        {
+          "title": "the mouse: the E-Stop stops at the button press; the click of that press never resets",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1927,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:16.875Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-478a672219770f4143e6",
+          "file": "press-release.spec.ts",
+          "line": 206,
+          "column": 1
+        },
+        {
+          "title": "the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2242,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:18.807Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-9cd267df576412b1aaa4",
+          "file": "press-release.spec.ts",
+          "line": 219,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r420-codex.spec.ts",
+      "file": "r420-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 keyboard activation after a long release remains independent",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2931,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m2\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"abort\", \"req_id\": \"vqq9nh-5\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m2\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"abort\", \"req_id\": \"vqq9nh-5\"}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:96:46",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                      "column": 46,
+                      "line": 96
+                    },
+                    "snippet": "  94 |   const got = await settled(page);\n  95 |   console.log(\"R420 keyboard\", JSON.stringify(got));\n> 96 |   expect(got.filter(c => c.cmd === \"abort\")).toHaveLength(2);\n     |                                              ^\n  97 | });\n  98 |\n  99 | test(\"R420 a real six-pixel scroll gesture must not turn into Power\", async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                        "column": 46,
+                        "line": 96
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m2\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"abort\", \"req_id\": \"vqq9nh-5\"}]\u001b[39m\n\n  94 |   const got = await settled(page);\n  95 |   console.log(\"R420 keyboard\", JSON.stringify(got));\n> 96 |   expect(got.filter(c => c.cmd === \"abort\")).toHaveLength(2);\n     |                                              ^\n  97 | });\n  98 |\n  99 | test(\"R420 a real six-pixel scroll gesture must not turn into Power\", async ({ page }) => {\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:96:46"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 keyboard [{\"cmd\":\"abort\",\"req_id\":\"vqq9nh-5\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:21.063Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-keyboard-a-9c02f-release-remains-independent-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                    "column": 46,
+                    "line": 96
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-e177a7e3b47c7b7a8c02",
+          "file": "r420-codex.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "R420 a real six-pixel scroll gesture must not turn into Power",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3044,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"o2s0cf-5\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"o2s0cf-5\"}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:115:78",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                      "column": 78,
+                      "line": 115
+                    },
+                    "snippet": "  113 |   const got = await settled(page);\n  114 |   console.log(\"R420 six-pixel\", JSON.stringify({got, events:await page.evaluate(() => (window as any).__events)}));\n> 115 |   expect(got.filter(c => c.cmd === \"machine_on\" || c.cmd === \"machine_off\")).toHaveLength(0);\n      |                                                                              ^\n  116 | });\n  117 |\n  118 | test(\"R420 each E-Stop pointer keeps its release even after a second stop\", async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                        "column": 78,
+                        "line": 115
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"machine_off\", \"req_id\": \"o2s0cf-5\"}]\u001b[39m\n\n  113 |   const got = await settled(page);\n  114 |   console.log(\"R420 six-pixel\", JSON.stringify({got, events:await page.evaluate(() => (window as any).__events)}));\n> 115 |   expect(got.filter(c => c.cmd === \"machine_on\" || c.cmd === \"machine_off\")).toHaveLength(0);\n      |                                                                              ^\n  116 | });\n  117 |\n  118 | test(\"R420 each E-Stop pointer keeps its release even after a second stop\", async ({ page }) => {\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:115:78"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 six-pixel {\"got\":[{\"cmd\":\"machine_off\",\"req_id\":\"o2s0cf-5\"}],\"events\":[{\"kind\":\"pointerdown\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":246.3359375,\"id\":3},{\"kind\":\"gotpointercapture\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"pointermove\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"gotpointercapture\",\"target\":\"strip bordered-panel scroll-thin strip-more\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"pointerup\",\"target\":\"strip bordered-panel scroll-thin strip-more\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"click\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":246,\"id\":3}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:24.573Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-a-real-six-2803d-re-must-not-turn-into-Power-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                    "column": 78,
+                    "line": 115
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-ba080fe750f97d2dac04",
+          "file": "r420-codex.spec.ts",
+          "line": 99,
+          "column": 1
+        },
+        {
+          "title": "R420 each E-Stop pointer keeps its release even after a second stop",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2296,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"estop_reset\", \"req_id\": \"chz72v-7\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"estop_reset\", \"req_id\": \"chz72v-7\"}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:134:48",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                      "column": 48,
+                      "line": 134
+                    },
+                    "snippet": "  132 |   const got=await settled(page);\n  133 |   console.log(\"R420 two devices\",JSON.stringify(got));\n> 134 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(0);\n      |                                                ^\n  135 | });\n  136 |\n  137 | test(\"R420 a fresh Reset gesture with the reused pointer ID is not swallowed\", async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                        "column": 48,
+                        "line": 134
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"estop_reset\", \"req_id\": \"chz72v-7\"}]\u001b[39m\n\n  132 |   const got=await settled(page);\n  133 |   console.log(\"R420 two devices\",JSON.stringify(got));\n> 134 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(0);\n      |                                                ^\n  135 | });\n  136 |\n  137 | test(\"R420 a fresh Reset gesture with the reused pointer ID is not swallowed\", async ({ page }) => {\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:134:48"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 two devices [{\"cmd\":\"estop\",\"req_id\":\"chz72v-5\"},{\"cmd\":\"estop\",\"req_id\":\"chz72v-6\"},{\"cmd\":\"estop_reset\",\"req_id\":\"chz72v-7\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:28.294Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-each-E-Sto-e39ca-se-even-after-a-second-stop-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                    "column": 48,
+                    "line": 134
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-21436a954a6257d08bb1",
+          "file": "r420-codex.spec.ts",
+          "line": 118,
+          "column": 1
+        },
+        {
+          "title": "R420 a fresh Reset gesture with the reused pointer ID is not swallowed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2841,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 reused pointer [{\"cmd\":\"estop\",\"req_id\":\"zjw9j0-5\"},{\"cmd\":\"estop_reset\",\"req_id\":\"zjw9j0-6\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:31.180Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-95d5061f6b2b1eb346ff",
+          "file": "r420-codex.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "R420 a delayed click of the E-Stop gesture must never Reset",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3720,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"estop_reset\", \"req_id\": \"nx4ry9-6\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"estop_reset\", \"req_id\": \"nx4ry9-6\"}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:164:48",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                      "column": 48,
+                      "line": 164
+                    },
+                    "snippet": "  162 |   const got=await settled(page);\n  163 |   console.log(\"R420 delayed click\",JSON.stringify(got));\n> 164 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(0);\n      |                                                ^\n  165 | });\n  166 |\n  167 | test(\"R420 Jog Stop follows the new release contract\", async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                        "column": 48,
+                        "line": 164
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[{\"cmd\": \"estop_reset\", \"req_id\": \"nx4ry9-6\"}]\u001b[39m\n\n  162 |   const got=await settled(page);\n  163 |   console.log(\"R420 delayed click\",JSON.stringify(got));\n> 164 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(0);\n      |                                                ^\n  165 | });\n  166 |\n  167 | test(\"R420 Jog Stop follows the new release contract\", async ({ page }) => {\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:164:48"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 delayed click [{\"cmd\":\"estop\",\"req_id\":\"nx4ry9-5\"},{\"cmd\":\"estop_reset\",\"req_id\":\"nx4ry9-6\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:34.124Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-a-delayed--fec63-op-gesture-must-never-Reset-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                    "column": 48,
+                    "line": 164
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-4f15c46b9e56f0ebb3d6",
+          "file": "r420-codex.spec.ts",
+          "line": 154,
+          "column": 1
+        },
+        {
+          "title": "R420 Jog Stop follows the new release contract",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2328,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m3\u001b[39m\nReceived array:  \u001b[31m[{\"axis\": 0, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-5\"}, {\"axis\": 1, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-6\"}, {\"axis\": 2, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-7\"}]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m3\u001b[39m\nReceived array:  \u001b[31m[{\"axis\": 0, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-5\"}, {\"axis\": 1, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-6\"}, {\"axis\": 2, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-7\"}]\u001b[39m\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:179:66",
+                    "location": {
+                      "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                      "column": 66,
+                      "line": 179
+                    },
+                    "snippet": "  177 |   const after=await settled(page);\n  178 |   console.log(\"R420 jog stop\",JSON.stringify({before,after}));\n> 179 |   expect(before.filter(c=>String(c.cmd).startsWith('jog_stop'))).toHaveLength(0);\n      |                                                                  ^\n  180 |   expect(after.filter(c=>String(c.cmd).startsWith('jog_stop')).length).toBeGreaterThan(0);\n  181 | });\n  182 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                        "column": 66,
+                        "line": 179
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m3\u001b[39m\nReceived array:  \u001b[31m[{\"axis\": 0, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-5\"}, {\"axis\": 1, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-6\"}, {\"axis\": 2, \"cmd\": \"jog_stop\", \"req_id\": \"as5ttv-7\"}]\u001b[39m\n\n  177 |   const after=await settled(page);\n  178 |   console.log(\"R420 jog stop\",JSON.stringify({before,after}));\n> 179 |   expect(before.filter(c=>String(c.cmd).startsWith('jog_stop'))).toHaveLength(0);\n      |                                                                  ^\n  180 |   expect(after.filter(c=>String(c.cmd).startsWith('jog_stop')).length).toBeGreaterThan(0);\n  181 | });\n  182 |\n    at /tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts:179:66"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R420 jog stop {\"before\":[{\"cmd\":\"jog_stop\",\"axis\":0,\"req_id\":\"as5ttv-5\"},{\"cmd\":\"jog_stop\",\"axis\":1,\"req_id\":\"as5ttv-6\"},{\"cmd\":\"jog_stop\",\"axis\":2,\"req_id\":\"as5ttv-7\"}],\"after\":[{\"cmd\":\"jog_stop\",\"axis\":0,\"req_id\":\"as5ttv-5\"},{\"cmd\":\"jog_stop\",\"axis\":1,\"req_id\":\"as5ttv-6\"},{\"cmd\":\"jog_stop\",\"axis\":2,\"req_id\":\"as5ttv-7\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T15:29:38.502Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r420/lcnc-webui/test-results/r420-codex-R420-Jog-Stop-follows-the-new-release-contract-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r420/lcnc-webui/e2e/r420-codex.spec.ts",
+                    "column": 66,
+                    "line": 179
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-be781331b3b1272f55f4",
+          "file": "r420-codex.spec.ts",
+          "line": 167,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T15:28:43.479Z",
+    "duration": 57750.05,
+    "expected": 14,
+    "skipped": 0,
+    "unexpected": 5,
+    "flaky": 0
+  }
+}

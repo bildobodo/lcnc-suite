@@ -1,0 +1,51 @@
+[1A[2K[WebServer] (node:1190149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:1190190) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1190190) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] [e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted
+[1A[2K[e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted
+R420 cancel then reset {"gap":29,"got":[{"cmd":"estop","req_id":"hen4m9-5"}]}
+
+[1A[2K  1) [e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m0[39m
+    Received array:  [31m[][39m
+
+      79 |   const got=await settled(page);
+      80 |   console.log('R420 cancel then reset',JSON.stringify({gap,got}));
+    > 81 |   expect(got.filter(c=>c.cmd==='estop_reset')).toHaveLength(1);
+         |                                                ^
+      82 | });
+      83 |
+        at /tmp/codex-r420/lcnc-webui/e2e/r420-cancel.spec.ts:81:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r420-cancel-R420-new-pen-R-9410d-Stop-press-must-be-accepted-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted 
