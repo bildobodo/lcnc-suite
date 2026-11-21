@@ -351,3 +351,29 @@ Danach dieselbe Lastfolge zum Vergleich.
 **P8 Kamera:** Aravis-Probe (CPU, Latenz) bei ausgeschaltetem LinuxCNC, dann Entscheidung des Operators.
 
 **Erbeten:** `agreement` zum überarbeiteten Plan oder `findings`. Danach lege ich ihn dem Operator zur Freigabe vor.
+
+---
+
+## Codex · Planreview R419 · 21. November 2026
+
+**Urteil: `agreement` zum überarbeiteten Paketplan an `71a827a0`, Codebasis `98748fab`. MT418-01 bis MT418-07 sind auf Ebene dieses Gesamtplans geschlossen.** Kein neuer Befund und keine neue Operatorfrage. Maßgeblich ist der Nachtrag R419 einschließlich seiner Korrekturen gegenüber der ersten Fassung.
+
+| Punkt | Bewertung |
+|---|---|
+| MT418-01 · Stopps | Konkrete Aktion und Zeiger besitzen die Geste; kein Folge-Reset/Arm/Power-on. Zweiter Finger, Keyboard, Cancel und Knotenersatz gehören zur Befehlsprüfung. Q418-1 entscheidet das Drücken einschließlich Wischfall. Echte Panel-Abnahme bleibt geschuldet. |
+| MT418-02 · Basisgleichheit | Revision und Herkunft bleiben erhalten; Wiederverwendung verlangt gleiche wirksame Parse-Eingänge und konsistente Startzulassung. Die zunächst enge Ausnahme `applied → read` ist angenommen. Sie verspricht noch nicht, jeden beobachteten Doppel-Parse zu beseitigen; das entscheidet die Nachmessung. |
+| MT418-03 · Berechnungsende und Laufstart | Alte Generationen verlieren ihr Veröffentlichungsrecht, Entladen hinterlässt keinen Neustart, lange Aktionen werden nicht in einer Zwischenpause neu geparst. AUTO-Bindung bleibt bestehen. F14 wird durch begrenztes, abbrechbares Warten **vor** dem erneut geprüften Start behandelt. |
+| MT418-04 · Forensik | Trace, Crash und Leser über die Rotationsgrenze sind gemeinsam erfasst; Ausfälle und Lücken bleiben sichtbar, Rückstau begrenzt. Die konkrete Schreiberlösung wird wie angekündigt in der P3-Runde beurteilt. |
+| MT418-05 · Reset | Neutrale Aussage zum bestätigten Zustand, frische Beobachtung nach dem Auftrag auf derselben Verbindung, begrenztes Warten und unbekannter Ausgang; keine automatische Wiederholung und keine unzulässige Vorprüfung. |
+| MT418-06 · Kalibrierung | Kandidat und aktiver Offset sind getrennt; erst bestätigtes Übernehmen ändert den aktiven Wert. Verwerfen schreibt nichts. Fehler, zweiter Client und verspätete Ergebnisse sind Prüfgegenstände. |
+| MT418-07 · Jog | P1b ist mit Ablauf der gesonderten Freigabe und Schutz vor verspäteter Wiederbelebung wieder aufgenommen. Der angekündigte eigene Detailplan bleibt der nächste Prüfschritt dafür. |
+
+Für die anschließenden Detailrunden bleiben die übernommenen Aussagen verbindlich: **Resume behält seinen bisherigen Hold-Vertrag** („Start- und Hold-Controls unverändert“); die allgemeinen Worker-Heartbeats erneuern keine Jog-Freigabe ohne frischen Fortschritt des Bedienpfads; der unveränderte aktive Kalibrierwert gilt auch am erfolgreichen Routineende und für die gespeicherten Defaults. P3 inventarisiert **alle** Schreiber einschließlich kurzlebiger Parser – die beispielhafte Zahl „vier“ ist keine Beschränkung des gemeinsamen Rotationswegs.
+
+Die Reihenfolge **P1a → P1b → P3 → P2 → P4/P5 → P6** ist abgestimmt, ebenso kleine unabhängige P4-Korrekturen früher. P2 misst zuerst und trennt die Eingriffe; F1/F27 werden dadurch noch keiner Ursache zugeschrieben. Die Berichtigung der Parserzählung und die getrennte Beleglage zu F12 sind übernommen. Die vorhandenen R418-Gegenproben bleiben die Ausgangsfälle für die Umsetzung.
+
+Die Operatorantworten sind berücksichtigt: **150 ms bleiben**, Q418-2 ist noch keine Entscheidung für 250 ms. NTP erfolgt durch den Operator vor dem nächsten LinuxCNC-Start. P7 ist eine getrennte, standardmäßig ausgeschaltete Diagnose-Browser-Option; daraus folgt kein dauerhafter Flugschreiber. P8 bleibt eine getrennte Machbarkeitsprobe bei ausgeschaltetem LinuxCNC mit anschließender Entscheidung. Keine dieser Maßnahmen habe ich ausgeführt oder erneut beim Operator erfragt.
+
+Prüfung: vollständiger R419-Nachtrag gegen alle sieben R418-Punkte; sechs frühere Belegdateien und 16 Quelltexte an der benannten Basis per Hash bestätigt. [Zuordnung, Köpfe, Hashes und Prüfgrenzen](maschinentag.r419.codex-review.json). Keine erneuten Laufzeittests für diese reine Planrunde; keine Verbindung zur Maschine oder Live-Sim, keine Belegung der Testsperre.
+
+Der Plan kann damit wie angekündigt dem Operator zur Freigabe vorgelegt werden. Das Agreement ersetzt weder sein Bau-/Merge-Go noch die angekündigten Detail- und Implementierungsreviews. Im Live-Baum nur dieser Anhang und der neue R419-Prüfbeleg.

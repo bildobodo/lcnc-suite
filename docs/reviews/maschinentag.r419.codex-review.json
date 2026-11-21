@@ -1,0 +1,91 @@
+{
+  "review": "R419",
+  "verdict": "agreement",
+  "kind": "package-plan review only",
+  "document_head": "71a827a0a99b9f6b55053c690b8df08bd01b4c21",
+  "document_sha256_before_append": "e144c1b5bc7ba0c63b70efc8324e8765e24d79b5a5bb0849c634ce962b47a992",
+  "code_base": "98748fab420d1da6db7c1b4580e1c81bba314055",
+  "prior_evidence_sha256_checked": {
+    "maschinentag.r418.codex-probes.py": "a9f04dc6b9e8e51828e9faf72e9a6b7e05c05e3102f74d3ada5f1f60dd97211e",
+    "maschinentag.r418.codex-probes.json": "25e085c8e1373ff30f8ee25b1ddb8c8fff0b98298cd35f7da4156f989c252b9a",
+    "maschinentag.r418.codex-audit.py": "fa114e20f97b499c835bf1bafbebfb8fdcac528a0abb2df3cc8e8d3df2ac7c56",
+    "maschinentag.r418.codex-audit.json": "f26868a2089ed8d4dddcf7665c8fb516178c4969125b06cf8a576535da257b4a",
+    "maschinentag.r418.codex-bundler-probe.py": "5e1b92d80073f03209311b5de641d00199d017fe0a7f8a4b1f53e8f4bb5a2470",
+    "maschinentag.r418.codex-bundler.json": "d2d1ab09deeaf20d5378944ce78489cc8ee62f5ea44945967da87bc9a7f2ce6f"
+  },
+  "prior_code_sha256_checked": {
+    "lcnc-gateway/gateway.py": "28d5a78d45c68653702b6123dae8694279346c4bc135c2fc64183b5feb33af97",
+    "lcnc-gateway/gateway_util.py": "78f3985a8ea870f921399d6295c5e98a7bfb7fda14bf349db379995238af2e22",
+    "lcnc-gateway/gcode_parse_worker.py": "9ddb9f4eede948885ef653bf802344e66363393eb99f4bc2eb322fde2589bca1",
+    "lcnc-gateway/bulk_pipeline.py": "0ba05dca9a7dff9337ebfaeb36c0d28f33c6b6a4c43aa76052a17384ad97b2f4",
+    "lcnc-gateway/lcnc_trace.py": "968e2542040fc5ee760beed625d58520cb0e5200a15baa57bebb61a2b81552b4",
+    "scripts/trace-bundle.py": "b2311ddb9ed9c165b000ec1d038745540c18e72d0b1cd4077b4c707495a948d2",
+    "lcnc-webui/src/MachineBtn.vue": "65acda10f1d90ef805aada7ebfe2fdc7d2b5d3d68653920d81fce29b15f07087",
+    "lcnc-webui/src/SafetyStrip.vue": "b4210dc7cf3fd87194f03d0f41665042255d3ddc0c995d70cfb7d7256d0ce8eb",
+    "lcnc-webui/src/touchDetect.ts": "05785ee430577799111c343f99a517cc78a1b59682d091f8d59a1cea8b50b300",
+    "lcnc-webui/src/ProbePanel.vue": "2fdcf2f3cb54d0bf372f21d6aca6a98b49311872f1ebfc7b0ab75046b13fe55e",
+    "lcnc-webui/src/App.vue": "2c42c64638dbad18c352428d36bc2f0eba51651a1b97c27760bc93c02a89984a",
+    "lcnc-webui/src/ThreeViewer.vue": "92c5b959babc9065c07ab9d001f549663e81f895561c852318c2d9ae144b5dc2",
+    "lcnc-webui/src/ScrubBar.vue": "ff0a5aea111ba365cd0d133b9b44fa533fff9576898e2c3bc2e382645f5cc7fd",
+    "lcnc-webui/src/wsWorker.ts": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+    "subroutines/probe_basic/probe_cal_round_boss.ngc": "9ecb5147c42309acad0773d4b145241db7aafcb7b35a271336d3605ea3000bfe",
+    "subroutines/probe_basic/probe_cal_round_pocket.ngc": "6de9ea2152d4db0d3897be9f5a0f4f2d14b17a471329a9c0681a06640a3da2a9"
+  },
+  "matrix": [
+    {
+      "id": "MT418-01",
+      "response_line": 294,
+      "status": "closed at package-plan level",
+      "reason": "Concrete stop action, per-pointer gesture ownership, no inverse action, secondary touch and keyboard cases; real-panel acceptance retained."
+    },
+    {
+      "id": "MT418-02",
+      "response_line": 316,
+      "status": "closed at package-plan level",
+      "reason": "Provenance/revision retained; effective parse inputs determine reuse; conservative applied-to-read case; start admission follows the same basis."
+    },
+    {
+      "id": "MT418-03",
+      "response_line": 323,
+      "status": "closed at package-plan level",
+      "reason": "Generation invalidation, no restart after unload, action-end condition, named failures and pinned AUTO context; P6 waits before actual start."
+    },
+    {
+      "id": "MT418-04",
+      "response_line": 309,
+      "status": "closed at package-plan level",
+      "reason": "Coordinated trace and crash rotation plus readers, gap reporting, bounded backpressure; concrete writer choice reserved for P3 round."
+    },
+    {
+      "id": "MT418-05",
+      "response_line": 332,
+      "status": "closed at package-plan level",
+      "reason": "Neutral reset outcome; fresh status bound to the request and connection; bounded wait; unknown outcome; no automatic repeat."
+    },
+    {
+      "id": "MT418-06",
+      "response_line": 336,
+      "status": "closed at package-plan level",
+      "reason": "Calibration candidate separate from active offset; explicit confirmed adoption; discard does not write; multi-client/late-result/error cases."
+    },
+    {
+      "id": "MT418-07",
+      "response_line": 307,
+      "status": "closed at package-plan level",
+      "reason": "Separate expiring jog admission restored as P1b; independent from main thread; dedicated plan round before building it."
+    }
+  ],
+  "operator_answers": {
+    "Q418-1": "press-to-stop chosen, swipe tradeoff accepted",
+    "Q418-2": "deferred, keep 150 ms pending measurement",
+    "Q418-3": "operator will configure time synchronization before next LinuxCNC start",
+    "Q418-4": "separate feasibility package; no camera purchase or integration decision",
+    "Q418-5": "separate optional diagnostic-browser package; recorder only as needed with its own consent"
+  },
+  "verification": "Read-only document comparison and hash verification; no new runtime tests because no implementation changed in this review.",
+  "limits": [
+    "No machine or simulator connection; no browser/build/test gate.",
+    "Overall plan agreement does not substitute for the announced detail rounds, implementation reviews, panel acceptance or operator build/merge approval.",
+    "No raw machine data copied."
+  ]
+}
