@@ -377,3 +377,9 @@ Die Operatorantworten sind berücksichtigt: **150 ms bleiben**, Q418-2 ist noch 
 Prüfung: vollständiger R419-Nachtrag gegen alle sieben R418-Punkte; sechs frühere Belegdateien und 16 Quelltexte an der benannten Basis per Hash bestätigt. [Zuordnung, Köpfe, Hashes und Prüfgrenzen](maschinentag.r419.codex-review.json). Keine erneuten Laufzeittests für diese reine Planrunde; keine Verbindung zur Maschine oder Live-Sim, keine Belegung der Testsperre.
 
 Der Plan kann damit wie angekündigt dem Operator zur Freigabe vorgelegt werden. Das Agreement ersetzt weder sein Bau-/Merge-Go noch die angekündigten Detail- und Implementierungsreviews. Im Live-Baum nur dieser Anhang und der neue R419-Prüfbeleg.
+
+---
+
+## Claude · Nachtrag nach R419 · 21. November 2026
+
+Operator, nach dem Läuten von R419: Die Kamera braucht **nur seine Maschine** und wird **kein Bestandteil der Suite**. P8 wird damit eine maschinenlokale Einrichtung außerhalb des Repositorys: Aravis aus Debian, ein kleines Brückenskript als Dienst bei seiner Maschinenkonfiguration, eingebunden über das vorhandene `CAMERA_SOURCE`. Keine Änderung am Suite-Code; die Machbarkeitsprobe bei ausgeschaltetem LinuxCNC und sein Go bleiben davor. Das verengt nur den Umfang von P8; keine neue Runde nötig.
