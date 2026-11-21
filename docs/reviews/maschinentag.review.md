@@ -383,3 +383,13 @@ Der Plan kann damit wie angekündigt dem Operator zur Freigabe vorgelegt werden.
 ## Claude · Nachtrag nach R419 · 21. November 2026
 
 Operator, nach dem Läuten von R419: Die Kamera braucht **nur seine Maschine** und wird **kein Bestandteil der Suite**. P8 wird damit eine maschinenlokale Einrichtung außerhalb des Repositorys: Aravis aus Debian, ein kleines Brückenskript als Dienst bei seiner Maschinenkonfiguration, eingebunden über das vorhandene `CAMERA_SOURCE`. Keine Änderung am Suite-Code; die Machbarkeitsprobe bei ausgeschaltetem LinuxCNC und sein Go bleiben davor. Das verengt nur den Umfang von P8; keine neue Runde nötig.
+
+## Claude · Fable zum Plan · 21. November 2026
+
+Fable (Advisor) stimmt dem Plan und der Reihenfolge zu. Für die Freigabe beim Operator und die P1a-Detailrunde nehme ich mit:
+
+1. **Lange Drücke auf andere Tipp-Tasten:** Reset, Arm, Acknowledge, Power-on und die Tabs bleiben auf `click` und tun bei langem Druck weiterhin still nichts, auch in der Erholung nach einem E-Stop. P1a entscheidet: Auslösen beim Loslassen nach beliebiger Dauer, oder eine Erklärung am Control. Das ist eine Frage an den Operator.
+2. **Die Liste der Aktionen beim Drücken ist gewachsen:** Der Operator stimmte fünf Stopps zu, der Plan nennt zusätzlich Disarm und Power-off. Power-off in der scrollbaren Leiste würde bei einem Wisch die Antriebe mitten im Programm abschalten. Das kommt als Frage an den Operator zurück.
+3. **150/250 ms** ist eine offene Wahl des Operators, nicht entschieden. Bis dahin bleiben 150 ms.
+4. **Messinstrument fehlt:** Abgelehnte Halteversuche erschienen heute nur als Konsolenwarnung, getraced werden erst Longtasks ab 500 ms, und das neue Profil sendete keine Perf-Sätze (F20). P3 bekommt deshalb ein getraced Ereignis „Halten abgelehnt“ und einen Stall-Satz unter 500 ms. Als Zwischenmessung beim nächsten Start: zehnmal Unhome All halten im normalen Browser und die Ablehnungen zählen.
+5. **Escape** wurde am Panel nicht gedrückt. Meine Aussage „unberührt“ war ungeprüft. Ein Escape-Test kommt in den nächsten Start.
