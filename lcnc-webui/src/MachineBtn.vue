@@ -315,6 +315,7 @@ onBeforeUnmount(() => { gesture?.end("unmount"); disarmHoldGuards(); });
     :holding="holding"
     :title="resolvedTitle"
     :class="holdEnabled ? 'no-drag-scroll holdable' : undefined"
+    :data-press-owned="holdEnabled ? '' : undefined"
     :style="holdEnabled ? { '--hold-duration': HOLD_FIRE_MS + 'ms' } : undefined"
     @pointerdown="onHoldPointerDown"
     @pointermove="onHoldPointerMove"

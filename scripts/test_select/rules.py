@@ -220,7 +220,7 @@ RULES: tuple[Rule, ...] = (
              "MachineSelect.vue", "MachineRadio.vue", "MachineColor.vue", "Gate.vue",
              "permissions.ts", "machineControls.ts",
              "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "deviceToken.ts", "simShown.ts", "features.ts",
-             "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts",
+             "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts", "releaseClick.ts",
              "sidePaneNarrow.ts", "stickyHead.ts", "scrollFade.ts", "helpPlacement.ts",
              "HelpIcon.vue", "FormField.vue", "MoreMenu.vue", "DetailsPopover.vue",
              "useMediaMql.ts", "flashClock.ts", "useDialogState.ts",

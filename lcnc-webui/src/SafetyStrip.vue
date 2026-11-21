@@ -86,6 +86,49 @@ const overridesActive = computed(() =>
 // The safety buttons never move (WP4 pinned controls) — the detail sits
 // below them; landscape never folds (fixed section height).
 // the block's name carries the codes it shows (WCAG 2.5.3), none before a status
+// ── The E-Stop acts on the PRESS (operator, machine day 2026-11-21, P1a) ──
+// Chromium on the touch panel turns a long press into a long-press gesture
+// and dispatches no click: the UI E-Stop did nothing on a long press (F12).
+// Every other control acts on its release, however long the press
+// (releaseClick.ts); the E-Stop alone fires at pointerdown — any pointer,
+// any finger, a second finger while the first holds a jog included — and
+// owns that press (`data-press-owned`): the click the same press may still
+// produce (a short tap, a mouse) is consumed, so a press that stopped the
+// machine never resets it, although the button reads "Reset" by then. Reset
+// keeps the release semantics. Keyboard: Enter / Space activate once; a held
+// key's repeats do nothing (a repeat after the stop would be a Reset).
+const ESTOP_CLICK_GRACE_MS = 600;
+let pressFired: { pointerId: number; until: number } | null = null;
+function onEstopPointerDown(e: PointerEvent) {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (props.isEstop || !props.canEstop) return;   // the button means Reset, or is closed: its click acts
+  const g = { pointerId: e.pointerId, until: Number.POSITIVE_INFINITY };
+  pressFired = g;
+  // the release may land anywhere — the button can even be replaced by then
+  const end = (u: PointerEvent) => {
+    if (u.pointerId !== g.pointerId) return;
+    g.until = u.timeStamp + ESTOP_CLICK_GRACE_MS;
+    window.removeEventListener("pointerup", end, true);
+    window.removeEventListener("pointercancel", end, true);
+  };
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", end, true);
+  emit("estop");
+}
+function onEstopClick(e: MouseEvent) {
+  const pf = pressFired;
+  if (pf && e.timeStamp > pf.until) pressFired = null;
+  else if (pf && e.detail > 0) {
+    const pid = (e as PointerEvent).pointerId;
+    // the click of the press that already fired (a keyboard click has detail 0)
+    if (pid == null || pid === pf.pointerId) { pressFired = null; return; }
+  }
+  if (props.isEstop) emit("estopReset"); else emit("estop");
+}
+function onEstopKeydown(e: KeyboardEvent) {
+  if (e.repeat && (e.key === "Enter" || e.key === " ")) e.preventDefault();
+}
+
 const codesLabel = computed(() =>
   ["Active codes", props.gcodes, props.mcodes].filter(Boolean).join(" ") + " — open in the G-code reference");
 </script>
@@ -123,7 +166,10 @@ const codesLabel = computed(() =>
           :reason="isEstop && !can.estopReset ? reasons.estopReset : undefined"
           :aria-label="isEstop ? 'Reset E-Stop' : undefined"
           :title="isEstop ? 'Reset E-Stop' : undefined"
-          @click="isEstop ? emit('estopReset') : emit('estop')"
+          :data-press-owned="isEstop ? undefined : ''"
+          @pointerdown="onEstopPointerDown"
+          @click="onEstopClick"
+          @keydown="onEstopKeydown"
           class="safetyBtn"
           block
         >

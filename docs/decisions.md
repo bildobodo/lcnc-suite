@@ -11895,3 +11895,7 @@ operator's Q248-1.
 
 **Guard** (`input-session.spec`): in portrait at 100 % and 150 %, the number keypad and every keyboard page — every key starts and ends on one of five equal track lines, the last track ends on the helper's content edge, a track is at least 44 px; the X test in its new form. The press and place guards (`heldThroughPress`, `helperPlace`) stay part of the acceptance: the helper's box was already the column's width — only the keys inside it widen.
 
+## 2026-11-21 — A tap acts on its release; only the E-Stop on the press (machine day F12, plan P1a; Codex R418/R419)
+
+On the real machine (touch panel, Chromium 156) a long press on Pause, Abort or the UI E-Stop did nothing: Chromium turns a long press into a long-press gesture — `contextmenu` (refused, touchDetect.ts), then the release — and dispatches no click. Every control that acts on `click` was affected. The operator decided (2026-11-21): **only the E-Stop acts on the press** — even when a swipe starts on it, a stop is safe —, **every other control acts on its release, however long the press was**, because many Abort buttons sit in swipeable areas (strip, macro bar, side-pane heads) where a press-fired Abort would end a program on a scroll. A press must never act twice: the E-Stop's own press can never become a Reset, a held Enter's repeats do nothing. The jog pad's Stop already acted on the press (button gates BG-01/BG-08) and is unchanged; holds keep their contract. Reopen only if the panel's browser changes its long-press handling or a control proves to need the press.
+

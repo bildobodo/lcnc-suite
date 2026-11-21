@@ -518,6 +518,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :aria-description="jointDescription(btn.axis, btn.axis2)"
               :aria-label="btn.shortLabel ? undefined : jogName(btn)"
               class="jogBtn"
+              data-press-owned
               :variant="btn.axis < 0 ? 'danger' : jogVariant"
               :active="activeJogKeys.has(btn.label)"
               @pointerdown.prevent="startJog(btn, $event)"
@@ -539,6 +540,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             :aria-description="jointDescription(zAxis.index)"
             :variant="jogVariant"
             class="jogBtn"
+            data-press-owned
             :active="activeJogKeys.has('Z+')"
             @pointerdown.prevent="startAxisJog(zAxis.index, 1, jogVel, $event)"
             @pointerup.prevent="stopAxisJog(zAxis.index, 1, $event)"
@@ -554,6 +556,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             :aria-description="jointDescription(zAxis.index)"
             :variant="jogVariant"
             class="jogBtn"
+            data-press-owned
             :active="activeJogKeys.has('Z-')"
             @pointerdown.prevent="startAxisJog(zAxis.index, -1, jogVel, $event)"
             @pointerup.prevent="stopAxisJog(zAxis.index, -1, $event)"
@@ -574,6 +577,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
+              data-press-owned
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, angularJogVel, $event)"
               @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
@@ -589,6 +593,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
+              data-press-owned
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, angularJogVel, $event)"
               @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
@@ -610,6 +615,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
+              data-press-owned
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, jogVel, $event)"
               @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
@@ -625,6 +631,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
+              data-press-owned
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, jogVel, $event)"
               @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"

@@ -7,6 +7,7 @@ import { deviceToken, initDeviceToken } from './deviceToken'
 import { initDragScroll } from './dragScroll'
 import { initScrollFade } from './scrollFade'
 import { initTouchDetect } from './touchDetect'
+import { installReleaseClick } from './releaseClick'
 import { initFlashClock } from './flashClock'
 import { startClientDiag } from './clientDiag'
 
@@ -14,6 +15,9 @@ const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keybo
 
 async function bootstrap() {
   initTouchDetect();
+  // A long press acts on its release (machine day F12, P1a): the panel's
+  // browser dispatches no click after a long-press gesture.
+  installReleaseClick();
   initFlashClock();
   // This browser's device token BEFORE the first settings fetch: the
   // gateway answers with this device's own settings (settings split).
