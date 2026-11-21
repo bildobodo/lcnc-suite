@@ -49,6 +49,9 @@ function attach(el: HTMLElement) {
   let scroller: number | null = null
 
   el.addEventListener('pointerdown', (e: PointerEvent) => {
+    // a stopped service books nothing: a press without the release watcher
+    // would stay in flight for good (Codex R423)
+    if (!windowWatching) return
     // Only primary button (touch or left-click)
     if (e.button !== 0) return
     // Skip drag-native elements (sliders, selects, text fields) and jog
@@ -160,6 +163,10 @@ export function stopDragScroll() {
   window.removeEventListener('pointerup', onWindowRelease, true)
   window.removeEventListener('pointercancel', onWindowRelease, true)
   windowWatching = false
+  // the presses in flight end with the service: their scrollers release the
+  // container and their styles — a release while stopped reaches nobody, and
+  // a later init would find the old owner still moving it (Codex R423)
+  for (const [pointerId, ends] of inFlight) for (const end of ends) end(pointerId)
   inFlight.clear()
 }
 
