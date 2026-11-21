@@ -64,10 +64,12 @@ function _telemetryBody(events: Array<Record<string, any>>): string {
 // queue overflow, a POST the browser refused (a network error, the keepalive
 // quota), a non-2xx answer, the gateway's own refusal or rejected lines, a
 // beacon the browser did not take. The next batch carries
-// `telemetry.dropped {events, batches, why, since_ms}` in front; the counts
-// are cleared only once a batch carrying them was delivered (a 2xx — a body
-// the gateway answers with `ok: false` is no delivery). A record of a
-// delivered batch is there exactly once; anything else is a counted loss.
+// `telemetry.dropped {events, batches, why, since_ms}` in front. A report
+// IN FLIGHT is taken out of the pending count — the next batch never says it
+// again — and comes back into it only when its own batch is lost (a non-2xx,
+// a refusal: a body the gateway answers with `ok: false` is no delivery). A
+// record of a delivered batch is there exactly once; anything else is a
+// counted loss, reported once.
 interface DropCounts { events: number; batches: number; why: Record<string, number>; since_ms: number }
 let _dropped: DropCounts | null = null;
 
@@ -79,43 +81,48 @@ function _countDrop(why: string, events: number): void {
   _dropped.why[why] = (_dropped.why[why] ?? 0) + events;
 }
 
-/** What is counted and not yet delivered (tests read it). */
+/** What is counted and not yet reported or in flight (tests read it). */
 export function telemetryDropped(): DropCounts | null {
   return _dropped ? { ..._dropped, why: { ..._dropped.why } } : null;
 }
 
 /** The batch to send: the pending drop report first (its own record, never
- *  counted as a loss itself), and what it reports — to clear on delivery. */
+ *  counted as a loss itself), and what it reports — TAKEN from the pending
+ *  count while in flight (_restore puts it back if the batch is lost). */
 function _withDropReport(batch: Array<Record<string, any>>): { events: Array<Record<string, any>>; reported: DropCounts | null } {
   if (!_dropped) return { events: batch, reported: null };
-  const reported = { ..._dropped, why: { ..._dropped.why } };
+  const reported = _dropped;
+  _dropped = null;
   const rec = { kind: "telemetry.dropped", t_wall_ms: Date.now(), t_perf_ms: Math.round(performance.now()),
-                page: _PAGE_ID, ...reported };
+                page: _PAGE_ID, ...reported, why: { ...reported.why } };
   return { events: [rec, ...batch], reported };
 }
 
-function _delivered(reported: DropCounts | null): void {
-  if (!reported || !_dropped) return;
-  // subtract what the delivered batch said: drops counted meanwhile stay
-  _dropped.events -= reported.events;
-  _dropped.batches -= reported.batches;
-  for (const [k, v] of Object.entries(reported.why)) {
-    const left = (_dropped.why[k] ?? 0) - v;
-    if (left > 0) _dropped.why[k] = left; else delete _dropped.why[k];
-  }
-  if (_dropped.events <= 0) _dropped = null;
+/** A lost batch's report comes back into the pending count. */
+function _restore(reported: DropCounts | null): void {
+  if (!reported) return;
+  if (!_dropped) { _dropped = reported; return; }
+  _dropped.events += reported.events;
+  _dropped.batches += reported.batches;
+  _dropped.since_ms = Math.min(_dropped.since_ms, reported.since_ms);
+  for (const [k, v] of Object.entries(reported.why)) _dropped.why[k] = (_dropped.why[k] ?? 0) + v;
+}
+
+function _lost(why: string, n: number, reported: DropCounts | null): void {
+  _restore(reported);
+  _countDrop(why, n);
 }
 
 async function _judgeAnswer(r: Response, n: number, reported: DropCounts | null): Promise<void> {
-  if (!r.ok) { _countDrop(`status_${r.status}`, n); return; }
+  if (!r.ok) { _lost(`status_${r.status}`, n, reported); return; }
   // the gateway answers JSON; a 2xx without it (a test route's 204) is delivered
   if ((r.headers.get("content-type") ?? "").includes("json")) {
     let j: any = null;
     try { j = await r.json(); } catch { /* a 2xx with an unreadable body: delivered, not judged */ }
-    if (j && j.ok === false) { _countDrop(`refused_${String(j.error ?? "unknown").slice(0, 40)}`, n); return; }
+    if (j && j.ok === false) { _lost(`refused_${String(j.error ?? "unknown").slice(0, 40)}`, n, reported); return; }
     if (j && typeof j.rejected === "number" && j.rejected > 0) _countDrop("rejected_lines", j.rejected);
   }
-  _delivered(reported);
+  // delivered: the report it carried is said — nothing to do
 }
 
 function _flushTelemetry(): void {
@@ -133,9 +140,9 @@ function _flushTelemetry(): void {
       headers: { "content-type": "application/x-ndjson" },
       body,
       keepalive: true,
-    }).then(r => _judgeAnswer(r, n, reported), () => _countDrop("network", n));
+    }).then(r => _judgeAnswer(r, n, reported), () => _lost("network", n, reported));
   } catch {
-    _countDrop("fetch_threw", n);
+    _lost("fetch_threw", n, reported);
   }
 }
 
@@ -149,14 +156,13 @@ function _flushTelemetryViaBeacon(): void {
       const blob = new Blob([body], { type: "application/x-ndjson" });
       // taken = queued by the browser (no answer comes back): the page is
       // leaving — a refusal is counted for a page that may still stay (bfcache)
-      if (navigator.sendBeacon("/telemetry", blob)) _delivered(reported);
-      else _countDrop("beacon_refused", n);
+      if (!navigator.sendBeacon("/telemetry", blob)) _lost("beacon_refused", n, reported);
     } else {
       // Last-ditch fetch (rarely needed; keepalive covers most).
       fetch("/telemetry", { method: "POST", body, keepalive: true })
-        .then(r => _judgeAnswer(r, n, reported), () => _countDrop("network", n));
+        .then(r => _judgeAnswer(r, n, reported), () => _lost("network", n, reported));
     }
-  } catch { _countDrop("beacon_threw", n); }
+  } catch { _lost("beacon_threw", n, reported); }
 }
 
 // Named handlers (issue #32) so HMR dispose can remove them — anonymous
