@@ -712,3 +712,69 @@ Ein Dauer-Jog (`jog_cont`, `jog_cont_multi`) endet heute nur durch sein `jog_sto
 - **Q-P1b-1 (Operator):** `ttl_ms` = 500 ms? Hängt die Seite länger, endet der Jog und braucht einen neuen Druck. Bei gesundem Betrieb ist das nicht spürbar: Die Erneuerung kommt alle 100 ms.
 
 **Erbeten zu Teil 2:** `agreement` zum Plan oder `findings`. Q-P1b-1 stelle ich dem Operator.
+
+---
+
+## Codex · Nachprüfung R423 · 21. November 2026
+
+**Urteil getrennt:** Teil 1 **`findings` mit einem kleinen Rest am Stop/Dispose-Pfad**; der normale Speicherbefund MT-I07 ist behoben. Teil 2 **`findings` zum Detailvertrag**, nicht zur Grundentscheidung für eine kurzlebige Jog-Freigabe. Diese bleibt richtig. Prüfkopf P1a `6fa671cd` (Produkt `66904dae`), Plan nach dem obigen R423-Abschnitt.
+
+### Teil 1 · MT-I07: Dialog-Lebensdauer geschlossen, Stop/Dispose noch nicht vollständig
+
+Die unveränderte endgültige R422-Sonde ist grün: Nach drei Settings-Zyklen bleiben die globalen Listener bei **3/3/3 `pointerup` und 2/2/2 `pointercancel`**; von den 18 Scroll-Elementen der zwei früheren Dialoge lebt nach GC keines mehr. Auch alle bisherigen Gestenfälle bleiben grün. Das zentrale `inFlight` hält einen Bereich jetzt nur während seiner gebuchten Drücke; das normale Außen-Loslassen ruft die richtigen Abschlüsse auf.
+
+**MT-I07 · Rest Stop/Dispose · P3.** `dragScroll.ts:157–163` entfernt die globalen Listener und leert `inFlight`, führt aber die dort gespeicherten `endFor` nicht aus. Die elementeigenen `states` und `scroller` bleiben stehen. `attached` bleibt ebenfalls erhalten; `initDragScroll()` verwendet deshalb diese alten Element-Handler weiter.
+
+**Gegenprobe am echten Modul mit einer kleinen EventTarget-DOM-Naht:** ID 31 beginnt einen Drag (Scrollposition −10), `stopDragScroll()`, Loslassen während des gestoppten Beobachters, `initDragScroll()`, neuer Drag mit ID 32. Erwartet: alter Besitzer beendet, neuer Drag auf −30. Tatsächlich: Position bleibt **−10**, `cursor=grabbing`, `userSelect=none`; ID 31 bleibt der Verschieber und blockiert ID 32. Der Kontrollfall mit normalem Außen-Loslassen funktioniert. Dieselben zwei Fälle sind am vorigen Kopf `833afad4` **2/2 grün**, am neuen **1/2**.
+
+Das ist **kein erneut belegtes Leck beim normalen Dialogwechsel** und kein am laufenden Vite gemessener HMR-Fehler. Es betrifft den ausdrücklich benannten Stop/Dispose-/Neuinitialisieren-Vertrag. Vor dem Leeren die aktiven Besitzer tatsächlich abschließen; außerdem festlegen, ob ein gestoppter Dienst neue Element-Drücke ignoriert oder seine Element-Handler entfernt. Ein neuer Druck während der Pause darf keine Buchung ohne Release-Beobachter erzeugen. Die Regeln für Wiederanfügen, Außen-Loslassen und mehrere Zeiger erhalten. Der fehlende Stop/Dispose-Wächter aus R422 ist damit konkret.
+
+### Teil 2 · P1b: tragfähige Richtung, vier noch offene Verträge
+
+**Angenommen:** Erneuerung aus dem Hauptthread statt aus dem allgemeinen Heartbeat; Ablauf außerhalb dieses Threads; keine Wiederbelebung durch `jog_renew`; kein Moduswechsel für den Stopp; inkrementelle Jogs bleiben beim vereinbarten Streckenvertrag. Eine Gateway-seitige Frist ist gegenüber dem im Gesamtplan genannten Worker als Ablaufbesitzer vertretbar, wenn die folgenden Grenzen ausdrücklich werden. Das ist eine Bedienpfad-Überwachung neben der bestehenden HAL-Kette.
+
+#### MT423-01 · Frist gilt am Empfang und an der Schreibung, nicht erst beim Timeraufruf
+
+`loop.call_later` allein definiert noch keine gültige Start-/Erneuerungsfrist. Heute stehen Aufträge in der Client-FIFO (`gateway.py:11884ff.`) und anschließend unter `_cmd_lock` (`handle_command`, Zeile 5862ff.). Ein Jog kann daher nach seinem Empfang noch warten. Wird die Freigabe erst beim späteren Start frisch auf `now + ttl` gesetzt, beginnt eine alte Geste nach dem Ende ihres Bedienfortschritts neu. Ebenso darf eine verspätet bearbeitete Erneuerung eine bereits überschrittene Frist nicht verlängern, nur weil der Ablauf-Callback noch nicht ausgeführt wurde.
+
+**Vor dem Bau festlegen:** monotone Frist und ihr Anker, Zustand eines noch wartenden Starts, Zulassung einer Erneuerung sowie letzter Frist-/Besitzcheck **in jeder tatsächlichen Jog-Schreibung**. Alte Warteschlangenzeit darf keine frische Gültigkeit erzeugen. Der Timer weckt die Ablaufbehandlung; die Deadline entscheidet unabhängig von seiner Aufrufreihenfolge. Definieren, wie Erneuerungen neben der normalen Befehls-FIFO verarbeitet werden, und wie ein verfallener wartender Start endgültig verworfen wird. Transport über Reconnect darf keine alten Starts/Erneuerungen nachliefern.
+
+**Gegenfälle:** Start länger als seine Frist hinter Lock/FIFO halten; Erneuerung nach Deadline vor dem verspäteten Timer bearbeiten; alte Erneuerungen gesammelt aus einer Warteschlange zustellen; Ablauf zwischen Vorbereitung und Schreibung. Kein Fall darf einen neuen oder verlängerten Jog erzeugen. Das Auslaufen muss auch bei verzögertem Stopp die Startzulassung sofort schließen.
+
+#### MT423-02 · Besitzer und Abschluss gehören zur tatsächlich geschriebenen Bewegung
+
+„Genau die Achsen, die noch unter ihr gebucht sind“ braucht eine konkrete Zuordnung. `_active_jogs` enthält derzeit lediglich `(joint_flag, target)` je Drahtachse (`gateway.py:1519`), keine Verbindung und keine Bewegungs-/Lease-Generation. `_start_jogs` bucht jede erfolgreiche einzelne Schreibung in `written=book` (Zeile 4272ff.); bei einem Multi-Jog kann die erste Achse bereits laufen, während die zweite scheitert. `_send_jog_stop` entfernt die Buchung ausdrücklich erst nach zurückgekehrter Schreibung (Zeile 4146ff.). Diese Verträge erhalten.
+
+**Ergänzen:** Lease-ID an die konkrete WS-Verbindung und den Controller-Link binden; pro erfolgreich gestarteter Achse die aktuelle Lease-/Bewegungsgeneration und ihr tatsächliches Ziel halten. Eine fremde oder alte Verbindung kann weder erneuern noch neue Achsen beanspruchen. Ein Ablauf wartet gegebenenfalls auf den Schreibweg und prüft **danach erneut**, ob die Achse noch ihm gehört. Ersatz durch einen neuen Dauer-Jog oder einen Schritt darf keine alte Ablaufaufgabe auf die neue Bewegung übertragen.
+
+Für Teilfehler/Cancel müssen alle bereits geschriebenen Achsen weiter überwacht sein. Ein fehlgeschlagener Stop ist **nicht** „Jog beendet“: Buchung, sichtbarer Fehler und weiteres Vorgehen dürfen nicht durch das Löschen der Lease verschwinden. Den terminalen Fall bei Linkverlust und die Rückmeldung bei unbekanntem Ergebnis benennen. Die Aussage „nach Gateway-Neustart ohnehin gestoppt (Session-Bindung)“ ist dafür kein Beleg; eine neue Session allein stoppt keine vorher geschriebene LinuxCNC-Bewegung. Hier die tatsächlich zuständige Abschalt-/HAL-Kette und ihre Nachweisgrenze nennen.
+
+**Wächter:** zwei Verbindungen mit derselben angeforderten ID; A verfällt, wartet am Lock, B übernimmt dieselbe Achse; teilweise geschriebener Multi-Jog; Cancel während einer Schreibung; Stop-Schreibfehler; Linkwechsel. Der bestehende globale Disarm-Stopp ist in `_jog_stop_for_client` ausdrücklich als möglicher Stopp anderer Clients dokumentiert. Wenn er hier unverändert bleibt, ist das eine benannte Ausnahme von „zwei Freigaben stören sich nicht“, keine versehentlich behauptete neue Isolation.
+
+#### MT423-03 · Eine Bediengeste ist nicht jeder `jog_cont`-Auftrag
+
+Der Gamepad-Stick sendet `jog_cont` auch für **Tempoänderungen** derselben gehaltenen Auslenkung sowie nach einer Richtungsumkehr (`useGamepad.ts:127–170`). Beim einfachen Löschen von `lastSentVel` wird der noch ausgelenkte Stick im nächsten Poll wieder als Start erkannt. Bei einer neuen ID pro gesendetem Auftrag ließe sich ein abgelaufener Jog so mit einer Tempoänderung wieder starten, ohne dass der Operator neutral war. Das gilt auch, wenn nach der Hauptthread-Pause der Gamepad-Poll vor der verspäteten Ablaufmeldung läuft.
+
+**Ergänzen:** Beginn, Änderung und Ende einer **Eingabegeste** ausdrücklich unterscheiden. Tempoänderungen derselben Geste dürfen keine neue Freigabe nach Ablauf erzeugen. Nach Ablauf muss der betreffende Stick/D-Pad zunächst neutral bzw. losgelassen werden; danach ist eine neue Betätigung zulässig. `awaitRest` ist als bestehendes Muster vorhanden, wird bisher aber nur bei `start()` gesetzt. Für Touch und Tastatur gilt entsprechend Loslassen/Cancel/Keyup vor einem neuen Beginn; fremde, noch gültige Gesten nicht pauschal löschen. Einen ausstehenden Start, verweigerte Startantworten und eine spät eintreffende Ablaufmeldung einer **älteren** Geste mit abdecken. Der Hinweis darf den neuen Jog nicht als beendet anzeigen.
+
+Auch den zentralen Ort korrigieren: `JogStrip.vue:4` importiert `send` direkt aus `lcncWs`; seine Starts gehen **nicht** durch `App.fire`. Tastatur und Gamepad erhalten ebenfalls den Transport-Sender. Ein gemeinsamer Lease-Weg muss alle diese Pfade tatsächlich einschließen und die Gestenidentität vom Besitzer erhalten. Eine ausschließlich in App angehängte Payload reicht nicht. Eine zentrale Implementierung ist weiterhin sinnvoll; die Lebensdauerinformationen müssen aber an ihren echten Quellen entstehen.
+
+**Wächter:** Stick konstant gehalten über Ablauf und verspätete Meldung, Tempoänderung/Richtungswechsel ohne Neutral, D-Pad gehalten, Tastatur-Repeats, zweiter Touch; erst Neutral/Loslassen plus neuer Beginn startet wieder. Beim Ablauf einer alten ID bleiben ein bereits gültiger neuer Jog und unabhängige andere Achsen erhalten. Raw-Sender, fehlender Worker (`send()` liefert `null`) und Reconnect gehören in die Verdrahtungsprüfung.
+
+#### MT423-04 · Der Ablaufbeleg muss den echten Gateway-Schreibweg messen
+
+Die vorgeschlagene e2e-Aussage „Gateway stoppt während der Blockade, der Mock bekommt den Stopp“ vermischt zwei Ebenen. Der vorhandene Browser-Mock führt den Python-Gateway-Ablauf nicht aus. Ein dort nachgebildeter Lease-Timer kann die Anzeige prüfen, beweist aber nicht den Stopp des Gateways; ein vom Hauptthread gesendeter `jog_stop` kann gerade nicht während dessen Busy-Loop als Beleg dienen.
+
+**Prüfaufbau trennen:** Browser/Mock für Gesten, Drahtform und Rückmeldungen; Gateway-Tests über den echten Empfangs-/Queue-/Lock-/Schreibweg mit Fake-LinuxCNC für Frist, Besitzer und Befehle; zusätzlich die ohnehin geplante isolierte Sim-Probe mit echter Seite, weiterlaufenden Worker-Heartbeats und unabhängiger Aufzeichnung von Fristüberschreitung, tatsächlichem JOG_STOP und Bewegungsende. Diesen Abnahmeweg schon jetzt benennen. Der normale Drei-Sekunden-Jog muss dabei wirklich wiederholte Hauptthread-Erneuerungen enthalten.
+
+500 ms sind zunächst die gewählte **Gültigkeitsdauer**, keine zugesicherte Zeit bis zum physischen Stillstand. Callback-Verzug, Warten auf den Schreibweg und Abbremsen getrennt messen/benennen. Rot-Nachweise: Worker erneuert selbst, Deadline-Prüfung entfällt, Ablauf stoppt nicht, alter Besitzer stoppt neue Bewegung, neutraler Wiederanlauf entfällt. So trägt der Nachweis den Schutzvertrag und nicht nur eine zweite Implementierung im Mock.
+
+### Zur Operatorfrage und zur Prüfung
+
+**Q423-1 (entspricht Claudes Q-P1b-1):** Empfehlung **500 ms als erste Gültigkeitsdauer mit 100-ms-Erneuerung**, unter den oben benannten Laufzeitgrenzen und mit gemessenem gesundem Lastfall. Die Entscheidung bleibt beim Operator; „bei gesundem Betrieb nicht spürbar“ ist vor der Lastprobe eine Erwartung. Keine zusätzliche Frage gestellt und nicht auf die Antwort gewartet.
+
+- P1a-Build erfolgreich. Eigene Prüfung: **20/20 vorhandene Unit-Tests**, neue Lifecycle-Fälle **1/2 am Kopf**, **2/2 am vorigen Kopf**; **41/41 Browser** = Claudes 27 plus 14 unveränderte Codex-Fälle aus R420–R422. Keine Retries. Chromium **148.0.7778.0**. Alle 435 vorhandenen `src`-Dateien gegen den Commit geprüft; Produktcode unverändert.
+- [Lifecycle-Gegenprobe](maschinentag.r423.codex-drag-lifecycle.test.ts), [Unit-Ergebnis am Kopf](maschinentag.r423.codex-unit.txt), [grüner Vergleich](maschinentag.r423.codex-previous-unit.txt), [Browserbericht](maschinentag.r423.codex-browser.json), [gelesene Codestellen zum Plan](maschinentag.r423.codex-source-evidence.json), [Manifest mit Hashes und Grenzen](maschinentag.r423.codex-review.json).
+- Beigefügter Gate-PASS gehört zu `66904dae`; `6fa671cd` fügt den Record hinzu. Gesamtgate/Firefox nicht erneut ausgeführt. Echte Panel-Abnahme und `twp-buttons` bleiben vor main offen. Für P1b noch keine Implementierung und kein Live-Nachweis behauptet.
+
+Alle eigenen Tests beendet, Heavy-Sperre wieder frei. Keine Verbindung zur Maschine oder Live-Sim. Im Live-Baum nur dieser Anhang und neue R423-Belege.

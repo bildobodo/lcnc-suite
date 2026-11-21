@@ -1,0 +1,636 @@
+{
+  "head": "6fa671cd33da1af4d6f9cba3b2ac3714313a5c6d",
+  "note": "Static source evidence for R423 lifecycle and P1b plan review; no P1b implementation or native experiment claimed.",
+  "files": {
+    "lcnc-webui/src/JogStrip.vue": {
+      "sha256": "a38990e7a7b8301bc89ad27d839bc307e8793124a2fa408874f79d4277602a0f",
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 8,
+          "lines": [
+            "1: <script setup lang=\"ts\">",
+            "2: import { usePermissionReasons } from \"./permissions\";",
+            "3: import { computed, inject, ref, watch, nextTick, onMounted, onUnmounted, type Ref, type Component } from \"vue\";",
+            "4: import { send } from \"./lcncWs\";",
+            "5: import { usePermissions } from \"./permissions\";",
+            "6: import { INPUT_DEFS } from \"./machineControls\";",
+            "7: import { registerJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from \"./useJogPointers\";",
+            "8: import { stopFor, type JogGesture } from \"./jogGesture\";"
+          ]
+        },
+        {
+          "start": 417,
+          "end": 447,
+          "lines": [
+            "417:   // safe-silent: pointer capture is a best-effort UX aid; throws if the pointer is already gone",
+            "418:   try { el?.setPointerCapture?.(e.pointerId); } catch {}",
+            "419: ",
+            "420:   const isDiag = btn.axis2 != null && btn.dir2 != null;",
+            "421:   const v = isDiag ? props.jogVel * 0.7071 : props.jogVel;",
+            "422: ",
+            "423:   if (props.jogIncrement > 0) {",
+            "424:     const dist = isDiag ? props.jogIncrement * 0.7071 : props.jogIncrement;",
+            "425:     if (isDiag) {",
+            "426:       send({ cmd: \"jog_incr_multi\", axes: [",
+            "427:         { axis: btn.axis, vel: v * btn.dir, distance: dist * btn.dir },",
+            "428:         { axis: btn.axis2!, vel: v * btn.dir2!, distance: dist * btn.dir2! },",
+            "429:       ]});",
+            "430:     } else {",
+            "431:       send({ cmd: \"jog_incr\", axis: btn.axis, vel: v * btn.dir, distance: props.jogIncrement * btn.dir });",
+            "432:     }",
+            "433:   } else {",
+            "434:     if (isDiag) {",
+            "435:       send({ cmd: \"jog_cont_multi\", axes: [",
+            "436:         { axis: btn.axis, vel: v * btn.dir },",
+            "437:         { axis: btn.axis2!, vel: v * btn.dir2! },",
+            "438:       ]});",
+            "439:     } else {",
+            "440:       send({ cmd: \"jog_cont\", axis: btn.axis, vel: v * btn.dir });",
+            "441:     }",
+            "442:   }",
+            "443: ",
+            "444:   registerJog(e.pointerId, btn.label, stopFnFor({",
+            "445:     axes: isDiag ? [btn.axis, btn.axis2!] : [btn.axis],",
+            "446:     cont: !(props.jogIncrement > 0),",
+            "447:   }), el);"
+          ]
+        },
+        {
+          "start": 479,
+          "end": 495,
+          "lines": [
+            "479: function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEvent) {",
+            "480:   const letter = props.axes[axisIndex]!;",
+            "481:   const key = `${letter}${dir > 0 ? \"+\" : \"-\"}`;",
+            "482:   if (isDisabled.value || activeJogKeys.has(key)) return;",
+            "483: ",
+            "484:   const el = e.currentTarget as Element;",
+            "485:   // safe-silent: pointer capture is a best-effort UX aid; throws if the pointer is already gone",
+            "486:   try { el?.setPointerCapture?.(e.pointerId); } catch {}",
+            "487: ",
+            "488:   if (props.jogIncrement > 0) {",
+            "489:     send({ cmd: \"jog_incr\", axis: axisIndex, vel: vel * dir, distance: props.jogIncrement * dir });",
+            "490:   } else {",
+            "491:     send({ cmd: \"jog_cont\", axis: axisIndex, vel: vel * dir });",
+            "492:   }",
+            "493: ",
+            "494:   registerJog(e.pointerId, key, stopFnFor({ axes: [axisIndex], cont: !(props.jogIncrement > 0) }), el);",
+            "495: }"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/lcncWs.ts": {
+      "sha256": "b8906fb33a56ebcc5b66958e35a7bff916043ea43362b07048feb7e8e4b62e86",
+      "excerpts": [
+        {
+          "start": 422,
+          "end": 435,
+          "lines": [
+            "422:  * Send a command. Returns the `req_id` it went out with, or null when",
+            "423:  * NOTHING was handed to the transport (no worker yet) — a null never",
+            "424:  * creates a pending state in a caller.",
+            "425:  */",
+            "426: export function send(obj: WsCommand): string | null {",
+            "427:   // Classify here (main thread) where the structured command is visible.",
+            "428:   // Mutating/motion commands must not be queued+replayed across a reconnect",
+            "429:   // (issue #18); the worker drops them if the socket is closed.",
+            "430:   const req_id = nextReqId();",
+            "431:   const posted = sendCommand(JSON.stringify({ ...obj, req_id }), obj.cmd, !isQueueSafe(obj.cmd));",
+            "432:   return posted ? req_id : null;",
+            "433: }",
+            "434: ",
+            "435: // Replies a caller WAITS for, by req_id — a map, not a watch on lastReply:"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/useGamepad.ts": {
+      "sha256": "5d63efd9d2bc828e77a36f03d352eeb2f74dccebb8c0ed575971edf47ee9c29d",
+      "excerpts": [
+        {
+          "start": 127,
+          "end": 171,
+          "lines": [
+            "127:   function sendJog(axis: number, vel: number, now: number) {",
+            "128:     const prev = lastSentVel[axis] ?? 0;",
+            "129:     const prevTime = lastSendTime[axis] ?? 0;",
+            "130: ",
+            "131:     if (vel === 0 && prev === 0) return; // already stopped",
+            "132: ",
+            "133:     // STOP: always immediate, never throttled",
+            "134:     if (vel === 0 && prev !== 0) {",
+            "135:       deps.send({ cmd: \"jog_stop\", axis });",
+            "136:       lastSentVel[axis] = 0;",
+            "137:       lastSendTime[axis] = now;",
+            "138:       return;",
+            "139:     }",
+            "140: ",
+            "141:     // An axis closed before homing starts nothing (its stop above is never refused)",
+            "142:     if (deps.jogAxisRefusal(axis)) return;",
+            "143: ",
+            "144:     // DIRECTION CHANGE: stop first, then start in new direction",
+            "145:     if (prev !== 0 && Math.sign(vel) !== Math.sign(prev)) {",
+            "146:       deps.send({ cmd: \"jog_stop\", axis });",
+            "147:       deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "148:       lastSentVel[axis] = vel;",
+            "149:       lastSendTime[axis] = now;",
+            "150:       return;",
+            "151:     }",
+            "152: ",
+            "153:     // START: first movement from zero — send immediately",
+            "154:     if (prev === 0) {",
+            "155:       deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "156:       lastSentVel[axis] = vel;",
+            "157:       lastSendTime[axis] = now;",
+            "158:       return;",
+            "159:     }",
+            "160: ",
+            "161:     // VELOCITY UPDATE: heavily throttled to avoid command queue buildup",
+            "162:     const dt = now - prevTime;",
+            "163:     const dv = Math.abs(vel - prev);",
+            "164:     if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs((stickMaxVel[axis] ?? deps.jogVel.value) * VEL_EPSILON)) {",
+            "165:       return;",
+            "166:     }",
+            "167: ",
+            "168:     deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "169:     lastSentVel[axis] = vel;",
+            "170:     lastSendTime[axis] = now;",
+            "171:   }"
+          ]
+        },
+        {
+          "start": 303,
+          "end": 310,
+          "lines": [
+            "303:     if (awaitRest) {",
+            "304:       const dz = cfg.deadZone;",
+            "305:       const still = Object.values(logical.sticks).every(v => Math.abs(v) < dz)",
+            "306:         && !Object.values(logical.buttons).some(Boolean);",
+            "307:       prevButtons = logical.buttons;",
+            "308:       if (!still) return;",
+            "309:       awaitRest = false;",
+            "310:     }"
+          ]
+        },
+        {
+          "start": 368,
+          "end": 384,
+          "lines": [
+            "368:       for (const btn of DPAD_BUTTONS) {",
+            "369:         if (!logical.buttons[btn] || prevButtons[btn] || dpadJogs.has(btn)) continue;",
+            "370:         const vertical = btn === \"dpad_up\" || btn === \"dpad_down\";",
+            "371:         const dir = btn === \"dpad_up\" || btn === \"dpad_right\" ? 1 : -1;",
+            "372:         const axis = vertical ? (zModHeld ? zi : yi) : xi;",
+            "373:         if (axis < 0 || deps.jogAxisRefusal(axis)) continue;",
+            "374:         const vel = deps.jogVel.value * dir;",
+            "375:         const step = deps.jogIncrement.value;",
+            "376:         if (step > 0) {",
+            "377:           deps.send({ cmd: \"jog_incr\", axis, vel, distance: step * dir });",
+            "378:         } else {",
+            "379:           deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "380:         }",
+            "381:         dpadJogs.start(btn, { axes: [axis], cont: !(step > 0) });",
+            "382:       }",
+            "383:     }",
+            "384: "
+          ]
+        },
+        {
+          "start": 427,
+          "end": 433,
+          "lines": [
+            "427:   function start() {",
+            "428:     if (running) return;",
+            "429:     running = true;",
+            "430:     awaitRest = true;",
+            "431:     window.addEventListener(\"gamepadconnected\", onConnected);",
+            "432:     window.addEventListener(\"gamepaddisconnected\", onDisconnected);",
+            "433: "
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/useJogPointers.ts": {
+      "sha256": "3a539d7456fd41180da88fee94c20a6499fcd6df9b84914ac472837046f16ee9",
+      "excerpts": [
+        {
+          "start": 20,
+          "end": 38,
+          "lines": [
+            "20: ",
+            "21: /** Reactive set of active jog keys — components bind to this for visual highlighting. */",
+            "22: export const activeJogKeys = reactive(new Set<string>());",
+            "23: ",
+            "24: /**",
+            "25:  * Register a pointer that is actively jogging.",
+            "26:  * Call AFTER sending the jog command and capturing the pointer.",
+            "27:  */",
+            "28: export function registerJog(",
+            "29:   pointerId: number,",
+            "30:   key: string,",
+            "31:   stopFn: () => void,",
+            "32:   element: Element | null,",
+            "33: ): void {",
+            "34:   activePointers.set(pointerId, { key, stopFn, element });",
+            "35:   activeJogKeys.add(key);",
+            "36: }",
+            "37: ",
+            "38: /**"
+          ]
+        },
+        {
+          "start": 46,
+          "end": 71,
+          "lines": [
+            "46:   return activePointers.get(pointerId)?.key;",
+            "47: }",
+            "48: ",
+            "49: /**",
+            "50:  * Unregister a pointer (normal release path).",
+            "51:  * Does NOT call stopFn — the component handles its own stop command.",
+            "52:  */",
+            "53: export function unregisterJog(pointerId: number): void {",
+            "54:   const entry = activePointers.get(pointerId);",
+            "55:   if (!entry) return;",
+            "56:   activeJogKeys.delete(entry.key);",
+            "57:   activePointers.delete(pointerId);",
+            "58: }",
+            "59: ",
+            "60: /**",
+            "61:  * Force-stop a specific pointer's jog (safety net path).",
+            "62:  * Calls the registered stopFn, releases pointer capture, clears state.",
+            "63:  */",
+            "64: export function forceStopJog(pointerId: number): void {",
+            "65:   const entry = activePointers.get(pointerId);",
+            "66:   if (!entry) return;",
+            "67:   activeJogKeys.delete(entry.key);",
+            "68:   activePointers.delete(pointerId);",
+            "69:   entry.stopFn();",
+            "70:   if (entry.element) {",
+            "71:     // safe-silent: releasing an already-released pointer throws harmlessly"
+          ]
+        },
+        {
+          "start": 76,
+          "end": 89,
+          "lines": [
+            "76: /**",
+            "77:  * Force-stop ALL registered jogs. Called by App.vue's stopAllJog().",
+            "78:  */",
+            "79: export function forceStopAllJogs(): void {",
+            "80:   for (const [pointerId, entry] of activePointers) {",
+            "81:     entry.stopFn();",
+            "82:     if (entry.element) {",
+            "83:       // safe-silent: releasing an already-released pointer throws harmlessly",
+            "84:       try { entry.element.releasePointerCapture(pointerId); } catch {}",
+            "85:     }",
+            "86:   }",
+            "87:   activePointers.clear();",
+            "88:   activeJogKeys.clear();",
+            "89: }"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/useKeyboardShortcuts.ts": {
+      "sha256": "6a362d6d3bf6d28defc508b8dfb9effc8c4d360f7cef2c4675fdc896cc34a258",
+      "excerpts": [
+        {
+          "start": 125,
+          "end": 152,
+          "lines": [
+            "125:     if (e.defaultPrevented || isActivationOnFocusedElement(e)) return;",
+            "126: ",
+            "127:     // A dialog or the keypad is open: nothing but E-Stop reaches the machine",
+            "128:     // from behind it (not even Abort — it stays a button and a banner action).",
+            "129:     if (opts.modalOpen.value) return;",
+            "130: ",
+            "131:     if (isInputFocused()) return;",
+            "132: ",
+            "133:     // Jog actions — gated by jogEnabled independently",
+            "134:     if (action.startsWith(\"jog_\")) {",
+            "135:       if (!keyboardConfig.value.jogEnabled) return;",
+            "136:       e.preventDefault();",
+            "137:       if (e.repeat || jogGestures.has(physicalKey(e))) return;",
+            "138:       if (!opts.permissions.value.jog) return;",
+            "139:       const jog = jogActionToAxis(action);",
+            "140:       if (!jog || opts.jogAxisRefusal(jog.axis)) return;",
+            "141:       const vel = (jog.isAngular ? opts.angularJogVel.value : opts.jogVel.value) * jog.dir;",
+            "142:       const step = opts.jogIncrement.value;",
+            "143:       if (step > 0) {",
+            "144:         opts.send({ cmd: \"jog_incr\", axis: jog.axis, vel, distance: step * jog.dir });",
+            "145:       } else {",
+            "146:         opts.send({ cmd: \"jog_cont\", axis: jog.axis, vel });",
+            "147:       }",
+            "148:       jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: !(step > 0) });",
+            "149:       return;",
+            "150:     }",
+            "151: ",
+            "152:     // Command shortcuts — gated by buttonsEnabled independently"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/wsWorker.ts": {
+      "sha256": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+      "excerpts": [
+        {
+          "start": 381,
+          "end": 403,
+          "lines": [
+            "381:     case \"send\":",
+            "382:       if (ws && ws.readyState === WebSocket.OPEN) {",
+            "383:         try {",
+            "384:           ws.send(msg.payload);",
+            "385:         } catch {",
+            "386:           // Socket died between the OPEN check and the send — the command is",
+            "387:           // lost. Surface it like dropped_command; onclose drives reconnect.",
+            "388:           post({ type: \"error\", kind: \"send_failed\", msg: String(msg.cmd ?? \"?\") });",
+            "389:         }",
+            "390:       } else if (msg.dropIfClosed) {",
+            "391:         // Mutating/motion command issued while the socket is closed — DROP it",
+            "392:         // rather than replay a stale operator action into a fresh connection",
+            "393:         // after reconnect (issue #18). Surface it so the operator knows.",
+            "394:         post({ type: \"error\", kind: \"dropped_command\", msg: String(msg.cmd ?? \"?\") });",
+            "395:       } else {",
+            "396:         // Read-only/telemetry — safe to queue across a brief blip.",
+            "397:         if (preOpenQueue.length >= QUEUE_MAX) {",
+            "398:           preOpenQueue.shift();",
+            "399:           post({ type: \"error\", kind: \"send_queue_overflow\", msg: String(QUEUE_MAX) });",
+            "400:         }",
+            "401:         preOpenQueue.push(msg.payload);",
+            "402:       }",
+            "403:       break;"
+          ]
+        }
+      ]
+    },
+    "lcnc-gateway/gateway.py": {
+      "sha256": "28d5a78d45c68653702b6123dae8694279346c4bc135c2fc64183b5feb33af97",
+      "excerpts": [
+        {
+          "start": 341,
+          "end": 362,
+          "lines": [
+            "341: _WS_CMD_QUEUE_MAX = 32",
+            "342: # Stop-class commands are never rejected by backpressure (\"no stop command",
+            "343: # may be droppable\", docs/decisions.md) — a 4× hard cap still bounds a",
+            "344: # broken client.",
+            "345: # cycle_pause and spindle_stop are stops too (button gates BG-08/BG-18): a",
+            "346: # full queue never rejects them and an abort never cancels them — a pause or",
+            "347: # a spindle stop that runs after an abort is harmless; one that is dropped",
+            "348: # is not.",
+            "349: _WS_STOP_CMDS = STOP_COMMANDS   # ONE set: the payload contract widens these, never refuses them (N5)",
+            "350: # abort/estop SUPERSEDE the work this client queued before them and PREEMPT",
+            "351: # any in-flight non-stop handler on EVERY client (2026-09-05): a stop must",
+            "352: # never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so",
+            "353: # every in-flight handler's assumptions are void. jog_stop/jog_stop_multi",
+            "354: # stay plain FIFO — no supersede, no preempt — because a stray jog_stop",
+            "355: # during an MDI is a certified no-op class (twp_buttons_check) and reordering",
+            "356: # it ahead of the jog_cont it belongs to would be an unbounded jog.",
+            "357: _WS_PREEMPT_CMDS = frozenset({\"abort\", \"estop\"})",
+            "358: # Never cancelled by a preempt: the stops themselves, and `arm` — its disarm",
+            "359: # branch jog-stops under _cmd_lock and flips client.armed; cancelling it",
+            "360: # would leave the flip with no reply.",
+            "361: _WS_NO_PREEMPT = _WS_STOP_CMDS | {\"arm\"}",
+            "362: # Client heartbeat budget (s): status_loop disarms an armed client whose"
+          ]
+        },
+        {
+          "start": 1506,
+          "end": 1519,
+          "lines": [
+            "1506: _shared_status: Optional[\"StatusPayload\"] = None",
+            "1507: # Wire axis indices with a jog the GATEWAY started and has not stopped. A",
+            "1508: # jog_stop for an axis not in here is a no-op (traced): it used to force",
+            "1509: # MODE_MANUAL, and a stop arriving in the ~30 ms before STAT showed a fresh",
+            "1510: # MDI executing aborted that MDI (the operator's finger leaving the A button",
+            "1511: # a beat after pressing → Zero — 2026-09-04/05, seen racing at poll",
+            "1512: # granularity even with the interp-busy guard). A successful switch to MDI /",
+            "1513: # AUTO clears it: task refuses those while a jog is active, so success means",
+            "1514: # none is. Jogs started by other UIs (halui, axis) are not in here — the",
+            "1515: # gateway never stops what it did not start; the HAL chain owns motion safety.",
+            "1516: # Each wire axis maps to the (joint_flag, CMD.jog index) its jog was STARTED",
+            "1517: # with (button gates package E): the stop addresses exactly that jog, never a",
+            "1518: # target recomputed from a motion mode or map read later.",
+            "1519: _active_jogs: Dict[int, Tuple[int, int]] = {}"
+          ]
+        },
+        {
+          "start": 4146,
+          "end": 4167,
+          "lines": [
+            "4146: async def _send_jog_stop(axis: int) -> None:",
+            "4147:     \"\"\"JOG_STOP for a jog the gateway started on wire `axis`, addressed as it",
+            "4148:     was started, in whatever mode task is in — no switch to MANUAL (button",
+            "4149:     gates package E, Codex R218): task 2.9.4 issues a jog stop in MANUAL, in",
+            "4150:     MDI whatever the interpreter does, and in AUTO idle (emctaskmain.cc,",
+            "4151:     allow_while_idle_type), and in joint mode it stops only that joint's free",
+            "4152:     planner, never a coordinated move (motion command.c EMCMOT_JOG_ABORT). The",
+            "4153:     switch it used to need could abort a fresh MDI, and a refused switch",
+            "4154:     would have suppressed the stop. Booked stopped only once the write",
+            "4155:     returned; a failed write raises and the jog stays booked. Caller holds",
+            "4156:     `_cmd_lock` and has ruled out AUTO running (task refuses a jog stop",
+            "4157:     there, and no jog can run).\"\"\"",
+            "4158:     jf, arg = _active_jogs[axis]",
+            "4159:     await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None)",
+            "4160:     _active_jogs.pop(axis, None)",
+            "4161: ",
+            "4162: ",
+            "4163: def _auto_running() -> bool:",
+            "4164:     \"\"\"AUTO with the interpreter not idle, on a read taken now: no jog can run",
+            "4165:     there, and task answers a jog stop with an operator error.\"\"\"",
+            "4166:     link().stat.poll()",
+            "4167:     return (safe_get(\"task_mode\", None) == linuxcnc.MODE_AUTO"
+          ]
+        },
+        {
+          "start": 4269,
+          "end": 4281,
+          "lines": [
+            "4269:                 return {\"ok\": False, \"error\": JOG_MODE_CHANGED}",
+            "4270:             targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]",
+            "4271:         for axis, jf, arg, vel, dist in targets:",
+            "4272:             def book(axis=axis, jf=jf, arg=arg):",
+            "4273:                 _active_jogs[axis] = (jf, arg)",
+            "4274:             if dist is None:",
+            "4275:                 rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=jog_admit, written=book)",
+            "4276:             else:",
+            "4277:                 rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=jog_admit, written=book)",
+            "4278:             _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)",
+            "4279:     except _WriteRefused as refused:",
+            "4280:         return {\"ok\": False, \"error\": str(refused)}",
+            "4281:     return {\"ok\": True}"
+          ]
+        },
+        {
+          "start": 4414,
+          "end": 4460,
+          "lines": [
+            "4414: async def _jog_stop_for_client() -> None:",
+            "4415:     \"\"\"Jog-stop every joint as part of a client disarm. Caller must hold _cmd_lock.",
+            "4416: ",
+            "4417:     Called when a client transitions to disarmed via heartbeat stall or WS",
+            "4418:     close. The point is to stop any in-flight jog this client may have",
+            "4419:     started — without a follow-up jog_stop the machine continues moving",
+            "4420:     until it hits a limit.",
+            "4421: ",
+            "4422:     This function does NOT abort the program. A running G-code program is",
+            "4423:     owned by LinuxCNC's interpreter, not by any single client. Motion abort",
+            "4424:     from a client-liveness failure is the HAL chain's job (oneshot timeout",
+            "4425:     on all-clients-out, or gateway hang). Per the architecture review in",
+            "4426:     docs/plans, keep the \"armed = authorization\" and \"HAL = safety\" layers",
+            "4427:     separate — this function only handles the in-flight-jog case.",
+            "4428: ",
+            "4429:     Mode safety: no mode switch (button gates package E, _send_jog_stop) —",
+            "4430:     the stop goes out in whatever mode task is in. In MODE_AUTO with the",
+            "4431:     interpreter running a jog cannot be in flight (jogging requires",
+            "4432:     MANUAL/TELEOP) and task refuses a jog stop there: skipped.",
+            "4433: ",
+            "4434:     Multi-armed-client note: today we stop every joint, which can interfere",
+            "4435:     with a parallel jog from another armed client. Per-client active-jog",
+            "4436:     tracking is a documented follow-up; for now, the bluntness is acceptable",
+            "4437:     because simultaneous multi-client jogging is rare and stopping is the",
+            "4438:     safe default.",
+            "4439:     \"\"\"",
+            "4440:     if not bool(safe_get(\"enabled\", False)):",
+            "4441:         return",
+            "4442:     if not _active_jogs:",
+            "4443:         # The gateway started no jog that is still running: nothing to stop,",
+            "4444:         # and a forced MANUAL here is what aborted a fresh MDI on a disarm",
+            "4445:         # (2026-09-03 follow-up, closed by construction).",
+            "4446:         _trace.emit(\"jog.stop_for_client_noop\", level=\"info\")",
+            "4447:         return",
+            "4448:     if _auto_running():",
+            "4449:         return  # program running — no jog to stop",
+            "4450:     # Homed or not: a jog the gateway started is stopped (button gates BG-07 —",
+            "4451:     # a joint jog before homing must stop on a disarm like any other), each",
+            "4452:     # as it was started and without a mode switch (_send_jog_stop). A failed",
+            "4453:     # stop keeps its jog booked and says so; the others are still stopped.",
+            "4454:     for ax in sorted(_active_jogs):",
+            "4455:         try:",
+            "4456:             await _send_jog_stop(ax)",
+            "4457:         except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest",
+            "4458:             _trace.emit_exc(\"jog.stop_for_client_failed\", e, axis=ax)",
+            "4459: ",
+            "4460: "
+          ]
+        },
+        {
+          "start": 5862,
+          "end": 5871,
+          "lines": [
+            "5862: async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):",
+            "5863:     # Acquire the CMD lock before dispatching. Every path that touches CMD.*",
+            "5864:     # must hold this lock; see _cmd_lock docstring. `armed` is the client's",
+            "5865:     # arm at dispatch; `conn_key` its connection, which a protected write",
+            "5866:     # reads again at its commit (button gates BG-23, Codex R211).",
+            "5867:     async with _get_cmd_lock():",
+            "5868:         # the command runs on the Link published NOW (package 2b): every",
+            "5869:         # write of it, and the tasks it starts, on that one",
+            "5870:         with _pinned_link():",
+            "5871:             return await _handle_command_impl(msg, armed, conn_key)"
+          ]
+        },
+        {
+          "start": 11884,
+          "end": 11912,
+          "lines": [
+            "11884:         # Per-client command worker (2026-09-03): the reader below handles",
+            "11885:         # liveness/bookkeeping frames only and queues everything else here.",
+            "11886:         # One worker per client keeps per-client order (arm → jog_cont,",
+            "11887:         # jog_cont → jog_stop); the reader returns to ws.receive() at once,",
+            "11888:         # so this client's heartbeats can never wait behind a handler (the",
+            "11889:         # touchoff/capture false-disarm class — see _WS_CMD_QUEUE_MAX).",
+            "11890:         cmd_queue = asyncio.Queue()",
+            "11891: ",
+            "11892:         async def cmd_worker():",
+            "11893:             _set_phase(f\"ws.worker.entry client#{client_id}\")",
+            "11894:             while True:",
+            "11895:                 _set_phase(f\"ws.worker.idle client#{client_id}\")",
+            "11896:                 _wmsg, _enq = await cmd_queue.get()",
+            "11897:                 _wcmd = _wmsg.get(\"cmd\")",
+            "11898:                 _wecho = _req_echo(_wmsg)",
+            "11899:                 client.cmd_inflight = _wcmd",
+            "11900:                 client.cmd_inflight_since_mono = time.monotonic()",
+            "11901:                 client.cmd_preempted_by = None",
+            "11902:                 _queued_ms = round((client.cmd_inflight_since_mono - _enq) * 1000)",
+            "11903:                 if _queued_ms > 500:",
+            "11904:                     _trace.emit(\"ws.command_queue_wait\", client_id=client_id,",
+            "11905:                                 cmd=_wcmd, queued_ms=_queued_ms)",
+            "11906:                 # Each command runs as its OWN task (2026-09-05) so an",
+            "11907:                 # abort/estop can cancel it (_preempt_inflight) without",
+            "11908:                 # killing this worker. asyncio.wait never propagates THIS",
+            "11909:                 # task's cancel to the sub-task, so the disconnect path",
+            "11910:                 # cancels it explicitly below.",
+            "11911:                 inflight = register_bg_task(asyncio.create_task(",
+            "11912:                     _execute_client_command(client_id, client, ws, _wmsg)))"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/dragScroll.ts": {
+      "sha256": "ce350755f0b73e99bfd3f0494f80aaee48b385c79b32d1f4cdce1e314e3c4cf6",
+      "excerpts": [
+        {
+          "start": 19,
+          "end": 37,
+          "lines": [
+            "19: const attached = new WeakSet<HTMLElement>()",
+            "20: ",
+            "21: // Pointers in flight on any scroller → the scrollers holding a state for each.",
+            "22: // ONE capture listener per event type on the window ends them (registered by",
+            "23: // initDragScroll, removed by stopDragScroll): a scroller is referenced only",
+            "24: // while one of its presses is in flight, so a removed one can be collected.",
+            "25: const inFlight = new Map<number, Set<(pointerId: number) => void>>()",
+            "26: function watchPointer(pointerId: number, end: (pointerId: number) => void) {",
+            "27:   let ends = inFlight.get(pointerId)",
+            "28:   if (!ends) { ends = new Set(); inFlight.set(pointerId, ends) }",
+            "29:   ends.add(end)",
+            "30: }",
+            "31: function onWindowRelease(e: PointerEvent) {",
+            "32:   const ends = inFlight.get(e.pointerId)",
+            "33:   if (!ends) return",
+            "34:   inFlight.delete(e.pointerId)",
+            "35:   for (const end of ends) end(e.pointerId)",
+            "36: }",
+            "37: let windowWatching = false"
+          ]
+        },
+        {
+          "start": 117,
+          "end": 128,
+          "lines": [
+            "117:       scroller = null",
+            "118:       el.style.cursor = ''",
+            "119:       el.style.userSelect = ''",
+            "120:     }",
+            "121:   }",
+            "122: }",
+            "123: ",
+            "124: function scanAndAttach(root: Element | Document = document) {",
+            "125:   for (const el of root.querySelectorAll<HTMLElement>('.scroll-thin')) {",
+            "126:     attach(el)",
+            "127:   }",
+            "128: }"
+          ]
+        },
+        {
+          "start": 157,
+          "end": 163,
+          "lines": [
+            "157: export function stopDragScroll() {",
+            "158:   _observer?.disconnect()",
+            "159:   _observer = null",
+            "160:   window.removeEventListener('pointerup', onWindowRelease, true)",
+            "161:   window.removeEventListener('pointercancel', onWindowRelease, true)",
+            "162:   windowWatching = false",
+            "163:   inFlight.clear()"
+          ]
+        }
+      ]
+    }
+  }
+}

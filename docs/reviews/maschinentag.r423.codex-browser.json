@@ -1,0 +1,1567 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r423/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r423/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r423",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r423/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r423",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r423/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "press-release.spec.ts",
+      "file": "press-release.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a long press on a click control acts once, on its release — the panel's sequence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:21.196Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-a01531ddecacbbdc102f",
+          "file": "press-release.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "a long press on a tab switches it on release",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2301,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:28.139Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-1e29d136e84716e266f1",
+          "file": "press-release.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "a long press on Reset resets once, on its release",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2612,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:30.450Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-5e9caef32bd651e8bdc6",
+          "file": "press-release.spec.ts",
+          "line": 110,
+          "column": 1
+        },
+        {
+          "title": "a long touch the browser still clicks acts exactly once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2798,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:33.066Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-3cbf7098e1ba133a5d2d",
+          "file": "press-release.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "a short tap acts once — nothing doubles it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1761,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:35.869Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-10f1fb04212515a65ed3",
+          "file": "press-release.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "a swipe that starts on a click control acts nowhere",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3580,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:37.634Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-e10a96e3c4c1d09ac3f3",
+          "file": "press-release.spec.ts",
+          "line": 138,
+          "column": 1
+        },
+        {
+          "title": "the E-Stop stops at the press — and the same press never resets it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1994,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:41.218Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-47a9139bca290eb67e8c",
+          "file": "press-release.spec.ts",
+          "line": 146,
+          "column": 1
+        },
+        {
+          "title": "a tap on the E-Stop stops once; the next tap on Reset resets",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2478,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:43.217Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-570c9ee6b2544db56685",
+          "file": "press-release.spec.ts",
+          "line": 163,
+          "column": 1
+        },
+        {
+          "title": "the panel's long press on the E-Stop stops at the press and does nothing at the release",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2716,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:45.700Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-a0b147d47c69abab69dd",
+          "file": "press-release.spec.ts",
+          "line": 176,
+          "column": 1
+        },
+        {
+          "title": "a swipe that starts on the E-Stop still stops (the press is the stop)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2767,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:48.427Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-d56e83e203125220c85a",
+          "file": "press-release.spec.ts",
+          "line": 183,
+          "column": 1
+        },
+        {
+          "title": "a second finger stops while the first holds a jog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2096,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:51.202Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-3fe4043c42b31fe13a4a",
+          "file": "press-release.spec.ts",
+          "line": 190,
+          "column": 1
+        },
+        {
+          "title": "the mouse: the E-Stop stops at the button press; the click of that press never resets",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2059,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:53.303Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-478a672219770f4143e6",
+          "file": "press-release.spec.ts",
+          "line": 206,
+          "column": 1
+        },
+        {
+          "title": "the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2284,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:55.366Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-9cd267df576412b1aaa4",
+          "file": "press-release.spec.ts",
+          "line": 219,
+          "column": 1
+        },
+        {
+          "title": "two E-Stop presses (a finger and the mouse) never end in a Reset — either release order (MT-I01)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4174,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:05:57.655Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-eb0c2cad329eb9a5d0f3",
+          "file": "press-release.spec.ts",
+          "line": 240,
+          "column": 1
+        },
+        {
+          "title": "a new Reset press of the same pointer after a cancelled E-Stop press resets (MT-I01)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1911,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:01.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-6f278dcc8f2bb643d6a8",
+          "file": "press-release.spec.ts",
+          "line": 258,
+          "column": 1
+        },
+        {
+          "title": "a strip scroll that starts on Power acts nowhere — at the drag threshold (5 px) (MT-I02)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2744,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:03.751Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-41fc09f12bf74d1ae0ea",
+          "file": "press-release.spec.ts",
+          "line": 280,
+          "column": 3
+        },
+        {
+          "title": "a strip scroll that starts on Power acts nowhere — between threshold and slop (8 px) (MT-I02)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2698,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:06.501Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-4f5f71c2cd52ab4ad77b",
+          "file": "press-release.spec.ts",
+          "line": 280,
+          "column": 3
+        },
+        {
+          "title": "a strip scroll that starts on Power acts nowhere — and back to its start (MT-I02)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2878,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:09.203Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-c05db124dae115707aeb",
+          "file": "press-release.spec.ts",
+          "line": 280,
+          "column": 3
+        },
+        {
+          "title": "a keyboard activation after a long press acts on its own (MT-I03)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2930,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:12.086Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-30526cdf4be483830e84",
+          "file": "press-release.spec.ts",
+          "line": 308,
+          "column": 1
+        },
+        {
+          "title": "the press owners carry their mark in the DOM; Reset and the jog pad's Stop do not (MT-I04/06)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1561,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:15.021Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-0bc45ef24804a0359d4e",
+          "file": "press-release.spec.ts",
+          "line": 319,
+          "column": 1
+        },
+        {
+          "title": "a long press on a disabled control gives it no click (MT-I05)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3727,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:16.587Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-748432837517d2be54f4",
+          "file": "press-release.spec.ts",
+          "line": 331,
+          "column": 1
+        },
+        {
+          "title": "the jog pad's Stop acts on its release — a long press and a second finger (MT-I06)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3660,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:20.319Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-b90b907fa6894fcdfe9c",
+          "file": "press-release.spec.ts",
+          "line": 352,
+          "column": 1
+        },
+        {
+          "title": "a second finger on the strip never undoes the first one's scroll — the second finger lands first (MT-I02 rest A)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2279,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:23.985Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-0b191ad26e7bfc362db1",
+          "file": "press-release.spec.ts",
+          "line": 387,
+          "column": 3
+        },
+        {
+          "title": "a second finger on the strip never undoes the first one's scroll — the second finger lands while the first scrolls (MT-I02 rest A)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2113,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:26.269Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-d955f5bb38848421e0b1",
+          "file": "press-release.spec.ts",
+          "line": 387,
+          "column": 3
+        },
+        {
+          "title": "a second finger on the strip never undoes the first one's scroll — the second finger lifts first (MT-I02 rest A)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2310,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:28.387Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-07073410231e1ac44798",
+          "file": "press-release.spec.ts",
+          "line": 387,
+          "column": 3
+        },
+        {
+          "title": "a swipe inside the jog pad's Stop stops nothing — the browser's own click of it is refused (MT-I02/06 rest B)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2212,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:30.703Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-484cd9d45daec0945acc",
+          "file": "press-release.spec.ts",
+          "line": 415,
+          "column": 1
+        },
+        {
+          "title": "opening and closing scrollers adds no window listeners and keeps no earlier ones alive (MT-I07)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2646,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:32.919Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dd54e2347493d84b9d1f-1ce15b4d528f8e112091",
+          "file": "press-release.spec.ts",
+          "line": 428,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r420-cancel.spec.ts",
+      "file": "r420-cancel.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 new pen Reset after a cancelled E-Stop press must be accepted",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2101,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 cancel then reset {\"gap\":54.69999980926514,\"got\":[{\"cmd\":\"estop\",\"req_id\":\"cwsb47-5\"},{\"cmd\":\"estop_reset\",\"req_id\":\"cwsb47-6\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:35.578Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5e8e081e88e34902d854-ee763b2fcff4ff253ffb",
+          "file": "r420-cancel.spec.ts",
+          "line": 59,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r420-codex.spec.ts",
+      "file": "r420-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 keyboard activation after a long release remains independent",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2855,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 keyboard [{\"cmd\":\"abort\",\"req_id\":\"d9f096-5\"},{\"cmd\":\"abort\",\"req_id\":\"d9f096-6\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:37.691Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-e177a7e3b47c7b7a8c02",
+          "file": "r420-codex.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "R420 a real six-pixel scroll gesture must not turn into Power",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2729,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 six-pixel {\"got\":[],\"events\":[{\"kind\":\"pointerdown\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":246.3359375,\"id\":3},{\"kind\":\"gotpointercapture\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"pointermove\",\"target\":\"b lg default active block safetyBtn\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"gotpointercapture\",\"target\":\"strip bordered-panel scroll-thin strip-more\",\"trusted\":true,\"x\":252.3359375,\"id\":3},{\"kind\":\"pointerup\",\"target\":\"strip bordered-panel scroll-thin strip-more\",\"trusted\":true,\"x\":252.3359375,\"id\":3}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:40.551Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-ba080fe750f97d2dac04",
+          "file": "r420-codex.spec.ts",
+          "line": 99,
+          "column": 1
+        },
+        {
+          "title": "R420 each E-Stop pointer keeps its release even after a second stop",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2050,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 two devices [{\"cmd\":\"estop\",\"req_id\":\"wwrbef-5\"},{\"cmd\":\"estop\",\"req_id\":\"wwrbef-6\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:43.284Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-21436a954a6257d08bb1",
+          "file": "r420-codex.spec.ts",
+          "line": 118,
+          "column": 1
+        },
+        {
+          "title": "R420 a fresh Reset gesture with the reused pointer ID is not swallowed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2839,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 reused pointer [{\"cmd\":\"estop\",\"req_id\":\"xwlss9-5\"},{\"cmd\":\"estop_reset\",\"req_id\":\"xwlss9-6\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:45.339Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-95d5061f6b2b1eb346ff",
+          "file": "r420-codex.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "R420 a delayed click of the E-Stop gesture must never Reset",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3586,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 delayed click [{\"cmd\":\"estop\",\"req_id\":\"altx0v-5\"}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:48.183Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-4f15c46b9e56f0ebb3d6",
+          "file": "r420-codex.spec.ts",
+          "line": 154,
+          "column": 1
+        },
+        {
+          "title": "R420 Jog Stop follows the new release contract",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2173,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 jog stop {\"before\":[],\"after\":[{\"cmd\":\"jog_stop\",\"axis\":0,\"req_id\":\"e6yjqg-5\"},{\"cmd\":\"jog_stop\",\"axis\":1,\"req_id\":\"e6yjqg-6\"},{\"cmd\":\"jog_stop\",\"axis\":2,\"req_id\":\"e6yjqg-7\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:51.775Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "69c3d7b8f8f6811e0c8d-be781331b3b1272f55f4",
+          "file": "r420-codex.spec.ts",
+          "line": 167,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r420-more.spec.ts",
+      "file": "r420-more.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R420 press ownership reaches the actual DOM buttons",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1571,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 owned {\"estop\":\"\",\"jog\":\"\"}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:53.960Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8e06a1a2fa9dbd61844b-cf5f689e5d3da1b1799c",
+          "file": "r420-more.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "R420 a panel long press with a six-pixel scroll never powers off",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2891,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 panel scroll []\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:55.536Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8e06a1a2fa9dbd61844b-6e37fbd10138872e092b",
+          "file": "r420-more.spec.ts",
+          "line": 96,
+          "column": 1
+        },
+        {
+          "title": "R420 the disabled Flood control stays inert on a long touch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2734,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R420 disabled flood {\"got\":[],\"changes\":[]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:06:58.432Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8e06a1a2fa9dbd61844b-3b28113e5b5ee2a2610b",
+          "file": "r420-more.spec.ts",
+          "line": 104,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r421-codex.spec.ts",
+      "file": "r421-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R421 second pointer cannot erase the first pointer scroll decision",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2197,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R421 concurrent scroll {\"got\":[],\"events\":[{\"kind\":\"pointerdown\",\"id\":3,\"primary\":true,\"x\":246.3359375,\"y\":562.5,\"trusted\":true,\"target\":\"b lg default active block safetyBtn\"},{\"kind\":\"pointerdown\",\"id\":4,\"primary\":false,\"x\":153,\"y\":517.25,\"trusted\":true,\"target\":\"sub\"},{\"kind\":\"gotpointercapture\",\"id\":3,\"primary\":true,\"x\":254.3359375,\"y\":562.5,\"trusted\":true,\"target\":\"b lg default active block safetyBtn\"},{\"kind\":\"pointermove\",\"id\":3,\"primary\":true,\"x\":254.3359375,\"y\":562.5,\"trusted\":true,\"target\":\"b lg default active block safetyBtn\"},{\"kind\":\"gotpointercapture\",\"id\":3,\"primary\":true,\"x\":254.3359375,\"y\":562.5,\"trusted\":true,\"target\":\"strip bordered-panel scroll-thin strip-more\"},{\"kind\":\"pointerup\",\"id\":3,\"primary\":true,\"x\":254.3359375,\"y\":562.5,\"trusted\":true,\"target\":\"strip bordered-panel scroll-thin strip-more\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:07:01.178Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "314966a498f4614122ab-9a718c5241c9eb8d8d52",
+          "file": "r421-codex.spec.ts",
+          "line": 74,
+          "column": 1
+        },
+        {
+          "title": "R421 a swipe on Jog Stop must not act through a native click",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2060,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R421 jog swipe {\"got\":[],\"events\":[{\"kind\":\"pointerdown\",\"id\":3,\"primary\":true,\"x\":425.75,\"y\":653.25,\"trusted\":true,\"target\":\"b sm danger mono jogBtn\"},{\"kind\":\"gotpointercapture\",\"id\":3,\"primary\":true,\"x\":439.75,\"y\":653.25,\"trusted\":true,\"target\":\"b sm danger mono jogBtn\"},{\"kind\":\"pointermove\",\"id\":3,\"primary\":true,\"x\":439.75,\"y\":653.25,\"trusted\":true,\"target\":\"b sm danger mono jogBtn\"},{\"kind\":\"pointerup\",\"id\":3,\"primary\":true,\"x\":439.75,\"y\":653.25,\"trusted\":true,\"target\":\"b sm danger mono jogBtn\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:07:03.382Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "314966a498f4614122ab-d553b59da8f4918ea9e8",
+          "file": "r421-codex.spec.ts",
+          "line": 94,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r422-codex.spec.ts",
+      "file": "r422-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R422 Settings cycles do not accumulate window listeners or older detached nodes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2525,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R422 lifetime {\"before\":{\"up\":2,\"cancel\":2},\"series\":[{\"up\":3,\"cancel\":2},{\"up\":3,\"cancel\":2},{\"up\":3,\"cancel\":2}],\"retained\":{\"sampled\":27,\"alive\":9,\"detached\":9,\"earlierDetached\":0}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:07:05.456Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db23e7abd58270bd88b4-5d49bf55dba1cae3effd",
+          "file": "r422-codex.spec.ts",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "R422 a refused pen swipe leaves its next valid press usable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2394,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R422 next press {\"afterSwipe\":[],\"afterValid\":[{\"cmd\":\"jog_stop\",\"axis\":0,\"req_id\":\"y4adyy-5\"},{\"cmd\":\"jog_stop\",\"axis\":1,\"req_id\":\"y4adyy-6\"},{\"cmd\":\"jog_stop\",\"axis\":2,\"req_id\":\"y4adyy-7\"}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T19:07:07.986Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db23e7abd58270bd88b4-42d0e745861113e0c2fb",
+          "file": "r422-codex.spec.ts",
+          "line": 114,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T19:05:19.404Z",
+    "duration": 111087.935,
+    "expected": 41,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

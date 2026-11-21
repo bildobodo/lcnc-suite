@@ -1,0 +1,72 @@
+
+ RUN  v4.1.8 /tmp/codex-r423/lcnc-webui
+
+stdout | src/r423-dragLifecycle.test.ts > stop during a drag then reinit does not leave its old scroller owner
+R423 lifecycle {"left":-10,"cursor":"grabbing","userSelect":"none"}
+
+ ❯ src/r423-dragLifecycle.test.ts (2 tests | 1 failed) 15ms
+   × stop during a drag then reinit does not leave its old scroller owner 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/r423-dragLifecycle.test.ts > stop during a drag then reinit does not leave its old scroller owner
+AssertionError: expected 'grabbing' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ grabbing
+
+ ❯ src/r423-dragLifecycle.test.ts:45:32
+     43|   // This release takes place while stopped, so no module observer see…
+     44|   pointer(win, 'pointerup', 31, 110);
+     45|   expect.soft(el.style.cursor).toBe('');
+       |                                ^
+     46|   expect.soft(el.style.userSelect).toBe('');
+     47|   mod.initDragScroll();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/r423-dragLifecycle.test.ts > stop during a drag then reinit does not leave its old scroller owner
+AssertionError: expected 'none' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ none
+
+ ❯ src/r423-dragLifecycle.test.ts:46:36
+     44|   pointer(win, 'pointerup', 31, 110);
+     45|   expect.soft(el.style.cursor).toBe('');
+     46|   expect.soft(el.style.userSelect).toBe('');
+       |                                    ^
+     47|   mod.initDragScroll();
+     48|   pointer(el, 'pointerdown', 32, 100); pointer(el, 'pointermove', 32, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/r423-dragLifecycle.test.ts > stop during a drag then reinit does not leave its old scroller owner
+AssertionError: expected -10 to be -30 // Object.is equality
+
+- Expected
++ Received
+
+- -30
++ -10
+
+ ❯ src/r423-dragLifecycle.test.ts:50:25
+     48|   pointer(el, 'pointerdown', 32, 100); pointer(el, 'pointermove', 32, …
+     49|   console.log('R423 lifecycle', JSON.stringify({left:el.scrollLeft,cur…
+     50|   expect(el.scrollLeft).toBe(-30);
+       |                         ^
+     51| });
+     52|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 21 passed (22)
+   Start at  20:05:18
+   Duration  116ms (transform 77ms, setup 0ms, import 85ms, tests 18ms, environment 0ms)
+
