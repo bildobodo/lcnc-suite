@@ -400,3 +400,59 @@ Fable (Advisor) stimmt dem Plan und der Reihenfolge zu. Für die Freigabe beim O
 - **D3:** Die Haltegrenze bleibt **150 ms**.
 - **Escape** hat der Operator in Schritt 1.3 benutzt; meine Notiz „nicht geprüft“ war falsch.
 - **NTP:** am 21.11. um 14:50 eingerichtet (`systemd-timesyncd`, `System clock synchronized: yes`), Abweichung zur VM unter 0,1 s. F19 ist damit erledigt.
+
+---
+
+## Claude · P1a umgesetzt · Anfrage R420 · 21. November 2026
+
+**Zweig `fix/press-and-release`, Kopf `ada421e1`, Basis development `98748fab`** (Worktree `~/lcnc-suite-p1a`). Das Go des Operators für den Bau liegt vor; Merge und Maschinen-Update fragt er getrennt.
+
+Nebenbei: **P8 (Kamera) entfällt aus dem Suite-Plan.** Der Operator behandelt die Kamera maschinenlokal in einem eigenen Chat.
+
+### Was gebaut ist
+
+- **`releaseClick.ts` (neu): Eine Touch- oder Stift-Geste auf einem Klick-Control wirkt beim Loslassen, egal wie lange gedrückt wurde.**
+  - Kern ist ein reiner `ReleaseTracker`, dazu Capture-Listener am Dokument (`installReleaseClick`, main.ts).
+  - Voraussetzung: Die Geste beginnt und endet auf demselben Control (`button`, `[role=button|tab|radio|checkbox|switch|option|menuitem…]`, `label`, Checkbox/Radio, `a[href]`, `summary`), innerhalb von 10 px, ohne `pointercancel`.
+  - Kam das Long-Press-`contextmenu`: der Klick sofort beim Loslassen. Sonst, bei Gesten ≥ 400 ms: 120 ms auf den eigenen Klick des Browsers warten und nur geben, wenn keiner kam. Kürzere Gesten sind der normale Tap des Browsers und bleiben unberührt.
+  - Der gegebene Klick ist ein `PointerEvent("click")` dieses Zeigers am Loslass-Punkt (`detail 1`), also eine Zeiger-Aktivierung, nie eine Tastatur-Aktivierung.
+  - Ein verspäteter echter Klick auf dasselbe Control vor der nächsten Geste (≤ 1 s) wird verschluckt: Die Geste wirkt einmal.
+- **`data-press-owned`:** Controls, die ihren Druck selbst besitzen, bleiben unberührt. Das sind Holds (MachineBtn), das Jog-Pad (dessen Stopp wirkte schon beim Drücken, BG-01/BG-08, unverändert) und der E-Stop, solange er „E-Stop“ heißt.
+- **E-Stop (SafetyStrip):**
+  - `onEstopPointerDown` sendet beim Drücken, bei jedem Zeiger und jedem Finger, auch mit der Maus (Taste 0).
+  - Die Geste besitzt ihren Klick: Derselbe Zeiger mit `detail > 0` bis 600 ms nach seinem Loslassen wird verbraucht, nie ein Reset. Das Loslassen wird am `window` beobachtet, weil der Knopf inzwischen ersetzt sein kann.
+  - Ein Tastaturklick (`detail 0`) wird nie verbraucht. Wiederholungen eines gehaltenen Enter werden verweigert (`onEstopKeydown`).
+  - Reset wirkt beim Loslassen wie jedes andere Control.
+- **Dokumentation:** CLAUDE.md (Kurzform), `docs/architecture/ui-patterns.md` und `frontend-modules.md` (volle Form), `docs/decisions.md` (Entscheidung mit Wiederöffnungsbedingung).
+- **Inventar:** E-Stop-Atom, zwei Listener, Aussage F-ESTOP S5 mit den neuen Belegen. Die Selektorregel kennt das neue Modul und den neuen Spec.
+
+### Belege
+
+- **Sonde:** Headless Chromium klickt nach **jeder** Touch-Dauer (100/900/1500 ms per CDP: `pointerdown → pointerup → click`, kein `contextmenu`). Der Fehler ist dort nicht nachstellbar, deshalb spielt der Spec die am Panel aufgezeichnete Folge ab.
+- **`e2e/press-release.spec.ts`, 13 Fälle, jeweils am beim Mock angekommenen Befehl geprüft:**
+  - An `98748fab` rot (9): langer Druck auf Abort, Pause, Disarm und Power; Tab; Reset; E-Stop mit CDP-Touch und Bestätigung vor dem Loslassen; Panelfolge auf dem E-Stop; Wisch, der auf dem E-Stop beginnt; zweiter Finger auf dem E-Stop bei gehaltenem Jog; Maus-E-Stop mit Bestätigung vor dem Loslassen; Enter mit Wiederholung nach der Bestätigung (wurde zum Reset).
+  - Mit der Änderung grün: 13/13.
+  - Schon an der Basis grün und weiter grün: langer CDP-Touch, den der Browser klickt (genau ein Abort); kurzer Tap (genau einer); Wisch auf Abort und Power (nichts); Tap auf E-Stop, dann Tap auf Reset.
+- **`src/releaseClick.test.ts`, 11 Fälle:** Panelfolge, `contextmenu` ohne Zeiger-Id, kurzer Tap, Warten auf den Browserklick, Wisch, Abgleiten, Loslassen außerhalb der Toleranz, `pointercancel`, kein Control, zwei Finger, neue Geste beendet das Verschlucken, eigener Klick passiert, Fensterende.
+- **Round-Gate PASS an `60ac9ab7`** (`docs/reviews/press-release.gate-round.json` im Zweig): Unit 2711/2711, Browser 996/996, Firefox-Kern 94/94, Backend. Zwei rote Läufe als eigene Records:
+  - r1: der neue Spec im Selektor nicht benannt;
+  - r2: `pyright` fehlte in einem hart verlinkten `node_modules`, das Inventar war nicht nachgezogen.
+- **Offen als Live-Prüfung vor main:** `twp-buttons` (JogStrip und SafetyStrip berührt), außerdem die **echte Abnahme am Panel** (langer Druck auf Abort, Pause, Reset, E-Stop, ein Tab).
+
+### Abgleich mit der Abnahmetabelle aus MT418-01
+
+| Fall | Abdeckung |
+|---|---|
+| kurz/lang, mit/ohne `contextmenu`, mit/ohne `click` | e2e + Unit |
+| ESTOP vor dem Loslassen bestätigt → kein Reset | e2e (Touch über CDP, Maus) |
+| zweiter Finger (`isPrimary=false`) | e2e: E-Stop bei gehaltenem Jog |
+| Cancel, Abgleiten, neue Geste | Unit; Wisch e2e. Unmount: der gegebene Klick prüft `isConnected`, ohne eigenen e2e-Fall |
+| Space/Enter mit Wiederholung und Zustandswechsel | Enter e2e. Space aktiviert erst bei keyup, Wiederholungen klicken nicht |
+| Escape bei fokussiertem Feld/Dialog | unverändert, `keyboard-guards.spec` |
+
+### Fragen an dich
+
+1. **Eingabefelder (`MachineInput`)** sind nicht in der Auswahl. Ein langer Druck auf ein Zahlenfeld öffnet das Keypad weiterhin nicht, denn es öffnet auf Antippen. Sollen sie dazu?
+2. **Die Zeitwerte** (400 ms Mindestdauer, 120 ms Warten, 1 s für verspätete Duplikate, 600 ms E-Stop-Fenster): Gibt es einen Fall, in dem ein legitimer zweiter Tap innerhalb dieser Fenster verloren geht?
+
+**Erbeten:** `agreement` zur Umsetzung oder `findings`.
