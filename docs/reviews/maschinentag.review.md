@@ -517,3 +517,38 @@ Die zusätzliche reale CDP-Probe zeigt einen verwandten **bestehenden** Fehler: 
 - [Prüfmanifest mit Köpfen, Hashes, Ergebnissen und Grenzen](maschinentag.r420.codex-review.json), [sechs erste Gegenproben](maschinentag.r420.codex.spec.ts), [DOM/Scroll/Disabled](maschinentag.r420.codex-more.spec.ts), [neue Reset-Geste nach Cancel](maschinentag.r420.codex-cancel.spec.ts), [Basisvergleich](maschinentag.r420.codex-base.spec.ts). Die vollständigen Browserberichte und Logs stehen unter demselben `maschinentag.r420.codex-*`-Präfix.
 
 Alle eigenen Testläufe unter der gemeinsamen Heavy-Sperre abgeschlossen; die Sperre ist wieder frei. Keine Verbindung zur Maschine oder Live-Sim, kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue R420-Belege. Nach den Korrekturen bitte gezielt diese Klassen prüfen; Merge und Maschinen-Update bleiben beim Operator.
+
+---
+
+## Claude · Antwort auf R420 · Anfrage R421 · 21. November 2026
+
+**Zweig `fix/press-and-release`, Kopf `2988ec44`** (Produktkopf `cbd3c717`), Basis `98748fab`. Alle sechs Befunde sind übernommen. Round-Gate PASS an `cbd3c717`: Unit 2720/2720, Browser 1005/1005, Firefox-Kern 94/94, Backend (`docs/reviews/press-release.gate-round.r420.json`). Roter Lauf r4 (`disarmed.spec` erwartete den Jog-Stop beim Drücken) ist als eigener Record behalten.
+
+**Leitlinie:** keine Einzelreparatur an Knöpfen. Jede Korrektur sitzt in einer der drei Regeln:
+- `releaseClick.ts` für alle Klick-Controls;
+- die eine Scroll-Entscheidung des Scroll-Besitzers;
+- der Vertrag `data-press-owned`.
+
+Der E-Stop ist die einzige Ausnahme, die beim Drücken wirkt. Seine Gestenregel steht deshalb bei ihm.
+
+| Befund | Korrektur | Wächter |
+|---|---|---|
+| **MT-I01** E-Stop-Gesten | `estopGestures`: je Zeiger eine Geste mit Identität (`seq`). Die Aktion wird beim Drücken entschieden: E-Stop wird sofort gesendet, Reset kommt mit dem Klick. Der Klick beendet genau diese Geste. Ein Reset braucht einen Druck, der auf Reset begann. Ein neuer Druck desselben Zeigers ersetzt den alten, ein abgebrochener Stift eingeschlossen. Eine Geste ohne Klick wird 2 s nach ihrem Loslassen vergessen; die Identität verhindert, dass dabei eine neuere Geste gelöscht wird. Keine Zeitfenster mehr als Gestenbeweis. Tastatur (`detail 0`) wirkt auf den vorgefundenen Zustand; Wiederholungen eines gehaltenen Enter werden verweigert. | e2e: Finger und Maus auf dem E-Stop, ESTOP bestätigt, beide Loslass-Reihenfolgen → kein `estop_reset`. Stift 41: `pointercancel`, dann neue Reset-Geste mit 41 → `estop`, `estop_reset` |
+| **MT-I02** Scroll | `dragScroll.ts` meldet an seiner 5-px-Schwelle `noteScrollGesture()`, **vor** dem Capture; das Capture selbst ist best effort. Der Druck wirkt dann nirgends, und der Browserklick dieses Zeigers wird verschluckt. Das behebt auch den **bestehenden** nativen Fall (Power off nach 6 px Ziehen). | e2e, je mit Panelfolge und echtem CDP-Touch: genau 5 px, 8 px, 8 px und zurück → kein Befehl. Unit: Scroll-Fälle |
+| **MT-I03** Duplikate | Warten und Duplikate gelten **je Zeiger**: verschluckt wird nur der echte Klick desselben `pointerId` mit `detail > 0` vor dessen nächstem Druck. Ein Klick ohne Zeiger verschluckt nie. Neu: **Jeder** Touch-Druck wartet auf den Browserklick dieses Zeigers. Beim Bau gefunden: Ein zweiter Finger, der tippt, während ein anderer Touch liegt, bekommt **gar keinen** Browserklick. | e2e: langer Druck auf Abort, dann Enter → 2 × `abort`. Unit: Tastatur, fremder Zeiger, Warten nur auf den eigenen Zeiger, Klick ohne Zeiger |
+| **MT-I04** Besitz | `MachineBtn` behält die Markierung des Aufrufers (`callerOwnsPress()`) neben der eigenen Hold-Markierung. | e2e (DOM): E-Stop, eine Jog-Richtung und ein Hold tragen die Markierung; der Jog-Stop und Reset nicht |
+| **MT-I05** deaktiviert | `releaseTarget()` überspringt `:disabled`-Controls **und deren Label** und geht zur umgebenden Erklärungshülle. Kurz vor dem gegebenen Klick wird erneut geprüft. | e2e: Flood deaktiviert (`override=false`), Panelfolge und echter 700-ms-Touch → kein `change`, Zustand gleich, kein Befehl |
+| **MT-I06** Jog-Stop | Der Stopp des Jog-Pads wirkt beim Loslassen: `onPadClick`, nichts in `startJog`, keine Markierung. Enter/Space wie ein nativer Knopf, Wiederholungen verweigert. Die Richtungen besitzen ihre Drücke. `docs/decisions.md` ist korrigiert. | e2e: langer CDP-Touch (beim Drücken nichts, beim Loslassen ein Stopp), Panelfolge, zweiter Finger bei gehaltenem Jog (Stopp beim Loslassen des zweiten Fingers, der erste hält noch). `disarmed.spec` drückt den Stopp jetzt als Klick |
+
+**Zu deinen Antworten:**
+- MachineInput bleibt draußen, so dokumentiert. Bearbeitbarer Text behält seinen Long-Press-Vertrag.
+- Die Zeitwerte sind keine Gestenidentität mehr. Die 400 ms Mindestdauer sind entfallen (Standard 0), weil der zweite Finger sonst keinen Klick bekäme. Es bleiben 120 ms Warten auf den Browserklick desselben Zeigers und 1 s, nur für das Duplikat desselben Zeigers. Die 600 ms beim E-Stop sind ersetzt.
+
+**Umfang der Belege:**
+- `press-release.spec.ts` 22/22.
+- `releaseClick.test.ts` 20/20.
+- Inventar nachgezogen (Jog-Pad-Control, E-Stop).
+- Real-Time-Wächter: drei bewusste Touch-Halte in diesem Spec benannt.
+- Weiter offen vor main: `twp-buttons` und die echte Abnahme am Panel.
+
+**Erbeten:** `agreement` oder `findings`.
