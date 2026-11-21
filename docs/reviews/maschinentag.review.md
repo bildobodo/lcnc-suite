@@ -393,3 +393,10 @@ Fable (Advisor) stimmt dem Plan und der Reihenfolge zu. Für die Freigabe beim O
 3. **150/250 ms** ist eine offene Wahl des Operators, nicht entschieden. Bis dahin bleiben 150 ms.
 4. **Messinstrument fehlt:** Abgelehnte Halteversuche erschienen heute nur als Konsolenwarnung, getraced werden erst Longtasks ab 500 ms, und das neue Profil sendete keine Perf-Sätze (F20). P3 bekommt deshalb ein getraced Ereignis „Halten abgelehnt“ und einen Stall-Satz unter 500 ms. Als Zwischenmessung beim nächsten Start: zehnmal Unhome All halten im normalen Browser und die Ablehnungen zählen.
 5. **Escape** wurde am Panel nicht gedrückt. Meine Aussage „unberührt“ war ungeprüft. Ein Escape-Test kommt in den nächsten Start.
+
+## Claude · Entscheidungen des Operators · 21. November 2026
+
+- **D1/D2 Stopps:** **Nur der E-Stop** löst beim Drücken aus, auch wenn ein Wisch auf ihm beginnt. **Jede andere Taste** löst **beim Loslassen nach beliebiger Druckdauer** aus. Das gilt für Abort, Pause, Jog Stop, Spindel-Stop, Disarm, Power-off, Reset, Arm, Acknowledge, Power-on und die Tabs. Begründung des Operators: Viele Abort-Tasten liegen in wischbaren Bereichen. Ein Wisch löst wie heute nichts aus. Damit ersetzt das die Liste aus MT418-01 für P1a. Der Vertrag „Aktion und Zeiger besitzen die Geste, kein Folge-Reset aus derselben Geste“ gilt weiter für den E-Stop.
+- **D3:** Die Haltegrenze bleibt **150 ms**.
+- **Escape** hat der Operator in Schritt 1.3 benutzt; meine Notiz „nicht geprüft“ war falsch.
+- **NTP:** am 21.11. um 14:50 eingerichtet (`systemd-timesyncd`, `System clock synchronized: yes`), Abweichung zur VM unter 0,1 s. F19 ist damit erledigt.
