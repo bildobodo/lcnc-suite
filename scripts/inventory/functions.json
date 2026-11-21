@@ -682,7 +682,7 @@
              "control:MachineRadio.vue|*=1", "control:MachineSelect.vue|*=1", "control:MachineSlider.vue|*=1",
              "control:MachineToggle.vue|*=2", "control:ChoiceGroup.vue|*=1", "control:HelpIcon.vue|*=1",
              "control:MoreMenu.vue|*=2", "control:DetailsPopover.vue|*=1", "control:DialogFrame.vue|*=2",
-             "listener:modalRegistry.ts:*=3", "listener:touchDetect.ts:*=2", "listener:MachineBtn.vue:*=2",
+             "listener:modalRegistry.ts:*=3", "listener:touchDetect.ts:*=2", "listener:dragScroll.ts:*=2", "listener:MachineBtn.vue:*=2",
              "listener:DetailsPopover.vue:*=1", "listener:HelpIcon.vue:*=1", "listener:MoreMenu.vue:*=2",
              "listener:App.vue:document.focusin", "listener:App.vue:document.keydown",
              "listener:App.vue:document.pointerdown", "listener:App.vue:window.blur",

@@ -126,12 +126,14 @@ describe("release click", () => {
     expect(t.click(A, true, 382, 4, P)).toBe("pass");
   });
 
-  it("a swipe or a slide-off never acts", () => {
+  it("a swipe or a slide-off never acts — the browser's own click of it neither (Codex R421 rest B)", () => {
     const t = tracker();
     t.down(1, A, 0, 50, 50);
     t.move(1, 50, 75);                                  // beyond the slop: a swipe
     t.contextmenu(1, A);
     expect(t.up(1, A, 900, 50, 50)).toBe("none");       // even back on the button
+    expect(t.click(A, true, 905, 1, P)).toBe("swallow"); // Chromium clicks anyway: swallowed
+    expect(t.click(A, true, 910, 9, P)).toBe("pass");    // another pointer's tap is its own
 
     t.down(2, A, 0, 50, 50);
     t.contextmenu(2, A);
@@ -142,12 +144,16 @@ describe("release click", () => {
     expect(t.up(3, A, 900, 70, 50)).toBe("none");       // the release itself is beyond the slop
   });
 
-  it("a cancelled press (a browser pan) never acts", () => {
+  it("a cancelled press (a browser pan) never acts — nor a click of it", () => {
     const t = tracker();
     t.down(1, A, 0, 50, 50);
     t.contextmenu(1, A);
     t.cancel(1);
     expect(t.up(1, A, 900, 50, 50)).toBe("none");
+    expect(t.click(A, true, 905, 1, P)).toBe("swallow");
+    t.down(1, A, 2000, 50, 50);                         // a new press of that pointer is its own
+    expect(t.up(1, A, 2100, 50, 50)).toBe("wait");
+    expect(t.click(A, true, 2102, 1, P)).toBe("pass");
   });
 
   it("a press that began on no control gives nothing", () => {

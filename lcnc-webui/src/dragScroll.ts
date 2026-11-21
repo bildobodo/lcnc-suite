@@ -22,7 +22,13 @@ function attach(el: HTMLElement) {
   if (attached.has(el)) return
   attached.add(el)
 
-  let state: DragState | null = null
+  // ONE state per POINTER (Codex R421 MT-I02 rest A): a second finger on
+  // the same scroller used to replace the first's state, so the first never
+  // reached its threshold's scroll decision and its release clicked Power.
+  // Every pointer decides its own "this press became a scroll"; only the
+  // first one past the threshold moves the container.
+  const states = new Map<number, DragState>()
+  let scroller: number | null = null
 
   el.addEventListener('pointerdown', (e: PointerEvent) => {
     // Only primary button (touch or left-click)
@@ -38,20 +44,21 @@ function attach(el: HTMLElement) {
     )
     if (tag) return
 
-    state = {
+    states.set(e.pointerId, {
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
       scrollLeft: el.scrollLeft,
       scrollTop: el.scrollTop,
       dragging: false,
-    }
+    })
     // Don't capture yet — let native scrollbar interaction work.
     // Capture is deferred to pointermove once the drag threshold is met.
   })
 
   el.addEventListener('pointermove', (e: PointerEvent) => {
-    if (!state || e.pointerId !== state.pointerId) return
+    const state = states.get(e.pointerId)
+    if (!state) return
 
     const dx = e.clientX - state.startX
     const dy = e.clientY - state.startY
@@ -59,37 +66,41 @@ function attach(el: HTMLElement) {
     if (!state.dragging) {
       if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
       state.dragging = true
+      // ONE decision "this press became a scroll" (Codex R420 MT-I02), taken
+      // first and for EVERY pointer: the release click gives it no click and
+      // swallows the browser's own — Chromium still clicked the control under
+      // the finger after a 6 px drag despite the capture (Power off).
+      noteScrollGesture(e.pointerId)
+      if (scroller !== null) return   // another finger already moves the container
+      scroller = e.pointerId
       // A selection can anchor during the pre-threshold slop (the browser
       // starts selecting at pointerdown, before we know it's a drag) —
       // clear it, or it survives the whole drag as a lasso.
       document.getSelection()?.removeAllRanges()
-      // ONE decision "this press became a scroll" (Codex R420 MT-I02), taken
-      // first: the release click gives it no click and swallows the browser's
-      // own — Chromium still clicked the control under the finger after a
-      // 6 px drag despite the capture (Power off from a strip scroll).
-      noteScrollGesture(e.pointerId)
       // Capture now that we know this is a drag, not a scrollbar click —
       // best effort: the pointer may already be gone
       try { el.setPointerCapture(e.pointerId) } catch { /* the drag goes on without it */ }
       el.style.cursor = 'grabbing'
       el.style.userSelect = 'none'
     }
+    if (scroller !== e.pointerId) return
 
     el.scrollLeft = state.scrollLeft - dx
     el.scrollTop = state.scrollTop - dy
   })
 
   function end(e: PointerEvent) {
-    if (!state || e.pointerId !== state.pointerId) return
-    if (state.dragging) {
+    if (!states.delete(e.pointerId)) return
+    if (scroller === e.pointerId) {
+      scroller = null
       el.style.cursor = ''
       el.style.userSelect = ''
     }
-    state = null
   }
 
-  el.addEventListener('pointerup', end)
-  el.addEventListener('pointercancel', end)
+  // the release may land outside the scroller (no capture yet): watch it on the window
+  window.addEventListener('pointerup', end, true)
+  window.addEventListener('pointercancel', end, true)
 }
 
 function scanAndAttach(root: Element | Document = document) {

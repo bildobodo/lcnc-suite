@@ -21,10 +21,12 @@
 //   - the browser's late click OF THAT POINTER before its next press is a
 //     duplicate and is swallowed: a press acts once. A keyboard activation
 //     (detail 0) and another pointer's click are never taken for one;
-//   - a press the scroll owner took over (dragScroll.ts: `noteScrollGesture`
-//     at its threshold) acts nowhere: no click is given, and the browser's own
-//     click of that pointer is swallowed too — Chromium still clicked the
-//     control under the finger after a 6 px strip drag.
+//   - a press that must act nowhere — the scroll owner took it over
+//     (dragScroll.ts: `noteScrollGesture` at its threshold), it moved past the
+//     slop (back at the start included), slid off onto another control, or was
+//     cancelled — gets no click, and the browser's own click of that pointer is
+//     swallowed too: Chromium still clicked the control under the finger after
+//     a 6 px strip drag and after a 14 px swipe inside the jog pad's Stop.
 
 export interface ReleaseClickOptions {
   /** Below this press time the release relies on the browser's own click
@@ -52,8 +54,11 @@ export class ReleaseTracker<T> {
   private waiting = new Map<number, T>();
   /** A click this pointer was given: its late browser duplicate is swallowed until then. */
   private given = new Map<number, number>();
-  /** A press that became a scroll: its browser click is swallowed until then. */
-  private scrolled = new Map<number, number>();
+  /** A press that must act nowhere — taken over by the scroll owner, moved
+   *  past the slop, slid off, cancelled: its browser click is swallowed too,
+   *  until then (Codex R421 MT-I02 rest B: Chromium still clicked the jog
+   *  pad's Stop after a 14 px swipe inside it). */
+  private refused = new Map<number, number>();
 
   constructor(opt: ReleaseClickOptions = RELEASE_CLICK_DEFAULTS) { this.opt = opt; }
 
@@ -62,7 +67,7 @@ export class ReleaseTracker<T> {
     // a new press of this pointer: whatever its last one left is over
     this.given.delete(id);
     this.waiting.delete(id);
-    this.scrolled.delete(id);
+    this.refused.delete(id);
     if (target == null) { this.presses.delete(id); return; }
     this.presses.set(id, { target, t0: t, x0: x, y0: y, menu: false, moved: false });
   }
@@ -76,7 +81,7 @@ export class ReleaseTracker<T> {
   scroll(id: number): void {
     const p = this.presses.get(id);
     if (p) p.moved = true;
-    this.scrolled.set(id, Number.POSITIVE_INFINITY);
+    this.refused.set(id, Number.POSITIVE_INFINITY);
   }
 
   /** The long-press `contextmenu`: by its pointer when the browser names it, else the one press on `target`. */
@@ -85,16 +90,22 @@ export class ReleaseTracker<T> {
     for (const p of this.presses.values()) if (target != null && p.target === target) p.menu = true;
   }
 
-  cancel(id: number): void { this.presses.delete(id); this.waiting.delete(id); }
+  cancel(id: number): void {
+    if (this.presses.delete(id)) this.refused.set(id, Number.POSITIVE_INFINITY);
+    this.waiting.delete(id);
+  }
 
   /** The release: give the click now, wait for the browser's own, or nothing. */
   up(id: number, target: T | null, t: number, x: number, y: number): ReleaseDecision {
-    if (this.scrolled.has(id)) this.scrolled.set(id, t + this.opt.lateClickMs);
+    const until = t + this.opt.lateClickMs;
+    if (this.refused.has(id)) this.refused.set(id, until);
     const p = this.presses.get(id);
     this.presses.delete(id);
-    if (!p || this.scrolled.has(id)) return "none";
+    if (!p || this.refused.has(id)) return "none";
     if (Math.abs(x - p.x0) > this.opt.slopPx || Math.abs(y - p.y0) > this.opt.slopPx) p.moved = true;
-    if (p.moved || target !== p.target) return "none";
+    // a swipe (back at the start included) or a release on another control:
+    // nothing acts — the browser's own click of this press neither
+    if (p.moved || target !== p.target) { this.refused.set(id, until); return "none"; }
     if (p.menu) { this.given.set(id, t + this.opt.lateClickMs); return "now"; }
     if (t - p.t0 < this.opt.minPressMs) return "none";
     this.waiting.set(id, p.target);
@@ -110,7 +121,7 @@ export class ReleaseTracker<T> {
     return target;
   }
 
-  /** A click reached the page. "swallow" = a scrolled press's click, or the late duplicate of a click given. */
+  /** A click reached the page. "swallow" = the click of a press that must act nowhere, or the late duplicate of a click given. */
   click(target: T | null, trusted: boolean, t: number, pointerId: number | undefined, detail: number): "pass" | "swallow" {
     if (!trusted) return "pass";                       // our own click (or a script's)
     if (detail === 0) return "pass";                   // a keyboard or assistive activation: no pointer's
@@ -119,8 +130,8 @@ export class ReleaseTracker<T> {
       for (const [id, w] of this.waiting) if (w === target) { this.waiting.delete(id); break; }
       return "pass";
     }
-    const s = this.scrolled.get(pointerId);
-    if (s !== undefined && t <= s) { this.scrolled.delete(pointerId); return "swallow"; }
+    const r = this.refused.get(pointerId);
+    if (r !== undefined && t <= r) { this.refused.delete(pointerId); return "swallow"; }
     if (this.waiting.has(pointerId)) { this.waiting.delete(pointerId); return "pass"; }   // the browser delivered it
     const g = this.given.get(pointerId);
     if (g !== undefined && t <= g) { this.given.delete(pointerId); return "swallow"; }

@@ -380,3 +380,45 @@ test("the jog pad's Stop acts on its release — a long press and a second finge
   await expect.poll(stops, { timeout: 2000 }).toBeGreaterThan(0);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p1] });
 });
+
+// ── Codex R421: the scroll owner keeps every finger's decision; a refused press's own click ──
+
+for (const [label, when] of [["the second finger lands first", "before"], ["the second finger lands while the first scrolls", "during"], ["the second finger lifts first", "liftFirst"]] as const) {
+  test(`a second finger on the strip never undoes the first one's scroll — ${label} (MT-I02 rest A)`, async ({ page }) => {
+    await open(page);
+    const p1 = { ...(await centre(page.locator('.safetyBtns [data-control="machineOn"]'))), id: 1 };
+    const p2 = { ...(await centre(page.locator('.strip .sub:text-is("Safety")').first())), id: 2 };
+    const moved = { ...p1, x: p1.x + 8 };
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: string, touchPoints: object[]) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints } as never);
+    await touch("touchStart", [p1]);
+    if (when === "before") {
+      await touch("touchStart", [p1, p2]);
+      await touch("touchMove", [moved, p2]);
+      await touch("touchEnd", [moved]);                 // the first finger lifts, the second still lies
+    } else if (when === "during") {
+      await touch("touchMove", [moved]);
+      await touch("touchStart", [moved, p2]);
+      await touch("touchEnd", [moved]);
+    } else {
+      await touch("touchStart", [p1, p2]);
+      await touch("touchEnd", [p2]);                    // the second finger leaves first
+      await touch("touchMove", [moved]);
+      await touch("touchEnd", [moved]);
+    }
+    const s = await settled(page);
+    expect(s, JSON.stringify(s)).toHaveLength(0);
+    if (when !== "liftFirst") await touch("touchEnd", [p2]);
+  });
+}
+
+test("a swipe inside the jog pad's Stop stops nothing — the browser's own click of it is refused (MT-I02/06 rest B)", async ({ page }) => {
+  await open(page);
+  const p = { ...(await centre(page.locator('[data-strip="jog"] [data-control="jogStop"]'))), id: 1 };
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...p, x: p.x + 14 }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [{ ...p, x: p.x + 14 }] });
+  const s = await settled(page);
+  expect(s.filter(c => String(c.cmd).startsWith("jog_stop")), JSON.stringify(s)).toHaveLength(0);
+});

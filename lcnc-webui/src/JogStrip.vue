@@ -391,16 +391,13 @@ function stopFnFor(gesture: JogGesture): () => void {
   };
 }
 
-// The centre Stop by keyboard (Codex R213 BG-29): Enter / Space on the
-// focused Stop stop like the pointer. Handled on KEYDOWN, default prevented
-// — the browser's synthesized click never follows, and no click handler
-// exists that a pointer's click could double; a held key's repeats add
-// nothing. A direction button has no keyboard jog: the key does nothing there.
 // The centre Stop acts on its RELEASE like every click control (operator
 // decision P1a, machine day 2026-11-21 — only the E-Stop acts on the press;
 // Codex R420 MT-I06): a tap or a long press on the panel (releaseClick.ts
-// gives the click the browser withholds), Enter / Space as a native button.
-// A held key's repeats do nothing. The directions own their presses.
+// gives the click the browser withholds), Enter / Space as a native button
+// (Codex R213 BG-29: the keyboard stops like the pointer). A held key's
+// repeats do nothing. A direction button has no keyboard jog; the directions
+// own their presses.
 function onPadClick(btn: JogDef) {
   if (btn.axis < 0) stopAllJog();
 }

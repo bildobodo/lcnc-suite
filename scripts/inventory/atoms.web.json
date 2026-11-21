@@ -3501,6 +3501,12 @@
      "id": "listener:deviceToken.ts:window.storage"
     },
     {
+     "id": "listener:dragScroll.ts:window.pointercancel"
+    },
+    {
+     "id": "listener:dragScroll.ts:window.pointerup"
+    },
+    {
      "id": "listener:FloatingOverlays.vue:window.keydown"
     },
     {
