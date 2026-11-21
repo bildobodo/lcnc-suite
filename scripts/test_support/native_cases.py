@@ -1163,12 +1163,13 @@ def frame_window(files, token: str, pid, errors=()) -> dict:
     read twice (a rotation between two opens) counts by its later read.
     Framed only when exactly one start and one end mark carrying `token`
     stand in the SAME file, both written by THIS gateway (`proc`, `pid`), the
-    start first, and every line between them is one whole JSON object — the
-    gateway writes through one descriptor, so its records between two marks
-    in one file are all there; a rotation by another writer only renames the
-    file. Anything else is not framed (never "absent"): a read error, a
-    missing, doubled or foreign mark, the marks in two files (the gateway
-    rotated within the window), a damaged line in the window. Returns
+    start first, and every line between them is one whole JSON object — every
+    writer writes each line whole inside the trace's lock and follows a
+    rotation at its next line (lcnc_trace, P3), so the gateway's records
+    between two marks in one file are all there. Anything else is not framed
+    (never "absent"): a read error, a missing, doubled or foreign mark, the
+    marks in two files (a rotation — any writer's — within the window), a
+    damaged line in the window. Returns
     {"framed", "reason", "file", "events"}; events = the gateway's records
     between the marks."""
     def out(reason, **kw):

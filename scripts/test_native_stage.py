@@ -7102,21 +7102,26 @@ def _written_window(tmp_path, case):
     return nc.frame_window(files, token, int(out.stdout.strip()), errors), files
 
 
-@pytest.mark.parametrize("case", ["none", "foreign-before", "foreign-during"])
+@pytest.mark.parametrize("case", ["none", "foreign-before"])
 def test_the_window_is_the_gateways_stream_whatever_another_writer_rotated(tmp_path, case):
-    """Another writer's rotation renames the file the gateway keeps writing:
-    before the start mark the whole window lies in `.1` — a window by the
-    current file's size saw nothing there (R380). The marks are found in
-    whichever file holds them; the job between them is judged."""
+    """Another writer's rotation before the start mark: the gateway follows
+    it at its next line (P3, the coordinated section — before P3 it kept
+    writing the renamed `.1`, R380), so the whole window lies in the new
+    trace.ndjson. The marks are found in whichever file holds them; the job
+    between them is judged."""
     frame, files = _written_window(tmp_path, case)
     assert frame["framed"], frame["reason"]
-    assert frame["file"] == ("trace.ndjson" if case == "none" else "trace.ndjson.1")
+    assert frame["file"] == "trace.ndjson"
     row = nc.eval_job_window("probe-run", frame, "probe_run", "O<probe_z_minus_wco> CALL", {3014: 99.0})
     assert row["status"] == "PASS", row
 
 
-def test_a_window_the_gateway_rotated_within_is_not_framed(tmp_path):
-    frame, files = _written_window(tmp_path, "gateway-during")
+@pytest.mark.parametrize("case", ["gateway-during", "foreign-during"])
+def test_a_window_rotated_within_is_not_framed(tmp_path, case):
+    """A rotation inside the window — the gateway's own or (since P3, every
+    writer follows it) another writer's — puts the marks in two files: not
+    framed, never read as absent."""
+    frame, files = _written_window(tmp_path, case)
     assert not frame["framed"] and "two files" in frame["reason"], frame
     row = nc.eval_job_window("probe-run", frame, "probe_run", "O<probe_z_minus_wco> CALL", {3014: 99.0})
     assert row["status"] == "incomplete", row
