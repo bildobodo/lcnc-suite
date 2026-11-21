@@ -1,0 +1,163 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r422/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r422/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r422-refined-r422",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r422/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r422-refined-r422",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r422/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r422-codex.spec.ts",
+      "file": "r422-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R422 Settings cycles do not accumulate window listeners or older detached nodes",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2441,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"cancel\": 45,\u001b[39m\n\u001b[32m-   \"up\": 46,\u001b[39m\n\u001b[31m+   \"cancel\": 54,\u001b[39m\n\u001b[31m+   \"up\": 55,\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"cancel\": 45,\u001b[39m\n\u001b[32m-   \"up\": 46,\u001b[39m\n\u001b[31m+   \"cancel\": 54,\u001b[39m\n\u001b[31m+   \"up\": 55,\u001b[39m\n\u001b[2m  }\u001b[22m\n    at /tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts:110:30",
+                    "location": {
+                      "file": "/tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts",
+                      "column": 30,
+                      "line": 110
+                    },
+                    "snippet": "  108 |   // The previous head also keeps the last dialog for now; only older cycles\n  109 |   // are required to be collectable here. Window registrations must stop growing.\n> 110 |   expect.soft(series.at(-1)).toEqual(series.at(-2));\n      |                              ^\n  111 |   expect.soft(retained.earlierDetached).toBe(0);\n  112 | });\n  113 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts",
+                        "column": 30,
+                        "line": 110
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"cancel\": 45,\u001b[39m\n\u001b[32m-   \"up\": 46,\u001b[39m\n\u001b[31m+   \"cancel\": 54,\u001b[39m\n\u001b[31m+   \"up\": 55,\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  108 |   // The previous head also keeps the last dialog for now; only older cycles\n  109 |   // are required to be collectable here. Window registrations must stop growing.\n> 110 |   expect.soft(series.at(-1)).toEqual(series.at(-2));\n      |                              ^\n  111 |   expect.soft(retained.earlierDetached).toBe(0);\n  112 | });\n  113 |\n    at /tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts:110:30"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts",
+                        "column": 41,
+                        "line": 111
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m18\u001b[39m\n\n  109 |   // are required to be collectable here. Window registrations must stop growing.\n  110 |   expect.soft(series.at(-1)).toEqual(series.at(-2));\n> 111 |   expect.soft(retained.earlierDetached).toBe(0);\n      |                                         ^\n  112 | });\n  113 |\n  114 | test('R422 a refused pen swipe leaves its next valid press usable',async({page})=>{\n    at /tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts:111:41"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R422 lifetime {\"before\":{\"up\":27,\"cancel\":27},\"series\":[{\"up\":37,\"cancel\":36},{\"up\":46,\"cancel\":45},{\"up\":55,\"cancel\":54}],\"retained\":{\"sampled\":27,\"alive\":27,\"detached\":27,\"earlierDetached\":18}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T18:19:59.704Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r422/lcnc-webui/test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r422/lcnc-webui/test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r422/lcnc-webui/test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts",
+                    "column": 30,
+                    "line": 110
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "db23e7abd58270bd88b4-5d49bf55dba1cae3effd",
+          "file": "r422-codex.spec.ts",
+          "line": 67,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T18:19:58.017Z",
+    "duration": 4529.201,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r421/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/codex-r421/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r422-previous",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r421/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r422-previous",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r421/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r422-codex.spec.ts",
+      "file": "r422-codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R422 scroll owners leave no window listeners or detached nodes after Settings closes",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2559,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"cancel\": 1,\u001b[22m\n\u001b[32m-   \"up\": 1,\u001b[39m\n\u001b[31m+   \"up\": 2,\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"cancel\": 1,\u001b[22m\n\u001b[32m-   \"up\": 1,\u001b[39m\n\u001b[31m+   \"up\": 2,\u001b[39m\n\u001b[2m  }\u001b[22m\n    at /tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts:105:30",
+                    "location": {
+                      "file": "/tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts",
+                      "column": 30,
+                      "line": 105
+                    },
+                    "snippet": "  103 |   });\n  104 |   console.log('R422 lifetime',JSON.stringify({before,series,retained}));\n> 105 |   expect.soft(series.at(-1)).toEqual(before);\n      |                              ^\n  106 |   expect.soft(retained.detached).toBe(0);\n  107 | });\n  108 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts",
+                        "column": 30,
+                        "line": 105
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"cancel\": 1,\u001b[22m\n\u001b[32m-   \"up\": 1,\u001b[39m\n\u001b[31m+   \"up\": 2,\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  103 |   });\n  104 |   console.log('R422 lifetime',JSON.stringify({before,series,retained}));\n> 105 |   expect.soft(series.at(-1)).toEqual(before);\n      |                              ^\n  106 |   expect.soft(retained.detached).toBe(0);\n  107 | });\n  108 |\n    at /tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts:105:30"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts",
+                        "column": 34,
+                        "line": 106
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m9\u001b[39m\n\n  104 |   console.log('R422 lifetime',JSON.stringify({before,series,retained}));\n  105 |   expect.soft(series.at(-1)).toEqual(before);\n> 106 |   expect.soft(retained.detached).toBe(0);\n      |                                  ^\n  107 | });\n  108 |\n  109 | test('R422 a refused pen swipe leaves its next valid press usable',async({page})=>{\n    at /tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts:106:34"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R422 lifetime {\"before\":{\"up\":1,\"cancel\":1},\"series\":[{\"up\":2,\"cancel\":1},{\"up\":2,\"cancel\":1},{\"up\":2,\"cancel\":1}],\"retained\":{\"sampled\":27,\"alive\":9,\"detached\":9}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-21T18:16:31.530Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r421/lcnc-webui/test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r421/lcnc-webui/test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/codex-r421/lcnc-webui/test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts",
+                    "column": 30,
+                    "line": 105
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "db23e7abd58270bd88b4-1bbc28708c23a4945a41",
+          "file": "r422-codex.spec.ts",
+          "line": 67,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-21T18:16:29.855Z",
+    "duration": 4745.261,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

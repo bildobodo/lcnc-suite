@@ -1,0 +1,71 @@
+[1A[2K[WebServer] (node:1499360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:1499409) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1499409) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 scroll owners leave no window listeners or detached nodes after Settings closes
+[1A[2K[e2e] › e2e/r422-codex.spec.ts:67:1 › R422 scroll owners leave no window listeners or detached nodes after Settings closes
+R422 lifetime {"before":{"up":1,"cancel":1},"series":[{"up":2,"cancel":1},{"up":2,"cancel":1},{"up":2,"cancel":1}],"retained":{"sampled":27,"alive":9,"detached":9}}
+
+[1A[2K  1) [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 scroll owners leave no window listeners or detached nodes after Settings closes 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Object {[22m
+    [2m    "cancel": 1,[22m
+    [32m-   "up": 1,[39m
+    [31m+   "up": 2,[39m
+    [2m  }[22m
+
+      103 |   });
+      104 |   console.log('R422 lifetime',JSON.stringify({before,series,retained}));
+    > 105 |   expect.soft(series.at(-1)).toEqual(before);
+          |                              ^
+      106 |   expect.soft(retained.detached).toBe(0);
+      107 | });
+      108 |
+        at /tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts:105:30
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m0[39m
+    Received: [31m9[39m
+
+      104 |   console.log('R422 lifetime',JSON.stringify({before,series,retained}));
+      105 |   expect.soft(series.at(-1)).toEqual(before);
+    > 106 |   expect.soft(retained.detached).toBe(0);
+          |                                  ^
+      107 | });
+      108 |
+      109 | test('R422 a refused pen swipe leaves its next valid press usable',async({page})=>{
+        at /tmp/codex-r421/lcnc-webui/e2e/r422-codex.spec.ts:106:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r422-codex-R422-scroll-own-6df6c-nodes-after-Settings-closes-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 scroll owners leave no window listeners or detached nodes after Settings closes 

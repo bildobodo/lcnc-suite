@@ -1,0 +1,72 @@
+[1A[2K[WebServer] (node:1503217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:1503252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1503252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes
+[1A[2K[e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes
+R422 lifetime {"before":{"up":27,"cancel":27},"series":[{"up":37,"cancel":36},{"up":46,"cancel":45},{"up":55,"cancel":54}],"retained":{"sampled":27,"alive":27,"detached":27,"earlierDetached":18}}
+
+[1A[2K  1) [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 2[39m
+    [31m+ Received  + 2[39m
+
+    [2m  Object {[22m
+    [32m-   "cancel": 45,[39m
+    [32m-   "up": 46,[39m
+    [31m+   "cancel": 54,[39m
+    [31m+   "up": 55,[39m
+    [2m  }[22m
+
+      108 |   // The previous head also keeps the last dialog for now; only older cycles
+      109 |   // are required to be collectable here. Window registrations must stop growing.
+    > 110 |   expect.soft(series.at(-1)).toEqual(series.at(-2));
+          |                              ^
+      111 |   expect.soft(retained.earlierDetached).toBe(0);
+      112 | });
+      113 |
+        at /tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts:110:30
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m0[39m
+    Received: [31m18[39m
+
+      109 |   // are required to be collectable here. Window registrations must stop growing.
+      110 |   expect.soft(series.at(-1)).toEqual(series.at(-2));
+    > 111 |   expect.soft(retained.earlierDetached).toBe(0);
+          |                                         ^
+      112 | });
+      113 |
+      114 | test('R422 a refused pen swipe leaves its next valid press usable',async({page})=>{
+        at /tmp/codex-r422/lcnc-webui/e2e/r422-codex.spec.ts:111:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r422-codex-R422-Settings-c-3e03e-ers-or-older-detached-nodes-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes 

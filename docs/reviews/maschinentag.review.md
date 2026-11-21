@@ -616,3 +616,42 @@ Beide Reste sind in den gemeinsamen Regeln gelöst, nicht an einzelnen Knöpfen:
 - Der überholte Tastatur-Kommentar in `JogStrip.vue` ist entfernt. Das Inventar ordnet die zwei neuen `window`-Listener zu.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R422 · 21. November 2026
+
+**Urteil: `findings` zu `98748fab..833afad4` (Produktkopf `a79ca536`). Die R421-Reste A/B sind geschlossen.** Die zwölf eigenen Gegenproben aus R420/R421 laufen unverändert **12/12 grün**, Claudes erweiterte Browserfälle **26/26**, die Unit-Tests **20/20**. Damit sind die Verhaltensbefunde **MT-I01 bis MT-I06** geschlossen. Beim neuen Beobachten des Loslassens am `window` entsteht jedoch **MT-I07**: entfernte Scroll-Elemente bleiben samt ihren globalen Listenern erhalten.
+
+### R421-Reste A/B
+
+- **Rest A:** `states` erhält jede Zeigergeste, `scroller` bestimmt getrennt davon den tatsächlichen Verschieber. Der zweite Finger vor der Schwelle, während des Scrollens und mit früherem Loslassen beseitigt die Entscheidung des ersten nicht mehr. Auch die unveränderte R421-Gegenprobe „Power + zweiter Finger + 8 px“ sendet keinen Befehl.
+- **Rest B:** `refused` schließt Ersatzklick und nativen Klick für Scrollen, Slop, Abgleiten und Cancel. Ein neuer Druck derselben ID räumt den alten Vermerk auf; Tastatur und fremde IDs bleiben unabhängig. Die unveränderte native 14-px-Probe am Jog Stop ist grün. Eine zusätzliche echte CDP-Stiftfolge belegt: Wischen sendet keinen Stopp, der unmittelbar nächste gültige Druck sendet wieder die drei vorgesehenen `jog_stop`. Der überholte Jog-Tastaturkommentar ist entfernt.
+
+### MT-I07 · P2 · Jeder entfernte Scroll-Bereich bleibt über seine `window`-Listener erhalten
+
+**Stellen:** `lcnc-webui/src/dragScroll.ts:102–104`, dazu `stopDragScroll()` ab Zeile 135. `attach(el)` registriert für **jedes** `.scroll-thin` zwei globale Listener. Deren `end`-Closure verwendet `el` und hält es deshalb am lebenden `window`. Weder beim Entfernen des Elements noch beim Stoppen werden die Listener abgemeldet; der MutationObserver behandelt nur hinzugefügte Elemente. Der `WeakSet` verhindert diese starke Referenz nicht.
+
+**Reproduktion:** Settings wiederholt öffnen und über „Close settings“ schließen. Jeder Dialog erzeugt neun Scroll-Elemente. Die Sonde zählt die echten `window`-Listener über CDP, hält die Elemente ausschließlich als `WeakRef` und fordert danach Garbage Collection an. Nach zwei Aufwärmzyklen folgen drei Messzyklen:
+
+| Messung nach dem Schließen | R421 `2988ec44` | R422 `833afad4` |
+|---|---:|---:|
+| `pointerup`-Listener, drei Messzyklen | 2 → 2 → 2 | 37 → 46 → 55 |
+| `pointercancel`-Listener, drei Messzyklen | 1 → 1 → 1 | 36 → 45 → 54 |
+| Noch vorhandene entfernte Scroll-Elemente aus den **ersten zwei** Messzyklen, nach GC | **0/18** | **18/18** |
+| Alle drei Messzyklen, nach GC | 9/27 | 27/27 |
+
+Die präzisierte Sonde ist am vorigen Kopf **grün**, am neuen **rot**. Pro weiterer Öffnung bleiben neun zusätzliche Listener je Ereignisart und die entfernten Elemente zurück. Damit wachsen Speicherbindung und die Zahl der bei jedem Loslassen/Cancel aufgerufenen Handler mit der Bedienung. Eine konkrete Heap-Größe oder zusätzliche Eingabelatenz habe ich nicht gemessen.
+
+**Korrektur:** Das Beobachten außerhalb des Scroll-Besitzers beibehalten, aber seine Lebensdauer begrenzen: etwa ein zentraler, abmeldbarer Listener je Ereignisart, der nur aktive Besitzer anspricht, oder vollständig aufgeräumte Registrierungen bei Entfernen/Stoppen. Dabei auch Entfernen während eines Drucks und erneutes Einfügen berücksichtigen; die neuen Mehrzeiger- und Außen-Loslassen-Regeln müssen erhalten bleiben. Ein Wächter für wiederholtes Erzeugen/Entfernen und den Stop/Dispose-Pfad gehört zu dieser gemeinsamen Regel, nicht zu Settings allein.
+
+**Abgrenzung der Sonde:** Meine erste Fassung verlangte keinerlei zusätzliche Listener und null entfernte Elemente nach dem Schließen. Auch der alte Kopf erfüllt diese absolute Erwartung nicht: Ein globaler `pointerup`-Listener kommt einmal hinzu, und die neun Elemente des zuletzt geschlossenen Dialogs bleiben zunächst vorhanden. Diesen bestehenden Nachlauf werte ich hier nicht als neuen Befund. Die endgültige Sonde vergleicht die letzten zwei Listenerzählungen und prüft die **früheren** Dialoge. Beide ersten roten Läufe und beide präzisierten Vergleiche sind erhalten; kein roter Basiskontrolllauf wird als bestandener Nachweis ausgegeben.
+
+### Belege und Grenzen
+
+- Exaktes Archiv von `833afad4` unter `/tmp`, unabhängige Abhängigkeitskopie; Build erfolgreich. Alle **435** Dateien unter `lcnc-webui/src` gegen den Commit verglichen und unverändert. Voriger Kopf `2988ec44` ebenfalls aus der isolierten R421-Kopie.
+- Gezielter Hauptlauf: **20/20 Unit**, **39/40 Browser grün** = Claudes **26/26**, unveränderte R420/R421-Proben **12/12**, neue Stiftfolge **1/1**, erste Lebensdauersonde rot. Danach nur die Lebensdauersonde präzisiert und verglichen: **R421 1/1 grün, R422 0/1**. Keine Retries. Chromium **148.0.7778.0**; kein eigener Firefox- oder Panel-Lauf.
+- [Endgültige Sonde](maschinentag.r422.codex.spec.ts), [präzisierter Kopfbericht](maschinentag.r422.codex-head-refined.json), [Kopf-Mitschrieb](maschinentag.r422.codex-head-refined.txt), [grüner Vergleich am vorigen Kopf](maschinentag.r422.codex-previous-refined.json), [Hauptlauf](maschinentag.r422.codex-browser.json), [Prüfmanifest einschließlich ursprünglicher roter Kontrollläufe, Hashes und Grenzen](maschinentag.r422.codex-review.json).
+- Den beigefügten Gate-PASS an `a79ca536` geprüft; `833afad4` fügt den Record hinzu. Gesamtgate nicht wiederholt. `twp-buttons` und die echte Panel-Abnahme bleiben wie angegeben vor main offen.
+
+Keine neue Operatorfrage. Alle eigenen Tests beendet, Heavy-Sperre wieder frei. Keine Verbindung zur Maschine oder Live-Sim und kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue R422-Belege.

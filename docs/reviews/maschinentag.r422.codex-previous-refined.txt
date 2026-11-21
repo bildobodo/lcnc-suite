@@ -1,0 +1,19 @@
+[1A[2K[WebServer] (node:1502992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:1503027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1503027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes
+[1A[2K[e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes
+R422 lifetime {"before":{"up":1,"cancel":1},"series":[{"up":2,"cancel":1},{"up":2,"cancel":1},{"up":2,"cancel":1}],"retained":{"sampled":27,"alive":9,"detached":9,"earlierDetached":0}}
+
+[1A[2K  1 passed (4.3s)
