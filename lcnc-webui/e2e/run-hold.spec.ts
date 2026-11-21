@@ -176,7 +176,10 @@ async function serveRevisions(page: Page, late: Record<string, number>) {
 /** Hold `target`; `during` runs 100 ms in; true when the hold was cancelled. */
 async function holdWhile(page: Page, target: Locator, during: () => Promise<void>) {
   await expect(target).toBeVisible();   // read the geometry after the signal: shown
-  const box = (await target.boundingBox())!;
+  // ONE read of the element that is there NOW: a re-render between the
+  // visibility check and a separate boundingBox() left that null under load
+  // (round gate 2026-11-21, 1 of 1010 — passed 3/3 alone)
+  const box = await target.evaluate(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await onPageClock(page, async () => {
     await page.mouse.down();
