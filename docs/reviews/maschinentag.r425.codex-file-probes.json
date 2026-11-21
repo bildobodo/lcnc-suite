@@ -1,0 +1,55 @@
+{
+  "kind": "deterministic plan probes, no live access",
+  "results": {
+    "stat_then_write": {
+      "same_inode_before_rotation": true,
+      "fd_links_at_write": 0,
+      "visible": {
+        "trace.ndjson": "new-1\n",
+        "trace.ndjson.1": "new-0\n"
+      },
+      "record_lost": true
+    },
+    "reopen_each_line": {
+      "visible": {
+        "trace.ndjson": "new-1\n",
+        "trace.ndjson.1": "new-0\n"
+      },
+      "record_lost": true
+    },
+    "lock_busy_fallback": {
+      "lock_refused": true,
+      "fd_links_at_write": 0,
+      "visible": {
+        "trace.ndjson": "new-1\n",
+        "trace.ndjson.1": "new-0\n"
+      },
+      "record_lost": true
+    },
+    "reader_path_list": {
+      "snapshot_at_enumeration": [
+        "A",
+        "B",
+        "C"
+      ],
+      "read_by_original_names": [
+        "A",
+        "A",
+        "B"
+      ],
+      "duplicate_A": true,
+      "missing_C": true
+    },
+    "crash_fanout": {
+      "logical_emits": 1,
+      "trace_records": 1,
+      "crash_records": 1,
+      "identical_records": true
+    },
+    "rlimit_fsize": {
+      "first_write_bytes": 64,
+      "second_errno": 27,
+      "EFBIG": 27
+    }
+  }
+}

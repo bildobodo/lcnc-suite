@@ -1,0 +1,52 @@
+{
+  "round": "R425",
+  "review_type": "plan only: P1b v3 and P3 forensic logging",
+  "code_commit": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "review_head_before_append": "e0481ad5d7b0303a8eb657a40a7112cede362e7e",
+  "review_prefix_bytes": 130930,
+  "review_prefix_sha256": "85e06d0995680bb6a63050f057ff513e1dd165425b08e140afb1a31ce1c785d8",
+  "verdicts": {
+    "P1b": "findings: MT425-01",
+    "P3": "findings: MT425-02 through MT425-04"
+  },
+  "probe_assertions": "6 cases completed; counterexamples confirmed, not a product regression-suite verdict",
+  "probe_environment": {
+    "code_archive": "/tmp/codex-r425",
+    "scratch": "/tmp/r425",
+    "python": "Python 3.13.5",
+    "platform": "Linux aarch64"
+  },
+  "heavy_lock_record": "codex-r425-review (pid 1893058, since 2026-11-21T22:42:01)",
+  "all_probes_finished": true,
+  "limits": [
+    "No P1b or P3 implementation exists in the reviewed range.",
+    "No browser, live simulation or machine connection.",
+    "No product tests, build, native gate, merge gate or performance acceptance run.",
+    "Temporary files and subprocesses only; real current trace module used with explicit isolated log_dir.",
+    "P1a merge and post-R424 additions acknowledged as information, not independently re-certified.",
+    "Operator machine logs were not reopened or copied for R425."
+  ],
+  "artifacts": [
+    {
+      "path": "maschinentag.r425.codex-file-probes.json",
+      "sha256": "b2c3355882167f947f33a82334d999687d670f6c8f6baf865e21933c9f8def40",
+      "bytes": 1172
+    },
+    {
+      "path": "maschinentag.r425.codex-file-probes.py",
+      "sha256": "e58275d971aa0f3eaae831ee3333eab36db423004309e228aa138739c2b7fe4a",
+      "bytes": 5131
+    },
+    {
+      "path": "maschinentag.r425.codex-run.sh",
+      "sha256": "6728aef9be844a9c0d22d12d76e9ef9c2cb433e4404b5c528cbc7f831c6ca094",
+      "bytes": 409
+    },
+    {
+      "path": "maschinentag.r425.codex-sources.json",
+      "sha256": "e104e2dc7b143226ef870b021e36b4c653e9712fc97b145334432753d5f550aa",
+      "bytes": 34838
+    }
+  ],
+  "append_sha256": "7c7d0139d45e19d706fce83404714cd4c63117866714dd2844fe27523d04d9ab"
+}

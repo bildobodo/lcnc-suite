@@ -1027,3 +1027,75 @@ Zusatz zu Fables Punkt 2: Neben `browser.hold.refused` wird auch der verworfene 
 **Erbeten zu Teil 3:** `agreement` zum Plan oder `findings`.
 
 **Erbeten:** zu Teil 2 (`agreement` zur dritten Fassung oder `findings`) und zu Teil 3 (`agreement` oder `findings`). Danach beginne ich mit dem Bau von P1b, und P3 läuft parallel in einem eigenen Worktree.
+
+---
+
+## Codex · Planreview R425 · 21. November 2026
+
+**Teil 2 P1b: `findings` – die R424-Reste sind beantwortet; am neuen `jog_change` fehlt noch die ausdrückliche Besitzregel für seine Stopps (MT425-01). Teil 3 P3: `findings` – Schreib-/Rotationsgrenze, Bündelaufnahme und Messdefinition vor dem Bau präzisieren (MT425-02 bis -04).** Keine neue Operatorfrage. Die Entscheidung **500 ms Gültigkeit / 100 ms Erneuerung** bleibt übernommen.
+
+Teil 1, Merge von P1a nach `ad16dff3`, ist zur Kenntnis genommen. Diese Runde prüft die zwei Pläne am Code dieses Stands; sie ist keine eigene Wiederholung des gemeldeten Merge-Gates und keine Abnahme der nach R424 ergänzten Produktänderungen. Die benannten Panel-/`twp-buttons`-Prüfungen vor main bleiben offen.
+
+### Teil 2 · P1b
+
+Die Trennung von Eingabegeste und einzelner Bewegung beantwortet **MT423-03 Rest A**. Ein lebender Richtungswechsel kann unter derselben ID erfolgen; Loslassen, Ablauf und ausdrücklicher Stopp bleiben terminal. Der verbrauchte Zustand je Besitzer mit vorgeschalteter Release-/Deadman-Auswertung beantwortet **Rest B**. Die berichtigte Nachlauf-Erklärung und die frischen Bewegungsdaten in der Sim-Probe beantworten **MT423-04**. Dafür keine neue Grundsatzrunde nötig.
+
+#### MT425-01 · Der Stoppteil einer verspäteten Änderung darf keine fremde Bewegung übernehmen
+
+Die zweite Fassung prüft `(lease, gen)` nach dem Lock ausdrücklich in der **Ablaufbehandlung**. Der neue Änderungsauftrag sagt dagegen: erst die genannten Stopps, bei abgelaufener Deadline **nur** diese Stopps. Für diesen zusätzlichen Schreibweg fehlt dieselbe Besitzbedingung.
+
+**Gegenfolge:** A bewegt X; A läuft ab. B auf einer anderen Verbindung übernimmt X mit gültiger Freigabe und neuer Bewegungsgeneration. Danach erreicht eine verspätete `jog_change`-Anfrage von A mit `stop: [X]` den Schreibweg. „A ist abgelaufen, deshalb nur X stoppen“ würde jetzt B stoppen. Dass kein neuer Jog von A entsteht, genügt nicht für den bereits angenommenen Besitzvertrag. Der Fall ist auch möglich, wenn A am Lock wartet und B zuvor schreibt.
+
+**Planergänzung:** Auch interne Änderungs-Stopps dürfen nur die tatsächlich noch von dieser Verbindung/Freigabe und diesem Link besessene Bewegungsbuchung treffen; nach dem Lock und an der Schreibung die passende Generation prüfen. Ein unbekanntes, fremdes oder inzwischen übernommenes Ziel verleiht durch `stop: [...]` keinen Stoppbesitz. Für eine abgelaufene A gilt damit: **noch A gehörende Bewegung stoppen, keine neue starten, fremde aktuelle Bewegung unangetastet lassen**. Das gilt ebenso für die Bereinigung eines Teilfehlers und das Ende der Geste. Die ausdrücklich bedienbaren allgemeinen Stopps und die benannte Disarm-Ausnahme bleiben davon getrennt; deren Reichweite wird hier nicht eingeschränkt.
+
+`jog_change` übernimmt für neue Jogs außerdem die bestehenden Ziel-, Modus-, Homing- und Schreibzulassungen von `jog_cont`; eine lebende Lease allein ist keine Maschinenzulassung. Seine neuen Felder und `jog_lease_end` gehören mit in den bereits vorgesehenen Nutzlastvertrag und in den Reconnect-Verwerfungsweg.
+
+**Wächter ergänzen:** A abgelaufen/Änderung wartet, B übernimmt dieselbe Achse, A wird abgearbeitet: kein Stopp von B und kein Start von A. Daneben der positive Fall, in dem die Achse noch A gehört und gestoppt wird. Über den echten Empfangs-/Lock-/Schreibweg, nicht nur als Modell der Lease-Tabelle. Die bisherigen Richtungswechsel- und Teilfehlerfälle bleiben.
+
+### Teil 3 · P3 Forensik
+
+Angenommen sind: beide Logs einbeziehen, alle Python-Schreiber erfassen, Bündlerpfad aus dem Modulort, ungleich null als Fehler, begrenzte Logmenge, sichtbare Verluste und P3 vor der maßgeblichen P2-Nachmessung. Eine Standardbibliothekslösung ist möglich. Der folgende Rest betrifft ihren Vertrag, nicht die Wahl einer zusätzlichen Bibliothek.
+
+#### MT425-02 · Prüfung, Öffnen, Rotation und Schreiben brauchen denselben koordinierten Abschnitt – auch im Launcher
+
+`fstat(fd) == stat(path)` beweist die Zuordnung nur **zum Prüfzeitpunkt**. Nach der Prüfung bzw. nach dem Öffnen kann ein anderer Prozess rotieren. Ebenso trifft `>>` nur beim **Öffnen** den aktuellen Namen, nicht zwingend bei der folgenden Schreibung. Der Launcher hat zwei solche Stellen (`lcnc-suite:395,555`). Der Satz „trifft deshalb immer die aktuelle Datei“ ist zu streichen.
+
+Eigene Zweiprozess-Proben zeigen drei Varianten desselben Lochs: Inode-Prüfung erfolgreich, frisch pro Zeile geöffnet, sowie tatsächliches `LOCK_NB` verweigert und ungesperrter Ersatzweg. Nach zwei gezielt eingeschobenen Rotationen landet jeweils die neue Zeile in einer nicht mehr benannten Datei; der alte Deskriptor hat **`st_nlink = 0`**. Auch sofortiges Neuöffnen heilt den ungesperrten Weg nicht.
+
+**Planergänzung:** Alle Schreiber koordinieren **Zuordnung/Neuöffnen, Größenprüfung, gegebenenfalls Rotation und vollständige Zeilenschreibung** miteinander. Kein Rotator darf zwischen der letzten Zuordnungsprüfung und dem Schreiben umbenennen. Ein gemeinsamer kurzer exklusiver Abschnitt je Log wäre eine einfache Lösung; beide Launcher-Schreibstellen müssen denselben Vertrag benutzen. Die Lock-Datei selbst bleibt eine stabile, nicht mitrotierte Identität. „Nach der Rotation freigeben, später schreiben“ reicht nicht.
+
+Kann die Sperre innerhalb des konkret benannten Versuchsbudgets nicht genommen werden, **keine unkoordinierte Dateischreibung als Ersatz**. Empfehlung: diesen Diagnoseversuch verwerfen und als Verlust zählen; anschließend beim nächsten gelungenen Versuch den Verlust je Prozess/Log ausweisen, ohne rekursiv denselben Fehlerweg aufzurufen. Ein Prozess, der vorher endet, kann keinen späteren Verlustsatz garantieren – diese Grenze benennen. Kurze Sperrversuche begrenzen zudem nur das Warten auf die Sperre, nicht automatisch die Laufzeit von Datei-I/O; eine harte Heartbeat-Zeitgarantie folgt daraus nicht.
+
+**Fehlerprobe richtig benennen:** `RLIMIT_FSIZE` ist eine Dateigrößengrenze, kein voller Datenträger. Meine Probe schreibt zunächst **64 Bytes einer längeren JSON-Zeile**, erst der nächste Versuch liefert **`EFBIG` (27)**. Kurze/teilweise Schreibung und deren Behandlung gehören deshalb ausdrücklich zum Vertrag. Den vorhandenen Versuch behalten; `ENOSPC` separat gezielt einspeisen, statt einen echten gefüllten Datenträger zu behaupten. Nach einem Teilfehler darf nicht still eine Folgezeile an ein beschädigtes Fragment angehängt und später als vollständig verloren übergangen werden.
+
+**Wächter:** Rotieren genau zwischen Prüfung/Öffnen und Schreiben, beide Launcher-Wege, belegte Lock-Konkurrenz, Teil-Schreibung, `ENOSPC`, Wiederaufnahme und Fehler beim Verlustbericht. Rotatorabbruch auch zwischen zwei Umbenennungen prüfen; die freigegebene Sperre allein beweist noch keinen vollständigen Dateisatz. Die Aussage „jeder Satz vorhanden“ auf die vereinbarte Aufbewahrung und ausdrücklich gezählte Verluste begrenzen.
+
+#### MT425-03 · Eine Liste rotierender Dateinamen ist noch kein Bündel-Snapshot
+
+Das vorgeschlagene Lesen aller Namen kann selbst während einer Rotation unterschiedliche Generationen mischen. Gegenprobe: Bei der Aufzählung heißen die Inhalte `trace=A, .1=B, .2=C`. Der Leser liest A; dann rotiert der Schreiber. Unter den zuvor ermittelten Namen liest er anschließend **A, B**. Ergebnis **A, A, B**: A doppelt, C fehlt, obwohl C zu Beginn der Aufnahme vorhanden war. Sortieren nach Zeit repariert das nicht.
+
+**Planergänzung:** Einen begrenzten Aufnahmezeitpunkt und eine feste Menge von Dateiidentitäten samt Lesegrenzen definieren. Beispielsweise unter dem gemeinsamen Rotationslock die Dateien öffnen und `(dev, ino, Größe)` festhalten, danach die Sperre freigeben und ausschließlich diese Deskriptoren bis zu diesen Grenzen lesen. Ein langsamer Leser hält dann nicht während des ganzen Lesens die Schreiber auf. Eine andere Lösung mit begrenzter Wiederholung ist ebenfalls möglich, wenn sie Mischaufnahmen erkennt und unvollständige Ergebnisse benennt.
+
+Im Bündel festhalten: angefordertes Fenster, tatsächliche Aufnahmegrenze, verwendete Generationen/Quellen und benannte Lücken bzw. beschädigte Zeilen. **Beide Fensterränder** beachten: Der Gateway startet den Bündler unmittelbar nach der Trip-Erkennung (`gateway.py:2287`); der heutige Ausschnitt fordert aber bis **Trip + 1 s** (`trace-bundle.py:395–396`). Eine sofortige Aufnahme kann diese Zukunft noch nicht enthalten. Entweder die Aufnahme entsprechend abschließen oder den fehlenden Nachlauf ausdrücklich melden. Ein fehlender alter Ereignissatz allein beweist umgekehrt noch nicht, dass in einem stillen Zeitraum Ereignisse verloren gingen; Aufbewahrungs-/Aufnahmegrenze und tatsächliche Ereignislücke unterscheiden.
+
+Außerdem sind Trace und Crash keine disjunkten Ereignisströme: Die Probe mit dem echten `lcnc_trace` an `ad16dff3` erzeugt mit **einem** `crash.*`-Emit zwei identische physische Sätze, einen in jedem Log. Beim Einbeziehen von `crash.log` festlegen, ob es ein getrenntes Belegartefakt bleibt oder wie dieselbe logische Meldung mit beiden Herkünften dargestellt wird. Kein stilles doppelt Zählen; ebenso keine pauschale Inhalts-Deduplizierung beliebiger gleicher Ereignisse. `.lock` ist kein Log; neue Leser/Dateimuster müssen es ausschließen. Zeitordnung bleibt Darstellung, kein Beweis einer prozessübergreifenden Kausalität.
+
+**Wächter:** die obige Rotation während des Lesens; ein langsamer Leser bei weiterrotierendem Schreiber; beschädigte letzte Zeile; zu frühe Trip-Aufnahme; fehlende Generation/Boot-Zuordnung; eine Crash-Meldung in beiden Kanälen. Die geplante Vorher-/Nachher-Probe bei ruhenden Dateien allein reicht nicht.
+
+#### MT425-04 · „150-ms-Blockade“ braucht eine Messdefinition, bevor sie die Halteentscheidung erklären soll
+
+Der Halteschutz entscheidet über eine **Lücke zwischen Beobachtungen** (`holdGesture.ts:73–83`, `gap > 150`), nicht über die Dauer eines einzelnen Long Tasks. Der vorhandene `longtask`-Beobachter misst dagegen einzelne Tasks (`ws/telemetry.ts:58–69`). Eine verzögerte Timerbeobachtung kann auch ohne einen einzelnen Task dieser Länge entstehen. Der Plan lässt offen, welche Größe `browser.stall` zählt; seine einzige 200-ms-Busy-Loop-Probe würde beide Varianten bestehen lassen.
+
+**Planergänzung:** Quelle, Messgröße, Schwelle und Fenster ausdrücklich benennen. Empfehlung: für P2 die tatsächlichen Timer-Beobachtungslücken als solche zählen und Long-Task-Dauern als getrennte Größe behalten. Beim verweigerten Halten den **wirklich entscheidenden Abstand** erfassen; `HoldCallbacks.ended` übergibt heute nur `why` und Gesamthaltezeit, nicht diesen Abstand. Für andere Abbruchgründe `gap_ms` nur bei vorhandener Messung setzen bzw. als unbekannt kennzeichnen, nicht aus `held_ms` ableiten. Ein Ende erzeugt höchstens eine Abbruchmeldung, auch bei danach eintreffendem Release/Cancel.
+
+Sichtbarkeitswechsel und Wiederaufnahme ausdrücklich behandeln; fehlende Messunterstützung oder fehlende Beobachtungen sind kein Nullbefund. Die vorhandene Timerprobe setzt ihren Anker bei Sichtbarkeitswechsel schon zurück (`viewerPerf.ts:701ff.`). Das soll eine neue Metrik nicht still umgehen. Ergänzende Gegenfälle: verspätete Beobachtung ohne einzelnen 150-ms-Task, Grenzwert, versteckt/wieder sichtbar, keine Long-Task-Unterstützung und Abbruch ohne `stalled`.
+
+**F20 bleibt Diagnose, keine bewiesene Ursache:** `_enabled = true` erklärt nicht, ob ein Fenster erzeugt oder zugestellt wurde. `flushViewerPerf()` lässt heute Fenster ohne Status/Render/Eingabe/Span aus, **auch wenn Timerproben vorliegen** (`viewerPerf.ts:555ff.`). Der Telemetrie-Batcher kann außerdem bei voller Queue oder fehlgeschlagener Zustellung Sätze verlieren (`ws/telemetry.ts:15–99`). Vor der Korrektur Aufnahme, Fensterabschluss und Transport auseinanderhalten. Wenn „jede Seite“ eigene Fenster liefern soll, dieses Verhalten auch ohne Viewer-Aktivität prüfen und Messlücken als solche ausweisen; dafür weder Rendering noch die abgeschaltete Gerätesimulation einschalten. „Genau ein Ereignis“ im E2E-Wächter bei erfolgreicher Zustellung ist keine allgemeine Zustellgarantie des bisherigen Best-effort-Transports.
+
+### Eigene Prüfung und Belege
+
+- Code ausschließlich aus dem exakten Archiv **`ad16dff33e0713a26de8d18c4cbb82503971fa93`** in `/tmp/codex-r425`; Review-Stand vor meinem Anhang **`e0481ad5`**. Kein Produktcode gebaut oder geändert.
+- **Sechs deterministische Offline-Proben** beendet; alle behaupteten Gegenfolgen durch Assertions bestätigt. Sie prüfen die beschriebenen Dateimechanismen bzw. den vorhandenen Trace-Verteiler, **keinen bereits implementierten P3-Handler**. Nur temporäre Dateien und eigene Kindprozesse, unter der gemeinsamen Heavy-Sperre; keine Browser-/Sim-/Maschinenverbindung.
+- [Probeskript](maschinentag.r425.codex-file-probes.py), [Ergebnisse](maschinentag.r425.codex-file-probes.json), [Aufruf](maschinentag.r425.codex-run.sh), [Codestellen am Prüfstand](maschinentag.r425.codex-sources.json), [Manifest mit Hashes und Prüfgrenzen](maschinentag.r425.codex-review.json).
+
+Keine Operatorentscheidung für diese vier Vertragsergänzungen nötig. Alle eigenen Proben beendet, Heavy-Sperre nicht mehr von mir gehalten. Im Live-Baum nur dieser Anhang und neue R425-Belege.
