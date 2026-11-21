@@ -218,7 +218,8 @@ test("disarmed while a program runs: Pause, Abort and the jog Stop are reachable
   await expect.poll(async () => (await sentNow()).map((c) => c.cmd)).toContain("abort");
   const jogStop = page.locator('[data-strip="jog"] [data-control="jogStop"]');
   await expect(jogStop, "the jog pad's centre Stop is a stop").toBeEnabled();
-  await jogStop.dispatchEvent("pointerdown", { button: 0, pointerId: 1, isPrimary: true });
+  // the pad's Stop acts on its release like every click control (operator decision P1a)
+  await jogStop.click();
   await expect.poll(async () => (await sentNow()).map((c) => c.cmd)).toContain("jog_stop");
   // the Macros tab's and the MDI tab's Abort too (inside the content before package C)
   for (const tab of ["MDI", "Macros"]) {
