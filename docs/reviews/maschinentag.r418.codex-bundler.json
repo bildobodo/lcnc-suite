@@ -1,0 +1,12 @@
+{
+  "files_available": 2,
+  "records_available": 2,
+  "bundler_records": [
+    {
+      "t_wall_ns": 2,
+      "tag": "after-rotation"
+    }
+  ],
+  "rotated_input_not_read": true,
+  "source": "98748fab:scripts/trace-bundle.py:62"
+}

@@ -1,0 +1,98 @@
+{
+  "window_machine_wall_time": "2026-11-21 10:18:00 <= t < 14:27:00 Europe/Zurich",
+  "inputs_sha256": {
+    "trace.ndjson": "5a005c65ecc34c0f6f9b731495f436ef19651b3e23030cff63073a6dbc948eea",
+    "trace.ndjson.1": "06140c62f6e4e1823b4955d54c4b0bcf1ac1221bc14fc2ab2382be09044f5ac5",
+    "trace.ndjson.2": "de575fa7a0458cf60b411f3bad76ac13f98ab054122072823983c4b312b1a361",
+    "trace.ndjson.3": "6dc9b3d8ab14f31a007ff39c3c3a05a4d1412586f263b9178d72b8fc1d18924c",
+    "inputs.ndjson": "b36a667c42e67ed25a26f2dbf15e171d55ad40afdcc80bfee8eb919161dcf615"
+  },
+  "malformed_trace_lines_all_dates": {},
+  "parse_starts": 28,
+  "unique_started_jobs": 28,
+  "parse_publishes": 27,
+  "start_reasons": {
+    "table_mtime": 5,
+    "toolsetter": 13,
+    "wcsoff:G54:x": 1,
+    "file": 3,
+    "wcsoff:G54:z": 2,
+    "midrun:table_mtime": 1,
+    "tool_loaded": 2,
+    "tool_offset": 1
+  },
+  "lag_windows": 26,
+  "lag_max_ms": 250.0,
+  "crash_prefix_records_found": 0,
+  "trip_snapshot_results": [
+    {
+      "tag": "safety.trip_snapshot_done",
+      "rc": 2
+    },
+    {
+      "tag": "safety.trip_snapshot_done",
+      "rc": 2
+    }
+  ],
+  "run_starts": [
+    {
+      "verified": true,
+      "why": null
+    },
+    {
+      "verified": false,
+      "why": "a parse runs or is pending"
+    },
+    {
+      "verified": false,
+      "why": "a parse runs or is pending"
+    }
+  ],
+  "job_25_events": [
+    {
+      "tag": "gcode.spawn_start",
+      "machine_time": "13:55:12.374"
+    },
+    {
+      "tag": "gcode.publish",
+      "machine_time": "13:55:41.655"
+    }
+  ],
+  "trace_writers_after_13_15": {
+    "trace.ndjson": {
+      "hal_watchdog": 12482,
+      "launcher": 4091,
+      "gcode_parse_worker": 14
+    },
+    "trace.ndjson.1": {
+      "gateway": 10643
+    },
+    "trace.ndjson.2": {
+      "hal_reader": 4440
+    }
+  },
+  "input_recording": {
+    "events": 745,
+    "contextmenus": 52,
+    "contextmenus_named_for_stop": 0,
+    "first_machine_time": "13:03:45.594",
+    "last_machine_time": "14:19:58.179"
+  },
+  "long_press_example": {
+    "control": "Front-left corner (hold control, not a stop)",
+    "events": [
+      {
+        "event": "pointerdown",
+        "delta_ms": 0
+      },
+      {
+        "event": "contextmenu",
+        "delta_ms": 650
+      },
+      {
+        "event": "pointerup",
+        "delta_ms": 953
+      }
+    ]
+  }
+}

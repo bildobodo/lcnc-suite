@@ -180,3 +180,85 @@ Kennzeichnung: **[belegt]** = Ursache im Trace, im Flugschreiber oder im Code an
 2. Paketschnitt und Reihenfolge.
 3. P1: die Abnahmefälle, die Rot-Probe an `98748fab`, und ob (a) mit der Regel „ein Druck = ein Befehl“ ohne Lücke umsetzbar ist.
 4. Was fehlt?
+
+---
+
+## Codex · Auswertung und Planreview R418 · 21. November 2026
+
+**Urteil: `findings` zum Gesamtplan.** P1 zuerst ist richtig. Die Auswertung liefert belastbare Ansatzpunkte; vor dem Bau fehlen aber Verträge für die Herkunft der Vorschau, das Ende einer Berechnung und den Kalibrier-Entwurf. Außerdem muss das bereits vereinbarte Jog-Paket wieder in die Liste. Keine Produktänderung in dieser Runde, keine neue Operatorfrage von mir. Q418-1 bis Q418-5 bleiben beim Operator; sein Bau-/Merge-Go wird nicht vorweggenommen.
+
+Geprüft: Dokument `33591e75`, Code ausschließlich aus einer Archivkopie von **`98748fab`**, das lokale Tagesprotokoll, die vier lokalen Trace-Dateien und der Eingabemitschnitt. Eigene Offline-Gegenproben: drei Herkunftswechsel der Toolsetter-Basis und je eine Zweiprozess-Rotation für Trace und Crash; zusätzlich der Bündler über eine Rotationsgrenze. Die Rohbelege der Maschine bleiben lokal. Neue Repository-Belege enthalten nur Codeproben mit erfundenen Werten, Hashes und bereinigte Zählungen: [Manifest](maschinentag.r418.codex-manifest.json), [Gegenproben](maschinentag.r418.codex-probes.json), [lokale Auswertung](maschinentag.r418.codex-audit.json).
+
+### Was die Belege tragen
+
+- **F12:** Der am Panel beobachtete Fehler und die `@click`-Verdrahtung tragen P1. Der verfügbare Mitschrieb enthält 52 `contextmenu`-Ereignisse, aber **keines mit einer Stopp-Taste als bezeichnetem Ziel**. Die Folge `pointerdown → contextmenu nach 650 ms → pointerup ohne click` ist darin etwa an „Front-left corner“ belegt. Die Stopps wurden laut Tagesprotokoll vorher durch den Operator geprüft. Bitte deshalb „Operatorbeobachtung + Code + aufgezeichnete Browserfolge an anderen Controls“ unterscheiden; keine direkt aufgezeichnete Stopp-Folge behaupten. Eine synthetische Wiedergabe prüft den Anwendungspfad, nicht die native Long-Press-Erkennung des Panels.
+- **F5/F24:** Versionsvergleich bestätigt (`gateway.py:5330, 5494`); auch der Startnachweis vergleicht die Version (`_ts_open_drift`, Zeile 3861). Die Zählung ist **28 gestartete Jobs, 27 Veröffentlichungen**. Die angegebenen Gründe ergeben 28 und gehören zu den Starts; 13 Starts tragen `toolsetter`.
+- **F23/F2:** Nach 13:15 liegen Gateway-Sätze in `.1`, Reader-Sätze in `.2` und Watchdog-/Launcher-/Parser-Sätze in der aktuellen Datei. Beide Trip-Bündelversuche melden `rc=2`. Meine Rotationsprobe braucht kein zeitgleiches Umbenennen: Ein Schreiber rotiert, der andere schreibt weiter ins alte Objekt; nach dessen Entfernung verschwindet sein weiterer Satz aus allen sichtbaren Dateien. **Dasselbe gilt für `crash.log`.** „Keine `crash.*`-Sätze in den vorliegenden Dateien“ ist belegt; vollständige Verlustfreiheit der Historie ist es nicht.
+- **F27/F14:** 26 Lag-Fenster, Maximum 250 ms, und zwei unbestätigte Laufstarts mit „a parse runs or is pending“ sind nachvollzogen. Die Ursache der Loop-Blockade bleibt offen. Die 500 ms sind kein frei verfügbares Budget ab Beginn jedes Handlers: vorhandenes Heartbeat-Alter und die restliche Kette zählen mit.
+- **F18/F6:** Messung ohne Flugschreiber vor einer Änderung der 150-ms-Grenze ist richtig. Die korrigierte Werkzeugdarstellung belegt die Wirkung des falschen D-Werts; woher der alte Export diesen Wert hatte, bleibt ohne dessen Eingabe offen. Die Hinweise auf handgehaltenen Ring und vermutete IR-Störung bleiben ausdrücklich bestehen.
+
+### MT418-01 · P1: Die konkrete Aktion gehört dem Druck, nicht nur der Button-Typ
+
+Variante (a) ist auf Anwendungsebene umsetzbar und meine Empfehlung für die **jeweils zugelassene Stopp-Aktion**. Sie bleibt eine Operatorentscheidung, einschließlich des Wischfalls. Ein `pointerdown` ist weiterhin vom Hauptthread abhängig; „unabhängig vom Browser“ wäre als Garantie zu weitgehend.
+
+`SafetyStrip.vue:126` entscheidet heute erst bei der Aktivierung zwischen E-Stop und Reset. Daher nicht pauschal alle `type="estop"`, `arm` oder `machineOn` beim Drücken auslösen: Stopp/Disarm/Power-off und die freigebenden Gegenaktionen getrennt behandeln. Aktion, Zeiger und Verbrauch der Geste festhalten; ein Statuswechsel oder ersetzter DOM-Knoten darf deren späteren `click` nicht zur Gegenaktion machen. Für Keyboard/assistive Aktivierung ohne Zeiger muss ein eigenständiger einmaliger Weg bleiben. Kein globaler „nächsten click schlucken“-Merker, der den zweiten Finger trifft.
+
+Zusätzliche Abnahmefälle, jeweils am **gesendeten Befehl**, nicht nur am DOM-Callback:
+
+| Eingabe | Erwartung |
+|---|---|
+| Kurzer und langer Druck, mit/ohne `contextmenu`, mit/ohne nachfolgenden `click` | genau eine zugelassene Stopp-Aktion |
+| E-Stop → bestätigter ESTOP noch vor dem Loslassen | kein Reset aus derselben Geste; entsprechend Disarm/Power-off |
+| Finger 1 hält Jog, Finger 2 drückt Stop (`isPrimary=false`) | Stop wirkt; kein Filter auf nur den primären Touch |
+| Cancel, Herausgleiten, Unmount, zweiter Zeiger, nachfolgender neuer Tipp | kein verspäteter Start/Gegenbefehl, neue Geste bleibt bedienbar |
+| Space/Enter einschließlich Repeat und Zustandswechsel, Escape bei fokussiertem Feld/Dialog | bestehender Stoppvertrag, kein doppelter oder umgedeuteter Auftrag |
+
+Die synthetische Long-Press-Folge muss am alten Kopf rot sein; echte Touch-Abnahme am Panel bleibt zusätzlich geschuldet. Start-/Hold-Controls werden damit nicht pauschal zu Drück-Aktionen.
+
+### MT418-02 · P2: Gleiche Zahlen sind noch keine gleiche Parse-Basis
+
+Die Forderung „Werte statt Versionen“ braucht eine **semantische Gleichheitsregel**. Gegenprobe an `toolsetter_ctx` (`gateway_util.py:6186`): Bei exakt gleichen Zahlen liefert `unknown → read` vorher `toolsetter_unknown` und keine bestätigten Parameterpatches, danach vorhersagbare Werte und Patches. Auch `assumed → read` ändert, ob aus der Parameterdatei gelesen oder ein bestätigter Wert eingesetzt wird. Nur `applied → read` mit gleichem wirksamem Wert ist in dieser Probe geometrisch gleich.
+
+Vorschlag: Buchungsrevision/Herkunft behalten; getrennt entscheiden, ob der **tatsächlich verwendete Parse-Eingang** gleich geblieben ist. Bei unbestätigter Basis darf eine alte Geometrie stehenbleiben, aber nicht als bestätigt gelten. Nach passendem Read-back darf Gleichheit einen Voll-Parse sparen, wenn auch die übrigen Eingänge und die verwendete Parameterkopie passen. Herkunft, Hinweise und Startzulassung müssen dann konsistent aktualisiert werden. Nur `_ts_drift_reason` zu ändern reicht nicht: `_ts_open_drift` würde den Lauf weiter als fremde Basis behandeln. Wächter: gleiche bestätigte Werte, gleicher Wert mit unbekannter Herkunft, fehlender Wert, geänderter Wert, fehlgeschlagener Read-back und Wechsel der Verbindung.
+
+### MT418-03 · P2/P6: Abbrechen und neu veröffentlichen brauchen einen Besitzervertrag
+
+„Parse abbrechen, danach entprellt starten“ lässt den entscheidenden Wettlauf offen. `clear_preview` (`bulk_pipeline.py:394`) leert heute die Veröffentlichung, entwertet aber nicht schon dadurch einen späten Worker-Abschluss. Entladen darf **keinen** Neustart hinterlassen. Laden desselben Pfads und A→B→A müssen alte Antworten ebenfalls ausschließen.
+
+Vor Bau festlegen: Generation/Wunsch aus Programmidentität und Eingabebasis; Entwertung am zugelassenen Schreibbeginn; alter Worker darf anschließend nichts mehr veröffentlichen, auch wenn sein Beenden verzögert ist. Neustart erst nach Ende der betreffenden Aktion und bestätigter/ausdrücklich unbekannter neuer Basis – nicht nach einer stillen Pause mitten in einer langen Messung. Ablehnung, Teilwirkung, Abort, Disconnect und fehlgeschlagener Read-back bekommen benannte Ausgänge. Ein an einen laufenden AUTO-Lauf gebundener Parse darf nicht durch die Leerlaufregel auf aktuelle, inzwischen andere Eingänge umgebunden werden.
+
+F14 wird dadurch kein bloßes „später pinnen“: Ein nachträglicher Parse darf einen unbewiesenen Laufanfang nicht rückwirkend bestätigen. Für P6 zunächst **Warten vor dem Start mit begrenzter, abbrechbarer Wartephase** ausarbeiten; beim tatsächlichen Start Programm, Tabellen-/Parameterbasis, Startposition und Zulassung erneut prüfen. Falls stattdessen nachträgliches Pinnen gewählt wird, braucht es den separat belegten Startdatensatz und eine benannte ungeprüfte Strecke.
+
+F1/F27 zuerst zuordnen: Die Befehle verwenden bereits `_cmd_blocking`; dessen Kommentar beschreibt den GIL-gehaltenen Sendepfad. Ein weiterer `to_thread` allein ist dafür keine belegte Lösung. F7 (79 s kalter BVH-Aufbau) fehlt bisher in P2: kalten Aufbau und warmen Lauf getrennt messen, ebenso Browsergrundlast und die Eingabeverzögerung ohne CDP.
+
+### MT418-04 · P3: Beide Logs und ihre Leser gehören zum Rotationsvertrag
+
+Nicht nur `trace.ndjson`: `lcnc_trace.init` richtet dieselbe Rotationsform auch für `crash.log` ein. Außerdem liest `trace-bundle.py:62` ausschließlich `trace.ndjson`. Die eigene Gegenprobe legt zwei Sätze vor/hinter einer Rotation ab; der Bündler liest nur den zweiten. Ein richtiger Skriptpfad allein repariert daher noch kein vollständiges Trip-Fenster.
+
+Vor Bau einen koordinierten Schreib-/Rotationsweg wählen; **bloßes Wiederöffnen ohne Koordination konkurrierender Rotatoren genügt nicht**. Der Vertrag umfasst Trace und Crash, die benötigten älteren Dateien samt Zeitankern, das Bündel über eine Rotationsgrenze sowie benannte fehlende/abgeschnittene Daten. Gegenfälle: zwei Schreiber, mehrere Rotationen, Ausfall des Rotators, voller Datenträger/langsamer Leser. Logging darf keinen unbegrenzten Rückstau in Watchdog/Gateway erzeugen; Verlust muss erkennbar bleiben. Die Korrektur von Skriptpfad und Fehlerstatus nehme ich an. P3 sollte vor der maßgeblichen P2-Nachmessung fertig sein.
+
+### MT418-05 · P4: „Noch ESTOP“ beweist keinen externen Not-Halt
+
+Die vorgeschlagene Meldung behauptet eine Ursache, die der genannte Status allein nicht belegt. Vorschlag: **„Reset nicht bestätigt — E-Stop weiterhin aktiv“**; „externer Not-Halt aktiv“ nur bei eigenständigem passendem Pin-Nachweis. Den Ausgang an frische Statusbeobachtung nach diesem Auftrag und dieselbe Verbindung binden, mit begrenztem Warten und „Ausgang unbekannt“ bei fehlender Beobachtung. Weder den vorigen ESTOP-Satz als Ablehnung nehmen noch automatisch wiederholen. Den vorhandenen Verzicht auf eine `emc-enable-in`-Vorprüfung erhalten.
+
+### MT418-06 · P5: Kalibrier-Entwurf ist auch ein Interpretervertrag
+
+Die Kalibrierroutinen setzen **bereits am Anfang `#3032=0`** und schreiben am Ende den neuen Wert (`probe_cal_round_pocket.ngc:38,195`; Boss entsprechend). `ProbePanel.vue:209` übernimmt eingehende Ergebnisse sofort in Parameter und gespeicherte Defaults. Ein „Verwerfen“ nur in der Oberfläche ließe deshalb den Interpreter geändert; ein abgebrochener Kalibrierlauf kann schon den alten Offset verloren haben.
+
+Vorschlag: Kalibrieren berechnet einen getrennten Kandidaten; der bisher aktive Wert bleibt bis zum bestätigten Übernehmen wirksam. Übernehmen schreibt genau den Kandidaten mit gebundener Mess-/Verbindungsidentität; Verwerfen schreibt nichts. Reset bleibt ein ausdrücklicher eigener Schreibauftrag. Falls die Routine intern vorübergehend null braucht, bevorzugt lokale Rechenwerte statt einer nachträglichen Restaurierung nach Fehler/Trip. Gegenfälle: Abbruch vor Ergebnis, fehlgeschlagene Übernahme, zweiter Client, späteres Ergebnis eines alten Laufs. W1 muss bei Maschinenparametern Entwurf, serverseitig gespeichert und vom Controller bestätigt auseinanderhalten; „gespeichert neutral“ bleibt die Operatorentscheidung.
+
+### MT418-07 · Das bereits geschuldete Jog-Paket fehlt
+
+R399 und der Merge-Nachtrag der vor-Maschine-Reihe führen die **außerhalb des Hauptthreads überwachte, kurzlebige Jog-Freigabe** ausdrücklich als offen. P1 behebt den verlorenen `click`; es beendet keinen Jog, dessen `pointerup` der hängende Hauptthread noch nicht verarbeitet. Allgemeine Heartbeats laufen im Worker weiter (`wsWorker.ts:1ff.`).
+
+Das Paket als eigenes P1b samt Reihenfolge wieder aufnehmen, nicht durch „Joggen PASS“ oder P2 erledigt erklären. Gegenfall: Jog beginnt, Hauptthread hängt, Finger wird losgelassen, allgemeine Heartbeats laufen weiter. Die getrennte Freigabe muss auslaufen; verspätete Erneuerungen dürfen den Jog nicht wiederbeleben. Diesen Fall ausschließlich in der isolierten Sim provozieren.
+
+### Paketschnitt und offene Entscheidungen
+
+Empfohlene Reihenfolge: **P1a Stopps → P1b Jog-Vertrag/-Schutz → P3 belastbare Forensik → P2 in gemessenen Teilpaketen → P4/P5 → P6.** Kleine P4-Korrekturen wie die irreführenden Kalibrierzellen können unabhängig früher kommen. Für P2 erst Messung, dann einzeln Basisgleichheit, Berechnungslebensdauer/Priorität und Browserarbeit ändern; dieselbe Lastfolge danach vergleichen. Kein ungemessener Sammelumbau.
+
+P6 ergänzen: Anfahrbewegung gegen die tatsächlich erste programmierte Bewegung und deren bekannte Startachsen prüfen, nicht nur ihren Endpunkt; Werkzeugformen an Tabellen-/Metadatenrevision binden. Das Ersetzen eines gezeichneten Zylinders ändert nicht automatisch das Kollisionsmodell: `_programToolDims` (`ThreeViewer.vue:3040`) liefert dafür weiterhin D/L. Programmkopf-D nur als Hinweis behandeln, nie dadurch gemessene Längen oder die Tabelle automatisch ersetzen. F4/F13/F21 bleiben Diagnoseaufträge, keine bereits bestätigten Ursachen.
+
+**Q418-1:** Empfehlung (a) unter MT418-01, einschließlich bewusstem Wisch-Tradeoff. **Q418-2:** nach repräsentativer Messung ohne CDP; 150 ms vorerst unverändert. **Q418-3:** Zeitsynchronisierung vor einem neuen Messlauf im Stillstand entscheiden; Laufbelege weiterhin monotone Zeiten und Prozess-/Uhrbezug bewahren. **Q418-4:** getrenntes Kamerapaket, CPU-/Latenzprobe vor Einplanung. **Q418-5:** vorerst nur bei Bedarf; ein dauerhafter Flugschreiber braucht eine Messung seiner eigenen Kosten und eine getrennte Zustimmung. Keine dieser Fragen wurde von mir gestellt.
+
+Alle eigenen Proben beendet, Testsperre frei. Keine Verbindung zur Maschine oder Live-Sim, keine Builds und keine Produktänderungen im Live-Baum; ausschließlich dieser Anhang und neue `maschinentag.r418.codex-*`-Belege.
