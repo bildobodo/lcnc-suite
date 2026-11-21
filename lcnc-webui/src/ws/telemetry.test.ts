@@ -6,7 +6,7 @@
 // synchronous, so the queue can never grow past one batch between flushes.
 // Pinned in the ledger as oddity F3 (flag-don't-fix).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emitTelemetry } from "./telemetry";
+import { emitTelemetry, telemetryDropped } from "./telemetry";
 
 let posted: string[];
 
@@ -67,18 +67,79 @@ describe("telemetry batcher", () => {
     expect(lines(posted[1]!).map(e => e.kind)).toEqual(["y"]);
   });
 
-  it("is best-effort: a rejecting fetch neither throws nor wedges the queue", async () => {
+  it("is best-effort: a rejecting fetch neither throws nor wedges the queue — and its loss is counted", async () => {
     vi.stubGlobal("fetch", () => Promise.reject(new Error("offline")));
     emitTelemetry("doomed", {});
     expect(() => vi.advanceTimersByTime(2000)).not.toThrow();
-    await Promise.resolve();                 // let the .catch handler run
-    // Queue was spliced before the POST — the next event flushes cleanly.
+    await settle();                          // let the rejection handler run
+    expect(telemetryDropped()).toMatchObject({ events: 1, batches: 1, why: { network: 1 } });
+    // Queue was spliced before the POST — the next event flushes cleanly,
+    // the loss report in front of it (P3: never swallowed)
     vi.stubGlobal("fetch", (_u: string, init?: RequestInit) => {
       posted.push(String(init?.body ?? ""));
       return Promise.resolve(new Response(null, { status: 204 }));
     });
     emitTelemetry("alive", {});
     vi.advanceTimersByTime(2000);
-    expect(posted.flatMap(p => lines(p).map(e => e.kind))).toEqual(["alive"]);
+    const sent = posted.flatMap(p => lines(p));
+    expect(sent.map(e => e.kind)).toEqual(["telemetry.dropped", "alive"]);
+    expect(sent[0]).toMatchObject({ events: 1, batches: 1, why: { network: 1 } });
+    await settle();
+    expect(telemetryDropped()).toBeNull();   // cleared only by the delivery
+  });
+});
+
+async function settle(): Promise<void> {
+  for (let i = 0; i < 60; i++) await Promise.resolve();   // a JSON body is read in several turns
+}
+
+describe("the transport's losses (P3, F20)", () => {
+  function answer(res: () => Response) {
+    vi.stubGlobal("fetch", (_u: string, init?: RequestInit) => {
+      posted.push(String(init?.body ?? ""));
+      return Promise.resolve(res());
+    });
+  }
+  const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, headers: { "content-type": "application/json" } });
+
+  it("a non-2xx answer is a counted loss; the report rides the next batch and clears on its delivery", async () => {
+    answer(() => new Response("no", { status: 500 }));
+    emitTelemetry("a", {}); emitTelemetry("b", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    expect(telemetryDropped()).toMatchObject({ events: 2, batches: 1, why: { status_500: 2 } });
+    answer(() => json({ ok: true, events: 2, rejected: 0 }));
+    emitTelemetry("c", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    const last = lines(posted[posted.length - 1]!);
+    expect(last.map(e => e.kind)).toEqual(["telemetry.dropped", "c"]);
+    expect(last[0]).toMatchObject({ events: 2, why: { status_500: 2 } });
+    expect(telemetryDropped()).toBeNull();
+  });
+
+  it("the gateway's refusal and its rejected lines are losses too; a failed report keeps its count", async () => {
+    answer(() => json({ ok: false, error: "body_too_large" }));
+    emitTelemetry("a", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    expect(telemetryDropped()).toMatchObject({ events: 1, why: { refused_body_too_large: 1 } });
+    // the report's own batch fails: nothing cleared, its events added
+    answer(() => new Response("", { status: 503 }));
+    emitTelemetry("b", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    expect(telemetryDropped()).toMatchObject({ events: 2, batches: 2, why: { refused_body_too_large: 1, status_503: 1 } });
+    answer(() => json({ ok: true, events: 2, rejected: 1 }));
+    emitTelemetry("c", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    // delivered: the two reported are cleared, the one line the gateway rejected stays counted
+    expect(telemetryDropped()).toMatchObject({ events: 1, batches: 1, why: { rejected_lines: 1 } });
+    answer(() => new Response(null, { status: 204 }));
+    emitTelemetry("d", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    expect(telemetryDropped()).toBeNull();
   });
 });

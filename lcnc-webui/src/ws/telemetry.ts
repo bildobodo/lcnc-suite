@@ -40,7 +40,9 @@ export function emitTelemetry(kind: string, fields: Record<string, any> = {}): v
   };
   _telemetryQueue.push(evt);
   if (_telemetryQueue.length > _TELEMETRY_MAX_QUEUE) {
-    _telemetryQueue.splice(0, _telemetryQueue.length - _TELEMETRY_MAX_QUEUE);
+    const over = _telemetryQueue.length - _TELEMETRY_MAX_QUEUE;
+    _telemetryQueue.splice(0, over);
+    _countDrop("overflow", over);
   }
   if (!_telemetryFlushScheduled) {
     _telemetryFlushScheduled = true;
@@ -55,26 +57,74 @@ function _telemetryBody(events: Array<Record<string, any>>): string {
   return events.map(e => JSON.stringify(e)).join("\n");
 }
 
-// Long-task observer (permanent diagnostic — quiet by design): report any main-thread task that blocks
-// > 500 ms — on a contended box that can starve the heartbeat worker and disarm the
-// client. The longtask API gives duration + start, not the JS culprit, so per-op timing
-// (GcodePanel edit.seed_blocked / edit.split_blocked) pins the cause.
-if (typeof PerformanceObserver !== "undefined") {
-  try {
-    new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) {
-        if (e.duration > 500) emitTelemetry("longtask", { ms: Math.round(e.duration), start_ms: Math.round(e.startTime) });
-      }
-    }).observe({ entryTypes: ["longtask"] });
-  } catch { /* longtask not supported (Safari/Firefox) — per-op timing still covers it */ }
+// (The long-task observer moved to viewerPerf.ts with the stall rows, P3.)
+
+// ── What the transport lost (P3, machine day F20, Codex R425 MT425-04) ──
+// Telemetry stays best effort, but a loss is COUNTED, never swallowed: a
+// queue overflow, a POST the browser refused (a network error, the keepalive
+// quota), a non-2xx answer, the gateway's own refusal or rejected lines, a
+// beacon the browser did not take. The next batch carries
+// `telemetry.dropped {events, batches, why, since_ms}` in front; the counts
+// are cleared only once a batch carrying them was delivered (a 2xx — a body
+// the gateway answers with `ok: false` is no delivery). A record of a
+// delivered batch is there exactly once; anything else is a counted loss.
+interface DropCounts { events: number; batches: number; why: Record<string, number>; since_ms: number }
+let _dropped: DropCounts | null = null;
+
+function _countDrop(why: string, events: number): void {
+  if (events <= 0) return;
+  if (!_dropped) _dropped = { events: 0, batches: 0, why: {}, since_ms: Date.now() };
+  _dropped.events += events;
+  _dropped.batches += 1;
+  _dropped.why[why] = (_dropped.why[why] ?? 0) + events;
+}
+
+/** What is counted and not yet delivered (tests read it). */
+export function telemetryDropped(): DropCounts | null {
+  return _dropped ? { ..._dropped, why: { ..._dropped.why } } : null;
+}
+
+/** The batch to send: the pending drop report first (its own record, never
+ *  counted as a loss itself), and what it reports — to clear on delivery. */
+function _withDropReport(batch: Array<Record<string, any>>): { events: Array<Record<string, any>>; reported: DropCounts | null } {
+  if (!_dropped) return { events: batch, reported: null };
+  const reported = { ..._dropped, why: { ..._dropped.why } };
+  const rec = { kind: "telemetry.dropped", t_wall_ms: Date.now(), t_perf_ms: Math.round(performance.now()),
+                page: _PAGE_ID, ...reported };
+  return { events: [rec, ...batch], reported };
+}
+
+function _delivered(reported: DropCounts | null): void {
+  if (!reported || !_dropped) return;
+  // subtract what the delivered batch said: drops counted meanwhile stay
+  _dropped.events -= reported.events;
+  _dropped.batches -= reported.batches;
+  for (const [k, v] of Object.entries(reported.why)) {
+    const left = (_dropped.why[k] ?? 0) - v;
+    if (left > 0) _dropped.why[k] = left; else delete _dropped.why[k];
+  }
+  if (_dropped.events <= 0) _dropped = null;
+}
+
+async function _judgeAnswer(r: Response, n: number, reported: DropCounts | null): Promise<void> {
+  if (!r.ok) { _countDrop(`status_${r.status}`, n); return; }
+  // the gateway answers JSON; a 2xx without it (a test route's 204) is delivered
+  if ((r.headers.get("content-type") ?? "").includes("json")) {
+    let j: any = null;
+    try { j = await r.json(); } catch { /* a 2xx with an unreadable body: delivered, not judged */ }
+    if (j && j.ok === false) { _countDrop(`refused_${String(j.error ?? "unknown").slice(0, 40)}`, n); return; }
+    if (j && typeof j.rejected === "number" && j.rejected > 0) _countDrop("rejected_lines", j.rejected);
+  }
+  _delivered(reported);
 }
 
 function _flushTelemetry(): void {
   _telemetryFlushScheduled = false;
-  if (_telemetryQueue.length === 0) return;
+  if (_telemetryQueue.length === 0 && !_dropped) return;
   // Take ownership of the current batch; new events queue up for next flush.
-  const batch = _telemetryQueue.splice(0, _telemetryQueue.length);
-  const body = _telemetryBody(batch);
+  const { events, reported } = _withDropReport(_telemetryQueue.splice(0, _telemetryQueue.length));
+  const n = events.length - (reported ? 1 : 0);
+  const body = _telemetryBody(events);
   // Use fetch keepalive so the request can complete after navigation in
   // most modern browsers. sendBeacon is reserved for unload paths.
   try {
@@ -83,25 +133,30 @@ function _flushTelemetry(): void {
       headers: { "content-type": "application/x-ndjson" },
       body,
       keepalive: true,
-    }).catch(() => { /* swallow — telemetry is best-effort */ });
+    }).then(r => _judgeAnswer(r, n, reported), () => _countDrop("network", n));
   } catch {
-    /* networking unavailable; drop silently */
+    _countDrop("fetch_threw", n);
   }
 }
 
 function _flushTelemetryViaBeacon(): void {
-  if (_telemetryQueue.length === 0) return;
+  if (_telemetryQueue.length === 0 && !_dropped) return;
+  const { events, reported } = _withDropReport(_telemetryQueue.splice(0, _telemetryQueue.length));
+  const n = events.length - (reported ? 1 : 0);
   try {
-    const batch = _telemetryQueue.splice(0, _telemetryQueue.length);
-    const body = _telemetryBody(batch);
+    const body = _telemetryBody(events);
     if (navigator.sendBeacon) {
       const blob = new Blob([body], { type: "application/x-ndjson" });
-      navigator.sendBeacon("/telemetry", blob);
+      // taken = queued by the browser (no answer comes back): the page is
+      // leaving — a refusal is counted for a page that may still stay (bfcache)
+      if (navigator.sendBeacon("/telemetry", blob)) _delivered(reported);
+      else _countDrop("beacon_refused", n);
     } else {
-      // Last-ditch synchronous fetch (rarely needed; keepalive covers most).
-      fetch("/telemetry", { method: "POST", body, keepalive: true }).catch(() => {});
+      // Last-ditch fetch (rarely needed; keepalive covers most).
+      fetch("/telemetry", { method: "POST", body, keepalive: true })
+        .then(r => _judgeAnswer(r, n, reported), () => _countDrop("network", n));
     }
-  } catch { /* drop */ }
+  } catch { _countDrop("beacon_threw", n); }
 }
 
 // Named handlers (issue #32) so HMR dispose can remove them — anonymous

@@ -151,6 +151,8 @@ FULL_ONLY = {
     "mock-baseline": "the per-worker mock's baseline reset (e2e/test.ts) — central",
     "replay-origin": "the replay's origin binding (e2e/test.ts, the mock's replay log) — central",
     "http-paths": "the replay's HTTP paths (e2e/httpRecord.ts, the mock, step 5b) — central",
+    "telemetry-metrics": "the page's telemetry — stall rows, hold refusals, transport losses (ws/telemetry, "
+                         "viewerPerf, stallWindow, MachineBtn's holds: P3) — central",
 }
 
 # ── Spec groups ──────────────────────────────────────────────────────────
@@ -227,7 +229,7 @@ RULES: tuple[Rule, ...] = (
              "dragScroll.ts", "clientDiag.ts", "wakeLock.ts", "StatsDonut.vue"),
          "central: every surface, every dialog or every connection depends on it",
          browser=FULL, firefox=True),
-    Rule(src("macroFiles.ts", "runBasis.ts", "viewerPerf.ts", "viewer/eventIndex.ts",
+    Rule(src("macroFiles.ts", "runBasis.ts", "viewerPerf.ts", "stallWindow.ts", "viewer/eventIndex.ts",
              "viewer/kinematics.ts", "viewer/kins.ts", "viewer/partFrame.ts",
              "viewer/tloEvents.ts", "viewer/wcsEpochs.ts"),
          "the connection's status and bulk path (lcncWs, ws/statusStore, ws/bulkData) "

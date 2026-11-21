@@ -124,3 +124,33 @@ describe("a hold gesture (Codex R397, operator Q397-1)", () => {
     });
   }
 });
+
+describe("the refusal's evidence (P3, Codex R425 MT425-04)", () => {
+  function pressWithGap(s: HoldScheduler) {
+    const ends: Array<{ why: HoldEnd; held: number; gap: number | undefined; args: number }> = [];
+    const g = new HoldGesture(s, 500, {
+      fire: () => {},
+      ended: (...a: [HoldEnd, number, number?]) => { ends.push({ why: a[0], held: a[1], gap: a[2], args: a.length }); },
+    });
+    return { g, ends };
+  }
+
+  it("a stalled end carries the gap that decided it — the gesture's own observation", () => {
+    const s = new FakeScheduler(); const { ends } = pressWithGap(s);
+    s.runUntil(100);                 // watched at 20, 40 … 100
+    s.block(310); s.runDue();        // the next observation 210 ms after the last
+    expect(ends).toEqual([{ why: "stalled", held: 310, gap: 210, args: 3 }]);
+  });
+
+  it("every other end has NO gap (never derived from the held time) — and an end is reported once", () => {
+    const s = new FakeScheduler(); const { g, ends } = pressWithGap(s);
+    s.runUntil(120); g.end("released"); g.end("cancelled"); s.runUntil(2000);
+    expect(ends).toEqual([{ why: "released", held: 120, gap: undefined, args: 2 }]);
+  });
+
+  it("a release after a stall reports nothing more", () => {
+    const s = new FakeScheduler(); const { g, ends } = pressWithGap(s);
+    s.runUntil(100); s.block(400); s.runDue(); g.end("released"); s.runUntil(2000);
+    expect(ends.map(e => e.why)).toEqual(["stalled"]);
+  });
+});
