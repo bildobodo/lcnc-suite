@@ -85,11 +85,24 @@ test("a refused hold reports its own gap for a stall, none for an early release"
   // early release: a tap
   await page.mouse.down();
   await page.mouse.up();
-  // a stall during the hold: the watch sees the gap and ends it
+  await expect.poll(() => events.filter(e => e.kind === "hold.refused").length, { timeout: 10000 }).toBe(1);
+  // a stall during the hold: the watch sees the gap and ends it. The release
+  // is sent only once the refusal was reported — sent right after the block
+  // it may run BEFORE the overdue watch (the browser's own order, hold-stall
+  // spec; gate round 1 measured it) and end the hold as released
   await page.mouse.down();
   await block(page, 300);
-  await page.mouse.up();
   await expect.poll(() => events.filter(e => e.kind === "hold.refused").length, { timeout: 10000 }).toBe(2);
+  await page.mouse.up();
+  // one end per gesture: the later release reports nothing. The signal: a
+  // stall row EMITTED after the release (its window end past it; a later
+  // block makes one due) has arrived — the batcher keeps the page's order,
+  // so a report of the release would stand in front of it
+  const releasedAt = await page.evaluate(() => performance.timeOrigin + performance.now());
+  await block(page, 200);
+  await expect.poll(() => events.filter(e => e.kind === "stall" && e.win_end > releasedAt).length, { timeout: 15000 })
+    .toBeGreaterThan(0);
+  expect(events.filter(e => e.kind === "hold.refused")).toHaveLength(2);
   const [tap, stalled] = events.filter(e => e.kind === "hold.refused");
   expect(tap).toMatchObject({ type: "unhome", why: "released" });
   expect("gap_ms" in tap!).toBe(false);
