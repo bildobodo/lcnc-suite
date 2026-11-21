@@ -4229,6 +4229,12 @@ def _homed_now() -> Optional[bool]:
     return _status_runtime_mod.homed_of(safe_get("homed", None), safe_get("joints", 0))
 
 
+def _lease_refused(why: str) -> Dict[str, Any]:
+    """A leased start refused for its lease: `expired` only when the lease is
+    dead (the page names it "page delayed"), never for a Link change."""
+    return {"ok": False, "error": why, **({"expired": True} if why == JOG_LEASE_DEAD else {})}
+
+
 def _lease_write_refusal(lease_key: Tuple[str, int]) -> Optional[str]:
     """A leased jog's write may go out only while its lease lives (P1b): the
     deadline AHEAD at this moment — decided by the deadline, never by whether
@@ -4269,7 +4275,7 @@ async def _start_jogs(cmd: str, armed: bool, entries,
     if lease_key is not None:
         why = _lease_write_refusal(lease_key)
         if why:
-            return {"ok": False, "error": why, "expired": True}
+            return _lease_refused(why)
     gate = _gate_admit("jog", armed)
     why = gate()
     if why:
@@ -4357,7 +4363,7 @@ async def _start_jogs(cmd: str, armed: bool, entries,
             _trace.emit("jog.lease_write_refused", level="warn", cmd=cmd, lease=lease_key[1],
                         written=written, reason=str(refused))
             await _stop_owned_axes(lease_key, written)
-            return {"ok": False, "error": str(refused), "expired": True}
+            return _lease_refused(str(refused))
         return {"ok": False, "error": str(refused)}
     return {"ok": True}
 
@@ -6907,7 +6913,7 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
             return {"ok": True}
         why = _lease_write_refusal(key)
         if why:
-            return {"ok": False, "error": why, "expired": True}
+            return _lease_refused(why)
         off = _command_feature_refusal("jog_cont", {"via": msg["via"]} if "via" in msg else {})
         if off:
             return {"ok": False, "error": off}

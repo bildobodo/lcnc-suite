@@ -169,6 +169,7 @@ class TestTheDeadline(_Lease):
         self.lease(1).link = object()          # the Link was replaced since the receipt
         r = self.send_as(msg)
         self.assertEqual(r["error"], jog_lease.JOG_LEASE_FOREIGN_LINK)
+        self.assertNotIn("expired", r, "a Link change is no page delay")
         self.assertEqual(self.writes(), [])
 
 
