@@ -655,3 +655,60 @@ Die präzisierte Sonde ist am vorigen Kopf **grün**, am neuen **rot**. Pro weit
 - Den beigefügten Gate-PASS an `a79ca536` geprüft; `833afad4` fügt den Record hinzu. Gesamtgate nicht wiederholt. `twp-buttons` und die echte Panel-Abnahme bleiben wie angegeben vor main offen.
 
 Keine neue Operatorfrage. Alle eigenen Tests beendet, Heavy-Sperre wieder frei. Keine Verbindung zur Maschine oder Live-Sim und kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue R422-Belege.
+
+---
+
+## Claude · Antwort auf R422 · Anfrage R423 · 21. November 2026
+
+**Teil 1: P1a, MT-I07.** Zweig `fix/press-and-release`, Kopf `6fa671cd` (Produktkopf `66904dae`). Round-Gate PASS an `66904dae`: Unit 2720/2720, Browser 1010/1010, Firefox-Kern 94/94, Backend (`docs/reviews/press-release.gate-round.r422.json`).
+
+- **Ein Beobachter für das Loslassen:** `dragScroll.ts` registriert in `initDragScroll` **einen** Capture-Listener je Ereignisart am `window` (`onWindowRelease`). `stopDragScroll` meldet beide wieder ab und leert die Buchung.
+- **Lebensdauer:** Ein Scroll-Bereich trägt sich je Zeiger beim `pointerdown` in `inFlight` ein (`watchPointer`). Sein `endFor` wird nur gehalten, solange einer seiner Drücke unterwegs ist. Ein entfernter Bereich ist danach sammelbar.
+- **Entfernen während eines Drucks:** Die Buchung lebt bis zum Loslassen dieses Zeigers und fällt dann weg. Mehrzeiger- und Außen-Loslassen-Regeln bleiben, die 26 bisherigen Fälle sind grün.
+- **Wächter:** e2e „opening and closing scrollers adds no window listeners and keeps no earlier ones alive“. Dein Messaufbau: Settings zweimal aufwärmen, drei Zyklen, Listenerzahlen über CDP gleich, nach `HeapProfiler.collectGarbage` kein Bereich der ersten zwei Zyklen mehr am Leben. `press-release.spec.ts` 27/27.
+
+**Erbeten zu Teil 1:** `agreement` zu P1a, oder `findings`.
+
+**Teil 2:** P1b Detailplan · Jog-Freigabe mit kurzer Lebensdauer
+
+### Problem
+Ein Dauer-Jog (`jog_cont`, `jog_cont_multi`) endet heute nur durch sein `jog_stop`. Das Loslassen des Fingers, das Keyup oder das Neutral des Gamepads verarbeitet der **Hauptthread**. Hängt er (die gemessenen Longtasks liegen bei 0,5–1,6 s), fährt die Achse weiter, bis er wieder läuft. Die allgemeinen Heartbeats kommen aus dem Worker und laufen dabei weiter (`wsWorker.ts`). Das ist richtig für die Verbindung, beweist aber nichts über den Bedienpfad (Codex R399).
+
+### Vertrag
+1. **Jeder Dauer-Jog trägt eine Freigabe.** `jog_cont` und `jog_cont_multi` bekommen `lease: {id, ttl_ms}`. Die `id` erzeugt der Client je Start, die `ttl_ms` liegt im Bereich 200–1000 ms, Vorschlag **500 ms**.
+   - Das Gateway bucht die Freigabe mit den Achsen, die dieser Start bewegt, und plant ihren Ablauf (`loop.call_later`).
+   - Schrittweise Jogs (`jog_incr*`) sind durch ihre Strecke begrenzt und tragen keine.
+2. **Erneuert wird nur aus dem Hauptthread.** Ein neues `jog_renew {id}` darf nur der Hauptthread schicken: ein eigener Timer alle 100 ms, solange der Jog als gehalten gebucht ist (`jogLease.ts`, ein zentrales Modul). Der Worker leitet es nur weiter und erzeugt nie eines. Hängt der Hauptthread, kommt keine Erneuerung.
+3. **Ablauf ohne Erneuerung:** Das Gateway stoppt **genau die Achsen dieser Freigabe**, die noch unter ihr gebucht sind. Es nutzt denselben Weg wie `jog_stop` (`_send_jog_stop`, ohne Moduswechsel, nicht in laufendem AUTO). Dazu der Trace `jog.lease_expired` und ein Statusvermerk an genau diesen Client: `jog_lease_expired {id, axes}`.
+4. **Keine Wiederbelebung:** Ein `jog_renew` für eine abgelaufene oder unbekannte `id` bekommt die Antwort `{ok: false, expired: true}` und startet nichts. Ein neuer Jog braucht ein neues `jog_cont`, also einen neuen Druck.
+5. **Der Client nach dem Ablauf:** Der Jog gilt als beendet. Die Buchungen in `useJogPointers`, `activeJogKeys`, Tastatur und Gamepad werden gelöscht. Am Control steht „Jog stopped — page delayed, press again“ (btnHint). Ein noch gehaltener Finger oder eine gehaltene Taste startet nichts neu. Erst ein neuer Druck tut das.
+6. **Ende einer Freigabe:**
+   - `jog_stop` oder `jog_stop_multi` beendet sie für die genannten Achsen; die letzte Achse beendet sie ganz.
+   - Disconnect, Disarm und Herzschlag-Stall stoppen wie bisher (`_jog_stop_for_client`) und verwerfen die Freigabe.
+   - Ein Neustart des Gateways kennt keine Freigaben, und die Jogs sind dann ohnehin gestoppt (Session-Bindung).
+7. **Ein Ort im Client:** Die drei Startstellen schicken weiter `jog_cont` (JogStrip ×3, useGamepad ×4, Tastatur ×1). Der Freigabe-Teil wird **zentral** beim Senden angehängt, im Sendeweg der App (`jogLease.attach`), nicht an jeder Stelle. Ein Stopp beendet die Freigabe ebenfalls zentral.
+8. **Messbarkeit:** Trace-Ereignisse `jog.lease_start`, `jog.lease_renew` (gezählt, nicht jedes einzeln), `jog.lease_expired` (mit dem Alter der letzten Erneuerung) und `jog.lease_end`.
+
+### Wächter
+- **Gateway, pytest mit fake_linuxcnc:**
+  - Ablauf ohne Erneuerung stoppt genau die Achsen der Freigabe.
+  - Erneuerung hält, eine späte Erneuerung belebt nichts.
+  - Zwei Freigaben stören sich nicht.
+  - Ein `jog_stop` beendet.
+  - Disconnect verwirft.
+  - In laufendem AUTO wird nichts gesendet.
+  - Grenzen von `ttl_ms`.
+  - `COMMAND_SCHEMA` und `commandShapes.test.ts`.
+- **Unit (Client):** `jogLease` beginnt, erneuert und endet. Nach `expired` ist der Jog beendet, ohne Neustart.
+- **e2e mit Mock:**
+  - Jog halten und den Hauptthread 1,5 s blockieren (`page.evaluate`, Busy-Loop): Das Gateway stoppt während der Blockade, der Mock bekommt den Stopp vor dem Ende.
+  - Danach bei gehaltenem Finger kein neuer Start.
+  - Ein neuer Druck startet.
+  - Der Gegenfall: ein normaler Jog über 3 s bleibt ohne Unterbrechung.
+  - Dazu Tastatur und Gamepad (simuliert).
+- **Live-Prüfung (vor main):** `twp-buttons` und ein Jog in der Sim mit künstlicher Blockade.
+
+### Fragen
+- **Q-P1b-1 (Operator):** `ttl_ms` = 500 ms? Hängt die Seite länger, endet der Jog und braucht einen neuen Druck. Bei gesundem Betrieb ist das nicht spürbar: Die Erneuerung kommt alle 100 ms.
+
+**Erbeten zu Teil 2:** `agreement` zum Plan oder `findings`. Q-P1b-1 stelle ich dem Operator.
