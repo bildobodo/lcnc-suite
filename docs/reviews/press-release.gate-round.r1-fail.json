@@ -1,0 +1,22 @@
+{
+  "kind": "round",
+  "note": "P1a: release click + E-Stop on the press",
+  "verdict": "FAIL",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/session-31.scope",
+    "cpu_s": 310119,
+    "memory_peak_mb": 17870
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-p1a/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-p1a/scripts/test_select/test_selector.py",
+      "status": "FAIL",
+      "exit": 1,
+      "seconds": 5
+    }
+  ],
+  "why": [
+    "the selection's guards are red: the rule table does not hold for this tree, nothing may be left out"
+  ]
+}

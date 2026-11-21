@@ -169,7 +169,7 @@ PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "hold-stall", "hold-stall-mouse", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
-         "jog-buttons", "strip-fit")
+         "jog-buttons", "strip-fit", "press-release")
 SETTINGS = ("forms", "devices", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer", "feature-switches")
 MACROS = ("macros", "devices", "run-hold", "disarmed", "feature-switches")
