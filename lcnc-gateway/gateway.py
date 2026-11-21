@@ -792,6 +792,10 @@ _CMD_WAIT_SLICE = 0.05
 # as failed by _cmd_rc_failed (the handler is being cancelled anyway).
 _RC_WAIT_CANCELLED = -2
 
+#: the trip bundler, next to this checkout's gateway (P3)
+_TRACE_BUNDLER = str(Path(__file__).resolve().parents[1] / "scripts" / "trace-bundle.py")
+
+
 def _snapshot_trip(trip_ts_ns: int) -> None:
     """Write a forensic bundle when a HAL safety trip fires. Runs in a
     worker thread (asyncio.to_thread) so it can't block the loop. Best
@@ -813,23 +817,33 @@ def _snapshot_trip(trip_ts_ns: int) -> None:
     try:
         # The bundler is best-effort: 10 s timeout protects against the
         # rare case where /tmp is on a slow filesystem (e.g. tmpfs full).
+        # Its path from THIS module's place (P3, machine day F2: a fixed
+        # /home/cnc/lcnc-suite path ran a missing or another checkout's
+        # bundler), the log dir this gateway writes, this interpreter.
         rc = subprocess.run(
             [
-                "python3",
-                "/home/cnc/lcnc-suite/scripts/trace-bundle.py",
+                sys.executable,
+                _TRACE_BUNDLER,
                 # Pass the exact trip timestamp: --trip's auto-detect anchors
                 # on wd.hb_edge, a best-effort 100 ms poller that misses short
                 # pin dips — it once re-bundled the PREVIOUS trip's window
                 # because the fresh trip never produced a falling edge.
                 "--trip-ns", str(trip_ts_ns),
+                "--log-dir", base,
                 "--out", out_dir,
             ],
             timeout=10,
             capture_output=True,
             check=False,
         )
-        _trace.emit("safety.trip_snapshot_done",
-                    out_dir=out_dir, rc=rc.returncode)
+        if rc.returncode != 0:
+            # rc 2 used to be traced as "done" with an empty folder (F2)
+            _trace.emit("safety.trip_snapshot_failed", level="warn", out_dir=out_dir,
+                        rc=rc.returncode,
+                        stderr_tail=(rc.stderr or b"").decode("utf-8", "replace")[-500:])
+        else:
+            _trace.emit("safety.trip_snapshot_done",
+                        out_dir=out_dir, rc=rc.returncode)
     except subprocess.TimeoutExpired:
         _trace.emit("safety.trip_snapshot_timeout", level="warn",
                     out_dir=out_dir, timeout_s=10)
