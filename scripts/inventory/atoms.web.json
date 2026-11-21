@@ -2748,9 +2748,19 @@
      ]
     },
     {
+     "id": "cmd:jog_change",
+     "members": [
+      "axes",
+      "lease",
+      "stop",
+      "via"
+     ]
+    },
+    {
      "id": "cmd:jog_cont",
      "members": [
       "axis",
+      "lease",
       "vel",
       "via"
      ]
@@ -2758,7 +2768,8 @@
     {
      "id": "cmd:jog_cont_multi",
      "members": [
-      "axes"
+      "axes",
+      "lease"
      ]
     },
     {
@@ -2774,6 +2785,19 @@
      "id": "cmd:jog_incr_multi",
      "members": [
       "axes"
+     ]
+    },
+    {
+     "id": "cmd:jog_lease_end",
+     "members": [
+      "lease",
+      "via"
+     ]
+    },
+    {
+     "id": "cmd:jog_renew",
+     "members": [
+      "ids"
      ]
     },
     {

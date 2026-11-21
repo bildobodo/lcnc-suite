@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1187 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1190 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -106,7 +106,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 12 | 4 | 4 | 0 |
-| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 6 | 6 | 0 |
+| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 42 | 8 | 8 | 0 |
 | **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 5 | 5 | 0 |
 
 ### Referenzieren und Referenz aufheben
@@ -132,8 +132,12 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_button_gates_e.py` — test_a_gantry_letter_is_closed; browser: `joint-jog.spec.ts` — before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F); gateway: `test_button_gates_e.py` — test_the_declared_joint_not_the_index; gateway: `test_button_gates_e.py` — test_a_diagonal_is_refused_before_homing
 - **S5 (Wirkung):** Auf echtem LinuxCNC bewegen die Jog-Befehle des Gateways (jog_cont / jog_stop) jede Achse in ihrem Vorzeichen (mindestens 5 mm) und halten sie an: Weg ab der Antwort auf jog_stop höchstens v²/2a + 2·v·4T (X/Y 2,1 mm, Z 2,5 mm bei 50 mm/s), Stillstand nachweislich binnen 0,5 s, danach keine Bewegung — aus der Servo-Abtastung. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — jog-x+.servo; native: `native_run.py` — jog-x-.servo; native: `native_run.py` — jog-y+.servo; native: `native_run.py` — jog-y-.servo; native: `native_run.py` — jog-z+.servo; native: `native_run.py` — jog-z-.servo
-- **S5b (Daten):** Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). — gilt für: alle
+- **S5b (Daten):** Jeder Jog-Knopf sendet jog_cont seiner Achse und Richtung mit der Freigabe seiner Geste, sein Loslassen beendet genau diese Freigabe (jog_lease_end; die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). — gilt für: alle
   - Beleg: browser: `jog-buttons.spec.ts` — every jog button on ${name}: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) (je: XYZABCUVW, XYZAC)
+- **S6 (Abbruch):** Ein Dauer-Jog lebt nur, solange die Seite seine Freigabe aus dem Hauptthread erneuert (jog_renew alle 100 ms, nie aus dem Worker): die Frist (500 ms) gilt ab dem Empfang, an jeder Schreibung geprüft, eine tote Freigabe lebt nie wieder auf; bei Ablauf stoppt das Gateway genau die Achsen, die noch unter dieser Freigabe gebucht sind — fremde nie. — gilt für: alle
+  - Beleg: gateway: `test_jog_lease_gateway.py` — test_renewals_keep_a_jog_and_their_absence_ends_it; gateway: `test_jog_lease_gateway.py` — test_a_start_that_waits_past_its_deadline_is_never_written; gateway: `test_jog_lease_gateway.py` — test_an_expired_lease_leaves_an_axis_another_gesture_took; unit: `jogLease.test.ts` — one jog_renew every RENEW_MS names every live lease, none once they ended; browser: `jog-lease.spec.ts` — a blocked main thread renews nothing while the worker's heartbeat goes on
+- **S7 (Abbruch):** Eine Änderung in einer Geste (Umkehr, eine Achse verlässt oder betritt die Stick-Geste) ist EIN Auftrag (jog_change: erst die eigenen Stopps, dann die neuen Jogs, zugelassen wie jog_cont); eine von außen beendete Freigabe (abgelaufen, abgelehnt, Verbindung, ausdrücklicher Stopp) lässt ihre Geste verbraucht, bis die Quelle selbst endet (Loslassen, Keyup, Ruhelage). — gilt für: alle
+  - Beleg: gateway: `test_jog_lease_gateway.py` — test_a_reversal_under_a_live_lease; gateway: `test_jog_lease_gateway.py` — test_a_change_stops_only_what_its_lease_owns; unit: `useGamepad.test.ts` — A expired and still deflected, B valid: B's release ends B at once; A starts again only after its own rest; browser: `jog-lease.spec.ts` — an expiry ends that jog: the reason at the button, no restart while held, a new press is a new lease
 
 ### Anfahren: G30, Maschinennull, Werkstücknull
 
