@@ -3,6 +3,7 @@
  * Auto-attaches to all `.scroll-thin` elements via MutationObserver.
  * Uses pointer events so it works with both touch and mouse.
  */
+import { noteScrollGesture } from './releaseClick'
 
 const DRAG_THRESHOLD = 5 // px — must move this far before drag starts
 
@@ -29,9 +30,9 @@ function attach(el: HTMLElement) {
     // Skip drag-native elements (sliders, selects, text fields) and jog
     // buttons, which act on pointerdown and hold their own pointer capture
     // (touch-action: none). Plain buttons are draggable-from on purpose:
-    // the strip is ~95% buttons, and they are safe because capture below
-    // retargets pointerup to the container once the threshold is passed,
-    // so the button's click never fires after a real drag.
+    // the strip is ~95% buttons, and they are safe because the drag's
+    // threshold below is the release click's scroll decision: no click acts
+    // after a real drag (capture alone did not stop Chromium's, Codex R420).
     const tag = (e.target as HTMLElement).closest(
       'input, select, textarea, a, [contenteditable], .no-drag-scroll, .jogBtn'
     )
@@ -62,8 +63,14 @@ function attach(el: HTMLElement) {
       // starts selecting at pointerdown, before we know it's a drag) —
       // clear it, or it survives the whole drag as a lasso.
       document.getSelection()?.removeAllRanges()
-      // Capture now that we know this is a drag, not a scrollbar click
-      el.setPointerCapture(e.pointerId)
+      // ONE decision "this press became a scroll" (Codex R420 MT-I02), taken
+      // first: the release click gives it no click and swallows the browser's
+      // own — Chromium still clicked the control under the finger after a
+      // 6 px drag despite the capture (Power off from a strip scroll).
+      noteScrollGesture(e.pointerId)
+      // Capture now that we know this is a drag, not a scrollbar click —
+      // best effort: the pointer may already be gone
+      try { el.setPointerCapture(e.pointerId) } catch { /* the drag goes on without it */ }
       el.style.cursor = 'grabbing'
       el.style.userSelect = 'none'
     }

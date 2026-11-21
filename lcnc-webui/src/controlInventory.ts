@@ -219,7 +219,7 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["local", "a preselection for the NEXT jog (BG-05): no command; a running jog keeps its start values"],
   "JogStrip.vue|MachineBtn:jogSpeedReset|@click=emit('resetJogVel')":
     ["local", "a preselection for the NEXT jog (BG-05): no command; a running jog keeps its start values"],
-  "JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)":
+  "JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@click=onPadClick(btn) @contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)":
     ["stop", "the jog pad: the centre Stop is a stop (jogStop, no arm) by pointer and by Enter / Space (R213 BG-29); every direction is `jog` (armed + homed), no keyboard jog"],
   "JogStrip.vue|MachineSelect:jogIncrement|@update:modelValue=(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }":
     ["local", "a preselection for the NEXT jog (BG-05): no command; a running jog keeps its start values"],

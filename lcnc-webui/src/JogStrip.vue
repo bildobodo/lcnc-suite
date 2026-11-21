@@ -396,16 +396,23 @@ function stopFnFor(gesture: JogGesture): () => void {
 // — the browser's synthesized click never follows, and no click handler
 // exists that a pointer's click could double; a held key's repeats add
 // nothing. A direction button has no keyboard jog: the key does nothing there.
+// The centre Stop acts on its RELEASE like every click control (operator
+// decision P1a, machine day 2026-11-21 — only the E-Stop acts on the press;
+// Codex R420 MT-I06): a tap or a long press on the panel (releaseClick.ts
+// gives the click the browser withholds), Enter / Space as a native button.
+// A held key's repeats do nothing. The directions own their presses.
+function onPadClick(btn: JogDef) {
+  if (btn.axis < 0) stopAllJog();
+}
 function onJogKey(btn: JogDef, e: KeyboardEvent) {
   if (btn.axis >= 0 || (e.key !== "Enter" && e.key !== " ")) return;
-  e.preventDefault();
-  if (!e.repeat) stopAllJog();
+  if (e.repeat) e.preventDefault();
 }
 
 function startJog(btn: JogDef, e: PointerEvent) {
-  // The centre Stop is a stop: before the jog gate (button gates BG-01 /
-  // BG-08 — a closed start never closes its stop).
-  if (btn.axis < 0) { stopAllJog(); return; }
+  // The centre Stop acts on its click (onPadClick), never the jog gate's
+  // (button gates BG-01 / BG-08 — a closed start never closes its stop).
+  if (btn.axis < 0) return;
   if (isDisabled.value) return;
   if (activeJogKeys.has(btn.label)) return;
 
@@ -518,7 +525,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :aria-description="jointDescription(btn.axis, btn.axis2)"
               :aria-label="btn.shortLabel ? undefined : jogName(btn)"
               class="jogBtn"
-              data-press-owned
+              :data-press-owned="btn.axis < 0 ? undefined : ''"
               :variant="btn.axis < 0 ? 'danger' : jogVariant"
               :active="activeJogKeys.has(btn.label)"
               @pointerdown.prevent="startJog(btn, $event)"
@@ -527,6 +534,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopJog(btn, $event)"
               @pointermove="slideOffCheck"
               @keydown="onJogKey(btn, $event)"
+              @click="onPadClick(btn)"
               @contextmenu.prevent
             ><span v-if="btn.axis2 == null && jointMark(btn.axis) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(btn.axis) }}</span><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
           </div>

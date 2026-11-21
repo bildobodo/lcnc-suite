@@ -234,3 +234,149 @@ test("the keyboard: Enter on the E-Stop stops once; the held key's repeats never
   s = await settled(page);
   expect(s.map(c => c.cmd), JSON.stringify(s)).toEqual(["estop_reset"]);
 });
+
+// ── Codex R420: per-pointer gestures, scroll, keyboard, ownership, disabled, Jog Stop ──
+
+test("two E-Stop presses (a finger and the mouse) never end in a Reset — either release order (MT-I01)", async ({ page }) => {
+  for (const mouseFirst of [true, false]) {
+    await open(page);
+    const p = { ...(await centre(page.locator(ESTOP))), id: 1 };
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await expect.poll(async () => (await sent()).filter(c => c.cmd === "estop").length, { timeout: 2000 }).toBeGreaterThanOrEqual(1);
+    await ctl({ op: "status_delta", data: { is_estop: true } });
+    await expect(page.locator(ESTOP)).toHaveAttribute("aria-label", "Reset E-Stop");
+    if (mouseFirst) { await page.mouse.up(); await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); }
+    else { await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await page.mouse.up(); }
+    const s = await settled(page);
+    expect(s.filter(c => c.cmd === "estop_reset"), `mouse first ${mouseFirst}: ${JSON.stringify(s)}`).toHaveLength(0);
+  }
+});
+
+test("a new Reset press of the same pointer after a cancelled E-Stop press resets (MT-I01)", async ({ page }) => {
+  await open(page);
+  const estop = page.locator(ESTOP);
+  const ev = (type: string) => estop.evaluate((el, type) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, composed: true, pointerId: 41, pointerType: "pen",
+      isPrimary: true, detail: type === "click" ? 1 : 0, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2,
+      button: 0, buttons: type === "pointerdown" ? 1 : 0 }));
+  }, type);
+  await ev("pointerdown");                                   // E-Stop, sent at the press
+  await ev("pointercancel");
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "estop").length, { timeout: 2000 }).toBe(1);
+  await ctl({ op: "status_delta", data: { is_estop: true } });
+  await expect(estop).toHaveAttribute("aria-label", "Reset E-Stop");
+  await ev("pointerdown");                                   // a NEW press of pointer 41: it began on Reset
+  await ev("pointerup");
+  await ev("click");
+  const s = await settled(page);
+  expect(s.map(c => c.cmd), JSON.stringify(s)).toEqual(["estop", "estop_reset"]);
+});
+
+for (const [label, dx, back] of [["at the drag threshold (5 px)", 5, false], ["between threshold and slop (8 px)", 8, false], ["and back to its start", 8, true]] as const) {
+  test(`a strip scroll that starts on Power acts nowhere — ${label} (MT-I02)`, async ({ page }) => {
+    await open(page);
+    const power = page.locator('.safetyBtns [data-control="machineOn"]');
+    // the panel's long press without a browser click
+    await power.evaluate(async (el, o) => {
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width / 2, y = r.top + r.height / 2;
+      const ev = (type: string, cx: number) => new PointerEvent(type, { bubbles: true, cancelable: true, composed: true,
+        pointerId: 51, pointerType: "touch", isPrimary: true, clientX: cx, clientY: y, button: type === "pointermove" ? -1 : 0, buttons: type === "pointerup" ? 0 : 1 });
+      el.dispatchEvent(ev("pointerdown", x));
+      el.dispatchEvent(ev("pointermove", x + o.dx));
+      if (o.back) el.dispatchEvent(ev("pointermove", x));
+      await new Promise(res => setTimeout(res, 700));
+      el.dispatchEvent(ev("contextmenu", o.back ? x : x + o.dx));
+      el.dispatchEvent(ev("pointerup", o.back ? x : x + o.dx));
+    }, { dx, back });
+    // real touch input: Chromium clicks after the drag unless it is swallowed
+    const p = await centre(power);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ ...p, id: 1 }] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: p.x + dx, y: p.y, id: 1 }] });
+    if (back) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...p, id: 1 }] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    const s = await settled(page);
+    expect(s, JSON.stringify(s)).toHaveLength(0);
+  });
+}
+
+test("a keyboard activation after a long press acts on its own (MT-I03)", async ({ page }) => {
+  await open(page);
+  const abort = page.locator(ABORT).first();
+  await panelLongPress(abort);
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "abort").length, { timeout: 2000 }).toBe(1);
+  await abort.focus();
+  await page.keyboard.press("Enter");
+  const s = await settled(page);
+  expect(s.filter(c => c.cmd === "abort"), JSON.stringify(s)).toHaveLength(2);
+});
+
+test("the press owners carry their mark in the DOM; Reset and the jog pad's Stop do not (MT-I04/06)", async ({ page }) => {
+  await open(page);
+  const owned = (sel: string) => page.locator(sel).first().evaluate(el => el.hasAttribute("data-press-owned"));
+  expect(await owned(ESTOP)).toBe(true);
+  expect(await owned('[data-strip="jog"] .jogBtn:not([data-control="jogStop"])')).toBe(true);
+  expect(await owned('[data-strip="jog"] [data-control="jogStop"]')).toBe(false);
+  expect(await owned(".sidePane button.holdable:visible")).toBe(true);
+  await ctl({ op: "status_delta", data: { is_estop: true } });
+  await expect(page.locator(ESTOP)).toHaveAttribute("aria-label", "Reset E-Stop");
+  expect(await owned(ESTOP)).toBe(false);
+});
+
+test("a long press on a disabled control gives it no click (MT-I05)", async ({ page }) => {
+  await open(page, { permissions: { ...PERMS_ALL, override: false } });
+  const flood = page.locator('[data-strip="spindle"] input[data-control="coolant"]').first();
+  await expect(flood).toBeDisabled();
+  const before = await flood.isChecked();
+  await page.evaluate(() => {
+    (window as any).__changes = 0;
+    document.addEventListener("change", () => { (window as any).__changes++; }, true);
+  });
+  await panelLongPress(flood);
+  const p = await centre(flood);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ ...p, id: 1 }] });
+  await page.waitForTimeout(700);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const s = await settled(page);
+  expect(await page.evaluate(() => (window as any).__changes)).toBe(0);
+  expect(await flood.isChecked()).toBe(before);
+  expect(s, JSON.stringify(s)).toHaveLength(0);
+});
+
+test("the jog pad's Stop acts on its release — a long press and a second finger (MT-I06)", async ({ page }) => {
+  await open(page);
+  const stop = page.locator('[data-strip="jog"] [data-control="jogStop"]');
+  const cdp = await page.context().newCDPSession(page);
+  // a long touch: nothing at the press, the stop at the release
+  const p = { ...(await centre(stop)), id: 1 };
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+  await page.waitForTimeout(300);
+  expect((await sent()).filter(c => c.cmd === "jog_stop")).toHaveLength(0);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "jog_stop").length, { timeout: 2000 }).toBeGreaterThan(0);
+  // the panel's long press: the release acts
+  await ctl({ op: "clearCmds" });
+  await panelLongPress(stop);
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "jog_stop").length, { timeout: 2000 }).toBeGreaterThan(0);
+  // a second finger while the first holds a jog: the stop at its release
+  await ctl({ op: "clearCmds" });
+  const jog = page.locator('[data-strip="jog"] .jogBtn:not([data-control="jogStop"])').first();
+  const p1 = { ...(await centre(jog)), id: 1 };
+  const p2 = { ...(await centre(stop)), id: 2 };
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
+  await expect.poll(async () => (await sent()).some(c => String(c.cmd).startsWith("jog_cont") || c.cmd === "jog_incr"), { timeout: 2000 }).toBe(true);
+  const stops = async () => (await sent()).filter(c => String(c.cmd).startsWith("jog_stop")).length;
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
+  await page.waitForTimeout(100);
+  expect(await stops()).toBe(0);                    // nothing at the second finger's press
+  // CDP's touchEnd names the points that END: the second finger lifts while the first still holds its jog
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p2] });
+  await expect.poll(stops, { timeout: 2000 }).toBeGreaterThan(0);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p1] });
+});

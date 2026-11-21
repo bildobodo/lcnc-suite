@@ -20,7 +20,7 @@ const STALL_GUARDS = new Set(["hold-stall.spec.ts", "hold-stall-mouse.spec.ts"])
 const NOT_A_HOLD: Record<string, { count: number; what: string }> = {
   "choices.spec.ts": { count: 1, what: "the jog step (a ChoiceGroup option) held while the increments change" },
   "safety-during-edit.spec.ts": { count: 4, what: "G55 (a ChoiceGroup radio) held three times, Setup's help held once" },
-  "press-release.spec.ts": { count: 1, what: "Abort (a tap, no hold) touched 900 ms by CDP: a long press the browser still clicks acts once" },
+  "press-release.spec.ts": { count: 3, what: "taps, no holds, touched by CDP: Abort 900 ms (the browser still clicks — acts once), a disabled Flood 700 ms (no click), the pad's Stop 300 ms (acts at the release)" },
 };
 
 // a press DELIVERED: Playwright's mouse, a CDP touch, a dispatched pointer

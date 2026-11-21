@@ -451,7 +451,7 @@
      "id": "control:JogStrip.vue|div|@focusin=onStepFocusin @focusout=onStepFocusout @keydown=onStepKeydown @pointerdown=holdStep"
     },
     {
-     "id": "control:JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)",
+     "id": "control:JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@click=onPadClick(btn) @contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)",
      "family": [
       "btn in xyBtns"
      ]

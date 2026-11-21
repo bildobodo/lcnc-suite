@@ -145,6 +145,15 @@ const wrapperAttrs = computed(() => ({
   style: attrs.style as StyleValue | undefined,
 }));
 
+// A control that owns its press (releaseClick.ts): a hold, or what the caller
+// marks — a jog direction, the E-Stop while it reads E-Stop. The caller's mark
+// passes through with the attrs, and this element's own binding must keep it
+// (it used to override it with `undefined`, Codex R420 MT-I04).
+function callerOwnsPress(): boolean {
+  const v = attrs['data-press-owned'];
+  return v !== undefined && v !== null && v !== false;
+}
+
 function callClickHandler(e: Event) {
   const h = attrs.onClick as ((e: Event) => void) | Array<(e: Event) => void> | undefined;
   if (Array.isArray(h)) h.forEach((f) => f(e));
@@ -315,7 +324,7 @@ onBeforeUnmount(() => { gesture?.end("unmount"); disarmHoldGuards(); });
     :holding="holding"
     :title="resolvedTitle"
     :class="holdEnabled ? 'no-drag-scroll holdable' : undefined"
-    :data-press-owned="holdEnabled ? '' : undefined"
+    :data-press-owned="holdEnabled || callerOwnsPress() ? '' : undefined"
     :style="holdEnabled ? { '--hold-duration': HOLD_FIRE_MS + 'ms' } : undefined"
     @pointerdown="onHoldPointerDown"
     @pointermove="onHoldPointerMove"

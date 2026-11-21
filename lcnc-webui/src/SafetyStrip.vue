@@ -91,39 +91,53 @@ const overridesActive = computed(() =>
 // and dispatches no click: the UI E-Stop did nothing on a long press (F12).
 // Every other control acts on its release, however long the press
 // (releaseClick.ts); the E-Stop alone fires at pointerdown — any pointer,
-// any finger, a second finger while the first holds a jog included — and
-// owns that press (`data-press-owned`): the click the same press may still
-// produce (a short tap, a mouse) is consumed, so a press that stopped the
-// machine never resets it, although the button reads "Reset" by then. Reset
-// keeps the release semantics. Keyboard: Enter / Space activate once; a held
+// any finger, a second finger while the first holds a jog included.
+//
+// Each press is its OWN gesture, kept per pointer (Codex R420 MT-I01): its
+// action is decided at its press — "estop" when the button reads E-Stop, sent
+// at once; "reset" when it reads Reset — and its click (a tap, a mouse) ends
+// exactly that gesture. A press that stopped the machine never becomes a
+// Reset, however late its click and whatever another pointer does meanwhile;
+// a Reset needs a press that BEGAN on Reset; a new press of the same pointer
+// replaces what its last one left (a cancelled stylus press included). While
+// it reads E-Stop the button owns its press (`data-press-owned`); as Reset it
+// is a release control like any other. Keyboard / assistive activation
+// (detail 0) has no pointer gesture: it acts on the state it finds; a held
 // key's repeats do nothing (a repeat after the stop would be a Reset).
-const ESTOP_CLICK_GRACE_MS = 600;
-let pressFired: { pointerId: number; until: number } | null = null;
+const estopGestures = new Map<number, { action: "estop" | "reset"; seq: number }>();
+let estopGestureSeq = 0;
+const ESTOP_GESTURE_KEEP_MS = 2000;   // a gesture whose click never came (the panel's long press) is forgotten
 function onEstopPointerDown(e: PointerEvent) {
   if (e.pointerType === "mouse" && e.button !== 0) return;
-  if (props.isEstop || !props.canEstop) return;   // the button means Reset, or is closed: its click acts
-  const g = { pointerId: e.pointerId, until: Number.POSITIVE_INFINITY };
-  pressFired = g;
-  // the release may land anywhere — the button can even be replaced by then
+  const action = props.isEstop ? "reset" : "estop";
+  const g = { action, seq: ++estopGestureSeq } as const;
+  estopGestures.set(e.pointerId, g);
+  const pid = e.pointerId;
   const end = (u: PointerEvent) => {
-    if (u.pointerId !== g.pointerId) return;
-    g.until = u.timeStamp + ESTOP_CLICK_GRACE_MS;
+    if (u.pointerId !== pid) return;
     window.removeEventListener("pointerup", end, true);
     window.removeEventListener("pointercancel", end, true);
+    // keep the gesture for its click; drop it once no click of it can come
+    setTimeout(() => { if (estopGestures.get(pid) === g) estopGestures.delete(pid); }, ESTOP_GESTURE_KEEP_MS);
   };
   window.addEventListener("pointerup", end, true);
   window.addEventListener("pointercancel", end, true);
-  emit("estop");
+  if (action === "estop" && props.canEstop) emit("estop");
 }
 function onEstopClick(e: MouseEvent) {
-  const pf = pressFired;
-  if (pf && e.timeStamp > pf.until) pressFired = null;
-  else if (pf && e.detail > 0) {
-    const pid = (e as PointerEvent).pointerId;
-    // the click of the press that already fired (a keyboard click has detail 0)
-    if (pid == null || pid === pf.pointerId) { pressFired = null; return; }
+  if (e.detail === 0) {                       // a keyboard or assistive activation
+    if (props.isEstop) emit("estopReset"); else emit("estop");
+    return;
   }
-  if (props.isEstop) emit("estopReset"); else emit("estop");
+  const pid = (e as PointerEvent).pointerId;
+  // a click that names no pointer (a browser without PointerEvent clicks):
+  // only when exactly one gesture is open can it be that one's
+  const key = typeof pid === "number" ? pid : estopGestures.size === 1 ? [...estopGestures.keys()][0]! : undefined;
+  const g = key !== undefined ? estopGestures.get(key) : undefined;
+  if (g === undefined) return;                // no press of this pointer began here: nothing
+  estopGestures.delete(key!);
+  if (g.action === "reset" && props.isEstop) emit("estopReset");
+  // an "estop" gesture acted at its press: its click is consumed
 }
 function onEstopKeydown(e: KeyboardEvent) {
   if (e.repeat && (e.key === "Enter" || e.key === " ")) e.preventDefault();
