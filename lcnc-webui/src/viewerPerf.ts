@@ -87,9 +87,13 @@
 // Emission rides the existing telemetry batcher (POST /telemetry, off the WS
 // status path), tagged `browser.viewer.perf` in trace.ndjson. One summary per
 // WINDOW_MS, and only when there was activity (status, renders, presses, timed
-// spans) — idle machines stay silent.
+// spans) — idle machines stay silent. The probe's STALLS are reported apart,
+// on every page (`browser.stall`, stallWindow.ts — P3): a row per window with
+// a gap past the hold guard's limit, else one per 30 s, chained by `seq` and
+// their window edges — an idle page's timer windows are never dropped (F20).
 
 import { emitTelemetry } from './ws/telemetry';
+import { StallWindow } from './stallWindow';
 
 const WINDOW_MS = 3000;   // one summary per 3 s of activity
 const JANK_MS = 50;       // a status-frame gap over this counts as a hiccup
@@ -252,6 +256,12 @@ let _mtDue = 0;                   // when the running probe timer is due (0 = no
 const _mtLate: number[] = [];     // lateness samples > 0 (ms)
 let _mtLateMax = 0, _mtBlocks = 0, _mtProbes = 0;
 let _mtTimer: number | null = null;
+
+// The page's stalls as the hold guard sees them (stallWindow.ts): fed by the
+// probe above — the same timer chain, no second one — emitted as
+// `browser.stall` on EVERY page, viewer or not (P3, F20: an idle page's
+// timer windows were never sent).
+const _stall = new StallWindow(_epochNow(typeof performance !== 'undefined' ? performance.now() : 0));
 
 // GPU completion fences (WebGL2).
 interface GpuFence { sync: WebGLSync; at: number; tick: number }
@@ -453,6 +463,7 @@ export function recordRender(renderMs: number, now: number = performance.now()):
  *  are skipped (browsers clamp their timers to 1 s) but still re-anchor.
  *  Exported for tests; the timer below feeds it. */
 export function noteMainThreadProbe(now: number, hidden: boolean): void {
+  _stall.observe(now, hidden);
   if (_mtDue > 0 && _enabled && !hidden) {
     const late = now - _mtDue;
     _mtProbes++;
@@ -659,6 +670,15 @@ export function flushViewerPerf(): void {
   _gpuBehindMax = _gpuMsMax = _gpuFences = _gpuDropped = 0;
 }
 
+/** The stall row when it is due (a stall in the window, or the idle window
+ *  over) — on every page, whatever the viewer did. `force` for tests. */
+export function flushStallWindow(force = false): void {
+  const now = performance.now();
+  const epoch = _epochNow(now);
+  if (!force && !_stall.due(epoch)) return;
+  emitTelemetry('stall', { cid: _clientId, host: _host, ..._stall.take(epoch, now) });
+}
+
 function _resetHistograms(): void {
   _gapH.clear(); _applyH.clear();
   _ageH.clear(); _ageN = _ageMax = _ageNeg = _ageVisSkip = _visChanges = 0;
@@ -701,6 +721,28 @@ function _onVisibility(): void {
   _lastRafTs = 0;
   _mtDue = 0;
   noteVisibilityChanged();   // a hidden page applies nothing: its frames' wait is policy, not lag
+  const now = performance.now();
+  if (document.hidden) _stall.hide(now); else _stall.show(now);
+}
+
+// Long tasks (moved here from ws/telemetry.ts, P3): every one counted into the
+// stall row (`lt_*` — absent where the browser has no Long Tasks API, e.g.
+// Firefox: never a 0), and each past 500 ms its own `browser.longtask`
+// record as before — a task that long can starve the heartbeat worker.
+let _ltObserver: PerformanceObserver | null = null;
+function _startLongTasks(): void {
+  if (typeof PerformanceObserver === 'undefined' || _ltObserver) return;
+  if (!(PerformanceObserver.supportedEntryTypes ?? []).includes('longtask')) return;
+  try {
+    _ltObserver = new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) {
+        _stall.noteLongTask(e.duration);
+        if (e.duration > 500) emitTelemetry('longtask', { ms: Math.round(e.duration), start_ms: Math.round(e.startTime) });
+      }
+    });
+    _ltObserver.observe({ type: 'longtask' });
+    _stall.setLongTaskSupported(true);
+  } catch { _ltObserver = null; }
 }
 
 // Presses: passive capture listeners that only read the event's stamp (the
@@ -726,11 +768,18 @@ function _startEventTiming(): void {
   } catch { _evObserver = null; }
 }
 
-// One self-quieting timer: flushes only when the window saw activity, so an
-// idle viewer produces no trace volume. Survives across jobs without toggling.
+// One timer for both rows: the viewer's flushes only when the window saw
+// activity (an idle viewer produces no trace volume); the stall row when a
+// stall happened, else every STALL_IDLE_WINDOW_MS. Survives across jobs
+// without toggling.
 let _flushTimer: number | null = null;
+function _windowTick(): void {
+  flushStallWindow();
+  flushViewerPerf();
+}
 if (typeof window !== 'undefined') {
-  _flushTimer = window.setInterval(flushViewerPerf, WINDOW_MS);
+  _flushTimer = window.setInterval(_windowTick, WINDOW_MS);
+  _startLongTasks();
   _startMainThreadProbe();
   document.addEventListener('visibilitychange', _onVisibility);
   window.addEventListener('keydown', _onInput, { capture: true, passive: true });
@@ -748,6 +797,8 @@ if (import.meta.hot) {
     window.removeEventListener('pointerdown', _onInput, { capture: true });
     _evObserver?.disconnect();
     _evObserver = null;
+    _ltObserver?.disconnect();
+    _ltObserver = null;
     _dropFences();
   });
 }

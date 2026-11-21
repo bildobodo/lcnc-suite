@@ -7,6 +7,7 @@ import { useGateExplain } from './gateExplain';
 import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
 import { showBtnHint } from './btnHint';
 import { BROWSER_SCHEDULER, HoldGesture, type HoldEnd } from './holdGesture';
+import { emitTelemetry } from './ws/telemetry';
 
 defineOptions({ inheritAttrs: false });
 
@@ -232,7 +233,7 @@ function onHoldPointerDown(e: PointerEvent) {
       if (busyWillDrop()) showHint('Busy — try again');
       callClickHandler(e);
     },
-    ended: (why, heldMs) => {
+    ended: (why, heldMs, gapMs) => {
       if (gesture === g) {
         gesture = null;
         holding.value = false;
@@ -241,6 +242,13 @@ function onHoldPointerDown(e: PointerEvent) {
       // the operator's choice (Q397-1): a stalled hold is cancelled — hold again
       if (why === "stalled") showHint('Page delayed — hold again');
       console.warn(`[hold] ${props.type} cancelled after ${Math.round(heldMs)} ms: ${HOLD_END_WORDS[why]} (hold ${HOLD_FIRE_MS} ms to fire)`);
+      // every refused hold reaches the trace too (P3, machine day F18: they
+      // were console-only) — `gap_ms` the stall's own observed gap, present
+      // only when it decided (holdGesture.ts), never derived from held_ms
+      emitTelemetry('hold.refused', {
+        type: props.type, why, held_ms: Math.round(heldMs),
+        ...(gapMs !== undefined ? { gap_ms: Math.round(gapMs) } : {}),
+      });
     },
   });
   gesture = g;

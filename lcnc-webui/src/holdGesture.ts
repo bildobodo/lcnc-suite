@@ -42,8 +42,11 @@ export interface HoldScheduler {
 export interface HoldCallbacks {
   /** The hold time is over with an unbroken watch: act. */
   fire(): void;
-  /** The gesture ended without acting (`why` — the reason, for its hint). */
-  ended(why: HoldEnd, heldMs: number): void;
+  /** The gesture ended without acting (`why` — the reason, for its hint).
+   *  `gapMs` — for `stalled` only: the observed gap that decided it (P3,
+   *  Codex R425 MT425-04: a refusal's own evidence, never another timer's
+   *  histogram); absent for every other end, never derived from `heldMs`. */
+  ended(why: HoldEnd, heldMs: number, gapMs?: number): void;
 }
 
 /** One gesture: made at the press (its timers start), ended by `end` on any
@@ -77,7 +80,7 @@ export class HoldGesture {
     const gap = t - this.lastSeen;
     this.lastSeen = t;
     if (gap > this.stallMs) {
-      this.finish("stalled");
+      this.finish("stalled", gap);
       return false;
     }
     return true;
@@ -100,12 +103,15 @@ export class HoldGesture {
   /** The press ended before the action (release, cancel, gate …). */
   end(why: Exclude<HoldEnd, "stalled">): void { this.finish(why); }
 
-  private finish(why: HoldEnd): void {
+  /** ONE end per gesture: a release or cancel arriving after it reports
+   *  nothing (the `alive` guard). */
+  private finish(why: HoldEnd, gapMs?: number): void {
     if (!this.alive) return;
     this.alive = false;
     this.s.clearTimeout(this.timer);
     this.s.clearTimeout(this.watcher);
-    this.cb.ended(why, this.s.now() - this.startedAt);
+    if (why === "stalled") this.cb.ended(why, this.s.now() - this.startedAt, gapMs);
+    else this.cb.ended(why, this.s.now() - this.startedAt);
   }
 }
 
