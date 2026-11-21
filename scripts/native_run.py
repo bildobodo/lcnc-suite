@@ -171,7 +171,7 @@ TS_DEADLINE = 240.0
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
 #: how long the latch step waits for the first frame after the continue
 LATCH_RESUME_WAIT_S = 10.0
-VARIANTS = ("latch-delayed",)
+VARIANTS = ("latch-delayed", "jog-lease")
 #: step 3, the disconnect (SYS-CONN.S4): X back and forth at F6000 in the
 #: machine frame (~20 s); a helper client A in its own process starts it and
 #: goes away; the event read from the trace, then the window W
@@ -696,6 +696,91 @@ def jog_cases(joints: int):
 @contextmanager
 def _no_section():
     yield {}
+
+
+#: the jog lease's native case (P1b, plan MT423-04): the client renews as the
+#: page's main thread does, then stops — the gateway's expiry on the REAL
+#: controller: the deadline, the JOG_STOP it wrote, the standstill, each seen
+LEASE_SPEED = 20.0          # mm/s: 3 s of a kept jog stay well inside the travel
+LEASE_RENEW_S = 0.1         # the page's period (jogLease.ts RENEW_MS)
+LEASE_KEEP_S = 3.0          # renewed throughout: never interrupted
+LEASE_HOLD_S = 1.0          # renewed, then not
+LEASE_AFTER_S = 3.0         # watched after the last renewal
+
+
+def _renew_for(c, lease: int, seconds: float) -> float:
+    """`jog_renew` for `lease` every LEASE_RENEW_S for `seconds`; the last
+    send's time."""
+    end = time.monotonic() + seconds
+    last = time.monotonic()
+    while time.monotonic() < end:
+        c.send({"cmd": "jog_renew", "ids": [lease]})
+        last = time.monotonic()
+        time.sleep(LEASE_RENEW_S)
+    return last
+
+
+def jog_lease_cases():
+    def step(ctx):
+        c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
+        axis = 0
+        start = "G53 G0 " + " ".join(f"{a}{v:g}" for a, v in zip("XYZ", JOG_START))
+
+        def to_start():
+            c.request("mdi", text=start)
+            _wait(c, lambda s: s.get("inpos") and s.get("interp_state") == 1 and _near(s, JOG_START), 30, "the jog start")
+            c.request("set_mode", mode=1)   # MANUAL for the jog
+
+        def course(t0):
+            return [(t, _pos(st, axis), _vel(st)) for t, st in list(frames) if t >= t0]
+
+        def first_moving(t0, p0, sign):
+            for t, p, _v in course(t0):
+                if p is not None and sign * (p - p0) > 0.05:
+                    return t
+            return None
+
+        # renewed for 3 s: never interrupted, then the gesture's own end
+        to_start()
+        p0, t0 = c.status["joint_pos"][axis], time.monotonic()
+
+        def kept():
+            c.request("jog_cont", axis=axis, vel=-LEASE_SPEED, lease=1)
+            t_end = _renew_for(c, 1, LEASE_KEEP_S)
+            c.request("jog_lease_end", lease=1)
+            _wait(c, lambda s: (_vel(s) is not None and _vel(s) <= nc.STANDSTILL), 10, "the kept jog's standstill")
+            return t_end
+        t_end, _window_kept = _framed(ctx, c, "jog-lease-kept", kept)
+        kept_samples = course(t0)
+        kept_moving = first_moving(t0, p0, -1)
+        kept_row = nc.eval_lease_kept("jog-lease-kept", 1, kept_samples, kept_moving, t_end,
+                                      list(c.lease_events))
+        rows.append(kept_row)
+        # renewed for 1 s, then not: the gateway alone ends it
+        to_start()
+        p0, t0 = c.status["joint_pos"][axis], time.monotonic()
+
+        def expired():
+            c.request("jog_cont", axis=axis, vel=LEASE_SPEED, lease=2)
+            t_last = _renew_for(c, 2, LEASE_HOLD_S)
+            time.sleep(LEASE_AFTER_S)        # heartbeats go on (the client's own thread)
+            return t_last
+        t_last, window = _framed(ctx, c, "jog-lease-expired", expired)
+        if not window["framed"]:
+            rows.append(nc._row("jog-lease-expired", "incomplete", f"the trace window: {window['reason']}"))
+        else:
+            rows.append(nc.eval_lease_expired("jog-lease-expired", 2, axis, course(t0), first_moving(t0, p0, 1),
+                                              t_last, list(c.lease_events), window["events"]))
+        # the counter: the expiry judge on the RENEWED run (its renewals ended
+        # by the gesture's own end, never by a deadline) must not pass
+        counter = nc.eval_lease_expired("jog-lease-expired.counter-kept", 1, axis, kept_samples, kept_moving,
+                                        t_end, list(c.lease_events), _window_kept.get("events", []))
+        rows.append(nc._row("jog-lease-expired.counter-kept", "PASS" if counter["status"] != "PASS" else "FAIL",
+                            f"the expiry judge on the renewed jog: {counter['status']} — {counter['detail']}"))
+        if c.error:
+            raise RuntimeError(f"the session ended after the lease cases — {c.error}")
+        return rows
+    return ("jog-lease", step)
 
 
 def plateau_cases():
@@ -2978,6 +3063,8 @@ def main(argv=None) -> int:
     base = [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(), connect_client(), servo_device()]
     if a.variant == "latch-delayed":
         steps = base + [latch_order(), latch_cases(a.variant)]
+    elif a.variant == "jog-lease":
+        steps = base + [home_cases(joints), jog_lease_cases()]
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
                         io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),

@@ -28,7 +28,7 @@ const PERMS_ALL = {
 const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log",
                         "tab_visibility", "save_settings", "load_file"];
 const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont",
-                      "jog_incr", "jog_stop", "go_to_zero", "touchoff", "set_kins_mode",
+                      "jog_incr", "jog_stop", "jog_change", "jog_lease_end", "go_to_zero", "touchoff", "set_kins_mode",
                       "home_all", "machine_on", "estop", "estop_reset", "mdi", "twp_capture"];
 
 async function recordedCmds(): Promise<string[]> {
@@ -670,6 +670,8 @@ test("pause and resume via Space are unchanged", async ({ page }) => {
 });
 
 test("a jog key released after a field opened mid-jog still sends jog_stop", async ({ page }) => {
+  // (since P1b the release's stop is its lease's end, `jog_lease_end`: the
+  // gateway stops the axes the lease owns — the title keeps its inventory name)
   await openReady(page);
   // Enable keyboard jogging through the operator's own control.
   await page.getByTitle("Settings", { exact: true }).click();
@@ -691,7 +693,7 @@ test("a jog key released after a field opened mid-jog still sends jog_stop", asy
   await page.locator("input.setupInput").first().click();
   await expect(page.locator(".nkStrip")).toBeVisible();
   await page.keyboard.up("ArrowRight");
-  await expect.poll(recordedCmds).toContain("jog_stop");
+  await expect.poll(recordedCmds).toContain("jog_lease_end");
 });
 
 test("a continuous jog keeps its stop when the step changes mid-hold (button gates BG-06)", async ({ page }) => {
@@ -708,11 +710,12 @@ test("a continuous jog keeps its stop when the step changes mid-hold (button gat
   await expect.poll(recordedCmds).toContain("jog_cont");
   await steps.getByRole("radio", { name: "1", exact: true }).click();
   await page.keyboard.up("ArrowRight");
-  await expect.poll(recordedCmds).toContain("jog_stop");
-  const sent = (await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; axis?: number }[] }).cmds ?? [];
+  await expect.poll(recordedCmds).toContain("jog_lease_end");
+  const sent = (await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; lease?: number }[] }).cmds ?? [];
   const started = sent.find(c => c.cmd === "jog_cont");
-  const stopped = sent.filter(c => c.cmd === "jog_stop");
-  expect(stopped.map(c => c.axis)).toContain(started?.axis);
+  const ended = sent.filter(c => c.cmd === "jog_lease_end");
+  expect(started?.lease).toEqual(expect.any(Number));
+  expect(ended.map(c => c.lease), "the release ends the lease its press began").toEqual([started?.lease]);
   // the step picked mid-hold applies to the NEXT press: one jog_incr, no stop
   await ctl({ op: "clearCmds" });
   await focusBody(page);
@@ -735,9 +738,15 @@ async function holdContJog(page: Page, key: string, mapping: Record<string, stri
   await expect.poll(recordedCmds).toContain("jog_cont");
 }
 
-async function jogCmds(): Promise<{ cmd?: string; axis?: number }[]> {
-  const sent = await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; axis?: number }[] };
+async function jogCmds(): Promise<{ cmd?: string; axis?: number; lease?: number }[]> {
+  const sent = await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; axis?: number; lease?: number }[] };
   return (sent.cmds ?? []).filter(c => (c.cmd ?? "").startsWith("jog_"));
+}
+
+/** The end of the jog the last held key started (P1b): its lease's end. */
+async function endOfStart(axis: number) {
+  const start = (await jogCmds()).filter(c => c.cmd === "jog_cont" && c.axis === axis).at(-1);
+  return expect.objectContaining({ cmd: "jog_lease_end", lease: start?.lease ?? -1 });
 }
 
 test("a held jog key keeps its stop when the key map changes on another client (Codex R205)", async ({ page }) => {
@@ -747,7 +756,7 @@ test("a held jog key keeps its stop when the key map changes on another client (
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: { "jog_x+": "q" } } } } });
   await page.waitForTimeout(350);
   await page.keyboard.up("ArrowRight");
-  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+  await expect.poll(jogCmds).toContainEqual(await endOfStart(0));
   // The precondition, asserted (not a blind wait): the page holds the new
   // map — Settings → Keyboard shows X+ on "q". In two full gate runs (B run 1,
   // C run 4, never in 100 isolated runs) "q" started no jog; a failure here
@@ -764,7 +773,7 @@ test("a held jog key keeps its stop when the key map changes on another client (
   await page.keyboard.down("q");
   await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_cont", axis: 0 }));
   await page.keyboard.up("q");
-  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+  await expect.poll(jogCmds).toContainEqual(await endOfStart(0));
 });
 
 test("a held letter jog keeps its stop when Shift turns it upper case (Codex R205/R206)", async ({ page }) => {
@@ -779,7 +788,7 @@ test("a held letter jog keeps its stop when Shift turns it upper case (Codex R20
   await page.keyboard.down("Shift");
   await page.keyboard.up("Q");
   await page.keyboard.up("Shift");
-  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+  await expect.poll(jogCmds).toContainEqual(await endOfStart(0));
   // the release really carried the upper case key (Codex R206)
   const keys = await page.evaluate(() => (window as any).__keys as { type: string; key: string; code: string }[]);
   expect(keys).toContainEqual({ type: "keydown", key: "q", code: "KeyQ" });
@@ -807,7 +816,7 @@ test("every bound jog key jogs its own axis in its direction and stops it on rel
     expect(start, key).toMatchObject({ cmd: "jog_cont", axis });
     expect(Math.sign(start!.vel!), `${key}: its direction`).toBe(dir);
     await page.keyboard.up(key);
-    await expect.poll(jogCmds, `${key}: stopped on release`).toEqual([start, expect.objectContaining({ cmd: "jog_stop", axis })]);
+    await expect.poll(jogCmds, `${key}: stopped on release`).toEqual([start, expect.objectContaining({ cmd: "jog_lease_end", lease: start!.lease })]);
   }
   // B's default keys on a machine without B: nothing
   await ctl({ op: "clearCmds" });

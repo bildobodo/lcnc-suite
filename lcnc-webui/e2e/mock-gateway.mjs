@@ -325,6 +325,13 @@ const hellos = [];
 // Commands the UI SENT, newest last (R-01: a spec asserts which frame the
 // kinematics selector emits, and that a refused control emits nothing).
 const cmds = [];
+// The jog lease's renewals (P1b) and the heartbeats, with their arrival time
+// (performance.now() ms): a reader frame each — never in `cmds` (10 Hz would
+// push every command out of its 50) and never answered with a status (the
+// gateway answers a renewal only for a dead lease). The lease spec reads them
+// to tell the page's MAIN-thread renewals from the worker's heartbeats.
+const renewals = [];
+const beats = [];
 let refuseWs = false;
 // Correlated replies the UI WAITS for (request() in lcncWs): cmd -> reply
 // fields, answered with the command's own req_id (toolsetter-setup.spec:
@@ -387,11 +394,18 @@ wss.on("connection", (ws, req) => {
       if (refuseWs) { try { ws.close(1001, "server shutdown"); } catch { /* ignore */ } return; }
       if (settingsOnHello) ws.send(JSON.stringify(withDevice({ type: "settings_init", settings: settingsStore })));
     }
+    if (cmd === "jog_renew") {
+      renewals.push({ t: performance.now(), ids: msg.ids });
+      if (renewals.length > 500) renewals.shift();
+      return;
+    }
     if (cmd && cmd !== "heartbeat") {
       cmds.push(msg);
       if (cmds.length > 50) cmds.shift();
     }
     if (cmd === "heartbeat") {
+      beats.push(performance.now());
+      if (beats.length > 200) beats.shift();
       ws.send(JSON.stringify({ type: "pong" }));
       if (Number.isInteger(msg?.seq)) ws.lastHbSeq = msg.seq;   // for {op: "hb_answer"} in quiet mode
     }
@@ -439,6 +453,9 @@ wss.on("connection", (ws, req) => {
 //   {op: "status_delta", data: {...}}  fold into state.data + broadcast delta
 //   {op: "raw", frame: {...}}          broadcast any frame verbatim
 //   {op: "hb_answer"}                  answer each client's latest heartbeat (quiet mode)
+//   {op: "renewals"}                   the jog lease's renewals and the heartbeats, timed (P1b)
+//   {op: "clearRenewals"}              forget them
+//   {op: "leaseExpired", id, …}        an IMITATION of the gateway's jog_lease_expired (P1b)
 ctlWss.on("connection", (ws) => {
   ws.on("error", () => {}); // spec closes the ctl socket right after the reply
   ws.on("message", (buf) => {
@@ -586,6 +603,17 @@ ctlWss.on("connection", (ws) => {
         instance: process.env.MOCK_INSTANCE ?? null,
       } }));
       return;
+    } else if (m.op === "renewals") {
+      ws.send(JSON.stringify({ ok: true, op: m.op, renewals, beats, now: performance.now() }));
+      return;
+    } else if (m.op === "clearRenewals") {
+      renewals.length = 0;
+      beats.length = 0;
+    } else if (m.op === "leaseExpired") {
+      // an IMITATION of the gateway's expiry notice (P1b): what the page does
+      // with it — it proves nothing about a stop (the gateway's own tests do)
+      broadcast({ type: "jog_lease_expired", id: m.id, axes: m.axes ?? [], stop_failed: m.stop_failed ?? [],
+                  ...(m.error ? { error: m.error } : {}), ...(m.late ? { late_renewal: true } : {}) });
     } else if (m.op === "lastCmds") {
       ws.send(JSON.stringify({ ok: true, op: m.op, cmds }));
       return;

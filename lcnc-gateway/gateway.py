@@ -4609,7 +4609,13 @@ def _on_lease_timer(key: Tuple[str, int]) -> None:
     ended by its source → that end handles its stop; else the lease EXPIRED:
     its still-owned axes stop (_expire_jog_lease)."""
     lease = _jog_leases.get(key)
-    if lease is None or lease.state == "ended":
+    if lease is None:
+        return
+    if lease.state == "ended":
+        # its source (or a stop of its client) ended it: that path stops its
+        # axes; a lease whose end never reached its handler is forgotten here
+        # — its id stays dead, a late end still stops by the booking's key
+        _jog_leases.forget(key)
         return
     left = _jog_leases.due(key, time.monotonic())
     if left is not None:
@@ -4704,20 +4710,23 @@ def _receive_jog_renew(conn_key: str, msg: Dict[str, Any]) -> List[int]:
 
 def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False) -> None:
     """End every lease of a connection (its disarm, its abort / E-Stop, its
-    close): no more starts under them. Their axes are stopped by the caller's
-    own path (the disarm's jog stop, the stop itself); `drop` (the close)
-    also forgets them and their timers."""
+    close): no more starts under them — they are ended and forgotten with
+    their timers (their ids stay dead). Their axes are stopped by the
+    caller's own path (the disarm's jog stop, the abort or E-Stop itself, the
+    disconnect's stop); a later `jog_lease_end` still stops by the booking's
+    key. `drop` (the close) also forgets the connection's id floor."""
     if not conn_key:
         return
     leases = _jog_leases.leases_of(conn_key)
-    if not leases:
-        return
     for lz in leases:
         _jog_leases.end(lz.key)
+        if lz.timer is not None:
+            lz.timer.cancel()
+        _jog_leases.forget(lz.key)
     if drop:
-        for lz in _jog_leases.drop_connection(conn_key):
-            if lz.timer is not None:
-                lz.timer.cancel()
+        _jog_leases.drop_connection(conn_key)
+    if not leases:
+        return
     _trace.emit("jog.leases_ended", level="info", why=why, leases=[lz.lease_id for lz in leases], dropped=drop)
 
 

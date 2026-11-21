@@ -23,7 +23,9 @@ import {
   ESTOP_KEY, type KeyboardDefaults, type KeyboardAction,
 } from "./defaults";
 import type { Permissions } from "./permissions";
-import type { WsCommand } from "./lcnc";
+import { OPERATOR_ERROR, type WsCommand } from "./lcnc";
+import { beginLease, endAllLeases, endLease, watchLeaseReply } from "./jogLease";
+import { pushMessage } from "./ws/statusStore";
 
 import { isRotaryAxis } from "./useAxes";
 import { JogGestures, type JogGesture } from "./jogGesture";
@@ -43,7 +45,9 @@ interface UseKeyboardShortcutsOptions {
   jogAxisRefusal: (axis: number) => string | null;
   /** True while a dialog or the number keypad is open (modalRegistry). */
   modalOpen: ComputedRef<boolean>;
-  send: (cmd: WsCommand) => void;
+  /** lcncWs.send: the req_id it went out with (a leased start watches its
+   *  reply), null when nothing went out. */
+  send: (cmd: WsCommand) => string | null | void;
   fire: (payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number) => void;
 }
 
@@ -110,7 +114,12 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   function onEstopKey(e: KeyboardEvent) {
     if (e.key !== ESTOP_KEY) return;
     e.preventDefault();
-    if (opts.canEstop.value) opts.send({ cmd: "estop" });
+    if (opts.canEstop.value) {
+      opts.send({ cmd: "estop" });
+      // the gateway ended this page's leases at the E-Stop's receipt: no
+      // gesture still held may reopen as a change (P1b)
+      endAllLeases({ wire: false });
+    }
   }
   if (typeof window !== "undefined") window.addEventListener("keydown", onEstopKey, true);
 
@@ -142,10 +151,18 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
       const step = opts.jogIncrement.value;
       if (step > 0) {
         opts.send({ cmd: "jog_incr", axis: jog.axis, vel, distance: step * jog.dir });
+        jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: false });
       } else {
-        opts.send({ cmd: "jog_cont", axis: jog.axis, vel });
+        // The held key's lease (P1b, jogLease.ts): its keyup ends it. Ended
+        // from outside (expired, refused, the connection) the key is spent
+        // until its keyup — its entry stays, a repeat is never a start; the
+        // reason goes to the message center (a key has no control to show it).
+        const lease = beginLease(c => { opts.send(c); }, (why, text) => {
+          if (why !== "stopped" && text) pushMessage(OPERATOR_ERROR, text);
+        });
+        watchLeaseReply(lease, opts.send({ cmd: "jog_cont", axis: jog.axis, vel, lease }));
+        jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: true, end: () => endLease(lease) });
       }
-      jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: !(step > 0) });
       return;
     }
 

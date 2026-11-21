@@ -55,7 +55,22 @@ REPORT_CASES: dict = {
     "latch-delayed": (
         'latch-recovered', 'latch-same-cycle.delayed-order', 'latch-sticky',
     ),
+    # the jog lease (P1b, plan MT423-04): its own run — a real jog on the real
+    # controller, renewed, then not
+    "jog-lease": (
+        'home-all', 'home-joint-0', 'home-joint-1', 'home-joint-2',
+        'jog-lease-kept', 'jog-lease-expired', 'jog-lease-expired.counter-kept',
+    ),
 }
+
+#: the jog lease's native case (P1b): the gateway's validity (jog_lease.py
+#: JOG_LEASE_TTL_S) and what the run allows on top of it — the notice's
+#: transport, the expiry's wait for the command lock, the standstill's
+#: deceleration and the status frames' cadence. The overrun is MEASURED and
+#: reported, never promised.
+LEASE_TTL_S = 0.5
+LEASE_NOTICE_S = LEASE_TTL_S + 0.5     # the last renewal sent → the expiry notice received
+LEASE_STAND_S = LEASE_TTL_S + 1.5      # the last renewal sent → the standstill seen
 
 
 def brake_bound(axis: int, v: float = JOG_SPEED) -> float:
@@ -1391,3 +1406,89 @@ def eval_probe_start(case: str, frames: list, cursor: int, ended: bool, t_send=N
     if ended:
         return _row(case, "FAIL", "no lock after the send through the routine's end — its M50 P0 not seen", **measured)
     return _row(case, "incomplete", "no lock after the send, and no end observed", **measured)
+
+
+def _lease_course(samples, t0):
+    """(seconds after t0, position, |v|) of the frames at or after t0."""
+    return [(t - t0, p, v) for t, p, v in samples if t >= t0]
+
+
+def eval_lease_kept(case: str, lease: int, samples: list, t_moving, t_end: float, events: list) -> dict:
+    """Renewed for its whole hold, a leased jog is never interrupted: from
+    the first frame that shows it moving to the end of the renewals every
+    known velocity moves, and no expiry notice names its lease."""
+    named = [e for _, e in events if e.get("id") == lease]
+    measured = {"lease": lease, "notices": len(named)}
+    if named:
+        return _row(case, "FAIL", f"an expiry notice while renewed: {named[0]}", **measured)
+    if t_moving is None:
+        return _row(case, "incomplete", "no frame showed the jog moving", **measured)
+    held = [(t, v) for t, _, v in samples if t_moving <= t <= t_end and v is not None]
+    measured.update(held_s=round(t_end - t_moving, 3), frames=len(held))
+    if len(held) < 3:
+        return _row(case, "incomplete", f"{len(held)} frames with a known velocity while held", **measured)
+    still = [t - t_moving for t, v in held if v <= STANDSTILL]
+    if still:
+        return _row(case, "FAIL", f"stood still at {still[0]:+.3f} s while renewed", **measured)
+    return _row(case, "PASS", "moved without a break while renewed", **measured)
+
+
+def eval_lease_expired(case: str, lease: int, axis: int, samples: list, t_moving, t_last: float,
+                       events: list, trace_events: list) -> dict:
+    """The renewals stopped at `t_last` (the last one sent): three separate
+    observations — the gateway's notice naming the lease and the axis
+    (received within LEASE_NOTICE_S), its trace `jog.lease_expired` for the
+    lease with the axis STOPPED (the JOG_STOP's write returned) and the
+    deadline passed (late_ms ≥ 0), and the standstill (the first frame with a
+    known |v| ≤ STANDSTILL within LEASE_STAND_S, no motion after it). The
+    overrun from the last frame before t_last to the standstill is reported,
+    never bounded."""
+    measured: dict = {"lease": lease, "axis": "XYZ"[axis]}
+    if t_moving is None or t_moving > t_last:
+        return _row(case, "incomplete", "no frame showed the jog moving before the renewals stopped", **measured)
+    notice = [(t - t_last, e) for t, e in events if e.get("id") == lease and t >= t_moving]
+    traced = [e for e in trace_events if e.get("tag") == "jog.lease_expired" and e.get("lease") == lease]
+    measured.update(notices=len(notice), traced=len(traced))
+    if not notice:
+        return _row(case, "FAIL", "no expiry notice for the lease", **measured)
+    dt_notice, frame = notice[0]
+    measured["notice_s"] = round(dt_notice, 3)
+    if dt_notice < LEASE_TTL_S - 0.05:
+        return _row(case, "FAIL", f"the notice came {dt_notice:.3f} s after the last renewal — before the validity", **measured)
+    if dt_notice > LEASE_NOTICE_S:
+        return _row(case, "FAIL", f"the notice came {dt_notice:.3f} s after the last renewal (> {LEASE_NOTICE_S} s)", **measured)
+    if frame.get("axes") != [axis] or frame.get("stop_failed"):
+        return _row(case, "FAIL", f"the notice names {frame.get('axes')} stopped, {frame.get('stop_failed')} failed", **measured)
+    if len(traced) != 1:
+        return _row(case, "incomplete" if not traced else "FAIL",
+                    f"{len(traced)} jog.lease_expired records for the lease in the framed trace", **measured)
+    rec = traced[0]
+    measured.update(late_ms=rec.get("late_ms"), renewals=rec.get("renewals"))
+    if rec.get("stopped") != [axis] or rec.get("failed"):
+        return _row(case, "FAIL", f"traced stopped {rec.get('stopped')}, failed {rec.get('failed')}", **measured)
+    if not isinstance(rec.get("late_ms"), (int, float)) or rec["late_ms"] < 0:
+        return _row(case, "FAIL", f"the expiry ran before its deadline (late_ms {rec.get('late_ms')})", **measured)
+    prior = [(t, p) for t, p, _ in samples if t < t_last and p is not None]
+    course = _lease_course(samples, t_last)
+    stop_at = None
+    for i, (t, p, v) in enumerate(course):
+        if stop_at is None:
+            if v is not None and p is not None and v <= STANDSTILL:
+                stop_at = i
+            continue
+        if (v is not None and v > STANDSTILL) or (p is not None and abs(p - course[stop_at][1]) > 0.01):
+            return _row(case, "FAIL", f"moved again after its standstill at {course[stop_at][0]:+.3f} s", **measured)
+    if stop_at is None:
+        return _row(case, "FAIL" if course and course[-1][0] > LEASE_STAND_S else "incomplete",
+                    "no standstill after the renewals stopped", **measured)
+    t_stand, p_stand, _ = course[stop_at]
+    measured["standstill_s"] = round(t_stand, 3)
+    if t_stand < LEASE_TTL_S - 0.05:
+        return _row(case, "FAIL", f"stood still {t_stand:.3f} s after the last renewal — before the validity: "
+                    "another stop, not the lease's", **measured)
+    if prior:
+        measured["overrun_mm"] = round(abs(p_stand - prior[-1][1]), 3)
+    if t_stand > LEASE_STAND_S:
+        return _row(case, "FAIL", f"standstill {t_stand:.3f} s after the last renewal (> {LEASE_STAND_S} s)", **measured)
+    return _row(case, "PASS", "deadline passed, JOG_STOP written, standstill — each observed", **measured)
+

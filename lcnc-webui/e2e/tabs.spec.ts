@@ -103,7 +103,7 @@ test("arrows move focus, Enter selects; every navigation key stays in the list â
   await page.keyboard.down("ArrowRight");
   await expect.poll(cmds, "control: ArrowRight on an unfocused page jogs").toContain("jog_cont");
   await page.keyboard.up("ArrowRight");
-  await expect.poll(cmds).toContain("jog_stop");
+  await expect.poll(cmds).toContain("jog_lease_end");   // the key's lease ends (P1b)
   await ctl({ op: "clearCmds" });
 
   await tab("Program").focus();
@@ -176,7 +176,7 @@ test("a navigation key with a modifier on a focused tab never reaches the jog ma
   await page.keyboard.down("ArrowRight");
   await expect.poll(cmds, "control: ArrowRight on an unfocused page jogs").toContain("jog_cont");
   await page.keyboard.up("ArrowRight");
-  await expect.poll(cmds).toContain("jog_stop");
+  await expect.poll(cmds).toContain("jog_lease_end");   // the key's lease ends (P1b)
 });
 
 test("Probing's 4 Ã— 2 grid: Left / Right in reading order across rows, Up / Down change the row", async ({ page }) => {

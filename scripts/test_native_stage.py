@@ -7578,3 +7578,70 @@ def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_return
         assert [m["cmd"] for m in wire] == ["mdi"]
     else:
         assert wire[-2:] == [{"cmd": "abort"}, {"cmd": "arm", "armed": False}]
+
+
+# ── The jog lease's native case (P1b, plan MT423-04) ────────────────────
+def _lease_course(stop_at=1.6, last=1.0, dt=0.033, v=20.0, until=4.0):
+    """+X at v from t=0, standing from `stop_at` on; (t, position, |v|)."""
+    out, p, t = [], 300.0, 0.0
+    while t < until:
+        moving = t < stop_at
+        out.append((t, p, v if moving else 0.0))
+        if moving:
+            p += v * dt
+        t += dt
+    return out
+
+
+def _lease_trace(**over):
+    rec = {"tag": "jog.lease_expired", "lease": 2, "stopped": [0], "failed": [], "late_ms": 4, "renewals": 9}
+    return [{**rec, **over}]
+
+
+def _expired(course=None, notice_at=1.56, frame=None, trace=None, last=1.0, moving=0.05):
+    ev = [(notice_at, frame or {"type": "jog_lease_expired", "id": 2, "axes": [0], "stop_failed": []})]
+    return nc.eval_lease_expired("jog-lease-expired", 2, 0, course or _lease_course(), moving, last, ev,
+                                 _lease_trace() if trace is None else trace)
+
+
+def test_a_lease_that_runs_out_passes_with_its_three_observations():
+    row = _expired()
+    assert row["status"] == "PASS", row
+    assert row["notice_s"] == 0.56 and row["late_ms"] == 4 and 0.5 < row["standstill_s"] < 0.7
+    assert row["overrun_mm"] > 10, "the overrun is measured and reported, never bounded"
+
+
+def test_each_missing_or_contradicting_observation_is_red():
+    assert _expired(notice_at=9.0)["status"] == "FAIL", "a notice far past the bound"
+    assert _expired(notice_at=1.2)["status"] == "FAIL", "a notice before the validity is no expiry"
+    no_notice = nc.eval_lease_expired("e", 2, 0, _lease_course(), 0.05, 1.0, [], _lease_trace())
+    assert no_notice["status"] == "FAIL" and "notice" in no_notice["detail"]
+    other_axis = _expired(frame={"type": "jog_lease_expired", "id": 2, "axes": [1], "stop_failed": []})
+    assert other_axis["status"] == "FAIL"
+    failed_stop = _expired(trace=_lease_trace(stopped=[], failed=[0]))
+    assert failed_stop["status"] == "FAIL", "the JOG_STOP's write did not return"
+    early = _expired(trace=_lease_trace(late_ms=-30))
+    assert early["status"] == "FAIL" and "deadline" in early["detail"]
+    assert _expired(trace=[])["status"] == "incomplete", "no trace record: unproven, never a pass"
+    still_early = _expired(course=_lease_course(stop_at=1.2))
+    assert still_early["status"] == "FAIL" and "another stop" in still_early["detail"]
+    never = _expired(course=_lease_course(stop_at=99.0, until=4.0))
+    assert never["status"] == "FAIL", "no standstill within the bound"
+    restart = _lease_course() + [(4.1, 340.0, 20.0)]
+    assert _expired(course=restart)["status"] == "FAIL", "moved again after its standstill"
+
+
+def test_a_renewed_jog_is_never_interrupted_and_never_an_expiry():
+    kept = [(t, 300.0 - 20.0 * t, 20.0) for t in (i * 0.033 for i in range(90))]
+    assert nc.eval_lease_kept("jog-lease-kept", 1, kept, 0.05, 2.9, [])["status"] == "PASS"
+    halted = kept[:40] + [(t, p, 0.0) for t, p, _ in kept[40:]]
+    assert nc.eval_lease_kept("jog-lease-kept", 1, halted, 0.05, 2.9, [])["status"] == "FAIL"
+    noticed = nc.eval_lease_kept("jog-lease-kept", 1, kept, 0.05, 2.9, [(1.0, {"id": 1})])
+    assert noticed["status"] == "FAIL", "an expiry notice while renewed"
+    # the counter the run makes: the expiry judge on the renewed jog never passes
+    assert nc.eval_lease_expired("c", 1, 0, kept, 0.05, 2.9, [], [])["status"] != "PASS"
+
+
+def test_the_lease_variant_declares_its_cases():
+    assert "jog-lease" in nr.VARIANTS
+    assert set(nc.REPORT_CASES["jog-lease"]) >= {"jog-lease-kept", "jog-lease-expired", "jog-lease-expired.counter-kept"}

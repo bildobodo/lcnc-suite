@@ -74,6 +74,7 @@ const UNGATED: Record<string, string> = {
   device_delete: "another device's profile, armed, refused while it is connected",
   timing_log: "diagnostics", client_diag: "diagnostics", halshow_live: "diagnostics (the HAL tab)",
   safety_trip_ack: "handled by the reader: the acknowledgement must pass whatever the state",
+  jog_renew: "handled by the reader: the jog lease's renewal from the main thread (P1b), starts nothing",
 };
 /** Fields the UI sends that the schema does not bound — each with its reason. */
 const UNBOUNDED: Record<string, string> = {
@@ -88,6 +89,7 @@ const UNBOUNDED: Record<string, string> = {
   "timing_log.enable": "the reader's: a JSON boolean, else refused", "halshow_live.on": "the reader's: a JSON boolean, else refused",
   "tab_visibility.hidden": "the reader's: a JSON boolean, else the state stays (no reply by design)",
   "safety_trip_ack.id": "the reader's: the CURRENT trip's id, else refused (package 3a Q363-2)",
+  "jog_renew.ids": "the reader's: 1..16 positive integers (jog_lease.parse_renew_ids), else nothing renewed — the leases run out",
 };
 /** The tool editor's fields beyond the bounded ones (ToolFields): the
  *  metadata the handler writes to the tool library. */
@@ -110,6 +112,8 @@ const DATA_MAPS: Record<string, string> = {
   // switch to MANUAL; an empty list is refused
   "jog_cont_multi.axes": "entries {axis, vel}: 1 ≤ count ≤ n_axes, each entry like jog_cont (Entry)",
   "jog_incr_multi.axes": "entries {axis, vel, distance}: 1 ≤ count ≤ n_axes, each entry like jog_incr (Entry)",
+  // P1b: the change's new jogs — a fault WIDENS (the change ends its lease), never refuses
+  "jog_change.axes": "entries {axis, vel}: 0 ≤ count ≤ n_axes, each entry like jog_cont (Entry); a fault ends the lease",
 };
 /** Opaque values: the exact path and why this check stops there. */
 const OPAQUE: Record<string, string> = {

@@ -37,7 +37,7 @@ const PERMS_ALL = {
 const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log",
                        "tab_visibility"]; // Advisory status-delivery hint; no machine state change.
 const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont",
-                      "jog_incr", "jog_stop", "go_to_zero", "touchoff", "set_kins_mode",
+                      "jog_incr", "jog_stop", "jog_change", "jog_lease_end", "go_to_zero", "touchoff", "set_kins_mode",
                       "home_all", "machine_on", "estop", "mdi", "twp_capture"];
 
 async function recordedCmds(): Promise<string[]> {

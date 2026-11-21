@@ -24,7 +24,7 @@ const PERMS_ALL = {
   // button gates D
   programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
-const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont", "jog_incr",
+const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont", "jog_incr", "jog_change",
   "go_to_zero", "touchoff", "set_kins_mode", "home_all", "machine_on", "estop", "mdi", "twp_capture", "save_settings",
   "set_wcs", "clear_wcs"];
 

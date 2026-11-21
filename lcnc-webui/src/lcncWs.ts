@@ -397,6 +397,8 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
       if (msg.type === "settings_init" && msg.device?.created === true && !deviceTokenFresh()) {
         pushMessage(OPERATOR_DISPLAY, "A new device profile was made for this browser in this machine configuration — its simulation is off");
       }
+    } else if (msg.type === "jog_lease_expired") {
+      jogLeaseFrameHandler?.(msg);   // jogLease.ts: that one gesture ends
     } else if (msg.type === "devices_changed") {
       devicesVersion.value++;   // the device views fetch the list again
     } else if (msg.type === "macros_changed") {
@@ -406,6 +408,14 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
     } else if (msg.type === "halshow_update") {
       applyHalshowUpdate(msg);
     }
+}
+
+// The jog lease's frames (P1b): jogLease.ts registers its handler — this
+// module never imports it (jogLease sends through send() here).
+let jogLeaseFrameHandler: ((msg: { id?: unknown; axes?: unknown; stop_failed?: unknown;
+  error?: unknown; late_renewal?: unknown }) => void) | null = null;
+export function setJogLeaseFrameHandler(h: typeof jogLeaseFrameHandler): void {
+  jogLeaseFrameHandler = h;
 }
 
 // Request correlation (UI-12): every command carries a per-tab monotonic

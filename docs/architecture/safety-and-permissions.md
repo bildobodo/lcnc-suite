@@ -517,6 +517,85 @@ joint jog before homing in E.
 - *Named limits*: no gantry sim config exists — the gantry closure is
   proven by the pure map's tests only.
 
+### The jog lease (plan P1b, machine day 2026-11-21; Codex R418–R426; operator Q423-1)
+
+- *Why*: a continuous jog ended only by its `jog_stop`, which the page's MAIN
+  thread sends at the release; main-thread stalls of 0.5–1.6 s were measured on
+  the operator's panel. The heartbeat comes from the worker and keeps beating
+  through a stall — it proves the connection, not the input (Codex R399).
+- *The lease* (`lcnc-gateway/jog_lease.py`, pure; `lcnc-webui/src/jogLease.ts`):
+  one per input GESTURE — a pointer on a jog button, a held key, a stick or a
+  D-pad direction from leaving rest to returning; speed changes and reversals
+  inside it keep its id. Ids only grow in a page's life; on a connection an id
+  at or below the highest begun that is not alive is dead (never revived).
+  `jog_cont` / `jog_cont_multi` carry `lease` (optional: a script without one
+  keeps the jog-until-stop contract, traced `jog.cont_without_lease`).
+- *Deadline*: anchored at the READER's receipt of the start / change frame
+  (`_receive_jog_lease`, before the queue) to `t + JOG_LEASE_TTL_S` (500 ms,
+  Q423-1); `jog_renew {ids}` is a reader frame (no handler, queue or lock;
+  answered only for a dead id, `jog_lease_expired {late_renewal}`) that the
+  page sends every `RENEW_MS` (100 ms) from its main thread only — never the
+  worker. A renewal or a frame of a lease past its deadline revives nothing.
+  At 3000 mm/min 500 ms are 25 mm of travel; the real overrun after a page
+  stops renewing is larger (transport, the stop's processing, deceleration)
+  and is the sim probe's to measure, never a promise.
+- *Every write*: `_lease_write_refusal` at the handler start and inside each
+  write's thread (`_start_jogs`' admit — the switch to MANUAL, each jog):
+  the deadline ahead NOW (the deadline decides, never whether the timer ran),
+  nothing ended it, and its controller Link still the published one
+  (`JOG_LEASE_FOREIGN_LINK`). A multi-jog whose lease dies between its writes
+  stops what it wrote under it at once and answers `expired`.
+- *Ownership* (Codex R425 MT425-01): `_active_jogs[axis]` is (joint flag,
+  CMD.jog index, owner, generation) — owner (conn_key, lease id), None for a
+  jog without a lease or a step. A lease's stop — its expiry
+  (`_expire_jog_lease`), its end (`jog_lease_end`), a change's stop half —
+  goes through `_stop_owned_axes`: only an axis whose row still carries that
+  lease, read after `_cmd_lock` and checked again in the write's thread
+  (`_send_jog_stop(owner=…)`, `JOG_STOP_NOT_OWNED`); a named axis another
+  gesture took, or nobody owns, is traced `jog.lease_stop_not_owned` and left.
+  The operator's own stops (`jog_stop`, `jog_stop_multi`, the disarm stop)
+  stop an axis whoever wrote it, unchanged. A failed lease stop keeps the
+  booking and says so (`stop_failed`, "Jog stop failed — press E-Stop if it
+  still moves"); no automatic retry. Without a Link nothing can be written:
+  the owned axes are `failed` (the HAL chain owns the motion).
+- *Expiry*: one `call_later` timer per lease at its deadline, re-armed for
+  what a renewal added; past the deadline the lease is dead and
+  `_expire_jog_lease` stops its owned axes under `_cmd_lock` (behind a write
+  in progress), traces `jog.lease_expired` (late_ms, renewals, age) and sends
+  the owning connection `jog_lease_expired {id, axes, stop_failed}`. Skipped
+  while the gateway shuts down.
+- *A change* is ONE command (`jog_change {lease, stop, axes}`): the owned
+  stops first, then the new jogs under the same lease — each admitted like
+  `jog_cont` (arm, AUTO / MDI running, the gamepad switch for `via`, the jog
+  class, the lease at every write). Dead lease: the stops only, `expired`.
+  `jog_change` and `jog_lease_end` are stop-class (`STOP_COMMANDS`, gate
+  `always`, the 4× queue headroom, never debounced, never superseded): a
+  payload fault WIDENS — a faulted change becomes its lease's end, a faulted
+  end ends every lease of the connection.
+- *Endings in the gateway*: `jog_lease_end` (marked ended at receipt — a start
+  of it still queued is refused at its write); abort / E-Stop end the
+  sending client's leases at receipt (a change it queued keeps its stop half,
+  starts nothing); a disarm (explicit, hb-stall, link loss) and the
+  disconnect end them (the disconnect drops them and their timers).
+- *The page*: a lease that ended from outside (expired, refused or
+  unanswered start — `watchLeaseReply`, `REPLY_MS` 3 s —, the connection)
+  leaves its gesture SPENT until its source's own end: the pointer until its
+  pointerup (the reason as the button's hint), a key until its keyup (the
+  reason in the message center), a stick until rest, a D-pad direction until
+  released (a start needs a new press). An explicit stop (the pad's Stop,
+  Escape / E-Stop, App's stop of every jog, the dead man, a closed gate) ends
+  every lease (`endAllLeases`). The gamepad keeps ONE owner per stick (left:
+  X/Y, right: Z); per poll the releases, the rests and the dead man go
+  before any start.
+- *Guards*: `test_jog_lease.py` (the table), `test_jog_lease_gateway.py`
+  (handlers on a recording CMD; the WebSocket level on real time with the
+  real 500 ms), `jogLease.test.ts`, `useGamepad.test.ts` (the owners),
+  `jog-lease.spec.ts` (the page: renewals from the main thread — none while
+  it is blocked, the worker's heartbeat goes on —, the ends, the feedback;
+  the mock's expiry notice is an IMITATION and proves no stop). Owed: the sim
+  probe (a real page, the main thread blocked while a jog is held: deadline,
+  JOG_STOP and standstill observed separately) and twp-buttons.
+
 ### Switchable suite functions (settings split package 3, plan R335–R337)
 
 A machine section `features` (`lcnc-gateway/features.py`, the client's

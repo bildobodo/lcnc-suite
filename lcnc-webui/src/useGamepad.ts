@@ -22,6 +22,9 @@ import {
 } from "./gamepadProfile";
 import { status } from "./lcncWs";
 import { JogGestures } from "./jogGesture";
+import { beginLease, endAllLeases, endLease, watchLeaseReply, type LeaseEnd } from "./jogLease";
+import { OPERATOR_ERROR } from "./lcnc";
+import { pushMessage } from "./ws/statusStore";
 import { ACTION_GATES, startAdmitted, type StartContext } from "./actionAdmission";
 import type { Permissions as AllPermissions } from "./permissions";
 
@@ -48,7 +51,9 @@ export function useGamepad(deps: {
   angularJogVel: Ref<number>;
   jogIncrement: Ref<number>;
   permissions: ComputedRef<Permissions>;
-  send: (cmd: GamepadCommand) => void;
+  /** The sender (App: lcncWs.send through viaGamepad): the req_id a leased
+   *  start's reply is watched by, null when nothing went out. */
+  send: (cmd: GamepadCommand) => string | null | void;
   fire: (cmd: GamepadCommand, gate?: GateKey) => void;
   /** Start's program context (actionAdmission.ts — the button's own rule). */
   startContext: ComputedRef<StartContext>;
@@ -100,13 +105,57 @@ export function useGamepad(deps: {
     return Math.sign(raw) * (abs - dz) / (1 - dz);
   }
 
+  // The stick gestures' jog leases (P1b, jogLease.ts): ONE input owner per
+  // stick — the left stick moves X and Y, the right stick Z — from leaving
+  // rest to returning. Its lease spans the gesture: an axis joining is a
+  // jog_cont under it, an axis leaving or reversing ONE jog_change. An owner
+  // whose lease ended from outside (expired, refused, the connection) or by
+  // an explicit stop is SPENT until it is back at rest — the D-pad's are
+  // spent by construction (a start needs a new press). The Z modifier starts
+  // nothing itself: a D-pad press under it is that direction's gesture.
+  interface StickOwner { lease: number | null; spent: boolean; axes: number[] }
+  const sticks: Record<"left" | "right", StickOwner> = {
+    left: { lease: null, spent: false, axes: [] },
+    right: { lease: null, spent: false, axes: [] },
+  };
+
+  function leaseEnded(why: LeaseEnd, text: string) {
+    if (why !== "stopped" && text) pushMessage(OPERATOR_ERROR, text);
+  }
+
+  /** A stick owner's lease ended from outside: the gateway stopped (or
+   *  could not reach) its axes — forget what was sent, spent until rest. */
+  function stickLeaseEnded(owner: StickOwner, id: number, why: LeaseEnd, text: string) {
+    if (owner.lease !== id) return;
+    owner.lease = null;
+    owner.spent = true;
+    for (const a of owner.axes) { lastSentVel[a] = 0; delete stickMaxVel[a]; }
+    leaseEnded(why, text);
+  }
+
+  function stickLease(owner: StickOwner): number {
+    if (owner.lease !== null) return owner.lease;
+    const id: number = beginLease(c => { deps.send(c); }, (why, text) => stickLeaseEnded(owner, id, why, text));
+    owner.lease = id;
+    return id;
+  }
+
+  /** End a stick owner's gesture (its rest, or an explicit stop): the
+   *  lease's end stops the axes it still owns. */
+  function endStick(owner: StickOwner) {
+    if (owner.lease !== null) endLease(owner.lease);
+    owner.lease = null;
+    for (const a of owner.axes) { lastSentVel[a] = 0; delete stickMaxVel[a]; }
+  }
+
+  /** An explicit stop (dead man, a closed gate, settings open, a disconnect
+   *  of the pad, the App's stop of every jog): every gesture ends, and a
+   *  stick still deflected is spent until it is back at rest. */
   function stopAllJog() {
-    const n = deps.axes.value.length || 3;
-    for (let i = 0; i < n; i++) {
-      if (lastSentVel[i] !== 0 && lastSentVel[i] !== undefined) {
-        deps.send({ cmd: "jog_stop", axis: i });
-        lastSentVel[i] = 0;
-      }
+    for (const owner of Object.values(sticks)) {
+      const had = owner.lease !== null;
+      endStick(owner);
+      if (had) owner.spent = true;
     }
     for (const k of Object.keys(stickMaxVel)) delete stickMaxVel[Number(k)];
     for (const c of dpadJogs.endAll()) deps.send(c);
@@ -124,50 +173,62 @@ export function useGamepad(deps: {
     return stickMaxVel[axis];
   }
 
-  function sendJog(axis: number, vel: number, now: number) {
-    const prev = lastSentVel[axis] ?? 0;
-    const prevTime = lastSendTime[axis] ?? 0;
-
-    if (vel === 0 && prev === 0) return; // already stopped
-
-    // STOP: always immediate, never throttled
-    if (vel === 0 && prev !== 0) {
-      deps.send({ cmd: "jog_stop", axis });
-      lastSentVel[axis] = 0;
-      lastSendTime[axis] = now;
+  /**
+   * One frame of a stick owner: `targets` its axes' velocities now (0 in the
+   * dead zone). Stops first: the owner at rest ends its gesture (its lease);
+   * an axis leaving while another stays, and a reversal, are ONE jog_change
+   * (the stop, then the new jog, under the same lease — the gateway writes
+   * the stop only for an axis this lease still owns). Then starts and speed
+   * updates (throttled, BG-05's gesture speed) as jog_cont under the lease.
+   * A spent owner starts nothing until it has been at rest.
+   */
+  function driveStick(owner: StickOwner, targets: [number, number][], now: number) {
+    owner.axes = targets.map(([a]) => a);
+    const atRest = targets.every(([, v]) => v === 0);
+    if (atRest) {
+      if (owner.lease !== null) endStick(owner);
+      owner.spent = false;
       return;
     }
-
-    // An axis closed before homing starts nothing (its stop above is never refused)
-    if (deps.jogAxisRefusal(axis)) return;
-
-    // DIRECTION CHANGE: stop first, then start in new direction
-    if (prev !== 0 && Math.sign(vel) !== Math.sign(prev)) {
-      deps.send({ cmd: "jog_stop", axis });
-      deps.send({ cmd: "jog_cont", axis, vel });
-      lastSentVel[axis] = vel;
-      lastSendTime[axis] = now;
+    if (owner.spent) return;
+    const stop: number[] = [];
+    const change: { axis: number; vel: number }[] = [];
+    const conts: { axis: number; vel: number }[] = [];
+    for (const [axis, vel] of targets) {
+      const prev = lastSentVel[axis] ?? 0;
+      if (vel === 0) {
+        if (prev !== 0) stop.push(axis);           // this axis leaves, the gesture goes on
+        continue;
+      }
+      // an axis closed before homing starts nothing (its stop is never refused)
+      if (deps.jogAxisRefusal(axis)) continue;
+      if (prev !== 0 && Math.sign(vel) !== Math.sign(prev)) {
+        stop.push(axis);                            // a reversal: its stop and its new jog, one change
+        change.push({ axis, vel });
+        continue;
+      }
+      if (prev === 0) { conts.push({ axis, vel }); continue; }
+      // speed update: heavily throttled to avoid command queue buildup
+      const dt = now - (lastSendTime[axis] ?? 0);
+      const dv = Math.abs(vel - prev);
+      if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs((stickMaxVel[axis] ?? deps.jogVel.value) * VEL_EPSILON)) continue;
+      conts.push({ axis, vel });
+    }
+    if (stop.length === 0 && change.length === 0 && conts.length === 0) return;
+    const lease = stickLease(owner);
+    if (stop.length > 0) {
+      // ONE change: the leaving / reversing axes' stops, then every new jog
+      const axes = [...change, ...conts];
+      watchLeaseReply(lease, deps.send({ cmd: "jog_change", lease, stop, axes }));
+      for (const a of stop) lastSentVel[a] = 0;
+      for (const j of axes) { lastSentVel[j.axis] = j.vel; lastSendTime[j.axis] = now; }
       return;
     }
-
-    // START: first movement from zero — send immediately
-    if (prev === 0) {
-      deps.send({ cmd: "jog_cont", axis, vel });
-      lastSentVel[axis] = vel;
-      lastSendTime[axis] = now;
-      return;
+    for (const j of conts) {
+      watchLeaseReply(lease, deps.send({ cmd: "jog_cont", axis: j.axis, vel: j.vel, lease }));
+      lastSentVel[j.axis] = j.vel;
+      lastSendTime[j.axis] = now;
     }
-
-    // VELOCITY UPDATE: heavily throttled to avoid command queue buildup
-    const dt = now - prevTime;
-    const dv = Math.abs(vel - prev);
-    if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs((stickMaxVel[axis] ?? deps.jogVel.value) * VEL_EPSILON)) {
-      return;
-    }
-
-    deps.send({ cmd: "jog_cont", axis, vel });
-    lastSentVel[axis] = vel;
-    lastSendTime[axis] = now;
   }
 
   /** Dispatch a configurable button action. */
@@ -192,6 +253,9 @@ export function useGamepad(deps: {
         break;
       case "estop":
         deps.send({ cmd: "estop" }); // no permission gate — E-Stop must always work
+        // the gateway ended this page's leases at the E-Stop's receipt (P1b):
+        // every source hears it — a stick still deflected is spent until rest
+        endAllLeases({ wire: false });
         break;
       case "spindle_stop":
         // the spindle stop at idle needs no homing (button gates BG-18)
@@ -328,6 +392,17 @@ export function useGamepad(deps: {
 
     const canJogNow = canJog && deadManOk && cfg.jogEnabled;
 
+    // ── D-pad releases FIRST (P1b: in every frame the stops, the releases
+    // and the dead man go before any start) ──
+    // A release ends the gesture its press STARTED (BG-06) — checked on
+    // every frame, whatever the jog gate, the Z modifier or the step say now.
+    for (const btn of DPAD_BUTTONS) {
+      if (!logical.buttons[btn] && prevButtons[btn]) {
+        const stop = dpadJogs.end(btn);
+        if (stop) deps.send(stop);
+      }
+    }
+
     // ── Analog sticks → continuous jog ──
     // Stick semantics stay XY/Z, but MACHINE indices are resolved by letter
     // (WS-D): machines lacking X/Y/Z simply get no gamepad jog on the
@@ -343,23 +418,21 @@ export function useGamepad(deps: {
     const rz = applyDeadZone(logical.sticks.rz, cfg.deadZone) * (cfg.invertZ ? -1 : 1);
 
     if (canJogNow) {
-      if (xi >= 0) sendJog(xi, lx * gestureMaxVel(xi, lx), now);
-      if (yi >= 0) sendJog(yi, ly * gestureMaxVel(yi, ly), now);
-      if (zi >= 0) sendJog(zi, rz * gestureMaxVel(zi, rz), now);
+      const left: [number, number][] = [];
+      if (xi >= 0) left.push([xi, lx * gestureMaxVel(xi, lx)]);
+      if (yi >= 0) left.push([yi, ly * gestureMaxVel(yi, ly)]);
+      const right: [number, number][] = zi >= 0 ? [[zi, rz * gestureMaxVel(zi, rz)]] : [];
+      // stops before starts in every frame: an owner at rest or leaving
+      // first, then the ones that start or change
+      const order = [sticks.left, sticks.right].map((o, i) => ({ o, t: i === 0 ? left : right }))
+        .sort((a, b) => Number(a.t.some(([, v]) => v !== 0)) - Number(b.t.some(([, v]) => v !== 0)));
+      for (const { o, t } of order) driveStick(o, t, now);
     } else if (!deadManOk || !canJog || !cfg.jogEnabled) {
       // Lost permission, dead man released, or jog disabled — stop everything
       stopAllJog();
     }
 
     // ── D-pad → discrete jog ──
-    // A release ends the gesture its press STARTED (BG-06) — checked on
-    // every frame, whatever the jog gate, the Z modifier or the step say now.
-    for (const btn of DPAD_BUTTONS) {
-      if (!logical.buttons[btn] && prevButtons[btn]) {
-        const stop = dpadJogs.end(btn);
-        if (stop) deps.send(stop);
-      }
-    }
     if (canJogNow) {
       // D-pad: full-speed jog or incremental (machine indices by letter,
       // pairs dropped when the machine lacks the axis); up/down jog Z while
@@ -375,10 +448,14 @@ export function useGamepad(deps: {
         const step = deps.jogIncrement.value;
         if (step > 0) {
           deps.send({ cmd: "jog_incr", axis, vel, distance: step * dir });
+          dpadJogs.start(btn, { axes: [axis], cont: false });
         } else {
-          deps.send({ cmd: "jog_cont", axis, vel });
+          // the direction's lease (P1b): its release ends it; ended from
+          // outside, the held direction is spent (a start needs a new press)
+          const lease = beginLease(c => { deps.send(c); }, leaseEnded);
+          watchLeaseReply(lease, deps.send({ cmd: "jog_cont", axis, vel, lease }));
+          dpadJogs.start(btn, { axes: [axis], cont: true, end: () => endLease(lease) });
         }
-        dpadJogs.start(btn, { axes: [axis], cont: !(step > 0) });
       }
     }
 

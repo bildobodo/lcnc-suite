@@ -1,7 +1,9 @@
 // F-JOG.S5b (function inventory, Codex R321–R322 FI321-03): every jog button
 // of two axis sets — XYZABCUVW and XYZAC, where C is the transmitted axis
 // index 4 — starts exactly its axis in its direction, and its release stops
-// exactly that axis. The expectations come from the fixture lists below,
+// exactly that axis: since P1b the press names its gesture's lease and the
+// release ends exactly that lease (`jog_lease_end`) — the gateway stops the
+// axes the lease owns (test_jog_lease_gateway.py). The expectations come from the fixture lists below,
 // never from the page or a product helper. The diagonals (multi-jog) are a
 // statement of their own.
 import { test, expect } from "./test";
@@ -14,7 +16,7 @@ function perms(): Permissions {
   return p;
 }
 
-type Sent = { cmd?: string; axis?: number; vel?: number };
+type Sent = { cmd?: string; axis?: number; vel?: number; lease?: number };
 // What the page sent, without the Tool strip's table read: it reads 300 ms
 // after the connect (ToolStrip.vue) and may land after clearCmds.
 const sent = async (): Promise<Sent[]> => (((await ctl({ op: "lastCmds" })) as { cmds?: Sent[] }).cmds ?? [])
@@ -56,10 +58,12 @@ for (const [name, set] of [["XYZABCUVW", NINE], ["XYZAC", XYZAC]] as const) {
         expect(pressed[0]!.cmd, label).toBe("jog_cont");
         expect(pressed[0]!.axis, `${label}: the axis`).toBe(index);
         expect(Math.sign(pressed[0]!.vel ?? 0), `${label}: the direction`).toBe(sign);
+        const lease = pressed[0]!.lease;
+        expect(lease, `${label}: the gesture's lease`).toEqual(expect.any(Number));
         await page.mouse.up();
         await expect.poll(async () => (await sent()).length, `${label} released`).toBeGreaterThan(1);
-        expect((await sent()).map((c) => [c.cmd, c.axis]), `${label}: the release stops exactly its axis`)
-          .toEqual([["jog_cont", index], ["jog_stop", index]]);
+        expect((await sent()).map((c) => [c.cmd, c.axis ?? c.lease]), `${label}: the release ends exactly its lease`)
+          .toEqual([["jog_cont", index], ["jog_lease_end", lease]]);
       }
     }
     // the strip has no single-axis jog button beyond the fixture's letters

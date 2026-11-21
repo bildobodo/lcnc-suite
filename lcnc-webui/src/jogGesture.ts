@@ -16,15 +16,30 @@ export interface JogGesture {
   readonly axes: readonly number[];
   /** Continuous: its end must stop it. A step ends by itself. */
   readonly cont: boolean;
+  /** A leased gesture's end (P1b, jogLease.ts — `endLease` bound to its
+   *  id): `jog_lease_end` through the sender the lease began with, the axes
+   *  it still owns stop — never a bare stop. Absent: the stop it owns. */
+  readonly end?: () => void;
 }
 
 export type JogStopCommand = Extract<WsCommand, { cmd: "jog_stop" } | { cmd: "jog_stop_multi" }>;
 
-/** The stop a gesture's end sends; null for a step (it stops by itself). */
+/** The stop a gesture's end sends; null for a step (it stops by itself) and
+ *  for a leased gesture (its end is endGesture's: the lease's end). */
 export function stopFor(g: JogGesture): JogStopCommand | null {
-  if (!g.cont || g.axes.length === 0) return null;
+  if (!g.cont || g.axes.length === 0 || g.end !== undefined) return null;
   if (g.axes.length === 1) return { cmd: "jog_stop", axis: g.axes[0]! };
   return { cmd: "jog_stop_multi", axes: [...g.axes] };
+}
+
+/** End a gesture: a leased one ends its lease (jogLease sends its
+ *  `jog_lease_end`), any other returns the stop it owns (null for a step). */
+export function endGesture(g: JogGesture): JogStopCommand | null {
+  if (g.end !== undefined) {
+    g.end();
+    return null;
+  }
+  return stopFor(g);
 }
 
 /**
@@ -55,14 +70,14 @@ export class JogGestures<K> {
     const g = this.store.get(key);
     if (!g) return null;
     this.store.delete(key);
-    return stopFor(g);
+    return endGesture(g);
   }
 
   /** End every gesture: the stops they own. */
   endAll(): JogStopCommand[] {
     const out: JogStopCommand[] = [];
     for (const g of this.store.values()) {
-      const c = stopFor(g);
+      const c = endGesture(g);
       if (c) out.push(c);
     }
     this.store.clear();

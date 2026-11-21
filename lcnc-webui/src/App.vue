@@ -75,6 +75,7 @@ import { g5xLabel as fixtureLabel } from "./wcs";
 import { ACTION_GATES, type StartContext } from "./actionAdmission";
 import { jogAxisRefusal, type JointJog } from "./jointJog";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
+import { endAllLeases } from "./jogLease";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP, TASK_MODE_MANUAL,
@@ -2033,11 +2034,20 @@ function stopAllJog() {
   forceStopAllJogs();          // the pointer gestures' own stops
   stopKeyboardJogs();          // the keyboard gestures' own stops
   gamepad.stopAllJog();        // the pad's analog and D-pad gestures
+  endAllLeases();              // any lease left (P1b): an explicit stop ends every gesture
   if (!hadGesture && !permissions.value.jog) return;
   if (isRunning.value || isPaused.value) return; // no jog during program execution
   for (let i = 0; i < axes.value.length; i++) {
     send({ cmd: "jog_stop", axis: i });
   }
+}
+
+/** The strip's E-Stop: the gateway ends this page's jog leases at its
+ *  receipt (P1b); every source hears it here — a gesture still held is
+ *  spent until its own release. */
+function sendEstop() {
+  send({ cmd: "estop" });
+  endAllLeases({ wire: false });
 }
 
 function visHandler() {
@@ -2782,7 +2792,7 @@ watch(viewerGcode, (newGcode) => {
         :mcodes="activeMcodes"
         :elapsed="elapsedDisplay"
         @arm="arm"
-        @estop="send({ cmd: 'estop' })"
+        @estop="sendEstop"
         @estop-reset="send({ cmd: 'estop_reset' })"
         @machine-on="fire({ cmd: 'machine_on' }, 'safety')"
         @machine-off="fire({ cmd: 'machine_off' }, 'safety')"

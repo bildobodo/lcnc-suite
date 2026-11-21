@@ -28,7 +28,7 @@ const LOG = [
 ];
 
 const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont", "jog_incr", "jog_stop",
-  "go_to_zero", "touchoff", "set_kins_mode", "home_all", "machine_on", "estop", "estop_reset", "mdi", "run_macro"];
+  "jog_change", "jog_lease_end", "go_to_zero", "touchoff", "set_kins_mode", "home_all", "machine_on", "estop", "estop_reset", "mdi", "run_macro"];
 
 async function setup(page: Page, opts: { vp?: string; zoom?: number; seed?: boolean } = {}) {
   const { vp = "desktop", zoom = 1, seed = true } = opts;

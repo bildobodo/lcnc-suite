@@ -47,6 +47,10 @@ const NO_GATE_NEEDED = new Set([
   // as policy, and `jog` is deliberately outside BUSY_GATES.
   "jog_cont", "jog_incr", "jog_stop", "jog_cont_multi", "jog_incr_multi",
   "jog_stop_multi",
+  // The jog lease (P1b, jogLease.ts): a change inside a held gesture and the
+  // gesture's end are stops — a latch would swallow them like the paired
+  // stop above; the renewal is a reader frame from the main thread.
+  "jog_change", "jog_lease_end", "jog_renew",
 ]);
 
 /**

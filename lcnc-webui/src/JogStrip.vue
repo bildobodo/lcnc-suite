@@ -5,7 +5,9 @@ import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
 import { registerJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
-import { stopFor, type JogGesture } from "./jogGesture";
+import { endGesture, type JogGesture } from "./jogGesture";
+import { beginLease, endAllLeases, endLease, watchLeaseReply } from "./jogLease";
+import { showBtnHint } from "./btnHint";
 import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSelect from "./MachineSelect.vue";
@@ -375,6 +377,9 @@ function axisRefusal(...indices: (number | undefined)[]): string | undefined {
 }
 function stopAllJog() {
   forceStopAllJogs();
+  // An explicit stop ends EVERY lease of this page (P1b): a key or a stick
+  // still held is spent until its own release — it cannot reopen as a change
+  endAllLeases();
   // Belt-and-suspenders: stop all axes at backend level
   for (let i = 0; i < props.axes.length; i++) {
     send({ cmd: "jog_stop", axis: i });
@@ -386,9 +391,23 @@ function stopAllJog() {
 // leave a continuous jog without its jog_stop.
 function stopFnFor(gesture: JogGesture): () => void {
   return () => {
-    const c = stopFor(gesture);
+    const c = endGesture(gesture);
     if (c) send(c);
   };
+}
+
+// A continuous jog names its pointer's lease (P1b, jogLease.ts): the release
+// ends it; when the lease ends from outside (expired — the page hung —,
+// refused, the connection) the pointer's jog is over and SPENT: only a new
+// press starts again. The reason shows at the button (an explicit stop of
+// every jog says nothing — the operator pressed it).
+function beginPointerLease(pointerId: number, key: string, el: Element): number {
+  return beginLease(c => send(c), (why, text) => {
+    // the registry entry and the capture — this pointer's, on this button;
+    // the gesture's own end is a no-op now (the lease is no longer live)
+    if (jogKeyFor(pointerId) === key) forceStopJog(pointerId);
+    if (why !== "stopped" && text) showBtnHint(el, text);
+  });
 }
 
 // The centre Stop acts on its RELEASE like every click control (operator
@@ -419,6 +438,7 @@ function startJog(btn: JogDef, e: PointerEvent) {
 
   const isDiag = btn.axis2 != null && btn.dir2 != null;
   const v = isDiag ? props.jogVel * 0.7071 : props.jogVel;
+  let lease: number | undefined;
 
   if (props.jogIncrement > 0) {
     const dist = isDiag ? props.jogIncrement * 0.7071 : props.jogIncrement;
@@ -431,19 +451,20 @@ function startJog(btn: JogDef, e: PointerEvent) {
       send({ cmd: "jog_incr", axis: btn.axis, vel: v * btn.dir, distance: props.jogIncrement * btn.dir });
     }
   } else {
-    if (isDiag) {
-      send({ cmd: "jog_cont_multi", axes: [
+    lease = beginPointerLease(e.pointerId, btn.label, el);
+    const req = isDiag
+      ? send({ cmd: "jog_cont_multi", lease, axes: [
         { axis: btn.axis, vel: v * btn.dir },
         { axis: btn.axis2!, vel: v * btn.dir2! },
-      ]});
-    } else {
-      send({ cmd: "jog_cont", axis: btn.axis, vel: v * btn.dir });
-    }
+      ]})
+      : send({ cmd: "jog_cont", axis: btn.axis, vel: v * btn.dir, lease });
+    watchLeaseReply(lease, req);
   }
 
   registerJog(e.pointerId, btn.label, stopFnFor({
     axes: isDiag ? [btn.axis, btn.axis2!] : [btn.axis],
     cont: !(props.jogIncrement > 0),
+    end: lease === undefined ? undefined : () => endLease(lease!),
   }), el);
 }
 
@@ -485,13 +506,16 @@ function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEve
   // safe-silent: pointer capture is a best-effort UX aid; throws if the pointer is already gone
   try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
+  let lease: number | undefined;
   if (props.jogIncrement > 0) {
     send({ cmd: "jog_incr", axis: axisIndex, vel: vel * dir, distance: props.jogIncrement * dir });
   } else {
-    send({ cmd: "jog_cont", axis: axisIndex, vel: vel * dir });
+    lease = beginPointerLease(e.pointerId, key, el);
+    watchLeaseReply(lease, send({ cmd: "jog_cont", axis: axisIndex, vel: vel * dir, lease }));
   }
 
-  registerJog(e.pointerId, key, stopFnFor({ axes: [axisIndex], cont: !(props.jogIncrement > 0) }), el);
+  registerJog(e.pointerId, key, stopFnFor({ axes: [axisIndex], cont: !(props.jogIncrement > 0),
+    end: lease === undefined ? undefined : () => endLease(lease!) }), el);
 }
 
 function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {

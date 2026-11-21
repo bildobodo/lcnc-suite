@@ -83,13 +83,22 @@ export type WsCommand =
   | { cmd: "run_macro"; name: string; revision: string; args: number[] }
   | { cmd: "twp_capture" }
   // Jogging (single axis)
-  | ({ cmd: "jog_cont"; axis: number; vel: number } & Via)
+  // `lease` (P1b): the input gesture's jog lease (jogLease.ts) — every
+  // continuous jog the WebUI sends carries one; the gateway stops it when
+  // the page's main thread stops renewing it
+  | ({ cmd: "jog_cont"; axis: number; vel: number; lease?: number } & Via)
   | ({ cmd: "jog_incr"; axis: number; vel: number; distance: number } & Via)
   | ({ cmd: "jog_stop"; axis: number } & Via)
   // Jogging (multi axis)
-  | { cmd: "jog_cont_multi"; axes: { axis: number; vel: number }[] }
+  | { cmd: "jog_cont_multi"; axes: { axis: number; vel: number }[]; lease?: number }
   | { cmd: "jog_incr_multi"; axes: { axis: number; vel: number; distance: number }[] }
   | ({ cmd: "jog_stop_multi"; axes: number[] } & Via)
+  // The jog lease (P1b): a change inside one gesture — the stops of axes the
+  // lease owns, then new jogs under it — and the gesture's end; both STOPS.
+  // The renewal is a reader frame from the main thread only (jogLease.ts).
+  | ({ cmd: "jog_change"; lease: number; stop: number[]; axes: { axis: number; vel: number }[] } & Via)
+  | ({ cmd: "jog_lease_end"; lease: number } & Via)
+  | { cmd: "jog_renew"; ids: number[] }
   // Spindle
   | { cmd: "spindle_forward"; speed: number }
   | { cmd: "spindle_reverse"; speed: number }
@@ -208,6 +217,8 @@ export function isQueueSafe(cmd: string): boolean {
  */
 const NEVER_DEBOUNCED = new Set<string>([
   "abort", "estop", "estop_reset", "jog_stop", "jog_stop_multi",
+  // the jog lease's stops (P1b): a change's stop half, a gesture's end
+  "jog_change", "jog_lease_end",
   // the stops of button gates BG-08 / BG-18: a pause or a spindle stop is
   // never dropped because another command is still settling
   "cycle_pause", "spindle_stop",
@@ -235,6 +246,7 @@ export const DEFAULT_COOLDOWN_MS = 200;
 const COMMAND_COOLDOWN_MS: Record<string, number> = {
   // Stop/abort: never debounced at all (see NEVER_DEBOUNCED).
   abort: 0, estop: 0, estop_reset: 0, jog_stop: 0, jog_stop_multi: 0,
+  jog_change: 0, jog_lease_end: 0,
   cycle_pause: 0, spindle_stop: 0,
   // Modal flags — instant toggles, no motion started.
   set_optional_stop: 0,
@@ -253,6 +265,7 @@ export function cooldownFor(cmd: string): number {
 
 /** What the gamepad sends (useGamepad.ts): the members that declare `via`. */
 export type GamepadCommand = Extract<WsCommand, { cmd: "jog_cont" | "jog_incr" | "jog_stop" | "jog_stop_multi"
+  | "jog_change" | "jog_lease_end"
   | "cycle_start" | "cycle_resume" | "cycle_pause" | "abort" | "estop" | "spindle_stop"
   | "flood_on" | "flood_off" | "mist_on" | "mist_off" | "home_all" }>;
 

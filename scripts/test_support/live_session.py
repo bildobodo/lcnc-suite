@@ -88,6 +88,10 @@ class SimulatorClient:
         # re-reads of `status` (R292 FI-I24: a cache read is no observation)
         self.keep = tuple(keep) if keep else None
         self.frames: list = []
+        # the gateway's jog lease notices (P1b): (monotonic s, the frame) as
+        # received — an expiry or a late renewal's answer; stamped in take's
+        # one locked region like a status frame
+        self.lease_events: list = []
 
     def send(self, command):
         from websockets.exceptions import ConnectionClosed
@@ -145,25 +149,31 @@ class SimulatorClient:
             self.settings_revs = dict(msg["revs"])
             if isinstance(msg.get("settings"), dict):
                 self.settings = dict(msg["settings"])
-        if msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict):
+        lease_notice = msg.get("type") == "jog_lease_expired"
+        status_frame = msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict)
+        if status_frame or lease_notice:
             with self.record_lock:
                 now = time.monotonic()
-                self.status.update(msg["data"])
-                for kind, text in msg.get("errors") or []:
-                    self.errors.append((now, kind, text))
-                if "rfl_status" in msg and msg["rfl_status"] != self.rfl_status:
-                    self.rfl_status = msg["rfl_status"]
-                    self.rfl_history.append((now, msg["rfl_status"]))
-                if "preview_origin" in msg:
-                    self.preview_origin = msg["preview_origin"]
-                self.safety_trip = msg.get("safety_trip")
-                self.trip_history.append((now, self.safety_trip))
-                self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))
-                # stamped AND appended in one region: a send's mark taken
-                # under this lock sees every frame stamped before it at an
-                # index before its cursor (Codex R382 VM-I24)
-                if self.keep is not None:
-                    self.frames.append((now, {k: self.status.get(k) for k in self.keep}))
+                if lease_notice:
+                    self.lease_events.append((now, dict(msg)))
+                else:
+                    self.status.update(msg["data"])
+                    for kind, text in msg.get("errors") or []:
+                        self.errors.append((now, kind, text))
+                    if "rfl_status" in msg and msg["rfl_status"] != self.rfl_status:
+                        self.rfl_status = msg["rfl_status"]
+                        self.rfl_history.append((now, msg["rfl_status"]))
+                    if "preview_origin" in msg:
+                        self.preview_origin = msg["preview_origin"]
+                    self.safety_trip = msg.get("safety_trip")
+                    self.trip_history.append((now, self.safety_trip))
+                    self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))
+                    # stamped AND appended in one region: a send's mark taken
+                    # under this lock sees every frame stamped before it at an
+                    # index before its cursor (Codex R382 VM-I24)
+                    if self.keep is not None:
+                        self.frames.append((now, {k: self.status.get(k) for k in self.keep}))
+        if status_frame:
             if isinstance(msg.get("toolsetter_booking"), dict):
                 self.toolsetter_booking = msg["toolsetter_booking"]
                 self.booking_history.append((now, msg["toolsetter_booking"]))

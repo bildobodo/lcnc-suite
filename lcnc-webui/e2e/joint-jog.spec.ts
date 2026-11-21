@@ -25,9 +25,14 @@ function perms(over: Partial<Permissions> = {}): Permissions {
   return { ...p, ...over };
 }
 
-type Sent = { cmd?: string; axis?: number };
+type Sent = { cmd?: string; axis?: number; lease?: number };
 const sent = async (): Promise<Sent[]> => ((await ctl({ op: "lastCmds" })) as { cmds?: Sent[] }).cmds ?? [];
-const jogs = async () => (await sent()).filter((c) => c.cmd?.startsWith("jog_")).map((c) => [c.cmd, c.axis]);
+// [cmd, axis] — a lease's end (P1b) names the axis of the jog its lease started
+const jogs = async () => {
+  const all = (await sent()).filter((c) => c.cmd?.startsWith("jog_"));
+  const axisOf = (lease: unknown) => all.find((c) => c.cmd === "jog_cont" && c.lease === lease)?.axis;
+  return all.map((c) => [c.cmd, c.cmd === "jog_lease_end" ? axisOf(c.lease) : c.axis]);
+};
 
 async function open(page: Page, homed: boolean, jointJog: typeof JOINT_JOG = JOINT_JOG) {
   await ctl({ op: "reset" });
@@ -83,7 +88,7 @@ test("before homing: the gantry axis is dimmed with its reason, the head states 
   await expect(diagonal).toHaveAttribute("title", GANTRY);
   await ctl({ op: "clearCmds" });
   await hold(page, "X+");
-  await expect.poll(jogs).toEqual([["jog_cont", 0], ["jog_stop", 0]]);
+  await expect.poll(jogs).toEqual([["jog_cont", 0], ["jog_lease_end", 0]]);
 });
 
 test("before homing the keyboard refuses the closed axis like the button, and jogs an open one", async ({ page }) => {
@@ -96,7 +101,7 @@ test("before homing the keyboard refuses the closed axis like the button, and jo
   expect(await jogs()).toEqual([]);
   await page.keyboard.down("ArrowRight");   // X+
   await page.keyboard.up("ArrowRight");
-  await expect.poll(jogs).toEqual([["jog_cont", 0], ["jog_stop", 0]]);
+  await expect.poll(jogs).toEqual([["jog_cont", 0], ["jog_lease_end", 0]]);
 });
 
 test("before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)", async ({ page }) => {

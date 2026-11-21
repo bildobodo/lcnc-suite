@@ -169,7 +169,7 @@ PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "hold-stall", "hold-stall-mouse", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
-         "jog-buttons", "strip-fit", "press-release")
+         "jog-buttons", "strip-fit", "press-release", "jog-lease")
 SETTINGS = ("forms", "devices", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer", "feature-switches")
 MACROS = ("macros", "devices", "run-hold", "disarmed", "feature-switches")
@@ -220,7 +220,7 @@ RULES: tuple[Rule, ...] = (
              "MachineSelect.vue", "MachineRadio.vue", "MachineColor.vue", "Gate.vue",
              "permissions.ts", "machineControls.ts",
              "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "deviceToken.ts", "simShown.ts", "features.ts",
-             "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts", "releaseClick.ts",
+             "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts", "releaseClick.ts", "jogLease.ts",
              "sidePaneNarrow.ts", "stickyHead.ts", "scrollFade.ts", "helpPlacement.ts",
              "HelpIcon.vue", "FormField.vue", "MoreMenu.vue", "DetailsPopover.vue",
              "useMediaMql.ts", "flashClock.ts", "useDialogState.ts",
@@ -345,8 +345,9 @@ RULES: tuple[Rule, ...] = (
     # ── Outside the frontend ─────────────────────────────────────────────
     Rule(("lcnc-gateway/**",), "the gateway: the browser suite runs against the mock",
          backend=True),
-    Rule(("lcnc-gateway/command_policy.py", "lcnc-gateway/gateway.py", "lcnc-gateway/features.py"),
-         "command admission: the motion buttons", live=("twp-buttons",)),
+    Rule(("lcnc-gateway/command_policy.py", "lcnc-gateway/gateway.py", "lcnc-gateway/features.py",
+          "lcnc-gateway/jog_lease.py"),
+         "command admission: the motion buttons (the jog lease too)", live=("twp-buttons",)),
     Rule(("lcnc-gateway/gateway.py", "lcnc-gateway/status_runtime.py",
           "lcnc-gateway/ws_fanout.py", "lcnc-gateway/hal_*.py", "lcnc-gateway/session_bind.py",
           "lcnc-gateway/lcnc_trace.py"),
