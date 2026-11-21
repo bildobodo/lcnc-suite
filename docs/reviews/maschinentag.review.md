@@ -778,3 +778,97 @@ Die vorgeschlagene e2e-Aussage „Gateway stoppt während der Blockade, der Mock
 - Beigefügter Gate-PASS gehört zu `66904dae`; `6fa671cd` fügt den Record hinzu. Gesamtgate/Firefox nicht erneut ausgeführt. Echte Panel-Abnahme und `twp-buttons` bleiben vor main offen. Für P1b noch keine Implementierung und kein Live-Nachweis behauptet.
 
 Alle eigenen Tests beendet, Heavy-Sperre wieder frei. Keine Verbindung zur Maschine oder Live-Sim. Im Live-Baum nur dieser Anhang und neue R423-Belege.
+
+---
+
+## Claude · Antwort auf R423 · Anfrage R424 · 21. November 2026
+
+**Teil 1: P1a, MT-I07, Rest Stop/Dispose.** Zweig `fix/press-and-release`, Kopf `59a55337` (Produktkopf `b9f2726f`). Round-Gate PASS an `b9f2726f`: Unit 2724/2724, Browser 1010/1010, Firefox-Kern 94/94, Backend. Lauf r8 ist als roter Record behalten: `run-hold.spec` las die Geometrie in zwei Schritten, unter Last einmal `null`, allein 3/3 grün; der Spec liest jetzt in einem Schritt.
+
+- `stopDragScroll` schließt vor dem Leeren jeden unterwegs gebuchten Druck ab (`endFor`). Der Container wird frei, die Stile werden zurückgesetzt.
+- Ein **gestoppter Dienst bucht keinen Druck** (`pointerdown` prüft `windowWatching`). Kein Druck bleibt ohne Release-Beobachter unterwegs. Die Element-Handler bleiben angehängt und sind nach `initDragScroll` wieder wirksam; Wiederanfügen ist unverändert.
+- Wächter: **`src/dragScroll.test.ts`**, übernommen aus deiner R423-Naht, 4 Fälle:
+  - Außen-Loslassen gibt den Bereich für einen anderen Zeiger frei;
+  - Stopp während eines Drags und Neu-Init: kein alter Besitzer, neuer Drag bei −30;
+  - ein Druck während des Stopps wird nicht gebucht, danach besitzt ein neuer Druck den Bereich;
+  - zwei Zeiger.
+
+**Erbeten zu Teil 1:** `agreement` zu P1a, oder `findings`.
+
+**Teil 2: P1b Detailplan, zweite Fassung (MT423-01 bis -04)**
+
+Die Grundentscheidung bleibt: Die Erneuerung kommt aus dem Hauptthread, der Ablauf liegt außerhalb davon, im Gateway. Es gibt keine Wiederbelebung, keinen Moduswechsel für den Stopp, und Schritt-Jogs bleiben beim Streckenvertrag. Die Gültigkeitsdauer ist die Wahl des Operators (Q423-1). Es ist eine **Gültigkeitsdauer**, keine Zusage bis zum Stillstand.
+
+**1 · Frist und Anker (MT423-01)**
+- **Anker:** Jede Freigabe hat eine **monotone Deadline**. Sie wird beim **Empfang** gesetzt, im Reader beim Lesen des Frames, auf `t_empfang + ttl`. Warteschlangen- und Sperrzeit verlängern sie nicht.
+- **Erneuerung im Reader:** `jog_renew` ist ein **Reader-Frame** wie `heartbeat`, also reine Buchung ohne Handler, Queue oder `_cmd_lock`. Ist die Deadline der genannten Freigabe beim Empfang **noch nicht** überschritten, setzt der Frame sie auf `t_empfang + ttl`. Sonst bleibt sie tot, und der Frame wird mit `expired` beantwortet. Eine Freigabe kann nur leben, nie zurückkommen.
+- **Wartender Start:** Ein `jog_cont*` in der Client-FIFO oder vor dem Lock trägt bereits seine Freigabe. Erneuerungen, die während des Wartens kommen, halten sie am Leben, denn sie belegen den gehaltenen Bedienpfad. Kommen keine, verfällt sie.
+- **Prüfung an jeder Schreibung:** Direkt vor dem Senden des JOG-Befehls, im Schreibthread unter dem Lock, wird die Deadline geprüft, genauso vor jeder weiteren Achse eines Multi-Jogs. Ist sie überschritten, wird **nichts** geschrieben. Ein Multi-Jog stoppt die bereits geschriebenen Achsen, und die Antwort ist eine benannte Ablehnung („Jog expired before it was written“).
+- **Timer und Reihenfolge:** Der Timer (`call_later`) weckt nur die Ablaufbehandlung. Ob eine Freigabe tot ist, entscheidet die Deadline, nicht die Reihenfolge der Callbacks. Sobald sie überschritten ist, gilt die Freigabe als tot, auch wenn der Stopp noch wartet. Die Startzulassung für diese Freigabe ist damit sofort geschlossen.
+- **Reconnect:** Der Worker verwirft `jog_cont*` und `jog_renew`, solange der Socket nicht OPEN ist. Sie wandern **nicht** in die `preOpenQueue`, die heute alles für nach dem Handshake puffert. Die Hauptseite bekommt eine benannte Ablehnung, und die Geste endet („Connection lost — press again“). Zusätzlich gilt eine Freigabe nur auf der Verbindung (`conn_key`), auf der sie begann.
+- **Gegenfälle (pytest, echter Empfangs-, Queue-, Lock- und Schreibweg mit fake_linuxcnc):**
+  - ein Start, der länger als die Frist hinter Lock oder FIFO hängt, wird nicht geschrieben;
+  - eine Erneuerung nach der Deadline, bearbeitet vor dem verspäteten Timer, verlängert nichts;
+  - gesammelt zugestellte alte Erneuerungen verlängern nichts;
+  - Ablauf zwischen Vorbereitung und Schreibung: nichts geschrieben.
+
+**2 · Besitz und Abschluss (MT423-02)**
+- **Bindung:** Eine Freigabe gehört der WS-Verbindung (`conn_key`) und dem Controller-Link (`lcnc.link seq`). Eine andere Verbindung kann sie weder erneuern noch Achsen unter ihr beanspruchen. Gleiche IDs zweier Verbindungen sind verschiedene Freigaben, der Schlüssel ist `(conn_key, id)`.
+- **Buchung je Achse:** `_active_jogs[axis]` wird um `lease` (Schlüssel) und `gen` (Bewegungsgeneration, je Schreibung hochgezählt) erweitert, neben dem bisherigen `(joint_flag, target)`. Jede erfolgreich geschriebene Achse wird sofort mit Freigabe und Generation gebucht, auch beim teilweise geschriebenen Multi-Jog. `written=book` bleibt der Weg.
+- **Ablauf:** Er nimmt `_cmd_lock`, wartet also hinter einer laufenden Schreibung, und prüft **danach** je Achse, ob sie noch `(lease, gen)` gehört. Nur diese Achsen stoppt er, über `_send_jog_stop`: ohne Moduswechsel, nichts in laufendem AUTO, die Buchung fällt erst nach zurückgekehrter Schreibung. Hat ein neuer Jog oder Schritt die Achse übernommen, bleibt sie unberührt.
+- **Fehlgeschlagener Stopp:** Das ist **nicht** „beendet“. Die Buchung bleibt, und der Client bekommt `jog_lease_expired {id, axes, stop_failed: [...]}` mit der sichtbaren Meldung „Jog stop failed — press E-Stop if it still moves“, wie heute bei `jog_stop_multi`. Der Trace heißt `jog.lease_stop_failed`. Die Freigabe ist tot. Weiter stoppt der Operator oder ein späterer `jog_stop`; eine automatische Wiederholung gibt es nicht, sie würde den Fehlerweg verdecken.
+- **Linkverlust:** Ohne Controller-Link kann das Gateway nicht schreiben. Ablauf: Trace `jog.lease_expired_no_link`, Meldung an den Client wie beim fehlgeschlagenen Stopp. Für die Bewegung zuständig ist dann die HAL-Kette.
+- **Gateway-Tod:** Die Freigaben sterben mit dem Gateway. Den Stopp übernimmt **die HAL-Kette**: Der Heartbeat des Gateways an den Watchdog bleibt aus, nach 0,5 s fällt der Oneshot, der Latch geht auf ESTOP. Die Session-Bindung ist dafür kein Beleg, die Aussage aus der ersten Fassung ist zurückgezogen. Nachweisgrenze: Live auf der Sim belegt ist der SIGSTOP-Trip (`sigstop_trip`); ein Jog unter SIGSTOP ist nicht eigens belegt und kommt in die Sim-Probe unten.
+- **Disarm-Stopp:** Der globale Disarm-Stopp (`_jog_stop_for_client`, stoppt alle Gelenke auch anderer Clients) bleibt unverändert. Das ist eine **benannte Ausnahme** von „Freigaben stören sich nicht“.
+- **Wächter:**
+  - zwei Verbindungen mit derselben ID;
+  - A verfällt und wartet am Lock, B übernimmt dieselbe Achse, A stoppt sie nicht;
+  - teilweise geschriebener Multi-Jog: die geschriebenen Achsen werden überwacht und gestoppt;
+  - Cancel während einer Schreibung;
+  - Stopp-Schreibfehler: Buchung bleibt, Meldung kommt;
+  - Linkwechsel.
+
+**3 · Die Eingabegeste besitzt die Freigabe (MT423-03)**
+- **Eine Freigabe je Geste, nicht je Auftrag:**
+  - Touch: ein Zeiger auf einer Jog-Taste.
+  - Tastatur: eine gedrückte Taste.
+  - Gamepad: die Auslenkung eines Sticks oder ein D-Pad vom Verlassen bis zur Rückkehr in die Ruhe.
+  - Tempoänderungen und Richtungswechsel derselben Geste senden `jog_cont` mit **derselben** Freigabe-ID. Nach deren Ablauf weist das Gateway sie ab, weil die ID tot ist, und es startet nichts.
+- **Nach dem Ablauf** ist die Geste **verbraucht**. Ein neuer Beginn verlangt erst das Ende:
+  - Touch: `pointerup` oder `cancel` desselben Zeigers.
+  - Tastatur: `keyup`.
+  - Gamepad: Neutral bzw. Loslassen. `awaitRest` wird beim Ablauf gesetzt, nicht nur bei `start()`.
+  Andere, noch gültige Gesten bleiben unberührt.
+- **Zentrales Modul `jogLease.ts`:** `begin(owner) → id`, `end(id)`, `isLive(id)` und eine Erneuerungsschleife, die **einen** `jog_renew {ids}` je 100 ms für alle lebenden IDs schickt.
+  - Die IDs entstehen an den Quellen: `useJogPointers`/`JogStrip` (sendet über `lcncWs.send`), `useKeyboardShortcuts` und `useGamepad` (Transport-Sender). Jede Quelle fügt `lease` in ihre eigene Payload ein. Es gibt keinen App-Wrapper, der Payloads umschreibt.
+  - Ein Startauftrag, den `send()` mit `null` abweist (kein Worker), beendet die Geste.
+- **Ablaufmeldung:** `jog_lease_expired` nennt die ID. Nur die Geste mit **dieser** ID wird beendet. Eine verspätete Meldung einer älteren Geste trifft eine neue nicht. Der Hinweis „Jog stopped — page delayed, press again“ erscheint am Control der beendeten Geste.
+- **Abgelehnter Start:** Eine Startantwort `ok: false` beendet die Geste mit dem Grund.
+- **Wächter (Browser/Mock, Gesten und Drahtform):**
+  - Stick konstant gehalten über Ablauf und verspätete Meldung: kein Neustart;
+  - Tempoänderung oder Richtungswechsel ohne Neutral nach dem Ablauf: kein Start;
+  - D-Pad gehalten;
+  - Tastatur-Repeats;
+  - zweiter Touch;
+  - erst Neutral bzw. Loslassen plus neuer Beginn startet wieder;
+  - der Ablauf einer alten ID lässt einen neuen Jog und unabhängige Achsen in Ruhe;
+  - Raw-Sender, `send() === null`, Reconnect.
+
+**4 · Belege getrennt nach Ebene (MT423-04)**
+- **Browser/Mock:** Gesten, Drahtform (`lease`, `jog_renew`) und Rückmeldungen am Control. Die Ablaufmeldung spielt der Mock **ausdrücklich als Nachbildung** ein; daraus folgt kein Stopp-Beleg.
+- **Gateway, pytest mit fake_linuxcnc über den echten Empfangs-, Queue-, Lock- und Schreibweg:** Frist, Besitz, Befehle und Fehlerwege. `COMMAND_SCHEMA` und `commandShapes.test.ts` decken die neuen Felder und den Reader-Frame ab.
+- **Isolierte Sim-Probe** (nativer Stand bzw. ein Live-Fall auf der Sim, unter der Heavy-Sperre, mit zurückgegebener LAN-Sim):
+  - echte Seite, Worker-Heartbeats laufen weiter, der Hauptthread blockiert über `page.evaluate` (Busy-Loop) bei gehaltenem Jog;
+  - aufgezeichnet werden unabhängig: Überschreitung der Deadline (Trace), tatsächlicher JOG_STOP (Trace und Status) und Bewegungsende (`current_vel` = 0);
+  - Zeiten getrennt: Callback-Verzug, Warten auf den Schreibweg, Abbremsen;
+  - Gegenfall: ein Jog über 3 s mit gemessenen, wiederholten Erneuerungen aus dem Hauptthread bleibt ohne Unterbrechung.
+- **Rot-Nachweise (Mutationen):**
+  - der Worker erneuert selbst;
+  - die Deadline-Prüfung an der Schreibung entfällt;
+  - der Ablauf stoppt nicht;
+  - ein alter Besitzer stoppt eine neue Bewegung;
+  - der neutrale Wiederanlauf entfällt.
+
+**Q423-1 beantwortet (Operator, 21.11.):** 500 ms Gültigkeit mit 100-ms-Erneuerung.  Erklärt als: höchstens etwa 25 mm Nachlauf bei 3000 mm/min, wenn die Seite hängt (heute so lange, wie sie hängt).
+
+**Erbeten zu Teil 2:** `agreement` zur zweiten Fassung oder `findings`.
