@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 """LCNC suite trace bundler — merge structured + legacy logs by wall time.
 
-Reads (paths resolved via lcnc_paths.resolve(), default <install-dir>/runlogs):
-  - trace.ndjson         (structured stream; gateway, hal_reader, hal_watchdog,
-                          launcher proc.status, browser telemetry)
+Reads (paths resolved via lcnc_paths.resolve() or --log-dir, default
+<install-dir>/runlogs):
+  - trace.ndjson + every rotation trace.ndjson.<n>, as ONE snapshot taken
+                         under the writers' lock (structured stream; gateway,
+                         hal_reader, hal_watchdog, launcher, browser telemetry)
+  - crash.log + its rotations, the same way, copied as its own artifact
   - gateway.log          (uvicorn stdout/stderr; uses [+Nms] mono offsets)
   - hal_watchdog.log     (HB-RECV / HB-RISING instrumentation)
   - launcher.log         (bash launcher; [HH:MM:SS.mmm])
   - hal_sample.csv       (halsampler -t output, prefixed sample number)
 
-Writes (default — in same log dir):
+Writes (into --out):
   - trace-merged.ndjson — full structured stream
   - trace-merged.log    — human-readable, timeline-sorted
+  - crash-snapshot.log  — crash.log's generations (never merged into the
+                          timeline: the trace carries every crash.* event)
+  - bundle.json         — the requested window, the capture bound, the
+                          sources (name, dev, ino, size, records, damaged),
+                          gaps, truncated_before / tail_missing
 
 Usage:
   python3 trace-bundle.py                  # whole capture
@@ -44,11 +52,30 @@ except Exception:
     # Mirror the resolver's derived default: <install-dir>/runlogs.
     _LOG_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "runlogs"))
 
-TRACE_PATH = os.path.join(_LOG_DIR, "trace.ndjson")
+TRACE_NAME, TRACE_LOCK = "trace.ndjson", "trace.lock"
+CRASH_NAME, CRASH_LOCK = "crash.log", "crash.lock"
 GATEWAY_LOG = os.path.join(_LOG_DIR, "gateway.log")
 WATCHDOG_LOG = os.path.join(_LOG_DIR, "hal_watchdog.log")
 LAUNCHER_LOG = os.path.join(_LOG_DIR, "launcher.log")
 HAL_SAMPLE_CSV = os.path.join(_LOG_DIR, "hal_sample.csv")
+
+#: a trip's window: 5 s before, 1 s after; the capture waits for the tail
+#: plus the writers' slack, bounded on the MONOTONIC clock (Codex R426: a
+#: stepped wall clock never makes it an unbounded wait)
+TRIP_BEFORE_NS, TRIP_AFTER_NS = 5_000_000_000, 1_000_000_000
+TAIL_SLACK_NS = 200_000_000
+TAIL_WAIT_MAX_S = (TRIP_AFTER_NS + TAIL_SLACK_NS) / 1e9
+#: the bundler is no heartbeat path: it may wait this long for a log's lock
+SNAPSHOT_LOCK_WAIT_S = 2.0
+
+
+def _set_log_dir(path: str) -> None:
+    global _LOG_DIR, GATEWAY_LOG, WATCHDOG_LOG, LAUNCHER_LOG, HAL_SAMPLE_CSV
+    _LOG_DIR = path
+    GATEWAY_LOG = os.path.join(path, "gateway.log")
+    WATCHDOG_LOG = os.path.join(path, "hal_watchdog.log")
+    LAUNCHER_LOG = os.path.join(path, "launcher.log")
+    HAL_SAMPLE_CSV = os.path.join(path, "hal_sample.csv")
 
 
 def _safe_open(path: str):
@@ -59,27 +86,201 @@ def _safe_open(path: str):
         return None
 
 
-def load_trace_ndjson() -> List[dict]:
-    """Read structured trace.ndjson. Returns events with t_wall_ns."""
-    f = _safe_open(TRACE_PATH)
-    if f is None:
-        return []
-    events = []
-    with f:
-        for line in f:
-            line = line.strip()
-            if not line:
+# ── A log's generations as ONE snapshot (P3, Codex R425 MT425-03) ────────
+# Reading `trace.ndjson.5 … trace.ndjson` by NAME, one after another, is no
+# consistent picture: a rotation between two opens renames the file just
+# read to `.1` and the next open reads it AGAIN (A, A, B), or a generation is
+# missed. Under the log's lock (the writers' own, lcnc_trace) every
+# generation is OPENED and its (dev, ino, size) recorded; after the lock is
+# released only those descriptors are read, each up to its recorded size — a
+# slow reader holds up no writer, and a later rotation renames files this
+# snapshot already holds. A name `<log>.<n>` only — `*.lock` never matches.
+class LogSnapshot:
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.files: List[Tuple[str, int, int, int, int]] = []   # (name, fd, dev, ino, size), oldest first
+        self.gaps: List[int] = []          # generation numbers missing below the highest one
+        self.lock = "held"                 # or "not_acquired: <why>" — named in the bundle, never silent
+        self.capture_bound_ns = 0          # the wall clock at the capture (inside the lock)
+        self.errors: List[str] = []
+
+    def close(self) -> None:
+        for _n, fd, *_ in self.files:
+            try:
+                os.close(fd)
+            except OSError:
+                pass  # safe-silent: closing a read-only snapshot fd
+
+    def sources(self) -> List[dict]:
+        return [{"name": n, "dev": dev, "ino": ino, "size": size} for n, _fd, dev, ino, size in self.files]
+
+
+def _generations(log_dir: str, name: str) -> Tuple[List[Tuple[int, str]], List[int]]:
+    """[(n, filename)] oldest first (the highest number first, the live
+    file n = 0 last) and the gaps below the highest number."""
+    pat = re.compile(r"\A" + re.escape(name) + r"(?:\.([1-9][0-9]*))?\Z")
+    found: Dict[int, str] = {}
+    try:
+        entries = os.listdir(log_dir)
+    except OSError:
+        entries = []
+    for entry in entries:
+        m = pat.match(entry)
+        if m:
+            found[int(m.group(1) or 0)] = entry
+    top = max(found) if found else 0
+    gaps = [n for n in range(1, top) if n not in found]
+    return sorted(found.items(), key=lambda kv: -kv[0]), gaps
+
+
+def _take_lock(path: str, wait_s: float) -> Tuple[Optional[int], str]:
+    import fcntl
+    try:
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o644)
+    except OSError as e:
+        return None, f"not_acquired: open {type(e).__name__} {e.errno}"
+    deadline = time.monotonic() + wait_s
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd, "held"
+        except BlockingIOError:
+            if time.monotonic() >= deadline:
+                os.close(fd)
+                return None, f"not_acquired: busy for {wait_s:g} s"
+            time.sleep(0.005)
+        except OSError as e:
+            os.close(fd)
+            return None, f"not_acquired: {type(e).__name__} {e.errno}"
+
+
+def take_snapshot(log_dir: str, name: str, lock_name: str,
+                  lock_wait_s: float = SNAPSHOT_LOCK_WAIT_S) -> LogSnapshot:
+    """Open every generation of `name` under its lock and record each one's
+    identity and size; read them later with read_snapshot()."""
+    snap = LogSnapshot(name)
+    lock_fd, snap.lock = _take_lock(os.path.join(log_dir, lock_name), lock_wait_s)
+    try:
+        snap.capture_bound_ns = time.time_ns()
+        gens, snap.gaps = _generations(log_dir, name)
+        for _n, entry in gens:
+            try:
+                fd = os.open(os.path.join(log_dir, entry), os.O_RDONLY | os.O_CLOEXEC)
+            except FileNotFoundError:
+                snap.errors.append(f"{entry}: vanished before its open")
+                continue
+            except OSError as e:
+                snap.errors.append(f"{entry}: {type(e).__name__} {e.errno}")
+                continue
+            st = os.fstat(fd)
+            snap.files.append((entry, fd, st.st_dev, st.st_ino, st.st_size))
+    finally:
+        if lock_fd is not None:
+            os.close(lock_fd)   # releases the lock
+    return snap
+
+
+def read_snapshot(snap: LogSnapshot) -> List[Tuple[str, bytes]]:
+    """Each snapshot file's bytes up to its recorded size (oldest first)."""
+    out: List[Tuple[str, bytes]] = []
+    for entry, fd, _dev, _ino, size in snap.files:
+        chunks, done = [], 0
+        while done < size:
+            b = os.pread(fd, min(1 << 20, size - done), done)
+            if not b:
+                snap.errors.append(f"{entry}: ended at {done} of {size} bytes")
+                break
+            chunks.append(b)
+            done += len(b)
+        out.append((entry, b"".join(chunks)))
+    return out
+
+
+def parse_trace(data: List[Tuple[str, bytes]]) -> Tuple[List[dict], Dict[str, Dict[str, int]]]:
+    """The records of the snapshot's files and, per file, its counts: a line
+    that is no JSON object with a wall time — a terminated fragment, a cut
+    last line — is DAMAGED and counted, never skipped silently."""
+    events: List[dict] = []
+    counts: Dict[str, Dict[str, int]] = {}
+    for entry, raw in data:
+        c = counts.setdefault(entry, {"records": 0, "damaged": 0})
+        lines = raw.split(b"\n")
+        if lines and lines[-1] == b"":
+            lines.pop()
+        elif lines:
+            c["cut_last_line"] = 1   # no newline at the recorded size
+        for line in lines:
+            if not line.strip():
                 continue
             try:
-                ev = json.loads(line)
-            except Exception:
+                ev = json.loads(line.decode("utf-8", "replace"))
+            except ValueError:
+                c["damaged"] += 1
                 continue
-            if not isinstance(ev, dict):
+            if not isinstance(ev, dict) or not isinstance(ev.get("t_wall_ns"), int):
+                c["damaged"] += 1
                 continue
-            if "t_wall_ns" not in ev:
-                continue
+            c["records"] += 1
             events.append(ev)
-    return events
+    return events, counts
+
+
+def wait_for_tail(trip_ns: int, *, now_ns=time.time_ns, sleep=time.sleep,
+                  monotonic=time.monotonic) -> float:
+    """Wait until the wall clock passes trip + 1 s + the writers' slack, at
+    most TAIL_WAIT_MAX_S on the monotonic clock (a trip read ahead of a
+    stepped clock never stretches it). Returns the seconds waited."""
+    want_s = (trip_ns + TRIP_AFTER_NS + TAIL_SLACK_NS - now_ns()) / 1e9
+    wait_s = max(0.0, min(want_s, TAIL_WAIT_MAX_S))
+    t0 = monotonic()
+    deadline = t0 + wait_s
+    while True:
+        left = deadline - monotonic()
+        if left <= 0:
+            return monotonic() - t0
+        sleep(min(left, 0.05))
+
+
+def load_trace_ndjson(log_dir: str) -> Tuple[List[dict], dict]:
+    """The trace's records from ONE snapshot of all its generations, and the
+    snapshot's account (sources, gaps, lock, capture bound, damage)."""
+    snap = take_snapshot(log_dir, TRACE_NAME, TRACE_LOCK)
+    try:
+        events, counts = parse_trace(read_snapshot(snap))
+    finally:
+        snap.close()
+    if not snap.files:
+        sys.stderr.write(f"[bundler] missing input: {os.path.join(log_dir, TRACE_NAME)} (no generation)\n")
+    account = {
+        "sources": [{**s, **counts.get(s["name"], {})} for s in snap.sources()],
+        "gaps": [f"{TRACE_NAME}.{n}" for n in snap.gaps],
+        "lock": snap.lock,
+        "capture_bound_ns": snap.capture_bound_ns,
+        "errors": snap.errors,
+        "oldest_ns": min((e["t_wall_ns"] for e in events), default=None),
+        "newest_ns": max((e["t_wall_ns"] for e in events), default=None),
+    }
+    return events, account
+
+
+def copy_crash_log(log_dir: str, out_dir: str) -> dict:
+    """crash.log as its OWN artifact (Codex R426): a snapshot under its own
+    lock, the generations' bytes concatenated oldest first into
+    crash-snapshot.log, each source named. Its records stay OUT of the
+    timeline — the trace already carries every crash.* event — so nothing is
+    counted twice and nothing is deduplicated by content."""
+    snap = take_snapshot(log_dir, CRASH_NAME, CRASH_LOCK)
+    try:
+        data = read_snapshot(snap)
+    finally:
+        snap.close()
+    path = os.path.join(out_dir, "crash-snapshot.log")
+    with open(path, "wb") as f:
+        for _entry, raw in data:
+            f.write(_redact(raw.decode("utf-8", "replace")).encode("utf-8"))
+    return {"file": "crash-snapshot.log", "sources": snap.sources(),
+            "gaps": [f"{CRASH_NAME}.{n}" for n in snap.gaps], "lock": snap.lock,
+            "capture_bound_ns": snap.capture_bound_ns, "errors": snap.errors}
 
 
 def _t0_wall_ns_for_proc(events: Iterable[dict]) -> Dict[Tuple[str, int], int]:
@@ -357,6 +558,30 @@ def write_log(events: List[dict], out_path: str) -> None:
             f.write(_redact(f"[+{rel_ms:9.3f}ms] [{level:5s}] [{proc:18s}] {tag:30s} {msg} {extras}").rstrip() + "\n")
 
 
+def bundle_manifest(account: dict, window: Optional[Tuple[int, int]], trip: Optional[int],
+                    waited_s: float, crash: dict) -> dict:
+    """What the bundle holds and what it cannot (bundle.json): the requested
+    window, the capture bound, the trace's sources and gaps, and the edges —
+    `truncated_before` (the window starts before the oldest record kept: a
+    RETENTION bound, no proof of lost events), `tail_missing` (the capture
+    was taken before the window's end)."""
+    m: dict = {
+        "requested_window": None if window is None else {"start_ns": window[0], "end_ns": window[1]},
+        "trip_ns": trip,
+        "tail_wait_s": round(waited_s, 3),
+        "capture_bound_ns": account["capture_bound_ns"],
+        "trace": {k: account[k] for k in ("sources", "gaps", "lock", "errors", "oldest_ns", "newest_ns")},
+        "damaged_lines": sum(s.get("damaged", 0) for s in account["sources"]),
+        "crash": crash,
+        "order": "wall time — display order, not causality",
+    }
+    if window is not None:
+        oldest = account["oldest_ns"]
+        m["truncated_before"] = oldest is None or window[0] < oldest
+        m["tail_missing"] = account["capture_bound_ns"] < window[1]
+    return m
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--trip", action="store_true",
@@ -371,9 +596,18 @@ def main() -> int:
                     help="filter to phase.* / lag.* / loop.* events")
     ap.add_argument("--out", type=str, default="/tmp",
                     help="output directory (default: /tmp)")
+    ap.add_argument("--log-dir", type=str, default=None,
+                    help="the suite's log dir (the gateway passes the one it writes; "
+                         "default: lcnc_paths.resolve())")
     args = ap.parse_args()
+    if args.log_dir:
+        _set_log_dir(args.log_dir)
 
-    structured = load_trace_ndjson()
+    waited_s = 0.0
+    if args.trip_ns is not None:
+        # the window's tail: the writers' records up to trip + 1 s (bounded)
+        waited_s = wait_for_tail(args.trip_ns)
+    structured, account = load_trace_ndjson(_LOG_DIR)
     t0_lookup = _t0_wall_ns_for_proc(structured)
 
     legacy_gw = load_gateway_log(t0_lookup)
@@ -382,8 +616,12 @@ def main() -> int:
     sampler = load_hal_sample(t0_lookup)
 
     all_events = structured + legacy_gw + legacy_wd + legacy_l + sampler
+    # Display order by wall time — no causality (the processes' clocks are
+    # one clock, their records' order across processes is not proven by it)
     all_events.sort(key=lambda e: e["t_wall_ns"])
 
+    window: Optional[Tuple[int, int]] = None
+    trip: Optional[int] = None
     if args.trip_ns is not None or args.trip:
         if args.trip_ns is not None:
             trip = args.trip_ns
@@ -392,12 +630,11 @@ def main() -> int:
         if trip is None:
             sys.stderr.write("[bundler] --trip: no trip detected\n")
             return 2
-        start_ns = trip - 5 * 1_000_000_000
-        end_ns = trip + 1 * 1_000_000_000
-        all_events = slice_window(all_events, start_ns, end_ns)
+        window = (trip - TRIP_BEFORE_NS, trip + TRIP_AFTER_NS)
     elif args.window:
-        start_ns, end_ns = parse_window(args.window, all_events)
-        all_events = slice_window(all_events, start_ns, end_ns)
+        window = parse_window(args.window, all_events)
+    if window is not None:
+        all_events = slice_window(all_events, window[0], window[1])
 
     if args.phases_only:
         all_events = [
@@ -410,6 +647,10 @@ def main() -> int:
     log_path = os.path.join(args.out, "trace-merged.log")
     write_ndjson(all_events, nd_path)
     write_log(all_events, log_path)
+    crash = copy_crash_log(_LOG_DIR, args.out)
+    manifest = bundle_manifest(account, window, trip, waited_s, crash)
+    with open(os.path.join(args.out, "bundle.json"), "w") as f:
+        f.write(_redact(json.dumps(manifest, indent=1)) + "\n")
 
     sys.stderr.write(
         f"[bundler] {len(structured)} structured + "
