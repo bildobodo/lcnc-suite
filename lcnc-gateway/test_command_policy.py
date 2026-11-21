@@ -100,6 +100,7 @@ INLINE_EXEMPT = frozenset({
     "halshow_live",     # diagnostics subscribe toggle (read)
     "halshow_refresh",  # diagnostics pin dump (read)
     "tab_visibility",   # client-side hint for status throttling
+    "jog_renew",        # the jog lease's renewal (P1b): bookkeeping in the reader, starts nothing
 })
 
 DISPATCHED_COMMANDS = _dispatched_commands()

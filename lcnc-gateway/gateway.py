@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
+import itertools
 import contextvars
 import threading
 from pathlib import Path
@@ -134,6 +135,8 @@ from settings_store import (SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SEC
                             DEVICE_SECTIONS as _DEVICE_SECTIONS, Stale as _SettingsStale,
                             UnknownDevice as _UnknownDevice)
 import features as _features
+import jog_lease as _jog_lease_mod
+from jog_lease import LeaseTable as _LeaseTable, JOG_LEASE_DEAD, JOG_LEASE_FOREIGN_LINK
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
@@ -355,6 +358,10 @@ _WS_STOP_CMDS = STOP_COMMANDS   # ONE set: the payload contract widens these, ne
 # during an MDI is a certified no-op class (twp_buttons_check) and reordering
 # it ahead of the jog_cont it belongs to would be an unbounded jog.
 _WS_PREEMPT_CMDS = frozenset({"abort", "estop"})
+# The commands whose receipt the reader books for the jog lease (P1b): a start
+# or change begins / renews its lease, an end ends it — before the queue, so
+# queue and lock time never extend a deadline.
+_JOG_LEASE_FRAMES = frozenset({"jog_cont", "jog_cont_multi", "jog_change", "jog_lease_end"})
 # Never cancelled by a preempt: the stops themselves, and `arm` — its disarm
 # branch jog-stops under _cmd_lock and flips client.armed; cancelling it
 # would leave the flip with no reply.
@@ -1516,7 +1523,28 @@ _shared_status: Optional["StatusPayload"] = None
 # Each wire axis maps to the (joint_flag, CMD.jog index) its jog was STARTED
 # with (button gates package E): the stop addresses exactly that jog, never a
 # target recomputed from a motion mode or map read later.
-_active_jogs: Dict[int, Tuple[int, int]] = {}
+# Since P1b (the jog lease, 2026-11-21) a row is (joint_flag, CMD.jog index,
+# owner, generation): `owner` the lease the jog was written under —
+# (conn_key, lease id), None for a jog without one (a script) — and
+# `generation` a number drawn for each write. A lease's stop (its expiry,
+# its end, a change) stops only an axis whose row still carries that lease;
+# the operator's own stops (jog_stop, the pad's Stop, a disarm) stop the axis
+# whoever wrote it. Rows of two elements (older test bookings) have no owner.
+JogOwner = Tuple[Tuple[str, int], int]
+_active_jogs: Dict[int, Tuple[Any, ...]] = {}
+#: the jog leases of every connection (jog_lease.py) — the event loop
+#: mutates them; a write thread reads one lease (is_live)
+_jog_leases = _LeaseTable()
+#: one generation per jog write (next() is atomic in CPython)
+_jog_gen = itertools.count(1)
+
+
+def _jog_row_owner(row: Optional[Tuple[Any, ...]]) -> Optional[JogOwner]:
+    """The (lease key, generation) a booked jog was written under, or None
+    (no lease, or an older two-element row)."""
+    if row is None or len(row) < 4 or row[2] is None:
+        return None
+    return (row[2], row[3])
 
 # ---- Program-elapsed timer (server-authoritative) ----
 # Tracked across status polls so every connected client (including ones that
@@ -4143,7 +4171,12 @@ async def set_mode(mode: TaskMode, force: bool = False,
         _active_jogs.clear()   # the switch took (or is unverifiable): no jog is active
 
 
-async def _send_jog_stop(axis: int) -> None:
+#: a lease's stop for an axis whose row no longer carries that lease — another
+#: gesture or an operator stop took it (P1b, Codex R425 MT425-01)
+JOG_STOP_NOT_OWNED = "Jog taken over — not this gesture's to stop"
+
+
+async def _send_jog_stop(axis: int, owner: Optional[JogOwner] = None) -> None:
     """JOG_STOP for a jog the gateway started on wire `axis`, addressed as it
     was started, in whatever mode task is in — no switch to MANUAL (button
     gates package E, Codex R218): task 2.9.4 issues a jog stop in MANUAL, in
@@ -4154,9 +4187,19 @@ async def _send_jog_stop(axis: int) -> None:
     would have suppressed the stop. Booked stopped only once the write
     returned; a failed write raises and the jog stays booked. Caller holds
     `_cmd_lock` and has ruled out AUTO running (task refuses a jog stop
-    there, and no jog can run)."""
-    jf, arg = _active_jogs[axis]
-    await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None)
+    there, and no jog can run).
+
+    `owner` (P1b): a LEASE's stop — its expiry, its end, a change's stop half
+    — names the (lease, generation) it saw after taking `_cmd_lock`; the
+    write's own last check, in its thread, refuses (JOG_STOP_NOT_OWNED,
+    nothing written) unless the row still carries exactly that owner. An
+    operator's stop names none and stops the axis whoever wrote it."""
+    row = _active_jogs[axis]
+    jf, arg = row[0], row[1]
+    def still_owned() -> Optional[str]:
+        return None if _jog_row_owner(_active_jogs.get(axis)) == owner else JOG_STOP_NOT_OWNED
+    await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None,
+                        admit=still_owned if owner is not None else None)
     _active_jogs.pop(axis, None)
 
 
@@ -4186,7 +4229,21 @@ def _homed_now() -> Optional[bool]:
     return _status_runtime_mod.homed_of(safe_get("homed", None), safe_get("joints", 0))
 
 
-async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
+def _lease_write_refusal(lease_key: Tuple[str, int]) -> Optional[str]:
+    """A leased jog's write may go out only while its lease lives (P1b): the
+    deadline AHEAD at this moment — decided by the deadline, never by whether
+    the expiry timer ran — nothing ended it, and the controller Link the
+    lease began on is still the published one. Read in the write's thread."""
+    if not _jog_leases.is_live(lease_key, time.monotonic()):
+        return JOG_LEASE_DEAD
+    lease = _jog_leases.get(lease_key)
+    if lease is None or lease.link is None or not _link_is_current(lease.link):
+        return JOG_LEASE_FOREIGN_LINK
+    return None
+
+
+async def _start_jogs(cmd: str, armed: bool, entries,
+                      lease_key: Optional[Tuple[str, int]] = None) -> Dict[str, Any]:
     """jog_cont / jog_incr and their multi forms: `entries` (wire axis, vel,
     distance — None for a continuous jog). Caller holds `_cmd_lock` and has
     checked arm and a running AUTO / MDI.
@@ -4203,7 +4260,16 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
     PREPARED under — target, gantry closure and cap belong to it (Codex R219
     BG-33): homed or not changed since, it refuses; an unread state is not
     homed. Each jog is booked with what was sent in the write's own thread,
-    so a cancel during the write never loses it (BG-34)."""
+    so a cancel during the write never loses it (BG-34).
+
+    `lease_key` (P1b): a continuous jog under a lease — checked first at
+    every write it admits (the switch to MANUAL, each jog: _lease_write_
+    refusal) and booked with it. A leased write refused because the lease
+    died stops at once what this command already wrote under it."""
+    if lease_key is not None:
+        why = _lease_write_refusal(lease_key)
+        if why:
+            return {"ok": False, "error": why, "expired": True}
     gate = _gate_admit("jog", armed)
     why = gate()
     if why:
@@ -4211,12 +4277,17 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
     before_homing = _homed_now() is not True
 
     def admit() -> Optional[str]:
+        if lease_key is not None:
+            why = _lease_write_refusal(lease_key)
+            if why:
+                return why
         why = gate()
         if why:
             return why
         return JOG_HOMING_CHANGED if (_homed_now() is not True) != before_homing else None
 
     targets = None
+    written: List[int] = []   # the axes this command wrote under its lease
     # A STEP addresses a target whose travel bounds it (package 3a, Q363-1,
     # Codex R364 VM364-01 / R365): the joint in joint mode, the axis in
     # teleop — the mode EXPECTED here, before any preparatory write, by
@@ -4270,13 +4341,23 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
             targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]
         for axis, jf, arg, vel, dist in targets:
             def book(axis=axis, jf=jf, arg=arg):
-                _active_jogs[axis] = (jf, arg)
+                _active_jogs[axis] = (jf, arg, lease_key if dist is None else None, next(_jog_gen))
+                if lease_key is not None and dist is None:
+                    written.append(axis)
             if dist is None:
                 rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=jog_admit, written=book)
             else:
                 rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=jog_admit, written=book)
-            _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)
+            _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc,
+                       lease=lease_key[1] if lease_key is not None and dist is None else None)
     except _WriteRefused as refused:
+        if lease_key is not None and str(refused) in (JOG_LEASE_DEAD, JOG_LEASE_FOREIGN_LINK):
+            # the lease died between two writes of this command: what it
+            # wrote under the lease stops now, nothing more starts
+            _trace.emit("jog.lease_write_refused", level="warn", cmd=cmd, lease=lease_key[1],
+                        written=written, reason=str(refused))
+            await _stop_owned_axes(lease_key, written)
+            return {"ok": False, "error": str(refused), "expired": True}
         return {"ok": False, "error": str(refused)}
     return {"ok": True}
 
@@ -4456,6 +4537,204 @@ async def _jog_stop_for_client() -> None:
             await _send_jog_stop(ax)
         except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
             _trace.emit_exc("jog.stop_for_client_failed", e, axis=ax)
+
+
+async def _stop_owned_axes(lease_key: Tuple[str, int],
+                           axes: Optional[List[int]] = None) -> Dict[str, List[int]]:
+    """Stop the axes a lease still OWNS (P1b, Codex R425 MT425-01): every
+    booked axis — or each of `axes` — whose row carries `lease_key`. Caller
+    holds `_cmd_lock`. The owner is read after the lock and checked again
+    in the write's thread (_send_jog_stop's admit). An axis named but owned
+    by another gesture, or by nobody, is NOT stopped (`not_owned`, traced):
+    a lease's stop never reaches a jog it did not write. A failed write
+    keeps its booking (`failed`). Without a controller Link nothing can be
+    written: every owned axis is `failed` (the HAL chain owns the motion).
+    In AUTO with the interpreter busy no jog can run: nothing is sent."""
+    owned = sorted(ax for ax, row in _active_jogs.items()
+                   if (_jog_row_owner(row) or (None, 0))[0] == lease_key)
+    named = owned if axes is None else sorted(set(axes))
+    out: Dict[str, List[int]] = {"stopped": [], "failed": [], "not_owned": []}
+    out["not_owned"] = [ax for ax in named if ax not in owned]
+    todo = [ax for ax in named if ax in owned]
+    if out["not_owned"]:
+        _trace.emit("jog.lease_stop_not_owned", level="info", lease=lease_key[1], axes=out["not_owned"],
+                    owners={ax: (_jog_row_owner(_active_jogs.get(ax)) or (None, None))[0] is not None
+                            for ax in out["not_owned"]})
+    if not todo:
+        return out
+    if current_link() is None:
+        out["failed"] = todo
+        _trace.emit("jog.lease_stop_no_link", level="error", lease=lease_key[1], axes=todo)
+        return out
+    if _auto_running():
+        return out
+    for ax in todo:
+        owner = _jog_row_owner(_active_jogs.get(ax))
+        if owner is None or owner[0] != lease_key:
+            out["not_owned"].append(ax)
+            continue
+        try:
+            await _send_jog_stop(ax, owner=owner)
+            out["stopped"].append(ax)
+        except _WriteRefused as refused:
+            if str(refused) == JOG_STOP_NOT_OWNED:
+                out["not_owned"].append(ax)
+            else:
+                _trace.emit("jog.lease_stop_failed", level="error", lease=lease_key[1], axis=ax,
+                            reason=str(refused))
+                out["failed"].append(ax)
+        except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
+            _trace.emit_exc("jog.lease_stop_failed", e, lease=lease_key[1], axis=ax)
+            out["failed"].append(ax)
+    return out
+
+
+#: the reply and the client message when a lease's stop could not be written
+JOG_LEASE_STOP_FAILED = "Jog stop failed — press E-Stop if it still moves"
+
+
+def _arm_lease_timer(lease: "_jog_lease_mod.Lease", delay: float) -> None:
+    """(Re-)arm a lease's expiry timer (loop thread). One timer per lease:
+    it fires at the deadline it saw and re-arms itself for what a renewal
+    added (no cancel and reschedule per renewal)."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    lease.timer = loop.call_later(max(0.0, delay), _on_lease_timer, lease.key)
+
+
+def _on_lease_timer(key: Tuple[str, int]) -> None:
+    """A lease's expiry timer fired: alive (renewed) → re-arm for the rest;
+    ended by its source → that end handles its stop; else the lease EXPIRED:
+    its still-owned axes stop (_expire_jog_lease)."""
+    lease = _jog_leases.get(key)
+    if lease is None or lease.state == "ended":
+        return
+    left = _jog_leases.due(key, time.monotonic())
+    if left is not None:
+        _arm_lease_timer(lease, left)
+        return
+    if lease.stop_scheduled:
+        return
+    lease.stop_scheduled = True
+    task = asyncio.create_task(_expire_jog_lease(lease))
+    register_bg_task(task)
+    task.add_done_callback(_retrieve_task_exc)
+
+
+async def _expire_jog_lease(lease: "_jog_lease_mod.Lease") -> None:
+    """No renewal reached the gateway by the deadline: stop exactly the axes
+    still booked under this lease (after `_cmd_lock`, behind a write in
+    progress), trace it and tell the owning connection — the page ends that
+    gesture only (its id). A failed stop keeps the booking and says so; no
+    automatic retry (it would hide the failure). Skipped while the gateway
+    shuts down (the HAL chain owns the motion then)."""
+    key = lease.key
+    late_ms = round((time.monotonic() - lease.deadline) * 1000)
+    if _shutting_down:
+        _jog_leases.forget(key)
+        return
+    result: Dict[str, List[int]] = {"stopped": [], "failed": [], "not_owned": []}
+    try:
+        async with _get_cmd_lock():
+            with _pinned_link():
+                result = await _stop_owned_axes(key)
+    except Exception as e:  # noqa: BLE001 - the expiry must report, never vanish
+        _trace.emit_exc("jog.lease_expire_failed", e, lease=key[1])
+        result["failed"] = sorted(ax for ax, row in _active_jogs.items()
+                                  if (_jog_row_owner(row) or (None, 0))[0] == key)
+    _trace.emit("jog.lease_expired", level="warn" if (result["stopped"] or result["failed"]) else "info",
+                lease=key[1], stopped=result["stopped"], failed=result["failed"],
+                late_ms=late_ms, renewals=lease.renewals,
+                age_ms=round((time.monotonic() - lease.began) * 1000))
+    _jog_leases.forget(key)
+    await _notify_lease_owner(key[0], {"type": "jog_lease_expired", "id": key[1],
+                                       "axes": result["stopped"], "stop_failed": result["failed"],
+                                       **({"error": JOG_LEASE_STOP_FAILED} if result["failed"] else {})})
+
+
+async def _notify_lease_owner(conn_key: str, frame: Dict[str, Any]) -> None:
+    """Send `frame` to the connection that owns the lease (if still open)."""
+    for c in list(_clients.values()):
+        if hmac.compare_digest(c.conn_key, conn_key):
+            try:
+                await ws_send_json(c.ws, frame)
+            except Exception as e:  # noqa: BLE001 - a closing socket: its jogs stop on the disconnect path
+                _trace.emit("jog.lease_notify_failed", level="warn", exc=type(e).__name__)
+            return
+
+
+def _receive_jog_lease(conn_key: str, msg: Dict[str, Any]) -> None:
+    """The reader read a frame of the jog lease (P1b) — the deadline's
+    ANCHOR is now: a start or change under a new id begins its lease (and
+    its timer); under a live one it is a renewal; `jog_lease_end` ends the
+    lease at once, so a start of it still queued is refused at its write.
+    Payload faults are the dispatcher's (a malformed lease begins nothing)."""
+    cmd = msg.get("cmd")
+    lease_id = _jog_lease_mod.lease_id_of(msg.get("lease"))
+    if lease_id is None:
+        if cmd == "jog_lease_end":
+            for lz in _jog_leases.leases_of(conn_key):
+                _jog_leases.end(lz.key)
+        return
+    if cmd == "jog_lease_end":
+        _jog_leases.end((conn_key, lease_id))
+        return
+    before = _jog_leases.get((conn_key, lease_id))
+    lease, why = _jog_leases.receive_start(conn_key, lease_id, current_link(), time.monotonic())
+    if lease is not None and before is None:
+        _arm_lease_timer(lease, _jog_leases.ttl)
+        _trace.emit("jog.lease_begin", level="info", lease=lease_id, cmd=cmd)
+    elif why:
+        _trace.emit("jog.lease_dead_frame", level="info", lease=lease_id, cmd=cmd)
+
+
+def _receive_jog_renew(conn_key: str, msg: Dict[str, Any]) -> List[int]:
+    """A `jog_renew` frame READ now: every live lease named gets now + TTL;
+    the dead ids are returned (the reader answers them — nothing revives a
+    dead lease). A malformed frame renews nothing (traced): its leases run
+    out, the safe direction."""
+    ids = _jog_lease_mod.parse_renew_ids(msg.get("ids"))
+    if ids is None:
+        _trace.emit("jog.renew_malformed", level="warn", kind=type(msg.get("ids")).__name__)
+        return []
+    return _jog_leases.renew(conn_key, ids, time.monotonic())
+
+
+def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False) -> None:
+    """End every lease of a connection (its disarm, its abort / E-Stop, its
+    close): no more starts under them. Their axes are stopped by the caller's
+    own path (the disarm's jog stop, the stop itself); `drop` (the close)
+    also forgets them and their timers."""
+    if not conn_key:
+        return
+    leases = _jog_leases.leases_of(conn_key)
+    if not leases:
+        return
+    for lz in leases:
+        _jog_leases.end(lz.key)
+    if drop:
+        for lz in _jog_leases.drop_connection(conn_key):
+            if lz.timer is not None:
+                lz.timer.cancel()
+    _trace.emit("jog.leases_ended", level="info", why=why, leases=[lz.lease_id for lz in leases], dropped=drop)
+
+
+def _lease_key(conn_key: Optional[str], msg: Dict[str, Any],
+               required: bool = False) -> Optional[Tuple[str, int]]:
+    """The lease a jog command names, as (conn_key, id); None for a command
+    without one (a script's jog_cont keeps the jog-until-stop contract —
+    traced). A lease needs the connection it began on."""
+    lease_id = _jog_lease_mod.lease_id_of(msg.get("lease"))
+    if lease_id is None:
+        if required:
+            raise ValueError("lease: required")
+        _trace.emit("jog.cont_without_lease", level="info", cmd=msg.get("cmd"))
+        return None
+    if not conn_key:
+        raise PermissionError("Jog lease without a connection — reload the page")
+    return (conn_key, lease_id)
 
 
 def require_armed(armed: bool):
@@ -6568,7 +6847,8 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
             return blocked
 
         return await _start_jogs("jog_cont", armed,
-                                 [(finite_int(msg["axis"], lo=0), finite_float(msg["vel"]), None)])
+                                 [(finite_int(msg["axis"], lo=0), finite_float(msg["vel"]), None)],
+                                 lease_key=_lease_key(conn_key, msg))
 
     if cmd == "jog_stop":
         # Stopping motion is always allowed — gateway must NOT silently
@@ -6599,7 +6879,58 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
 
         return await _start_jogs("jog_cont_multi", armed,
                                  [(finite_int(e["axis"], lo=0), finite_float(e["vel"]), None)
-                                  for e in msg["axes"]])
+                                  for e in msg["axes"]],
+                                 lease_key=_lease_key(conn_key, msg))
+
+    if cmd == "jog_change":
+        # One change inside ONE gesture (P1b, plan v3 / Codex R425 MT425-01):
+        # first the named stops — only axes this lease still owns — then the
+        # new jogs under the same lease, each admitted like jog_cont (arm,
+        # AUTO, the gamepad switch, the jog class, the lease at every write).
+        # A dead lease writes its stops and starts nothing ("expired").
+        key = _lease_key(conn_key, msg, required=True)
+        assert key is not None
+        stops = await _stop_owned_axes(key, [finite_int(a, lo=0) for a in msg["stop"]]) if msg["stop"] else None
+        if stops and stops["failed"]:
+            return {"ok": False, "error": JOG_LEASE_STOP_FAILED, "stop_failed": stops["failed"]}
+        entries = [(finite_int(e["axis"], lo=0), finite_float(e["vel"]), None) for e in msg["axes"]]
+        if not entries:
+            return {"ok": True}
+        why = _lease_write_refusal(key)
+        if why:
+            return {"ok": False, "error": why, "expired": True}
+        off = _command_feature_refusal("jog_cont", {"via": msg["via"]} if "via" in msg else {})
+        if off:
+            return {"ok": False, "error": off}
+        require_armed(armed)
+        blocked = reject_if_auto_running()
+        if blocked:
+            return blocked
+        return await _start_jogs("jog_change", armed, entries, lease_key=key)
+
+    if cmd == "jog_lease_end":
+        # The gesture ended (its release, its rest, an explicit stop of its
+        # source): the axes the lease still owns stop; the lease is ended
+        # (already at receipt) and forgotten. A malformed id ends EVERY lease
+        # of the connection (the widened stop, N5).
+        lease_id = _jog_lease_mod.lease_id_of(msg.get("lease"))
+        keys = ([(conn_key, lease_id)] if lease_id is not None and conn_key
+                else [lz.key for lz in _jog_leases.leases_of(conn_key)] if conn_key else [])
+        failed: List[int] = []
+        for key in keys:
+            lease = _jog_leases.end(key)
+            if lease is not None and lease.timer is not None:
+                lease.timer.cancel()
+            result = await _stop_owned_axes(key)
+            failed += result["failed"]
+            if lease is not None:
+                _trace.emit("jog.lease_end", level="info", lease=key[1], stopped=result["stopped"],
+                            failed=result["failed"], renewals=lease.renewals,
+                            age_ms=round((time.monotonic() - lease.began) * 1000))
+                _jog_leases.forget(key)
+        if failed:
+            return {"ok": False, "error": JOG_LEASE_STOP_FAILED, "stop_failed": failed}
+        return {"ok": True}
 
     if cmd == "jog_stop_multi":
         # Stopping motion is always allowed — see jog_stop above for the
@@ -7594,6 +7925,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                         booked=sorted(_active_jogs))
         if _stop_all:
             cmd, msg = "jog_stop_multi", {"cmd": "jog_stop_multi", "axes": sorted(_active_jogs)}
+        if _fault and cmd == "jog_change":
+            # a faulted change ENDS its lease (P1b): the axes it owns stop,
+            # nothing starts — an id that does not read ends every lease of
+            # the connection (jog_lease_end's own widening)
+            cmd, msg = "jog_lease_end", {"cmd": "jog_lease_end", "lease": msg.get("lease"),
+                                         **({"via": msg["via"]} if "via" in msg else {})}
     else:
         try:
             _fixed = validate_payload(cmd, msg, get_machine_limits())
@@ -11189,6 +11526,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
         # the released-jog-button hazard and matches the "all paths
         # to disarmed do the same thing" principle.
         if _was_armed and not client.armed:
+            _end_client_leases(client.conn_key, why="disarm")
             if _cmd_now() is not None and not _shutting_down:
                 try:
                     async with _get_cmd_lock():
@@ -11404,6 +11742,7 @@ async def ws_endpoint(ws: WebSocket):
                             client.viewer_init_sent = False
                         if client.armed:
                             client.armed = False
+                            _end_client_leases(client.conn_key, why="not_connected")
                         try:
                             await ws_send_json(ws, {
                                 "type": "status_error",
@@ -11791,6 +12130,7 @@ async def ws_endpoint(ws: WebSocket):
                         if _hb_stalled(_clients[client_id].last_hb_mono, time.monotonic()):
                             if client.armed:
                                 client.armed = False
+                                _end_client_leases(client.conn_key, why="hb_stall")
                                 try:
                                     async with _get_cmd_lock():
                                         await _jog_stop_for_client()
@@ -12033,6 +12373,16 @@ async def ws_endpoint(ws: WebSocket):
                                                       and 0 <= _hb_seq < 2**53 else None)
                         _clients[client_id].hb_ring.append(_now_mono)
                     await ws_send_json(ws, {"type": "pong"})
+                    continue
+
+                if msg.get("cmd") == "jog_renew":
+                    # The jog lease's renewal (P1b): bookkeeping in the reader
+                    # like the heartbeat — no handler, no queue, no lock; the
+                    # receipt is the anchor. Only the page's MAIN thread sends
+                    # it (jogLease.ts). No reply on success; a dead id is
+                    # answered so the page ends that gesture.
+                    for _dead in _receive_jog_renew(client.conn_key, msg):
+                        await ws_send_json(ws, {"type": "jog_lease_expired", "id": _dead, "late_renewal": True})
                     continue
 
                 if msg.get("cmd") == "hello":
@@ -12299,6 +12649,12 @@ async def ws_endpoint(ws: WebSocket):
                         _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
                                     by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
                     _preempt_inflight(by=_rcmd, from_client=client_id)
+                    # ... and ends this client's jog leases (P1b): a change it
+                    # queued before the stop keeps its stop half (a stop is
+                    # never superseded) but starts nothing at its write
+                    _end_client_leases(client.conn_key, why=_rcmd)
+                if _rcmd in _JOG_LEASE_FRAMES:
+                    _receive_jog_lease(client.conn_key, msg)   # the deadline's anchor: receipt
                 _depth = cmd_queue.qsize()
                 _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
                 if _depth >= _cap:
@@ -12363,6 +12719,10 @@ async def ws_endpoint(ws: WebSocket):
         # register an armed-resume hold.
         _last_hb_at_drop = _clients[client_id].last_hb_mono if client_id in _clients else None
         _dropped = _clients.pop(client_id, None)
+        # the connection's jog leases end with it (P1b): nothing starts under
+        # them any more; an armed client's jogs stop below, a disarmed one's
+        # had already stopped at its disarm
+        _end_client_leases(client.conn_key, why="disconnect", drop=True)
         if _dropped is not None and _dropped.device_id:
             _note_device_presence()   # the device list's online state and tab count
         _halshow_topology_sent.pop(client_id, None)

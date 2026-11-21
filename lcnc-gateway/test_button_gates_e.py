@@ -26,6 +26,12 @@ from test_button_gates_d import _Ini, _Writer, state  # noqa: E402
 MDI_RUNNING = {"task_mode": linuxcnc.MODE_MDI, "interp_state": linuxcnc.INTERP_READING}
 
 
+
+def _targets(jogs):
+    """The booked jog TARGETS (joint flag, CMD.jog index) — since P1b a row
+    also carries its lease owner and write generation (jog_lease.py)."""
+    return {axis: tuple(row[:2]) for axis, row in jogs.items()}
+
 class _Stops(_Writer):
     def setUp(self):
         super().setUp()
@@ -101,7 +107,7 @@ class TestAStopAddressesTheJogAsStarted(_Stops):
         current().stat.axis_mask = 0b101111                 # XYZAC: C is wire 4, canonical 5
         r = self.send({"cmd": "jog_cont", "axis": 4, "vel": 1.0})
         self.assertTrue(r["ok"], r)
-        self.assertEqual(gateway._active_jogs, {4: (0, 5)})
+        self.assertEqual(_targets(gateway._active_jogs), {4: (0, 5)})
         current().stat.motion_mode = None   # read later: not teleop → joint flag 1
         self.cmd.calls.clear()
         self.send({"cmd": "jog_stop", "axis": 4}, controller={})
@@ -126,7 +132,7 @@ class TestAStopIsBookedOnlyOnceWritten(_Stops):
         self.failing_stop(2)
         r = self.send({"cmd": "jog_stop", "axis": 2})
         self.assertFalse(r["ok"], r)
-        self.assertEqual(gateway._active_jogs, {2: (1, 2)})
+        self.assertEqual(_targets(gateway._active_jogs), {2: (1, 2)})
 
     def test_jog_stop_multi(self):
         self.jogs(a0=(1, 0), a2=(1, 2))
@@ -134,14 +140,14 @@ class TestAStopIsBookedOnlyOnceWritten(_Stops):
         r = self.send({"cmd": "jog_stop_multi", "axes": [0, 2]})
         self.assertFalse(r["ok"], r)
         self.assertIn("[0]", r["error"])
-        self.assertEqual(gateway._active_jogs, {0: (1, 0)})
+        self.assertEqual(_targets(gateway._active_jogs), {0: (1, 0)})
         self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 1, 2)])
 
     def test_the_disarm_stop(self):
         self.jogs(a0=(1, 0), a2=(1, 2))
         self.failing_stop(0)
         self.disarm_stop()
-        self.assertEqual(gateway._active_jogs, {0: (1, 0)})
+        self.assertEqual(_targets(gateway._active_jogs), {0: (1, 0)})
         self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 1, 2)])
 
 
@@ -392,7 +398,7 @@ class TestJoggingBeforeHoming(_Writer):
         r = self.unhomed({"cmd": "jog_cont", "axis": 1, "vel": -5.0})
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 1, -2.0)])   # 10 % of 20
-        self.assertEqual(gateway._active_jogs, {1: (1, 1)})
+        self.assertEqual(_targets(gateway._active_jogs), {1: (1, 1)})
         self.cmd.calls.clear()
         self.unhomed({"cmd": "jog_cont", "axis": 0, "vel": 1.5})               # below the cap
         self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 1.5)])
@@ -605,7 +611,7 @@ class TestTheJogHoldsAtItsWrite(_Writer):
         gateway._cmd_lock = None
         booked = _run(go())
         self.assertEqual(self.jogs()[0], (linuxcnc.JOG_CONTINUOUS, 1, 0, 1.0), "the write happened")
-        self.assertEqual(booked, {0: (1, 0)}, "booked as sent, through the cancel")
+        self.assertEqual(_targets(booked), {0: (1, 0)}, "booked as sent, through the cancel")
         self.assertEqual(self.jogs()[-1], (linuxcnc.JOG_STOP, 1, 0), "and the disconnect stop reaches it")
 
 
@@ -677,7 +683,7 @@ class TestAWriteOutlastsEveryCancel(_Writer):
         held, result, booked = _run(go())
         self.assertTrue(held, "the command lock never escapes under an unfinished write")
         self.assertIsInstance(result, asyncio.CancelledError, "the cancel still propagates, after the write")
-        self.assertEqual(booked, {0: (1, 0)})
+        self.assertEqual(_targets(booked), {0: (1, 0)})
         self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 1.0), (linuxcnc.JOG_STOP, 1, 0)])
 
 

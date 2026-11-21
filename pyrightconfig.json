@@ -26,6 +26,7 @@
     "lcnc-gateway/settings_store.py",
     "lcnc-gateway/session_bind.py",
     "lcnc-gateway/lcnc_paths.py",
-    "lcnc-gateway/lcnc_trace.py"
+    "lcnc-gateway/lcnc_trace.py",
+    "lcnc-gateway/jog_lease.py"
   ]
 }

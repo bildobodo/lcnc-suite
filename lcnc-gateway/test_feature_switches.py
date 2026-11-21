@@ -645,7 +645,10 @@ class TestTheTablesAgree(unittest.TestCase):
 
     def test_the_gamepads_stops_are_the_gateways_stops(self):
         self.assertEqual(features.GAMEPAD_COMMANDS & gateway._WS_STOP_CMDS,
-                         {"jog_stop", "jog_stop_multi", "abort", "estop", "cycle_pause", "spindle_stop"})
+                         {"jog_stop", "jog_stop_multi", "abort", "estop", "cycle_pause", "spindle_stop",
+                          # the lease's stops (P1b): a change's START half is the
+                          # gamepad switch's (the handler checks it as jog_cont)
+                          "jog_change", "jog_lease_end"})
 
 
 if __name__ == "__main__":

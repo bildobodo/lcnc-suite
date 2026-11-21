@@ -819,6 +819,11 @@ COMMAND_GATES: Dict[str, str] = {
     "jog_incr_multi": "jog",
     "jog_stop": "always",
     "jog_stop_multi": "always",
+    # the jog lease (P1b): a change inside one gesture (its stops first, then
+    # its starts — the starts admitted by the jog class in the handler) and the
+    # gesture's end are STOPS: a closed gate never keeps the stop half
+    "jog_change": "always",
+    "jog_lease_end": "always",
     # --- homing ---
     "home": "zero",
     "home_all": "zero",
@@ -1254,6 +1259,9 @@ def _jog_entry(incremental: bool) -> Entry:
 
 
 _JOG_VEL = Num(lo=lambda l: _neg(l.max_jog_velocity), hi=lambda l: l.max_jog_velocity, clamp=True, required=True)
+#: a continuous jog's lease id (P1b): optional — a client without leases
+#: (a script) keeps the jog-until-stop contract; the WebUI always sends one
+_LEASE = Num(lo=1, hi=SAFE_INT_MAX, integer=True)
 _TOOL = Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True, required=True)
 _POCKET = Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)
 _TOOL_FIELDS: Dict[str, object] = {"pocket": _POCKET, "z_offset": Num(), "diameter": Num(lo=0),
@@ -1270,16 +1278,30 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # either. What is bounded here is the SPEED, i.e. |vel|, so the floor is
     # -max, not 0. A velocity of 0 stays valid and unchanged (N4: what the
     # controller does with it is not verified here).
-    "jog_cont":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True), "vel": _JOG_VEL},
+    "jog_cont":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True), "vel": _JOG_VEL,
+                  "lease": _LEASE},
     "jog_incr":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True), "vel": _JOG_VEL,
                   "distance": Num(required=True)},
     # the stops: a payload that fails here is WIDENED, never refused
     # (gateway dispatch, widen_stop — N5)
     "jog_stop":  {"axis": Num(lo=0, hi=_axis_index, integer=True, required=True)},
-    "jog_cont_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(False), min_len=1)},
+    "jog_cont_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(False), min_len=1),
+                        "lease": _LEASE},
     "jog_incr_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(True), min_len=1)},
     "jog_stop_multi":  {"axes": Seq(max_len=lambda l: l.n_axes, required=True,
                                     item=Num(lo=0, hi=_axis_index, integer=True))},
+    # --- the jog lease (P1b, machine day 2026-11-21): a continuous jog from the
+    #     WebUI names the input gesture's lease (jog_lease.py); `jog_change`
+    #     stops the named axes the lease still owns, then starts `axes` under
+    #     it (a reversal, an axis leaving or joining a stick gesture);
+    #     `jog_lease_end` ends the gesture — the axes it still owns stop. Both
+    #     are stops: a fault WIDENS (a faulted change ends its lease, a faulted
+    #     end ends every lease of the connection), never refuses.
+    "jog_change": {"lease": Num(lo=1, hi=SAFE_INT_MAX, integer=True, required=True),
+                   "stop": Seq(max_len=lambda l: l.n_axes, required=True,
+                               item=Num(lo=0, hi=_axis_index, integer=True)),
+                   "axes": Seq(max_len=lambda l: l.n_axes, required=True, item=_jog_entry(False))},
+    "jog_lease_end": {"lease": Num(lo=1, hi=SAFE_INT_MAX, integer=True, required=True)},
     # --- homing per AXIS (package 3a F-HOME.S2b; operator Q349-1): the strip's
     #     wire index; the gateway names the joint from the declared mapping
     #     and refuses an unclear one (and, for Home, a home group). The joint
@@ -1602,10 +1624,14 @@ def validate_payload(cmd: str, msg: Mapping[str, JsonValue], limits: MachineLimi
 
 #: The stop commands (gateway._WS_STOP_CMDS is the same set — a test holds
 #: them equal): their payload is never a reason to refuse (N5).
-STOP_COMMANDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop", "cycle_pause", "spindle_stop"})
+STOP_COMMANDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop", "cycle_pause", "spindle_stop",
+                           "jog_change", "jog_lease_end"})
 #: the stops that address jogs — a fault in their target widens them to
 #: every jog the gateway booked
 JOG_STOPS = frozenset({"jog_stop", "jog_stop_multi"})
+#: the lease's stops (P1b): a fault ends the lease (a change: its own, if its
+#: id reads; the end: every lease of the connection) — the gateway handler
+JOG_LEASE_STOPS = frozenset({"jog_change", "jog_lease_end"})
 
 
 def widen_stop(cmd: str, msg: Mapping[str, JsonValue],

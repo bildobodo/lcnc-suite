@@ -78,7 +78,7 @@ VIA_FEATURE = {"gamepad": "gamepad"}
 #: the stops among them pass with the gamepad off (the gateway's
 #: _WS_STOP_CMDS).
 GAMEPAD_COMMANDS = frozenset({
-    "jog_cont", "jog_incr", "jog_stop", "jog_stop_multi",
+    "jog_cont", "jog_incr", "jog_stop", "jog_stop_multi", "jog_change", "jog_lease_end",
     "cycle_start", "cycle_resume", "cycle_pause", "abort", "estop",
     "spindle_stop", "flood_on", "flood_off", "mist_on", "mist_off", "home_all",
 })

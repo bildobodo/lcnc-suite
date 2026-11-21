@@ -39,6 +39,8 @@ VALID = {
     "jog_cont_multi": {"axes": [{"axis": 0, "vel": 10.0}]},
     "jog_incr_multi": {"axes": [{"axis": 0, "vel": 10.0, "distance": 1.0}]},
     "jog_stop_multi": {"axes": [0]},
+    "jog_change": {"lease": 7, "stop": [0], "axes": [{"axis": 0, "vel": -10.0}]},
+    "jog_lease_end": {"lease": 7},
     "home": {"axis": 1},
     "unhome": {"axis": 1},
     "spindle_forward": {"speed": 1000.0},
