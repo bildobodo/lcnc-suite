@@ -200,6 +200,12 @@ class CoordinatedFileHandler(logging.Handler):
         self._fragments = 0
         self._rotate_failed: dict[str, int] = {}
         self._noted: set[str] = set()
+        self._notes_due: list[str] = []
+        # inside this handler's own section: a write that reaches it again
+        # (a console note's failure traced through emit()) must neither
+        # re-lock nor UNLOCK the section's lock (flock is per open file
+        # description — a nested unlock would release the outer section)
+        self._in_section = False
 
     # ── the count of what was not written ──────────────────────────────
     def _count_loss(self, why: str) -> None:
@@ -208,9 +214,17 @@ class CoordinatedFileHandler(logging.Handler):
             self._lost_since_ns = time.time_ns()
         self._lost_why[why] = self._lost_why.get(why, 0) + 1
         if why not in self._noted:
-            # once per reason, on the console (it never raises — ConsoleGuard):
-            # the trace cannot carry it now
+            # once per reason, on the console — said AFTER the section
+            # (_say_notes): the trace cannot carry it now
             self._noted.add(why)
+            self._notes_due.append(why)
+
+    def _say_notes(self) -> None:
+        """The console notes of new loss reasons, outside the section (the
+        console never raises — ConsoleGuard; its own failure is traced
+        through emit(), which may reach this handler again)."""
+        while self._notes_due:
+            why = self._notes_due.pop(0)
             try:
                 print(f"[TRACE] {self.log_name}: a record was not written ({why}) — "
                       f"counted, reported as {self.report_prefix}.write_lost",
@@ -416,21 +430,32 @@ class CoordinatedFileHandler(logging.Handler):
         included) after any pending report. False = not (all) written — the
         record is counted, never written unlocked."""
         self._forget_inherited()
+        if self._in_section:
+            if data:
+                self._count_loss("reentrant")
+            return False
         why = self._lock()
         if why is not None:
             if data:
                 self._count_loss(why)
+            self._say_notes()
             return False
+        self._in_section = True
         try:
-            return self._section(data)
+            ok = self._section(data)
         finally:
+            self._in_section = False
             self._unlock()
+        self._say_notes()
+        return ok
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
             data = (self.format(record) + "\n").encode("utf-8", "replace")
         except Exception as e:  # noqa: BLE001 - counted, never raised into a caller
             self._count_loss("format:" + type(e).__name__)
+            if not self._in_section:
+                self._say_notes()
             return
         self.append(data)
 

@@ -56,7 +56,12 @@ writes `trace.write_lost {log, count, since_ns, why}` (crash log:
 `crash.write_lost`, level error — a lost crash record is a finding for
 `native_run`) directly, never through `emit()`: a failing report cannot
 recurse. A report that fails keeps its counts (the line it preceded is
-counted too). A fragment closed without an own loss is
+counted too). Nothing is printed inside the section — a new reason's
+console note is said after the unlock — and a record that reaches the
+handler again while its own section runs (a console failure traced through
+`emit()`) is counted as `reentrant`, never written and never unlocks: the
+lock belongs to the open file description, a nested unlock would release
+the outer section. A fragment closed without an own loss is
 `trace.fragment_closed`. `close()` (logging's shutdown) tries the pending
 report once more; a process that ends first cannot report its loss — the
 named limit.
@@ -139,9 +144,11 @@ capture came before the window's end).
   (`ws/telemetry.ts`): the transport stays best effort, but a loss is
   counted — a queue overflow, a refused POST (network, the keepalive quota),
   a non-2xx answer, the gateway's `ok: false` or rejected lines, a refused
-  beacon — and reported in front of the next batch; the counts clear only
-  once a batch carrying them was delivered (2xx). A record is there exactly
-  once only when its batch was delivered.
+  beacon — and reported in front of the next batch. A report IN FLIGHT is
+  taken out of the pending count (the next batch never says it again) and
+  comes back only when its own batch is lost (non-2xx, a refusal, a network
+  error), with that batch's events added: a loss is said once. A record is
+  there exactly once only when its batch was delivered.
 
 **F20 is a diagnosis, not a proven cause.** The three layers are separated:
 capture (the probe and the observers run on every page), the window close

@@ -118,6 +118,39 @@ describe("the transport's losses (P3, F20)", () => {
     expect(telemetryDropped()).toBeNull();
   });
 
+  it("a report in flight is never said twice — it comes back only if its own batch is lost", async () => {
+    answer(() => new Response("no", { status: 500 }));
+    emitTelemetry("a", {}); emitTelemetry("b", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    expect(telemetryDropped()).toMatchObject({ events: 2 });
+    // batch B carries the report; its answer is still out
+    let answerB: (r: Response) => void = () => {};
+    vi.stubGlobal("fetch", (_u: string, init?: RequestInit) => {
+      posted.push(String(init?.body ?? ""));
+      return new Promise<Response>(res => { answerB = res; });
+    });
+    emitTelemetry("b2", {});
+    vi.advanceTimersByTime(2000);
+    expect(lines(posted[posted.length - 1]!).map(e => e.kind)).toEqual(["telemetry.dropped", "b2"]);
+    expect(telemetryDropped()).toBeNull();                 // in flight, not pending
+    const resolveB = answerB;
+    answer(() => new Response(null, { status: 204 }));
+    emitTelemetry("c", {});
+    vi.advanceTimersByTime(2000);
+    expect(lines(posted[posted.length - 1]!).map(e => e.kind)).toEqual(["c"]);   // not said again
+    resolveB(new Response("down", { status: 502 }));       // B lost: its report comes back, with B's own event
+    await settle();
+    expect(telemetryDropped()).toMatchObject({ events: 3, batches: 2, why: { status_500: 2, status_502: 1 } });
+    emitTelemetry("d", {});
+    vi.advanceTimersByTime(2000);
+    await settle();
+    const last = lines(posted[posted.length - 1]!);
+    expect(last.map(e => e.kind)).toEqual(["telemetry.dropped", "d"]);
+    expect(last[0]).toMatchObject({ events: 3, why: { status_500: 2, status_502: 1 } });
+    expect(telemetryDropped()).toBeNull();
+  });
+
   it("the gateway's refusal and its rejected lines are losses too; a failed report keeps its count", async () => {
     answer(() => json({ ok: false, error: "body_too_large" }));
     emitTelemetry("a", {});

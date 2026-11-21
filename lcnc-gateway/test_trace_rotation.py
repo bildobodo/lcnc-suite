@@ -225,6 +225,33 @@ def test_a_crash_log_loss_is_an_error_record_with_a_crash_tag(tmp_path):
     assert rep["tag"] == "crash.write_lost" and rep["level"] == "error"
 
 
+def test_a_write_reaching_the_handler_inside_its_section_never_unlocks_it(tmp_path):
+    """A record that reaches the handler again while its own section runs (a
+    console note's failure traced through emit()) is counted, never written
+    and never UNLOCKS: flock belongs to the open file description, so a
+    nested unlock would release the outer section's lock. The console note
+    of a new loss reason is said after the section."""
+    tr, h = _handler(tmp_path)
+    unlocks: list[bool] = []
+    real_unlock, real_write = h._unlock, h.raw_write
+    h._unlock = lambda: (unlocks.append(h._in_section), real_unlock())[1]
+    nested: list[bool] = []
+
+    def write_and_reenter(fd, buf):
+        if not nested:
+            nested.append(h.append(b'{"t_wall_ns":9,"tag":"nested"}\n'))
+            assert h._notes_due == ["reentrant"]       # not said inside the section
+        return real_write(fd, buf)
+    h.raw_write = write_and_reenter
+    assert h.append(b'{"t_wall_ns":1,"tag":"outer"}\n')
+    assert nested == [False] and unlocks == [False]   # ONE unlock, the outer one, after the section
+    assert h._notes_due == [] and h.pending_report()["why"] == {"reentrant": 1}
+    h.raw_write = real_write
+    assert h.append(b'{"t_wall_ns":2,"tag":"next"}\n')
+    tags = [json.loads(x)["tag"] for x in (tmp_path / "trace.ndjson").read_bytes().splitlines()]
+    assert tags == ["outer", "trace.write_lost", "next"]
+
+
 def test_close_writes_a_pending_report(tmp_path):
     tr, h = _handler(tmp_path)
     h._count_loss("lock_busy")
