@@ -1,0 +1,212 @@
+{
+  "head": "59a5533789dbcab4f3407081a4de7c415b5782a1",
+  "kind": "static review of plan v2; no lease implementation simulated",
+  "sources": {
+    "lcnc-webui/src/useGamepad.ts": {
+      "sha256": "5d63efd9d2bc828e77a36f03d352eeb2f74dccebb8c0ed575971edf47ee9c29d",
+      "excerpts": [
+        {
+          "start": 80,
+          "end": 95,
+          "lines": [
+            "80:   // Per-axis tracking: last velocity the ANALOG sticks sent (the D-pad's",
+            "81:   // gestures are their own, below — a stick at rest must not stop a D-pad jog",
+            "82:   // it never started)",
+            "83:   const lastSentVel: number[] = [];",
+            "84:   // The D-pad jogs in progress, each with what it STARTED (button gates",
+            "85:   // BG-06): its release stops that axis — not the one the Z modifier or the",
+            "86:   // step selector would name by then.",
+            "87:   const dpadJogs = new JogGestures<LogicalButton>();",
+            "88:   // Per-axis: last send timestamp",
+            "89:   const lastSendTime: number[] = [];",
+            "90:   // Button edge detection (logical)",
+            "91:   let prevButtons: Record<LogicalButton, boolean> = { ...NO_BUTTONS };",
+            "92:   // After a start (the gamepad switched on — settings split package 3,",
+            "93:   // Codex R335): nothing acts until the pad is at rest — no button held, every",
+            "94:   // stick in its dead zone. A held button is no press, a deflected stick no jog.",
+            "95:   let awaitRest = false;"
+          ]
+        },
+        {
+          "start": 127,
+          "end": 170,
+          "lines": [
+            "127:   function sendJog(axis: number, vel: number, now: number) {",
+            "128:     const prev = lastSentVel[axis] ?? 0;",
+            "129:     const prevTime = lastSendTime[axis] ?? 0;",
+            "130: ",
+            "131:     if (vel === 0 && prev === 0) return; // already stopped",
+            "132: ",
+            "133:     // STOP: always immediate, never throttled",
+            "134:     if (vel === 0 && prev !== 0) {",
+            "135:       deps.send({ cmd: \"jog_stop\", axis });",
+            "136:       lastSentVel[axis] = 0;",
+            "137:       lastSendTime[axis] = now;",
+            "138:       return;",
+            "139:     }",
+            "140: ",
+            "141:     // An axis closed before homing starts nothing (its stop above is never refused)",
+            "142:     if (deps.jogAxisRefusal(axis)) return;",
+            "143: ",
+            "144:     // DIRECTION CHANGE: stop first, then start in new direction",
+            "145:     if (prev !== 0 && Math.sign(vel) !== Math.sign(prev)) {",
+            "146:       deps.send({ cmd: \"jog_stop\", axis });",
+            "147:       deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "148:       lastSentVel[axis] = vel;",
+            "149:       lastSendTime[axis] = now;",
+            "150:       return;",
+            "151:     }",
+            "152: ",
+            "153:     // START: first movement from zero — send immediately",
+            "154:     if (prev === 0) {",
+            "155:       deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "156:       lastSentVel[axis] = vel;",
+            "157:       lastSendTime[axis] = now;",
+            "158:       return;",
+            "159:     }",
+            "160: ",
+            "161:     // VELOCITY UPDATE: heavily throttled to avoid command queue buildup",
+            "162:     const dt = now - prevTime;",
+            "163:     const dv = Math.abs(vel - prev);",
+            "164:     if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs((stickMaxVel[axis] ?? deps.jogVel.value) * VEL_EPSILON)) {",
+            "165:       return;",
+            "166:     }",
+            "167: ",
+            "168:     deps.send({ cmd: \"jog_cont\", axis, vel });",
+            "169:     lastSentVel[axis] = vel;",
+            "170:     lastSendTime[axis] = now;"
+          ]
+        },
+        {
+          "start": 303,
+          "end": 327,
+          "lines": [
+            "303:     if (awaitRest) {",
+            "304:       const dz = cfg.deadZone;",
+            "305:       const still = Object.values(logical.sticks).every(v => Math.abs(v) < dz)",
+            "306:         && !Object.values(logical.buttons).some(Boolean);",
+            "307:       prevButtons = logical.buttons;",
+            "308:       if (!still) return;",
+            "309:       awaitRest = false;",
+            "310:     }",
+            "311: ",
+            "312:     // When gated (settings open), stop any active jogs and skip all commands",
+            "313:     if (gated) {",
+            "314:       stopAllJog();",
+            "315:       // Still update prevButtons for edge detection continuity",
+            "316:       prevButtons = logical.buttons;",
+            "317:       return;",
+            "318:     }",
+            "319: ",
+            "320:     // ── Dead man switch check ──",
+            "321:     const deadManOk = isDeadManSatisfied(logical.buttons);",
+            "322: ",
+            "323:     // Dead man released → stop all jog immediately",
+            "324:     if (prevDeadManOk && !deadManOk) {",
+            "325:       stopAllJog();",
+            "326:     }",
+            "327:     prevDeadManOk = deadManOk;"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/src/dragScroll.ts": {
+      "sha256": "73f8a5a6f64f1f6c26d47a847465dde68e7cc7fa087a0d21dcfad0bb4e71a20e",
+      "excerpts": [
+        {
+          "start": 48,
+          "end": 58,
+          "lines": [
+            "48:   const states = new Map<number, DragState>()",
+            "49:   let scroller: number | null = null",
+            "50: ",
+            "51:   el.addEventListener('pointerdown', (e: PointerEvent) => {",
+            "52:     // a stopped service books nothing: a press without the release watcher",
+            "53:     // would stay in flight for good (Codex R423)",
+            "54:     if (!windowWatching) return",
+            "55:     // Only primary button (touch or left-click)",
+            "56:     if (e.button !== 0) return",
+            "57:     // Skip drag-native elements (sliders, selects, text fields) and jog",
+            "58:     // buttons, which act on pointerdown and hold their own pointer capture"
+          ]
+        },
+        {
+          "start": 117,
+          "end": 131,
+          "lines": [
+            "117:   function endFor(pointerId: number) {",
+            "118:     if (!states.delete(pointerId)) return",
+            "119:     if (scroller === pointerId) {",
+            "120:       scroller = null",
+            "121:       el.style.cursor = ''",
+            "122:       el.style.userSelect = ''",
+            "123:     }",
+            "124:   }",
+            "125: }",
+            "126: ",
+            "127: function scanAndAttach(root: Element | Document = document) {",
+            "128:   for (const el of root.querySelectorAll<HTMLElement>('.scroll-thin')) {",
+            "129:     attach(el)",
+            "130:   }",
+            "131: }"
+          ]
+        },
+        {
+          "start": 160,
+          "end": 176,
+          "lines": [
+            "160: export function stopDragScroll() {",
+            "161:   _observer?.disconnect()",
+            "162:   _observer = null",
+            "163:   window.removeEventListener('pointerup', onWindowRelease, true)",
+            "164:   window.removeEventListener('pointercancel', onWindowRelease, true)",
+            "165:   windowWatching = false",
+            "166:   // the presses in flight end with the service: their scrollers release the",
+            "167:   // container and their styles — a release while stopped reaches nobody, and",
+            "168:   // a later init would find the old owner still moving it (Codex R423)",
+            "169:   for (const [pointerId, ends] of inFlight) for (const end of ends) end(pointerId)",
+            "170:   inFlight.clear()",
+            "171: }",
+            "172: ",
+            "173: // Vite HMR cleanup — prevents a growing pile of observers when the file is",
+            "174: // replaced during development. No-op in production builds.",
+            "175: if (import.meta.hot) {",
+            "176:   import.meta.hot.dispose(() => stopDragScroll())"
+          ]
+        }
+      ]
+    },
+    "lcnc-webui/e2e/run-hold.spec.ts": {
+      "sha256": "8291a9b9eff72ae8ec07e09b89b89b58c7af4bf6be8bb302ecc3ccd7d8f5c85a",
+      "excerpts": [
+        {
+          "start": 176,
+          "end": 188,
+          "lines": [
+            "176: /** Hold `target`; `during` runs 100 ms in; true when the hold was cancelled. */",
+            "177: async function holdWhile(page: Page, target: Locator, during: () => Promise<void>) {",
+            "178:   await expect(target).toBeVisible();   // read the geometry after the signal: shown",
+            "179:   // ONE read of the element that is there NOW: a re-render between the",
+            "180:   // visibility check and a separate boundingBox() left that null under load",
+            "181:   // (round gate 2026-11-21, 1 of 1010 — passed 3/3 alone)",
+            "182:   const box = await target.evaluate(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });",
+            "183:   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);",
+            "184:   await onPageClock(page, async () => {",
+            "185:     await page.mouse.down();",
+            "186:     await page.clock.runFor(100);",
+            "187:     await during();",
+            "188:     await page.clock.runFor(HOLD_MS);"
+          ]
+        }
+      ]
+    }
+  },
+  "kinematics": {
+    "speed_mm_per_min": 3000,
+    "speed_mm_per_s": 50,
+    "validity_seconds": 0.5,
+    "distance_during_validity_mm": 25,
+    "bound_claim": false,
+    "excluded": "callback delay, command lock/write delay, transport/processing age, braking; none measured in this review"
+  }
+}

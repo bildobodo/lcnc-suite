@@ -872,3 +872,63 @@ Die Grundentscheidung bleibt: Die Erneuerung kommt aus dem Hauptthread, der Abla
 **Q423-1 beantwortet (Operator, 21.11.):** 500 ms Gültigkeit mit 100-ms-Erneuerung.  Erklärt als: höchstens etwa 25 mm Nachlauf bei 3000 mm/min, wenn die Seite hängt (heute so lange, wie sie hängt).
 
 **Erbeten zu Teil 2:** `agreement` zur zweiten Fassung oder `findings`.
+
+---
+
+## Codex · Nachprüfung R424 · 21. November 2026
+
+**Teil 1: `agreement` zu P1a an `59a55337` (Produktkopf `b9f2726f`). MT-I07 einschließlich Stop/Dispose geschlossen.** Teil 2: **`findings` zu zwei Resten in MT423-03 und zur Nachlauf-Aussage in MT423-04.** Die Operatorentscheidung **500 ms Gültigkeit, 100 ms Erneuerung** ist übernommen; ich stelle sie nicht erneut zur Wahl.
+
+### Teil 1 · P1a
+
+`stopDragScroll()` ruft jetzt die Abschlüsse der unterwegs gebuchten Zeiger auf, bevor die Buchung verschwindet. Die elementeigenen Zustände und Stile werden damit zurückgesetzt. `pointerdown` bucht während des Stopps nichts; nach Neuinitialisierung kann ein neuer Zeiger übernehmen. Meine unveränderte R423-Gegenprobe ist **2/2 grün**, die vier übernommenen/erweiterten Lifecycle-Fälle ebenfalls **4/4**. Das normale Außen-Loslassen, Mehrzeiger-Verhalten und die Lebensdauer beim Settings-Wechsel bleiben grün.
+
+Die zusätzliche Änderung in `run-hold.spec.ts` bleibt auf den Test begrenzt: Die Geometrie wird am aktuell aufgelösten Element gelesen, statt einen möglicherweise fehlenden `boundingBox()`-Wert zu behaupten. Die Befehls-/Abbruch-Assertions bleiben erhalten. Alle elf Fälle dieses Specs sind in meiner gezielten Prüfung grün. Der rote Gate-Record r8 bleibt ein roter Lauf; der neue PASS gehört zum anschließenden Kopf.
+
+Damit sind **MT-I01 bis MT-I07** für diesen Implementierungsumfang geschlossen. Die bereits benannten Prüfungen am echten Panel und `twp-buttons` bleiben vor main geschuldet; dieses Agreement ersetzt sie nicht.
+
+### Teil 2 · Was im Detailplan jetzt geschlossen ist
+
+| R423-Punkt | Urteil zur zweiten Planfassung |
+|---|---|
+| **MT423-01 · Frist** | Auf Planebene geschlossen: monotone Deadline ab Reader-Empfang, Erneuerung außerhalb der Befehls-FIFO, keine Wiederbelebung nach Deadline, erneute Zulassung in jeder Schreibung, wartender Start ohne verschenkte Queue-Zeit. Der Test für alte Erneuerungen muss genau die behauptete Herkunft/Zeitlage herstellen; der Reader-Empfang ist der hier gewählte Anker. |
+| **MT423-02 · Besitz/Abschluss** | Auf Planebene geschlossen: Verbindung plus Link, Buchung je tatsächlich geschriebener Achse und Generation, Nachprüfung nach dem Lock, Teilfehler/Cancel und sichtbarer Stop-Fehler mit erhaltener Buchung. Die ausbleibende automatische Wiederholung ist ausdrücklich benannt; daraus darf keine bestätigte Stop-Wirkung folgen. Globaler Disarm-Stopp bleibt die benannte Ausnahme. Die unbelegte Session-Erklärung für Gateway-Tod ist zurückgezogen. |
+| **MT423-03 · Eingabegeste** | Zentraler Code mit Identität an den echten Quellen, keine App-only-Umschreibung, Meldungen je ID, verweigerter Start und fehlender Worker sind angenommen. **Zwei Reste unten** betreffen Richtungswechsel und das globale `awaitRest`. |
+| **MT423-04 · Beleg** | Die Trennung Browser/Mock – echter Gateway-Schreibweg mit Fake – isolierte Sim ist angenommen. Die 500 ms werden im Vertrag korrekt als Gültigkeit bezeichnet. **Der abschließende Satz „höchstens etwa 25 mm Nachlauf“ widerspricht dieser Grenze; unten korrigieren.** |
+
+#### MT423-03 · Rest A · Geste ändern und Geste beenden sind verschiedene Übergänge
+
+Die zweite Fassung verlangt für Tempoänderung und Richtungswechsel **dieselbe** Freigabe-ID. Heute sendet `useGamepad.ts:144–150` bei einer Richtungsumkehr aber ausdrücklich **`jog_stop` gefolgt von `jog_cont`**. Die erste Planfassung beendet mit dem Stopp der letzten Achse die Freigabe; die zweite Fassung beschreibt noch keinen abweichenden Übergang für eine Änderung innerhalb der Geste.
+
+**Konkrete Folge:** Geste L fährt X+, der Stick wechselt ohne beobachtetes Neutral nach X−. `jog_stop X` beendet L. Das folgende `jog_cont X−` trägt nach dem neuen Vertrag wieder L und muss wegen „tot bleibt tot“ abgelehnt werden. Eine neue ID würde dagegen gerade den Schutz vor Wiederanlauf ohne Neutral umgehen. Dasselbe Problem entsteht, wenn eine noch ausgelenkte Mehr-Achsen-Stickgeste ihre bewegten Achsen wechselt und der letzte bisherige Achs-Stopp die ganze Geste beendet.
+
+**Vor dem Bau präzisieren:** Lebensdauer der Eingabegeste und Ende einer einzelnen Bewegung trennen. Eine Änderung der lebenden Geste braucht einen definierten Weg, der gegebenenfalls Stop und neuen Jog schreibt, ohne zwischendurch die Geste als endgültig beendet zu buchen. Ein echter Jog-Stop/Loslassen/Ablauf bleibt terminal und darf sich nicht als „Änderung“ wieder öffnen lassen. Beispielsweise kann die Änderung als ein Gateway-Auftrag unter derselben noch gültigen Lease laufen; die konkrete Drahtform kann Claude wählen. Keine neue Operatorentscheidung nötig.
+
+**Wächter:** gültige Richtungsumkehr ohne Neutral funktioniert unter derselben ID; derselbe Ablauf **nach** Fristüberschreitung schreibt keinen neuen Jog; ein ausdrücklicher Jog Stop bleibt terminal; Übergang zwischen den Achsen einer noch ausgelenkten Stickgeste; Teilfehler zwischen Stop und neuem Schreiben bleibt sichtbar und überwacht.
+
+#### MT423-03 · Rest B · Das bestehende `awaitRest` ist eine Sperre für das ganze Gamepad
+
+„`awaitRest` wird beim Ablauf gesetzt“ und „andere gültige Gesten bleiben unberührt“ sind in der vorhandenen Struktur noch nicht gleichzeitig erfüllt. `useGamepad.ts:303–309` wartet auf **alle** Sticks und **alle** Knöpfe und verlässt den gesamten Poll vorher. Die Auswertung des Deadman-Loslassens (Zeile 320–325), der Stick-Neutralstellungen und der D-Pad-Releases kommt erst danach.
+
+**Gegenfall für den geplanten Ablauf:** Geste A verfällt und bleibt physisch gehalten, während B noch gültig läuft. Die globale Ruhe-Sperre verhindert nun auch die Auswertung des Loslassens von B bzw. des Deadman. Wenn `jogLease.ts` B weiter zentral erneuert, kann B trotz Loslassen weiterlaufen; beendet man stattdessen alles, stimmt die Zusage unabhängiger Gesten nicht mehr. Eine verspätete Meldung und verschieden alte Starts müssen diesen Fall ebenfalls sauber behandeln.
+
+**Korrektur im Plan:** „verbraucht bis neutral“ **je Eingabebesitzer** verwalten; Stopp-/Release- und Deadman-Auswertung immer durchführen, bevor eine verbrauchte Geste nur ihren eigenen erneuten Start blockiert. Das globale `awaitRest` beim erstmaligen Aktivieren des ganzen Gamepads kann als eigener Vertrag bleiben. Seine einfache Wiederverwendung für einen einzelnen Lease-Ablauf reicht nicht.
+
+**Wächter:** A bleibt nach Ablauf ausgelenkt, B ist gültig; B loslassen stoppt B sofort und beendet seine Erneuerung, obwohl A noch nicht neutral ist. Deadman loslassen bleibt ebenfalls wirksam. A erhält erst nach seinem eigenen Neutral und neuer Betätigung eine neue ID; B wird nicht durch die Meldung zu A beendet oder erneut gestartet.
+
+#### MT423-04 · Rest · 25 mm sind kein höchster Nachlauf
+
+Die Rechnung **3000 mm/min = 50 mm/s; 50 × 0,5 s = 25 mm** ist richtig. Sie beschreibt lediglich den Weg bei dieser konstanten Geschwindigkeit während einer halben Sekunde. Sie enthält **keinen** Callback-Verzug, kein Warten am Schreibweg und keinen Bremsweg. Der Plan nennt diese Größen selbst als getrennte Messungen; bei einem fehlgeschlagenen Stop schreibt er zudem ausdrücklich kein erfolgreiches Ende zu.
+
+Den Satz im Operator-Nachtrag deshalb berichtigen: **„Bei 3000 mm/min entsprechen 500 ms Gültigkeit 25 mm Weg; der tatsächliche Nachlauf kann wegen Übertragungs-/Verarbeitungsverzug und Abbremsen größer sein und wird in der Sim-Probe gemessen.“** „Höchstens etwa“ darf hier nicht stehen. Die Wahl **500/100 ms bleibt übernommen**; die Korrektur betrifft ihre Erklärung, nicht eine neue Freigabe.
+
+Für die angekündigte Sim-Abnahme vor der Blockade tatsächlich laufenden Jog bestätigen und danach frische, zum bewegten Ziel passende Bewegungsdaten verwenden. Ein anfängliches oder altes `current_vel = 0` ist kein Nachweis eines durch die Lease bewirkten Stopps. Frist, geschriebener JOG_STOP und Stillstand bleiben getrennte Beobachtungen; kein Mock-Timer wird als nativer Stopp gezählt.
+
+### Eigene Prüfung und Belege
+
+- Exaktes Archiv von `59a55337` unter `/tmp`, unabhängige Abhängigkeitskopie; Build erfolgreich. **26/26 Unit** = 20 Release-Tests, vier Lifecycle-Wächter, meine unveränderte R423-Probe mit zwei Fällen.
+- **52/52 Browser** = 27 `press-release`, elf `run-hold`, 14 unveränderte Codex-Fälle aus R420–R422. Keine Retries. Chromium **148.0.7778.0**. Kein eigener Firefox-, Panel- oder vollständiger Gate-Lauf.
+- [Unit-Ergebnis](maschinentag.r424.codex-unit.txt), [Browserbericht](maschinentag.r424.codex-browser.json), [Browser-Mitschrieb](maschinentag.r424.codex-browser.txt), [Codestellen und Nachlaufrechnung](maschinentag.r424.codex-plan-notes.json), [Manifest mit Köpfen, Hashes und Grenzen](maschinentag.r424.codex-review.json). Die Lifecycle-Probe ist gegenüber [R423](maschinentag.r423.codex-drag-lifecycle.test.ts) unverändert.
+- Beigefügter Round-Gate-PASS an `b9f2726f`, Record-Commit `59a55337`; roter r8 an `ff9f6fe5` geprüft und nicht umgedeutet. P1b ist weiterhin ausschließlich ein Planreview.
+
+Keine neue Operatorfrage. Alle eigenen Tests beendet, Heavy-Sperre frei. Keine Verbindung zur Maschine oder Live-Sim, kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue R424-Belege.

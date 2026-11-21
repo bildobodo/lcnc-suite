@@ -1,0 +1,109 @@
+[1A[2K[WebServer] (node:1779431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 52 tests using 1 worker
+
+[1A[2K(node:1779472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1779472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/52] [e2e] › e2e/press-release.spec.ts:86:1 › a long press on a click control acts once, on its release — the panel's sequence
+[1A[2K[2/52] [e2e] › e2e/press-release.spec.ts:103:1 › a long press on a tab switches it on release
+[1A[2K[3/52] [e2e] › e2e/press-release.spec.ts:110:1 › a long press on Reset resets once, on its release
+[1A[2K[4/52] [e2e] › e2e/press-release.spec.ts:120:1 › a long touch the browser still clicks acts exactly once
+[1A[2K[5/52] [e2e] › e2e/press-release.spec.ts:131:1 › a short tap acts once — nothing doubles it
+[1A[2K[6/52] [e2e] › e2e/press-release.spec.ts:138:1 › a swipe that starts on a click control acts nowhere
+[1A[2K[7/52] [e2e] › e2e/press-release.spec.ts:146:1 › the E-Stop stops at the press — and the same press never resets it
+[1A[2K[8/52] [e2e] › e2e/press-release.spec.ts:163:1 › a tap on the E-Stop stops once; the next tap on Reset resets
+[1A[2K[9/52] [e2e] › e2e/press-release.spec.ts:176:1 › the panel's long press on the E-Stop stops at the press and does nothing at the release
+[1A[2K[10/52] [e2e] › e2e/press-release.spec.ts:183:1 › a swipe that starts on the E-Stop still stops (the press is the stop)
+[1A[2K[11/52] [e2e] › e2e/press-release.spec.ts:190:1 › a second finger stops while the first holds a jog
+[1A[2K[12/52] [e2e] › e2e/press-release.spec.ts:206:1 › the mouse: the E-Stop stops at the button press; the click of that press never resets
+[1A[2K[13/52] [e2e] › e2e/press-release.spec.ts:219:1 › the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset
+[1A[2K[14/52] [e2e] › e2e/press-release.spec.ts:240:1 › two E-Stop presses (a finger and the mouse) never end in a Reset — either release order (MT-I01)
+[1A[2K[15/52] [e2e] › e2e/press-release.spec.ts:258:1 › a new Reset press of the same pointer after a cancelled E-Stop press resets (MT-I01)
+[1A[2K[16/52] [e2e] › e2e/press-release.spec.ts:280:3 › a strip scroll that starts on Power acts nowhere — at the drag threshold (5 px) (MT-I02)
+[1A[2K[17/52] [e2e] › e2e/press-release.spec.ts:280:3 › a strip scroll that starts on Power acts nowhere — between threshold and slop (8 px) (MT-I02)
+[1A[2K[18/52] [e2e] › e2e/press-release.spec.ts:280:3 › a strip scroll that starts on Power acts nowhere — and back to its start (MT-I02)
+[1A[2K[19/52] [e2e] › e2e/press-release.spec.ts:308:1 › a keyboard activation after a long press acts on its own (MT-I03)
+[1A[2K[20/52] [e2e] › e2e/press-release.spec.ts:319:1 › the press owners carry their mark in the DOM; Reset and the jog pad's Stop do not (MT-I04/06)
+[1A[2K[21/52] [e2e] › e2e/press-release.spec.ts:331:1 › a long press on a disabled control gives it no click (MT-I05)
+[1A[2K[22/52] [e2e] › e2e/press-release.spec.ts:352:1 › the jog pad's Stop acts on its release — a long press and a second finger (MT-I06)
+[1A[2K[23/52] [e2e] › e2e/press-release.spec.ts:387:3 › a second finger on the strip never undoes the first one's scroll — the second finger lands first (MT-I02 rest A)
+[1A[2K[24/52] [e2e] › e2e/press-release.spec.ts:387:3 › a second finger on the strip never undoes the first one's scroll — the second finger lands while the first scrolls (MT-I02 rest A)
+[1A[2K[25/52] [e2e] › e2e/press-release.spec.ts:387:3 › a second finger on the strip never undoes the first one's scroll — the second finger lifts first (MT-I02 rest A)
+[1A[2K[26/52] [e2e] › e2e/press-release.spec.ts:415:1 › a swipe inside the jog pad's Stop stops nothing — the browser's own click of it is refused (MT-I02/06 rest B)
+[1A[2K[27/52] [e2e] › e2e/press-release.spec.ts:428:1 › opening and closing scrollers adds no window listeners and keeps no earlier ones alive (MT-I07)
+[1A[2K[28/52] [e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted
+[1A[2K[e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted
+R420 cancel then reset {"gap":49.799999713897705,"got":[{"cmd":"estop","req_id":"s3oed6-5"},{"cmd":"estop_reset","req_id":"s3oed6-6"}]}
+
+[1A[2K[29/52] [e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent
+R420 keyboard [{"cmd":"abort","req_id":"c3e1p5-5"},{"cmd":"abort","req_id":"c3e1p5-6"}]
+
+[1A[2K[30/52] [e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power
+R420 six-pixel {"got":[],"events":[{"kind":"pointerdown","target":"b lg default active block safetyBtn","trusted":true,"x":246.3359375,"id":3},{"kind":"gotpointercapture","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"pointermove","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"gotpointercapture","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3},{"kind":"pointerup","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3}]}
+
+[1A[2K[31/52] [e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop
+R420 two devices [{"cmd":"estop","req_id":"rfiezy-5"},{"cmd":"estop","req_id":"rfiezy-6"}]
+
+[1A[2K[32/52] [e2e] › e2e/r420-codex.spec.ts:137:1 › R420 a fresh Reset gesture with the reused pointer ID is not swallowed
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:137:1 › R420 a fresh Reset gesture with the reused pointer ID is not swallowed
+R420 reused pointer [{"cmd":"estop","req_id":"yv87ds-5"},{"cmd":"estop_reset","req_id":"yv87ds-6"}]
+
+[1A[2K[33/52] [e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset
+R420 delayed click [{"cmd":"estop","req_id":"29n7ez-5"}]
+
+[1A[2K[34/52] [e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract
+R420 jog stop {"before":[],"after":[{"cmd":"jog_stop","axis":0,"req_id":"4egttj-5"},{"cmd":"jog_stop","axis":1,"req_id":"4egttj-6"},{"cmd":"jog_stop","axis":2,"req_id":"4egttj-7"}]}
+
+[1A[2K[35/52] [e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons
+[1A[2K[e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons
+R420 owned {"estop":"","jog":""}
+
+[1A[2K[36/52] [e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off
+[1A[2K[e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off
+R420 panel scroll []
+
+[1A[2K[37/52] [e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch
+[1A[2K[e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch
+R420 disabled flood {"got":[],"changes":[]}
+
+[1A[2K[38/52] [e2e] › e2e/r421-codex.spec.ts:74:1 › R421 second pointer cannot erase the first pointer scroll decision
+[1A[2K[e2e] › e2e/r421-codex.spec.ts:74:1 › R421 second pointer cannot erase the first pointer scroll decision
+R421 concurrent scroll {"got":[],"events":[{"kind":"pointerdown","id":3,"primary":true,"x":246.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"pointerdown","id":4,"primary":false,"x":153,"y":517.25,"trusted":true,"target":"sub"},{"kind":"gotpointercapture","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"pointermove","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"gotpointercapture","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"strip bordered-panel scroll-thin strip-more"},{"kind":"pointerup","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"strip bordered-panel scroll-thin strip-more"}]}
+
+[1A[2K[39/52] [e2e] › e2e/r421-codex.spec.ts:94:1 › R421 a swipe on Jog Stop must not act through a native click
+[1A[2K[e2e] › e2e/r421-codex.spec.ts:94:1 › R421 a swipe on Jog Stop must not act through a native click
+R421 jog swipe {"got":[],"events":[{"kind":"pointerdown","id":3,"primary":true,"x":425.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"gotpointercapture","id":3,"primary":true,"x":439.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"pointermove","id":3,"primary":true,"x":439.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"pointerup","id":3,"primary":true,"x":439.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"}]}
+
+[1A[2K[40/52] [e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes
+[1A[2K[e2e] › e2e/r422-codex.spec.ts:67:1 › R422 Settings cycles do not accumulate window listeners or older detached nodes
+R422 lifetime {"before":{"up":2,"cancel":2},"series":[{"up":3,"cancel":2},{"up":3,"cancel":2},{"up":3,"cancel":2}],"retained":{"sampled":27,"alive":9,"detached":9,"earlierDetached":0}}
+
+[1A[2K[41/52] [e2e] › e2e/r422-codex.spec.ts:114:1 › R422 a refused pen swipe leaves its next valid press usable
+[1A[2K[e2e] › e2e/r422-codex.spec.ts:114:1 › R422 a refused pen swipe leaves its next valid press usable
+R422 next press {"afterSwipe":[],"afterValid":[{"cmd":"jog_stop","axis":0,"req_id":"d9ijyv-5"},{"cmd":"jog_stop","axis":1,"req_id":"d9ijyv-6"},{"cmd":"jog_stop","axis":2,"req_id":"d9ijyv-7"}]}
+
+[1A[2K[42/52] [e2e] › e2e/run-hold.spec.ts:84:1 › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap
+[1A[2K[43/52] [e2e] › e2e/run-hold.spec.ts:114:1 › Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line
+[1A[2K[44/52] [e2e] › e2e/run-hold.spec.ts:134:1 › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)
+[1A[2K[45/52] [e2e] › e2e/run-hold.spec.ts:195:1 › a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading
+[1A[2K[46/52] [e2e] › e2e/run-hold.spec.ts:220:1 › while a revision's text is still loading, Start and Step wait — a hold there runs nothing
+[1A[2K[47/52] [e2e] › e2e/run-hold.spec.ts:233:1 › Run from line: a new revision cancels the action's hold, closes the dialog when the text changed, and the next run carries the new entry
+[1A[2K[48/52] [e2e] › e2e/run-hold.spec.ts:255:1 › a line selection belongs to its program: another program clears it
+[1A[2K[49/52] [e2e] › e2e/run-hold.spec.ts:271:1 › the Run-from-line preset and Settings' default preset never uncheck each other — both orders, every value
+[1A[2K[50/52] [e2e] › e2e/run-hold.spec.ts:315:1 › an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro
+[1A[2K[51/52] [e2e] › e2e/run-hold.spec.ts:380:1 › a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible revision once
+[1A[2K[52/52] [e2e] › e2e/run-hold.spec.ts:435:1 › a macro with parameters opens on a tap; Enter opens a field's keypad and never executes; Execute is a hold bound to the values
+[1A[2K  52 passed (3.2m)

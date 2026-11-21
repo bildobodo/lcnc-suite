@@ -1,0 +1,1146 @@
+{
+  "review": "R424",
+  "verdict": "findings",
+  "parts": {
+    "P1a": "agreement; MT-I01..MT-I07 closed for the reviewed implementation; panel/twp acceptance still pending",
+    "P1b": "findings: MT423-03 rests A/B (change vs end; rest gate per owner) and MT423-04 (25 mm is not an upper bound)"
+  },
+  "base": "98748fab420d1da6db7c1b4580e1c81bba314055",
+  "previous_head": "6fa671cd33da1af4d6f9cba3b2ac3714313a5c6d",
+  "head": "59a5533789dbcab4f3407081a4de7c415b5782a1",
+  "document_head": "ccccdfcfab96b8a77555cc3106a7f9147d2c0920",
+  "review_prefix_sha256": "2319748bfab59b546a8caf09d5c69a1fe975d2b1733ddf1d2c98f7b352b9399a",
+  "build": "PASS",
+  "unit": {
+    "passed": 26,
+    "failed": 0,
+    "existing_releaseClick": 20,
+    "new_repository_dragScroll": 4,
+    "unchanged_R423_probe": 2
+  },
+  "browser_stats": {
+    "startTime": "2026-11-21T20:36:44.610Z",
+    "duration": 191800.8,
+    "expected": 52,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on a click control acts once, on its release — the panel's sequence",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on a tab switches it on release",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on Reset resets once, on its release",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long touch the browser still clicks acts exactly once",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a short tap acts once — nothing doubles it",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a swipe that starts on a click control acts nowhere",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the E-Stop stops at the press — and the same press never resets it",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a tap on the E-Stop stops once; the next tap on Reset resets",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the panel's long press on the E-Stop stops at the press and does nothing at the release",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a swipe that starts on the E-Stop still stops (the press is the stop)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a second finger stops while the first holds a jog",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the mouse: the E-Stop stops at the button press; the click of that press never resets",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "two E-Stop presses (a finger and the mouse) never end in a Reset — either release order (MT-I01)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a new Reset press of the same pointer after a cancelled E-Stop press resets (MT-I01)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a strip scroll that starts on Power acts nowhere — at the drag threshold (5 px) (MT-I02)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a strip scroll that starts on Power acts nowhere — between threshold and slop (8 px) (MT-I02)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a strip scroll that starts on Power acts nowhere — and back to its start (MT-I02)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a keyboard activation after a long press acts on its own (MT-I03)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the press owners carry their mark in the DOM; Reset and the jog pad's Stop do not (MT-I04/06)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on a disabled control gives it no click (MT-I05)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the jog pad's Stop acts on its release — a long press and a second finger (MT-I06)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a second finger on the strip never undoes the first one's scroll — the second finger lands first (MT-I02 rest A)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a second finger on the strip never undoes the first one's scroll — the second finger lands while the first scrolls (MT-I02 rest A)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a second finger on the strip never undoes the first one's scroll — the second finger lifts first (MT-I02 rest A)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a swipe inside the jog pad's Stop stops nothing — the browser's own click of it is refused (MT-I02/06 rest B)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "opening and closing scrollers adds no window listeners and keeps no earlier ones alive (MT-I07)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-cancel.spec.ts",
+      "title": "R420 new pen Reset after a cancelled E-Stop press must be accepted",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 keyboard activation after a long release remains independent",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 a real six-pixel scroll gesture must not turn into Power",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 each E-Stop pointer keeps its release even after a second stop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 a fresh Reset gesture with the reused pointer ID is not swallowed",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 a delayed click of the E-Stop gesture must never Reset",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 Jog Stop follows the new release contract",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-more.spec.ts",
+      "title": "R420 press ownership reaches the actual DOM buttons",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-more.spec.ts",
+      "title": "R420 a panel long press with a six-pixel scroll never powers off",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-more.spec.ts",
+      "title": "R420 the disabled Flood control stays inert on a long touch",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r421-codex.spec.ts",
+      "title": "R421 second pointer cannot erase the first pointer scroll decision",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r421-codex.spec.ts",
+      "title": "R421 a swipe on Jog Stop must not act through a native click",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r422-codex.spec.ts",
+      "title": "R422 Settings cycles do not accumulate window listeners or older detached nodes",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r422-codex.spec.ts",
+      "title": "R422 a refused pen swipe leaves its next valid press usable",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "while a revision's text is still loading, Start and Step wait — a hold there runs nothing",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "Run from line: a new revision cancels the action's hold, closes the dialog when the text changed, and the next run carries the new entry",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "a line selection belongs to its program: another program clears it",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "the Run-from-line preset and Settings' default preset never uncheck each other — both orders, every value",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible revision once",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "title": "a macro with parameters opens on a tap; Enter opens a field's keypad and never executes; Execute is a hold bound to the values",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "browser_versions": [
+    {
+      "t": 1795293406511,
+      "run": "codex-r424",
+      "pid": 1779472,
+      "event": "browser",
+      "name": "chromium",
+      "version": "148.0.7778.0",
+      "pinned": null,
+      "workerIndex": 0
+    }
+  ],
+  "supplied_gates": [
+    {
+      "file": "press-release.gate-round.r423.json",
+      "base": "98748fab420d1da6db7c1b4580e1c81bba314055",
+      "head": "b9f2726ffed7630f82b658439d004a766836df35",
+      "uncommitted": 0,
+      "verdict": "PASS",
+      "pending": [
+        {
+          "check": "twp-buttons",
+          "status": "pending: a live check, run before main",
+          "paths": [
+            "lcnc-webui/src/JogStrip.vue",
+            "lcnc-webui/src/SafetyStrip.vue"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "press-release.gate-round.r8-fail.json",
+      "base": "98748fab420d1da6db7c1b4580e1c81bba314055",
+      "head": "ff9f6fe5f0e015e245781e97e784cfbc4d41c589",
+      "uncommitted": 0,
+      "verdict": "FAIL",
+      "pending": [
+        {
+          "check": "twp-buttons",
+          "status": "pending: a live check, run before main",
+          "paths": [
+            "lcnc-webui/src/JogStrip.vue",
+            "lcnc-webui/src/SafetyStrip.vue"
+          ]
+        }
+      ]
+    }
+  ],
+  "previous_probes": [
+    {
+      "file": "e2e/r420-codex.spec.ts",
+      "evidence": "maschinentag.r420.codex.spec.ts",
+      "sha256": "02ee3081fd7688400a5330ce0c21b4180ed56fad7a93f56ff954e78354d3372a",
+      "unchanged": true
+    },
+    {
+      "file": "e2e/r420-more.spec.ts",
+      "evidence": "maschinentag.r420.codex-more.spec.ts",
+      "sha256": "6908d1b753513e8af66f754d5bd42f44605206c5682994e47e6c0f78992621f8",
+      "unchanged": true
+    },
+    {
+      "file": "e2e/r420-cancel.spec.ts",
+      "evidence": "maschinentag.r420.codex-cancel.spec.ts",
+      "sha256": "b4b204e6e187b54fcde5bcec32020ad9b337216787711ec9482b219f81abc59a",
+      "unchanged": true
+    },
+    {
+      "file": "e2e/r421-codex.spec.ts",
+      "evidence": "maschinentag.r421.codex.spec.ts",
+      "sha256": "41689ebfd587f76cf8a528164dd461f45ed5b3b4817661182f025a33cfb293bd",
+      "unchanged": true
+    },
+    {
+      "file": "e2e/r422-codex.spec.ts",
+      "evidence": "maschinentag.r422.codex.spec.ts",
+      "sha256": "9dfab00621210f8745347a06050358ed795d3a6038ca59f78f8d53f7a4ded631",
+      "unchanged": true
+    },
+    {
+      "file": "src/r423-dragLifecycle.test.ts",
+      "evidence": "maschinentag.r423.codex-drag-lifecycle.test.ts",
+      "sha256": "51606fd71f129ab69aba2adc592d72ceb2144d18b45f1e79db43de85e9ce8810",
+      "unchanged": true
+    }
+  ],
+  "source_sha256": {
+    "lcnc-webui/src/App.vue": "2c42c64638dbad18c352428d36bc2f0eba51651a1b97c27760bc93c02a89984a",
+    "lcnc-webui/src/Btn.vue": "fae75d75431cce247942798d00f8c617d8475e22f8d658cb07013a1fffe459fc",
+    "lcnc-webui/src/CameraPip.vue": "aefe4ed791111ae0d378f01e201b4abc004b4dfad56eb1387b7bc5878e8e2d76",
+    "lcnc-webui/src/ChoiceGroup.vue": "a3b9dbeed63b70033d31502209ef65e78bdc15f15404e3ae9fca2d9246001e64",
+    "lcnc-webui/src/CodeEditor.vue": "9cb5db9948fadb7c917bb32cfaf59d63f4cb4f198412f2f6fa0bf570844fb1b7",
+    "lcnc-webui/src/CornerGlyph.vue": "e2c8c2440498cf456d9cad8ba38eb53319e24bd2c3d18a91cb5c686ee0c8d969",
+    "lcnc-webui/src/DebugTab.vue": "d75fe2114f8301a46b19e37678c84f15f11bc533208808c9c74cf31a203dd9a7",
+    "lcnc-webui/src/DetailsPopover.vue": "a5522788ae3196c3e2632f2b607d3f28d090fc7c779e6147b3767d8bde17ed91",
+    "lcnc-webui/src/DevicesSettings.vue": "4e0134cefe475f0323c88eb65400d67f439fdeecb1a7313adcc3ddadbd732534",
+    "lcnc-webui/src/DialogFrame.vue": "6a085b036aaa8db36e3c00d03f8bbc5d6d23896458324d29b3b91c0170638098",
+    "lcnc-webui/src/FileBrowser.vue": "2b1743985cb828d1fd87fcf8bdc2d73461514426fb63eb9968edbd02afbff6f4",
+    "lcnc-webui/src/FloatingOverlays.vue": "9706d337627f55027b97aaa2ee356cbacedafc66009d28621513cac8a73f2db7",
+    "lcnc-webui/src/FormField.vue": "5bd9a3c5b481530960aef9ad35fd7e2c96b5a94400336d4900e5cb45ca5af3a8",
+    "lcnc-webui/src/GamepadLiveInput.vue": "83ed5fa26644541a98c502ce37d222f9188536f199b35d918995f4efba78a381",
+    "lcnc-webui/src/GamepadMapWizard.vue": "23a29a1cc9eed4c55c346c7dfb284f692a6b48021f2da13df90329902a73b59f",
+    "lcnc-webui/src/GamepadTab.vue": "e79c7fafe39c2a5c21340eebe8b4128eca29475687a7a3e691b6c136cc181c8b",
+    "lcnc-webui/src/Gate.vue": "ebfa0814654317e5ae2cfc41a058e335e7d6ab259c13bd3c02e4a3693282cf66",
+    "lcnc-webui/src/GcodePanel.vue": "0e9e8d400b3c8db4f3c3facd7922c18f2cc48b6693b881085a8e99c6580e38f0",
+    "lcnc-webui/src/GcodeReferenceDialog.vue": "120f9c53dbbc9f4c12a57e7830edb449df3c19aa211533fe74fb8b3ce05a7d16",
+    "lcnc-webui/src/HalshowTab.vue": "5b4a86fdc6dd012364b34664e0221a730d363445277f998954b3751db42558fd",
+    "lcnc-webui/src/HelpIcon.vue": "78d1f6010aaff1e5f4d8a806923ef959727f24d674f07b6cc7708b334cb58c9f",
+    "lcnc-webui/src/JogStrip.vue": "a38990e7a7b8301bc89ad27d839bc307e8793124a2fa408874f79d4277602a0f",
+    "lcnc-webui/src/KeyboardTab.vue": "0fe47bdb504a5261a20e2e9815459c3aaf37ed187b98aa5e8553ba5cd5577b8a",
+    "lcnc-webui/src/MachineBtn.vue": "1b9cf5d42f60ce52d4d22e6686b1700b118c9bd270eddcbf78594caa320349cb",
+    "lcnc-webui/src/MachineChoice.vue": "b7f29f9744fa21c55e473a8b4a72b4853e62c7dd44f7c06078de6c0cc1327c9f",
+    "lcnc-webui/src/MachineColor.vue": "6f32cbbd7ff4186c2c30662e057e7614e4aba3c9bdbc9dc8cf4a8cde4c24ff8b",
+    "lcnc-webui/src/MachineInput.vue": "53db152f1ddce525dc31129013320e0ad9188631190817007d6875a71cb40b0a",
+    "lcnc-webui/src/MachineRadio.vue": "6df430c52178eb1eb34c25257d7c35055da5cabbd55b2b63810f8e337e2e08fe",
+    "lcnc-webui/src/MachineSelect.vue": "1cd4b2144baac75746635704046fad30b5761e8e5c5479d69a3be49ee6a5d586",
+    "lcnc-webui/src/MachineSlider.vue": "d129b5ffd685a5ad1cd4aa4d71d3c49915f285158ec7ccb7b052528014751d24",
+    "lcnc-webui/src/MachineToggle.vue": "a801d4e28a31261855029efa6f133b50444a382a17f2844374d2c30a41782d33",
+    "lcnc-webui/src/MacroBar.vue": "cbbc8008f1d6910cbfb476c5ad83dda4d2c2b429ff066d26aac91927ad232fa3",
+    "lcnc-webui/src/MacrosPanel.vue": "0494f2ac59403da8d8ab10c8caecbdcd99ece46ffc7fb173fa3534bb50d89d21",
+    "lcnc-webui/src/MessagesDialog.vue": "fdfdd46327f314e25d5ee9cd2d175ef1e0fa593fe1a75fbb0a642f9a2aab87bf",
+    "lcnc-webui/src/MoreMenu.vue": "5c6cba2e2e5186c7dd38d440286de2c5832388e80337e39e14244436662e9076",
+    "lcnc-webui/src/NumberKeypadStrip.vue": "d3720e8ac64f34102d5183d0333a3535cc79f61755816e18512d6d00357f368c",
+    "lcnc-webui/src/OffsetPanel.vue": "0795abb52ae6c5f235e29f7335e836fd2de23d9184dd3eefbb5b83af44eb0035",
+    "lcnc-webui/src/OverridesStrip.vue": "66eec84f26427907e372c9dbc1253d6780a92c0c7043013efc45a71e10827ba3",
+    "lcnc-webui/src/ProbePanel.vue": "2fdcf2f3cb54d0bf372f21d6aca6a98b49311872f1ebfc7b0ab75046b13fe55e",
+    "lcnc-webui/src/SafetyStrip.vue": "3f1f8d92228ea3820bc05952cf6d6a06f5e62929fe6483264ad3e14958f88230",
+    "lcnc-webui/src/ScrubBar.vue": "ff0a5aea111ba365cd0d133b9b44fa533fff9576898e2c3bc2e382645f5cc7fd",
+    "lcnc-webui/src/SettingsPanel.vue": "788198eaf7e1690454a05d606dff428f15b1dd1dcfa0e1a98755f70d5e595c30",
+    "lcnc-webui/src/SetupActions.vue": "c9fb1b092ae043d23b0753100992a75ab9dc72c2961e90bb3a7504c86d13b083",
+    "lcnc-webui/src/SetupIcon.vue": "352d10e3565b0465b566a6e64f1ebc8464f83eb5e29bab7d13fb6ae4b926bb22",
+    "lcnc-webui/src/SetupStrip.vue": "f8ecd6e739446fc49128b6cd5106d3a1c57eb98a0f57ceb8a9fc4a7930f03863",
+    "lcnc-webui/src/SimPanel.vue": "24ee029ab366abea28c3238de8f5b3333a03b4605208ec6c139dca2f14e79784",
+    "lcnc-webui/src/SpindleStrip.vue": "f843188804ca216095b30f27d5828525044adf01baac784eee9b4dd7fb5d89d8",
+    "lcnc-webui/src/StatsDonut.vue": "b2808b70b6fbb44d7dfdac2f342a2c7b20f6ce34de3b984030c54b38d3be723a",
+    "lcnc-webui/src/TabNav.vue": "ba31cc9fcba5d2da024658dfa19226b38a88bcda76592df5ec066cd28959324e",
+    "lcnc-webui/src/TabPanel.vue": "d0ffd3ab7bb7eb1232dcb7d1fd8fc17805541a4a89fd30df2e0c13279be7e629",
+    "lcnc-webui/src/TextKeypadStrip.vue": "c427b89875726d5b6650e5127dc63a67cef8975b1ddf30cc7aebfdeb41d539d5",
+    "lcnc-webui/src/ThreeViewer.vue": "92c5b959babc9065c07ab9d001f549663e81f895561c852318c2d9ae144b5dc2",
+    "lcnc-webui/src/ToolPreview.vue": "beaed56eef1caf69096a0771e3c3c7f34d2535ec8a261dde297ec2a303b73779",
+    "lcnc-webui/src/ToolStrip.vue": "3db8f4c21bc5e1b2d6b328e8f37779dc7764b733e0cb92e6f7bd802883b927aa",
+    "lcnc-webui/src/ToolTablePanel.vue": "8ddc2b53740b80da3496e30a9bb9403dc1a211ad2bb3226718d5f492ad3f7ed8",
+    "lcnc-webui/src/ToolsetterSettings.vue": "4f8780af5d63f33e7431bee4b1f71b85053e95a76431266643877ad3ac6d8f65",
+    "lcnc-webui/src/ViewCube.vue": "0ab60c814663ae0c9ce613d5c7ac461eeb1c3e4fffee6a6f1ccd5398f9d7e218",
+    "lcnc-webui/src/actionAdmission.test.ts": "b529cac57aaa9af1433c1ab86c0326ba62be7c606b4ee81948d6b4a0895dff0f",
+    "lcnc-webui/src/actionAdmission.ts": "0e6d28e91caf5ef0f59c2cd126a42fa752c998af8eaf6af8d91b4ed448a9e733",
+    "lcnc-webui/src/assets/fonts/Inter-Regular.woff": "b58160a88d6764b1f0887c3d343e38216007f4ef8364a5a5791a99cdf0ef3c1d",
+    "lcnc-webui/src/assets/fonts/InterVariable.woff2": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+    "lcnc-webui/src/assets/fonts/JetBrainsMono-Regular.woff2": "a9cb1cd82332b23a47e3a1239d25d13c86d16c4220695e34b243effa999f45f2",
+    "lcnc-webui/src/assets/fonts/JetBrainsMono-SemiBold.woff2": "918edad542a1da608fd2ba8daebaff9ac802309103fe760eed465b8b4e47faf1",
+    "lcnc-webui/src/assets/fonts/OFL-Inter.txt": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+    "lcnc-webui/src/assets/fonts/OFL-JetBrainsMono.txt": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad",
+    "lcnc-webui/src/auth.ts": "f97fdaa8a685e7b8a1e6cb510ec92b9e4b1c8859aaea96c078b519aa36f03443",
+    "lcnc-webui/src/axisColors.ts": "9b212be84521af386760bcabd34c8974e24505dbcec329e4c78acf44337b2b1c",
+    "lcnc-webui/src/browseFailure.test.ts": "0f461721983c2bf7be2ba0cd654f8726f9ad8e108217bcd5de32051a9fcf8087",
+    "lcnc-webui/src/browseFailure.ts": "3372f395ab0e6bcd4339bf135f13de5be1e6160e893a401f8bee0b7bd0ee0562",
+    "lcnc-webui/src/btnHint.test.ts": "686c45927c41178aa5d2b5ba18953e1e7dca361693b9be2c6c737040bb3faffa",
+    "lcnc-webui/src/btnHint.ts": "e0af53daf390538b358fa1cfbf6f7aad295870d52d66eca3f601be4bd839cd0a",
+    "lcnc-webui/src/bundledFonts.test.ts": "5d060ae398f50cb852e4a81382497194cd01209410e0e6ac6f32b9948ee85269",
+    "lcnc-webui/src/choiceGroup.ts": "f7636af19b7c5adb4a201bda77aeeb343081e9a953b78e8a78655e401eda22c1",
+    "lcnc-webui/src/clientDiag.ts": "2c05f208a154b35cb33f0739ca0bb1911bf5a6a7dd98db1183e9cad0be56fd72",
+    "lcnc-webui/src/codeGlide.test.ts": "d85f34087f3a3b056550fc338bba1b2f68dedd47bc7d06d2827831d5c17720e8",
+    "lcnc-webui/src/codeGlide.ts": "dee79ce8da51309e282b3887a6288de9821678ae4f6ac6c4b21d51cb1c6fff3b",
+    "lcnc-webui/src/commandPath.test.ts": "2d670c6a7ea4f08a6d240e447e071e14ec1b73ea70f5233dcf9ddfd6e70e1df0",
+    "lcnc-webui/src/commandShapes.test.ts": "1fba296cc173e504cd2f657b758bab713e8cb3e6bd3a220bbee9021d6c06f5fc",
+    "lcnc-webui/src/connKey.ts": "6baef81b7a68bdc4d63da052051f3d800c9683b2ef6e65ffdf193956bc64547b",
+    "lcnc-webui/src/controlInventory.test.ts": "7ec96ff5793c18d32c7afcc26f811c14922e1fdf98100aec141e1ce6eec14912",
+    "lcnc-webui/src/controlInventory.ts": "3ad7860ebac1f99e6f3db62cb9c5693e32b1b28a9e26dd7383af151eef7284a0",
+    "lcnc-webui/src/controlScan.ts": "39d514a5cb89310dbe929fef92edd3ee51eda0fcdc198c1cd25f9831b97456f8",
+    "lcnc-webui/src/defaults.ts": "3edb5c9eff2cf2ac3400317583b2fde80575f5bbff8de2bb4dd596e64a52a167",
+    "lcnc-webui/src/deviceToken.ts": "164e82b96617b79960e4c6d5913ecc7234a08bd6acddb62384afed56d598b086",
+    "lcnc-webui/src/download.ts": "7a94f678e865d193ab51e20d2b342e3f2583735d49df19d55d93639feaeb8d2e",
+    "lcnc-webui/src/dragScroll.test.ts": "4ae859a3287215e983c1ffc30e907ff6bfd05b67e7d0ccf92ee4dace471de544",
+    "lcnc-webui/src/dragScroll.ts": "73f8a5a6f64f1f6c26d47a847465dde68e7cc7fa087a0d21dcfad0bb4e71a20e",
+    "lcnc-webui/src/e2eJsonLines.test.ts": "f97e5ae0871dc16f96726468a12c7eda3d0c60e5a980d148bf310390b4ac2e80",
+    "lcnc-webui/src/edgeWorker.ts": "b0a09b116961f888cc30acee5cc1d1d02ef1515ac7a5aaebc1f4497ee5b85a84",
+    "lcnc-webui/src/exampleToolLibrary.test.ts": "7487a15e2b84b862af84c9deb55712c578913a21d8ef70f8af7b4e4a07a666a1",
+    "lcnc-webui/src/features.ts": "789e44431571fa1493c547ba0d6a9a9ece36a0da96d8f7dbf2bad74da4070eb5",
+    "lcnc-webui/src/flashClock.test.ts": "7151312600126d28ffad025a6b91c7e2c020e4f644cc9e8520979d57677b9b06",
+    "lcnc-webui/src/flashClock.ts": "080fb6ac05d1c4d78dec01efdf01718c76371d198445191374f6e73a46209270",
+    "lcnc-webui/src/formToolGeometry.test.ts": "0f9a5fbbf18cd6f8033b76be47e82e625f88ba778becac27553e7413d471b4ec",
+    "lcnc-webui/src/format.test.ts": "19274e90ac0dc4e65b09bbd5edc48e40a0495c55ab19e1206c4dbe1e1e8a554b",
+    "lcnc-webui/src/format.ts": "60d4f0cc4a705324ae2be0f4a024ffcdd9c466de60bb6e4439b7143c96fa5811",
+    "lcnc-webui/src/freecadGeometry.test.ts": "d2569f8b6380fd2bd76d3e731517e47bc877a30e0a96b100054e750749794c0b",
+    "lcnc-webui/src/g30Form.test.ts": "9436c48c6214a7c55fa38fac24bf8b79c348b0e551f3d0f2305bfe2df0df27ee",
+    "lcnc-webui/src/g30Form.ts": "e232335f180ab686e20c198adf1c7b26b97da51a631eeeb321a59792f2c60fd1",
+    "lcnc-webui/src/g30Shared.ts": "fdd6d65c1d0d5a1b2cfeebc9d68d7ede35fd6139869217b4dcb2944578308d5a",
+    "lcnc-webui/src/gamepadProfile.test.ts": "011259519b71a8dd88ea06746dbd5983ccc94e4293c7bf4c61901ff3171d0114",
+    "lcnc-webui/src/gamepadProfile.ts": "7d9b137b648196b80a0b59c2f18aca33acf723e5b235cc71265b7136bd2fa809",
+    "lcnc-webui/src/gateExplain.ts": "ea1510bbc991fd3e7f8b5628e3f8bf8b6c3aba5627bf0c1b6ae72707e75c4a6e",
+    "lcnc-webui/src/gcodeCmLanguage.ts": "80504b7418b277f34bd5bd5dcbddaf3fe847a2ba93142751642b65cf984ef1fc",
+    "lcnc-webui/src/gcodeHighlight.ts": "fd0ec715046e112b99be7dbe679590444d03cf22c2aa3a87337bec37e6d608ca",
+    "lcnc-webui/src/gcodeRefView.test.ts": "f0d276e329b9507fa92d91520b1ace932d4a4008d3cc7bfe0f59d4747f0a15b4",
+    "lcnc-webui/src/gcodeRefView.ts": "d9eeb46d8fdc50ca77d7aa55590e8abd4656db458488289a2af0a455e15d33ef",
+    "lcnc-webui/src/gcodeReference.ts": "e2bfda10b22060517e29dab8afd631a049078f6e8c8a4565b13b5820fee0665c",
+    "lcnc-webui/src/gcodeRfl.test.ts": "2054c579cde015ec1a7be47b7ad31370305f2da77c2ca28382cc6a0799d9a995",
+    "lcnc-webui/src/gcodeRfl.ts": "208f6ce504bff2a2de68a8fb6e39ac67797120d24c8c15a3779d7126fa025f7b",
+    "lcnc-webui/src/geometryCache.ts": "a07bde8adc01eb19ec1a81d59f62479813802b9c036631bd9c5097e7c1c9f134",
+    "lcnc-webui/src/glyphMarkup.test.ts": "d2dac59a51a5b52a80143e7efd61c7b8a342d3b09157c6197114f8054d50b168",
+    "lcnc-webui/src/helpPlacement.test.ts": "3a3af4d2d31f3618a8395472d977d8a37e0a4a186714677dc521a6e06287baec",
+    "lcnc-webui/src/helpPlacement.ts": "d8e31512aec4f75ac152ca44248a5dcdd70e2d07d82a6b4b04db0251dad7c0bc",
+    "lcnc-webui/src/holdGesture.test.ts": "f795da5c7fbc6e77e8011911da30e43300fdbfc3fc9c96917dd9955a24218717",
+    "lcnc-webui/src/holdGesture.ts": "0aa352786867aa33f1ba9a44e148151ad618d97082b3b96e79985b38a5d781be",
+    "lcnc-webui/src/inputSession.test.ts": "a9b1de482486794c024f9dbbb28b2368731b3931f76ec7b11cd4071cabbbd127",
+    "lcnc-webui/src/inputSession.ts": "8944c3407efa91e653ea14a03f69584354e41784211f8a34c2c3d1deef090286",
+    "lcnc-webui/src/inventory/webAtoms.test.ts": "92b1fe9cbe83595f88678e2ca799c7b670dde50399d2fdfe9ec37804df104418",
+    "lcnc-webui/src/inventory/webAtoms.ts": "0f97129aa92adbd38611a2cb3e49543fb89ffcffaa2ebabb7ca77db158ff6cd4",
+    "lcnc-webui/src/jogGesture.test.ts": "f1d7aa35de5b6cce30f2061b41cbfeeff5d9269edb73aceb1bd502703ac09492",
+    "lcnc-webui/src/jogGesture.ts": "285a4669a1a974844aa90dc9b0b2ee933175b42ff34dd9e83353b4415dd98eba",
+    "lcnc-webui/src/jointJog.test.ts": "fe483894f6bc1d77c74b4b0d9ee0712c3fcfea9be3ce28c5edbfe7c3e11d4655",
+    "lcnc-webui/src/jointJog.ts": "a8f4518d19b2c0bfea7506ffff7f8c2a8d7aa6b56ade144995533512b9c43c73",
+    "lcnc-webui/src/lcnc.test.ts": "18cee1db4d6903705301204aa05f966fded1987b644bbd3a1eb2821698dd461b",
+    "lcnc-webui/src/lcnc.ts": "2edb1949221c275932472a2071d0f65b62f51eb746c7ff1e1cf073fc9af09e26",
+    "lcnc-webui/src/lcncApi.ts": "cd326178652279a116a4f8b3e6d66bcf1fef89d617401fb78ec5148cdcb34010",
+    "lcnc-webui/src/lcncWs.binding.test.ts": "dac9d0b8c6bf21a72ca1a11bbb597e7518fdb4348f39d295c766f7940fcb7180",
+    "lcnc-webui/src/lcncWs.clock.test.ts": "31f6f036cf694febe53559a8f313b9e0da9e7569c5441ab17be5687d11c21690",
+    "lcnc-webui/src/lcncWs.exports.test.ts": "f376901fc8a56f815aa19a6727b791d9b6a0706b043e6c7ddea29eb07f0228f5",
+    "lcnc-webui/src/lcncWs.ts": "b8906fb33a56ebcc5b66958e35a7bff916043ea43362b07048feb7e8e4b62e86",
+    "lcnc-webui/src/limitMarks.ts": "9e956151e935c175bda8f67a22f0996c1bfe40aed3af5d2553af8864f29fba5b",
+    "lcnc-webui/src/machineControls.ts": "0cead0816fd8ab7721e49a3c0d0bf20d29f9523fe596e87a2e95060e170c3282",
+    "lcnc-webui/src/macroBar.test.ts": "bd8affd688189ee4f64eab6e81116f737326adb645fa48709773163d1fa35a5c",
+    "lcnc-webui/src/macroBar.ts": "2bc1f40988c682b37c2f4acd2e942a45f6223dd8bb6bd5a13b5dd87d3c138477",
+    "lcnc-webui/src/macroFiles.ts": "2a8e17d8fe35cbbe5b673966601e3b7e6738326af93d8cc1b8ced98edd258c3f",
+    "lcnc-webui/src/macroHeader.test.ts": "dfbd6466753e59bce0232b43ec41660524a0f22135b32be7d305319b724df6da",
+    "lcnc-webui/src/macroHeader.ts": "e2a54a6e67e110e473d99d2f86f6490b9b946ffbeb8351e7af866cf19f76183d",
+    "lcnc-webui/src/macroParams.ts": "65976c3d438ee2f5f4eb9c3460ad3ca29a4412193699d2b9385b611ceef2744d",
+    "lcnc-webui/src/macroTemplate.test.ts": "b3bcdf75fa5d1ca683478a79ef462057716a19065b39892d1d97760e323bb5e6",
+    "lcnc-webui/src/macroTemplate.ts": "617dd3e290a8e1efb7380af1f7c9e2b1797413370890e3621750766cf3830531",
+    "lcnc-webui/src/main.ts": "e018a35717e0619dbd859166fe685507ab630394fac2ff338924823b82020aaa",
+    "lcnc-webui/src/mathEval.test.ts": "cb1aa9fe1a4b0bbf323778b2210849d2eb661b7b12b11a930c334455f0ec59df",
+    "lcnc-webui/src/mathEval.ts": "f2a56cfefd589aee6bce029abc6ebf614aafd35e0561fb06925717def84073dc",
+    "lcnc-webui/src/messageView.test.ts": "419c62588431b7285ff67b0c689400710a51fe6dd6c595aaf20ec2cc37f484f1",
+    "lcnc-webui/src/messageView.ts": "c882a25a9e758c347b81d2c746ce3c654db92e0c31f18e281e6ae6bcdbb8908a",
+    "lcnc-webui/src/modalRegistry.ts": "7001dfaaa7769264a6eb6ce9ec488b87c791c39aee4bbf6d4153eceb54750421",
+    "lcnc-webui/src/offsetRows.test.ts": "62972573e84664d7f572248585579bbe48402cf0671ef5f67ea154e80b3d7340",
+    "lcnc-webui/src/offsetRows.ts": "ed8cbe813f14cfc34c72f3bca9d071f44e7595c6297f1c4918051527d477dad7",
+    "lcnc-webui/src/permissions.test.ts": "004aa78c38d700a19a96cc2310050ef34d89eb792ee30300d38dafe511acd5a6",
+    "lcnc-webui/src/permissions.ts": "6f28c3d110a114b9c4aa66b75cdb8b7ee01943e4745bfe97e9e5031fb48b9bdf",
+    "lcnc-webui/src/playwrightProjects.test.ts": "f2a01249a442a6211dcf3fd3b27ccdafa50887e5f3f58c289d7bbc4c57aa17e6",
+    "lcnc-webui/src/previewDecode.test.ts": "edc4e05f967e5c8b06ee0858d7dc448f875406623229757c45b1e5879fda7768",
+    "lcnc-webui/src/previewDecode.ts": "3b6a70f9133a84eb68f2ab0d6245e2a5c364fa78120d36050ee95cfbbb3f385e",
+    "lcnc-webui/src/previewWorker.ts": "1ae2f4bcac1e224cedebf7fa150b85dad23b3f614211cd4cee41f8d48440c712",
+    "lcnc-webui/src/probeFields.test.ts": "390f6ff6f4c4a27f9b8ea7c750ef07ed618c4f6cf23275554bb99046c75e19ce",
+    "lcnc-webui/src/probeFields.ts": "dc5be029c0fb9798de644e718cd54c4314787bb1d3903ca2fd38658f77cfb421",
+    "lcnc-webui/src/probePanelJobs.test.ts": "a71bd88675acea8cae500b08fc0af04d9bb469358e9158ead334acebf5299d97",
+    "lcnc-webui/src/probeVarFiles.test.ts": "34fbf9fce090055855f3bfa418571f86abfb098923c5f9d1ae2cc71622819b82",
+    "lcnc-webui/src/probeVars.ts": "21cdb43f534aee1d30970d3ac0eb2879c82386b7231cf2bf571d2e5f7f9b0cef",
+    "lcnc-webui/src/probeViews.ts": "5e40ae0e50f135379ea30847b189acf9615500b34734679cf7c21c6f47e3dce9",
+    "lcnc-webui/src/propShadow.test.ts": "dfe13c0eefb31fd1a5a8a3da9e3ce7d7c3c34807ddd7f2ca86c3121943e56f1e",
+    "lcnc-webui/src/radioNames.test.ts": "9942d69c8997bf4e6943fe39689b9de90ee1847cb637ca1ed853f21c38286a5f",
+    "lcnc-webui/src/realTimeHolds.test.ts": "f7a139b8cb24296b6c1e99fcc335d1a366e64c8c6969eeb164fb06a5ec309dc1",
+    "lcnc-webui/src/releaseClick.test.ts": "d18a0a3999aa08c9a822db5b9ebf1646144b7248e9dc9387d2717da9ee7edbc7",
+    "lcnc-webui/src/releaseClick.ts": "e8b76dfc356c47af9c2ab4a20781da4d1e3d90ea7ab32d7920edbf5fac5d4198",
+    "lcnc-webui/src/routeProjection.test.ts": "a403fe4c850337a5da4818e4dd06c8ab642ef5f341d2a6a1cc8c4ff9cd667b3c",
+    "lcnc-webui/src/runBasis.ts": "b4ca4664a1e9b11593ca919dbc71e66cc9125fa7ea0a2506d4b452d15e36848d",
+    "lcnc-webui/src/safetyFold.test.ts": "b36bf2931b30192689fd091d2a9431f620a0c9852d48e0ee2de5527e67058469",
+    "lcnc-webui/src/safetyFold.ts": "a0d88f15405dda98099233bc5ed1bdbafee2643fabb69900ba648987c01f55f2",
+    "lcnc-webui/src/scrollFade.test.ts": "6eb0abc36b2a8bcfeda8b22791c7a65a0762654473760e4d53f17223e839d159",
+    "lcnc-webui/src/scrollFade.ts": "33ce4b19e81068d70f7686bcc7dd8310c833973cec136f17c3fd1c250a93bad6",
+    "lcnc-webui/src/settingsDraft.test.ts": "3d1934289c8439eab534e4d9ce1c47003d45a5da43e023e1f9e401fc72a4ed8d",
+    "lcnc-webui/src/settingsSaveStatus.test.ts": "85295f5c47146d0d41a939de259ae52913d18af402cd1131caaeca67946a84da",
+    "lcnc-webui/src/settingsSaveStatus.ts": "397e2980b0c57bc6714518ba819062bcafcf0a91292fac8d7ac147fdf65819b5",
+    "lcnc-webui/src/settingsSections.test.ts": "03d00b43eaa9bf00a97e57c53943bddaae5b133f82b91a9ba03128d3800cdfb6",
+    "lcnc-webui/src/setupLayout.test.ts": "e376205ba6dfa79786e4614f25967c0dd35bfb74079233d57adbf59696a77e1d",
+    "lcnc-webui/src/setupLayout.ts": "88bf80a12531a40aa4faf688527c87314008d82d23de34741b67ccc0f205ae41",
+    "lcnc-webui/src/shims.d.ts": "a530bd21906d64116f1bf5759e60dee3de3bff5f31c25b5e3a07b84a5d9ae873",
+    "lcnc-webui/src/sidePaneNarrow.ts": "e4e85aecacec608288a4a7de9715771f0765e730aed30504ef8b5669d114c16d",
+    "lcnc-webui/src/simMode.ts": "4506af4d25bd4fc83e6f4eba70f94e75d1977626624e9d1f5ff3cc7aa41fe86b",
+    "lcnc-webui/src/simPanelStore.test.ts": "a4da4fa24e4110753e74d7057db0df3e380ef99246b6619daf2c52c90697ff1d",
+    "lcnc-webui/src/simPanelStore.ts": "ba5e66b441efa0653159c9c6496288038852bf5664e9ab7162696c1b64cf79d4",
+    "lcnc-webui/src/simShown.ts": "005ea71e668b944587c11e5fbb229fa76ec4322f62c57b736a52472f120b1763",
+    "lcnc-webui/src/statusAge.test.ts": "cc04ad1d1e7526593e2a63815a04abe04af8973605655284c0e4838c58257d9b",
+    "lcnc-webui/src/stickyHead.test.ts": "008f7514ca8a66fc1067d5d82aa4047d2c49a2e47ba0dbd0edf34b46e764d64e",
+    "lcnc-webui/src/stickyHead.ts": "456c58f525776e05f61c2b95f57507997a14a7fdfb7c6b94d0cd1d538226217b",
+    "lcnc-webui/src/style.css": "65d9f6dc978f183bb556af2d01e0152bf4c94f4bfd4d33f70aa1a8ba46faa222",
+    "lcnc-webui/src/subRows.test.ts": "3ed617ff7253a25abed86b7a1a63f52cd7d5eb6656016ddfd198b5b39922e163",
+    "lcnc-webui/src/subRows.ts": "c1f506b383d4024f5070ff0ae32ff28e1d38016b9da0f9dded3d76ffbb4044c1",
+    "lcnc-webui/src/tabIds.ts": "dde09e29ca7a473685bf69fafa28731c8646de6521c881f005bce63ca923ad47",
+    "lcnc-webui/src/testGlobals.ts": "8ded2f35fa955c4120f94068ca0f03e105ca7b190dbb3e9bd884e5a855fa99d6",
+    "lcnc-webui/src/textKeyboardPages.test.ts": "9613f9d5a7753e2ada3ad33f049093bb4149c26c407584b6cae25a7235e8d745",
+    "lcnc-webui/src/textKeyboardPages.ts": "2bda780b0ea2744b5246f5d12dd4a7968e2fc818515702c5520d69d9475a12ac",
+    "lcnc-webui/src/themeTokens.test.ts": "ecaa4d10f56706b97d89d2a0e42edda1b5049890f08428bda27852019bf0a516",
+    "lcnc-webui/src/toolGeometry.test.ts": "3beca4811d45e8d038710696e6f1f0f91989790457c881806258bef6c49daf2f",
+    "lcnc-webui/src/toolGeometry.ts": "66ed4dba3362a46b968e1112f22d74ddcee095eccf8b802ee311e8874d2a8b16",
+    "lcnc-webui/src/toolHolder.test.ts": "e6d5ffd52d8c993c7fa819a89a3d74f704576c3814ee561fb2e1f7ea40b7988a",
+    "lcnc-webui/src/toolHolder.ts": "93d23086be6d8b3b87c0501664905067cd7ec8ab7adbd3e43bc3d33893a53585",
+    "lcnc-webui/src/toolImportSummary.test.ts": "3aa7a4b50dde0b687b534d9c391fb1c513f55edcdfb786a87e0d8e8414a0fd65",
+    "lcnc-webui/src/toolImportSummary.ts": "46634885d09decd7577c96b46d031c8826e7b799cf81524c9dfbb5e9ef80f3d9",
+    "lcnc-webui/src/toolMarks.ts": "baafff28decf7a9132328fe52db46285a7b23283d438face379d0f4531844448",
+    "lcnc-webui/src/toolPreviewNotice.test.ts": "14f5643772e9a75ca36ee59984b1dbf2dd5506e4b0a096ce1530b0426ad0fbfc",
+    "lcnc-webui/src/toolPreviewNotice.ts": "cdc7cb872af0a8bffbf98074f9e6ac484e0a0cd32d7c8305a3039491757b94a2",
+    "lcnc-webui/src/toolSimulationGeometry.test.ts": "a0934dfcb958970aa5c29ee10fb2e838e1ea1772470ddff23321e76794b16806",
+    "lcnc-webui/src/toolTypes.ts": "dd549b64417d369ab5530df3588cd18390c807b5c3283f557180e0dc9083805a",
+    "lcnc-webui/src/toolUnits.ts": "14b88c8ba3d84e5156affc931b7c2b28d157f68b17cffd606b6a30ffde559140",
+    "lcnc-webui/src/toolsetterRules.contract.json": "213779214d242ee78366779a239d3516a42601d8a819c0bae1c2284a5b73bfd2",
+    "lcnc-webui/src/toolsetterRules.contract.test.ts": "add3fa9bbe92ae3eaf8a67c2f5f902f27972a67236db598a1490d7ebc48dd671",
+    "lcnc-webui/src/toolsetterSetup.test.ts": "a3f74a7baea558d4670982f741c3cd36ec2c13b3277066474b69eea716d48444",
+    "lcnc-webui/src/toolsetterSetup.ts": "d40b37098fdf6f355f9cc5029b9e1b1d7e3774d18209f90fe58d467c470685e8",
+    "lcnc-webui/src/toolsetterState.test.ts": "b009d6a330c389e8e55acbb76e892dfd4e8aff0b6341813a9f53d5aea4753551",
+    "lcnc-webui/src/toolsetterState.ts": "c5c748ec70efc0a0748685f7e10d31e98afc0af7d3418c2168b31ee1e4c9c045",
+    "lcnc-webui/src/toolsetterVars.ts": "974ce317bce126f1eae2741103e0c4bffa2a843c57733c8acfb97d4b415ce81d",
+    "lcnc-webui/src/touchDetect.ts": "05785ee430577799111c343f99a517cc78a1b59682d091f8d59a1cea8b50b300",
+    "lcnc-webui/src/trackHighlight.test.ts": "cd36a619a454c474034be42e75bfab575ac90ff518051319f0631f5f1405e538",
+    "lcnc-webui/src/trackHighlight.ts": "e3a49ad13780a44980cd944f44c3f1f93c2b1cbb40c23dcfb64e6473cd5115cd",
+    "lcnc-webui/src/tsconfigCoverage.test.ts": "abf91d1567ad05ff225a4992e96f25b53bd3907cf4cac7dbf659b4afb0242c8f",
+    "lcnc-webui/src/twpPose.test.ts": "d3b944fa39af1070783960441bbc62cbb3537254512852ec36c7117a0b3206d2",
+    "lcnc-webui/src/twpPose.ts": "60c08506bcc68f046636676e9cc9afe9623cc7d37bb5cb1ac2e553b5456abb40",
+    "lcnc-webui/src/unloadReceipts.test.ts": "50c558df20d68f9961cfa256d1fce09a7c7bb372c3c776197d8ddf2c50e5b991",
+    "lcnc-webui/src/useAxes.test.ts": "1902121b62b0d5b1e7f623ebde1c2ead3fd999410469485380216ab7f454ad52",
+    "lcnc-webui/src/useAxes.ts": "4553029aee62e67e2b4754f35a27b33d4752cc7591aeca8d17e44638c4239f87",
+    "lcnc-webui/src/useDialogState.ts": "5a98fd052430edcfaddcb95bdf3cb746f37c4f8dce4232d6696dec26ee549228",
+    "lcnc-webui/src/useGamepad.test.ts": "da3fe3ec13c601b3c4a2d843788e8872dc500beaa5c4c83c052f6c46868bb318",
+    "lcnc-webui/src/useGamepad.ts": "5d63efd9d2bc828e77a36f03d352eeb2f74dccebb8c0ed575971edf47ee9c29d",
+    "lcnc-webui/src/useJogPointers.ts": "3a539d7456fd41180da88fee94c20a6499fcd6df9b84914ac472837046f16ee9",
+    "lcnc-webui/src/useKeyboardShortcuts.ts": "6a362d6d3bf6d28defc508b8dfb9effc8c4d360f7cef2c4675fdc896cc34a258",
+    "lcnc-webui/src/useMacros.test.ts": "ed9f7b4f06988717cd2ec014a19dfd2461924f8fa97774ac2e33b2e591536ea2",
+    "lcnc-webui/src/useMacros.ts": "31bb1b0ab26525c4a722889db9c7f48acbb2d0edd3dd6e0936786ca86ac35246",
+    "lcnc-webui/src/useMdiHistory.ts": "c445bf05f312cde989b3976e7cc846886f2cffcd62de09ae5b3ca3a53cb95784",
+    "lcnc-webui/src/useMediaMql.ts": "f2e4a7d5a4ad347a8d56d91b311ca50181363ead6fd5f201464ef5af805941fb",
+    "lcnc-webui/src/useNumberKeypad.test.ts": "88a4ab8c6d0c2e07340483136536af6e9e7a7cfdcdd2a366395b11ba3397b626",
+    "lcnc-webui/src/useNumberKeypad.ts": "0ac88ec1c19c5edde2f183e3a1c796a27074b2bbc9f731ff68951aecc405c3a8",
+    "lcnc-webui/src/useTouchoffMath.test.ts": "4a133f05439e834abfc64d3a8f53b6fa3ac681833ef8fac06bf6c56f9f3e6baa",
+    "lcnc-webui/src/useTouchoffMath.ts": "58f71fcd721e91635a6d1d3d084a7583d139136c8a96386af6abd9c58ddcd845",
+    "lcnc-webui/src/viewer/activeFixtureFrame.test.ts": "c107019cd95348b7221c42bfb59fcb25b03994045ee98c816aeeff89aa4531ea",
+    "lcnc-webui/src/viewer/activeFixtureFrame.ts": "eba43cff3de12e51a12f6f84031b9cb5f29aa6e77b8c4dfd6c0a96a8a8bb9f5e",
+    "lcnc-webui/src/viewer/allocMeter.test.ts": "af8b8819efa8b12538b3e3e4b5564ce01ac038655764b21b886fd800bded3f2b",
+    "lcnc-webui/src/viewer/allocMeter.ts": "d2e478743c4f9bd313491d85d666e8000f9b17c6cb5118fd9347a137b52926cb",
+    "lcnc-webui/src/viewer/backplotController.test.ts": "f66bd81ec14fbc055cf2c17dd81b8c3bd5f14c6e5ee0a6608e372a724cb90a00",
+    "lcnc-webui/src/viewer/backplotController.ts": "a639316155785a2e12d45cfee459ddf2a46253a7092460bed3da2ccdbcd1dd2b",
+    "lcnc-webui/src/viewer/bakeHold.test.ts": "6a706de81825bd953ec8ac6ebc26b93f1deff3ffd64cb931df7de708d383d8f6",
+    "lcnc-webui/src/viewer/bakeHold.ts": "5e55f04b2fcbd79df53fe5748bed305d956ccfd45329afe75fd9a85e4ff9af82",
+    "lcnc-webui/src/viewer/boxLines.test.ts": "29a20cd339bb36d6c5961993dc33c80f61cfca90d147141fd3b87d26399e28b4",
+    "lcnc-webui/src/viewer/boxLines.ts": "d02866e9c2ccea029b71df5fa598c1129660f17d827f94a61e3ed0e800111953",
+    "lcnc-webui/src/viewer/bvhBoxDistance.test.ts": "6bdc6d1ae99e654647326f42b565a25c7b0e2a7429367cc16cc68bb45c335135",
+    "lcnc-webui/src/viewer/bvhBoxDistance.ts": "6461f3b768297047cf04e4667acc4f9f3e3bd3f6c4ed8c52a4f7d1b0c8894cfe",
+    "lcnc-webui/src/viewer/cameraFraming.test.ts": "2fa0346c6cdc3d76085e12e11cbf9458fdee62bf3aec2279b065c106a0fcc7c0",
+    "lcnc-webui/src/viewer/cameraFraming.ts": "b12bbc88be784354a9ff7494f70c858d6b71f91e6a4d6f9695b6e1114ae215fb",
+    "lcnc-webui/src/viewer/checkBasis.test.ts": "cc1b44e4f36ce9aa45465043363a4b4dc0b81a1ebf1a9f4c7dbc0ec564698d72",
+    "lcnc-webui/src/viewer/checkBasis.ts": "61d7ff089c5a8d7c33d0607bc67cb79e47e0b88eb31e9f0db9299d02075208fa",
+    "lcnc-webui/src/viewer/checkContext.test.ts": "ef0d73baacf2338e37debaf2cd28919ae7c3855f4e1e04d70a85c14bc2e4ed90",
+    "lcnc-webui/src/viewer/checkContext.ts": "b494255ddebbb0d78819d5053d6dea6b0668b63d74e794b3c0009faf34dc25ed",
+    "lcnc-webui/src/viewer/checkWiring.test.ts": "941f4e582e336b27c9a414ff7546522532e17fde12a453bf36722a2e2045d17c",
+    "lcnc-webui/src/viewer/clashTargets.ts": "4ffe397b1ca3c1f576a3773d43e1c4f9b99f9d494ea9c9d0a6c7ce5fd7e01d0e",
+    "lcnc-webui/src/viewer/colTrackCopy.test.ts": "79f035a2999cc5d17d5490b7ab6a4a6bd8baf624f04039c69dcfa2c74edbf565",
+    "lcnc-webui/src/viewer/colTrackCopy.ts": "439c08340a0a1d2bed03f207483d53bf4a9ba38bb1e4f74b8c8b5ee3d942515d",
+    "lcnc-webui/src/viewer/collision.test.ts": "6b5552b61fb7c8c4cc996c31aa9640bd81c44b88611e8baa79835ba03ab7dcf1",
+    "lcnc-webui/src/viewer/collision.ts": "2aabc6a6a9aa4165fce285be2d58719ad74d84a37d17732faed6f020bccb410e",
+    "lcnc-webui/src/viewer/collisionBounds.test.ts": "0f3d2f998df2013cb0d4aec5eb69d7db7f379cd169f4a5d46239127647cb26f7",
+    "lcnc-webui/src/viewer/collisionContacts.test.ts": "5412524f71edc8f3d38326991b08ed20f187349dad99045d71f24229545cbd96",
+    "lcnc-webui/src/viewer/collisionFixtures.ts": "476ef3e5e94d8db67ace454a983b725bea5a3c2d07581984679739a4f6a56734",
+    "lcnc-webui/src/viewer/collisionHorizon.test.ts": "639dba209e40dac84b29af09762fa1a6bbe08cd1aa274c6144796b8c12de96a2",
+    "lcnc-webui/src/viewer/collisionInside.test.ts": "cf55c9a8746aaff02585d08fec0cd6542d00371c31563034ddcc435115ac344e",
+    "lcnc-webui/src/viewer/collisionLineSample.test.ts": "08e6140c55862bcab130e51cde019ff8a731d08ca2b56d2c0b04692ac5c566fd",
+    "lcnc-webui/src/viewer/collisionMarks.ts": "9926c7f4e827889ea9763f14d616d5e79d0f9f261a49fe54fc7a09e51bf821c8",
+    "lcnc-webui/src/viewer/collisionOracle.test.ts": "4a6954e6904cc1684c4b9f6ce6fbda117885d87e3def2643f5f13fdbff0db33d",
+    "lcnc-webui/src/viewer/collisionRange.test.ts": "2c6976475750f297ca712f1133a6756e5b09296bec6772a0cb57596b55166b35",
+    "lcnc-webui/src/viewer/collisionRangeOracle.test.ts": "f10b0b1f00d2737ac01baea35c1e11ce26f958bf06d972bda495a0a4cffdd862",
+    "lcnc-webui/src/viewer/collisionSpeed.test.ts": "ef64c8c53a2024f3a99751f91a5995a1a3b5348d19157d336303d60207130b0c",
+    "lcnc-webui/src/viewer/collisionWindows.test.ts": "66022bb5a4a9e053ed83d1346010e097d2dc8eaeedfbd0e07cc214ec39dc1aa8",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts": "c97e8dcbbcfd256b2250cc63f9a521fb77b992de78e673d2e752ba6b985402d9",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "39eab92d9a224e23304bb5f6f475a146b6ea86d144324bda4beb6b0131db9b85",
+    "lcnc-webui/src/viewer/colourMath.ts": "acf19dd07870fa7143adadef947f7d11329771b2e44378115a7602fe341b5b56",
+    "lcnc-webui/src/viewer/contactMerge.test.ts": "116db3f9d0605ddc54d713bb7090a33989b9e658b0f808bf98574b1e5ffba43d",
+    "lcnc-webui/src/viewer/contactMerge.ts": "1aa544b2f86d46d0ad412535ce04cf58b292ad2fb5464c047b2dd05bd51e1d70",
+    "lcnc-webui/src/viewer/contactMeter.test.ts": "724755f92f8993874cf5c81ef39c15cecee58d0d950f464f66a3afe754f96ee1",
+    "lcnc-webui/src/viewer/contactPublisher.test.ts": "d7bf10aa597422322232c56af6e68f7db1b916bbda46b0e7f1ee56fd47ac1cb0",
+    "lcnc-webui/src/viewer/contactPublisher.ts": "c6a2e8c78ab77bc1939c65dd2f3739c4b5cb9e0e86b1c561a461a76053002181",
+    "lcnc-webui/src/viewer/contactStore.test.ts": "686c1107ca5f6fb99fc435157cda5825355bb844e1dbee10fe4c9cc042f84063",
+    "lcnc-webui/src/viewer/contactStore.ts": "946e4264b28d20890fc304dedef66c4f9b4bf73b2154a96cb48e4e1efe61d3c4",
+    "lcnc-webui/src/viewer/contactUnion.test.ts": "e978ee9d28bc03e901a36da4ebec04418710b2af8921dbd3927c48f30f3bd2a4",
+    "lcnc-webui/src/viewer/contactUnion.ts": "bd123d963dd2182093d62063155c1c0c244e6c9e415f12475ea661162362c483",
+    "lcnc-webui/src/viewer/contactUnionSweep.test.ts": "4965bf83c46e04d13b68f6e3e4edb36eac96d6e77e402a0257eb43510bf4ba95",
+    "lcnc-webui/src/viewer/contactView.test.ts": "b663137fe7202e033f78d30793cd14794e18a63ce198002812475bb137cdd383",
+    "lcnc-webui/src/viewer/contactView.ts": "ce8cb53bbdb34281c69c511a205f766c14b3a714674e03d808fd325fb197aaca",
+    "lcnc-webui/src/viewer/contactViewBudget.test.ts": "7e48815ebe985c4a2ec9a8f5b912ecc982765445fb6c0680895948cff3e889d9",
+    "lcnc-webui/src/viewer/contactViewCross.test.ts": "778572281ddab8b1796aa49f63cbca49f4cb9aea8975f2139f5be4b90d281d46",
+    "lcnc-webui/src/viewer/contactViewIndexed.test.ts": "82dda874de2e01ad243a393d316a5a642e444543dddf45b7fd887117976ab7c6",
+    "lcnc-webui/src/viewer/contactViewUnion.test.ts": "820526904e9d79fad1af70c74e02757545491a635a181731a2b24e89051c81c7",
+    "lcnc-webui/src/viewer/cubeFaces.test.ts": "24e2cad479242def3eb0f19d9cde0962b845657271ab6fee1c733de68ae95ba4",
+    "lcnc-webui/src/viewer/cubeFaces.ts": "798653398ea6041df68a66e83895b016a1d46e58145fb4809f679f1935583e4d",
+    "lcnc-webui/src/viewer/customContrast.test.ts": "cbcd3be3e81f8ef6c0add12eb6fc45db4604535bdc9413709afd07e97e38785c",
+    "lcnc-webui/src/viewer/customContrast.ts": "2b2419e3202223a9c22bf20b0906affec64c7111697b453ec97e5d86342baca4",
+    "lcnc-webui/src/viewer/displayPipeline.test.ts": "b6c392b7a613b475aeb3bd1bc8476a9d4510fbd0c0d9bf00d4e3b257348b8a40",
+    "lcnc-webui/src/viewer/displayPipeline.ts": "7f44e6c8513894629e72314e36bd62af576ddd8c063c84acbe1e1a974af9577d",
+    "lcnc-webui/src/viewer/disposal.test.ts": "3c5e06645ab6b210447a0a74eef6719373cf8fa9f2373f509a79ad7cc97d33fd",
+    "lcnc-webui/src/viewer/disposal.ts": "36bf2a4deebd0803014decd096f974c4506e7de36ff954e482d0ddc25c6fa3f1",
+    "lcnc-webui/src/viewer/eventIndex.ts": "0948560991ae675fe7ad9b10dd8d647a005c4d9e83c4fb8da90005711b818c3b",
+    "lcnc-webui/src/viewer/fatPaths.test.ts": "b34b290ccc764842fb2c614e7ee46eb8f4e6a670436078963cec81d1793d6808",
+    "lcnc-webui/src/viewer/fatPaths.ts": "b506c3fdff40a8e31788c9f06a4a03db056a6507c84f44ab9a9f42ff285873cf",
+    "lcnc-webui/src/viewer/findingNav.test.ts": "cb1d7d91b1fc00368c518664363b5c85c5b3b91c1e67b0272d759a4d951f7460",
+    "lcnc-webui/src/viewer/findingNav.ts": "f8395cdf97ea679854acad63708e6daf2ea201f50eedbcbd8b3dc3b0dbe10846",
+    "lcnc-webui/src/viewer/geoDash.test.ts": "78e9e9468b1e2a2b72738e8c629d1dcf7bdca53726f9108ddf0271e9ff9b63fe",
+    "lcnc-webui/src/viewer/geoDash.ts": "9d01329bdfe75fe72e8c24f2ecd7a62fecdb9ce7729994124dee73045899b505",
+    "lcnc-webui/src/viewer/insideCheck.test.ts": "1118d56a155734eeeacd4b18634c560f8ca35f30865d0994fc54ca0848fb456b",
+    "lcnc-webui/src/viewer/insideCheck.ts": "4e32a60d5811e186dfbcadcbba4a0baa032ee741290629f2bd65abe7c45b50d4",
+    "lcnc-webui/src/viewer/kinematics.ts": "4e159ab48146d7a359ba7bc0ec8352df4674a50b2bbf0b9326347659f5362ee1",
+    "lcnc-webui/src/viewer/kins.test.ts": "7c3e437dd95d9040ba37fd276ed830ca16997bb5e314abc670625e58952b4860",
+    "lcnc-webui/src/viewer/kins.ts": "02f17bce1b93d31555ff560472870a578c207eb1daf92a77df632f1755bfd928",
+    "lcnc-webui/src/viewer/kinsBulge.test.ts": "4e4f5bfe00e375902b8ce260a6bb075d626e7e8484005cd7b217d23263723e05",
+    "lcnc-webui/src/viewer/kinsFixtures.gen.ts": "702747d0f7972e6353c78c1bb092e9baeb7ceb3b17e2783a65d57d14d8c55d20",
+    "lcnc-webui/src/viewer/kinsFixtures.test.ts": "62d087337e3ceeaae4adc9d517027314eb8e4b03672c52a1541a97bbf0634469",
+    "lcnc-webui/src/viewer/labelFont.test.ts": "6e1596aa3ebf5424f9fb2461163a1bfb681c839933afa649d335faab332bedf0",
+    "lcnc-webui/src/viewer/labelFont.ts": "9316b5ecb6f2323b1173af71145d42bf9eda8878b7622c7feb5b15d06820291f",
+    "lcnc-webui/src/viewer/limitOriginPayloads.test.ts": "d2143aa6fdaaa1746a2ca8d4cec775fc10e1aefb84a7da002c6a48a223a9522a",
+    "lcnc-webui/src/viewer/limitPlaces.test.ts": "48d65d8a91054bedf696f3bd380153fca6da2bc28612be9abe6fa02193468862",
+    "lcnc-webui/src/viewer/limitPlaces.ts": "c38c888768ab0c0abc53aeaa628f65ce17407443539aaf07dc5b29b614351f4a",
+    "lcnc-webui/src/viewer/lineChunks.test.ts": "319abcd82e5a94babe324983e620fd1d5be83faf6e90cee7bbb629d5f8c8cfe0",
+    "lcnc-webui/src/viewer/lineChunks.ts": "2cea5914978f677583bd1203821e2f614aa5c1a0f78b9f5de40ab509e88dc96c",
+    "lcnc-webui/src/viewer/lineIndex.test.ts": "a8f064044474169544f30b5dfa0f8fdd0d7788ef1d003a9a977cc4910f50759d",
+    "lcnc-webui/src/viewer/lineIndex.ts": "c977e9c8589d6f4c2b5603dfe1779b62f37e5d6a8673390a23cce4f63be76130",
+    "lcnc-webui/src/viewer/machineAssetCache.test.ts": "dc86dd47591274e79129a7532dc7144fa338c494a5d9145780f97e40c8d1b1e0",
+    "lcnc-webui/src/viewer/machineAssetCache.ts": "116517c1752d09d97d74ddbdc65d83c1df821e6e7e0eee9f098b7cd6cdec9623",
+    "lcnc-webui/src/viewer/machineBounds.test.ts": "7be9fc90dd4c0f6f36dac899b59133bbfff4711286257933bcc2a6f9c79243d9",
+    "lcnc-webui/src/viewer/machineBounds.ts": "a4b2d47a05efbf3cb5211b2f89938786655679fef79a1096cb9252526ac4977f",
+    "lcnc-webui/src/viewer/machineGantry.test.ts": "11f02917a998506fd263304db1dcf51270eadf8a388f7d960f762eb216133d3f",
+    "lcnc-webui/src/viewer/machineModel.test.ts": "af956a47fb744e0efc28cddb2198012598e8bb5f4d5685571e6ecef2485ded04",
+    "lcnc-webui/src/viewer/machineNormals.test.ts": "d209aaa5e8ba321ca7b1de645d343a544cac1a456df2714a9ff25a81996a1fc5",
+    "lcnc-webui/src/viewer/machineNormals.ts": "f3af7e509829e836a071f681470e02a997b47f801aafc4f6b7c0b781bde9df78",
+    "lcnc-webui/src/viewer/machineNormalsWorker.ts": "ef554485c6860b8a131600ddd710c632e35422a549079bba35661918d902eeba",
+    "lcnc-webui/src/viewer/machineTrsrn.test.ts": "6a7da209fc18ce4f39bd5f2e55a3a2892164259eed447f9e34fd6edadc893448",
+    "lcnc-webui/src/viewer/nearHistory.test.ts": "02a170abb21a17e614120d2e772b266704a89970608445ecdd94b61cf3dddd77",
+    "lcnc-webui/src/viewer/nearHistory.ts": "c25592c3228dd374803886bb1d78a511cd4e613e78e75d57d99005f2423dc212",
+    "lcnc-webui/src/viewer/onTop.ts": "14c372402e1107bff848dd5b061ab561fba750a1e536a022e2322f14e8eb1dea",
+    "lcnc-webui/src/viewer/pairAssign.ts": "d84d8c65358f61295699c905cda14acfbba216c7cc017e171e7285fe41939679",
+    "lcnc-webui/src/viewer/palette.test.ts": "d2c49e1c1aafb0b1f82cf4097fef229063a83a2b1bd01110916bd9f66eba6fd0",
+    "lcnc-webui/src/viewer/palette.ts": "e80e7285929b661d74ac756bcac99e7e57002337474f217cb1fcb1a45482e8aa",
+    "lcnc-webui/src/viewer/palettePairs.ts": "b249f5c6c53b6e92af98a3d3e035746d91c58554a6921237a3e5380081e793c6",
+    "lcnc-webui/src/viewer/partFrame.test.ts": "cecd7d71ffab9ae4a73d8c1145b3b1fa938301253dc2e7c6e206d976ecab0c98",
+    "lcnc-webui/src/viewer/partFrame.ts": "cd815b564d45fd15f72ce70254e81210f731398a492d52d7c3085a05b3f03831",
+    "lcnc-webui/src/viewer/partFrameWorker.ts": "6c58679672df781181c884ba9f204fef96c5d41399aea583d9a57eb832f60436",
+    "lcnc-webui/src/viewer/pathBasis.test.ts": "052d3b72ce420a74dc0345a189b8e0ed90b6f8a9b701e8732aa4482ad67bd1b8",
+    "lcnc-webui/src/viewer/pathBasis.ts": "9cd42308f0c27270a2e6b4f72abe7dd68c3488fd0f6b7f03797ac5b3f071532f",
+    "lcnc-webui/src/viewer/pathReveal.test.ts": "553d4d5af6c1a241f72802a5b8b805475233da386e84c9ab457fb11021c6671a",
+    "lcnc-webui/src/viewer/pathReveal.ts": "6b17608505a336be4d45c22c529e2b80f1fde82495410a5fbb29aea0bdd2e3b9",
+    "lcnc-webui/src/viewer/planeView.test.ts": "5b7e0ed7fb0a7af4ccf783e19b4d9c06e98b541091b20495cfa70cecb86cf541",
+    "lcnc-webui/src/viewer/planeView.ts": "5e80bb53bcf512eaa964ab5d349817f9f8ff71666ebfd4b4f85f80d386f4d762",
+    "lcnc-webui/src/viewer/pointMarker.ts": "b54a259c52787508bd5d85958e1eaff9c318be0fffb4085cae042b4a43f1836a",
+    "lcnc-webui/src/viewer/probeStop.test.ts": "8e79c1284ceb972e68b6b723178a9eccec943faa262f78292c5ad2ddd95c3d29",
+    "lcnc-webui/src/viewer/probeStop.ts": "5c0a7c22cad4f46b5dbde6656551e14f9238f786973ca2c123abb52a74f5679b",
+    "lcnc-webui/src/viewer/programZero.test.ts": "7c861a6cba1ef54eb6f8f7f8de5dccb798f08e3e936ab38f446c85a3199061d2",
+    "lcnc-webui/src/viewer/programZero.ts": "09d0ccee5e21bb0df0bc5f6e6ac9e63c8b71d64e400ec3cc69592baedb0d733d",
+    "lcnc-webui/src/viewer/reachEnvelope.test.ts": "d50a737da58bd2e3d480b351a48134117f0cfb2f050883577ea844c701b4d7c6",
+    "lcnc-webui/src/viewer/reachEnvelope.ts": "20dedb8ddb973c04d659955b40433b82745289c201b95ce6ce2991366135568b",
+    "lcnc-webui/src/viewer/reachWorker.ts": "bfe09ded8c2455c8071de68fb10f16ccc3a0828d0c113dde5475395779350bea",
+    "lcnc-webui/src/viewer/rs274.test.ts": "2d229f4fe35203ddb255ccf1c0114b89ef9bd40541266ce629f963c54fec03e9",
+    "lcnc-webui/src/viewer/rs274Fixtures.gen.ts": "b81eec063b28d08771e204a607fd17b12aa7940571828fb2475c31674b43005d",
+    "lcnc-webui/src/viewer/runDisplay.ts": "3e6e1e94c9201877dc280031012c71e58fd834233e09505bfa2ed2135ca4df5b",
+    "lcnc-webui/src/viewer/runPlayhead.ts": "0679662c8fd78234095371e6e1ce1f52c276b57625663695c04321f359284c0b",
+    "lcnc-webui/src/viewer/runWatcher.test.ts": "4d8800fb33bd16d2aa09fe1fd02cb9f2cc5033fcadda44f951a9cf8a97ddf4b7",
+    "lcnc-webui/src/viewer/runWatcher.ts": "a38846dad5b0c964c7857e13769f3e44ea388beef0d9346d4f673af622810b19",
+    "lcnc-webui/src/viewer/sceneAppearance.test.ts": "c215f703fd8258ef33b17645dc3a9c2d5f972adeecd3b1d232c15569f21e2fe4",
+    "lcnc-webui/src/viewer/sceneAppearance.ts": "5fa04f5810d64aa3ba499f6e827033279e1a17d62ef6145cf4f50acd309cd7b1",
+    "lcnc-webui/src/viewer/scrubBarWords.test.ts": "33f2a8e8b98010918a7cbf48d021750392765fea65aa0cee3543341a3a67aba6",
+    "lcnc-webui/src/viewer/scrubTrack.test.ts": "19bedbf7dd463bd163962db686f47f96ef3ffc789f25fac0275774e9660508fd",
+    "lcnc-webui/src/viewer/scrubTrack.ts": "e7409854b10803f08a4796d4a84d3aebd1b631d2578f06cd0b5167e5fab97576",
+    "lcnc-webui/src/viewer/shownContacts.test.ts": "86fd1de27153fef670fe3032e167e89263ffedcc623bf69122f337fab169d0f8",
+    "lcnc-webui/src/viewer/shownContacts.ts": "4eeab39117dd76890be42502a655692eef83e8d51b44c25abf8d49ee661c65ad",
+    "lcnc-webui/src/viewer/simListRange.test.ts": "8a14180ce744b3b1b848c302ea0b0fe6c4b50c96e42ed7970861631b2d3d2527",
+    "lcnc-webui/src/viewer/simListRange.ts": "7b667e12c06a3678acb7ece55727ec5dca516cfe5399a7963b199a31708b5fc9",
+    "lcnc-webui/src/viewer/simReplay.corpus.test.ts": "269f7bedada408d8b34ad111f189eb74f80527cf6cf8969ddbb9976e73e8a1af",
+    "lcnc-webui/src/viewer/simRows.test.ts": "f437a476d4f1599a68d2a44b9719e48419f2998802c89ae15de978b08c9b511d",
+    "lcnc-webui/src/viewer/simRows.ts": "6e5d4219242bc5d59ee7690a2a67d37d733a34d7ce16d810d601c6732072d66a",
+    "lcnc-webui/src/viewer/simWindow.test.ts": "6def618500ebeb240523634ebef728368313561d90dc90ff80d2919ba6cb33fb",
+    "lcnc-webui/src/viewer/simWindow.ts": "e11284c586932ba134b7c9c8a234c0984cdc04db3d2750e3e904bb36608701f6",
+    "lcnc-webui/src/viewer/startDep.ts": "52c612b80e8b8e98f211863d1937527c7dc7b7dba2485d6cdbbdcfbd35a26652",
+    "lcnc-webui/src/viewer/startDepPayloads.test.ts": "91f9922b4947e1ef67b3587624ec5dc8baa9c33fb06f02563ebc9dc4bd2435b3",
+    "lcnc-webui/src/viewer/steps.test.ts": "8216c301225b5bbc1261800dd81489e1fa26f21338e8f3386dab85267cfade0a",
+    "lcnc-webui/src/viewer/steps.ts": "45c17da4179fa2a35b0a8056d53c21f17feb569b4b5644fb6da76e5fd6311fd1",
+    "lcnc-webui/src/viewer/surfaceController.test.ts": "65ea3baa2c8f8b6112cd811ef0f6c49122ce8e947be0cc825588a8c945bc87b6",
+    "lcnc-webui/src/viewer/surfaceController.ts": "e3e86c66480319cd0a9753a2f0cb5f54d9ac372a433163f37cce4916fe9efc97",
+    "lcnc-webui/src/viewer/sweepEntry.test.ts": "7374ba377ffe50906763d77b902e516202491699460df0e6d154c7dbceedb1e7",
+    "lcnc-webui/src/viewer/sweepEntry.ts": "9f0667ee4ae9544ebac48fa97a2b35c21314292fadb005c0c1c0d59a1c8c14c3",
+    "lcnc-webui/src/viewer/sweepMerge.test.ts": "f23f19e1f3afe0c0736db2f4480b7829101b8333c9e20503a37ea3dc2f8f359e",
+    "lcnc-webui/src/viewer/sweepMerge.ts": "3f57cbf74058669f0a9ccaffbb07c83c4f5de24a76539f0bb351770445f4bffe",
+    "lcnc-webui/src/viewer/sweepPump.test.ts": "0f8b99c9447d291011daa2d057dbf5800b50c67c48aac08d5b5e6f8eb4ac0ce6",
+    "lcnc-webui/src/viewer/sweepPump.ts": "2aa58e45f9f7f9dc97bf21e27e09ed61b9c9adfd903187abb082a7d9130a0bad",
+    "lcnc-webui/src/viewer/sweepShards.test.ts": "67416f1a2792e9f04233557ddcd15e634e0e457c3ce96f3b02f76b9d8e3d458d",
+    "lcnc-webui/src/viewer/sweepShards.ts": "2880c820b810d22304878cc148fadd4ac89a7ec427e69675e5268ee46fe413fb",
+    "lcnc-webui/src/viewer/sweepWords.test.ts": "0a4e33265872493908920b502bf05fe7f674bdb4a1fdb953136d2a9a23f2285a",
+    "lcnc-webui/src/viewer/sweepWords.ts": "1f342b7201498aeca7b1055ae976837efc74f194b381e18482151f49a03a7465",
+    "lcnc-webui/src/viewer/tloEvents.test.ts": "0835ab13b9f4c39a47586166795db113cf59ce7ab01279fc3b6f5e625062c2b1",
+    "lcnc-webui/src/viewer/tloEvents.ts": "6b8acaea6e2e75a86e8bf33f7778d7ce95412121085d18f7c671a37c21ca8b9c",
+    "lcnc-webui/src/viewer/toolBasis.test.ts": "6448175c610d2500e11647de8d54b5841decb7add25905b2d53013b9b74a60fe",
+    "lcnc-webui/src/viewer/toolChangePayloads.test.ts": "f5d4cd32bf7268d9eb9ab324b3e4d80251eabe06342154e1731fa189ddfb9429",
+    "lcnc-webui/src/viewer/toolChangeScan.test.ts": "06f1554ea17498efe3deed2f6964c13006acb69b8575cc1aad0e08a8c97842f8",
+    "lcnc-webui/src/viewer/toolChangeScan.ts": "13ea888d7405dd3cdea6e687507ad6f59d49aa09f361a8df6cbd3842aff6e27d",
+    "lcnc-webui/src/viewer/toolOffsetState.test.ts": "22ece313bbccc51bb05c96c9e2d32fdfda656dd667b28a85ad2680d052bc7dd5",
+    "lcnc-webui/src/viewer/toolOffsetState.ts": "d95b7df2c52331c6c0ea6fe5c449a927432824987a564cf6df71aec20da7f7d4",
+    "lcnc-webui/src/viewer/toolpathController.test.ts": "13beead5942ad2683415bd48b7bc250a513bf909f5cabc197fff1c39d5a2b1ff",
+    "lcnc-webui/src/viewer/toolpathController.ts": "d5281cedcee8925e835ae6f93bc31187b25ab8caaf5b789713e0e69880cc543f",
+    "lcnc-webui/src/viewer/toolsetterMarker.test.ts": "0ebda7515917b7d0194a405ee728919cdf988188d64442f4840c71df04ace480",
+    "lcnc-webui/src/viewer/toolsetterMarker.ts": "c0db1d0b5901851240850738662fbec2ba8d9e2cdce5632c344a8bf5f51876ca",
+    "lcnc-webui/src/viewer/triDistance.ts": "03b744b19492c3631d3441d656aa6ecba9a19710f3adb3feaa312d9c5decca1f",
+    "lcnc-webui/src/viewer/twpPlaneFrame.test.ts": "24d58f3b6c172080c7afe9790f01a1f0f068d72fac2c777260bfcd05c29537a4",
+    "lcnc-webui/src/viewer/twpPlaneFrame.ts": "93552e029a66bc12e8e5f19dc8c88e9f66102890df30a921698c1f184f9c4311",
+    "lcnc-webui/src/viewer/viewerContext.ts": "504e71e9010d3b045e80baa76bc3b5683bab847cc6a6bda7532528bd910d4cf0",
+    "lcnc-webui/src/viewer/viewerPalette.ts": "c8030b053ccd7899cdb821a04f7b9a0095d504300506bc6595268462b3e5ebd5",
+    "lcnc-webui/src/viewer/wcsEpochs.test.ts": "7caf17386d172eb5adab58e264005f40e3887de2c79bc9fdd2cb27732643b3c9",
+    "lcnc-webui/src/viewer/wcsEpochs.ts": "2db8b3dd75aba0b6659914058be45cdb991e62a9f1c7f77d8fbee043cc8383d8",
+    "lcnc-webui/src/viewerLayerGroups.test.ts": "b9948117aa953bd593f7ca787595a9f6b4e3f7106b12aac5e9e1e382ccc98824",
+    "lcnc-webui/src/viewerLayerGroups.ts": "a79b7db2174105f46514feab670d469f07ff3fd4397ad2e23d5ac7da8900c075",
+    "lcnc-webui/src/viewerPerf.test.ts": "84980e4f8f662534adf4f20dd09503e3e01250dde2f5522ee10db731cc6d2b50",
+    "lcnc-webui/src/viewerPerf.ts": "989ae407346231eb8313215ca0441dc96ce973ac9af8f2de19bf95cb336b8a2d",
+    "lcnc-webui/src/viewerSection.test.ts": "bb0fa109d2a01048e3a5918e39dcc79394822d27e97ed4037465a7731b1fc65c",
+    "lcnc-webui/src/viewerSection.ts": "2490e6cac2da8021f85bbeda33def6986ce673b5bdc1b2232323fa9381e47763",
+    "lcnc-webui/src/viteHttpRestartPing.test.ts": "0efde2cdf08bec6e38afe277823a66b698bf6c25c3782ec4488b6b6850831061",
+    "lcnc-webui/src/viteProxyCoverage.test.ts": "1f90a18ed51bf1c6a594e68a9f1f8b8491c47a669c30324a2f93b4946ae46b6f",
+    "lcnc-webui/src/wakeLock.ts": "a5caac2916ff8ecc0d1a319e8ae7dc9a90689a1a602f41dd488f5b39b1acb436",
+    "lcnc-webui/src/wcs.ts": "2ae57aaea1321b07c32fca24ac2d5264f489d614ab79a803ddb81360a3b50cd1",
+    "lcnc-webui/src/ws/bulkData.test.ts": "66c51c509e7f74dc877e05e9d2b0d3a077e0fe68a5ad2b2566d8128ec842f0ad",
+    "lcnc-webui/src/ws/bulkData.ts": "76f3436937c2edded487335dc5b723d16ad80716909d8dd30374c079d3b4f774",
+    "lcnc-webui/src/ws/halshowStore.test.ts": "1bf05454f231f141a02991c8e8f8a813c826f2b7397ea4f1c56f5e6fd92b811e",
+    "lcnc-webui/src/ws/halshowStore.ts": "f5c3f9173c4b81744b57347a14ec7ed4f682d11988121069b1469c2fc802cbf3",
+    "lcnc-webui/src/ws/parseSeen.test.ts": "f7d42b9841e6c591ca440ff2632f2d5d8f32c8c998a931fb129035abefc618d4",
+    "lcnc-webui/src/ws/statusStore.test.ts": "4038ed5d8b2598d43cd0a1e2001e53c694612042c462cff47b6d086a65bd4f03",
+    "lcnc-webui/src/ws/statusStore.ts": "916f9d0087c69a6ee343c2f2ee0aa063c38765b28c375d033de144c183d329a0",
+    "lcnc-webui/src/ws/telemetry.test.ts": "17b00017c5d5db1f6c0d65e19042e137591b465890a6ae523e469d0e179e0626",
+    "lcnc-webui/src/ws/telemetry.ts": "47fde3529c7d14d788aaac10bffbbd2854b4d55dabfb7e5eedfffdf901bd8ee0",
+    "lcnc-webui/src/ws/wsTransport.reload.test.ts": "3300f4b51c7c57cc2bf410333056dbabb4e6f34fed2b202a5b0e9b2d2de2438f",
+    "lcnc-webui/src/ws/wsTransport.test.ts": "1398a6892685b5ce6397bd3175596d07a62b13a1ffdba3675c5caa0e1becd086",
+    "lcnc-webui/src/ws/wsTransport.ts": "83ae9c3dda4a74947d2945c15eb3db2d6603714849336d8310efdf5aa1fa5c8d",
+    "lcnc-webui/src/wsWorker.test.ts": "be0a22760a8b2deefb8365f2e0f384b049b5f38bae9aa2bd9d240dc84803836c",
+    "lcnc-webui/src/wsWorker.ts": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143"
+  },
+  "checked_source_count": 436,
+  "product_source_unchanged": true,
+  "artifacts_sha256": {
+    "maschinentag.r424.codex-build.txt": "276a76765eb0e682d3e636af0f2182ed1094ba2ab4938e24a30389e5cb76eb80",
+    "maschinentag.r424.codex-unit.txt": "b05c1f13bd5ee8a00d0203f3468eeafec202bc477fa10ff7e6f7d6ca855f9abd",
+    "maschinentag.r424.codex-browser.txt": "3b985195974bbbaff548ab0e97c568cebf6ee580c9f34bc2a10e107908ca630b",
+    "maschinentag.r424.codex-browser.json": "2714e7ff9bc0f4f91e1c8b7416a86bf136d625e356adf68f1942a30b2369413c",
+    "maschinentag.r424.codex-events.jsonl": "f398f0de19220b8b1783fee83e8033554f2bde41e3320bc6ca86eebe7f896ee8",
+    "maschinentag.r424.codex-run.sh": "6fd6d73bc6cf481abcac82ffa9119166cad374df9648b583e50fcbcf010e747a",
+    "maschinentag.r424.codex-plan-notes.json": "035c3e2ac737d531fa3c76fc8fc9d91f1f0316c3a0c320211f4f3da635d4e45f"
+  },
+  "limits": [
+    "No machine/live-sim connection",
+    "No own Firefox, physical panel or full gate repetition",
+    "R423 lifecycle probe is unchanged and uses the real module over EventTarget DOM seam",
+    "Part 2 is a plan review, not an executed lease implementation",
+    "25 mm is arithmetic only; no stop-distance measurement in this review",
+    "All tests completed under heavy_lock.py in an isolated archive with an independent dependency copy"
+  ]
+}
