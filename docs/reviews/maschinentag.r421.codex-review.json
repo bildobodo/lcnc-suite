@@ -1,0 +1,605 @@
+{
+  "review": "R421",
+  "verdict": "findings",
+  "base": "98748fab420d1da6db7c1b4580e1c81bba314055",
+  "head": "2988ec44b0c8a33de721f1da58e9abbd4122127a",
+  "previous_head": "ada421e175308d2e796a501ddb9176152431cd3a",
+  "document_head": "d8a992c46ad36a0af1679845de6db54fa387bdfd",
+  "review_prefix_sha256": "d934ad510c6e960885ef5f06d631e080d985f0e8ba2a30dd58e985ad0104b49c",
+  "supplied_gate": {
+    "base": "98748fab420d1da6db7c1b4580e1c81bba314055",
+    "head": "cbd3c7175374a95e33640d479b395842e583324a",
+    "verdict": "PASS",
+    "pending": [
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-webui/src/JogStrip.vue",
+          "lcnc-webui/src/SafetyStrip.vue"
+        ]
+      }
+    ]
+  },
+  "unit": {
+    "file": "src/releaseClick.test.ts",
+    "passed": 20,
+    "failed": 0
+  },
+  "browser_stats": {
+    "startTime": "2026-11-21T17:23:23.410Z",
+    "duration": 93693.629,
+    "expected": 32,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on a click control acts once, on its release — the panel's sequence",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on a tab switches it on release",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on Reset resets once, on its release",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long touch the browser still clicks acts exactly once",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a short tap acts once — nothing doubles it",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a swipe that starts on a click control acts nowhere",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the E-Stop stops at the press — and the same press never resets it",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a tap on the E-Stop stops once; the next tap on Reset resets",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the panel's long press on the E-Stop stops at the press and does nothing at the release",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a swipe that starts on the E-Stop still stops (the press is the stop)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a second finger stops while the first holds a jog",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the mouse: the E-Stop stops at the button press; the click of that press never resets",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "two E-Stop presses (a finger and the mouse) never end in a Reset — either release order (MT-I01)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a new Reset press of the same pointer after a cancelled E-Stop press resets (MT-I01)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a strip scroll that starts on Power acts nowhere — at the drag threshold (5 px) (MT-I02)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a strip scroll that starts on Power acts nowhere — between threshold and slop (8 px) (MT-I02)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a strip scroll that starts on Power acts nowhere — and back to its start (MT-I02)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a keyboard activation after a long press acts on its own (MT-I03)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the press owners carry their mark in the DOM; Reset and the jog pad's Stop do not (MT-I04/06)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "a long press on a disabled control gives it no click (MT-I05)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "press-release.spec.ts",
+      "title": "the jog pad's Stop acts on its release — a long press and a second finger (MT-I06)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-cancel.spec.ts",
+      "title": "R420 new pen Reset after a cancelled E-Stop press must be accepted",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 keyboard activation after a long release remains independent",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 a real six-pixel scroll gesture must not turn into Power",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 each E-Stop pointer keeps its release even after a second stop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 a fresh Reset gesture with the reused pointer ID is not swallowed",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 a delayed click of the E-Stop gesture must never Reset",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-codex.spec.ts",
+      "title": "R420 Jog Stop follows the new release contract",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-more.spec.ts",
+      "title": "R420 press ownership reaches the actual DOM buttons",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-more.spec.ts",
+      "title": "R420 a panel long press with a six-pixel scroll never powers off",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r420-more.spec.ts",
+      "title": "R420 the disabled Flood control stays inert on a long touch",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r421-codex.spec.ts",
+      "title": "R421 second pointer cannot erase the first pointer scroll decision",
+      "status": "unexpected",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "r421-codex.spec.ts",
+      "title": "R421 a swipe on Jog Stop must not act through a native click",
+      "status": "unexpected",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "r420_probes_unchanged": [
+    {
+      "run_path": "e2e/r420-codex.spec.ts",
+      "evidence_path": "docs/reviews/maschinentag.r420.codex.spec.ts",
+      "sha256": "02ee3081fd7688400a5330ce0c21b4180ed56fad7a93f56ff954e78354d3372a"
+    },
+    {
+      "run_path": "e2e/r420-more.spec.ts",
+      "evidence_path": "docs/reviews/maschinentag.r420.codex-more.spec.ts",
+      "sha256": "6908d1b753513e8af66f754d5bd42f44605206c5682994e47e6c0f78992621f8"
+    },
+    {
+      "run_path": "e2e/r420-cancel.spec.ts",
+      "evidence_path": "docs/reviews/maschinentag.r420.codex-cancel.spec.ts",
+      "sha256": "b4b204e6e187b54fcde5bcec32020ad9b337216787711ec9482b219f81abc59a"
+    }
+  ],
+  "closed": [
+    "MT-I01",
+    "MT-I03",
+    "MT-I04",
+    "MT-I05"
+  ],
+  "remaining": [
+    {
+      "id": "MT-I02 rest A",
+      "severity": "P1",
+      "title": "second pointer replaces the scroll owner state of the first",
+      "observed": "trusted CDP touch sequence leads to a synthetic click and machine_off"
+    },
+    {
+      "id": "MT-I02/MT-I06 rest B",
+      "severity": "P2",
+      "title": "moved press outside scroll ownership still admits its native click",
+      "observed": "trusted CDP 14px swipe ends in a native click and three jog_stop commands"
+    }
+  ],
+  "environment": {
+    "browser": "Chromium 148.0.7778.0",
+    "playwright": "1.60.0",
+    "node": "v22.23.2",
+    "arch": "aarch64"
+  },
+  "isolation": {
+    "archive": "/tmp/codex-r421",
+    "product_modified": false,
+    "dependencies": "cp -a --reflink=auto, independent copy",
+    "live_connections": false,
+    "heavy_lock": "scripts/test_support/heavy_lock.py",
+    "completed": true
+  },
+  "limits": [
+    "No physical panel, live sim, or machine connection",
+    "No own Firefox or full round gate rerun",
+    "twp-buttons and panel acceptance remain pending",
+    "Existing untracked docs/reviews/maschinentag.r420.codex.spec.ts left unchanged"
+  ],
+  "source_hashes": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "186390e35b1667aeb0518cb6a2adbd26017e8e5911fa130bd56cd4626ccea571"
+    },
+    {
+      "path": "docs/architecture/frontend-modules.md",
+      "sha256": "23aa1becdfb4f8f60065770c768ad7bc29fa4c806cf2523918dcb076e6ede0c7"
+    },
+    {
+      "path": "docs/architecture/ui-patterns.md",
+      "sha256": "6d340bd727da857b7a94da0b9ddfa50e535da66e62aecbc34a91d946aea3afe9"
+    },
+    {
+      "path": "docs/decisions.md",
+      "sha256": "71dd676a010d367ee1d2412d6d3b71ec319474d4d50d3a106a47b3af64b892bf"
+    },
+    {
+      "path": "docs/inventory/funktionen.md",
+      "sha256": "5117ade201004ec34cda258cbeeaaf29baab4039eeb22734ab85bd83c68365b4"
+    },
+    {
+      "path": "docs/reviews/press-release.gate-round.json",
+      "sha256": "3f975192a1382fa2fc24ebd18cf49668a77911aa91e3096b99d0f69df0741b2a"
+    },
+    {
+      "path": "docs/reviews/press-release.gate-round.r1-fail.json",
+      "sha256": "1e21c988598ce104b1e19ceed38a666ae5c4105435464c39badd238d440da14b"
+    },
+    {
+      "path": "docs/reviews/press-release.gate-round.r2-fail.json",
+      "sha256": "44e24519816f143cfe25ba010096ca5560120f19323c5348fa8e187a5d127261"
+    },
+    {
+      "path": "docs/reviews/press-release.gate-round.r4-fail.json",
+      "sha256": "4e3d8d3fec4e0d166f1292e8bd881efc985b581885c334f3c956672492acdbcc"
+    },
+    {
+      "path": "docs/reviews/press-release.gate-round.r420.json",
+      "sha256": "9197742f55c69f32b532c3b8f6719ca4c066c2b0f1bfcbc44b560e17650c3a9a"
+    },
+    {
+      "path": "lcnc-webui/e2e/disarmed.spec.ts",
+      "sha256": "83b7e12a2c7d1657b11566c556b3a253ab5ca1becf38f9cc9f39f73efc9dfeb8"
+    },
+    {
+      "path": "lcnc-webui/e2e/press-release.spec.ts",
+      "sha256": "dff390f1b3e9683123c2dfaf429c3ae8ce8e3f7643cb151c6fd41c85c0f0c404"
+    },
+    {
+      "path": "lcnc-webui/src/JogStrip.vue",
+      "sha256": "0128bc7dc772883a860b5c3826006d09c4ff56e892feebc67b504955754d0325"
+    },
+    {
+      "path": "lcnc-webui/src/MachineBtn.vue",
+      "sha256": "1b9cf5d42f60ce52d4d22e6686b1700b118c9bd270eddcbf78594caa320349cb"
+    },
+    {
+      "path": "lcnc-webui/src/SafetyStrip.vue",
+      "sha256": "3f1f8d92228ea3820bc05952cf6d6a06f5e62929fe6483264ad3e14958f88230"
+    },
+    {
+      "path": "lcnc-webui/src/controlInventory.ts",
+      "sha256": "3ad7860ebac1f99e6f3db62cb9c5693e32b1b28a9e26dd7383af151eef7284a0"
+    },
+    {
+      "path": "lcnc-webui/src/dragScroll.ts",
+      "sha256": "a818949d477cd4eedc96b9392bb71302559e70b469d876237f4fa1630b0316f1"
+    },
+    {
+      "path": "lcnc-webui/src/main.ts",
+      "sha256": "e018a35717e0619dbd859166fe685507ab630394fac2ff338924823b82020aaa"
+    },
+    {
+      "path": "lcnc-webui/src/realTimeHolds.test.ts",
+      "sha256": "f7a139b8cb24296b6c1e99fcc335d1a366e64c8c6969eeb164fb06a5ec309dc1"
+    },
+    {
+      "path": "lcnc-webui/src/releaseClick.test.ts",
+      "sha256": "a67c00253b1cba30b635ed14122b143647fec43ff9a24fc5f3879dab65019174"
+    },
+    {
+      "path": "lcnc-webui/src/releaseClick.ts",
+      "sha256": "2b15ed94c850e4bab2385d7627f598f7d7f818dbc7d878b5cfc7aef5a3943204"
+    },
+    {
+      "path": "scripts/inventory/atoms.web.json",
+      "sha256": "33bcff8f29ef4830a5780a5e6f8845eedddf5cd6ce4cc922a8a89c533aa03a95"
+    },
+    {
+      "path": "scripts/inventory/functions.json",
+      "sha256": "932ff8a7f8fe23a5fd1754321b57ba3550632695b254bdefc402f42e177a0a4a"
+    },
+    {
+      "path": "scripts/test_select/rules.py",
+      "sha256": "19f5cf76df48a11da85ec115e543c7a205ebab4792bf52ae76bc7e839d5542e9"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/reviews/maschinentag.r421.codex-browser.json",
+      "sha256": "0b7de37d7872a562829bd47351405c1fc3665e75855a70d9cb835f3334c89f3f",
+      "bytes": 50774
+    },
+    {
+      "path": "docs/reviews/maschinentag.r421.codex-browser.txt",
+      "sha256": "fa21c9b9fcb7fd3888beb8013017464f94adbe0e0eae276a9bc002c83d0a4630",
+      "bytes": 14668
+    },
+    {
+      "path": "docs/reviews/maschinentag.r421.codex-build.txt",
+      "sha256": "d37f9068484f200401898e323af6b390b30c49d3ac28c5008469ad65a04699ff",
+      "bytes": 2438
+    },
+    {
+      "path": "docs/reviews/maschinentag.r421.codex-unit.txt",
+      "sha256": "9af24e00f267d46e73ff9a21cd3a5dcce5c2ad32775432d6af5a4f1d842c3b1c",
+      "bytes": 207
+    },
+    {
+      "path": "docs/reviews/maschinentag.r421.codex-run.sh",
+      "sha256": "e8dc4592b2bf1784400e15a9c6ded62e4e74bdeba62cf8cf17d7e6af78b7c4f8",
+      "bytes": 572
+    },
+    {
+      "path": "docs/reviews/maschinentag.r421.codex-events.jsonl",
+      "sha256": "739bd589c7bb9c3f89346d884f4ee499df1322897dc27c14df20be8d74c3e60d",
+      "bytes": 24576
+    },
+    {
+      "path": "docs/reviews/maschinentag.r421.codex.spec.ts",
+      "sha256": "41689ebfd587f76cf8a528164dd461f45ed5b3b4817661182f025a33cfb293bd",
+      "bytes": 5480
+    }
+  ]
+}

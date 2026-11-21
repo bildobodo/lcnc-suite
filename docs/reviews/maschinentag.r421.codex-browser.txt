@@ -1,0 +1,159 @@
+[1A[2K[WebServer] (node:1397695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 34 tests using 1 worker
+
+[1A[2K(node:1397735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1397735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/34] [e2e] › e2e/press-release.spec.ts:86:1 › a long press on a click control acts once, on its release — the panel's sequence
+[1A[2K[2/34] [e2e] › e2e/press-release.spec.ts:103:1 › a long press on a tab switches it on release
+[1A[2K[3/34] [e2e] › e2e/press-release.spec.ts:110:1 › a long press on Reset resets once, on its release
+[1A[2K[4/34] [e2e] › e2e/press-release.spec.ts:120:1 › a long touch the browser still clicks acts exactly once
+[1A[2K[5/34] [e2e] › e2e/press-release.spec.ts:131:1 › a short tap acts once — nothing doubles it
+[1A[2K[6/34] [e2e] › e2e/press-release.spec.ts:138:1 › a swipe that starts on a click control acts nowhere
+[1A[2K[7/34] [e2e] › e2e/press-release.spec.ts:146:1 › the E-Stop stops at the press — and the same press never resets it
+[1A[2K[8/34] [e2e] › e2e/press-release.spec.ts:163:1 › a tap on the E-Stop stops once; the next tap on Reset resets
+[1A[2K[9/34] [e2e] › e2e/press-release.spec.ts:176:1 › the panel's long press on the E-Stop stops at the press and does nothing at the release
+[1A[2K[10/34] [e2e] › e2e/press-release.spec.ts:183:1 › a swipe that starts on the E-Stop still stops (the press is the stop)
+[1A[2K[11/34] [e2e] › e2e/press-release.spec.ts:190:1 › a second finger stops while the first holds a jog
+[1A[2K[12/34] [e2e] › e2e/press-release.spec.ts:206:1 › the mouse: the E-Stop stops at the button press; the click of that press never resets
+[1A[2K[13/34] [e2e] › e2e/press-release.spec.ts:219:1 › the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset
+[1A[2K[14/34] [e2e] › e2e/press-release.spec.ts:240:1 › two E-Stop presses (a finger and the mouse) never end in a Reset — either release order (MT-I01)
+[1A[2K[15/34] [e2e] › e2e/press-release.spec.ts:258:1 › a new Reset press of the same pointer after a cancelled E-Stop press resets (MT-I01)
+[1A[2K[16/34] [e2e] › e2e/press-release.spec.ts:280:3 › a strip scroll that starts on Power acts nowhere — at the drag threshold (5 px) (MT-I02)
+[1A[2K[17/34] [e2e] › e2e/press-release.spec.ts:280:3 › a strip scroll that starts on Power acts nowhere — between threshold and slop (8 px) (MT-I02)
+[1A[2K[18/34] [e2e] › e2e/press-release.spec.ts:280:3 › a strip scroll that starts on Power acts nowhere — and back to its start (MT-I02)
+[1A[2K[19/34] [e2e] › e2e/press-release.spec.ts:308:1 › a keyboard activation after a long press acts on its own (MT-I03)
+[1A[2K[20/34] [e2e] › e2e/press-release.spec.ts:319:1 › the press owners carry their mark in the DOM; Reset and the jog pad's Stop do not (MT-I04/06)
+[1A[2K[21/34] [e2e] › e2e/press-release.spec.ts:331:1 › a long press on a disabled control gives it no click (MT-I05)
+[1A[2K[22/34] [e2e] › e2e/press-release.spec.ts:352:1 › the jog pad's Stop acts on its release — a long press and a second finger (MT-I06)
+[1A[2K[23/34] [e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted
+[1A[2K[e2e] › e2e/r420-cancel.spec.ts:59:1 › R420 new pen Reset after a cancelled E-Stop press must be accepted
+R420 cancel then reset {"gap":29.699999809265137,"got":[{"cmd":"estop","req_id":"rdl17v-5"},{"cmd":"estop_reset","req_id":"rdl17v-6"}]}
+
+[1A[2K[24/34] [e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:87:1 › R420 keyboard activation after a long release remains independent
+R420 keyboard [{"cmd":"abort","req_id":"5om17h-5"},{"cmd":"abort","req_id":"5om17h-6"}]
+
+[1A[2K[25/34] [e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:99:1 › R420 a real six-pixel scroll gesture must not turn into Power
+R420 six-pixel {"got":[],"events":[{"kind":"pointerdown","target":"b lg default active block safetyBtn","trusted":true,"x":246.3359375,"id":3},{"kind":"gotpointercapture","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"pointermove","target":"b lg default active block safetyBtn","trusted":true,"x":252.3359375,"id":3},{"kind":"gotpointercapture","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3},{"kind":"pointerup","target":"strip bordered-panel scroll-thin strip-more","trusted":true,"x":252.3359375,"id":3}]}
+
+[1A[2K[26/34] [e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:118:1 › R420 each E-Stop pointer keeps its release even after a second stop
+R420 two devices [{"cmd":"estop","req_id":"jnipwz-5"},{"cmd":"estop","req_id":"jnipwz-6"}]
+
+[1A[2K[27/34] [e2e] › e2e/r420-codex.spec.ts:137:1 › R420 a fresh Reset gesture with the reused pointer ID is not swallowed
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:137:1 › R420 a fresh Reset gesture with the reused pointer ID is not swallowed
+R420 reused pointer [{"cmd":"estop","req_id":"lm7fas-5"},{"cmd":"estop_reset","req_id":"lm7fas-6"}]
+
+[1A[2K[28/34] [e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:154:1 › R420 a delayed click of the E-Stop gesture must never Reset
+R420 delayed click [{"cmd":"estop","req_id":"yt5nef-5"}]
+
+[1A[2K[29/34] [e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract
+[1A[2K[e2e] › e2e/r420-codex.spec.ts:167:1 › R420 Jog Stop follows the new release contract
+R420 jog stop {"before":[],"after":[{"cmd":"jog_stop","axis":0,"req_id":"z9whol-5"},{"cmd":"jog_stop","axis":1,"req_id":"z9whol-6"},{"cmd":"jog_stop","axis":2,"req_id":"z9whol-7"}]}
+
+[1A[2K[30/34] [e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons
+[1A[2K[e2e] › e2e/r420-more.spec.ts:87:1 › R420 press ownership reaches the actual DOM buttons
+R420 owned {"estop":"","jog":""}
+
+[1A[2K[31/34] [e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off
+[1A[2K[e2e] › e2e/r420-more.spec.ts:96:1 › R420 a panel long press with a six-pixel scroll never powers off
+R420 panel scroll []
+
+[1A[2K[32/34] [e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch
+[1A[2K[e2e] › e2e/r420-more.spec.ts:104:1 › R420 the disabled Flood control stays inert on a long touch
+R420 disabled flood {"got":[],"changes":[]}
+
+[1A[2K[33/34] [e2e] › e2e/r421-codex.spec.ts:74:1 › R421 second pointer cannot erase the first pointer scroll decision
+[1A[2K[e2e] › e2e/r421-codex.spec.ts:74:1 › R421 second pointer cannot erase the first pointer scroll decision
+R421 concurrent scroll {"got":[{"cmd":"machine_off","req_id":"rt6gq9-5"}],"events":[{"kind":"pointerdown","id":3,"primary":true,"x":246.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"pointerdown","id":4,"primary":false,"x":153,"y":517.25,"trusted":true,"target":"sub"},{"kind":"gotpointercapture","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"pointermove","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"pointerup","id":3,"primary":true,"x":254.3359375,"y":562.5,"trusted":true,"target":"b lg default active block safetyBtn"},{"kind":"click","id":3,"primary":true,"x":254,"y":562,"trusted":false,"target":"b lg default active block safetyBtn"}]}
+
+[1A[2K  1) [e2e] › e2e/r421-codex.spec.ts:74:1 › R421 second pointer cannot erase the first pointer scroll decision 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m1[39m
+    Received array:  [31m[{"cmd": "machine_off", "req_id": "rt6gq9-5"}][39m
+
+      89 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[p2]});
+      90 |   console.log('R421 concurrent scroll',JSON.stringify({got,events}));
+    > 91 |   expect(got.filter(c=>c.cmd==='machine_off'||c.cmd==='machine_on')).toHaveLength(0);
+         |                                                                      ^
+      92 | });
+      93 |
+      94 | test('R421 a swipe on Jog Stop must not act through a native click',async({page})=>{
+        at /tmp/codex-r421/lcnc-webui/e2e/r421-codex.spec.ts:91:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r421-codex-R421-second-poi-43057-rst-pointer-scroll-decision-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r421-codex-R421-second-poi-43057-rst-pointer-scroll-decision-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r421-codex-R421-second-poi-43057-rst-pointer-scroll-decision-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r421-codex-R421-second-poi-43057-rst-pointer-scroll-decision-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K(node:1399863) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1399863) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[34/34] [e2e] › e2e/r421-codex.spec.ts:94:1 › R421 a swipe on Jog Stop must not act through a native click
+[1A[2K[e2e] › e2e/r421-codex.spec.ts:94:1 › R421 a swipe on Jog Stop must not act through a native click
+R421 jog swipe {"got":[{"cmd":"jog_stop","axis":0,"req_id":"l5yoiu-5"},{"cmd":"jog_stop","axis":1,"req_id":"l5yoiu-6"},{"cmd":"jog_stop","axis":2,"req_id":"l5yoiu-7"}],"events":[{"kind":"pointerdown","id":3,"primary":true,"x":425.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"gotpointercapture","id":3,"primary":true,"x":439.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"pointermove","id":3,"primary":true,"x":439.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"pointerup","id":3,"primary":true,"x":439.75,"y":653.25,"trusted":true,"target":"b sm danger mono jogBtn"},{"kind":"click","id":3,"primary":false,"x":440,"y":653,"trusted":true,"target":"b sm danger mono jogBtn"}]}
+
+[1A[2K  2) [e2e] › e2e/r421-codex.spec.ts:94:1 › R421 a swipe on Jog Stop must not act through a native click 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m0[39m
+    Received length: [31m3[39m
+    Received array:  [31m[{"axis": 0, "cmd": "jog_stop", "req_id": "l5yoiu-5"}, {"axis": 1, "cmd": "jog_stop", "req_id": "l5yoiu-6"}, {"axis": 2, "cmd": "jog_stop", "req_id": "l5yoiu-7"}][39m
+
+      103 |   const got=await settled(page);
+      104 |   console.log('R421 jog swipe',JSON.stringify({got,events:await page.evaluate(()=>(window as any).__events)}));
+    > 105 |   expect(got.filter(c=>String(c.cmd).startsWith('jog_stop'))).toHaveLength(0);
+          |                                                               ^
+      106 | });
+      107 |
+        at /tmp/codex-r421/lcnc-webui/e2e/r421-codex.spec.ts:105:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r421-codex-R421-a-swipe-on-198a3--act-through-a-native-click-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r421-codex-R421-a-swipe-on-198a3--act-through-a-native-click-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r421-codex-R421-a-swipe-on-198a3--act-through-a-native-click-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r421-codex-R421-a-swipe-on-198a3--act-through-a-native-click-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  2 failed
+    [e2e] › e2e/r421-codex.spec.ts:74:1 › R421 second pointer cannot erase the first pointer scroll decision 
+    [e2e] › e2e/r421-codex.spec.ts:94:1 › R421 a swipe on Jog Stop must not act through a native click 
+  32 passed (1.6m)

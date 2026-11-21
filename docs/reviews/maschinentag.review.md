@@ -552,3 +552,45 @@ Der E-Stop ist die einzige Ausnahme, die beim Drücken wirkt. Seine Gestenregel 
 - Weiter offen vor main: `twp-buttons` und die echte Abnahme am Panel.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R421 · 21. November 2026
+
+**Urteil: `findings` zu `98748fab..2988ec44` (Produktkopf `cbd3c717`).** Die zehn R420-Gegenproben laufen unverändert **10/10 grün**, ebenso die 22 Fälle des erweiterten `press-release.spec.ts` und die 20 Unit-Tests. **MT-I01, MT-I03, MT-I04 und MT-I05 sind geschlossen.** Die Umstellung des Jog Stop auf Loslassen funktioniert; bei der Wisch-Verweigerung bleiben zwei Gegenfälle zu **MT-I02/MT-I06**. Beide mit echten CDP-Touch-Eingaben, nicht mit nachgebildeten DOM-Ereignissen.
+
+| R420-Punkt | Ergebnis dieser Nachprüfung |
+|---|---|
+| MT-I01 · E-Stop | Zwei Eingabegeräte und beide Loslass-Reihenfolgen ohne Reset; neuer Reset derselben Stift-ID nach Cancel funktioniert; der künstlich späte alte Klick löst nichts aus. Die 2 s sind jetzt Aufräumen, kein nachfolgender Reset-Fallback. |
+| MT-I02 · Scrollen | Ein Zeiger, 5/6/8 px und Rückkehr: verworfen, einschließlich des vorher bestehenden nativen Wisch-Klicks. **Rest A unten:** Der Scroll-Besitzer kann den ersten Zeiger beim zweiten Druck vergessen. |
+| MT-I03 · Duplikate | Tastatur und getrennte Zeiger werden unterschieden; langer Abort plus Enter ergibt zwei Abort-Aufträge. Die Erweiterung auf kurze Touch-Gesten ist für den zweiten Finger nachvollziehbar. |
+| MT-I04 · Besitz | E-Stop, Jog-Richtung und Hold tragen die Markierung im DOM; Reset und Jog Stop nicht. |
+| MT-I05 · deaktiviert | Flood mit geschlossenem Gate: weder `change` noch Befehl, auch bei echtem langem Touch; die erneute Disabled-Prüfung vor dem Ersatzklick ist vorhanden. |
+| MT-I06 · Jog Stop | Beim Drücken kein Stopp, beim Loslassen eine Stoppfolge; zweiter Finger beim gehaltenen Jog funktioniert. **Rest B unten:** Ein nativer Wisch-Klick wird noch angenommen. |
+
+### MT-I02 · Rest A · P1 · Der zweite Finger ersetzt den Scroll-Zustand des ersten
+
+`dragScroll.ts:25,41–54` hat weiterhin **ein** `state` je Scroll-Element. Ein zweiter `pointerdown` auf demselben Scroll-Element überschreibt es. Der erste Zeiger erreicht danach `noteScrollGesture()` nicht mehr, auch wenn seine Bewegung die 5-px-Schwelle überschreitet.
+
+**Gegenprobe:** Finger 1 auf Power, Finger 2 auf der Überschrift „Safety“ derselben Leiste ablegen; Finger 1 um **8 px** bewegen und loslassen, während Finger 2 noch liegt. Der Mitschrieb zeigt beide echten Zeiger (IDs 3 und 4), Bewegung und Loslassen von ID 3, danach einen **synthetischen Klick von ID 3** auf Power. Der Mock empfängt **`machine_off`**. Der allgemeine Tracker kennt keine Scroll-Übernahme für diesen Zeiger; 8 px liegen unter seiner eigenen 10-px-Grenze, und der neue Fallback für jede Druckdauer aktiviert ihn.
+
+**Korrektur:** Auch beim Scroll-Besitzer die Gesten je Zeiger erhalten, oder eine konkurrierende Übernahme ausdrücklich und endgültig als Abbruch der betroffenen Geste melden. Ein zweiter Druck oder dessen Ende darf die Scroll-Entscheidung des ersten nicht still beseitigen. Die Freigabe zum tatsächlichen Verschieben des Containers darf getrennt davon auf einen Zeiger beschränkt sein. Wächter: zweiter Finger vor der Schwelle, während des Scrollens sowie seine frühere Freigabe; der verworfene erste Druck darf anschließend weder synthetisch noch nativ aktivieren. Normale zweite Taps, insbesondere Jog Stop, müssen weiter funktionieren.
+
+### MT-I02/MT-I06 · Rest B · P2 · Verwerfen außerhalb eines Scroll-Besitzers unterdrückt nur den Ersatzklick
+
+`ReleaseTracker.up()` (`releaseClick.ts:93–97`) löscht einen über die Slop-Grenze bewegten Druck und gibt `none` zurück. Es bleibt **kein** Vermerk für dessen späteren nativen Klick. `click()` verweigert nur `scrolled` oder `given`. Das Jog-Pad ist in `dragScroll.ts:36–39` über `.jogBtn` ausgeschlossen, auch sein neuer Release-Stop; deshalb greift die Scroll-Sperre dort nicht.
+
+**Gegenprobe:** Jog Stop drücken, **14 px** seitlich innerhalb des Knopfs wischen und loslassen. Die Bewegung überschreitet die vereinbarten 10 px; der Tracker gibt korrekt keinen Ersatzklick. Chromium liefert jedoch einen echten `click` derselben Zeiger-ID auf Jog Stop. Der Mock empfängt **drei `jog_stop`** (je Achse einen). „Wisch wirkt nirgends“ ist damit noch nicht erfüllt.
+
+**Korrektur:** Eine endgültig verworfene Klick-Geste muss beide Ausgänge schließen: eigenen Ersatzklick **und** nativen Klick. Das gilt unabhängig davon, ob ein Scroll-Besitzer sie übernommen hat. Die Verweigerung an die konkrete Geste binden und bei einer neuen Geste desselben Zeigers korrekt beenden; keine globale Sperre für fremde Zeiger oder Tastatur. Neben Jog Stop die gemeinsame Regel für Slop, Abgleiten, Rückkehr und Cancel prüfen, ohne die press-owned Richtungs-Jogs oder den sofortigen E-Stop zu verändern. Eine bloße Sonderbehandlung des mittleren Knopfs würde die Lücke in der gemeinsamen Regel belassen.
+
+Kleiner Dokumentationsrest: Der alte Kommentar `JogStrip.vue:393–398` behauptet noch „KEYDOWN, default prevented“ und keinen Klick-Handler; direkt darunter steht der neue Vertrag. Diesen überholten Absatz beim Nachziehen entfernen.
+
+### Belege und Grenzen
+
+- Exaktes Archiv `2988ec44` unter `/tmp/codex-r421`, getrennte Kopie der Abhängigkeiten; Build erfolgreich. Keine Änderungen am Produktcode.
+- Ein gezielter Lauf unter der Heavy-Sperre: **20/20 Unit**, **32/34 Browser grün** = Claudes **22/22**, meine unveränderten R420-Fälle **10/10**, die zwei neuen Gegenproben **0/2**. Keine Retries. Browser **Chromium 148.0.7778.0**; keine eigene Firefox- oder Panel-Abnahme.
+- [Neue Gegenproben](maschinentag.r421.codex.spec.ts), [Browser-Mitschrieb einschließlich Ereignis- und Befehlsfolgen](maschinentag.r421.codex-browser.txt), [vollständiger Browserbericht](maschinentag.r421.codex-browser.json), [Köpfe, Quell- und Beleg-Hashes, Prüfzuordnung](maschinentag.r421.codex-review.json).
+- Der beigefügte Round-Gate-PASS ist an `cbd3c717` gebunden; `2988ec44` fügt nur den Record hinzu. Das Gesamtgate wurde nicht wiederholt. `twp-buttons` und die echte Panel-Abnahme bleiben vor main offen.
+
+Keine neue Operatorfrage. Alle eigenen Tests beendet, Heavy-Sperre wieder frei. Keine Verbindung zur Maschine oder Live-Sim. Im Live-Baum nur dieser Anhang und neue R421-Belege; vorhandene Dateien unverändert belassen.
