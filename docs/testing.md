@@ -37,6 +37,13 @@ stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client th
 preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
 `trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
 of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
+The jog lease (P1b) has a run of its own too: `native_run.py … --variant jog-lease`
+(home, then a leased jog renewed for 3 s — never interrupted — and one renewed for
+1 s, then not: the gateway's expiry notice, its `jog.lease_expired` record with the
+axis stopped and the standstill by the position, each observed; the overrun is
+reported, never bounded; a counter runs the expiry judge on the renewed jog). The
+client renews as the page's main thread does; the real page on the sim with its
+main thread blocked is the browser probe, a separate live check.
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

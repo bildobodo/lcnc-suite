@@ -812,7 +812,7 @@ test("every bound jog key jogs its own axis in its direction and stops it on rel
     await ctl({ op: "clearCmds" });
     await page.keyboard.down(key);
     await expect.poll(jogCmds, key).toHaveLength(1);
-    const [start] = await jogCmds() as { cmd?: string; axis?: number; vel?: number }[];
+    const [start] = await jogCmds() as { cmd?: string; axis?: number; vel?: number; lease?: number }[];
     expect(start, key).toMatchObject({ cmd: "jog_cont", axis });
     expect(Math.sign(start!.vel!), `${key}: its direction`).toBe(dir);
     await page.keyboard.up(key);

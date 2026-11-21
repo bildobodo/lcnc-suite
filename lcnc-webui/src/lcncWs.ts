@@ -413,7 +413,7 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
 // The jog lease's frames (P1b): jogLease.ts registers its handler — this
 // module never imports it (jogLease sends through send() here).
 let jogLeaseFrameHandler: ((msg: { id?: unknown; axes?: unknown; stop_failed?: unknown;
-  error?: unknown; late_renewal?: unknown }) => void) | null = null;
+  error?: unknown; late_renewal?: unknown; reason?: unknown }) => void) | null = null;
 export function setJogLeaseFrameHandler(h: typeof jogLeaseFrameHandler): void {
   jogLeaseFrameHandler = h;
 }

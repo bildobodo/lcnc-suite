@@ -154,13 +154,18 @@ function connectionGone(): void {
 }
 
 /** The gateway's `jog_lease_expired` (lcncWs routes it here). A failed stop
- *  is said whatever the gesture's state — the axis may still move. */
+ *  is said whatever the gesture's state — the axis may still move. With a
+ *  `reason` a STOP ended the lease (abort, E-Stop, a disarm): the gesture
+ *  ends without the page-delay words — the operator or the safety path
+ *  stopped it, the page did not hang. */
 export function onLeaseExpiredFrame(msg: { id?: unknown; axes?: unknown; stop_failed?: unknown; error?: unknown;
-  late_renewal?: unknown }): void {
+  late_renewal?: unknown; reason?: unknown }): void {
   if (Array.isArray(msg.stop_failed) && msg.stop_failed.length > 0) {
     pushMessage(OPERATOR_ERROR, typeof msg.error === "string" ? msg.error : LEASE_STOP_FAILED_TEXT);
   }
-  if (typeof msg.id === "number") endFromOutside(msg.id, "expired", LEASE_EXPIRED_TEXT, false);
+  if (typeof msg.id !== "number") return;
+  if (typeof msg.reason === "string") endFromOutside(msg.id, "stopped", "", false);
+  else endFromOutside(msg.id, "expired", LEASE_EXPIRED_TEXT, false);
 }
 
 setJogLeaseFrameHandler(onLeaseExpiredFrame);

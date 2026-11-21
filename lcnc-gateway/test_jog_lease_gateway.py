@@ -512,6 +512,9 @@ class TestTheClientsLeasesEnd(_Ws):
             self.pump(ws, 3.0, until=lambda f: f.get("req_id") == "c5", renew=[5])
             self.assertEqual(self.reply("c5").get("error"), jog_lease.JOG_LEASE_DEAD)
             self.assertEqual(self.writes(), [])
+            told = [f for f in self.frames if f.get("type") == "jog_lease_expired" and f.get("id") == 5]
+            self.assertEqual(told[0].get("reason"), "abort",
+                             "the page hears a STOP ended it — never the page-delay words")
 
     def test_a_disarm_ends_them(self):
         with TestClient(gateway.app) as client, client.websocket_connect("/ws") as ws:
@@ -522,6 +525,9 @@ class TestTheClientsLeasesEnd(_Ws):
             self.pump(ws, 2.0, until=lambda f: f.get("type") == "reply" and f.get("armed") is False)
             self.assertEqual(self.writes()[-1], (JS, 1, 0), "the disarm stops the jog")
             self.assertFalse(gateway._jog_leases.is_live((self.conn_key, 6), time.monotonic()))
+            self.pump(ws, 1.0, until=lambda f: f.get("type") == "jog_lease_expired" and f.get("id") == 6)
+            told = [f for f in self.frames if f.get("type") == "jog_lease_expired" and f.get("id") == 6]
+            self.assertEqual(told[0].get("reason"), "disarm")
             self.pump(ws, 0.5, until=lambda f: f.get("type") == "jog_lease_expired", renew=[6])
             self.assertTrue(any(f.get("type") == "jog_lease_expired" and f.get("id") == 6 for f in self.frames),
                             "its renewals are answered dead")

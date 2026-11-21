@@ -4714,7 +4714,7 @@ def _receive_jog_renew(conn_key: str, msg: Dict[str, Any]) -> List[int]:
     return _jog_leases.renew(conn_key, ids, time.monotonic())
 
 
-def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False) -> None:
+def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False) -> List[int]:
     """End every lease of a connection (its disarm, its abort / E-Stop, its
     close): no more starts under them — they are ended and forgotten with
     their timers (their ids stay dead). Their axes are stopped by the
@@ -4732,8 +4732,23 @@ def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False)
     if drop:
         _jog_leases.drop_connection(conn_key)
     if not leases:
-        return
+        return []
     _trace.emit("jog.leases_ended", level="info", why=why, leases=[lz.lease_id for lz in leases], dropped=drop)
+    return [lz.lease_id for lz in leases]
+
+
+async def _tell_leases_ended(ws: Any, ids: List[int], why: str) -> None:
+    """Tell the page its leases were ended by a STOP (abort, E-Stop, a
+    disarm): each gesture ends WITHOUT the page-delay words — the operator
+    (or the safety path) stopped it. Best effort: a renewal the page sends
+    meanwhile is answered dead, and the page has ended the id by then."""
+    for lease_id in ids:
+        try:
+            await ws_send_json(ws, {"type": "jog_lease_expired", "id": lease_id, "axes": [], "stop_failed": [],
+                                    "reason": why})
+        except Exception as e:  # noqa: BLE001 - a closing socket: the page ends its gestures with it
+            _trace.emit("jog.lease_notify_failed", level="warn", exc=type(e).__name__)
+            return
 
 
 def _lease_key(conn_key: Optional[str], msg: Dict[str, Any],
@@ -11541,7 +11556,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
         # the released-jog-button hazard and matches the "all paths
         # to disarmed do the same thing" principle.
         if _was_armed and not client.armed:
-            _end_client_leases(client.conn_key, why="disarm")
+            await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="disarm"), "disarm")
             if _cmd_now() is not None and not _shutting_down:
                 try:
                     async with _get_cmd_lock():
@@ -11757,7 +11772,8 @@ async def ws_endpoint(ws: WebSocket):
                             client.viewer_init_sent = False
                         if client.armed:
                             client.armed = False
-                            _end_client_leases(client.conn_key, why="not_connected")
+                            await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="not_connected"),
+                                                     "not_connected")
                         try:
                             await ws_send_json(ws, {
                                 "type": "status_error",
@@ -12145,7 +12161,8 @@ async def ws_endpoint(ws: WebSocket):
                         if _hb_stalled(_clients[client_id].last_hb_mono, time.monotonic()):
                             if client.armed:
                                 client.armed = False
-                                _end_client_leases(client.conn_key, why="hb_stall")
+                                await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why="hb_stall"),
+                                                         "hb_stall")
                                 try:
                                     async with _get_cmd_lock():
                                         await _jog_stop_for_client()
@@ -12667,7 +12684,7 @@ async def ws_endpoint(ws: WebSocket):
                     # ... and ends this client's jog leases (P1b): a change it
                     # queued before the stop keeps its stop half (a stop is
                     # never superseded) but starts nothing at its write
-                    _end_client_leases(client.conn_key, why=_rcmd)
+                    await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why=_rcmd), _rcmd)
                 if _rcmd in _JOG_LEASE_FRAMES:
                     _receive_jog_lease(client.conn_key, msg)   # the deadline's anchor: receipt
                 _depth = cmd_queue.qsize()

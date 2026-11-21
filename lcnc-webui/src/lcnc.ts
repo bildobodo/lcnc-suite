@@ -83,14 +83,15 @@ export type WsCommand =
   | { cmd: "run_macro"; name: string; revision: string; args: number[] }
   | { cmd: "twp_capture" }
   // Jogging (single axis)
-  // `lease` (P1b): the input gesture's jog lease (jogLease.ts) — every
-  // continuous jog the WebUI sends carries one; the gateway stops it when
-  // the page's main thread stops renewing it
-  | ({ cmd: "jog_cont"; axis: number; vel: number; lease?: number } & Via)
+  // `lease` (P1b): the input gesture's jog lease (jogLease.ts) — REQUIRED
+  // here: every continuous jog the WebUI sends carries one (the gateway takes
+  // a lease-less jog from a script); the gateway stops it when the page's
+  // main thread stops renewing it
+  | ({ cmd: "jog_cont"; axis: number; vel: number; lease: number } & Via)
   | ({ cmd: "jog_incr"; axis: number; vel: number; distance: number } & Via)
   | ({ cmd: "jog_stop"; axis: number } & Via)
   // Jogging (multi axis)
-  | { cmd: "jog_cont_multi"; axes: { axis: number; vel: number }[]; lease?: number }
+  | { cmd: "jog_cont_multi"; axes: { axis: number; vel: number }[]; lease: number }
   | { cmd: "jog_incr_multi"; axes: { axis: number; vel: number; distance: number }[] }
   | ({ cmd: "jog_stop_multi"; axes: number[] } & Via)
   // The jog lease (P1b): a change inside one gesture — the stops of axes the

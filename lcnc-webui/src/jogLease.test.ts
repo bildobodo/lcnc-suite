@@ -104,6 +104,13 @@ describe("a gesture's ends", () => {
     expect(a2.outside).toEqual([]);
   });
 
+  it("a lease a STOP ended (abort, E-Stop, a disarm) ends its gesture without the page-delay words", () => {
+    const a = gesture("a");
+    frameHandler!({ type: "jog_lease_expired", id: a.id, axes: [], stop_failed: [], reason: "abort" });
+    expect(a.outside).toEqual([{ why: "stopped", text: "" }]);
+    expect(messages).toEqual([]);
+  });
+
   it("a failed stop is said whatever the gesture's state — the axis may still move", () => {
     frameHandler!({ type: "jog_lease_expired", id: 99999, axes: [], stop_failed: [1],
                     error: "Jog stop failed — press E-Stop if it still moves" });

@@ -7634,8 +7634,13 @@ def test_each_missing_or_contradicting_observation_is_red():
 def test_a_renewed_jog_is_never_interrupted_and_never_an_expiry():
     kept = [(t, 300.0 - 20.0 * t, 20.0) for t in (i * 0.033 for i in range(90))]
     assert nc.eval_lease_kept("jog-lease-kept", 1, kept, 0.05, 2.9, [])["status"] == "PASS"
-    halted = kept[:40] + [(t, p, 0.0) for t, p, _ in kept[40:]]
+    # a break: the position holds for a while (judged by the position — a
+    # velocity alone, which a joint jog may not report, decides nothing)
+    halted = kept[:40] + [(t, kept[39][1], 0.0) for t, _p, _v in kept[40:55]] + kept[55:]
     assert nc.eval_lease_kept("jog-lease-kept", 1, halted, 0.05, 2.9, [])["status"] == "FAIL"
+    no_velocity = [(t, p, 0.0) for t, p, _v in kept]
+    assert nc.eval_lease_kept("jog-lease-kept", 1, no_velocity, 0.05, 2.9, [])["status"] == "PASS", \
+        "a moving position with a velocity of 0 is still a moving jog"
     noticed = nc.eval_lease_kept("jog-lease-kept", 1, kept, 0.05, 2.9, [(1.0, {"id": 1})])
     assert noticed["status"] == "FAIL", "an expiry notice while renewed"
     # the counter the run makes: the expiry judge on the renewed jog never passes

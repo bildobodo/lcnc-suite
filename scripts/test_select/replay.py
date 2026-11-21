@@ -154,6 +154,11 @@ def _opaque(v: Any) -> bool:
     return True
 
 
+def _renew_ids(v: Any) -> bool:
+    return (isinstance(v, list) and 1 <= len(v) <= 16
+            and all(isinstance(i, int) and not isinstance(i, bool) and 1 <= i < 2**53 for i in v))
+
+
 REQ, OPT = True, False
 Rule = tuple[bool, Callable[[Any], bool]]
 
@@ -192,6 +197,9 @@ def _reader_rules() -> dict[str, dict[str, Rule]]:
         "timing_log": {"enable": (REQ, _bool)}, "halshow_live": {"on": (REQ, _bool)},
         # diagnostics without effect: no data or any data (a dict reaches the trace)
         "client_diag": {"data": (OPT, _opaque)},
+        # the jog lease's renewal (P1b, jog_lease.parse_renew_ids): 1..16
+        # positive JSON integers, else nothing renewed (the leases run out)
+        "jog_renew": {"ids": (REQ, _renew_ids)},
     }
 
 
