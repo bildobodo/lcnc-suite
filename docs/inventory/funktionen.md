@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1183 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1185 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -25,7 +25,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 4 | 4 | 0 |
-| **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 5 | 5 | 0 |
+| **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 8 | 6 | 6 | 0 |
 | **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 8 | 5 | 5 | 0 |
 | **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 1 | 1 | 0 |
 | **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
@@ -56,6 +56,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: script: `perf_matrix.py` — sigstop_trip (live, nicht im Gate); native: `native_run.py` — latch-sticky; native: `native_run.py` — latch-recovered
 - **S4b (Wirkung):** Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt: im Servo-Strom ist fault-out im Sample TRUE, in dem oneshot.0.out fällt (die Gegenprobe mit dem Latch vor oneshot.0 zeigt genau einen Takt Verzug). — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — latch-same-cycle; native: `native_run.py` — latch-same-cycle.delayed-order
+- **S5 (Bedienbarkeit):** Der E-Stop-Knopf löst beim Drücken aus, auch beim langen Druck am Touchpanel; derselbe Druck wird nie zum Zurücksetzen, auch wenn der Not-Halt vor dem Loslassen bestätigt ist. — gilt für: alle
+  - Beleg: browser: `press-release.spec.ts` — the E-Stop stops at the press — and the same press never resets it; browser: `press-release.spec.ts` — the panel's long press on the E-Stop stops at the press and does nothing at the release; browser: `press-release.spec.ts` — the keyboard: Enter on the E-Stop stops once; the held key's repeats never reset
 
 ### Sicherheits-Auslösung quittieren, Sicherheitskette
 

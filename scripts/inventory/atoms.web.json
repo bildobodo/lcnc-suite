@@ -1055,7 +1055,7 @@
      "id": "control:SafetyStrip.vue|MachineBtn:arm|@click=emit('arm', !armed)"
     },
     {
-     "id": "control:SafetyStrip.vue|MachineBtn:estop|@click=isEstop ? emit('estopReset') : emit('estop')"
+     "id": "control:SafetyStrip.vue|MachineBtn:estop|@click=onEstopClick @keydown=onEstopKeydown @pointerdown=onEstopPointerDown"
     },
     {
      "id": "control:SafetyStrip.vue|MachineBtn:machineOn|@click=isEnabled ? emit('machineOff') : emit('machineOn')"
@@ -3595,6 +3595,12 @@
     },
     {
      "id": "listener:MoreMenu.vue:window.scroll"
+    },
+    {
+     "id": "listener:SafetyStrip.vue:window.pointercancel"
+    },
+    {
+     "id": "listener:SafetyStrip.vue:window.pointerup"
     },
     {
      "id": "listener:ThreeViewer.vue:document.visibilitychange"

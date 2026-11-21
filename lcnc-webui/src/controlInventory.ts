@@ -404,8 +404,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   "SafetyStrip.vue|MachineBtn:arm|@click=emit('arm', !armed)":
     ["recovery", "Arm / Disarm: the authorization itself"],
-  "SafetyStrip.vue|MachineBtn:estop|@click=isEstop ? emit('estopReset') : emit('estop')":
-    ["recovery", "E-Stop (always) / E-Stop Reset (disabled unless canResetEstop: armed; the gateway also refuses it while a trip is unacknowledged — one recovery map for both is package D, BG-11)"],
+  "SafetyStrip.vue|MachineBtn:estop|@click=onEstopClick @keydown=onEstopKeydown @pointerdown=onEstopPointerDown":
+    ["recovery", "E-Stop (always; acts on the PRESS and owns it — the same press never becomes a Reset, plan P1a) / E-Stop Reset on the release (disabled unless canResetEstop: armed; the gateway also refuses it while a trip is unacknowledged — one recovery map for both is package D, BG-11)"],
   // ── ScrubBar.vue ──
   "ScrubBar.vue|MachineBtn:scrub|@click=togglePlay":
     ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
