@@ -131,17 +131,17 @@ describe("release click", () => {
     t.down(1, A, 0, 50, 50);
     t.move(1, 50, 75);                                  // beyond the slop: a swipe
     t.contextmenu(1, A);
-    expect(t.up(1, A, 900, 50, 50)).toBe("none");       // even back on the button
+    expect(t.up(1, A, 900, 50, 50)).toBe("refused");    // even back on the button
     expect(t.click(A, true, 905, 1, P)).toBe("swallow"); // Chromium clicks anyway: swallowed
     expect(t.click(A, true, 910, 9, P)).toBe("pass");    // another pointer's tap is its own
 
     t.down(2, A, 0, 50, 50);
     t.contextmenu(2, A);
-    expect(t.up(2, B, 900, 52, 52)).toBe("none");       // released on another control
+    expect(t.up(2, B, 900, 52, 52)).toBe("refused");    // released on another control
 
     t.down(3, A, 0, 50, 50);
     t.contextmenu(3, A);
-    expect(t.up(3, A, 900, 70, 50)).toBe("none");       // the release itself is beyond the slop
+    expect(t.up(3, A, 900, 70, 50)).toBe("refused");    // the release itself is beyond the slop
   });
 
   it("a cancelled press (a browser pan) never acts — nor a click of it", () => {

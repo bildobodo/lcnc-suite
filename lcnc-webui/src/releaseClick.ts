@@ -44,7 +44,9 @@ export const RELEASE_CLICK_DEFAULTS: ReleaseClickOptions = { minPressMs: 0, wait
 
 interface Press<T> { target: T; t0: number; x0: number; y0: number; menu: boolean; moved: boolean }
 
-export type ReleaseDecision = "none" | "now" | "wait";
+/** "refused": the press moved past the slop or slid off onto another control —
+ *  nothing acts, said on the console (a scroll owner's takeover is "none"). */
+export type ReleaseDecision = "none" | "now" | "wait" | "refused";
 
 /** The pure bookkeeping, per pointer: events in, decisions out (unit-tested without a DOM). */
 export class ReleaseTracker<T> {
@@ -105,7 +107,7 @@ export class ReleaseTracker<T> {
     if (Math.abs(x - p.x0) > this.opt.slopPx || Math.abs(y - p.y0) > this.opt.slopPx) p.moved = true;
     // a swipe (back at the start included) or a release on another control:
     // nothing acts — the browser's own click of this press neither
-    if (p.moved || target !== p.target) { this.refused.set(id, until); return "none"; }
+    if (p.moved || target !== p.target) { this.refused.set(id, until); return "refused"; }
     if (p.menu) { this.given.set(id, t + this.opt.lateClickMs); return "now"; }
     if (t - p.t0 < this.opt.minPressMs) return "none";
     this.waiting.set(id, p.target);
@@ -206,7 +208,11 @@ export function installReleaseClick(doc: Document = document, opt: ReleaseClickO
     const target = pen(e) ? at(e) : null;
     const d = tracker.up(id, target, e.timeStamp, e.clientX, e.clientY);
     const from = { pointerId: id, pointerType: e.pointerType, isPrimary: e.isPrimary, clientX: e.clientX, clientY: e.clientY };
-    if (d === "now" && target) {
+    if (d === "refused") {
+      // a press that acts nowhere says so, like a cancelled hold (machine day:
+      // a rolled finger past the slop used to click — now it is refused)
+      console.warn(`[press] refused: moved past ${opt.slopPx} px or released on another control — nothing acted (pointer ${id})`);
+    } else if (d === "now" && target) {
       // after this release's own listeners: the click follows the release, as the browser's would
       setTimeout(() => give(target, from), 0);
     } else if (d === "wait") {

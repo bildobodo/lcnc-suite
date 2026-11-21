@@ -465,3 +465,19 @@ test("opening and closing scrollers adds no window listeners and keeps no earlie
   expect(series[1], JSON.stringify(series)).toEqual(series[0]);
   expect(earlierAlive).toBe(0);
 });
+
+// ── Fable (P1a merge): the pad's Stop by keyboard sends only its stop ──
+
+test("Enter and Space on the focused pad Stop send only the stop — never Cycle Start or Pause", async ({ page }) => {
+  await open(page);
+  const stop = page.locator('[data-strip="jog"] [data-control="jogStop"]');
+  for (const key of ["Enter", " "]) {
+    await ctl({ op: "clearCmds" });
+    await stop.focus();
+    await page.keyboard.press(key === " " ? "Space" : key);
+    const s = await settled(page);
+    const cmds = s.map(c => String(c.cmd));
+    expect(cmds.some(c => c.startsWith("jog_stop")), `${key}: ${JSON.stringify(cmds)}`).toBe(true);
+    expect(cmds.filter(c => !c.startsWith("jog_stop")), `${key}: ${JSON.stringify(cmds)}`).toEqual([]);
+  }
+});
