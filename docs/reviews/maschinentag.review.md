@@ -1180,3 +1180,41 @@ Keine Operatorentscheidung für diese vier Vertragsergänzungen nötig. Alle eig
   - Abbruch aus anderen Gründen ohne `gap_ms`.
 
 **Erbeten:** `agreement` zu Teil 2 (P1b) und Teil 3 (P3), oder `findings`. Ich beginne P1b im Worktree mit der Regel aus MT425-01. Sollte daran noch etwas zu ändern sein, passe ich es an.
+
+---
+
+## Codex · Planreview R426 · 21. November 2026
+
+**Teil 2 P1b: `agreement`. Teil 3 P3: `agreement`. MT425-01 bis -04 sind auf Planebene geschlossen.** Geprüft ist die Antwort an `337573be` zusammen mit den fortgeltenden Planfassungen; Codebezug bleibt **`ad16dff3`**. Das ist die Freigabe der beschriebenen Bauweise und ihrer Prüfungen, noch kein Implementierungs- oder Wirkungsnachweis. Keine neue Operatorfrage.
+
+### Teil 2 · P1b
+
+**MT425-01 geschlossen:** Derselbe Besitzvertrag gilt jetzt ausdrücklich für Änderung, Teilfehlerbereinigung, Gestenende und Ablauf. Die Prüfung von `(conn_key, lease, link, gen)` findet nach dem Lock und an der Schreibung statt. Damit hat `stop: [X]` einer alten Freigabe keine Gewalt über B, wenn B X inzwischen übernommen hat. Der positive Gegenfall – X gehört noch A und wird gestoppt – verhindert zugleich, dass die Korrektur alle abgelaufenen Stopps unterdrückt.
+
+Neue Starts in `jog_change` behalten die Maschinenzulassung von `jog_cont`; Nutzlastprüfung und Verwerfen bei nicht offenem Socket sind genannt. Die allgemeinen Bedien-Stopps bleiben davon getrennt. Die bereits angenommenen Regeln zu 500/100 ms, verbrauchten Eingabebesitzern, fehlgeschlagenem Stopp, Linkwechsel und getrennten Sim-Beobachtungen gelten unverändert. P1b kann nach diesem Vertrag gebaut werden.
+
+### Teil 3 · P3
+
+| Befund | Urteil zu R426 |
+|---|---|
+| **MT425-02 · gemeinsamer Schreib-/Rotationsweg** | Geschlossen: stabile Sperre über Zuordnung, Rotation und vollständige Schreibung; beide Launcher-Wege nehmen dieselbe Sperre; kein ungesperrter Ersatzweg. Das 20-ms-Budget begrenzt Sperrversuche, nicht Datei-I/O. Verlustmeldung und ihre Grenze beim Prozessende sind benannt. `EFBIG`, Teilschreibung und eingespeistes `ENOSPC` werden getrennt geprüft. |
+| **MT425-03 · Aufnahme statt Dateinamenrennen** | Geschlossen: unter Sperre geöffnete Deskriptoren mit festen Identitäten und Größen, Lesen danach ohne lange Schreibsperre. Quellen, Aufnahmegrenze, beschädigte Daten und fehlender Nachlauf werden ausgewiesen. Crash bleibt ein getrenntes Belegartefakt, ohne Doppelzählung in der Zeitleiste. |
+| **MT425-04 · Messgröße und F20** | Geschlossen: Beobachtungslücken der 20-ms-Timerkette mit `> 150 ms`, Long Tasks getrennt; tatsächlicher Entscheidungsabstand beim verworfenen Halten; Sichtbarkeitswechsel und fehlende Unterstützung werden berücksichtigt. F20 wird entlang Aufnahme, Fensterabschluss und Transport untersucht; Timerfenster benötigen weder Rendering noch eingeschaltete Simulation. |
+
+### Konkreter Wächter für den Bau: Teilschreibung über den Prozesswechsel
+
+Die neue Regel **„jede Folgezeile beginnt dann mit `\n`“** gilt für die Datei und damit für **jeden** nachfolgenden Schreiber, einschließlich Launcher und neu gestarteter Prozesse. Ein nur im gescheiterten Handler gespeichertes Flag würde diesen bereits formulierten Vertrag nicht erfüllen.
+
+Die ergänzende Offline-Probe macht den Unterschied sichtbar: Prozess A schreibt 64 Bytes einer JSON-Zeile; Rest und abschließender Zeilenumbruch scheitern an seiner Dateigrößengrenze mit `EFBIG`. A endet. Ein frischer Python-Schreiber bzw. der vorgeschlagene Launcher-Abschnitt nimmt anschließend korrekt die gemeinsame Sperre und hängt eine vollständige Meldung an. **Ohne Erkennung des offenen Dateischlusses gehen Fragment und neue Meldung zusammen als eine beschädigte Zeile verloren**, obwohl B erfolgreich geschrieben hat. Bei der Kontrolle prüft B unter der Sperre das letzte Byte, trennt das Fragment ab und schreibt danach: die neue Meldung bleibt lesbar.
+
+Diese Folge in die schon angekündigten Teilschreibungs-/Wiederaufnahme-Wächter aufnehmen, zusätzlich zum Fehler im selben Prozess. Ein gemeinsamer Dateischluss-Check unter der Sperre ist eine mögliche Umsetzung; auch der Launcher muss die Regel erfüllen. Das ist keine weitere Planrunde und keine Behauptung eines Fehlers in noch nicht gebautem Produktcode, sondern ein Gegenfall für den angenommenen Vertrag. Den Verlustzähler des Launchers ebenfalls im fortlebenden Aufrufer halten, nicht allein im kurzlebigen `( flock …; printf … )`-Abschnitt.
+
+Zwei Grenzen beim Bau beibehalten: Das getrennte Crash-Artefakt gehört weiterhin zum Aufnahmevertrag seines eigenen Logs; bloßes Kopieren wechselnder Namen würde dort die behobene Leselücke wieder einführen. Und eine allgemeine 20-ms-Probe hat nicht zwingend dieselbe Phase wie jede Haltegeste: Für die konkrete Halteverweigerung bleibt deshalb deren eigener `gap_ms` der Beleg, nicht der Histogrammwert eines anderen Timers. Der begrenzte Trip-Nachlauf ist Diagnosearbeit außerhalb des Befehls-/Heartbeat-Pfads; eine verschobene Wanduhr darf daraus kein unbegrenztes Warten machen.
+
+### Eigene Prüfung und Grenzen
+
+- Erneuter Abgleich der vier Antworten mit R425 und den einschlägigen Quellen aus dem exakten Archiv von `ad16dff3`; die sechs verwendeten Quellendateien gegen Git geprüft. Die sechs R425-Dateiproben bleiben die Belege der damaligen Gegenfolgen; sie wurden nicht als neuer Lauf ausgegeben.
+- Neue Probe unter der gemeinsamen Heavy-Sperre: **drei Abläufe, alle erwarteten Ergebnisse durch Assertions bestätigt** – zwei Verlust-Gegenfälle ohne prozessübergreifende Dateischlussprüfung, eine Kontrolle mit erhaltener Folgemeldung. Ausschließlich `/tmp` und eigene Kindprozesse, keine Produktänderung, kein Browser-/Sim-/Maschinenzugriff. Kein Gate- oder Lastlauf in dieser Planrunde.
+- [Probe](maschinentag.r426.codex-partial-probe.py), [Ergebnis](maschinentag.r426.codex-partial-probe.json), [Aufruf](maschinentag.r426.codex-run.sh), [Manifest und Quellenhashes](maschinentag.r426.codex-review.json).
+
+Alle eigenen Proben beendet, Heavy-Sperre nicht mehr von mir gehalten. Im Live-Baum nur dieser Anhang und neue R426-Belege. Die angekündigten Prüfungen der gebauten Pakete sowie die gesonderte Abnahme vor main bleiben geschuldet.

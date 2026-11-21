@@ -1,0 +1,72 @@
+{
+  "round": "R426",
+  "scope": "Plan only: P1b MT425-01 and P3 MT425-02..04",
+  "code": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "document": "337573be76c81708f284382e827875f7ffa3c833",
+  "prefix_sha256": "82cf1954a9b9fd7e79a02ed6f6e101695bdf67484f4c376d837bde41ea962a06",
+  "prefix_bytes": 152120,
+  "verdicts": {
+    "P1b": "agreement",
+    "P3": "agreement"
+  },
+  "probe": {
+    "command": "python3 -I /tmp/codex-r425/scripts/test_support/heavy_lock.py --who codex-r426-review --wait 50 -- bash /tmp/r426/run.sh",
+    "exit_code": 0,
+    "expected_results_confirmed": 3,
+    "meaning": "Two mechanism counterexamples and one recovery control, not tests of an implemented P3 handler",
+    "python": "Python 3.13.5",
+    "platform": "Linux aarch64"
+  },
+  "heavy_lock_record": "codex-r426-review (pid 1903719, since 2026-11-21T22:51:21)",
+  "source_files_verified_against_code_commit": [
+    {
+      "path": "lcnc-suite",
+      "sha256": "749284ecafb753e027adf8b385b753406229826bd43f387766286063040174e1"
+    },
+    {
+      "path": "lcnc-webui/src/holdGesture.ts",
+      "sha256": "0aa352786867aa33f1ba9a44e148151ad618d97082b3b96e79985b38a5d781be"
+    },
+    {
+      "path": "lcnc-webui/src/ws/telemetry.ts",
+      "sha256": "47fde3529c7d14d788aaac10bffbbd2854b4d55dabfb7e5eedfffdf901bd8ee0"
+    },
+    {
+      "path": "lcnc-webui/src/viewerPerf.ts",
+      "sha256": "989ae407346231eb8313215ca0441dc96ce973ac9af8f2de19bf95cb336b8a2d"
+    },
+    {
+      "path": "lcnc-gateway/lcnc_trace.py",
+      "sha256": "968e2542040fc5ee760beed625d58520cb0e5200a15baa57bebb61a2b81552b4"
+    },
+    {
+      "path": "scripts/trace-bundle.py",
+      "sha256": "b2311ddb9ed9c165b000ec1d038745540c18e72d0b1cd4077b4c707495a948d2"
+    }
+  ],
+  "prior_evidence_not_rerun": "maschinentag.r425.codex-file-probes.py/json",
+  "limits": [
+    "No product code changes or candidate implementation tested.",
+    "No browser, simulator, machine connection, build, gate or load run.",
+    "Temporary files and our own subprocesses only.",
+    "All original review bytes retained; new evidence and appendix only."
+  ],
+  "artifacts": [
+    {
+      "path": "maschinentag.r426.codex-partial-probe.json",
+      "sha256": "155f631e5c9901fbae9eaeb8b2fff7901671ae981b4019fd924dae10cec2f417",
+      "bytes": 1138
+    },
+    {
+      "path": "maschinentag.r426.codex-partial-probe.py",
+      "sha256": "18a59e98a1b0afbdf157144116c337667a0be00d6fab802092131201fedd7171",
+      "bytes": 3122
+    },
+    {
+      "path": "maschinentag.r426.codex-run.sh",
+      "sha256": "44711f8d8c71841c905edc6db3e646f22107df25e3b2bc033530e1fce40a2b64",
+      "bytes": 457
+    }
+  ],
+  "append_sha256": "58a6922db413e8fcb21137dc3a4d0f13a6eae1579a03d115e8de7bfb47c39558"
+}

@@ -1,0 +1,55 @@
+{
+  "type": "plan mechanism counterexample plus control",
+  "results": {
+    "new_python_writer": {
+      "first_writer": {
+        "written": 64,
+        "failed_remainder_and_newline": [
+          27,
+          27
+        ],
+        "local_lost": 1
+      },
+      "next_writer_exit": 0,
+      "next_record_kept": false,
+      "valid_records": [],
+      "damaged_lines": 1,
+      "bytes": 92
+    },
+    "launcher_writer": {
+      "first_writer": {
+        "written": 64,
+        "failed_remainder_and_newline": [
+          27,
+          27
+        ],
+        "local_lost": 1
+      },
+      "next_writer_exit": 0,
+      "next_record_kept": false,
+      "valid_records": [],
+      "damaged_lines": 1,
+      "bytes": 92
+    },
+    "tail_inspection_control": {
+      "first_writer": {
+        "written": 64,
+        "failed_remainder_and_newline": [
+          27,
+          27
+        ],
+        "local_lost": 1
+      },
+      "next_writer_exit": 0,
+      "next_record_kept": true,
+      "valid_records": [
+        {
+          "tag": "next",
+          "valid": true
+        }
+      ],
+      "damaged_lines": 1,
+      "bytes": 93
+    }
+  }
+}
