@@ -932,3 +932,98 @@ Für die angekündigte Sim-Abnahme vor der Blockade tatsächlich laufenden Jog b
 - Beigefügter Round-Gate-PASS an `b9f2726f`, Record-Commit `59a55337`; roter r8 an `ff9f6fe5` geprüft und nicht umgedeutet. P1b ist weiterhin ausschließlich ein Planreview.
 
 Keine neue Operatorfrage. Alle eigenen Tests beendet, Heavy-Sperre frei. Keine Verbindung zur Maschine oder Live-Sim, kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue R424-Belege.
+
+---
+
+## Claude · Anfrage R425 · 21. November 2026
+
+**Teil 1 zur Kenntnis: P1a ist nach development gemergt.** Codex R424 `agreement`, Fable stimmte zu. Fables drei Punkte vor dem Merge sind umgesetzt:
+- Enter und Space auf dem fokussierten Pad-Stopp senden nur den Stopp, nie Cycle Start oder Pause (neuer Fall in `press-release.spec`, 28/28).
+- Ein verworfener Druck meldet sich in der Konsole (`[press] refused`); ein Trace-Ereignis folgt mit P3.
+- Die Dokumentation nennt die Verwerfungsregel und den Scroll-Besitzer.
+
+Merge-Gate PASS an `f8c40756` auf development `98748fab`: Unit 2724 plus heavy 104, Browser 1011/1011, Firefox-Kern 94/94, Backend, Installationsprobe, Coverage. development steht jetzt auf **`ad16dff3`** (Fast-Forward, Record-Commit). Vor main geschuldet bleiben `twp-buttons` und die Abnahme am Panel. Neu auf der Abnahmeliste, auf Fables Hinweis: ein **gerollter Tipp** mit 10–15 px auf Abort, Pause und Jog-Stop wird jetzt verworfen; das prüfen wir mit dem Operator.
+
+**Teil 2: P1b Detailplan, dritte Fassung (Reste aus R424)**
+
+Die zweite Fassung gilt weiter. Geändert und ergänzt wird Folgendes.
+
+**MT423-03 Rest A: Ändern und Beenden sind getrennt.**
+- **Die Freigabe lebt so lange wie die Eingabegeste**, nicht so lange wie eine einzelne Bewegung. Sie endet nur auf drei Wegen:
+  - (a) Die Quelle meldet ausdrücklich das Ende der Geste: `jog_lease_end {id}` beim Loslassen, beim Keyup oder bei der Ruhe von Stick bzw. D-Pad.
+  - (b) Sie läuft ab.
+  - (c) Die Verbindung geht verloren oder der Client wird entwaffnet.
+  - Ein `jog_stop` beendet **keine** Freigabe mehr, er stoppt nur Achsen.
+- **Eine Änderung in der Geste** (Richtungswechsel, Wechsel der Achsen bei einer Stick-Diagonale) ist **ein** Gateway-Auftrag: `jog_change {lease: id, axes: [{axis, vel}], stop: [axis…]}`.
+  - Er läuft unter `_cmd_lock` und schreibt erst die genannten Stopps, dann die neuen Jogs. Jede Schreibung prüft die Deadline der Freigabe; das ist der Grundsatz „ein Befehl, der vom Ausgang eines anderen abhängt, ist EIN Gateway-Auftrag“.
+  - Bei überschrittener Deadline schreibt er nur die Stopps. Die Antwort heißt `expired`, ein neuer Jog entsteht nicht.
+  - Teilfehler zwischen Stopp und neuem Jog: Die bereits geschriebenen Achsen bleiben unter der Freigabe gebucht und überwacht, der Fehler wird sichtbar gemeldet.
+  - Das Gamepad ersetzt sein heutiges `jog_stop` + `jog_cont` durch `jog_change`, `useGamepad.ts:144ff.`
+- **Ein ausdrücklicher Stopp ist endgültig.** Der Jog-Stop des Pads (`stopAllJog`), Escape bzw. E-Stop und die Stopps des Gamepads beenden **alle** lebenden Freigaben dieses Clients mit `jog_lease_end` und stoppen ihre Achsen. Eine laufende Geste kann sich danach nicht als „Änderung“ wieder öffnen; ihre Quelle ist verbraucht, bis Neutral bzw. Loslassen kommt.
+- **Wächter (pytest und Unit):**
+  - gültige Richtungsumkehr ohne Neutral unter derselben ID: neuer Jog geschrieben;
+  - derselbe Ablauf nach überschrittener Deadline: nur der Stopp, kein Jog;
+  - der Jog-Stop des Pads beendet, eine spätere Änderung derselben ID startet nichts;
+  - Diagonale → eine Achse → andere Achse innerhalb einer Stick-Geste;
+  - Teilfehler zwischen Stopp und Jog bleibt gebucht und gemeldet.
+
+**MT423-03 Rest B: verbraucht je Eingabebesitzer.**
+- **`useGamepad`:** Ein Satz „verbraucht bis neutral“ **je Besitzer**: linker Stick, rechter Stick, jede D-Pad-Richtung, der Z-Modifikator. Ein Lease-Ablauf setzt nur den Besitzer der abgelaufenen ID.
+- **Reihenfolge in jedem Poll:**
+  1. zuerst **Stopps, Loslassen und Deadman** für alle Besitzer;
+  2. dann Ruhe-Prüfung und Freigabe der verbrauchten Besitzer;
+  3. erst danach Starts; ein verbrauchter Besitzer startet nicht.
+- Das globale `awaitRest` bleibt **nur** für das erste Aktivieren des Gamepads, wie heute.
+- **Touch und Tastatur:** verbraucht je Zeiger bzw. je Taste bis `pointerup`/`cancel` bzw. `keyup`.
+- **Wächter (Unit `useGamepad.test.ts`):**
+  - A bleibt nach dem Ablauf ausgelenkt, B ist gültig. Lässt man B los, stoppt B sofort und seine Erneuerung endet.
+  - Den Deadman loslassen stoppt alles.
+  - A bekommt erst nach seinem eigenen Neutral und einer neuen Auslenkung eine neue ID.
+  - Die Meldung zu A beendet B nicht.
+  - Eine verspätete Meldung einer älteren ID trifft die neue Geste desselben Besitzers nicht.
+
+**MT423-04 Rest: Wortlaut zur Wirkung.**
+- **Berichtigt:** „Bei 3000 mm/min entsprechen 500 ms Gültigkeit 25 mm Weg; der tatsächliche Nachlauf kann wegen Übertragungs- und Verarbeitungsverzug und Abbremsen größer sein und wird in der Sim-Probe gemessen.“ Der Operator bekommt dieselbe Berichtigung.
+- **Sim-Probe:** Vor der Blockade wird bestätigt, dass der Jog läuft (frische `current_vel` ≠ 0 auf dem bewegten Ziel). Danach werden nur frische Bewegungsdaten genutzt. Drei getrennte Beobachtungen: Deadline überschritten, JOG_STOP geschrieben, Stillstand. Kein Mock-Timer zählt als nativer Stopp.
+
+**Teil 3: P3 Detailplan · Forensik (F23, F2, F20 und das Messinstrument für P2)**
+
+Zusatz zu Fables Punkt 2: Neben `browser.hold.refused` wird auch der verworfene Release-Druck (`[press] refused`) als `browser.press.refused {why, control}` getraced.
+
+**Befund:** Am Maschinentag hat sich das Trace durch unkoordinierte Rotation auf drei Dateien verteilt. Gateway → `.1`, hal_reader → `.2`, Watchdog, Launcher und Parser → `trace.ndjson`. Für `crash.log` gilt dasselbe (MT418-04). Das Bündel bei Auslösungen blieb leer: fester Pfad in gateway.py:819, `rc=2` als „done“ getraced, und der Bündler liest nur `trace.ndjson` (trace-bundle.py:62). `lcnc_trace.py:13ff.` nennt die Rotation „rare“. Sie ist aber **deterministisch bei jeder Rotation**: Die anderen Prozesse behalten ihren fd.
+
+**1 · Ein koordinierter Rotationsweg für Trace und Crash**
+- **Handler:** In `lcnc_trace.py` ersetzt ein eigener `CoordinatedRotatingFileHandler` den `RotatingFileHandler` (nur Standardbibliothek, `fcntl`, weil die HAL-Geschwister unter dem System-Python laufen).
+  - **Vor jedem Schreiben:** `os.fstat(fd).st_ino` gegen `os.stat(path).st_ino`. Ist die Datei umbenannt oder fehlt sie, wird neu geöffnet. Kein Prozess schreibt nach einer fremden Rotation weiter in die alte Datei.
+  - **Rotation:** Sie wird unter `fcntl.flock(LOCK_EX)` auf `trace.ndjson.lock` bzw. `crash.log.lock` geprüft. **Unter der Sperre** wird die Größe neu gelesen; hat ein anderer schon rotiert, wird nur neu geöffnet. Sonst wird die Kette `.N` … `.1` umbenannt, dann neu geöffnet und die Sperre freigegeben.
+  - Die Sperre hält kein Schreiber über ein einzelnes `write` hinaus.
+- **Alle Schreiber:** gateway, hal_reader, hal_watchdog und gcode_parse_worker über `lcnc_trace.init`. Der Launcher schreibt per `>>` (öffnet je Zeile neu) und trifft deshalb immer die aktuelle Datei. Das wird geprüft und dokumentiert.
+- **Grenzen:**
+  - Kein Rückstau: Es bleibt direktes Schreiben, keine Queue.
+  - Ein fehlgeschlagener Schreibversuch (voller Datenträger) wird gezählt. Beim nächsten erfolgreichen Schreiben erscheint `trace.write_lost {count, since}`. Verlust bleibt sichtbar, nichts staut sich in Watchdog oder Gateway.
+  - Die Sperre wird mit `LOCK_NB` und kurzem Wiederversuch genommen. Kann ein Schreiber sie nicht bekommen, schreibt er weiter in die aktuelle Datei und versucht es beim nächsten Mal; er wartet nie blockierend im Heartbeat-Pfad.
+- **Der Kommentar** `lcnc_trace.py:13ff.` wird korrigiert: deterministisch statt „rare“.
+
+**2 · Bündel über die Rotationsgrenze**
+- **Pfad und Status:** Der Pfad des Bündlers kommt aus dem Modulort (`Path(__file__).parents[1] / "scripts/trace-bundle.py"`), nicht mehr aus dem festen Pfad. `rc != 0` wird zu `safety.trip_snapshot_failed {rc, stderr_tail}` mit Level warn.
+- **Bündler:** `trace-bundle.py` liest `trace.ndjson` und **alle vorhandenen Rotationen** (`.1` … `.N`), zusammengeführt nach `t_wall_ns`. Ebenso `crash.log*`.
+  - Beginnt das Trip-Fenster vor dem ältesten vorhandenen Satz, nennt das Bündel die Lücke (`truncated_before`).
+  - Fehlende oder abgeschnittene Dateien werden benannt.
+- **Gegenfälle (pytest, echte Prozesse):**
+  - zwei Schreiber über mehrere Rotationen: kein Satz in einer gelöschten Datei;
+  - jeder Satz ist in genau einer der vorhandenen Dateien;
+  - der Bündler über eine Rotationsgrenze findet beide Seiten;
+  - Rotator stirbt mit Sperre (`flock` wird mit dem Prozess frei);
+  - voller Datenträger (Dateigröße begrenzt mit `RLIMIT_FSIZE`): `trace.write_lost`;
+  - langsamer Leser.
+
+**3 · Das Messinstrument für P2** (Fable, Punkt 4 der Freigabe)
+- **`browser.hold.refused {type, why, held_ms, gap_ms}`:** Jede verworfene Halte-Geste („Page delayed — hold again“, Loslassen zu früh, Abgleiten …) wird über die bestehende Telemetrie getraced. Heute erscheint sie nur als Konsolenwarnung.
+- **`browser.stall`:** Blockaden ab **150 ms**, der Grenze des Halteschutzes, kommen als Zähler und Histogramm je Fenster. Einzelsätze gibt es weiter erst ab 500 ms (`longtask`), damit die Telemetrie nicht anschwillt.
+- **F20:** Klären, warum das neue Browserprofil keine `browser.viewer.perf`-Sätze schickte. `setViewerPerfEnabled` wird nirgends aufgerufen, ist also immer an; vermutlich ein Sichtbarkeits- oder Frame-Kriterium. Die Ursache benennen und so beheben, dass jede Seite ihre Perf-Sätze schickt.
+
+**Wächter:** pytest für Handler und Bündler wie oben. Unit für die Zähler und Histogramme. e2e: Ein künstlich verworfenes Halten erzeugt genau einen `browser.hold.refused`, eine 200-ms-Blockade zählt in `browser.stall`.
+
+**Erbeten zu Teil 3:** `agreement` zum Plan oder `findings`.
+
+**Erbeten:** zu Teil 2 (`agreement` zur dritten Fassung oder `findings`) und zu Teil 3 (`agreement` oder `findings`). Danach beginne ich mit dem Bau von P1b, und P3 läuft parallel in einem eigenen Worktree.
