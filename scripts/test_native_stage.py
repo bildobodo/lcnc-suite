@@ -7650,3 +7650,40 @@ def test_a_renewed_jog_is_never_interrupted_and_never_an_expiry():
 def test_the_lease_variant_declares_its_cases():
     assert "jog-lease" in nr.VARIANTS
     assert set(nc.REPORT_CASES["jog-lease"]) >= {"jog-lease-kept", "jog-lease-expired", "jog-lease-expired.counter-kept"}
+
+
+def _page_course(v=25.0, start=0.0, stop_at=None, until=9.0, dt=0.033, sign=1):
+    out, p, t = [], 300.0, start
+    while t < until:
+        moving = stop_at is None or t < stop_at
+        out.append((t, p, v if moving else 0.0))
+        if moving:
+            p += sign * v * dt
+        t += dt
+    return out
+
+
+def _wall(t):
+    """mono t → the trace's t_wall_ns (wall = mono here)."""
+    return int(t * 1e9)
+
+
+def test_the_real_page_probe_kept_and_blocked():
+    ident = lambda w: w   # noqa: E731 — the probe's clock relation, identity here
+    kept = _page_course(sign=-1, until=4.0)
+    marks = {"a_down": 100, "a_up": 3100}
+    assert nc.eval_lease_page_kept("k", marks, kept, [], ident)["status"] == "PASS"
+    noisy = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.5), "stopped": [0], "failed": [], "late_ms": 2}]
+    assert nc.eval_lease_page_kept("k", marks, kept, noisy, ident)["status"] == "FAIL", "an expiry while healthy"
+    # blocked: down at 0, block 1.0 → 3.5, the gateway expires at 1.55, standstill from 1.7
+    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500}
+    blocked = _page_course(stop_at=1.7, until=4.5)
+    rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
+    row = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident)
+    assert row["status"] == "PASS", row
+    assert row["expiry_after_block_s"] == 0.55 and row["overrun_mm"] > 10
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, [], ident)["status"] == "FAIL", "no expiry"
+    late = [{**rec[0], "t_wall_ns": _wall(3.8)}]
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(stop_at=3.9, until=4.8), late, ident)["status"] == "FAIL"
+    moving_on = nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(until=4.5), rec, ident)
+    assert moving_on["status"] == "FAIL", "no standstill while blocked"

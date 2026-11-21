@@ -777,6 +777,31 @@ def jog_lease_cases():
                                         t_end, list(c.lease_events), _window_kept.get("events", []))
         rows.append(nc._row("jog-lease-expired.counter-kept", "PASS" if counter["status"] != "PASS" else "FAIL",
                             f"the expiry judge on the renewed jog: {counter['status']} — {counter['detail']}"))
+        # the REAL page on this gateway (MT423-04): healthy for 3 s, then its
+        # main thread blocked 2.5 s while it holds the jog
+        to_start()
+        wall0, mono0 = time.time(), time.monotonic()
+
+        def to_mono(wall_s: float) -> float:
+            return mono0 + (wall_s - wall0)
+        t0 = time.monotonic()
+
+        def page():
+            r = subprocess.run(["node", str(HERE / "test_support" / "lease_page_probe.mjs"), str(ctx["tree"]),
+                                "http://127.0.0.1:8000/"], capture_output=True, text=True, timeout=180)
+            lines = [ln for ln in r.stdout.splitlines() if ln.startswith("{")]
+            return json.loads(lines[-1]) if lines else {"marks": {}, "errors": [r.stderr[-600:]]}
+        probe, window = _framed(ctx, c, "jog-lease-page", page)
+        ctx["report"]["lease_page_probe"] = probe
+        page_samples = course(t0)
+        events = window["events"] if window["framed"] else []
+        if not window["framed"]:
+            rows.append(nc._row("jog-lease-page-kept", "incomplete", f"the trace window: {window['reason']}"))
+            rows.append(nc._row("jog-lease-page-blocked", "incomplete", f"the trace window: {window['reason']}"))
+        else:
+            rows.append(nc.eval_lease_page_kept("jog-lease-page-kept", probe.get("marks", {}), page_samples, events, to_mono))
+            rows.append(nc.eval_lease_page_blocked("jog-lease-page-blocked", axis, probe.get("marks", {}), page_samples,
+                                                   events, to_mono))
         if c.error:
             raise RuntimeError(f"the session ended after the lease cases — {c.error}")
         return rows
