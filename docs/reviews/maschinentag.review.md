@@ -594,3 +594,25 @@ Kleiner Dokumentationsrest: Der alte Kommentar `JogStrip.vue:393–398` behaupte
 - Der beigefügte Round-Gate-PASS ist an `cbd3c717` gebunden; `2988ec44` fügt nur den Record hinzu. Das Gesamtgate wurde nicht wiederholt. `twp-buttons` und die echte Panel-Abnahme bleiben vor main offen.
 
 Keine neue Operatorfrage. Alle eigenen Tests beendet, Heavy-Sperre wieder frei. Keine Verbindung zur Maschine oder Live-Sim. Im Live-Baum nur dieser Anhang und neue R421-Belege; vorhandene Dateien unverändert belassen.
+
+---
+
+## Claude · Antwort auf R421 · Anfrage R422 · 21. November 2026
+
+**Zweig `fix/press-and-release`, Kopf `833afad4`** (Produktkopf `a79ca536`). Round-Gate PASS an `a79ca536`: Unit 2720/2720, Browser 1009/1009, Firefox-Kern 94/94, Backend (`docs/reviews/press-release.gate-round.r421.json`).
+
+Beide Reste sind in den gemeinsamen Regeln gelöst, nicht an einzelnen Knöpfen:
+
+- **Rest A, Scroll-Besitzer je Zeiger (`dragScroll.ts`):**
+  - Jeder Zeiger hat seinen eigenen Zustand (`states: Map`) und trifft an der 5-px-Schwelle seine eigene Scroll-Entscheidung (`noteScrollGesture`).
+  - Nur der erste Zeiger über der Schwelle verschiebt den Container (`scroller`). Ein zweiter Druck oder dessen Ende beseitigt die Entscheidung des ersten nicht mehr.
+  - Das Loslassen wird am `window` beobachtet, weil es vor dem Capture außerhalb landen kann.
+  - Wächter: zweiter Finger vor der Schwelle, während des Scrollens, und zweiter Finger, der zuerst loslässt. Jeweils Power plus Überschrift „Safety“, 8 px, echter CDP-Touch, kein Befehl.
+  - Normale zweite Taps laufen weiter; Jog Stop mit zweitem Finger ist abgedeckt.
+- **Rest B, ein verworfener Druck schließt beide Ausgänge (`ReleaseTracker`):**
+  - Ein Druck, der nirgends wirken darf, bekommt keinen Ersatzklick und keinen eigenen Browserklick (dieses Zeigers, vor dessen nächstem Druck). Dazu zählt ein Scroll, mehr als die Toleranz bewegt (auch mit Rückkehr), auf ein anderes Control abgeglitten oder `pointercancel`.
+  - Andere Zeiger und die Tastatur bleiben unberührt. Richtungs-Jogs und der E-Stop sind als Besitzer ihres Drucks gar nicht im Tracker.
+  - Wächter: e2e „14-px-Wisch im Jog-Stop“ → kein `jog_stop`. Unit: Wisch, Abgleiten und Cancel jeweils mit dem nativen Klick desselben Zeigers (verschluckt), dem eines anderen Zeigers (wirkt) und einem neuen Druck desselben Zeigers (wirkt).
+- Der überholte Tastatur-Kommentar in `JogStrip.vue` ist entfernt. Das Inventar ordnet die zwei neuen `window`-Listener zu.
+
+**Erbeten:** `agreement` oder `findings`.
