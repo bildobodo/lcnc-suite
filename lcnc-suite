@@ -382,6 +382,84 @@ _wait_or_kill() {
 # session's HAL helpers. A holder that is OUR gateway/Vite — any checkout —
 # is terminated loudly (terminal + launcher.log + trace.ndjson); any other
 # holder, or one `ss` cannot name (another uid), aborts the start.
+# >>> trace-append (P3 — lcnc-gateway/test_trace_rotation.py extracts this block)
+# The launcher's trace lines take the SAME coordinated section as every
+# Python writer (lcnc_trace.CoordinatedFileHandler; machine day F23, Codex
+# R425 MT425-02 / R426): under `flock -w 0.02` on trace.lock the open end
+# (a fragment some writer left — a partial write under EFBIG/ENOSPC, a
+# process killed mid-line — is ended with a newline first, so it stays ONE
+# damaged line), a pending report, then the complete line. A `>>` per line
+# alone did not reach "the current file" safely: a rotation between another
+# writer's check and its write, a fragment glued to this line. The launcher
+# never rotates (a Python writer does, under the same lock; the file may run
+# a few lines past its size until then). No lock, no line — nothing is
+# written unlocked: the loss is counted HERE, in the long-lived caller's
+# shell (the main shell, the proc.status loop's own), and the next section
+# that gets through writes `trace.write_lost` first; a fragment this shell
+# closed is reported the same way (`trace.fragment_closed`).
+_TRACE_LOST=0
+_TRACE_LOST_SINCE=0
+_TRACE_FRAGMENTS=0
+declare -A _TRACE_LOST_WHY=()
+_TRACE_LOST_NOTED=" "
+if command -v flock >/dev/null 2>&1; then _TRACE_FLOCK=1; else _TRACE_FLOCK=0; fi
+_trace_reset_counts() {  # a new long-lived caller (the proc.status loop) counts its own
+  _TRACE_LOST=0; _TRACE_LOST_SINCE=0; _TRACE_FRAGMENTS=0; _TRACE_LOST_WHY=(); _TRACE_LOST_NOTED=" "
+}
+_trace_count_loss() {  # why
+  local why="$1"
+  _TRACE_LOST=$((_TRACE_LOST + 1))
+  if (( _TRACE_LOST_SINCE == 0 )); then _TRACE_LOST_SINCE=$(date +%s%N); fi
+  _TRACE_LOST_WHY[$why]=$(( ${_TRACE_LOST_WHY[$why]:-0} + 1 ))
+  if [[ "$_TRACE_LOST_NOTED" != *" $why "* ]]; then
+    _TRACE_LOST_NOTED+="$why "
+    _log "trace line not written ($why) — counted, reported as trace.write_lost"
+  fi
+}
+_trace_append() {  # one NDJSON object, without its newline
+  local log="$LCNC_RESOLVED_LOG_DIR/trace.ndjson" lock="$LCNC_RESOLVED_LOG_DIR/trace.lock"
+  local report="" rc=0 tag k why_json=""
+  if (( _TRACE_FLOCK == 0 )); then _trace_count_loss no_flock; return 0; fi
+  if (( _TRACE_LOST > 0 || _TRACE_FRAGMENTS > 0 )); then
+    for k in "${!_TRACE_LOST_WHY[@]}"; do why_json+="\"$k\":${_TRACE_LOST_WHY[$k]},"; done
+    if (( _TRACE_LOST > 0 )); then tag=trace.write_lost; else tag=trace.fragment_closed; fi
+    report=$(printf '{"t_wall_ns":%s,"t_mono_ms":0,"proc":"launcher","pid":%s,"tag":"%s","level":"warn","log":"trace.ndjson","count":%s,"since_ns":%s,"why":{%s},"fragments_closed":%s}' \
+      "$(date +%s%N)" "$$" "$tag" "$_TRACE_LOST" "$_TRACE_LOST_SINCE" "${why_json%,}" "$_TRACE_FRAGMENTS")
+  fi
+  (
+    exec 9>>"$lock" || exit 20
+    flock -w 0.02 9 || exit 21
+    closed=0
+    if [[ -s "$log" && -n "$(tail -c1 -- "$log")" ]]; then
+      printf '\n' >> "$log" || exit 22
+      closed=1
+    fi
+    if [[ -n "$report" ]]; then printf '%s\n' "$report" >> "$log" || exit 23; fi
+    printf '%s\n' "$1" >> "$log" || exit 24
+    if (( closed )); then exit 30; fi
+    exit 0
+  ) 2>/dev/null || rc=$?
+  case "$rc" in
+    0|30)
+      _trace_reset_counts_only
+      if (( rc == 30 )); then _TRACE_FRAGMENTS=1; fi ;;
+    24)   # the report (if any) is in; the line is not
+      _trace_reset_counts_only
+      _trace_count_loss write_failed ;;
+    20) _trace_count_loss lock_open ;;
+    21) _trace_count_loss lock_busy ;;
+    22) _trace_count_loss fragment_close_failed ;;
+    23) _trace_count_loss report_failed ;;
+    153) _trace_count_loss EFBIG ;;   # SIGXFSZ ended the section mid-write (the report's fate unknown: counted again)
+    *) _trace_count_loss "rc_$rc" ;;
+  esac
+  return 0
+}
+_trace_reset_counts_only() {  # the report went in: what it said is said (the NOTED set stays)
+  _TRACE_LOST=0; _TRACE_LOST_SINCE=0; _TRACE_FRAGMENTS=0; _TRACE_LOST_WHY=()
+}
+# <<< trace-append
+
 _preflight_trace() {  # tag level key=value...
   local tag="$1" level="$2"; shift 2
   local now_ns fields="" kv k v
@@ -391,8 +469,8 @@ _preflight_trace() {  # tag level key=value...
     v="${v//\\/\\\\}"; v="${v//\"/\\\"}"
     fields+=",\"$k\":\"$v\""
   done
-  printf '{"t_wall_ns":%s,"t_mono_ms":0,"proc":"launcher","pid":%s,"tag":"%s","level":"%s"%s}\n' \
-    "$now_ns" "$$" "$tag" "$level" "$fields" >> "$LCNC_RESOLVED_LOG_DIR/trace.ndjson" 2>/dev/null || true
+  _trace_append "$(printf '{"t_wall_ns":%s,"t_mono_ms":0,"proc":"launcher","pid":%s,"tag":"%s","level":"%s"%s}' \
+    "$now_ns" "$$" "$tag" "$level" "$fields")"
 }
 _port_holders() {  # port → "<pid|?>\t<ss line>" per listener
   local port="$1" line pid
@@ -527,6 +605,9 @@ _start_proc_status_loop() {
     (
         # Run until the gateway exits OR we get SIGTERM.
         trap 'exit 0' TERM INT
+        # this loop's shell is the long-lived caller of its trace lines: it
+        # counts and reports its OWN losses (P3; the main shell's stay there)
+        _trace_reset_counts
         while kill -0 "$gw_pid" 2>/dev/null; do
             if [[ -r "/proc/$gw_pid/status" ]]; then
                 local rss="0" thr="0" vol="0" nvol="0"
@@ -546,13 +627,12 @@ _start_proc_status_loop() {
                 if [[ -r "/proc/$gw_pid/schedstat" ]]; then
                     read -r _ss_oncpu rq_wait_ns _ss_slices < "/proc/$gw_pid/schedstat" 2>/dev/null || rq_wait_ns="0"
                 fi
-                # NDJSON line — same schema as gateway/hal_reader emit.
-                # Atomic O_APPEND under PIPE_BUF (4 KB) so this can't tear.
+                # NDJSON line — same schema as gateway/hal_reader emit —
+                # in the trace's coordinated section (_trace_append, P3).
                 local now_ns
                 now_ns=$(date +%s%N)
-                printf '{"t_wall_ns":%s,"t_mono_ms":0,"proc":"launcher","pid":%s,"tag":"proc.status","level":"info","gw_pid":%s,"vm_rss_kb":%s,"threads":%s,"voluntary_ctxt":%s,"nonvoluntary_ctxt":%s,"rq_wait_ns":%s}\n' \
-                    "$now_ns" "$$" "$gw_pid" "$rss" "$thr" "$vol" "$nvol" "$rq_wait_ns" \
-                    >> "$LCNC_RESOLVED_LOG_DIR/trace.ndjson" 2>/dev/null || true
+                _trace_append "$(printf '{"t_wall_ns":%s,"t_mono_ms":0,"proc":"launcher","pid":%s,"tag":"proc.status","level":"info","gw_pid":%s,"vm_rss_kb":%s,"threads":%s,"voluntary_ctxt":%s,"nonvoluntary_ctxt":%s,"rq_wait_ns":%s}' \
+                    "$now_ns" "$$" "$gw_pid" "$rss" "$thr" "$vol" "$nvol" "$rq_wait_ns")"
             fi
             sleep 1
         done

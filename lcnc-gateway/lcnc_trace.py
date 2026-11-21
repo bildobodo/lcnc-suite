@@ -5,23 +5,34 @@ calls `init(<proc_name>)` once at startup, then `emit(tag, **fields)` for
 each event. All events land in trace.ndjson under the resolved log dir
 (see lcnc_paths.resolve(); default <install-dir>/runlogs).
 
-Why one shared file across processes: Linux guarantees atomic O_APPEND writes
-up to PIPE_BUF (4096 B), so concurrent appends from multiple processes are
-line-atomic (emit() caps each line below that). Each line carries `proc` + `pid`
-so the bundler can demux later.
+Why one shared file across processes: one timeline. Each line carries `proc`
++ `pid` so the bundler can demux later; the lines of several writers never
+interleave because each is written whole inside the log's lock (below —
+emit() still caps a line at _MAX_LINE_BYTES so one event stays one bounded
+write).
 
-Known limitation — multi-writer rollover: the four writers each hold their own
-fd and size-check independently, so plain RotatingFileHandler can race at the
-50 MB rollover boundary (two processes rename trace.ndjson->.1 at once, losing
-history, or one keeps appending to a rotated-away fd). This is accepted as a
-rare, diagnostic-only risk: it needs the file to hit 50 MB AND two processes to
-cross within the same sub-ms window, and the cost is lost forensic history at a
-rotation boundary — never a control/safety effect. The clean fixes both have a
-worse cost here: concurrent-log-handler's portalocker lock only coordinates if
-EVERY writer holds it, but the HAL siblings run under the system python (no
-venv access), so it would be dead weight; a stdlib fcntl.flock handler would
-work but is custom code in the trace path. If rollover corruption is ever
-actually observed, the flock handler is the dependency-free way to close it.
+Multi-writer rollover — ONE coordinated section per line (P3, machine day
+2026-11-21, F23; Codex R425 MT425-02, R426): every writer — gateway,
+hal_reader, hal_watchdog, the parse worker and the launcher's two lines —
+takes the log's stable lock (`trace.lock` / `crash.lock`, never rotated,
+never matched by a `trace.ndjson*` / `crash.log*` glob) and, inside ONE
+short exclusive section, checks the file's identity (reopens after another
+writer's rotation), its size (rotates the chain `.N … .1`), its open end
+(a fragment a writer left behind — a partial write under EFBIG / ENOSPC,
+a process killed mid-write — is terminated with a newline first: the
+damage stays one damaged line and the next record stays readable) and
+writes the COMPLETE line. The rotation used to be uncoordinated and was
+called "rare"; it is DETERMINISTIC at every rollover: the other processes
+kept their fd and wrote on into the renamed file (the machine day's trace
+lay in three files, gateway → .1, hal_reader → .2, the rest → trace.ndjson).
+The lock is taken with LOCK_NB and retried for at most _LOCK_BUDGET_S —
+it bounds the wait for the LOCK, not the file I/O. Without it nothing is
+written unlocked: the record is dropped and COUNTED per process and log,
+and the next section that gets through writes `trace.write_lost` (crash
+log: `crash.write_lost`) — directly, never through emit(). A process that
+ends first cannot report its loss (close() tries once more). The
+stdlib-only handler (fcntl) is shared by the HAL siblings under the system
+python.
 
 Why direct file write (not queue + thread): NDJSON encoding is < 50 us per
 event; line-buffered O_APPEND write is 1-10 us uncached. At our event rate
@@ -72,9 +83,10 @@ canonical patterns.
 """
 from __future__ import annotations
 
+import errno
+import fcntl
 import json
 import logging
-import logging.handlers
 import os
 import signal
 import sys
@@ -103,6 +115,14 @@ _TRACE_BACKUPS = 5
 _MAX_LINE_BYTES = 4000
 _CRASH_MAX_BYTES = 5 * 1024 * 1024   # 5 MB
 _CRASH_BACKUPS = 5
+# The logs' stable locks (P3): names no `trace.ndjson*` / `crash.log*` glob
+# matches, so no reader of the logs ever takes a lock file for a generation.
+_TRACE_LOCK_FILENAME = "trace.lock"
+_CRASH_LOCK_FILENAME = "crash.lock"
+# The longest a writer waits for a log's lock (LOCK_NB, retried): the budget
+# of the WAIT, not of the file I/O (Codex R425 MT425-02).
+_LOCK_BUDGET_S = 0.020
+_LOCK_RETRY_S = 0.001
 _LOGGER_NAME = "lcnc.trace"
 
 _proc_name: str = "?"
@@ -131,6 +151,320 @@ class _CrashFilter(logging.Filter):
             except Exception:
                 return False
         return tag.startswith("crash.") or tag.startswith("browser.error.")
+
+
+def _errname(e: OSError) -> str:
+    """The errno's symbol (EFBIG, ENOSPC …), or the exception's class."""
+    code = e.errno
+    if isinstance(code, int) and code in errno.errorcode:
+        return errno.errorcode[code]
+    return type(e).__name__
+
+
+class CoordinatedFileHandler(logging.Handler):
+    """One log file shared by several processes, written in ONE coordinated
+    section per line (P3; the module docstring has the why).
+
+    The section, under an exclusive flock on `lock_path` taken within
+    _LOCK_BUDGET_S: the file's identity (a rotation by another writer → reopen
+    the path), the size (past `max_bytes` → rotate `.N … .1` here), the open
+    end (a last byte that is no newline → terminate the fragment), a pending
+    report, then the complete line (os.write in a loop). Nothing is ever
+    written outside the section: a busy lock, a failed open or a failed write
+    drops the record and counts it; the next section that gets through writes
+    `<prefix>.write_lost {log, count, since_ns, why}` first (or
+    `<prefix>.fragment_closed` for a fragment it only terminated) — directly,
+    never through emit(), so a failing report never recurses."""
+
+    def __init__(self, path: str, lock_path: str, *, max_bytes: int, backups: int,
+                 report_prefix: str) -> None:
+        super().__init__()
+        self.path = path
+        self.lock_path = lock_path
+        self.max_bytes = max_bytes
+        self.backups = backups
+        self.report_prefix = report_prefix
+        self.log_name = os.path.basename(path)
+        #: the write call — the seam of the fault-injection tests (ENOSPC)
+        self.raw_write: Callable[[int, bytes], int] = os.write
+        self._owner_pid = os.getpid()
+        self._fd: Optional[int] = None
+        self._ident: Optional[tuple[int, int]] = None
+        self._lock_fd: Optional[int] = None
+        # (dev, ino, size) right after this handler's last complete line: an
+        # end still there needs no look at its last byte
+        self._end: Optional[tuple[int, int, int]] = None
+        self._lost = 0
+        self._lost_since_ns: Optional[int] = None
+        self._lost_why: dict[str, int] = {}
+        self._fragments = 0
+        self._rotate_failed: dict[str, int] = {}
+        self._noted: set[str] = set()
+
+    # ── the count of what was not written ──────────────────────────────
+    def _count_loss(self, why: str) -> None:
+        self._lost += 1
+        if self._lost_since_ns is None:
+            self._lost_since_ns = time.time_ns()
+        self._lost_why[why] = self._lost_why.get(why, 0) + 1
+        if why not in self._noted:
+            # once per reason, on the console (it never raises — ConsoleGuard):
+            # the trace cannot carry it now
+            self._noted.add(why)
+            try:
+                print(f"[TRACE] {self.log_name}: a record was not written ({why}) — "
+                      f"counted, reported as {self.report_prefix}.write_lost",
+                      file=sys.stderr, flush=True)
+            except Exception:  # noqa: BLE001 - the last fallback is best effort (VM-I14)
+                pass
+
+    def pending_report(self) -> dict[str, Any]:
+        """The losses and repairs not yet reported (tests read it)."""
+        return {"lost": self._lost, "why": dict(self._lost_why),
+                "fragments_closed": self._fragments, "rotate_failed": dict(self._rotate_failed)}
+
+    def _report_line(self) -> Optional[bytes]:
+        if not (self._lost or self._fragments or self._rotate_failed):
+            return None
+        lost = self._lost > 0
+        rec: dict[str, Any] = {
+            "t_wall_ns": time.time_ns(),
+            "t_mono_ms": round((time.monotonic() - _t0_mono) * 1000, 3),
+            "proc": _proc_name, "pid": os.getpid(),
+            "tag": f"{self.report_prefix}.{'write_lost' if lost else 'fragment_closed'}",
+            # a lost crash record is a finding (native_run reads crash.log)
+            "level": "error" if lost and self.report_prefix == "crash" else "warn",
+            "log": self.log_name,
+            "count": self._lost,
+        }
+        if lost:
+            rec["since_ns"] = self._lost_since_ns
+            rec["why"] = dict(self._lost_why)
+        if self._fragments:
+            rec["fragments_closed"] = self._fragments
+        if self._rotate_failed:
+            rec["rotate_failed"] = dict(self._rotate_failed)
+        return (json.dumps(rec, separators=(",", ":")) + "\n").encode("utf-8", "replace")
+
+    def _report_written(self) -> None:
+        self._lost = 0
+        self._lost_since_ns = None
+        self._lost_why = {}
+        self._fragments = 0
+        self._rotate_failed = {}
+
+    # ── the lock ───────────────────────────────────────────────────────
+    def _forget_inherited(self) -> None:
+        """A forked child shares the parent's open file descriptions: an
+        unlock there would release the PARENT's lock. The child closes its
+        copies (no unlock) and opens its own."""
+        if os.getpid() == self._owner_pid:
+            return
+        for fd in (self._fd, self._lock_fd):
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass  # safe-silent: the child's copy only
+        self._fd = self._lock_fd = None
+        self._ident = self._end = None
+        self._owner_pid = os.getpid()
+
+    def _lock(self) -> Optional[str]:
+        """Take the log's lock within the budget: None, or why not."""
+        deadline = time.monotonic() + _LOCK_BUDGET_S
+        while True:
+            if self._lock_fd is None:
+                try:
+                    self._lock_fd = os.open(self.lock_path, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o644)
+                except OSError as e:
+                    return "lock_open:" + _errname(e)
+            try:
+                fcntl.flock(self._lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    return "lock_busy"
+                time.sleep(_LOCK_RETRY_S)
+                continue
+            except OSError as e:
+                return "lock:" + _errname(e)
+            # the lock file itself replaced (a cleanup of the folder): every
+            # writer must lock the SAME file
+            try:
+                same = os.fstat(self._lock_fd).st_ino == os.stat(self.lock_path).st_ino
+            except OSError:
+                same = False
+            if same:
+                return None
+            try:
+                os.close(self._lock_fd)   # releases its lock
+            except OSError:
+                pass  # safe-silent: replaced below
+            self._lock_fd = None
+
+    def _unlock(self) -> None:
+        if self._lock_fd is not None:
+            try:
+                fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+            except OSError:
+                pass  # safe-silent: the lock goes with the fd at the latest
+
+    # ── inside the section ─────────────────────────────────────────────
+    def _current(self) -> tuple[int, tuple[int, int]]:
+        """The fd of the file now at `path` (reopened after a rotation)."""
+        try:
+            st = os.stat(self.path)
+            ident: Optional[tuple[int, int]] = (st.st_dev, st.st_ino)
+        except FileNotFoundError:
+            ident = None
+        if self._fd is not None and ident is not None and ident == self._ident:
+            return self._fd, ident
+        if self._fd is not None:
+            try:
+                os.close(self._fd)
+            except OSError:
+                pass  # safe-silent: an old generation's fd
+            self._fd = None
+        fd = os.open(self.path, os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_CLOEXEC, 0o644)
+        st = os.fstat(fd)
+        self._fd, self._ident = fd, (st.st_dev, st.st_ino)
+        return fd, self._ident
+
+    def _rotate(self) -> None:
+        """`.N-1 → .N … path → .1`, under the lock. A failure is reported,
+        and the line goes into the file it has (past its size)."""
+        try:
+            for i in range(self.backups - 1, 0, -1):
+                try:
+                    os.replace(f"{self.path}.{i}", f"{self.path}.{i + 1}")
+                except FileNotFoundError:
+                    pass  # a gap in the chain (a rotator that died between two renames)
+            if self.backups > 0:
+                os.replace(self.path, f"{self.path}.1")
+            elif self._fd is not None:
+                os.ftruncate(self._fd, 0)
+        except OSError as e:
+            why = _errname(e)
+            self._rotate_failed[why] = self._rotate_failed.get(why, 0) + 1
+
+    def _write_all(self, fd: int, buf: bytes) -> tuple[int, Optional[str]]:
+        """Write all of `buf`: (bytes written, None) or (written so far, why)."""
+        done = 0
+        while done < len(buf):
+            try:
+                n = self.raw_write(fd, buf[done:])
+            except OSError as e:
+                return done, _errname(e)
+            if n <= 0:
+                return done, "short_write"
+            done += n
+        return done, None
+
+    def _section(self, data: Optional[bytes]) -> bool:
+        """The coordinated section (the lock held); `data` None = only the
+        report. True when everything asked for was written."""
+        try:
+            fd, ident = self._current()
+            size = os.fstat(fd).st_size
+            report = self._report_line()
+            need = (len(data) if data else 0) + (len(report) if report else 0)
+            if self.max_bytes > 0 and size > 0 and size + need > self.max_bytes:
+                self._rotate()
+                fd, ident = self._current()
+                size = os.fstat(fd).st_size
+            if size > 0 and self._end != (ident[0], ident[1], size) \
+                    and os.pread(fd, 1, size - 1) != b"\n":
+                # a fragment some writer left (Codex R426): end it first, so
+                # it stays ONE damaged line and this record stays readable
+                wrote, why = self._write_all(fd, b"\n")
+                if why is not None:
+                    if data:
+                        self._count_loss(why)
+                    return False
+                self._fragments += 1
+                size += wrote
+            report = self._report_line()   # a fragment closed or a rotation refused joins it
+        except OSError as e:
+            if data:
+                self._count_loss(_errname(e))
+            return False
+        if report:
+            wrote, why = self._write_all(fd, report)
+            size += wrote
+            if why is not None:
+                if wrote:
+                    self._write_all(fd, b"\n")   # end its own fragment (else the next section does)
+                if data:
+                    self._count_loss(why)
+                self._end = None
+                return False
+            self._report_written()
+        if data:
+            wrote, why = self._write_all(fd, data)
+            size += wrote
+            if why is not None:
+                if wrote:
+                    self._write_all(fd, b"\n")
+                self._count_loss(why)
+                self._end = None
+                return False
+        self._end = (ident[0], ident[1], size)
+        return True
+
+    def append(self, data: Optional[bytes]) -> bool:
+        """One coordinated section: `data` (a complete line, its newline
+        included) after any pending report. False = not (all) written — the
+        record is counted, never written unlocked."""
+        self._forget_inherited()
+        why = self._lock()
+        if why is not None:
+            if data:
+                self._count_loss(why)
+            return False
+        try:
+            return self._section(data)
+        finally:
+            self._unlock()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            data = (self.format(record) + "\n").encode("utf-8", "replace")
+        except Exception as e:  # noqa: BLE001 - counted, never raised into a caller
+            self._count_loss("format:" + type(e).__name__)
+            return
+        self.append(data)
+
+    def doRollover(self) -> None:
+        """Rotate now, in a coordinated section (the stdlib's name: tests and
+        tools rotate through it)."""
+        self._forget_inherited()
+        why = self._lock()
+        if why is not None:
+            raise OSError(errno.EWOULDBLOCK, f"{self.lock_path}: {why}")
+        try:
+            self._current()
+            self._rotate()
+            self._end = None
+        finally:
+            self._unlock()
+
+    def close(self) -> None:
+        """A last try at the pending report, then the fds."""
+        self.acquire()
+        try:
+            if self._lost or self._fragments or self._rotate_failed:
+                self.append(None)
+            for fd in (self._fd, self._lock_fd):
+                if fd is not None:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        pass  # safe-silent: closing
+            self._fd = self._lock_fd = None
+            self._ident = self._end = None
+        finally:
+            self.release()
+        super().close()
 
 
 def init(proc_name: str, log_dir: Optional[str] = None) -> None:
@@ -166,23 +500,22 @@ def init(proc_name: str, log_dir: Optional[str] = None) -> None:
             for h in logger.handlers
         )
         if not has_trace:
-            # Stdlib RotatingFileHandler. Line writes are atomic across the four
-            # writers (< PIPE_BUF, enforced in emit()); the one un-coordinated
-            # multi-writer hazard is the 50 MB rollover itself — see the
-            # "Known limitation" note in the module docstring. Accepted as a
-            # rare, diagnostic-only risk rather than carry a dependency that the
-            # system-python HAL siblings can't share anyway.
-            trace_h = logging.handlers.RotatingFileHandler(
-                trace_path, maxBytes=_TRACE_MAX_BYTES, backupCount=_TRACE_BACKUPS
+            # ONE coordinated section per line for every writer (P3, see the
+            # module docstring): identity, size, rotation, open end and the
+            # complete line under the log's stable lock.
+            trace_h = CoordinatedFileHandler(
+                trace_path, os.path.join(_log_dir, _TRACE_LOCK_FILENAME),
+                max_bytes=_TRACE_MAX_BYTES, backups=_TRACE_BACKUPS, report_prefix="trace",
             )
             # We pre-encode NDJSON in the message; the formatter just emits
-            # the message verbatim with a trailing newline (logging adds one).
+            # the message verbatim (the handler adds the newline).
             trace_h.setFormatter(logging.Formatter("%(message)s"))
             trace_h._lcnc_role = "trace"  # type: ignore[attr-defined]
             logger.addHandler(trace_h)
 
-            crash_h = logging.handlers.RotatingFileHandler(
-                crash_path, maxBytes=_CRASH_MAX_BYTES, backupCount=_CRASH_BACKUPS
+            crash_h = CoordinatedFileHandler(
+                crash_path, os.path.join(_log_dir, _CRASH_LOCK_FILENAME),
+                max_bytes=_CRASH_MAX_BYTES, backups=_CRASH_BACKUPS, report_prefix="crash",
             )
             crash_h.setFormatter(logging.Formatter("%(message)s"))
             crash_h.addFilter(_CrashFilter())
