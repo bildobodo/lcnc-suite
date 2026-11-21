@@ -18,6 +18,24 @@ interface DragState {
 
 const attached = new WeakSet<HTMLElement>()
 
+// Pointers in flight on any scroller → the scrollers holding a state for each.
+// ONE capture listener per event type on the window ends them (registered by
+// initDragScroll, removed by stopDragScroll): a scroller is referenced only
+// while one of its presses is in flight, so a removed one can be collected.
+const inFlight = new Map<number, Set<(pointerId: number) => void>>()
+function watchPointer(pointerId: number, end: (pointerId: number) => void) {
+  let ends = inFlight.get(pointerId)
+  if (!ends) { ends = new Set(); inFlight.set(pointerId, ends) }
+  ends.add(end)
+}
+function onWindowRelease(e: PointerEvent) {
+  const ends = inFlight.get(e.pointerId)
+  if (!ends) return
+  inFlight.delete(e.pointerId)
+  for (const end of ends) end(e.pointerId)
+}
+let windowWatching = false
+
 function attach(el: HTMLElement) {
   if (attached.has(el)) return
   attached.add(el)
@@ -52,6 +70,7 @@ function attach(el: HTMLElement) {
       scrollTop: el.scrollTop,
       dragging: false,
     })
+    watchPointer(e.pointerId, endFor)
     // Don't capture yet — let native scrollbar interaction work.
     // Capture is deferred to pointermove once the drag threshold is met.
   })
@@ -89,18 +108,17 @@ function attach(el: HTMLElement) {
     el.scrollTop = state.scrollTop - dy
   })
 
-  function end(e: PointerEvent) {
-    if (!states.delete(e.pointerId)) return
-    if (scroller === e.pointerId) {
+  // the pointer is in flight on this scroller until its release, wherever it
+  // lands (no capture yet): the ONE window watcher ends it (Codex R422 MT-I07 —
+  // a window listener per scroller kept every removed scroller alive)
+  function endFor(pointerId: number) {
+    if (!states.delete(pointerId)) return
+    if (scroller === pointerId) {
       scroller = null
       el.style.cursor = ''
       el.style.userSelect = ''
     }
   }
-
-  // the release may land outside the scroller (no capture yet): watch it on the window
-  window.addEventListener('pointerup', end, true)
-  window.addEventListener('pointercancel', end, true)
 }
 
 function scanAndAttach(root: Element | Document = document) {
@@ -115,6 +133,11 @@ export function initDragScroll() {
   // Idempotent — HMR may re-run this module during dev.
   if (_observer) return
 
+  if (!windowWatching) {
+    window.addEventListener('pointerup', onWindowRelease, true)
+    window.addEventListener('pointercancel', onWindowRelease, true)
+    windowWatching = true
+  }
   // Attach to existing elements
   scanAndAttach()
 
@@ -134,6 +157,10 @@ export function initDragScroll() {
 export function stopDragScroll() {
   _observer?.disconnect()
   _observer = null
+  window.removeEventListener('pointerup', onWindowRelease, true)
+  window.removeEventListener('pointercancel', onWindowRelease, true)
+  windowWatching = false
+  inFlight.clear()
 }
 
 // Vite HMR cleanup — prevents a growing pile of observers when the file is

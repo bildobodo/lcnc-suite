@@ -422,3 +422,46 @@ test("a swipe inside the jog pad's Stop stops nothing — the browser's own clic
   const s = await settled(page);
   expect(s.filter(c => String(c.cmd).startsWith("jog_stop")), JSON.stringify(s)).toHaveLength(0);
 });
+
+// ── Codex R422 MT-I07: the scroll owner's release watcher never keeps a removed scroller ──
+
+test("opening and closing scrollers adds no window listeners and keeps no earlier ones alive (MT-I07)", async ({ page }) => {
+  await open(page);
+  const cdp = await page.context().newCDPSession(page);
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  async function counts() {
+    const obj = await cdp.send("Runtime.evaluate", { expression: "window", objectGroup: "mt-i07" });
+    try {
+      const { listeners } = await cdp.send("DOMDebugger.getEventListeners", { objectId: obj.result.objectId! });
+      return { up: listeners.filter(l => l.type === "pointerup").length, cancel: listeners.filter(l => l.type === "pointercancel").length };
+    } finally { await cdp.send("Runtime.releaseObjectGroup", { objectGroup: "mt-i07" }); }
+  }
+  const show = async () => {
+    await page.getByTitle("Settings", { exact: true }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(".scroll-thin").first()).toBeVisible();
+  };
+  const close = async () => {
+    await dialog.getByRole("button", { name: "Close settings", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+  };
+  await show(); await close();
+  await show(); await close();            // warm: lazily loaded parts may add their own once
+  await page.evaluate(() => { (window as any).__scrollRefs = []; });
+  const series: Array<{ up: number; cancel: number }> = [];
+  for (let n = 0; n < 3; n++) {
+    await show();
+    await dialog.evaluate((el, n) => {
+      for (const node of el.querySelectorAll(".scroll-thin")) (window as any).__scrollRefs.push({ cycle: n, ref: new WeakRef(node) });
+    }, n);
+    await close();
+    series.push(await counts());
+  }
+  await cdp.send("HeapProfiler.collectGarbage");
+  const earlierAlive = await page.evaluate(() =>
+    ((window as any).__scrollRefs as { cycle: number; ref: WeakRef<Element> }[])
+      .filter(r => r.cycle < 2 && r.ref.deref() && !r.ref.deref()!.isConnected).length);
+  expect(series[2], JSON.stringify(series)).toEqual(series[1]);
+  expect(series[1], JSON.stringify(series)).toEqual(series[0]);
+  expect(earlierAlive).toBe(0);
+});
