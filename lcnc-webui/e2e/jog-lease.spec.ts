@@ -169,11 +169,13 @@ test("a lost connection ends the held jog: nothing of it goes into the next conn
   await hold(page, "X-");
   const L = (await startOf()).lease!;
   await ctl({ op: "quiet", on: false });
+  const hellos = async () => (await ctl({ op: "snapshot" }) as { snapshot?: { hellos?: number } }).snapshot?.hellos ?? -1;
+  const before = await hellos();
+  expect(before, "the mock's snapshot names its hellos").toBeGreaterThan(0);
   await ctl({ op: "shutdownClose" });
   await expect(page.locator(".pill.armed")).toHaveCount(0);
   const at = (await timeline()).now;
-  await expect.poll(async () => (await ctl({ op: "snapshot" }) as { clients?: number }).clients, { timeout: 20_000 })
-    .toBeGreaterThan(0);                              // the page reconnected
+  await expect.poll(hellos, { timeout: 20_000 }).toBeGreaterThan(before);   // the page reconnected: a NEW hello
   await page.waitForTimeout(500);
   expect((await timeline()).renewals.filter((r) => r.t > at + 150 && r.ids.includes(L)), "no renewal after the loss").toEqual([]);
   expect((await sent()).filter((c) => c.cmd === "jog_cont").length, "no start replayed").toBe(1);
