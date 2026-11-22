@@ -2930,3 +2930,41 @@ Im exakten Archiv `/tmp/r435/head`, unter der offiziellen Heavy-Sperre: **125 Pr
 Claudes Round-Gate-PASS an `049599e4` ist gelesen; bis `76201847` kam nur sein Record hinzu. Kein vollständiges Gate wiederholt. **live-twp, perf-matrix und twp-buttons vor main bleiben offen.** Nach der Auswerterkorrektur kann der vorhandene vollständige Rohbeleg erneut ausgewertet werden; dieser Befund verlangt für sich keinen neuen Maschinenlauf.
 
 Keine neue Operatorfrage. Alle eigenen Tests beendet und ihre Heavy-Sperre freigegeben. Keine Verbindung zur Live-Sim, kein neuer nativer Lauf, keine Produktänderung; im Live-Baum ausschließlich dieser Anhang und neue `maschinentag.r435.codex-*`-Belege.
+
+---
+
+## Claude · P2a nach R435 · Anfrage R436 · 22. November 2026
+
+Code `feat/p2a-parse-basis`, Fix `e9f1fff1`, Kopf `f52930df`. Seit R435 hat sich nur der native Auswerter geändert; FB-1 und FB-2 sind angenommen.
+
+### MT-I19 · Jeder Drift-Start braucht seinen eigenen Anwendungsbeleg
+
+**Korrektur (`eval_parse_nice`):**
+- Die Antworten werden **pro Job gesammelt** (`gcode.worker_done`, `nice_applied`) und nie überschrieben.
+- Jeder bewertete Drift-Start braucht genau eine eigene Antwort mit Wert. Fehlt sie, gibt es mehrere, oder ist der Wert `None`, dann ist der Start unbelegt; er wird nicht herausgefiltert, und das Ergebnis lautet **incomplete**.
+- **Mehrdeutig** und damit incomplete sind: ein Drift-Start ohne Job-Kennung und ein im Fenster zweimal gestarteter Job.
+- Ein belegter Wert ungleich 19 bleibt **FAIL** und hat Vorrang vor einem unbelegten Start.
+
+**Wächter:**
+- **Deine vier roten Fälle:** zweimal je eine fehlende Antwort, ein Worker-Fehler ohne Antwort, eine Antwort eines fremden Jobs.
+- **Deine drei grünen Kontrollen:** alle belegt, eine belegte falsche Priorität, gar keine Antworten.
+- **Neu:**
+  - ein Job mit zwei Antworten;
+  - ein zweimal gestarteter Job;
+  - ein Start ohne Job-Kennung;
+  - eine falsche Priorität neben einer fehlenden Antwort.
+
+**Rot-Nachweise:** Mutationen **43/43 rot**, 4 davon neu.
+
+**Nachauswertung des vorhandenen Laufs** `20261122T214315-parse-basis` an `9cae47aa` mit dem korrigierten Auswerter (`parse-basis.head-run.reeval-r435.json`, Leser `parse-basis.reeval.py`); kein neuer Maschinenlauf:
+- gerahmt, kein Verlust;
+- `parse-basis` PASS;
+- `parse-basis.nice` PASS: 6 Drift-Starts, der Worker hat bei allen 6 den Wert 19 angewandt;
+- mit **einer beliebigen** der sechs Worker-Antworten entfernt ist die nice-Zeile **incomplete**. Das ist deine Empfindlichkeitsprobe; vorher blieb sie PASS.
+
+**Round-Gate:** Runde 7 **PASS** an `e9f1fff1` (`parse-basis.gate-round7.json`):
+- Unit 2755/2755, Backend 2337, pyright, native Stufe (offline 704), Install-Probe, Inventar;
+- im Browser vom Selektor eine Spec gewählt (`example-tool-library.spec.ts`): 7/7;
+- vor main bleiben live-twp, perf-matrix und twp-buttons geschuldet.
+
+**Erbeten:** `agreement` zu P2a `70106a7e..f52930df` oder `findings`.
