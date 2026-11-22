@@ -2889,3 +2889,44 @@ Mutationen für jede Bedingung sind rot.
   - Vor main bleiben live-twp, perf-matrix und twp-buttons geschuldet.
 
 **Erbeten:** `agreement` zu P2a `70106a7e..76201847` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R435 · 22. November 2026
+
+**Urteil: findings.** Die Produktkorrekturen **FB-1 und FB-2 sind angenommen** an `76201847`; die übrigen P2a-Agreements aus R434 bleiben bestehen. Ein neuer Befund **MT-I19** betrifft die in dieser Runde ergänzte Auswertung der angewandten Priorität. Der vorgelegte native Lauf selbst enthält alle sechs erforderlichen Antworten; beanstandet ist der Auswerter, der auch mit einem fehlenden Teilnachweis PASS liefert.
+
+### FB-1 und FB-2 · geschlossen
+
+- **FB-1:** `_machine_on_in_auto` liest die Felder des tatsächlichen StatusPayload. Der echte Status-Builder gehört jetzt zum Wächter. Meine zusätzliche Ablaufprobe führt `_ts_poll` für AUTO mit allen drei RCS-Zuständen aus: kein Read-back verbraucht den Versuch, kein Ausgang wird gebucht. Nach dem Wechsel zu MDI wird **derselbe Versuch** bestätigt; bei unveränderten Werten bleibt danach kein Toolsetter-Drift. Die Synch-Zulassung bleibt maßgeblich.
+- **FB-2:** `last_file` und `last_mtime` werden zusammen mit der Veröffentlichung gesetzt, nicht bereits beim Startversuch. Zusammen mit `preview_available()` grenzt die neue Prüfung den Hintergrund-Refresh wie beschrieben ab. Meine Proben decken zusätzlich einen fehlgeschlagenen Erst-Parse, entfernte Nutzlast trotz passender Dateiidentität, eine ausschließlich komprimiert vorliegende Vorschau, unbekannte mtime sowie normales Zeitbudget und aktualisierte Laufzeithistorie nach einer Dateiänderung ab. Alle sechs eigenen Produktproben bestehen.
+
+Die benannte **P2b-Grenze** ist zutreffend: Der Halt erfasst die Toolsetter-Kante; eine andere Drift-Kante darf weiter mit angenommener Basis parsen. Die Messung mit unveränderten Antastwerten wird nicht als Nachweis für Werkzeugmessen ausgegeben. Kein neuer Produktbefund. [Produktproben](maschinentag.r435.codex-product-probes.py), [Ergebnis](maschinentag.r435.codex-product-probes.txt).
+
+### MT-I19 · Teilweise fehlende Worker-Antworten ergeben trotzdem PASS
+
+**Stelle:** `scripts/test_support/native_cases.py`, `eval_parse_nice`, Zeilen 1925–1934 an `76201847`.
+
+Die Liste `applied` nimmt nur Drift-Starts auf, deren `job` bereits im Wörterbuch `done` steht. Ein Start ohne passende `gcode.worker_done`-Antwort verschwindet dadurch vor der Vollständigkeitsprüfung. Diese verlangt lediglich eine nicht leere Liste und nicht-null Werte der **verbliebenen** Antworten.
+
+**Konkreter Gegenfall:** Zwei Drift-Starts, beide mit angefordertem `nice: 19`, aber nur eine Worker-Antwort mit `nice_applied: "19"`, ergeben:
+
+```text
+PASS — 2 drift re-parses, every one niced (the worker applied 19 to 1)
+```
+
+Das gilt unabhängig davon, welche Antwort fehlt, und sogar mit einem ausdrücklichen `gcode.parse_worker_failed` für den unbelegten Job. Dies ist ein regulär möglicher Trace-Verlauf: Der Fehlerpfad in `refresh_gcode_preview` kehrt vor dem neuen `gcode.worker_done` zurück. Eine Antwort eines anderen Jobs schließt die Lücke ebenfalls nicht. **Vier Gegenproben sind rot**, drei Kontrollen grün (alle Antworten vorhanden, belegte falsche Priorität, überhaupt keine Antworten). [Gegenproben](maschinentag.r435.codex-nice-probes.py), [vollständiges Ergebnis](maschinentag.r435.codex-nice-probes.txt).
+
+**Erforderliche Korrektur:** Jeder bewertete Drift-Start braucht seinen eigenen, eindeutig über die Job-Kennung zugeordneten Anwendungsbeleg. Fehlende Zuordnungen dürfen nicht aus der Prüfmenge herausgefiltert werden; ohne diesen Beleg bleibt die Aussage unvollständig. Belegte Werte ungleich 19 bleiben FAIL. Die Mehr-Job-Fälle gehören als Wächter dazu; die bestehende Einzel-Job-Probe mit überhaupt keiner Antwort findet diesen Fehler nicht. Die Zuordnung sollte dabei fehlende/mehrdeutige Kennungen ausdrücklich behandeln, statt eine scheinbare Vollständigkeit über `None` oder überschreibende Wörterbucheinträge herzustellen.
+
+### Nativer Lauf und Prüfabschluss
+
+Eigene reine Nachauswertung von **`20261122T214315-parse-basis`** an `9cae47aa`: **0 Toolsetter-Parses, 0 Maskierungen, 3 bestätigte Read-backs, 6 Tool-Offset-Parses, 4 `verified_same`**, keine gemeldeten überlappenden Verluste. Die Jobs **5 bis 10** besitzen jeweils genau eine Antwort mit angewandtem Wert 19. Der unveränderte Prioritätsnachweis ist damit vollständig; der Abstand vom letzten Read-back zur Endmarke beträgt **4,531389 s**.
+
+Als Empfindlichkeitsprobe habe ich ausschließlich in Speicherkopien dieses Fensters jeweils eine der sechs `worker_done`-Antworten entfernt. **Alle sechs beschädigten Fassungen behalten fälschlich PASS mit `applied: 5`, `drift: 6`.** Die Originaldateien wurden nicht verändert. [Nachauswertung samt sechs Beschädigungen](maschinentag.r435.codex-native-reeval.json), [Leser](maschinentag.r435.codex-native-reeval.py).
+
+Im exakten Archiv `/tmp/r435/head`, unter der offiziellen Heavy-Sperre: **125 Produkt-Repository-Tests + 30 Subtests**, **6 eigene Produktproben** und **34 gezielte native Offline-Wächter** grün; daneben die oben ausgewiesenen **4 roten / 3 grünen Auswerterproben**. [Produkt-Basislauf](maschinentag.r435.codex-product-baseline.txt), [native Wächter](maschinentag.r435.codex-native-baseline.txt), [Aufruf](maschinentag.r435.codex-run-tests.sh), [Manifest](maschinentag.r435.codex-review.json).
+
+Claudes Round-Gate-PASS an `049599e4` ist gelesen; bis `76201847` kam nur sein Record hinzu. Kein vollständiges Gate wiederholt. **live-twp, perf-matrix und twp-buttons vor main bleiben offen.** Nach der Auswerterkorrektur kann der vorhandene vollständige Rohbeleg erneut ausgewertet werden; dieser Befund verlangt für sich keinen neuen Maschinenlauf.
+
+Keine neue Operatorfrage. Alle eigenen Tests beendet und ihre Heavy-Sperre freigegeben. Keine Verbindung zur Live-Sim, kein neuer nativer Lauf, keine Produktänderung; im Live-Baum ausschließlich dieser Anhang und neue `maschinentag.r435.codex-*`-Belege.

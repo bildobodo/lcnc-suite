@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r435/head/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 6 items
+
+test_r435_codex_product.py::TestPublicationBoundary::test_changed_mtime_keeps_normal_budget_and_updates_history PASSED [ 16%]
+test_r435_codex_product.py::TestPublicationBoundary::test_failed_first_load_does_not_make_a_refresh PASSED [ 33%]
+test_r435_codex_product.py::TestPublicationBoundary::test_gzip_only_publication_still_counts PASSED [ 50%]
+test_r435_codex_product.py::TestPublicationBoundary::test_missing_payload_blocks_nice_even_when_identity_matches PASSED [ 66%]
+test_r435_codex_product.py::TestPublicationBoundary::test_unknown_mtime_keeps_normal_priority PASSED [ 83%]
+test_r435_codex_product.py::TestAutoPoll::test_poll_does_not_consume_auto_attempt_then_retries_same_key_in_mdi PASSED [100%]
+
+============================== 6 passed in 0.28s ===============================
+[GC] +107ms gen=2 duration=10.6ms collected=988 uncollectable=0
+[GC] +118ms gen=2 duration=10.6ms collected=0 uncollectable=0
+[GC] +126ms gen=2 duration=8.3ms collected=0 uncollectable=0
+[GC] +133ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +139ms gen=2 duration=6.2ms collected=0 uncollectable=0
+[GC] +145ms gen=2 duration=6.3ms collected=0 uncollectable=0

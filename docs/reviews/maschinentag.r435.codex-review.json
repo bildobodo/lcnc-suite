@@ -1,0 +1,58 @@
+{
+  "round": "R435",
+  "verdict": "findings",
+  "date": "2026-11-22",
+  "document_head": "da9e08468cd66458d5f6cbc62021d1a9c7666145",
+  "base": "70106a7e17b3a3d348e6a3c7221ba11d46b4f264",
+  "head": "76201847af8d8da5636ca9f4e7bf1a9f0ad7efab",
+  "prior_review_head": "ed4bc1875a378d26f4e8d2301cb3852cacbca6ca",
+  "review_before_sha256": "88122558f1b2abb011a4c3bea30bec1871b3003d37aa1afd16695ec126b6f200",
+  "product_result": "FB-1 and FB-2 accepted; no new product finding",
+  "finding": "MT-I19: eval_parse_nice silently omits drift jobs without worker_done and returns PASS for partial evidence",
+  "tests": {
+    "product_baseline": {
+      "passed": 125,
+      "subtests_passed": 30
+    },
+    "independent_product": {
+      "passed": 6
+    },
+    "native_baseline": {
+      "passed": 34,
+      "deselected": 661
+    },
+    "nice_counterexamples": {
+      "passed": 3,
+      "failed_expected": 4
+    }
+  },
+  "native_reevaluation": {
+    "run": "20261122T214315-parse-basis",
+    "unaltered": "PASS; six requested priorities and six applied values 19, unique jobs 5..10",
+    "damaged_in_memory": "omitting any one of six worker_done events incorrectly retains PASS (applied 5 / drift 6)"
+  },
+  "execution": [
+    "python3 -I /tmp/r435/head/scripts/test_support/heavy_lock.py --who codex-r435-review --wait 50 -- bash /tmp/r435/run-tests.sh",
+    "python3 -I /tmp/r435/head/scripts/test_support/heavy_lock.py --who codex-r435-reeval --wait 50 -- bash /tmp/r435/run-reeval.sh"
+  ],
+  "limits": [
+    "exact git archive in /tmp/r435/head",
+    "fake controller and fake parser only in tests",
+    "native evidence only read and re-evaluated",
+    "no connection to live sim; no new native run",
+    "full round gate not repeated",
+    "only append review and new codex evidence in live tree"
+  ],
+  "evidence": {
+    "maschinentag.r435.codex-product-baseline.txt": "cd74fcd30788f2d72d7f392b47b8168f20f9dd875ac8f4106527e16bdc684f69",
+    "maschinentag.r435.codex-product-probes.py": "e76509038393a6409bf0e7d68b91a0dd4469c2b69a737f8abd21a5a057c1e1d1",
+    "maschinentag.r435.codex-product-probes.txt": "e4309af4bd641c94c792b91be799d510b96760c16e02eebdf55f040fd2f33eb4",
+    "maschinentag.r435.codex-native-baseline.txt": "5c7823b43afd4dbb49b9b84f773b76f583fe42b05aa9451d62266637e3072f91",
+    "maschinentag.r435.codex-nice-probes.py": "a5806e0ff86e1ce9911e87d26895efce41ed5310e20ed8677d2aac9a4cfb0e5b",
+    "maschinentag.r435.codex-nice-probes.txt": "c3ada694882af97aec814b7eb4ac2eae8efd8f779c2e9a413b3c839ea35bfb4f",
+    "maschinentag.r435.codex-native-reeval.py": "cfdf9f68515aee88d176309e586e55eaea48b090585164f23e59c1e8e16adf1c",
+    "maschinentag.r435.codex-native-reeval.json": "fe566b19006cdc5e43bf962f5816542c28d15452188d614cd5f5596a24327809",
+    "maschinentag.r435.codex-run-tests.sh": "57f77bbdaaaaf1c91ca5d488c9176bad8c33f63ddbcf86561222bd615196d7dc",
+    "maschinentag.r435.codex-run-reeval.sh": "0dfb6c504c180c92419508a0f4cebde58bc71fe902569186502ed2927616abb2"
+  }
+}

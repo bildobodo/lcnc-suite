@@ -1,0 +1,77 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r435/head
+plugins: anyio-4.13.0
+collecting ... collected 7 items
+
+scripts/test_r435_codex_nice.py::test_all_workers_confirmed PASSED       [ 14%]
+scripts/test_r435_codex_nice.py::test_known_wrong_priority_fails PASSED  [ 28%]
+scripts/test_r435_codex_nice.py::test_one_worker_answer_missing_is_incomplete[1] FAILED [ 42%]
+scripts/test_r435_codex_nice.py::test_one_worker_answer_missing_is_incomplete[2] FAILED [ 57%]
+scripts/test_r435_codex_nice.py::test_worker_failure_without_answer_is_not_proof_of_nice FAILED [ 71%]
+scripts/test_r435_codex_nice.py::test_unrelated_answer_does_not_cover_the_missing_job FAILED [ 85%]
+scripts/test_r435_codex_nice.py::test_no_answers_is_incomplete PASSED    [100%]
+
+=================================== FAILURES ===================================
+_______________ test_one_worker_answer_missing_is_incomplete[1] ________________
+
+missing = 1
+
+    @pytest.mark.parametrize('missing', [1, 2])
+    def test_one_worker_answer_missing_is_incomplete(missing):
+        out = nc.eval_parse_nice('nice', window(missing=missing))
+>       assert out['status'] == 'incomplete', out
+E       AssertionError: {'applied': 1, 'case': 'nice', 'detail': '2 drift re-parses, every one niced (the worker applied 19 to 1)', 'drift': 2, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r435_codex_nice.py:30: AssertionError
+_______________ test_one_worker_answer_missing_is_incomplete[2] ________________
+
+missing = 2
+
+    @pytest.mark.parametrize('missing', [1, 2])
+    def test_one_worker_answer_missing_is_incomplete(missing):
+        out = nc.eval_parse_nice('nice', window(missing=missing))
+>       assert out['status'] == 'incomplete', out
+E       AssertionError: {'applied': 1, 'case': 'nice', 'detail': '2 drift re-parses, every one niced (the worker applied 19 to 1)', 'drift': 2, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r435_codex_nice.py:30: AssertionError
+___________ test_worker_failure_without_answer_is_not_proof_of_nice ____________
+
+    def test_worker_failure_without_answer_is_not_proof_of_nice():
+        out = nc.eval_parse_nice('nice', window(missing=2, fail=True))
+>       assert out['status'] == 'incomplete', out
+E       AssertionError: {'applied': 1, 'case': 'nice', 'detail': '2 drift re-parses, every one niced (the worker applied 19 to 1)', 'drift': 2, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r435_codex_nice.py:35: AssertionError
+_____________ test_unrelated_answer_does_not_cover_the_missing_job _____________
+
+    def test_unrelated_answer_does_not_cover_the_missing_job():
+        w = window(missing=2)
+        w['events'].append({'tag': 'gcode.worker_done', 'job': 99, 'nice_applied': '19'})
+        out = nc.eval_parse_nice('nice', w)
+>       assert out['status'] == 'incomplete', out
+E       AssertionError: {'applied': 1, 'case': 'nice', 'detail': '2 drift re-parses, every one niced (the worker applied 19 to 1)', 'drift': 2, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r435_codex_nice.py:42: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_r435_codex_nice.py::test_one_worker_answer_missing_is_incomplete[1]
+FAILED scripts/test_r435_codex_nice.py::test_one_worker_answer_missing_is_incomplete[2]
+FAILED scripts/test_r435_codex_nice.py::test_worker_failure_without_answer_is_not_proof_of_nice
+FAILED scripts/test_r435_codex_nice.py::test_unrelated_answer_does_not_cover_the_missing_job
+========================= 4 failed, 3 passed in 0.02s ==========================
