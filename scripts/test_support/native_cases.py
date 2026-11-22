@@ -1460,6 +1460,23 @@ def _standstill_at(course):
     return None, "gap" if gap else None
 
 
+def _uncovered(course, t_end: float):
+    """None when the known positions of `course` (t, p, v) reach `t_end`
+    with no gap past LEASE_SAMPLE_GAP_S — the last one within that gap of
+    it; else why not (Codex R428 MT-I10: an unobserved stretch is no
+    stillness)."""
+    known = [t for t, p, _ in course if p is not None]
+    if not known:
+        return "no positions"
+    gaps = [(b - a, a) for a, b in zip(known, known[1:])]
+    big = max(gaps, default=(0.0, known[0]))
+    if big[0] > LEASE_SAMPLE_GAP_S:
+        return f"no position for {big[0]:.2f} s from {big[1]:+.2f} s"
+    if t_end - known[-1] > LEASE_SAMPLE_GAP_S:
+        return f"the last position {t_end - known[-1]:.2f} s before the end"
+    return None
+
+
 def _deadline_evidence(rec: dict):
     """The expiry record's `late_ms`: (value, None) when it is a number ≥ 0
     — the deadline had passed at the expiry —, else (None, row status, why):
@@ -1548,6 +1565,9 @@ def eval_lease_expired(case: str, lease: int, axis: int, samples: list, t_moving
     for t, p, v in course[stop_at:]:
         if (v is not None and v > STANDSTILL) or (p is not None and abs(p - p_stand) > 0.01):
             return _row(case, "FAIL", f"moved again after its standstill at {t_stand:+.3f} s", **measured)
+    why = _uncovered(course[stop_at:], course[-1][0])
+    if why:
+        return _row(case, "incomplete", f"the stillness after the standstill is not observed: {why}", **measured)
     if prior:
         measured["overrun_mm"] = round(abs(p_stand - prior[-1][1]), 3)
     if t_stand < LEASE_TTL_S - 0.05:
@@ -1684,22 +1704,29 @@ def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, tr
                     **measured)
     # the gesture is still held until its release (b_up): what it does up to
     # then decides too — a spent gesture never moves again (Codex R427 MT-I10)
-    held_until = to_mono(marks["b_up"] / 1000) if "b_up" in marks else None
-    course = [(t - s0, p, v) for t, p, v in samples if t >= s0 and (held_until is None or t <= held_until)]
-    stop_at, gap = _standstill_at(course)
+    if "b_up" not in marks:
+        return _row(case, "incomplete", "the release was not marked: the held gesture's end is unobserved", **measured)
+    held_until = to_mono(marks["b_up"] / 1000)
+    course = [(t - s0, p, v) for t, p, v in samples if s0 <= t <= held_until]
+    # the standstill WHILE blocked: its window lies inside the block — one
+    # that begins as the page runs again proves nothing (Codex R428 MT-I10)
+    in_block = [x for x in course if x[0] <= s1 - s0]
+    stop_at, gap = _standstill_at(in_block)
     if stop_at is None:
         if gap == "gap":
             return _row(case, "incomplete", "the standstill window lacks positions", **measured)
-        return _row(case, "FAIL", "no standstill after the expiry", **measured)
+        return _row(case, "FAIL", "no standstill while the page was blocked", **measured)
     t_stand, p_stand, _ = course[stop_at]
     measured.update(standstill_after_block_s=round(t_stand, 3), overrun_mm=round(abs(p_stand - at_block[-1]), 3))
-    if s0 + t_stand > s1:
-        return _row(case, "FAIL", f"stood still {t_stand:.3f} s after the block began — after the page ran again", **measured)
+    # still until the release: observed motion is a FAIL, unobserved time is
+    # incomplete — known positions, no gap past LEASE_SAMPLE_GAP_S, the last
+    # one within that gap of the release (the release mark is no position)
     for t, p, v in course[stop_at:]:
         if (v is not None and v > STANDSTILL) or (p is not None and abs(p - p_stand) > 0.01):
             return _row(case, "FAIL", f"moved again at {t:+.3f} s from the block's start, the gesture still held",
                         **measured)
-    if held_until is None:
-        return _row(case, "incomplete", "the release was not marked: the held gesture's end is unobserved", **measured)
+    why = _uncovered(course[stop_at:], held_until - s0)
+    if why:
+        return _row(case, "incomplete", f"the stillness until the release is not observed: {why}", **measured)
     return _row(case, "PASS", "the gateway stopped the jog while the page was blocked", **measured)
 

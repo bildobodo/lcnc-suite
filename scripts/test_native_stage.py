@@ -7787,3 +7787,31 @@ def test_the_page_judges_read_the_pages_own_timer_gaps():
     assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident, [])["status"] == "incomplete", "no block seen"
     before = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident, _BLOCK + [[400, 500]])
     assert before["status"] == "incomplete" and "before its block" in before["detail"], before
+
+
+def test_the_blocked_page_judge_refuses_codex_r428s_unobserved_stretches():
+    """Codex R428 MT-I10 rest: with the release and the timers marked, a
+    stretch without positions never passes — the standstill window must lie
+    inside the block (one beginning as the page runs again proves nothing),
+    and the stillness until the release must be observed (the release mark
+    is no position)."""
+    ident = lambda w: w   # noqa: E731
+    marks = {"b_down": 0.0, "block_start": 1000.0, "block_end": 3500.0, "b_up": 4000.0}
+    rec = {"tag": "jog.lease_expired", "t_wall_ns": 1550000000, "lease": 2, "stopped": [0], "failed": [], "late_ms": 3}
+    dense = [(i * .05, min(i * .05, 1.6) * 20, 20 if i * .05 < 1.6 else 0) for i in range(91)]
+    timers = [[995.0, 2510.0]]
+
+    def judge(samples):
+        return nc.eval_lease_page_blocked("r428", 0, marks, samples, [rec], ident, timers)
+    assert judge(dense)["status"] == "PASS", judge(dense)
+    for name, samples in (("no positions between 1.6 and 3.5 s", [x for x in dense if x[0] <= 1.6 or x[0] >= 3.5]),
+                          ("no positions from 2.0 s to the release", [x for x in dense if x[0] <= 2.0]),
+                          ("an unobserved stretch 2.0-3.9 s", [x for x in dense if x[0] <= 2.0 or x[0] >= 3.9])):
+        r = judge(samples)
+        assert r["status"] == "incomplete", (name, r)
+    # the direct expiry case: an unobserved stretch after its standstill is no stillness
+    course = [(t * 0.033, 10.0, 0.0) for t in range(40)]
+    assert nc._uncovered(course, course[-1][0]) is None
+    holed = [x for x in course if not (0.4 < x[0] < 0.9)]
+    assert "no position for" in nc._uncovered(holed, holed[-1][0])
+    assert "before the end" in nc._uncovered(course[:10], 1.0)

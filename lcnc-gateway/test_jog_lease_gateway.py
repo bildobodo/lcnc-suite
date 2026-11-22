@@ -326,6 +326,74 @@ class TestTheOwedStop(_Lease):
         self.assertEqual(self.stops(), [(JS, 1, 1)], "the owed stop of the failed one, at its deadline")
 
 
+class TestTheReportedFailure(_Lease):
+    """Codex R428: a failed stop is said once, in the reply that met it —
+    never hidden behind "page delayed" (MT-I11), never tried again by an
+    expiry that was already waiting (MT-I08 rest)."""
+
+    def refuse_stops(self):
+        attempts = []
+
+        def jog(*args):
+            if args[0] == JS:
+                attempts.append(args)
+                raise linuxcnc.error("stop refused")
+            self.cmd.calls.append(("jog", args, {}))
+        self.cmd.jog = jog
+        return attempts
+
+    def test_a_queued_expiry_does_not_retry_a_reported_end_failure(self):
+        """Codex R428's probe: the end waits for the write lock, the expiry
+        behind it; the end's stop fails and is said — the expiry finds the
+        lease settled and writes nothing."""
+        self.assertTrue(self.jog(1)["ok"])
+        attempts = self.refuse_stops()
+        tasks = []
+
+        async def scenario():
+            gateway._cmd_lock = asyncio.Lock()
+            await gateway._cmd_lock.acquire()
+            msg = self.receive({"cmd": "jog_lease_end", "lease": 1})
+            end = asyncio.create_task(gateway.handle_command(msg, True, self.ck))
+            await asyncio.sleep(0)
+            self.run_out(1)
+            with mock.patch.object(gateway, "register_bg_task", tasks.append):
+                gateway._on_lease_timer((self.ck, 1))
+            await asyncio.sleep(0)
+            gateway._cmd_lock.release()
+            reply = await end
+            await asyncio.gather(*tasks)
+            return reply
+        reply = _run(scenario())
+        self.assertEqual(reply.get("stop_failed"), [0])
+        self.assertEqual(len(attempts), 1, "the settled failure was tried again by the waiting expiry")
+
+    def test_a_partial_start_cleanup_reports_its_failed_stop(self):
+        """Codex R428's probe: X written, the lease dies before Y, X's stop
+        fails — the reply says the stop failed, not "page delayed"."""
+        msg = self.receive({"cmd": "jog_cont_multi", "lease": 1,
+                            "axes": [{"axis": 0, "vel": 5.0}, {"axis": 1, "vel": 5.0}]})
+        attempts = self.refuse_stops()
+        reply = self.at_the_write(msg, lambda: self.run_out(1), at=3)
+        self.assertEqual(reply.get("stop_failed"), [0], reply)
+        self.assertEqual(reply.get("error"), gateway.JOG_LEASE_STOP_FAILED)
+        self.assertNotIn("expired", reply, "a failed stop is not shown as a page delay")
+        self.assertEqual(len(attempts), 1)
+        # the lease's own expiry later: X's failure was said — not tried again
+        lz = self.lease(1)
+        if lz is not None:
+            gateway._cmd_lock = None
+            _run(gateway._expire_jog_lease(lz))
+        self.assertEqual(len(attempts), 1, "a reported failure is not retried by the lease")
+        self.assertEqual(self.owner(0), (self.ck, 1), "the booking stays: an operator stop still reaches it")
+
+    def test_a_partial_start_cleanup_that_stops_is_still_an_expiry(self):
+        msg = self.receive({"cmd": "jog_cont_multi", "lease": 1,
+                            "axes": [{"axis": 0, "vel": 5.0}, {"axis": 1, "vel": 5.0}]})
+        reply = self.at_the_write(msg, lambda: self.run_out(1), at=3)
+        self.assertEqual(reply, {"ok": False, "error": jog_lease.JOG_LEASE_DEAD, "expired": True})
+
+
 class TestTheWriteLink(_Lease):
     """Codex R427 MT-I09: a lease's stop is bound to the Link its jog was
     written through — never applied to a replacement Link, the booking kept
@@ -359,8 +427,10 @@ class TestTheWriteLink(_Lease):
         r = self.change(1, [0], [])
         self.assertEqual(r.get("stop_failed"), [0], r)
         r = self.end(1)
-        self.assertEqual(r["stop_failed"], [0, 1], r)
+        # X's failure was said by the change (R428: once) — the end says Y's
+        self.assertEqual(r["stop_failed"], [1], r)
         self.assertEqual([a for n, a, _k in newer.calls if n == "jog"], [])
+        self.assertEqual(self.owner(0), (self.ck, 1), "both bookings stay for an operator stop")
 
     def test_the_write_thread_refuses_a_link_changed_after_the_lock(self):
         self.jog(1)

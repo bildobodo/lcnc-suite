@@ -560,7 +560,11 @@ joint jog before homing in E.
   The operator's own stops (`jog_stop`, `jog_stop_multi`, the disarm stop)
   stop an axis whoever wrote it, unchanged. A failed lease stop keeps the
   booking and says so (`stop_failed`, "Jog stop failed — press E-Stop if it
-  still moves"); no automatic retry. Without a Link nothing can be written:
+  still moves") ONCE per lease and axis (Codex R428): the reply that met it
+  says it — a multi-jog's cleanup too, never hidden behind "page delayed"
+  (MT-I11; the page shows it first, in the message center) — and the lease
+  never tries that axis again (`reported`); an expiry already waiting for
+  the lock when the lease was settled writes nothing (MT-I08 rest). Without a Link nothing can be written:
   the owned axes are `failed` (the HAL chain owns the motion).
 - *Expiry*: one `call_later` timer per lease at its deadline, re-armed for
   what a renewal added; past the deadline the lease is dead and

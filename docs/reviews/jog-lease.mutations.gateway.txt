@@ -9,6 +9,9 @@ disarm_keeps_leases {'failed': 1, 'of': 1}
 ended_lease_forgotten {'failed': 2, 'of': 2}
 client_end_settles_at_receipt {'failed': 2, 'of': 2}
 stop_ignores_write_link {'failed': 2, 'of': 2}
+cleanup_failure_hidden {'failed': 1, 'of': 1}
+settled_expiry_works_anyway {'failed': 1, 'of': 1}
+reported_failure_retried {'failed': 1, 'of': 1}
 no_link_check_in_the_write_thread {'failed': 1, 'of': 1}
-{"no_deadline_check_at_write": {"failed": 1, "of": 1}, "no_deadline_check_at_all": {"failed": 2, "of": 2}, "expiry_does_not_stop": {"failed": 2, "of": 2}, "old_owner_stops_new_motion": {"failed": 2, "of": 2}, "renewal_revives": {"failed": 1, "of": 1}, "no_receipt_booking": {"failed": 1, "of": 1}, "abort_keeps_leases": {"failed": 1, "of": 1}, "disarm_keeps_leases": {"failed": 1, "of": 1}, "ended_lease_forgotten": {"failed": 2, "of": 2}, "client_end_settles_at_receipt": {"failed": 2, "of": 2}, "stop_ignores_write_link": {"failed": 2, "of": 2}, "no_link_check_in_the_write_thread": {"failed": 1, "of": 1}}
+{"no_deadline_check_at_write": {"failed": 1, "of": 1}, "no_deadline_check_at_all": {"failed": 2, "of": 2}, "expiry_does_not_stop": {"failed": 2, "of": 2}, "old_owner_stops_new_motion": {"failed": 2, "of": 2}, "renewal_revives": {"failed": 1, "of": 1}, "no_receipt_booking": {"failed": 1, "of": 1}, "abort_keeps_leases": {"failed": 1, "of": 1}, "disarm_keeps_leases": {"failed": 1, "of": 1}, "ended_lease_forgotten": {"failed": 2, "of": 2}, "client_end_settles_at_receipt": {"failed": 2, "of": 2}, "stop_ignores_write_link": {"failed": 2, "of": 2}, "cleanup_failure_hidden": {"failed": 1, "of": 1}, "settled_expiry_works_anyway": {"failed": 1, "of": 1}, "reported_failure_retried": {"failed": 1, "of": 1}, "no_link_check_in_the_write_thread": {"failed": 1, "of": 1}}
 ALL_RED

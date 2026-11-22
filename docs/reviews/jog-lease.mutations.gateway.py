@@ -97,6 +97,16 @@ MUTS = {
             return JOG_STOP_LINK_CHANGED''')],
         [T + "TestTheWriteLink::test_an_old_leases_expiry_never_writes_through_a_new_link",
          T + "TestTheWriteLink::test_an_end_and_a_changes_stop_half_on_a_new_link_say_the_stop_failed"]),
+    # Codex R428 MT-I11: the cleanup's failed stop hidden behind "page delayed"
+    "cleanup_failure_hidden": ([('''            if cleanup["failed"]:''', '''            if False:''')],
+        [T + "TestTheReportedFailure::test_a_partial_start_cleanup_reports_its_failed_stop"]),
+    # Codex R428 MT-I08 rest: a waiting expiry does not check its lease is still owed
+    "settled_expiry_works_anyway": ([('''            if _jog_leases.get(key) is not lease:''', '''            if False:''')],
+        [T + "TestTheReportedFailure::test_a_queued_expiry_does_not_retry_a_reported_end_failure"]),
+    # R428: a reported failure is tried again by the lease
+    "reported_failure_retried": ([('''    todo = [ax for ax in named if ax in owned and ax not in said]''',
+                                   '''    todo = [ax for ax in named if ax in owned]''')],
+        [T + "TestTheReportedFailure::test_a_partial_start_cleanup_reports_its_failed_stop"]),
     # MT-I09: only the write thread's check gone
     "no_link_check_in_the_write_thread": ([('''        if _jog_row_link(now) is not lk:
             return JOG_STOP_LINK_CHANGED''', '''        if False:

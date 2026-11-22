@@ -115,8 +115,18 @@ export function watchLeaseReply(id: number, reqId: string | null | undefined | v
     endFromOutside(id, "refused", LEASE_CONNECTION_TEXT, true);
     return;
   }
-  void awaitReply(reqId, REPLY_MS).then((reply: { ok?: boolean; error?: unknown; expired?: boolean } | null) => {
+  void awaitReply(reqId, REPLY_MS).then((reply: { ok?: boolean; error?: unknown; expired?: boolean;
+    stop_failed?: unknown } | null) => {
     if (reply && reply.ok !== false) return;
+    // a failed stop comes FIRST (Codex R428 MT-I11): the axis may still
+    // move — said in the message center too, never as a page delay
+    const stopFailed = !!reply && Array.isArray(reply.stop_failed) && reply.stop_failed.length > 0;
+    if (stopFailed) {
+      const said = typeof reply.error === "string" ? reply.error : LEASE_STOP_FAILED_TEXT;
+      pushMessage(OPERATOR_ERROR, said);
+      endFromOutside(id, "refused", said, true);
+      return;
+    }
     const text = reply === null ? "No answer — release and press again"
       : reply.expired ? LEASE_EXPIRED_TEXT
       : typeof reply.error === "string" ? reply.error : "Jog refused";
