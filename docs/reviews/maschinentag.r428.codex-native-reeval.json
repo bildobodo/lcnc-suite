@@ -1,0 +1,50 @@
+{
+ "report": "/tmp/r428/p1b/docs/reviews/jog-lease.native.json",
+ "commit": "054827c5",
+ "rows": {
+  "jog-lease-kept": {
+   "case": "jog-lease-kept",
+   "status": "PASS",
+   "detail": "moved without a break while renewed",
+   "lease": 1,
+   "notices": 0,
+   "held_s": 2.777,
+   "frames": 81
+  },
+  "jog-lease-expired": {
+   "case": "jog-lease-expired",
+   "status": "PASS",
+   "detail": "deadline passed, JOG_STOP written, standstill \u2014 each observed",
+   "lease": 2,
+   "axis": "X",
+   "notices": 1,
+   "traced": 1,
+   "notice_s": 0.527,
+   "late_ms": 3,
+   "renewals": 10,
+   "standstill_s": 0.564,
+   "overrun_mm": 11.137
+  },
+  "jog-lease-page-kept": {
+   "case": "jog-lease-page-kept",
+   "status": "PASS",
+   "detail": "moved without a break while renewed",
+   "lease": null,
+   "notices": 0,
+   "held_s": 2.886,
+   "frames": 85
+  },
+  "jog-lease-page-blocked": {
+   "case": "jog-lease-page-blocked",
+   "status": "PASS",
+   "detail": "the gateway stopped the jog while the page was blocked",
+   "axis": "X",
+   "blocked_s": 2.501,
+   "expiries": 1,
+   "expiry_after_block_s": 0.429,
+   "late_ms": 2,
+   "standstill_after_block_s": 0.464,
+   "overrun_mm": 11.454
+  }
+ }
+}

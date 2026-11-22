@@ -1793,3 +1793,106 @@ Die Merge-Reihenfolge bleibt P1b → P3 → P2a. P3 wird nach dem P1b-Merge reba
 - Der Rebase auf P1b; dabei kommen P1bs `browser.longtask`-Leser und dieser Umzug zusammen.
 
 **Erbeten:** `agreement` zum Code oder `findings`.
+
+
+---
+
+## Codex · R428 · P1b-Nachprüfung, P2a-Plan v2 und P3 · 22. November 2026
+
+**Gesamturteil: findings. Getrennt: Teil 1 P1b `findings`, Teil 2 P2a-Plan v2 `agreement`, Teil 3 P3 `findings`.** Geprüft gegen `ad16dff3`: P1b `23900bd7`, P3 `9b8f7a81`; für P2a der Plan am Dokumentstand `ff04dc5a` und die Messvariante `087c7e00`. Keine P2a-Produktimplementierung abgenommen.
+
+### Teil 1 · Was geschlossen ist
+
+**MT-I09 ist geschlossen:** Die Buchung trägt den tatsächlichen Link der Schreibung; der gebundene Stopp prüft ihn nach dem Lock und im Schreibthread. Meine beiden Backend-Gegenproben aus R427 bestehen unverändert, darunter die volle produktive Queue und der Ersatz-Link. Die erfolgreiche Kontrolle über denselben Link bleibt grün. MT-I08s Trennung von „beendet“ und „Stopp noch geschuldet“ ist richtig, hat aber noch einen Abschlussfall unten.
+
+**MT-I10 ist teilweise geschlossen:** Negative Fristwerte werden abgewiesen, die bekannte Wiederaufnahme einer Bewegung während der gehaltenen Geste ebenfalls. Die Timerbeobachtung der Seite ist für das gesunde Kontrollfenster die passendere Größe als allein Long Tasks. Die 0,25-s-Lückengrenze aus dem tatsächlichen 5-Hz-Leerlauftakt ist begründet. Eine Lücke während des noch geschuldeten Positionsnachweises bleibt allerdings offen.
+
+### Teil 1 · MT-I11 · P1 · Eine gescheiterte Teilbereinigung antwortet trotzdem mit „Jog stopped“
+
+**Stellen:** `lcnc-gateway/gateway.py:4384–4392` (`_start_jogs`), `lcnc-webui/src/jogLease.ts:119–125` (`watchLeaseReply`).
+
+Wenn der Mehrfach-Jog bereits X geschrieben hat und die Zulassung vor Y wegen der abgelaufenen Freigabe verweigert wird, bereinigt `_start_jogs` die schon geschriebenen Achsen. Das Ergebnis von `_stop_owned_axes` wird dabei verworfen. Scheitert dieser Stopp, bleibt X korrekt gebucht, die Antwort lautet aber ausschließlich:
+
+```json
+{"ok": false, "error": "Jog expired — release and press again", "expired": true}
+```
+
+Der Client macht daraus **„Jog stopped — page delayed, press again“**. Die gerade festgestellte fehlgeschlagene Stopp-Schreibung fehlt in dieser Antwort. Ein späteres Ende oder der Timer kann nochmals zum Stoppen kommen; das macht die erste Aussage nicht richtig.
+
+**Eigene Gegenprobe:** echter Handler und Schreibthread, Fake-Controller; erste Jog-Schreibung gelingt, vor der zweiten läuft die Freigabe aus, die bereinigende `JOG_STOP`-Schreibung wirft einen Controllerfehler. Erwartet `stop_failed: [0]`, tatsächlich fehlt das Feld. Die Probe ist rot.
+
+**Korrektur:** Das Ergebnis der Bereinigung auswerten und den fehlgeschlagenen Stopp in der Antwort nennen, mit der dafür vorgesehenen Handlungsanweisung. Die normale Ablaufmeldung darf im Client keinen Stoppfehler überdecken — bloß `error` neben `expired: true` zu ergänzen genügt wegen der heutigen Priorität in `watchLeaseReply` nicht. Erfolgreiche Bereinigung weiterhin als Ablauf behandeln; verlorener Link und andere Ablehnungswege derselben Bereinigung gehören zur selben Prüfung.
+
+### Teil 1 · MT-I08 Rest · P2 · Ein bereits eingeplanter Ablauf überlebt das Begleichen
+
+**Stellen:** `gateway.py:4676–4703` (`_expire_jog_lease`), `gateway.py:4779–4788` (`_settle_lease`).
+
+`_settle_lease` löscht den Eintrag und beendet den Timer. Ein vom Timer bereits erzeugter Ablauf-Task bleibt jedoch bestehen. Er hält sein Lease-Objekt und prüft nach dem Erwerb von `_cmd_lock` nicht mehr, ob dessen Verpflichtung inzwischen beglichen ist.
+
+**Eigene Folge:** Ein eigenes Ende wartet zuerst auf den Schreib-Lock, die fällige Ablaufaufgabe wartet dahinter. Das Ende versucht `JOG_STOP`, bekommt den Controllerfehler, antwortet mit `stop_failed: [0]` und begleicht. Anschließend schreibt die wartende Ablaufaufgabe **nochmals** `JOG_STOP` für dieselbe unverändert gebuchte Achse. Gemessen: **2 Versuche statt 1**. Das widerspricht ausdrücklich „ein gemeldeter Schreibfehler begleicht; keine stille Wiederholung“. Die Besitzprüfung verhindert hier zwar einen Stopp einer neuen Buchung, sie ersetzt die Abschlussprüfung nicht.
+
+**Korrektur:** Nach dem Lock prüfen, ob genau diese Verpflichtung noch offen ist, bevor der eingeplante Ablauf arbeitet. Den Abschluss über alle konkurrierenden Wege prüfen, einschließlich Ende, Ablauf und Teilbereinigung. Die offenen Fälle aus R427 bleiben erhalten: Ein nur empfangenes, verworfenes oder noch nicht abgearbeitetes Ende darf weiterhin nichts begleichen. Ein bewusster neuer Bedien-Stopp bleibt möglich.
+
+### Teil 1 · MT-I10 Rest · P2 · Positionslücken können weiterhin PASS ergeben
+
+**Stellen:** `scripts/test_support/native_cases.py:1436–1460` und `1689–1712`.
+
+Die drei früheren Gegenfälle bleiben am endgültigen Kopf nicht alle abgewiesen. Mit den inzwischen erforderlichen Marken `b_up` und der Timerbeobachtung ergänzt ergibt meine frühere Positionslücke wieder **PASS**: Die Daten fehlen zwischen 1,6 und 3,5 s; der Hauptthread läuft bei 3,5 s wieder. Der Bewerter überspringt das unbelegte erste Fenster und findet ein neues Stillstandsfenster **ab 3,5 s**. Wegen des Vergleichs `> s1` zählt das als Stopp während des Blocks, obwohl dieses Fenster erst mit dessen Ende beginnt.
+
+Zwei zusätzliche Varianten zeigen die zweite Hälfte:
+
+- Stillstand ab 1,6 s belegt, Positionsaufzeichnung endet bei 2,0 s, Loslassen ist erst bei 4,0 s markiert: **PASS**.
+- Dasselbe, aber wieder Positionen ab 3,9 s, dazwischen keine: ebenfalls **PASS**. Eine zwischenzeitliche Bewegung mit Rückkehr wäre in diesen Daten unsichtbar.
+
+Der Durchlauf prüft nach dem ersten Stillstandsfenster nur noch **vorhandene** Positionen; er fordert keine Abdeckung bis zum Loslassen. Die Endmarke selbst ist kein Positionsnachweis.
+
+**Korrektur:** Den Nachweis des Stillstands im Block auf diesen Zeitraum begrenzen; ein erst beim Wiederanlaufen beginnendes Fenster trägt ihn nicht. Für „bleibt bis zum Loslassen stehen“ bekannte Positionen mit der benannten Lückengrenze und einer belegten letzten Kante bis `b_up` verlangen. Fehlende Beobachtung ist `incomplete`, beobachtete Bewegung `FAIL`. Die Frist-, Stopp-Schreibungs- und Positionsaussagen bleiben getrennt.
+
+**Einordnung des vorgelegten Laufs:** Die vier primären Zeilen aus `jog-lease.native.json` bestehen meine reine Nachauswertung am Kopf weiterhin. Der Seitenlauf hat nach dem gemeldeten Stillstand bis zum Loslassen 11 bekannte Positionen, maximal rund 0,204 s Abstand und rund 0,133 s von der letzten Position bis zum Loslassen. Der Befund widerruft diesen gemessenen Verlauf nicht; er betrifft den Bewerter und seine Gegenfälle. Ich habe keinen nativen Lauf gestartet.
+
+### Teil 2 · P2a-Plan v2: agreement
+
+MT427-01 und MT427-02 sind mit dieser Fassung geschlossen. Die Versuchsbuchung aus **Revision plus Programmidentität** bleibt vom Inhaltsvergleich getrennt. Damit sind ein späteres B nach einem gescheiterten B sowie eine neue Programmfassung wieder eigene Anlässe; derselbe gescheiterte Anlass bleibt begrenzt.
+
+Die Gleichheit über Revisionen hinweg nur aus den vollständig bestätigten Auftragspatches zu bilden, ohne `assumed`/`unknown` und ohne `unpredictable`, löst den Gegenfall der zwischenzeitlich ersetzten Parameterdatei. `applied` und `read` können dabei denselben bestätigten Eingang bezeichnen. **Die Ausnahme innerhalb derselben Revision ist als Vermeidung eines erneuten Versuchs angenommen; sie bestätigt keinen aus der Worker-Kopie unbelegten Wert.** Die Herkunft und Einschränkungen einer angenommenen Basis bleiben sichtbar. „Kein neuer Drift-Anlass“ darf dort nicht in „gemessen/bestätigt“ umbenannt werden.
+
+Die gebuchten Read-back-Ausgänge und das 30-s-Ende für `not_admitted` verhindern das unbegrenzte Halten. Der Beginn bleibt an der ersten angenommenen Buchung dieser Version verankert; neue Polls oder erneute Zulassungsversuche setzen ihn nicht zurück. Fehler und Abort lösen das Halten wie beschrieben auf. Die vorgeschlagenen getrennten Wächter einschließlich Programmwechsel, wiederkehrendem Inhalt und Dateitausch sind Bestandteil der Umsetzung.
+
+Lade-Parse unverändert, Drift-Parse mit `nice 19`, benanntes Timeout-Budget, Unterprogramm-Scan verschoben und die Zuordnung der Limit-Markierungen im ersten Ergebnis sind angenommen. Die Messvariante verwendet jetzt den Panel-Auftrag über `probe_run`. Ihr roter Basisbericht nennt 6 Toolsetter- und 4 Tool-Offset-Parses; daraus folgt noch keine Zusage „null Parses insgesamt“. Maskierte Toolsetter-Gründe mitzuzählen und vor der Kopf-Messung den Werkzeug-Offset-Grund aufzuklären ist richtig. Das Agreement gilt dem Plan, nicht einer schon nachgewiesenen Latenzverbesserung oder einer Erweiterung des P2a-Umfangs.
+
+### Teil 3 · MT-I12 · P2 · Ein neuer Verlust wird mit dem alten Bericht gelöscht
+
+**Stellen:** `lcnc-gateway/lcnc_trace.py:274–280` (`_report_written`) und `400–415`.
+
+Der Bericht enthält eine Momentaufnahme der Zähler. Nach seiner erfolgreichen Schreibung setzt `_report_written` jedoch **alle aktuellen** Zähler auf null. Erreicht der ausdrücklich vorgesehene reentrante Fehlerweg den Handler während dieser Schreibung, zählt er einen neuen Verlust, der noch nicht im Bericht steht. Der anschließende Reset löscht ihn trotzdem.
+
+**Eigene Fehlerprobe über die vorhandene `raw_write`-Naht:** ein durch `ENOSPC` verlorener Satz; beim Schreiben seines Berichts ein reentrant abgewiesener zweiter Satz; danach zwei normale gelungene Sätze. Ergebnis: Bericht `count: 1`, kein zweiter Bericht, `pending_report().lost == 0`. Beide Verlustgründe wurden auf stderr angekündigt, im Trace fehlt der zweite. Probe rot (**1 statt 2 verbuchte Verluste**).
+
+**Korrektur:** Nur die tatsächlich in diesem Bericht enthaltenen Zähler begleichen. Währenddessen neu hinzugekommene Verluste müssen ausstehend bleiben; ein fehlgeschlagener Bericht darf auch die zuvor entnommene Momentaufnahme nicht verlieren. Das gilt für beide Log-Handler. Die Schutzregel gegen rekursive Schreibung und gegen ein verschachteltes Entsperren bleibt sinnvoll.
+
+### Teil 3 · MT-I13 · P2 · Beim Crash-Bündel verklebt eine Dateigrenze zwei Zeilen
+
+**Stellen:** `lcnc_trace.py:383–400` (Rotation vor Fragmentabschluss), `scripts/trace-bundle.py:277–280` (`copy_crash_log`).
+
+Ein Prozess kann wie im angenommenen R426-Fall ein Fragment hinterlassen. Muss der nächste Schreiber rotieren, wandert dieses offene Ende nach `.1`; geprüft wird danach nur die neue aktuelle Datei. Deren erster neuer Crash-Satz ist für sich korrekt lesbar. `copy_crash_log` fügt die Generationen anschließend jedoch ohne Trennung zusammen.
+
+**Eigene Probe mit tatsächlicher Handler-Rotation:** `.1` endet auf `{"cut":`; die neue `crash.log` enthält einen vollständigen `crash.after`-Satz. In der Quelle ist der Satz lesbar. Im Bündel wird daraus eine einzige ungültige Zeile `{"cut":{..."tag":"crash.after"...}`. Der unabhängige Crash-Satz ist als NDJSON-Satz verloren, obwohl die Aufnahme `lock: held` und keine Aufnahmefehler meldet. Probe rot.
+
+**Korrektur:** Dateigrenzen beim Crash-Artefakt erhalten, etwa durch getrennte Quelldateien oder einen ausdrücklich vermerkten Trenner nach einem offenen Ende. Beschädigung bzw. Fragment pro Quelle benennen. Den Rotationsfall in den Fragment-Wächter aufnehmen; auch bereits vorhandene fragmentierte Generationen müssen beim Bündeln verträglich bleiben. Keine Inhalts-Deduplizierung und keine zweite Einzählung der Crash-Sätze in die Trace-Zeitleiste nötig.
+
+### Teil 3 · Angenommene Teile und Grenzen
+
+Die gemeinsame stabile Sperre für Python und Launcher, Wiederöffnung nach Dateiidentität sowie Öffnen der Aufnahme-Deskriptoren unter derselben Sperre setzen den Kern von MT425-02/-03 um. Die getrennte Crash-Aufnahme, der monotone Nachlauf, der Bündler neben dem laufenden Gateway und die Fehlerbezeichnung bei rc ≠ 0 sind richtig. Das 20-ms-Budget begrenzt das Warten auf die Sperre; es ist keine Begrenzung der Dateisystemoperationen und keine Heartbeat-Zusage.
+
+Die benannten Abweichungen sind vertretbar: `trace.lock`/`crash.lock` außerhalb der Generationsmuster; Nutzung der bestehenden 8-ms-Timerkette; Umzug des Long-Task-Beobachters; eigene Stall-Fenster auch für ansonsten stille Seiten. Ein allgemeines Stall-Histogramm bleibt von der konkreten Halteverweigerung getrennt, deren eigener `gap_ms` vorliegt. Die Panelmessung ohne CDP, F20s Ursache und der Rebase auf P1b bleiben offen. Aus einem erfolgreich angenommenen Beacon oder einer verlorenen HTTP-Antwort folgt außerdem keine bestätigte Ende-zu-Ende-Zustellung; die Transportzählung ist Diagnose, kein Exactly-once-Nachweis.
+
+### Eigene Belege und Abschluss
+
+Alle Tests liefen in exakten Archiven unter `/tmp/r428`, unter der gemeinsamen Heavy-Sperre. Controllerzugriffe waren Fakes; Forensiktests nutzten temporäre Dateien und ihre lokalen Testprozesse. Keine Verbindung zur Live-Sim, keine Browser-/HAL-Aktion, kein Produktcode geändert.
+
+- **P1b:** 59/59 Backend-Tests grün (einschließlich beider unveränderter R427-Gegenproben), 8/8 gezielte Tests des nativen Bewerters grün. [Backend](maschinentag.r428.codex-backend-baseline.txt), [Bewerter](maschinentag.r428.codex-native-baseline.txt). Die **2 eigenen Backend-Proben rot**: [Probe](maschinentag.r428.codex-backend-probes.py), [Ergebnis](maschinentag.r428.codex-backend-probes.txt).
+- **Positionsauswertung ohne nativen Lauf:** eine dichte Kontrolle PASS, zwei bekannte ungültige Fälle korrekt FAIL, drei Beobachtungslücken fälschlich PASS. [Probe](maschinentag.r428.codex-native-probes.py), [Ergebnis](maschinentag.r428.codex-native-probes.json). Die benötigten Marken `b_up` und Timerbelege sind gegenüber R427 ergänzt, damit die Gegenfälle den heutigen Positionsbewerter erreichen. [Nachauswertung des gespeicherten Laufs](maschinentag.r428.codex-native-reeval.json).
+- **P3:** 28/28 Backend-Tests und 69/69 Unit-Tests in vier Frontend-Dateien grün. [Backend](maschinentag.r428.codex-forensics-baseline.txt), [Frontend](maschinentag.r428.codex-frontend-unit.txt). **2 eigene Forensikproben rot**: [Probe](maschinentag.r428.codex-forensics-probes.py), [Ergebnis](maschinentag.r428.codex-forensics-probes.txt).
+- [Aufruf der Basistests](maschinentag.r428.codex-run-baseline.sh), [Manifest mit Köpfen, geprüften Quell-Hashes, Aufrufen und Grenzen](maschinentag.r428.codex-review.json). Zur Reproduktion die jeweiligen Python-Proben als `lcnc-gateway/test_r428_codex.py` in die entsprechende isolierte Kopie legen. Claudes vollständige Gates, Mutationen und Live-Läufe wurden als fremde Belege gelesen, nicht als eigene Wiederholung ausgegeben.
+
+Die Tests sind beendet; ich halte die Heavy-Sperre nicht mehr. Im Live-Baum nur dieser Anhang und neue `maschinentag.r428.codex-*`-Belege. Keine offene Operatorfrage in dieser Runde; kein Merge- oder Maschinen-Go.

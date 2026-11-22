@@ -1,0 +1,70 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_a_reentrant_loss_during_the_report_is_not_erased _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4491/test_a_reentrant_loss_during_t0')
+
+    def test_a_reentrant_loss_during_the_report_is_not_erased(tmp_path):
+        path = tmp_path / 'trace.ndjson'
+        h = tr.CoordinatedFileHandler(str(path), str(tmp_path / 'trace.lock'),
+                                     max_bytes=0, backups=5, report_prefix='trace')
+        def full(fd, data):
+            raise OSError(errno.ENOSPC, 'injected full disk')
+        h.raw_write = full
+        assert h.append(_rec(1, 'lost.enospc')) is False
+        called = False
+        def report_reenters(fd, data):
+            nonlocal called
+            if not called:
+                called = True
+                assert h.append(_rec(2, 'lost.reentrant')) is False
+            return os.write(fd, data)
+        h.raw_write = report_reenters
+        try:
+            assert h.append(_rec(3, 'after'))
+            h.raw_write = os.write
+            assert h.append(_rec(4, 'next'))
+            reports = [r for r in _rows(path) if r.get('tag') == 'trace.write_lost']
+>           assert sum(r['count'] for r in reports) + h.pending_report()['lost'] == 2, {
+                'reports': reports, 'pending': h.pending_report()}
+E               AssertionError: {'pending': {'fragments_closed': 0, 'lost': 0, 'rotate_failed': {}, 'why': {}}, 'reports': [{'count': 1, 'level': 'warn', 'log': 'trace.ndjson', 'pid': 3077758, ...}]}
+E               assert (1 + 0) == 2
+E                +  where 1 = sum(<generator object test_a_reentrant_loss_during_the_report_is_not_erased.<locals>.<genexpr> at 0xffff97ad0c70>)
+
+test_r428_codex.py:41: AssertionError
+----------------------------- Captured stderr call -----------------------------
+[TRACE] trace.ndjson: a record was not written (ENOSPC) — counted, reported as trace.write_lost
+[TRACE] trace.ndjson: a record was not written (reentrant) — counted, reported as trace.write_lost
+____ test_crash_snapshot_keeps_the_first_good_line_after_a_rotated_fragment ____
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4491/test_crash_snapshot_keeps_the_0')
+
+    def test_crash_snapshot_keeps_the_first_good_line_after_a_rotated_fragment(tmp_path):
+        path = tmp_path / 'crash.log'
+        # A terminated process can leave this last, incomplete line (R426).
+        path.write_bytes(b'{"cut":')
+        h = tr.CoordinatedFileHandler(str(path), str(tmp_path / 'crash.lock'),
+                                     max_bytes=32, backups=5, report_prefix='crash')
+        try:
+            assert h.append(_rec(2, 'crash.after', level='error'))
+        finally:
+            h.close()
+        assert [r['tag'] for r in _rows(path)] == ['crash.after']
+        assert (tmp_path / 'crash.log.1').read_bytes() == b'{"cut":'
+        out = tmp_path / 'bundle'
+        out.mkdir()
+        account = _bundler().copy_crash_log(str(tmp_path), str(out))
+        assert account['lock'] == 'held'
+>       assert [r.get('tag') for r in _rows(out / 'crash-snapshot.log')] == ['crash.after'], {
+            'snapshot': (out / 'crash-snapshot.log').read_text(), 'account': account}
+E       AssertionError: {'account': {'capture_bound_ns': 1795348953438433352, 'errors': [], 'file': 'crash-snapshot.log', 'gaps': [], ...}, 'snapshot': '{"cut":{"t_wall_ns": 2, "proc": "gateway", "pid": 1, "tag": "crash.after", "level": "error"}
+E         '}
+E       assert [] == ['crash.after']
+E         
+E         Right contains one more item: 'crash.after'
+E         Use -v to get more diff
+
+test_r428_codex.py:63: AssertionError
+=========================== short test summary info ============================
+FAILED test_r428_codex.py::test_a_reentrant_loss_during_the_report_is_not_erased
+FAILED test_r428_codex.py::test_crash_snapshot_keeps_the_first_good_line_after_a_rotated_fragment

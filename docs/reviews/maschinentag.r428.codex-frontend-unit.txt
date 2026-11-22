@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/r428/p3/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  69 passed (69)
+   Start at  12:57:51
+   Duration  182ms (transform 286ms, setup 0ms, import 327ms, tests 45ms, environment 0ms)
+

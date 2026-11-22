@@ -1,0 +1,62 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____ TestR428Completion.test_partial_start_cleanup_reports_its_failed_stop _____
+
+self = <test_r428_codex.TestR428Completion testMethod=test_partial_start_cleanup_reports_its_failed_stop>
+
+    def test_partial_start_cleanup_reports_its_failed_stop(self):
+        msg = self.receive({'cmd':'jog_cont_multi','lease':1,
+                            'axes':[{'axis':0,'vel':5.0},{'axis':1,'vel':5.0}]})
+        def jog(*args):
+            if args[0] == JS:
+                raise linuxcnc.error('stop refused')
+            self.cmd.calls.append(('jog',args,{}))
+        self.cmd.jog = jog
+        reply = self.at_the_write(msg, lambda: self.run_out(1), at=3)
+>       self.assertEqual(reply.get('stop_failed'), [0], reply)
+E       AssertionError: None != [0] : {'ok': False, 'error': 'Jog expired — release and press again', 'expired': True}
+
+test_r428_codex.py:47: AssertionError
+_ TestR428Completion.test_queued_expiry_does_not_retry_a_reported_end_failure __
+
+self = <test_r428_codex.TestR428Completion testMethod=test_queued_expiry_does_not_retry_a_reported_end_failure>
+
+    def test_queued_expiry_does_not_retry_a_reported_end_failure(self):
+        self.assertTrue(self.jog(1)['ok'])
+        attempts = []
+        def jog(*args):
+            if args[0] == JS:
+                attempts.append(args)
+                raise linuxcnc.error('stop refused')
+            self.cmd.calls.append(('jog', args, {}))
+        self.cmd.jog = jog
+        tasks = []
+        async def scenario():
+            gateway._cmd_lock = asyncio.Lock()
+            await gateway._cmd_lock.acquire()
+            msg = self.receive({'cmd':'jog_lease_end','lease':1})
+            end = asyncio.create_task(gateway.handle_command(msg, True, self.ck))
+            await asyncio.sleep(0)  # the end waits for the write lock first
+            self.run_out(1)
+            with mock.patch.object(gateway, 'register_bg_task', tasks.append):
+                gateway._on_lease_timer((self.ck, 1))
+            await asyncio.sleep(0)  # the expiry now waits behind it
+            gateway._cmd_lock.release()
+            reply = await end
+            await asyncio.gather(*tasks)
+            return reply
+        reply = _run(scenario())
+        self.assertEqual(reply.get('stop_failed'), [0])
+>       self.assertEqual(len(attempts), 1, 'the settled failure was retried by the already queued expiry')
+E       AssertionError: 2 != 1 : the settled failure was retried by the already queued expiry
+
+test_r428_codex.py:36: AssertionError
+=========================== short test summary info ============================
+FAILED test_r428_codex.py::TestR428Completion::test_partial_start_cleanup_reports_its_failed_stop
+FAILED test_r428_codex.py::TestR428Completion::test_queued_expiry_does_not_retry_a_reported_end_failure
+[GC] +116ms gen=2 duration=9.5ms collected=660 uncollectable=0
+[GC] +125ms gen=2 duration=9.2ms collected=0 uncollectable=0
+[GC] +132ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +138ms gen=2 duration=6.5ms collected=0 uncollectable=0
+[GC] +145ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +151ms gen=2 duration=6.5ms collected=0 uncollectable=0

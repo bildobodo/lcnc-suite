@@ -1,0 +1,129 @@
+{
+  "request": "R428",
+  "date": "2026-11-22",
+  "review_commit": "ff04dc5ae12083638112b011e2b5d52b84c0b161",
+  "base": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "heads": {
+    "p1b": "23900bd7e5241fa74ab9f86e76225119af3a53af",
+    "p2a": "087c7e00a75b5df58431aff692170ecb2ccf8d76",
+    "p3": "9b8f7a813971b0534670b6859810af922bb31e54"
+  },
+  "verdicts": {
+    "p1b": "findings",
+    "p2a_plan": "agreement",
+    "p3": "findings",
+    "overall": "findings"
+  },
+  "review_before_sha256": "bf1299cc910afad07f5b7798f06f40992da29df4bd4efe1fa028184a8bb1b56e",
+  "sources_sha256": {
+    "p1b": {
+      "lcnc-gateway/gateway.py": "23886de7c6dce508ab1f6abbe502c72101a21e709a4bfcbcf2ae1593beaba006",
+      "lcnc-gateway/jog_lease.py": "0d105c91be05e6f850077cde8422dbdc53d62f5e12cd4c97fd95e086fc390348",
+      "lcnc-webui/src/jogLease.ts": "07840f7a2fce412946c81fbdbb8a06b2a96693d5da8c77777daa595ca63e1d86",
+      "scripts/test_support/native_cases.py": "07bfe76791868992b19e4c50ad49f86079a545a3b0ddfb7a9d1912945ec0ea42",
+      "scripts/test_support/lease_reeval.py": "bbe1d5ca7ef74d5a40b94b91814019d40860854efedba30aa27b8590e87ccb4a",
+      "docs/reviews/jog-lease.native.json": "4664e1945b401b200f7f66f586441910c5b650f1f9bd6aa85609b7e67a079330",
+      "docs/reviews/jog-lease.gate-round3.json": "e865024966f32afa58342a6c78688489c2525503b581fa9e3fc7c95a5b31956d"
+    },
+    "p2a": {
+      "scripts/native_run.py": "77869873a24bfe050d5ac6a7d5786f0a97e2ffca092e9e54f1eaa73bbc8722fc",
+      "scripts/test_support/native_cases.py": "ec287eb6a5381e0df58dd19ab30cc6deb2dac4af27f3c079e916daefe6b59b80",
+      "docs/reviews/parse-basis.base-run.json": "6269427046f34caabc187ac280d496b27922c45667f47fc7d55a9d27292048c8"
+    },
+    "p3": {
+      "lcnc-gateway/lcnc_trace.py": "a3bcf9639ed3a0ea6d8961daa91e495a3bccd251b8a133c72a80521aab2ee6fe",
+      "lcnc-gateway/gateway.py": "5eb35017c06f448b2cbe4fe4596b5232816bbd8cb5421f5c20d4d910b2ea0b42",
+      "scripts/trace-bundle.py": "99a337b9c21a6c5f3d26ae67e618d8f55219a48f749ea528a9b9a0999beae4dd",
+      "lcnc-suite": "4910cf9c122667e6158c0837aea3e359a0ece1fdcaab8dd04197dac7374499e5",
+      "lcnc-webui/src/viewerPerf.ts": "49f7973a3e1a00178437b05f7cf137ec634f77638f00c587f38c77d17d75012c",
+      "lcnc-webui/src/stallWindow.ts": "d7447979a3047eda190e7b4bbda33588292d2a1d5d01e7bfdcbdc4277d8a3621",
+      "lcnc-webui/src/holdGesture.ts": "41e5ef8b73d6ea52571f80285c0da5380a6d8894d3866f8af7a1d74bede9fb13",
+      "lcnc-webui/src/ws/telemetry.ts": "d25856f40fe353220e8e69ff417c7fc803854b2f03b142b43c045a6a0ad9ed92",
+      "docs/reviews/forensics.gate-round2.json": "38a70376406f591e31b2bc71d303c8f0a9ded41e1b571656e080f8ec4bd1a6ad",
+      "docs/reviews/forensics.native.json": "623f278a6fd41d76012f255a02f4aec802b87fe586ebb7b7a3a25e8e3b804455"
+    }
+  },
+  "own_runs": [
+    {
+      "part": "p1b",
+      "command": "pytest -q test_jog_lease.py test_jog_lease_gateway.py test_r427_codex.py",
+      "tests": 59,
+      "exit": 0,
+      "note": "includes both R427 backend counterexamples unchanged"
+    },
+    {
+      "part": "p1b",
+      "command": "pytest -q scripts/test_native_stage.py -k lease",
+      "tests": 8,
+      "deselected": 656,
+      "exit": 0
+    },
+    {
+      "part": "p1b",
+      "command": "pytest -q test_r428_codex.py",
+      "tests": 2,
+      "failed": 2,
+      "exit": 1
+    },
+    {
+      "part": "p1b",
+      "command": "python3 -I /tmp/r428/r428-native-probes.py",
+      "exit": 0,
+      "note": "prints actual verdicts, deliberately no failure assertion; 1 dense control PASS, 2 correctly FAIL, 3 invalid gaps falsely PASS; b_up/timer_gaps supplied to the old probe to reach the current position judge"
+    },
+    {
+      "part": "p1b",
+      "command": "python3 -I scripts/test_support/lease_reeval.py /tmp/r428/p1b /tmp/r428/p1b/docs/reviews/jog-lease.native.json",
+      "exit": 0,
+      "note": "four primary existing recorded native rows re-evaluated PASS; NOT a new native run"
+    },
+    {
+      "part": "p3",
+      "command": "pytest -q test_trace_rotation.py test_trace_bundle.py test_trip_trace.py",
+      "tests": 28,
+      "exit": 0
+    },
+    {
+      "part": "p3",
+      "command": "vitest run src/stallWindow.test.ts src/holdGesture.test.ts src/ws/telemetry.test.ts src/viewerPerf.test.ts",
+      "tests": 69,
+      "files": 4,
+      "exit": 0
+    },
+    {
+      "part": "p3",
+      "command": "pytest -q test_r428_codex.py",
+      "tests": 2,
+      "failed": 2,
+      "exit": 1
+    }
+  ],
+  "actual_page_raw_continuity_check": {
+    "source_commit": "054827c5",
+    "known_samples_after_reported_standstill_until_release": 11,
+    "max_gap_s": 0.20399999991059303,
+    "last_sample_before_release_s": 0.13253823621198535
+  },
+  "boundaries": [
+    "Exact isolated git archives under /tmp/r428; no worktree checkout or product edit.",
+    "All executed tests/probes held the shared heavy lock via scripts/test_support/heavy_lock.py.",
+    "Backend tests use the candidate test fakes; no native run, browser run, HAL write or live Sim connection.",
+    "Python environment used read-only from /home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv; node_modules copied into /tmp/r428/p3.",
+    "Full round gates, native logs and mutations were inspected as Claude evidence, not rerun or claimed as own runs.",
+    "No integration merge or machine approval."
+  ],
+  "new_artifacts_sha256": {
+    "maschinentag.r428.codex-backend-probes.py": "422875a462ef73c5179c8696eae000a26211add8736ba387ef62b668422722e5",
+    "maschinentag.r428.codex-backend-probes.txt": "e426b37cfef44aa64b65f2bede912bb5d7a9f976afb2dfb70aed06d034682654",
+    "maschinentag.r428.codex-backend-baseline.txt": "3495516368b78784ec92e9aaa41a4c022086c120902bba0906d6cd80ea1d19eb",
+    "maschinentag.r428.codex-native-baseline.txt": "ccf1b9d8350bfa188dc2c023b871f350d144c3a5683bfb578508f5ab1c303146",
+    "maschinentag.r428.codex-native-probes.py": "5600fd80c313a84b5fb644de1cf9cb9d99c74f100bcaecc1338b0627d4a989be",
+    "maschinentag.r428.codex-native-probes.json": "be75b26dd46ef2d55286f87a0eb9db51a98e3b275225e14dd0b5ad74b6978970",
+    "maschinentag.r428.codex-native-reeval.json": "3b3276c5cb985c6998f8cf8172df5ea97a30f00e19f3f1198c1b2d27a052c65f",
+    "maschinentag.r428.codex-forensics-probes.py": "e5519631e5802fa9f36c80858e469514434e9c6fdc33cc0ba7ee6d8b92c8a011",
+    "maschinentag.r428.codex-forensics-probes.txt": "42b68b6986c5c9f229a9f70e18387d4cf9b71fce4f24f2e104ac7acc61fcbf49",
+    "maschinentag.r428.codex-forensics-baseline.txt": "68af76d77a5943026819b00bf782dc429b084354fcaf60c2e359b82faaee52b2",
+    "maschinentag.r428.codex-frontend-unit.txt": "21783dffd35734154e75d2a84ab57e02f5a131e579e4da1d2f1f84eaac40b5f8",
+    "maschinentag.r428.codex-run-baseline.sh": "5bec69013514eb3fd209723f75709f9abf2b0055f9fe3c8a262143025966910f"
+  }
+}
