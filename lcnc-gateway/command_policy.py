@@ -1185,11 +1185,58 @@ class ExpectMap:
     required: bool = False
 
 
+class ToolRowExpect:
+    """save_tool's / renumber_tool's REQUIRED `expected` mapping (P4-2,
+    machine day F15, Codex MT433-01): the row state the edit dialog was
+    opened on — `table` {path, instance} (the table's canonical path and the
+    LinuxCNC instance the gateway is bound to: the same T after a switch is
+    not the same row), `tool` (the number the dialog opened), `fields` (the
+    merged row's values of exactly TOOL_EDIT_FIELDS — what the dialog sends
+    back whole; null = the row has none, the second named exception to the
+    null refusal). The handler compares it with the row read fresh in the
+    write's own thread before anything is written (_tool_edit_check)."""
+    required: bool = True
+
+
+#: the merged row's fields a tool edit sends back whole (ToolTablePanel
+#: buildToolMsg) — the row state a save or a renumber is checked against
+TOOL_EDIT_FIELDS = ("P", "D", "Z", "remark", "description", "type", "flutes", "oal", "flute_length",
+                    "corner_radius", "body_length", "shaft_diameter", "taper_angle", "point_angle",
+                    "tip_diameter", "material", "holder")
+TOOL_EXPECT_KEYS = frozenset({"table", "tool", "fields"})
+TOOL_TABLE_KEYS = frozenset({"path", "instance"})
+
+
 #: the fixture names a WCS command addresses, in G5X index order (1..9)
 FIXTURE_NAMES = ("G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3")
 
 
 EXPECT_KEYS = frozenset({"kins_type", "g5x_index"})
+
+
+def _check_tool_expect(cmd: str, field: str, raw: JsonValue, limits: "MachineLimits") -> None:
+    """ToolRowExpect's shape: exactly its keys; the table's path and instance
+    bounded strings, the tool a tool number, the fields exactly
+    TOOL_EDIT_FIELDS — each null, a finite number or a string ≤ 255."""
+    if not isinstance(raw, dict) or frozenset(raw) != TOOL_EXPECT_KEYS:
+        raise ValueError(f"{cmd}: {field} must name exactly {sorted(TOOL_EXPECT_KEYS)}")
+    table = raw["table"]
+    if not isinstance(table, dict) or frozenset(table) != TOOL_TABLE_KEYS:
+        raise ValueError(f"{cmd}: {field}.table must name exactly {sorted(TOOL_TABLE_KEYS)}")
+    _check_field(cmd, f"{field}.table.path", table["path"], Text(max_len=4096, required=True), limits)
+    _check_field(cmd, f"{field}.table.instance", table["instance"], Text(max_len=64, required=True), limits)
+    _check_field(cmd, f"{field}.tool", raw["tool"], _TOOL, limits)
+    fields = raw["fields"]
+    if not isinstance(fields, dict) or frozenset(fields) != frozenset(TOOL_EDIT_FIELDS):
+        raise ValueError(f"{cmd}: {field}.fields must name exactly the edited fields")
+    for key, val in fields.items():
+        if val is None:
+            continue
+        if isinstance(val, str):
+            if len(val) > 255:
+                raise ValueError(f"{cmd}: {field}.fields.{key} longer than 255")
+        elif isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val):
+            raise ValueError(f"{cmd}: {field}.fields.{key} must be null, a finite number or a string")
 
 
 def touchoff_target_text(kins_type: JsonValue, g5x_index: JsonValue) -> str:
@@ -1357,13 +1404,14 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}), required=True)},
     # --- tool table: a field left out stays as it is (save / renumber, R321
     #     FI321-02), a new tool is unmeasured (add: 0); null is refused
-    "save_tool":     {"tool_number": _TOOL, **_TOOL_FIELDS},
+    "save_tool":     {"tool_number": _TOOL, **_TOOL_FIELDS, "expected": ToolRowExpect()},
     "add_tool":      {"tool_number": _TOOL, **_TOOL_FIELDS},
     "delete_tool":   {"tool_number": _TOOL},
     # The numbers the UI sends (ToolFields): the old one and the new one, and
     # pocket / diameter as save and add bound them (test strategy step 2: a
     # `new_number` nobody sends was bounded, `old_tool_number` was not).
-    "renumber_tool": {"old_tool_number": _TOOL, "tool_number": _TOOL, **_TOOL_FIELDS},
+    "renumber_tool": {"old_tool_number": _TOOL, "tool_number": _TOOL, **_TOOL_FIELDS,
+                      "expected": ToolRowExpect()},
     "tool_change":   {"tool_number": _TOOL},              # 0 = unload
     "tool_measure":  {"tool": Num(lo=1, hi=TOOL_NUMBER_MAX, integer=True, required=True)},
     # its absence is the handler's own refusal, which names the next step
@@ -1560,6 +1608,9 @@ def _check_field(cmd: str, field: str, raw: JsonValue, spec: object, limits: Mac
         for key, val in raw.items():
             if val is not None:          # null = no claim for this dimension (VM363-02)
                 _check_field(cmd, f"{field}.{key}", val, leaves[key], limits)
+        return None
+    if isinstance(spec, ToolRowExpect):
+        _check_tool_expect(cmd, field, raw, limits)
         return None
     if isinstance(spec, VarNumbers):
         _check_var_numbers(cmd, field, raw, limits)

@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
+import copy
 import itertools
 import contextvars
 import threading
@@ -132,6 +133,7 @@ from tool_table import (
     _merge_tool_data,
     _TOOL_META_FIELDS,
     tool_visual_metadata,
+    tool_row_conflict,
 )
 from settings_store import (SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm,
                             DEVICE_SECTIONS as _DEVICE_SECTIONS, Stale as _SettingsStale,
@@ -5024,19 +5026,74 @@ async def _tool_table_for_edit(tbl_path: str) -> Tuple[Optional[List[Dict[str, A
         return None, f"{e} — nothing written"
 
 
-def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key) -> None:
+TOOL_CHANGED = "Tool changed meanwhile — reopen"
+
+
+class _ToolEditConflict(Exception):
+    """The row a tool edit was opened on is not the row the table holds now
+    (P4-2): the names of what differs. Nothing was written."""
+
+    def __init__(self, fields: List[str]):
+        super().__init__(", ".join(fields))
+        self.fields = fields
+
+
+def _tool_conflict_reply(cmd: str, tool: int, e: "_ToolEditConflict") -> Dict[str, Any]:
+    _trace.emit("tools.edit_conflict", level="warn", cmd=cmd, tool=tool, fields=e.fields)
+    return {"ok": False, "conflict": True, "error": TOOL_CHANGED, "fields": e.fields}
+
+
+def _tool_table_identity(tbl_path: str) -> Dict[str, str]:
+    """The table a tool row belongs to (P4-2, MT433-01): its canonical path
+    and the LinuxCNC instance this gateway is bound to — never the file's
+    inode (the gateway's own writer replaces the file: every write would be
+    a new table)."""
+    inst = _bound_instance
+    return {"path": os.path.realpath(tbl_path),
+            "instance": f"{inst[0]}:{inst[1]}" if inst is not None else "unbound"}
+
+
+def _tool_edit_check(tbl_path: str, expected: Dict[str, Any], tool: int,
+                     base: List[Dict[str, Any]]) -> Callable[[], Optional[List[str]]]:
+    """The writer-side row check of save_tool / renumber_tool (P4-2, Codex
+    MT433-01), run in the write's own thread right before the write: the
+    table read NOW (strictly — unreadable is unknown, refused) and the
+    library; the row the dialog was opened on (`expected`) must be the row
+    there, and the table must still be the one the edit was built from
+    (`base`: LinuxCNC writes the file itself — a G10 L1 of an M600 — and a
+    rewrite from an older read would put another row back)."""
+    def check() -> Optional[List[str]]:
+        try:
+            rows = parse_tool_table(tbl_path, True)
+        except ToolTableUnreadable:
+            return ["table unreadable"]
+        conflict = tool_row_conflict(expected, _tool_table_identity(tbl_path), rows, load_tool_library(), tool)
+        if conflict:
+            return conflict
+        return None if rows == base else ["table"]
+    return check
+
+
+def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
+                               check: Optional[Callable[[], Optional[List[str]]]] = None) -> None:
     """A WS tool edit's write, admitted at the write itself, in its thread
     (button gates BG-14): its connection armed NOW (BG-23); the handler
     holds _cmd_lock, which every start needs. A refusal is a PermissionError
-    — the bounded reply."""
+    — the bounded reply; a row that changed since the dialog opened is a
+    _ToolEditConflict (`check`, P4-2) — both before anything is written."""
     why = _write_admission_refusal(conn_key, tool_table=True)
     if why:
         raise PermissionError(why)
+    if check is not None:
+        conflict = check()
+        if conflict:
+            raise _ToolEditConflict(conflict)
     write_tool_table(tbl_path, tools)
 
 
 async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_library,
-                             *, meta_dirty: bool = False) -> None:
+                             *, meta_dirty: bool = False,
+                             check: Optional[Callable[[], Optional[List[str]]]] = None) -> None:
     """A WS tool edit's persist as ONE section, to its END (button gates
     BG-22, Codex R211): the table write (admitted in its thread), the reload
     into LinuxCNC, then the metadata — `update_library(library)` changes the
@@ -5050,7 +5107,7 @@ async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_librar
     library read and write."""
     async def section():
         global _tool_meta_dirty
-        await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key)
+        await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key, check)
         await _reload_tool_table_and_bump()
         library = await asyncio.to_thread(load_tool_library)
         update_library(library)
@@ -6863,6 +6920,7 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
         tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
         if tbl_tools is None:   # (None exactly with its refusal)
             return {"ok": False, "error": refusal}
+        check = _tool_edit_check(tbl_path, msg["expected"], tool_num, copy.deepcopy(tbl_tools))
         found = False
         for t in tbl_tools:
             if t["T"] == tool_num:
@@ -6886,7 +6944,10 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
             for field in _TOOL_META_FIELDS:
                 if field in msg:
                     library[key][field] = msg[field]
-        await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, meta_dirty=True)
+        try:
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, meta_dirty=True, check=check)
+        except _ToolEditConflict as e:
+            return _tool_conflict_reply("save_tool", tool_num, e)
         return {"ok": True}
 
     if cmd == "add_tool":
@@ -6963,6 +7024,7 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
         tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
         if tbl_tools is None:   # (None exactly with its refusal)
             return {"ok": False, "error": refusal}
+        check = _tool_edit_check(tbl_path, msg["expected"], old_num, copy.deepcopy(tbl_tools))
         src = next((t for t in tbl_tools if t["T"] == old_num), None)
         if src is None:
             return {"ok": False, "error": f"Tool T{old_num} not found"}
@@ -6994,7 +7056,10 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
                 if field in msg:
                     meta[field] = msg[field]
             library[str(new_num)] = meta
-        await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update)
+        try:
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, check=check)
+        except _ToolEditConflict as e:
+            return _tool_conflict_reply("renumber_tool", old_num, e)
         return {"ok": True, "tool_number": new_num}
 
     if cmd == "tool_change":
@@ -8211,7 +8276,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             except (AttributeError, ValueError, TypeError, linuxcnc.error) as e:
                 _trace.emit("tools.current_tool_poll_failed", level="warn",
                             exc=type(e).__name__, msg=str(e))
-            return {"ok": True, "tools": merged, "current_tool": current_tool}
+            return {"ok": True, "tools": merged, "current_tool": current_tool,
+                    "table": _tool_table_identity(tbl_path)}
 
         if cmd == "get_probe_results":
             pts = await asyncio.to_thread(_bulk.read_probe_results_file)

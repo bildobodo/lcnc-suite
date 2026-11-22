@@ -11,6 +11,9 @@ and the NML reload stay in gateway.py — only the format/merge logic moves here
 
 import re
 
+from typing import Optional
+
+from command_policy import TOOL_EDIT_FIELDS
 from gateway_util import atomic_write_bytes
 
 #: every field a LinuxCNC tool line may carry, in its own order (the offsets
@@ -188,3 +191,22 @@ def _merge_tool_data(tbl_tools: list, library: dict) -> list:
                 entry[field] = meta.get(field)
         merged.append(entry)
     return merged
+
+
+def tool_row_conflict(expected: dict, identity: dict, rows: list, library: dict, tool: int) -> Optional[list]:
+    """What differs between the row state a tool edit was opened on
+    (`expected`, command_policy.ToolRowExpect — already shape-checked) and
+    the table read NOW: None = the same; else the names — "table" (another
+    table or LinuxCNC instance), "tool" (another number than the edit
+    addresses), "gone" (the row is no longer there), or each field of
+    TOOL_EDIT_FIELDS whose value changed (P4-2, Codex MT433-01). Pure."""
+    if expected.get("table") != identity:
+        return ["table"]
+    if expected.get("tool") != tool:
+        return ["tool"]
+    row = next((r for r in _merge_tool_data(rows, library) if r["T"] == tool), None)
+    if row is None:
+        return ["gone"]
+    fields = expected.get("fields") or {}
+    changed = [f for f in TOOL_EDIT_FIELDS if row.get(f) != fields.get(f)]
+    return changed or None
