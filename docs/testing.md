@@ -59,7 +59,10 @@ overlap is decided by FILE ORDER (`nc.window_losses`: a report between the marks
 one before the start mark never, one after the end mark only unless its loss began after the
 end) — wall-clock fields never take a report out of the window (Codex R432). The progress
 reader keeps file order too and treats its own gateway's loss report as an incomplete
-observation: the wait proves the end or refuses at its bound.
+observation: the wait proves the end or refuses at its bound. It walks the generations
+oldest first and carries the slice's beginning into every newer file (a wall step at a
+rotation never drops the newer file); one file read under two names (a rotation during the
+read) leaves the order unproven — incomplete (Codex R433).
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

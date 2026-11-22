@@ -8247,3 +8247,67 @@ def test_r432_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wal
     assert b'"trace.write_lost"' in raw and w["framed"] and w["losses"], w
     assert nc.eval_parse_basis("pb", w, 3)["status"] == "incomplete", w
 
+
+# ── Codex R433 MT-I18 A: the slice goes on across a rotation ───────────────
+def _r433_observation(new_time, with_loss):
+    """The slice begins in `.1` (applied, stamped 200 >= 199); after a
+    rotation and a wall step the current file holds the next booking
+    stamped `new_time` — newest first, as the real reader delivers."""
+    older = [{"tag": "toolsetter.basis", "origin": "applied", "version": 10, "t_wall_ns": 200}]
+    newer = [{"tag": "toolsetter.basis", "origin": "assumed", "version": 11, "t_wall_ns": new_time}]
+    if with_loss:
+        newer += [{"tag": "trace.write_lost", "count": 1, "since_ns": new_time, "t_wall_ns": new_time + 1,
+                   "why": {"lock_busy": 1}}]
+    return [("trace.ndjson", 42, _r432_data(newer)), ("trace.ndjson.1", 41, _r432_data(older))], []
+
+
+def _r433_slice(files_and_errors, t_ns=199):
+    from unittest import mock
+    with mock.patch.object(nr, "_trace_files", return_value=files_and_errors):
+        return nr._gateway_events_since({"gateway_pid": 101, "run": Path("/unused")}, t_ns)
+
+
+@pytest.mark.parametrize("with_loss", [False, True])
+def test_r433_a_wall_step_at_a_rotation_keeps_the_new_generation_after_the_beginning(with_loss):
+    """Codex R433: the beginning in .1, the continued slice in the current
+    file — nothing of the newer generation is dropped, its loss is seen."""
+    sl = _r433_slice(_r433_observation(150, with_loss))
+    assert nc.pb_owed(sl), {"events": list(sl), "problems": sl.problems}
+    assert [e["version"] for e in sl if e["tag"] == "toolsetter.basis"] == [10, 11]
+    if with_loss:
+        assert any("lost" in p for p in sl.problems), sl.problems
+
+
+def test_r433_the_same_rotation_without_a_wall_step_is_recognized():
+    sl = _r433_slice(_r433_observation(210, True))
+    assert nc.pb_owed(sl) and any("lost" in p for p in sl.problems)
+
+
+def test_r433_the_rotated_loss_does_not_release_the_live_wait():
+    from types import SimpleNamespace
+    from unittest import mock
+    clock, calls = _R431Clock(), []
+
+    def files(_path):
+        calls.append(round(clock.t, 3))
+        return _r433_observation(150, True)
+    with mock.patch.object(nr, "time", clock), mock.patch.object(nr, "_trace_files", files):
+        try:
+            waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+                                  owed=lambda: nc.pb_owed(nr._gateway_events_since(
+                                      {"gateway_pid": 101, "run": Path("/unused")}, 199)))
+        except nr.Refused:
+            return
+    pytest.fail(f"an unconfirmed, lossy observation ended the wait: waited={waited}, reads_at={calls}")
+
+
+def test_r433_a_rotation_during_the_read_is_no_proven_order():
+    """One file read under two names (the current file rotated to .1 between
+    the reads): even a slice that seems to show the end proves nothing."""
+    ended = _r432_data([dict(t_wall_ns=300, **e) for e in _r431_ops()])
+    sl = _r433_slice(([("trace.ndjson", 42, ended), ("trace.ndjson.1", 42, ended)], []))
+    assert any("rotated while it was read" in p for p in sl.problems), sl.problems
+    assert nc.pb_owed(sl)
+    # the control: the same records read once are a proven end
+    assert nc.pb_owed(_r433_slice(([("trace.ndjson", 42, ended)], []))) is None
+

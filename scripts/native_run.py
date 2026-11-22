@@ -1809,19 +1809,32 @@ def _pb_program() -> str:
 
 
 def _gateway_events_since(ctx, t_ns: int) -> "nc.TraceSlice":
-    """THIS run's gateway trace records stamped at or after wall `t_ns`, as
-    an observation (nc.TraceSlice, Codex R431 MT-I17 B): a file not read, a
-    damaged line after the slice's first record and this gateway's own
+    """THIS run's gateway trace records from the slice's beginning on, as an
+    observation (nc.TraceSlice, Codex R431 MT-I17 B): a file not read, a
+    damaged line after the slice began and this gateway's own
     `trace.write_lost` after it (Codex R432 MT-I18 A — a lost booking may be
     the op's last) are its problems — never dropped, so an unreadable or
-    incomplete moment settles no owed read-back; the wait's bound refuses."""
+    incomplete moment settles no owed read-back; the wait's bound refuses.
+
+    The generations are walked in their PROVEN order, the oldest first,
+    BEFORE anything is cut (Codex R433): the slice begins at the first record
+    stamped at or after wall `t_ns`, and once begun it goes on through every
+    newer generation — never re-derived per file from the wall clock (a wall
+    step at a rotation would drop the newer file). A file read under two
+    names (one inode) is a rotation during the read: the order is not
+    proven, the observation is incomplete."""
     pid = ctx.get("gateway_pid") or ctx.setdefault("gateway_pid", _gateway_pid(ctx))
     files, errors = _trace_files(ctx["run"] / "logs")
-    per_file, problems = [], list(errors)
-    for name, _ino, data in files:
-        out = []
-        per_file.append((nc._generation(name), out))
-        inside, damaged, lost = False, 0, 0
+    problems = list(errors)
+    seen: dict = {}
+    for name, ino, _data in files:
+        if ino in seen:
+            problems.append(f"the trace rotated while it was read ({seen[ino]} and {name} are one file)")
+        seen[ino] = name
+    out: list = []
+    inside = False
+    for name, _ino, data in sorted(files, key=lambda f: -nc._generation(f[0])):   # the oldest first
+        damaged, lost = 0, 0
         for line in data.split(b"\n")[:-1]:     # after the last newline: a line still being written
             try:
                 e = json.loads(line)
@@ -1830,25 +1843,19 @@ def _gateway_events_since(ctx, t_ns: int) -> "nc.TraceSlice":
             if not isinstance(e, dict):
                 damaged += inside
                 continue
-            if (e.get("t_wall_ns") or 0) >= t_ns:
+            if not inside and (e.get("t_wall_ns") or 0) >= t_ns:
                 inside = True
             if not inside:
                 continue
             if e.get("pid") == pid:
                 out.append(e)
                 if e.get("tag") == "trace.write_lost":
-                    # this gateway lost records it then reported, after the
-                    # slice began (file order): the observation is incomplete
-                    # — its last visible booking proves no end (Codex R432)
                     lost += int(e.get("count") or 1)
         if damaged:
             problems.append(f"{name}: {damaged} damaged line(s)")
         if lost:
             problems.append(f"{name}: the gateway lost {lost} trace record(s)")
-    # FILE order, the oldest generation first — never sorted by wall time (a
-    # wall step would reorder the bookings the owed check reads last-first)
-    ordered = [e for _g, out in sorted(per_file, key=lambda x: -x[0]) for e in out]
-    return nc.TraceSlice(ordered, problems)
+    return nc.TraceSlice(out, problems)
 
 
 def _pb_quiet(c, case: str, owed=None) -> float:

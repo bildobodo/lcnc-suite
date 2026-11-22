@@ -118,7 +118,9 @@ def _ts_readback_ended''')],
             return "no booking of the op in the trace yet"''')],
         [NS + "test_r431_an_empty_or_damaged_observation_settles_nothing"]),
     # MT-I17 B: the reader drops its damaged lines and read errors again
-    "reader_drops_problems": ("../scripts/native_run.py", [('''    per_file, problems = [], list(errors)''', '''    per_file, problems = [], []'''),
+    "reader_drops_problems": ("../scripts/native_run.py", [('''    problems = list(errors)
+    seen: dict = {}''', '''    problems = []
+    seen: dict = {}'''),
                                                          ('''        if damaged:
             problems.append(f"{name}: {damaged} damaged line(s)")''', '''        pass''')],
         [NS + "test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing",
@@ -145,8 +147,8 @@ def _ts_readback_ended''')],
     "reader_ignores_losses": ("../scripts/native_run.py", [('''                    lost += int(e.get("count") or 1)''', '''                    pass''')],
         [NS + "test_r432_a_gateway_loss_cannot_settle_the_live_owed_wait"]),
     # MT-I18 A: the progress reader sorts by wall time again
-    "reader_sorts_by_wall": ("../scripts/native_run.py", [('''    ordered = [e for _g, out in sorted(per_file, key=lambda x: -x[0]) for e in out]''',
-                                                         '''    ordered = sorted((e for _g, out in per_file for e in out), key=lambda e: e.get("t_wall_ns") or 0)''')],
+    "reader_sorts_by_wall": ("../scripts/native_run.py", [('''    return nc.TraceSlice(out, problems)''',
+                                                         '''    return nc.TraceSlice(sorted(out, key=lambda e: e.get("t_wall_ns") or 0), problems)''')],
         [NS + "test_r432_the_progress_reader_keeps_file_order_across_a_wall_step"]),
     # Codex R432 MT-I18 B: a report inside the frame excluded by its since_ns (the wall)
     "inside_excluded_by_since": ("../scripts/test_support/native_cases.py", [('''            if after and isinstance(since, int) and isinstance(t_end, int) and since > t_end:''',
@@ -167,6 +169,23 @@ def _ts_readback_ended''')],
                 continue
             since = r.get("since_ns")''', '''            since = r.get("since_ns")''')],
         [NS + "test_r432_a_report_before_the_start_mark_is_excluded_by_order_whatever_its_wall_time"]),
+    # Codex R433 MT-I18 A: the slice's beginning re-derived per file from the wall clock
+    "slice_begins_per_file": ("../scripts/native_run.py", [('''        damaged, lost = 0, 0
+        for line in data.split(b"\\n")[:-1]:''', '''        damaged, lost = 0, 0
+        inside = False
+        for line in data.split(b"\\n")[:-1]:''')],
+        [NS + "test_r433_a_wall_step_at_a_rotation_keeps_the_new_generation_after_the_beginning[False]",
+         NS + "test_r433_a_wall_step_at_a_rotation_keeps_the_new_generation_after_the_beginning[True]",
+         NS + "test_r433_the_rotated_loss_does_not_release_the_live_wait"]),
+    # MT-I18 A: the generations walked newest first (the order not proven)
+    "generations_newest_first": ("../scripts/native_run.py", [('''    for name, _ino, data in sorted(files, key=lambda f: -nc._generation(f[0])):   # the oldest first''',
+                                                             '''    for name, _ino, data in files:''')],
+        [NS + "test_r433_a_wall_step_at_a_rotation_keeps_the_new_generation_after_the_beginning[False]"]),
+    # MT-I18 A: a rotation during the read goes unnoticed
+    "rotation_during_read_unnoticed": ("../scripts/native_run.py", [('''        if ino in seen:
+            problems.append''', '''        if False:
+            problems.append''')],
+        [NS + "test_r433_a_rotation_during_the_read_is_no_proven_order"]),
 }
 
 only = sys.argv[1:]
