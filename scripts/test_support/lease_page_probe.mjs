@@ -18,10 +18,16 @@ const out = { marks: {}, hints: [], errors: [] };
 const mark = (k) => { out.marks[k] = Date.now(); };
 const browser = await chromium.launch();
 try {
-  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  // The VM has no GPU: headless Chromium renders the 3D view in software,
+  // ~1.5 s a frame once the machine moves — the page itself would hang and
+  // its lease would rightly end. A pixel ratio of 0.25 cuts the canvas to a
+  // sixteenth (the layout and the controls stay in CSS px); the evaluators
+  // still judge a hold only on a page without a long task.
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 0.25 });
   page.on("console", (m) => { if (m.type() === "error") out.errors.push(m.text().slice(0, 300)); });
   await page.goto(url);
   await page.locator("input.setupInput").first().waitFor({ timeout: 30_000 });
+  out.dpr = await page.evaluate(() => window.devicePixelRatio);
   const arm = page.getByRole("button", { name: "Arm", exact: true });
   await arm.click();
   await page.locator(".pill.armed").waitFor({ timeout: 10_000 });
@@ -53,7 +59,7 @@ try {
   await page.evaluate(() => { const t = performance.now(); while (performance.now() - t < 2500) { /* busy */ } });
   mark("block_end");
   await page.waitForTimeout(300);
-  const hint = await page.locator("[data-btn-hint]").textContent().catch(() => null);
+  const hint = await page.locator("[data-btn-hint]").textContent({ timeout: 1000 }).catch(() => null);
   if (hint) out.hints.push(hint.trim());
   await page.mouse.up();
   mark("b_up");

@@ -1531,6 +1531,28 @@ def _expiries(trace_events: list, t0: float, t1: float, to_mono) -> list:
     return out
 
 
+PAGE_LONGTASK_MS = 500   # telemetry.ts reports the page's long tasks past this
+
+
+def _long_tasks(trace_events: list, w0: float, w1: float, to_mono) -> list:
+    """The page's own long tasks (`browser.longtask`, > 500 ms) overlapping
+    [w0, w1] (monotonic): (start after w0 s, ms). A page with one is no
+    healthy page — a lease expiry there is the lease doing its work."""
+    out = []
+    for e in trace_events:
+        if e.get("tag") != "browser.longtask":
+            continue
+        try:
+            wall_ms = float(e["t_wall_ms"]) - float(e["t_perf_ms"]) + float(e["start_ms"])
+            ms = float(e["ms"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        t0 = to_mono(wall_ms / 1000)
+        if t0 + ms / 1000 >= w0 and t0 <= w1:
+            out.append((round(t0 - w0, 3), round(ms)))
+    return sorted(out)
+
+
 def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: list, to_mono) -> dict:
     """The REAL page held a jog button for 3 s, its main thread healthy: the
     jog moved without a break (by the position) and the gateway expired no
@@ -1538,6 +1560,10 @@ def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: li
     if not {"a_down", "a_up"} <= set(marks):
         return _row(case, "incomplete", f"the page did not reach its healthy hold: {sorted(marks)}")
     a0, a1 = to_mono(marks["a_down"] / 1000), to_mono(marks["a_up"] / 1000)
+    lt = _long_tasks(trace_events, a0, a1, to_mono)
+    if lt:
+        return _row(case, "incomplete", f"the page was not healthy while it held: {len(lt)} long tasks "
+                    f"> {PAGE_LONGTASK_MS} ms (the first at +{lt[0][0]} s, {lt[0][1]} ms)", long_tasks=lt[:6])
     expired = _expiries(trace_events, a0, a1 + 0.2, to_mono)
     if expired:
         return _row(case, "FAIL", f"{len(expired)} lease expiries while the page renewed", held_s=round(a1 - a0, 3))
@@ -1562,6 +1588,10 @@ def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, tr
     at_block = [p for t, p, _ in samples if t <= s0 and p is not None]
     if start is None or not at_block or abs(at_block[-1] - start) < 0.5:
         return _row(case, "incomplete", "the jog was not seen moving before the block", **measured)
+    lt = _long_tasks(trace_events, b0, s0 - 0.05, to_mono)
+    if lt:
+        return _row(case, "incomplete", f"the page was not healthy before its block: {len(lt)} long tasks "
+                    f"> {PAGE_LONGTASK_MS} ms (the first at +{lt[0][0]} s, {lt[0][1]} ms)", long_tasks=lt[:6], **measured)
     expired = _expiries(trace_events, b0, s1 + 0.5, to_mono)
     measured["expiries"] = len(expired)
     if len(expired) != 1:

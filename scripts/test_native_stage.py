@@ -7687,3 +7687,33 @@ def test_the_real_page_probe_kept_and_blocked():
     assert nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(stop_at=3.9, until=4.8), late, ident)["status"] == "FAIL"
     moving_on = nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(until=4.5), rec, ident)
     assert moving_on["status"] == "FAIL", "no standstill while blocked"
+
+
+def _long_task(at_s, ms):
+    """A `browser.longtask` record starting at mono `at_s` (wall = mono): the
+    page reports it later, its start in its own performance clock."""
+    return {"tag": "browser.longtask", "t_wall_ms": 20_000, "t_perf_ms": 19_000,
+            "start_ms": at_s * 1000 - 1000, "ms": ms}
+
+
+def test_a_page_with_a_long_task_is_no_healthy_page():
+    """The VM's software rendering hung the page 1.5–1.7 s while it held
+    (native run 2026-11-22): an expiry there is the lease doing its work —
+    the healthy cases say 'incomplete' with the long tasks, never PASS or FAIL."""
+    ident = lambda w: w   # noqa: E731
+    marks = {"a_down": 100, "a_up": 3100}
+    kept = _page_course(sign=-1, until=4.0)
+    noisy = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(2.2), "stopped": [0], "failed": [], "late_ms": 1}]
+    row = nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(1.8, 1718)], ident)
+    assert row["status"] == "incomplete" and row["long_tasks"] == [(1.7, 1718)], row
+    # a long task before the hold leaves the hold judged
+    assert nc.eval_lease_page_kept("k", marks, kept, [_long_task(-2.0, 900)], ident)["status"] == "PASS"
+    assert nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(-2.0, 900)], ident)["status"] == "FAIL"
+    # blocked: the block's own long task is the block; one before it is not healthy
+    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500}
+    blocked = _page_course(stop_at=1.7, until=4.5)
+    rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
+    own = _long_task(1.0, 2500)
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [own], ident)["status"] == "PASS"
+    before = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [_long_task(0.3, 600)], ident)
+    assert before["status"] == "incomplete" and "before its block" in before["detail"], before
