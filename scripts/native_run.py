@@ -1696,7 +1696,8 @@ def _pb_quiet(c, case: str) -> float:
 
 def parse_basis_cases():
     """P2a's measure on the real task (plan R427 Teil 2): with a program
-    loaded that runs the routine, three probe-z ops with unchanged values —
+    loaded that runs the routine, three probe-z ops through the panel's
+    `probe_run` with unchanged values —
     the toolsetter re-parses they cause (the base: one per op, F24; P2a:
     none), every drift re-parse's priority, the quiet time after the ops."""
     def step(ctx):
@@ -1713,14 +1714,18 @@ def _parse_basis_steps(ctx):
     for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
         _short(c, line)
     _probe_tool(c)
-    probe_vars = {**_vars(c, PROBE_VARS), 3030: 0}
-    payload = {"text": "O<probe_z_minus_wco> CALL", "vars": {str(k): v for k, v in probe_vars.items()}}
+    # the PANEL's path (Codex R427): `probe_run` with the panel's own job
+    # (probe_panel_jobs.json, z_surface) — the machine day's entry, not an
+    # mdi with vars
+    job = panel_jobs()["z_surface"]["job"]
+    payload = {"routine": job["routine"], "vars": dict(job["vars"])}
+    ctx["report"]["parse_basis_job"] = payload
 
     def probe(case):
         _over_plate(c, plate, PROBE_OVER)
         _override_free(c)
         try:
-            r = _probe_job(c, case, "mdi", payload)
+            r = _probe_job(c, case, "probe_run", payload)
         except Exception:
             rows.append(_finish_row(f"{case}.finish", _finish(c, [])))
             raise
