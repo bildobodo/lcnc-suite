@@ -7668,24 +7668,28 @@ def _wall(t):
     return int(t * 1e9)
 
 
+#: the probe's own main-thread record of its 2.5 s block (block_start 1000 ms)
+_BLOCK = [[1000, 2500]]
+
+
 def test_the_real_page_probe_kept_and_blocked():
     ident = lambda w: w   # noqa: E731 — the probe's clock relation, identity here
     kept = _page_course(sign=-1, until=4.0)
     marks = {"a_down": 100, "a_up": 3100}
-    assert nc.eval_lease_page_kept("k", marks, kept, [], ident)["status"] == "PASS"
+    assert nc.eval_lease_page_kept("k", marks, kept, [], ident, [])["status"] == "PASS"
     noisy = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.5), "stopped": [0], "failed": [], "late_ms": 2}]
-    assert nc.eval_lease_page_kept("k", marks, kept, noisy, ident)["status"] == "FAIL", "an expiry while healthy"
+    assert nc.eval_lease_page_kept("k", marks, kept, noisy, ident, [])["status"] == "FAIL", "an expiry while healthy"
     # blocked: down at 0, block 1.0 → 3.5, the gateway expires at 1.55, standstill from 1.7
     marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500, "b_up": 3800}
     blocked = _page_course(stop_at=1.7, until=4.5)
     rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
-    row = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident)
+    row = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident, _BLOCK)
     assert row["status"] == "PASS", row
     assert row["expiry_after_block_s"] == 0.55 and row["overrun_mm"] > 10
-    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, [], ident)["status"] == "FAIL", "no expiry"
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, [], ident, _BLOCK)["status"] == "FAIL", "no expiry"
     late = [{**rec[0], "t_wall_ns": _wall(3.8)}]
-    assert nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(stop_at=3.9, until=4.8), late, ident)["status"] == "FAIL"
-    moving_on = nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(until=4.5), rec, ident)
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(stop_at=3.9, until=4.8), late, ident, _BLOCK)["status"] == "FAIL"
+    moving_on = nc.eval_lease_page_blocked("b", 0, marks_b, _page_course(until=4.5), rec, ident, _BLOCK)
     assert moving_on["status"] == "FAIL", "no standstill while blocked"
 
 
@@ -7704,18 +7708,18 @@ def test_a_page_with_a_long_task_is_no_healthy_page():
     marks = {"a_down": 100, "a_up": 3100}
     kept = _page_course(sign=-1, until=4.0)
     noisy = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(2.2), "stopped": [0], "failed": [], "late_ms": 1}]
-    row = nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(1.8, 1718)], ident)
+    row = nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(1.8, 1718)], ident, [])
     assert row["status"] == "incomplete" and row["long_tasks"] == [(1.7, 1718)], row
     # a long task before the hold leaves the hold judged
-    assert nc.eval_lease_page_kept("k", marks, kept, [_long_task(-2.0, 900)], ident)["status"] == "PASS"
-    assert nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(-2.0, 900)], ident)["status"] == "FAIL"
+    assert nc.eval_lease_page_kept("k", marks, kept, [_long_task(-2.0, 900)], ident, [])["status"] == "PASS"
+    assert nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(-2.0, 900)], ident, [])["status"] == "FAIL"
     # blocked: the block's own long task is the block; one before it is not healthy
     marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500, "b_up": 3800}
     blocked = _page_course(stop_at=1.7, until=4.5)
     rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
     own = _long_task(1.0, 2500)
-    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [own], ident)["status"] == "PASS"
-    before = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [_long_task(0.3, 600)], ident)
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [own], ident, _BLOCK)["status"] == "PASS"
+    before = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [_long_task(0.3, 600)], ident, _BLOCK)
     assert before["status"] == "incomplete" and "before its block" in before["detail"], before
 
 
@@ -7729,7 +7733,7 @@ def test_the_blocked_page_judge_refuses_codex_r427s_three_cases():
     dense = [(i * .05, min(i * .05, 1.6) * 20, 20 if i * .05 < 1.6 else 0) for i in range(91)]
 
     def judge(samples, **fields):
-        return nc.eval_lease_page_blocked("r427", 0, marks, samples, [{**rec, **fields}], ident)
+        return nc.eval_lease_page_blocked("r427", 0, marks, samples, [{**rec, **fields}], ident, _BLOCK)
     assert judge(dense)["status"] == "PASS", judge(dense)
     assert judge(dense, late_ms=-100)["status"] == "FAIL"
     assert judge(dense, late_ms=None)["status"] == "incomplete"
@@ -7742,7 +7746,7 @@ def test_the_blocked_page_judge_refuses_codex_r427s_three_cases():
     assert r["status"] == "incomplete" and "lacks positions" in r["detail"], r
     # without the release mark the held gesture's end is unobserved: no PASS
     no_up = {k: v for k, v in marks.items() if k != "b_up"}
-    assert nc.eval_lease_page_blocked("r427", 0, no_up, dense, [rec], ident)["status"] == "incomplete"
+    assert nc.eval_lease_page_blocked("r427", 0, no_up, dense, [rec], ident, _BLOCK)["status"] == "incomplete"
 
 
 def test_the_direct_expiry_judge_shares_the_hardened_helpers():
@@ -7758,3 +7762,28 @@ def test_the_direct_expiry_judge_shares_the_hardened_helpers():
     holes = [(0.0, 10.0, 0.0), (0.05, None, None), (0.4, 10.0, 0.0), (0.45, 10.0, 0.0)]
     assert nc._standstill_at(holes) == (None, "gap"), "an unknown position measures nothing"
     assert nc._standstill_at([(0.0, 10.0, 0.0), (0.1, 10.0, 0.0)]) == (None, "short")
+
+
+def test_the_page_judges_read_the_pages_own_timer_gaps():
+    """A main thread that stood past PAGE_HEALTHY_GAP_MS while it held is no
+    healthy page — several short tasks back to back as surely as one long
+    task (the run of 2026-11-22 at fe87961c: 721 ms, no task past 500 ms):
+    incomplete, never FAIL; within it an expiry IS a fault; no timer
+    evidence at all is incomplete; a block the timers do not show is no
+    block of THIS thread."""
+    ident = lambda w: w   # noqa: E731
+    marks = {"a_down": 100, "a_up": 3100}
+    kept = _page_course(sign=-1, until=4.0)
+    noisy = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(2.2), "stopped": [0], "failed": [], "late_ms": 2}]
+    stood = nc.eval_lease_page_kept("k", marks, kept, noisy, ident, [[1500, 721]])
+    assert stood["status"] == "incomplete" and stood["timer_gaps"] == [(1.4, 721)], stood
+    assert nc.eval_lease_page_kept("k", marks, kept, noisy, ident, [[1500, 300]])["status"] == "FAIL"
+    assert nc.eval_lease_page_kept("k", marks, kept, [], ident, [[1500, 300]])["status"] == "PASS"
+    assert nc.eval_lease_page_kept("k", marks, kept, [], ident, None)["status"] == "incomplete"
+    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500, "b_up": 3800}
+    blocked = _page_course(stop_at=1.7, until=4.5)
+    rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident, _BLOCK)["status"] == "PASS"
+    assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident, [])["status"] == "incomplete", "no block seen"
+    before = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident, _BLOCK + [[400, 500]])
+    assert before["status"] == "incomplete" and "before its block" in before["detail"], before

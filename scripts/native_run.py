@@ -819,9 +819,10 @@ def jog_lease_cases():
             rows.append(nc._row("jog-lease-page-kept", "incomplete", f"the trace window: {window['reason']}"))
             rows.append(nc._row("jog-lease-page-blocked", "incomplete", f"the trace window: {window['reason']}"))
         else:
-            rows.append(nc.eval_lease_page_kept("jog-lease-page-kept", probe.get("marks", {}), page_samples, events, to_mono))
+            rows.append(nc.eval_lease_page_kept("jog-lease-page-kept", probe.get("marks", {}), page_samples, events, to_mono,
+                                                probe.get("timer_gaps")))
             rows.append(nc.eval_lease_page_blocked("jog-lease-page-blocked", axis, probe.get("marks", {}), page_samples,
-                                                   events, to_mono))
+                                                   events, to_mono, probe.get("timer_gaps")))
         if c.error:
             raise RuntimeError(f"the session ended after the lease cases — {c.error}")
         return rows

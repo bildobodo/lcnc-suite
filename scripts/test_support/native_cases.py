@@ -1571,6 +1571,25 @@ def _expiries(trace_events: list, t0: float, t1: float, to_mono) -> list:
 
 
 PAGE_LONGTASK_MS = 500   # telemetry.ts reports the page's long tasks past this
+#: the widest main-thread timer gap a HEALTHY page may show while it holds:
+#: a renewal every 100 ms, 500 ms validity — a gap past the validity less
+#: one renewal period (and a margin for the transport) can end the lease by
+#: design; within it an expiry is a fault
+PAGE_HEALTHY_GAP_MS = 350
+
+
+def _timer_gaps(gaps, w0: float, w1: float, to_mono, limit_ms: float = PAGE_HEALTHY_GAP_MS) -> list:
+    """The probe's own main-thread timer gaps ([wall start ms, ms]) past
+    `limit_ms` overlapping [w0, w1] (monotonic): (start after w0 s, ms)."""
+    out = []
+    for g in gaps or []:
+        try:
+            t0, ms = to_mono(float(g[0]) / 1000), float(g[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if ms > limit_ms and t0 + ms / 1000 >= w0 and t0 <= w1:
+            out.append((round(t0 - w0, 3), round(ms)))
+    return sorted(out)
 
 
 def _long_tasks(trace_events: list, w0: float, w1: float, to_mono) -> list:
@@ -1592,7 +1611,8 @@ def _long_tasks(trace_events: list, w0: float, w1: float, to_mono) -> list:
     return sorted(out)
 
 
-def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: list, to_mono) -> dict:
+def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: list, to_mono,
+                         timer_gaps=None) -> dict:
     """The REAL page held a jog button for 3 s, its main thread healthy: the
     jog moved without a break (by the position) and the gateway expired no
     lease meanwhile."""
@@ -1603,6 +1623,12 @@ def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: li
     if lt:
         return _row(case, "incomplete", f"the page was not healthy while it held: {len(lt)} long tasks "
                     f"> {PAGE_LONGTASK_MS} ms (the first at +{lt[0][0]} s, {lt[0][1]} ms)", long_tasks=lt[:6])
+    if timer_gaps is None:
+        return _row(case, "incomplete", "no timer evidence of the page's main thread")
+    tg = _timer_gaps(timer_gaps, a0, a1, to_mono)
+    if tg:
+        return _row(case, "incomplete", f"the page was not healthy while it held: its timers stood {tg[0][1]} ms "
+                    f"at +{tg[0][0]} s (> {PAGE_HEALTHY_GAP_MS} ms)", timer_gaps=tg[:6])
     expired = _expiries(trace_events, a0, a1 + 0.2, to_mono)
     if expired:
         return _row(case, "FAIL", f"{len(expired)} lease expiries while the page renewed", held_s=round(a1 - a0, 3))
@@ -1612,7 +1638,8 @@ def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: li
     return {**row, "lease": None}
 
 
-def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, trace_events: list, to_mono) -> dict:
+def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, trace_events: list, to_mono,
+                            timer_gaps=None) -> dict:
     """The REAL page held a jog button and its main thread was blocked for
     2.5 s: the gateway expired the page's lease WHILE the page was blocked
     (one `jog.lease_expired`, the axis stopped, late_ms ≥ 0) and the axis
@@ -1631,6 +1658,16 @@ def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, tr
     if lt:
         return _row(case, "incomplete", f"the page was not healthy before its block: {len(lt)} long tasks "
                     f"> {PAGE_LONGTASK_MS} ms (the first at +{lt[0][0]} s, {lt[0][1]} ms)", long_tasks=lt[:6], **measured)
+    if timer_gaps is None:
+        return _row(case, "incomplete", "no timer evidence of the page's main thread", **measured)
+    tg = _timer_gaps(timer_gaps, b0, s0 - 0.05, to_mono)
+    if tg:
+        return _row(case, "incomplete", f"the page was not healthy before its block: its timers stood {tg[0][1]} ms "
+                    f"at +{tg[0][0]} s (> {PAGE_HEALTHY_GAP_MS} ms)", timer_gaps=tg[:6], **measured)
+    # the block itself must show in the timers: the probe blocked THIS thread
+    blk = _timer_gaps(timer_gaps, s0 - 0.05, s1, to_mono, limit_ms=(s1 - s0) * 1000 * 0.8)
+    if not blk:
+        return _row(case, "incomplete", "the block does not show in the page's own timers", **measured)
     expired = _expiries(trace_events, b0, s1 + 0.5, to_mono)
     measured["expiries"] = len(expired)
     if len(expired) != 1:

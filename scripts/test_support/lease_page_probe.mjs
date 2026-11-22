@@ -31,6 +31,22 @@ try {
   await page.goto(url);
   await page.locator("input.setupInput").first().waitFor({ timeout: 30_000 });
   out.dpr = await page.evaluate(() => window.devicePixelRatio);
+  // The main thread's own timer evidence (Codex R427 MT-I10 follow-up): a
+  // 20 ms chain records every gap past 100 ms (its wall-clock start, its
+  // length) — the lease's renewals run on this same thread, so a gap here
+  // is a gap in the renewals; several short tasks back to back hang it as
+  // surely as one long task (the run of 2026-11-22 at fe87961c: 721 ms
+  // without a task past 500 ms).
+  await page.evaluate(() => {
+    const w = window;
+    w.__gaps = [];
+    let last = performance.now();
+    w.__gapTimer = setInterval(() => {
+      const now = performance.now();
+      if (now - last > 100) w.__gaps.push([Math.round(performance.timeOrigin + last), Math.round(now - last)]);
+      last = now;
+    }, 20);
+  });
   out.gl = await page.evaluate(() => {
     const gl = document.createElement("canvas").getContext("webgl2");
     const ext = gl && gl.getExtension("WEBGL_debug_renderer_info");
@@ -72,6 +88,7 @@ try {
   await page.mouse.up();
   mark("b_up");
   await page.waitForTimeout(500);
+  out.timer_gaps = await page.evaluate(() => window.__gaps);
   await page.getByRole("button", { name: "Disarm", exact: true }).click().catch((e) => out.errors.push(String(e)));
 } catch (e) {
   out.errors.push(String(e).slice(0, 500));

@@ -18,6 +18,8 @@ out["jog-lease-expired"] = nc.eval_lease_expired("jog-lease-expired", 2, 0, tup(
 p = raw["page"]
 marks = d["lease_page_probe"]["marks"]
 to_mono = lambda wall_s: p["mono0"] + (wall_s - p["wall0"])
-out["jog-lease-page-kept"] = nc.eval_lease_page_kept("jog-lease-page-kept", marks, tup(p["samples"]), p["trace"], to_mono)
-out["jog-lease-page-blocked"] = nc.eval_lease_page_blocked("jog-lease-page-blocked", 0, marks, tup(p["samples"]), p["trace"], to_mono)
+gaps = d["lease_page_probe"].get("timer_gaps")
+out["jog-lease-page-kept"] = nc.eval_lease_page_kept("jog-lease-page-kept", marks, tup(p["samples"]), p["trace"], to_mono, gaps)
+out["jog-lease-page-blocked"] = nc.eval_lease_page_blocked("jog-lease-page-blocked", 0, marks, tup(p["samples"]), p["trace"],
+                                                           to_mono, gaps)
 print(json.dumps({"report": sys.argv[2], "commit": d["commit"][:8], "rows": out}, indent=1, default=str))
