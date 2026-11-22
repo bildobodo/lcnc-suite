@@ -7676,7 +7676,7 @@ def test_the_real_page_probe_kept_and_blocked():
     noisy = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.5), "stopped": [0], "failed": [], "late_ms": 2}]
     assert nc.eval_lease_page_kept("k", marks, kept, noisy, ident)["status"] == "FAIL", "an expiry while healthy"
     # blocked: down at 0, block 1.0 → 3.5, the gateway expires at 1.55, standstill from 1.7
-    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500}
+    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500, "b_up": 3800}
     blocked = _page_course(stop_at=1.7, until=4.5)
     rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
     row = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec, ident)
@@ -7710,10 +7710,51 @@ def test_a_page_with_a_long_task_is_no_healthy_page():
     assert nc.eval_lease_page_kept("k", marks, kept, [_long_task(-2.0, 900)], ident)["status"] == "PASS"
     assert nc.eval_lease_page_kept("k", marks, kept, noisy + [_long_task(-2.0, 900)], ident)["status"] == "FAIL"
     # blocked: the block's own long task is the block; one before it is not healthy
-    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500}
+    marks_b = {"b_down": 0, "block_start": 1000, "block_end": 3500, "b_up": 3800}
     blocked = _page_course(stop_at=1.7, until=4.5)
     rec = [{"tag": "jog.lease_expired", "t_wall_ns": _wall(1.55), "stopped": [0], "failed": [], "late_ms": 3}]
     own = _long_task(1.0, 2500)
     assert nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [own], ident)["status"] == "PASS"
     before = nc.eval_lease_page_blocked("b", 0, marks_b, blocked, rec + [_long_task(0.3, 600)], ident)
     assert before["status"] == "incomplete" and "before its block" in before["detail"], before
+
+
+def test_the_blocked_page_judge_refuses_codex_r427s_three_cases():
+    """Codex R427 MT-I10: a dense control PASSes; a negative deadline, a
+    motion that resumes while the spent gesture is still held, and a
+    standstill window carried by one point never do."""
+    ident = lambda w: w   # noqa: E731
+    marks = {"b_down": 0.0, "block_start": 1000.0, "block_end": 3500.0, "b_up": 3800.0}
+    rec = {"tag": "jog.lease_expired", "t_wall_ns": 1550000000, "lease": 2, "stopped": [0], "failed": [], "late_ms": 3}
+    dense = [(i * .05, min(i * .05, 1.6) * 20, 20 if i * .05 < 1.6 else 0) for i in range(91)]
+
+    def judge(samples, **fields):
+        return nc.eval_lease_page_blocked("r427", 0, marks, samples, [{**rec, **fields}], ident)
+    assert judge(dense)["status"] == "PASS", judge(dense)
+    assert judge(dense, late_ms=-100)["status"] == "FAIL"
+    assert judge(dense, late_ms=None)["status"] == "incomplete"
+    assert judge(dense, late_ms="3")["status"] == "incomplete"
+    resumes = [(t, p, v) if t < 2.2 else (t, p + (t - 2.2) * 20, 20) for t, p, v in dense]
+    r = judge(resumes)
+    assert r["status"] == "FAIL" and "moved again" in r["detail"], r
+    gap = [x for x in dense if x[0] <= 1.6 or x[0] >= 3.5]
+    r = judge(gap)
+    assert r["status"] == "incomplete" and "lacks positions" in r["detail"], r
+    # without the release mark the held gesture's end is unobserved: no PASS
+    no_up = {k: v for k, v in marks.items() if k != "b_up"}
+    assert nc.eval_lease_page_blocked("r427", 0, no_up, dense, [rec], ident)["status"] == "incomplete"
+
+
+def test_the_direct_expiry_judge_shares_the_hardened_helpers():
+    """The same evidence rules in the direct lease case: the deadline's form
+    and sign, a standstill window carried by known positions."""
+    late, status, _why = nc._deadline_evidence({"late_ms": -1})
+    assert late is None and status == "FAIL"
+    assert nc._deadline_evidence({})[1] == "incomplete"
+    assert nc._deadline_evidence({"late_ms": True})[1] == "incomplete"
+    assert nc._deadline_evidence({"late_ms": 0})[0] == 0
+    still = [(t * 0.033, 10.0, 0.0) for t in range(30)]
+    assert nc._standstill_at(still) == (0, None)
+    holes = [(0.0, 10.0, 0.0), (0.05, None, None), (0.4, 10.0, 0.0), (0.45, 10.0, 0.0)]
+    assert nc._standstill_at(holes) == (None, "gap"), "an unknown position measures nothing"
+    assert nc._standstill_at([(0.0, 10.0, 0.0), (0.1, 10.0, 0.0)]) == (None, "short")

@@ -720,6 +720,17 @@ def _renew_for(c, lease: int, seconds: float) -> float:
     return last
 
 
+def _raw_course(samples) -> list:
+    """(t, position, velocity) rows as plain lists, for the report."""
+    return [[round(t, 4), None if p is None else round(p, 4), None if v is None else round(v, 4)]
+            for t, p, v in samples]
+
+
+def _raw_events(events) -> list:
+    """The client's lease notices (t, frame) as plain lists, for the report."""
+    return [[round(t, 4), e] for t, e in list(events)]
+
+
 def jog_lease_cases():
     def step(ctx):
         c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
@@ -756,6 +767,10 @@ def jog_lease_cases():
         kept_row = nc.eval_lease_kept("jog-lease-kept", 1, kept_samples, kept_moving, t_end,
                                       list(c.lease_events))
         rows.append(kept_row)
+        # the raw evidence, kept for a re-evaluation (Codex R427 MT-I10)
+        raw = ctx["report"].setdefault("lease_raw", {})
+        raw["kept"] = {"samples": _raw_course(kept_samples), "t_moving": kept_moving, "t_end": t_end,
+                       "notices": _raw_events(c.lease_events)}
         # renewed for 1 s, then not: the gateway alone ends it
         to_start()
         p0, t0 = c.status["joint_pos"][axis], time.monotonic()
@@ -771,6 +786,9 @@ def jog_lease_cases():
         else:
             rows.append(nc.eval_lease_expired("jog-lease-expired", 2, axis, course(t0), first_moving(t0, p0, 1),
                                               t_last, list(c.lease_events), window["events"]))
+        raw["expired"] = {"samples": _raw_course(course(t0)), "t_moving": first_moving(t0, p0, 1), "t_last": t_last,
+                          "notices": _raw_events(c.lease_events),
+                          "trace": [e for e in window.get("events", []) if str(e.get("tag", "")).startswith("jog.")]}
         # the counter: the expiry judge on the RENEWED run (its renewals ended
         # by the gesture's own end, never by a deadline) must not pass
         counter = nc.eval_lease_expired("jog-lease-expired.counter-kept", 1, axis, kept_samples, kept_moving,
@@ -795,6 +813,8 @@ def jog_lease_cases():
         ctx["report"]["lease_page_probe"] = probe
         page_samples = course(t0)
         events = window["events"] if window["framed"] else []
+        raw["page"] = {"samples": _raw_course(page_samples), "wall0": wall0, "mono0": mono0,
+                       "trace": [e for e in events if e.get("tag") in ("jog.lease_expired", "browser.longtask")]}
         if not window["framed"]:
             rows.append(nc._row("jog-lease-page-kept", "incomplete", f"the trace window: {window['reason']}"))
             rows.append(nc._row("jog-lease-page-blocked", "incomplete", f"the trace window: {window['reason']}"))
