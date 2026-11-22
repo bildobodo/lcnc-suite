@@ -1,0 +1,44 @@
+[
+  {
+    "file": "lcnc-gateway/gateway.py",
+    "changed_from_pre_rebase_and_identical_to_development": [
+      "_snapshot_trip",
+      "set_mode",
+      "_send_jog_stop",
+      "_start_jogs",
+      "_cmds_machine_state",
+      "_cmds_motion_and_overrides",
+      "_handle_command_impl",
+      "_execute_client_command",
+      "ws_endpoint"
+    ],
+    "combined_definitions": [],
+    "removed_definitions_also_absent_in_development": []
+  },
+  {
+    "file": "scripts/native_run.py",
+    "changed_from_pre_rebase_and_identical_to_development": [],
+    "combined_definitions": [
+      "main"
+    ],
+    "removed_definitions_also_absent_in_development": []
+  },
+  {
+    "file": "scripts/test_native_stage.py",
+    "changed_from_pre_rebase_and_identical_to_development": [
+      "test_the_window_is_the_gateways_stream_whatever_another_writer_rotated"
+    ],
+    "combined_definitions": [],
+    "removed_definitions_also_absent_in_development": [
+      "test_a_window_the_gateway_rotated_within_is_not_framed"
+    ]
+  },
+  {
+    "file": "scripts/test_support/native_cases.py",
+    "changed_from_pre_rebase_and_identical_to_development": [
+      "frame_window"
+    ],
+    "combined_definitions": [],
+    "removed_definitions_also_absent_in_development": []
+  }
+]

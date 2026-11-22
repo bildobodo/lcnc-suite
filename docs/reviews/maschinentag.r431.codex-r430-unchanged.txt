@@ -1,0 +1,72 @@
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+__ TestR430ReadbackEnd.test_r430_cancel_before_first_task_step_ends_the_hold ___
+
+self = <test_r430_codex.TestR430ReadbackEnd testMethod=test_r430_cancel_before_first_task_step_ends_the_hold>
+
+    def test_r430_cancel_before_first_task_step_ends_the_hold(self):
+        self.probe_op()
+        key = (gateway._ts_basis_version, "/p.ngc")
+        async def go():
+            # A stop already ready in the loop, before the task this tick creates.
+            asyncio.get_running_loop().call_soon(gateway._preempt_inflight, "abort", 0)
+            self.assertIsNone(gateway._ts_poll(_St))
+            with self.assertRaises(asyncio.CancelledError):
+                await gateway._ts_readback_task
+        _run(go())
+>       self.assertEqual((gateway._ts_readback_outcome, gateway._ts_hold_reason(_St), self.poll()),
+                         ((key, "aborted"), None, "toolsetter"))
+E       AssertionError: Tuples differ: (((5, ('/p.ngc', 'src-1')), 'aborted'), None, 'toolsetter') != (((5, '/p.ngc'), 'aborted'), None, 'toolsetter')
+E       
+E       First differing element 0:
+E       ((5, ('/p.ngc', 'src-1')), 'aborted')
+E       ((5, '/p.ngc'), 'aborted')
+E       
+E       - (((5, ('/p.ngc', 'src-1')), 'aborted'), None, 'toolsetter')
+E       ?       -        ----------
+E       
+E       + (((5, '/p.ngc'), 'aborted'), None, 'toolsetter')
+
+test_r430_codex.py:18: AssertionError
+_____ TestR430ReadbackEnd.test_r430_binding_error_ends_the_hold_as_failed ______
+
+self = <test_r430_codex.TestR430ReadbackEnd testMethod=test_r430_binding_error_ends_the_hold_as_failed>
+
+    def test_r430_binding_error_ends_the_hold_as_failed(self):
+        self.probe_op()
+        key = (gateway._ts_basis_version, "/p.ngc")
+        def broken():
+            raise linuxcnc.error("synch send failed")
+        broken.__name__ = "task_plan_synch"
+        self.task.task_plan_synch = broken
+        async def go():
+            self.assertIsNone(gateway._ts_poll(_St))
+            try:
+                await gateway._ts_readback_task
+            except linuxcnc.error:
+                pass  # Whether it also reports the error is independent of ending the hold.
+        _run(go())
+>       self.assertEqual((gateway._ts_readback_outcome, gateway._ts_hold_reason(_St), self.poll()),
+                         ((key, "failed"), None, "toolsetter"))
+E       AssertionError: Tuples differ: (((5, ('/p.ngc', 'src-1')), 'failed'), None, 'toolsetter') != (((5, '/p.ngc'), 'failed'), None, 'toolsetter')
+E       
+E       First differing element 0:
+E       ((5, ('/p.ngc', 'src-1')), 'failed')
+E       ((5, '/p.ngc'), 'failed')
+E       
+E       - (((5, ('/p.ngc', 'src-1')), 'failed'), None, 'toolsetter')
+E       ?       -        ----------
+E       
+E       + (((5, '/p.ngc'), 'failed'), None, 'toolsetter')
+
+test_r430_codex.py:35: AssertionError
+=========================== short test summary info ============================
+FAILED test_r430_codex.py::TestR430ReadbackEnd::test_r430_cancel_before_first_task_step_ends_the_hold
+FAILED test_r430_codex.py::TestR430ReadbackEnd::test_r430_binding_error_ends_the_hold_as_failed
+2 failed, 1 passed in 0.28s
+[GC] +118ms gen=2 duration=12.9ms collected=1395 uncollectable=0
+[GC] +127ms gen=2 duration=9.4ms collected=0 uncollectable=0
+[GC] +138ms gen=2 duration=10.7ms collected=0 uncollectable=0
+[GC] +145ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +151ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +158ms gen=2 duration=6.7ms collected=0 uncollectable=0

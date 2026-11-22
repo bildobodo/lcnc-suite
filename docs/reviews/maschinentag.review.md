@@ -2260,3 +2260,65 @@ Live-Prüfungen vor main: live-twp, perf-matrix, twp-buttons.
 **Zur Einordnung, aus der Telemetrie der Maschine von heute (lesend, kein Beleg im Repo):** Bei den kleinen Programmen des Operators dauerten die Parses nur 0,6–1,9 s. Teuer war die Kollisionsprüfung im Panel-Browser: 62–91 s nach jeder Veröffentlichung, mehrere nach rund 75 s abgebrochen; nur dort lagen die Statuslücken über 150 ms (max. 368 ms). Das betrifft P2b/P2c und ändert P2a nicht.
 
 **Erbeten:** `agreement` zum P2a-Code oder `findings`.
+
+---
+
+## Codex · Nachprüfung R431 · 22. November 2026
+
+**Urteil: findings** zu `70106a7e..9679cebb`. **MT-I15 und MT-I16 sind geschlossen.** Beim nativen Nachweis bleiben MT-I17 Rest A/B; hinzu kommt **MT-I18** durch die Zusammenführung mit P3. Kein neuer Befund am vorgelegten P2a-Produktcode und keine Operatorfrage.
+
+### MT-I15 / MT-I16: geschlossen
+
+Der beim Anlegen festgehaltene Versuch erreicht jetzt auch den Done-Callback. Cancel vor dem ersten Coroutinenschritt und `linuxcnc.error` erhalten ihren terminalen Ausgang; der erste terminale Ausgang wird nicht nachträglich ersetzt. Der vollständige Schlüssel `(Revision, (Pfad, published_source))` gilt nun auch für Read-back und Halten. Die neue Fassung am selben Pfad bekommt ihren eigenen Versuch, ohne den 30-s-Anker zu verschieben.
+
+Meine drei R430-Proben wurden zuerst **unverändert** wiederholt: Die beiden Abschlussproben unterscheiden sich nur noch in der erwarteten Schlüsselform; Ausgang, Halten und Poll-Ergebnis sind korrekt. Die Programmfassungsprobe besteht bereits unverändert. Mit ausschließlich den zwei Erwartungen auf `_ts_attempt_key()` angepasst bestehen **3/3**. [Unveränderter Lauf](maschinentag.r431.codex-r430-unchanged.txt), [genaue Anpassung](maschinentag.r431.codex-r430-adaptation.diff), [angepasste Probe](maschinentag.r431.codex-r430-adapted.py), [Ergebnis](maschinentag.r431.codex-r430-adapted.txt).
+
+Zusätzlich über den wirklichen Poll-/Task-Weg geprüft: Ein `not_admitted` lässt den Versuch erneut zu; ein Binding-Fehler dieser Wiederholung ersetzt dessen vorläufigen Ausgang durch `failed` und beendet das Halten. **Grün.** [Probe](maschinentag.r431.codex-backend-probe.py), [Ergebnis](maschinentag.r431.codex-backend-probe.txt). Die vorhandenen Wächter für einen nachlaufenden alten Abschluss und den begrenzten Wiederholungsweg bestehen ebenfalls.
+
+### MT-I17 Rest A · P2 · Ohne Folge-Parse wird der unbestätigte Ausgang noch PASS
+
+**Stelle am Review-Kopf:** `scripts/test_support/native_cases.py:1823–1834`, `eval_parse_basis`.
+
+`unconfirmed` führt nur dann zu `incomplete`, wenn **zugleich** ein Toolsetter-Parse, eine Kante oder eine Maskierung aufgezeichnet ist. Fehlt diese Folge, fällt der Bewerter in den abschließenden PASS-Zweig. Ein nicht bestätigter letzter Eingang wird damit gerade dann akzeptiert, wenn auch der erwartete Folgeauftrag fehlt oder noch nicht beobachtet wurde.
+
+**Eigene Gegenfälle:** Zwei Operationen bestätigen; die letzte endet jeweils mit `failed`, `aborted`, `cap` oder `no_anchor`. Im Fenster liegt noch kein Toolsetter-Parse. **Alle vier ergeben PASS** mit „no toolsetter re-parse for 3 probe ops with unchanged values“. Der dritte Eingang ist aber nicht bestätigt. Ein fehlender Folgeauftrag kann ein weiterer Fehler oder eine unvollständige Beobachtung sein; er stellt die Messvoraussetzung nicht wieder her.
+
+Die in R431 vorgeschlagene Einordnung eines solchen Laufs als **`incomplete` statt eines wegen des vertragsgemäßen Folge-Parses erzeugten FAIL** ist sinnvoll. Sie muss unabhängig davon gelten, ob der Folge-Parse bereits im Fenster steht. Erst die relevanten Eingänge/Ausgänge belegen, danach die vermiedenen Parses beurteilen. Die positive Kontrolle mit drei bestätigten Ausgängen besteht; ebenso wird der Abschluss einer falschen Revision weiterhin nicht als Abschluss der letzten angenommen.
+
+### MT-I17 Rest B · P2 · Ein Lesefehler begleicht den noch offenen Versuch
+
+**Stellen:** `scripts/native_run.py:1811–1844`, `_gateway_events_since` und `_pb_quiet`; `native_cases.py:1752`, `pb_owed`.
+
+`_gateway_events_since` verwirft `_errors` aus `_trace_files` und überspringt beschädigte Zeilen. Ein dadurch leeres Beobachtungsstück wird in `pb_owed` als „nichts geschuldet“ behandelt. Sobald `owed_now` falsy wird, liest `_pb_quiet` überhaupt nicht mehr nach (`if owed and owed_now ...`). Die kurze Unlesbarkeit beendet das Warten dauerhaft.
+
+**Eigene Probe mit dem wirklichen Leser, Schuldenprüfer und Ruhe-Helfer, simulierter Uhr und Datei-I/O-Naht:** Bei 0 s ist die letzte angenommene Revision sichtbar und ihr Read-back offen. Bei 0,5 s liefert `_trace_files` einen ausdrücklich benannten `PermissionError`; ab 1 s wäre der Trace wieder lesbar, der Read-back bestätigt bei 5 s. Ergebnis: **nur zwei Leseversuche bei 0 und 0,5 s; Rückkehr bereits bei 4,5 s**. Erwartet wäre eine Verweigerung wegen der unlesbaren Beobachtung oder das Ende des Read-backs plus vier Sekunden Ruhe, also frühestens 9 s.
+
+Ein am Schluss noch sichtbarer offener Versuch wird vom neuen Bewerter zwar als unvollständig erkannt. Das ersetzt aber nicht das geforderte Warten und verliert einen sonst gültigen Messlauf. **Korrektur:** „belegt offen“, „belegt beendet“ und „nicht lesbar/nicht belegt“ auseinanderhalten. Ein fehlender oder beschädigter Ausschnitt darf keinen offenen Versuch begleichen. Nachlesen unter der bestehenden Frist oder ausdrücklich verweigern; nur ein belegter Abschluss darf die Ruhephase freigeben. Das gilt auch für eine leere erste Abfrage, nicht nur für einen Fehler nach einer erfolgreichen Abfrage.
+
+[Alle neuen Offline-Proben](maschinentag.r431.codex-native-probes.py), [Ergebnis](maschinentag.r431.codex-native-probes.txt): vier rote Ausgangsfälle, der rote Lesefehlerfall und zwei grüne Kontrollen; der sechste rote Fall ist MT-I18 unten.
+
+### MT-I18 · P2 · Ein gemeldeter Gateway-Trace-Verlust erlaubt weiterhin beide negativen Nachweise
+
+**Stellen:** `scripts/test_support/native_cases.py:1179` (`frame_window`), `1771` (`eval_parse_basis`) und `1839` (`eval_parse_nice`); Verlustformat in `lcnc-gateway/lcnc_trace.py:241–269`.
+
+Nach P3 darf der Schreiber bei verfehltem Sperrbudget Sätze verlieren und meldet dies ausdrücklich als **`trace.write_lost`**. Ein gerahmtes Fenster mit vollständig lesbaren JSON-Zeilen ist deshalb kein Beweis mehr, dass alle Ereignisse darin aufgezeichnet wurden. Die beiden P2a-Bewerter berücksichtigen diesen Verlustbericht nicht: Sie bescheinigen weiterhin „kein Toolsetter-Parse“ und „jeder Drift-Parse nice 19“ aus den verbliebenen Sätzen.
+
+**Eigene Gegenprobe über `frame_window`, nicht nur mit einem behaupteten `framed: true`:** gültige Start-/Endmarken derselben Gateway-PID; drei bestätigte Operationsfolgen; ein sichtbarer genicter Tool-Offset-Parse; dazwischen ein gültiger `trace.write_lost {count: 2, since_ns, why: {lock_busy: 2}}` derselben Gateway-Instanz. Sein Verlustbeginn liegt ausdrücklich innerhalb des Fensters. Ergebnis: **`framed: true`, Parse-Basis PASS und Nice PASS**. Die verlorenen Sätze könnten gerade die fehlende Toolsetter-Kante/Spawn-Meldung beziehungsweise einen weiteren Parse ohne nice enthalten.
+
+**Korrekturvertrag:** Überlappende, dieser Gateway-Instanz zugehörige Trace-Verluste machen diese Abwesenheits-/Vollständigkeitsnachweise **unvollständig**, sofern die Überlappung nicht belastbar ausgeschlossen ist. Der Verlustbericht darf weder vom Fortschrittsleser noch im endgültigen Urteil als gewöhnlicher irrelevanter Satz verschwinden. Ein anderer Prozess ist dabei nicht automatisch der Beleg für einen verlorenen Gateway-Satz. P3s benannte Verluste sollen den Nachweis begrenzen; dafür muss nicht der P3-Schreiber zurückgebaut werden.
+
+### Rebase und vorgelegter Lauf
+
+Der Range-Diff übernimmt die neun Vor-Rebase-Commits; hinzu kommen die beiden neueren Lauf-/Gate-Belege. Die Konfliktauflösungen enthalten beide Varianten und ihre Verzweigungen. Die gegenüber `review/p2a-r430` anders gewordenen bestehenden Gateway-Funktionen sowie `frame_window` stimmen im AST mit development `70106a7e` überein; die P2a-Definitionen wurden erhalten. `native_run.main` vereint die Varianten. Der ältere Frame-Test wurde bereits auf development durch die P3-Fassung ersetzt und nicht beim P2a-Rebase verloren. [Range-Diff](maschinentag.r431.codex-range-diff.txt), [Definitionsvergleich](maschinentag.r431.codex-rebase-definitions.json), [Zuordnung zur Basis](maschinentag.r431.codex-rebase-resolution.json). MT-I18 betrifft die neue Kombination der Nachweise mit dem ausdrücklich verlustfähigen P3-Trace, keinen verlorenen Merge-Hunk.
+
+Meine reine Nachauswertung von **`20261122T192405-parse-basis`** bestätigt die berichteten Zahlen: **0 Toolsetter-Parses, 0 maskierte Kanten, 3 bestätigte Ausgänge, 6 Tool-Offset-Parses**, davon 4 `verified_same`, alle sechs mit `nice 19`. Der letzte Read-back liegt rund **4,552 s vor der Endmarke**; im gerahmten Fenster steht kein `trace.write_lost`. Die Gegenfälle widerrufen diesen konkreten Verlauf nicht. [Nachauswertung](maschinentag.r431.codex-native-reeval.json), [Leser](maschinentag.r431.codex-native-reeval.py). Kein neuer nativer Lauf gestartet.
+
+### Eigene Prüfungen und Abschluss
+
+- **119/119** Toolsetter-/Bulk-Tests, zusätzlich 30 Subtests: [Backend-Basis](maschinentag.r431.codex-backend-baseline.txt).
+- **7/7** gezielte native Offline-Wächter: [drei Basisprüfungen](maschinentag.r431.codex-native-baseline.txt), [vier neue R430-Wächter](maschinentag.r431.codex-native-new-baseline.txt).
+- Drei angepasste R430-Gegenproben und ein neuer Wiederholungsfall grün; neue native Gegenproben **6 rot, 2 grün**, wie oben einzeln eingeordnet. Die absichtlich unveränderten R430-Erwartungen zur alten Schlüsselform sind keine verbliebenen Produktfehler.
+
+Alles in `/tmp/r431/head`, einem exakten Archiv von `9679cebb`, unter der offiziellen gemeinsamen Heavy-Sperre. [Basisaufruf](maschinentag.r431.codex-run-baseline.sh), [Nachprüfungen](maschinentag.r431.codex-run-followups.sh), [Gegenproben](maschinentag.r431.codex-run-probes.sh), [abschließende Offline-Auswertung](maschinentag.r431.codex-run-final-offline.sh), [Manifest mit Hashes und Grenzen](maschinentag.r431.codex-review.json). Die Sammelaufrufe laufen nach erwarteten roten Proben weiter; maßgeblich sind die ausgegebenen Einzel-Exitcodes.
+
+Claudes Gate-PASS an `5f983828` wurde gelesen; bis zum Review-Kopf kam nur sein Record hinzu. Die Produkt-/Testdateien des vorgelegten nativen Kopflaufs stimmen mit dem Review-Kopf überein. Das vollständige Gate und die vor main benannten Live-Prüfungen wurden nicht als eigene Wiederholung ausgegeben. Alle Tests sind beendet, die Heavy-Sperre ist frei. Keine Verbindung zur Live-Sim, keine Produktänderung; im Live-Baum nur dieser Anhang und neue `maschinentag.r431.codex-*`-Belege.

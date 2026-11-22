@@ -1,0 +1,139 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r431/head
+plugins: anyio-4.13.0
+collecting ... collected 8 items
+
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[failed] FAILED [ 12%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[aborted] FAILED [ 25%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[cap] FAILED [ 37%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[no_anchor] FAILED [ 50%]
+scripts/test_r431_codex.py::test_complete_confirmations_are_a_pass PASSED [ 62%]
+scripts/test_r431_codex.py::test_another_revisions_outcome_does_not_settle_the_last_attempt PASSED [ 75%]
+scripts/test_r431_codex.py::test_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran FAILED [ 87%]
+scripts/test_r431_codex.py::test_temporary_trace_read_failure_does_not_end_the_owed_wait FAILED [100%]
+
+=================================== FAILURES ===================================
+________ test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[failed] ________
+
+last = 'failed'
+
+    @pytest.mark.parametrize('last', ['failed', 'aborted', 'cap', 'no_anchor'])
+    def test_unconfirmed_last_attempt_is_not_a_zero_parse_pass(last):
+        row = nc.eval_parse_basis('pb', {'framed':True,'events':ops(last)}, ops=3, quiet_s=4.5)
+>       assert row['status'] == 'incomplete', row
+E       AssertionError: {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r431_codex.py:39: AssertionError
+_______ test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[aborted] ________
+
+last = 'aborted'
+
+    @pytest.mark.parametrize('last', ['failed', 'aborted', 'cap', 'no_anchor'])
+    def test_unconfirmed_last_attempt_is_not_a_zero_parse_pass(last):
+        row = nc.eval_parse_basis('pb', {'framed':True,'events':ops(last)}, ops=3, quiet_s=4.5)
+>       assert row['status'] == 'incomplete', row
+E       AssertionError: {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r431_codex.py:39: AssertionError
+_________ test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[cap] __________
+
+last = 'cap'
+
+    @pytest.mark.parametrize('last', ['failed', 'aborted', 'cap', 'no_anchor'])
+    def test_unconfirmed_last_attempt_is_not_a_zero_parse_pass(last):
+        row = nc.eval_parse_basis('pb', {'framed':True,'events':ops(last)}, ops=3, quiet_s=4.5)
+>       assert row['status'] == 'incomplete', row
+E       AssertionError: {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r431_codex.py:39: AssertionError
+______ test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[no_anchor] _______
+
+last = 'no_anchor'
+
+    @pytest.mark.parametrize('last', ['failed', 'aborted', 'cap', 'no_anchor'])
+    def test_unconfirmed_last_attempt_is_not_a_zero_parse_pass(last):
+        row = nc.eval_parse_basis('pb', {'framed':True,'events':ops(last)}, ops=3, quiet_s=4.5)
+>       assert row['status'] == 'incomplete', row
+E       AssertionError: {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}
+E       assert 'PASS' == 'incomplete'
+E         
+E         - incomplete
+E         + PASS
+
+scripts/test_r431_codex.py:39: AssertionError
+_________ test_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran __________
+
+    def test_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran():
+        pid, token = 101, 'codex-r431'
+        prefix = {'proc':'gateway', 'pid':pid, 't_wall_ns':100}
+        events = [dict(prefix, tag='client.diag', native_mark=token, edge='start')]
+        events += [dict(prefix, **e) for e in ops()]
+        # The P3 handler explicitly reports records whose contents did not reach
+        # this otherwise well-formed stream. They can include the parse start.
+        events += [dict(prefix, tag='trace.write_lost', log='trace.ndjson', count=2, t_wall_ns=150,
+                        since_ns=101, why={'lock_busy':2})]
+        events += [dict(prefix, tag='client.diag', native_mark=token, edge='end', t_wall_ns=200)]
+        raw = ''.join(json.dumps(e)+'\n' for e in events).encode()
+        window = nc.frame_window([('trace.ndjson',42,raw)],token,pid)
+        row = nc.eval_parse_basis('pb',window,ops=3,quiet_s=4.5)
+        nice = nc.eval_parse_nice('pb.nice',window)
+>       assert (row['status'], nice['status']) == ('incomplete','incomplete'), {'framed':window['framed'], 'basis':row, 'nice':nice}
+E       AssertionError: {'basis': {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}, 'framed': True, 'nice': {'case': 'pb.nice', 'detail': '1 drift re-parses, every one niced', 'drift': 1, 'status': 'PASS'}}
+E       assert ('PASS', 'PASS') == ('incomplete', 'incomplete')
+E         
+E         At index 0 diff: 'PASS' != 'incomplete'
+E         
+E         Full diff:
+E           (
+E         -     'incomplete',
+E         -     'incomplete',...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+scripts/test_r431_codex.py:67: AssertionError
+_________ test_temporary_trace_read_failure_does_not_end_the_owed_wait _________
+
+    def test_temporary_trace_read_failure_does_not_end_the_owed_wait():
+        clock, calls = Clock(), []
+        pid = 101
+        def files(_path):
+            calls.append(round(clock.t,3))
+            if 0.5 <= clock.t < 1.0:
+                return [], ['trace.ndjson: PermissionError: transient read failure']
+            ev = ops('confirmed' if clock.t >= 5.0 else None)
+            data = ''.join(json.dumps(dict(e,pid=pid,proc='gateway',t_wall_ns=100))+'\n' for e in ev).encode()
+            return [('trace.ndjson',42,data)], []
+        with patch.object(nr, 'time', clock), patch.object(nr, '_trace_files', files):
+            try:
+                waited = nr._pb_quiet(SimpleNamespace(status={'preview_refresh':None}), 'pb',
+                    owed=lambda:nc.pb_owed(nr._gateway_events_since({'gateway_pid':pid,'run':Path('/unused')},0)))
+            except nr.Refused:
+                return  # Refusing the damaged observation is safe too.
+>       assert waited >= 5.0 + nr.PB_QUIET_S, {'waited':waited,'reads_at':calls}
+E       AssertionError: {'reads_at': [0.0, 0.5], 'waited': 4.5}
+E       assert 4.5 >= (5.0 + 4.0)
+E        +  where 4.0 = nr.PB_QUIET_S
+
+scripts/test_r431_codex.py:92: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[failed]
+FAILED scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[aborted]
+FAILED scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[cap]
+FAILED scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[no_anchor]
+FAILED scripts/test_r431_codex.py::test_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran
+FAILED scripts/test_r431_codex.py::test_temporary_trace_read_failure_does_not_end_the_owed_wait
+========================= 6 failed, 2 passed in 0.05s ==========================

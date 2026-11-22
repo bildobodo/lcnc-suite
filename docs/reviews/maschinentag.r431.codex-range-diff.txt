@@ -1,0 +1,128 @@
+ 1:  f7efdd17 !  1:  97f882c0 P2a: the native parse-basis variant at the base — three probe ops with unchanged values under a loaded routine program; the toolsetter re-parses judged (F24), every drift parse's priority
+    @@ Commit message
+         Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+     
+      ## docs/testing.md ##
+    -@@ docs/testing.md: stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client th
+    - preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
+    - `trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
+    - of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
+    +@@ docs/testing.md: axis stopped and the standstill by the position, each observed; the overrun is
+    + reported, never bounded; a counter runs the expiry judge on the renewed jog). The
+    + client renews as the page's main thread does; the real page on the sim with its
+    + main thread blocked is the browser probe, a separate live check.
+    ++
+     +The toolsetter re-parses a probe op causes (P2a, machine day F24) are a run of their own too:
+     +`native_run.py … --variant parse-basis` (home, a loaded program that runs the routine, a warm-up
+     +probe op, then three probe-z ops with unchanged values in one trace window: the re-parses by
+    @@ scripts/native_run.py: TS_DEADLINE = 240.0
+      LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
+      #: how long the latch step waits for the first frame after the continue
+      LATCH_RESUME_WAIT_S = 10.0
+    --VARIANTS = ("latch-delayed",)
+    -+VARIANTS = ("latch-delayed", "parse-basis")
+    +-VARIANTS = ("latch-delayed", "jog-lease")
+    ++VARIANTS = ("latch-delayed", "jog-lease", "parse-basis")
+     +#: P2a (machine day F24, 2026-11-21: one ~30 s full re-parse per probe op with
+     +#: unchanged values): a loaded program that runs the toolsetter routine
+     +#: (T1 M600 — `routine`), padded so its parse is felt; a warm-up probe op
+    @@ scripts/native_run.py: def _probe_steps(ctx):
+      
+      def parse_signals(text: str) -> dict:
+     @@ scripts/native_run.py: def main(argv=None) -> int:
+    -     base = [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(), connect_client(), servo_device()]
+    -     if a.variant == "latch-delayed":
+              steps = base + [latch_order(), latch_cases(a.variant)]
+    +     elif a.variant == "jog-lease":
+    +         steps = base + [home_cases(joints), jog_lease_cases()]
+    ++
+     +    elif a.variant == "parse-basis":
+     +        steps = base + [home_cases(joints), parse_basis_cases()]
+          else:
+    @@ scripts/native_run.py: def main(argv=None) -> int:
+                              io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
+     
+      ## scripts/test_native_stage.py ##
+    -@@ scripts/test_native_stage.py: def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_return
+    -         assert [m["cmd"] for m in wire] == ["mdi"]
+    -     else:
+    -         assert wire[-2:] == [{"cmd": "abort"}, {"cmd": "arm", "armed": False}]
+    -+
+    +@@ scripts/test_native_stage.py: def test_the_blocked_page_judge_refuses_codex_r428s_unobserved_stretches():
+    +     holed = [x for x in course if not (0.4 < x[0] < 0.9)]
+    +     assert "no position for" in nc._uncovered(holed, holed[-1][0])
+    +     assert "before the end" in nc._uncovered(course[:10], 1.0)
+     +
+     +# ── P2a (machine day F24): the parse-basis variant's evaluators ────────────
+     +def _pb_window(spawns=(), bookings=3, edges=0, held=0, framed=True):
+    @@ scripts/test_native_stage.py: def test_a_case_that_loses_its_admission_ends_the_
+     
+      ## scripts/test_support/native_cases.py ##
+     @@ scripts/test_support/native_cases.py: REPORT_CASES: dict = {
+    -     "latch-delayed": (
+    -         'latch-recovered', 'latch-same-cycle.delayed-order', 'latch-sticky',
+    +         'jog-lease-kept', 'jog-lease-expired', 'jog-lease-expired.counter-kept',
+    +         'jog-lease-page-kept', 'jog-lease-page-blocked',
+          ),
+     +    "parse-basis": (
+     +        'home-all', 'home-joint-0', 'home-joint-1', 'home-joint-2', 'parse-basis', 'parse-basis.nice',
+     +    ),
+      }
+      
+    + #: the jog lease's native case (P1b): the gateway's validity (jog_lease.py
+    +@@ scripts/test_support/native_cases.py: def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, tr
+    +         return _row(case, "incomplete", f"the stillness until the release is not observed: {why}", **measured)
+    +     return _row(case, "PASS", "the gateway stopped the jog while the page was blocked", **measured)
+      
+    -@@ scripts/test_support/native_cases.py: def eval_probe_start(case: str, frames: list, cursor: int, ended: bool, t_send=N
+    -     if ended:
+    -         return _row(case, "FAIL", "no lock after the send through the routine's end — its M50 P0 not seen", **measured)
+    -     return _row(case, "incomplete", "no lock after the send, and no end observed", **measured)
+    -+
+    -+
+     +# ── P2a (machine day F24): the re-parses a probe op causes ─────────────────
+     +#: the parse reasons of a load or an explicit refresh — every other reason is
+     +#: a drift edge (wcsoff:…, tlo:…, toolsetter, limits, a table …)
+ 2:  dfc8f992 =  2:  26aeb145 P2a native variant: the probe ops go through the panel's probe_run with its own job (Codex R427: the machine day's entry, not an mdi with vars)
+ 3:  087c7e00 =  3:  a5860170 P2a red at the base: parse-basis at dfc8f992 (ad16dff3 + the variant) — 3 probe ops through probe_run with unchanged values: 6 toolsetter re-parses (6 edges), 4 tool_offset re-parses; the bookings assumed[1] → applied[1] → assumed[24] → read[24] per op, as on the machine; the priority untraced
+ 4:  0fbb1af3 =  4:  c07ce4e7 P2a: the toolsetter re-parse only for a different CONFIRMED input, held for its read-back; drift re-parses niced (plan v2, Codex R427/R428 agreement)
+ 5:  7e822146 !  5:  93d713b8 P2a docs and red proofs: CLAUDE.md freshness, scrub-and-run's toolsetter basis, the decision; mutations 12/12 red
+    @@ docs/architecture/scrub-and-run.md: parameter copy, #3116 = 0); unknown or never
+      before anything its body records (Codex R107 VP-I61: its first move was
+     
+      ## docs/decisions.md ##
+    -@@ docs/decisions.md: operator's Q248-1.
+    - 
+    - On the real machine (touch panel, Chromium 156) a long press on Pause, Abort or the UI E-Stop did nothing: Chromium turns a long press into a long-press gesture — `contextmenu` (refused, touchDetect.ts), then the release — and dispatches no click. Every control that acts on `click` was affected. The operator decided (2026-11-21): **only the E-Stop acts on the press** — even when a swipe starts on it, a stop is safe —, **every other control acts on its release, however long the press was**, because many Abort buttons sit in swipeable areas (strip, macro bar, side-pane heads) where a press-fired Abort would end a program on a scroll. A press must never act twice: the E-Stop's own press can never become a Reset, a held Enter's repeats do nothing. The jog pad's Stop moves to the release like every other control (it acted on the press since BG-01; the operator's rule names it, Codex R420 MT-I06); the jog directions own their presses and holds keep their contract. Each press is its own gesture per pointer (Codex R420): a second pointer, a keyboard activation or a new press of the same pointer is never taken for another's click; a press the strip's drag-scroll took over acts nowhere — Chromium's own click after a 6 px drag (Power off, also before P1a) is swallowed —, and a `:disabled` control is never clicked by the release. Reopen only if the panel's browser changes its long-press handling or a control proves to need the press.
+    +@@ docs/decisions.md: Codex R427 found the end of a gesture marked at the reader's receipt could lose
+    + On the machine day the trace lay in three files (F23): every process rotated `trace.ndjson` on its own and the others wrote on into the renamed file — deterministic at every rollover, not "rare" as the module said. The trip bundles stayed empty (F2: a fixed bundler path, `trace.ndjson` read alone, rc 2 traced as "done"), the hold refusals were console-only (F18) and the new browser profile sent no perf rows (F20). Decided: **every writer — the Python processes and the launcher's two lines — writes each line in ONE short exclusive section under the log's stable lock** (`trace.lock` / `crash.lock`): identity, size and rotation, the open end (a fragment left by a partial write is ended first — Codex R426's cross-process case), the whole line. **No unlocked fallback**: a lock not taken in 20 ms (the budget of the wait, not of the I/O) drops the record, counts it per process and log and the next section reports it (`trace.write_lost`, `crash.write_lost` at level error) — directly, never recursively; the launcher keeps its count in the long-lived caller's shell. **The bundle is a snapshot**: the generations opened and `(dev, ino, size)` recorded under the lock, read later to those sizes; the trip's tail waited for at most 1.2 s on the monotonic clock; crash.log its own artifact; `bundle.json` names the window, the capture bound, sources, gaps, damaged lines, `truncated_before` (retention, no proof of loss) and `tail_missing`. **The browser**: `browser.stall` counts gaps in the TIMER observation past the hold guard's 150 ms on every page (viewerPerf's 8 ms probe — one chain, no second timer on the panel PC; hidden time excluded; long tasks apart, absent where unsupported); a refused hold reports its OWN deciding gap (`browser.hold.refused`, `gap_ms` for a stall only); the telemetry transport counts its losses (`browser.telemetry.dropped`, said once: a report in flight is back in the count only if its own batch is lost). F20's cause is NOT proven — capture, window close and transport are now separated and counted; the next machine visit shows which layer lost the rows.
+      
+    + Red proofs (2026-11-21, against ad16dff3's code): the two-writer rotation (`test_trace_rotation.py --red`) lost 94 and 32 of 1200 records in two runs with the old `RotatingFileHandler`; the cross-process fragment swallowed B's first record (its boot) there; the old bundler bundled 1 of 3 records of a trip window across `.1` and `trace.ndjson`; the new hold test failed against the old `holdGesture.ts` (no gap). The native stage's window test now expects another writer's rotation DURING a window to put the marks in two files (not framed) — before P3 the gateway kept writing the renamed file. Reopen if a writer appears that cannot take the lock (a new process must go through `lcnc_trace` or `_trace_append`), or if the stall rows' volume (one per 30 s idle per tab) proves too much for the trace's retention.
+    ++
+     +## 2026-11-22 — The toolsetter re-parse only for a different confirmed input; drift re-parses niced (P2a; plan v2, Codex R427/R428; machine day F18/F24)
+     +
+     +On the machine day every probe operation re-parsed the loaded 344k-line program (~30 s, one per op, the machine's own trace 13:48–13:49), with the values unchanged: the probe line `#3014=` booked the key assumed then applied, the routine's `o<probe_…> call` (a file the text scan does not read) booked every key assumed, the read-back booked them read — each a new basis VERSION, and the drift edge compared versions; it even fired in the tick that started the read-back. On the panel's two free cores that parse, un-niced at idle, starved the page, and the hold guard refused the operator's holds ("Page delayed — hold again"). The edge now compares the EVIDENCED input — two inputs are equal only when both are fully confirmed with equal patches (an assumed key comes from the worker's copy, which the booking does not evidence: Codex R427 MT427-02) — keeps the attempt booked per (revision, program) (MT427-01: content can recur), needs nothing for a preview of the current revision, and is held for the one read-back of an assumed basis with its booked outcome and a 30 s bound. Every drift re-parse runs at nice 19. The load parse keeps its priority until the measurement of preview latency and page response decides it. The red run at the base (`parse-basis`, VM): 3 probe ops, 6 toolsetter parses. P2a does not settle the 150 ms hold guard: holds were also refused with no parse running; that is decided with P3's gap data at the panel, without CDP (Q418-2).
+ 6:  16cc1c4d =  6:  72c2950d P2a native at the head: parse-basis PASS at 7e822146 — 3 probe ops via probe_run with unchanged values: 0 toolsetter parses (base 6), 3 held edges, 0 masked; every drift re-parse niced (6); 6 tool_offset verify jobs remain (a pair per op, one publishes — the sim's probe-tool start state; the machine's trace of 2026-11-21 shows none), reported, not judged
+ 7:  8be80e85 =  7:  4a50e27c P2a round gate 1: PASS at 16cc1c4d (record) — unit 2724/2724, backend 2232, native-stage, install probe, the selected browser spec; Firefox core and unit-heavy not selected; live-twp, perf-matrix, twp-buttons pending before main
+ 8:  18f0132b !  8:  d9682fca P2a after Codex R430: every read-back end books its own attempt (MT-I15); the read-back, its outcome and the hold use the parse attempt's identity (MT-I16); the native window waits for the last op's owed read-back (MT-I17)
+    @@ docs/architecture/scrub-and-run.md: attempt has not ended (also in a tick where
+      differs says so (`gcode.reparse_toolsetter_masked`) and books the attempt.
+     
+      ## docs/decisions.md ##
+    -@@ docs/decisions.md: On the real machine (touch panel, Chromium 156) a long press on Pause, Abort or
+    +@@ docs/decisions.md: Red proofs (2026-11-21, against ad16dff3's code): the two-writer rotation (`test
+      ## 2026-11-22 — The toolsetter re-parse only for a different confirmed input; drift re-parses niced (P2a; plan v2, Codex R427/R428; machine day F18/F24)
+      
+      On the machine day every probe operation re-parsed the loaded 344k-line program (~30 s, one per op, the machine's own trace 13:48–13:49), with the values unchanged: the probe line `#3014=` booked the key assumed then applied, the routine's `o<probe_…> call` (a file the text scan does not read) booked every key assumed, the read-back booked them read — each a new basis VERSION, and the drift edge compared versions; it even fired in the tick that started the read-back. On the panel's two free cores that parse, un-niced at idle, starved the page, and the hold guard refused the operator's holds ("Page delayed — hold again"). The edge now compares the EVIDENCED input — two inputs are equal only when both are fully confirmed with equal patches (an assumed key comes from the worker's copy, which the booking does not evidence: Codex R427 MT427-02) — keeps the attempt booked per (revision, program) (MT427-01: content can recur), needs nothing for a preview of the current revision, and is held for the one read-back of an assumed basis with its booked outcome and a 30 s bound. Every drift re-parse runs at nice 19. The load parse keeps its priority until the measurement of preview latency and page response decides it. The red run at the base (`parse-basis`, VM): 3 probe ops, 6 toolsetter parses. P2a does not settle the 150 ms hold guard: holds were also refused with no parse running; that is decided with P3's gap data at the panel, without CDP (Q418-2).
+    @@ scripts/native_run.py: def _parse_basis_steps(ctx):
+              rows.append(nc.eval_parse_nice("parse-basis.nice", window))
+     
+      ## scripts/test_native_stage.py ##
+    -@@ scripts/test_native_stage.py: def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_return
+    +@@ scripts/test_native_stage.py: def test_the_blocked_page_judge_refuses_codex_r428s_unobserved_stretches():
+      # ── P2a (machine day F24): the parse-basis variant's evaluators ────────────
+      def _pb_window(spawns=(), bookings=3, edges=0, held=0, framed=True):
+          ev = [{"tag": "toolsetter.basis", "origin": "assumed", "keys": list(range(24))} for _ in range(bookings)]
+ 9:  377ba6cf =  9:  e4243b01 P2a native at the head after R430: parse-basis PASS at 18f0132b — 3 probe ops via probe_run with unchanged values: 0 toolsetter parses, 0 masked, 3 held, read-back outcomes confirmed ×3 (the window closed after the last one, quiet 4.6 s); 6 tool_offset verify jobs (4 verified same), every drift re-parse niced; pyright 0 errors
+ -:  -------- > 10:  5f983828 P2a native on the rebased head: parse-basis PASS at e4243b01 (development 70106a7e + P2a) — 0 toolsetter parses, 0 masked, 3 held, read-backs confirmed ×3, 6 tool_offset verify jobs (4 verified same), every drift re-parse niced
+ -:  -------- > 11:  9679cebb P2a round gate 2: PASS at 5f983828 (record) — rebased onto development 70106a7e (P1b+P3): unit 2755/2755, backend 2331, pyright, native-stage, install probe, inventory, the selected browser spec 7/7; Firefox core and unit-heavy not selected; live-twp, perf-matrix, twp-buttons pending before main

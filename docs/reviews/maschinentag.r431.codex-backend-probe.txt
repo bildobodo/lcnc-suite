@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r431/head/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 1 item
+
+test_r431_codex.py::TestR431Retry::test_retry_after_not_admitted_books_its_binding_failure PASSED [100%]
+
+============================== 1 passed in 0.24s ===============================
+[GC] +72ms gen=2 duration=15.2ms collected=752 uncollectable=0
+[GC] +83ms gen=2 duration=11.0ms collected=0 uncollectable=0
+[GC] +90ms gen=2 duration=7.2ms collected=0 uncollectable=0
+[GC] +97ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +107ms gen=2 duration=9.7ms collected=0 uncollectable=0
+[GC] +116ms gen=2 duration=9.7ms collected=0 uncollectable=0

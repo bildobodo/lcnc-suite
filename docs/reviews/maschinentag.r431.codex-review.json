@@ -1,0 +1,113 @@
+{
+  "round": "R431",
+  "review_head": "e048499fa7a8d3fcb7848da6ad386f18169128bf",
+  "base": "70106a7e17b3a3d348e6a3c7221ba11d46b4f264",
+  "head": "9679cebbd9060a17de3cd3222f2ae6827f194a7c",
+  "pre_rebase": "377ba6cf9dc2ed78914655c07eede8bf3bfd68d8",
+  "verdict": "findings",
+  "closed": [
+    "MT-I15",
+    "MT-I16"
+  ],
+  "open": [
+    "MT-I17 rest A/B",
+    "MT-I18"
+  ],
+  "checks": [
+    {
+      "name": "toolsetter and bulk baseline",
+      "passed": 119,
+      "subtests_passed": 30,
+      "exit_code": 0
+    },
+    {
+      "name": "native evaluator/program baseline",
+      "passed": 3,
+      "exit_code": 0
+    },
+    {
+      "name": "new native R430 guards",
+      "passed": 4,
+      "exit_code": 0
+    },
+    {
+      "name": "unchanged R430 probes",
+      "passed": 1,
+      "failed": 2,
+      "exit_code": 1,
+      "why": "only the expected tuple changed shape; outcome, hold and drift are correct"
+    },
+    {
+      "name": "R430 probes with only two expected key expressions adapted",
+      "passed": 3,
+      "exit_code": 0
+    },
+    {
+      "name": "not-admitted retry then binding failure",
+      "passed": 1,
+      "exit_code": 0
+    },
+    {
+      "name": "new native probes",
+      "passed": 2,
+      "failed": 6,
+      "exit_code": 1
+    },
+    {
+      "name": "stored native run read-only re-evaluation",
+      "run": "20261122T192405-parse-basis",
+      "result": "same PASS: 0 toolsetter, 6 tool_offset, 3 confirmed outcomes, no loss reports in frame"
+    }
+  ],
+  "isolation": {
+    "archive": "/tmp/r431/head",
+    "python": "/home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python",
+    "heavy_lock": "official scripts/test_support/heavy_lock.py, shared default path",
+    "all_tests_finished": true,
+    "live_connections": false,
+    "native_runs_started": false,
+    "browser_runs_started": false,
+    "product_edits": false
+  },
+  "gate_record": {
+    "head": "5f983828b826f67dfd816449dc9c929449314928",
+    "verdict": "PASS",
+    "difference_to_review_head": "gate artifact only",
+    "not_repeated": true,
+    "pending_before_main": [
+      "live-twp",
+      "perf-matrix",
+      "twp-buttons"
+    ]
+  },
+  "sources_sha256": {
+    "lcnc-gateway/gateway.py": "6c1507abafe0ba15ff73504fa25cb3d2b28520f927dceb520078de4f6ae0e5ed",
+    "lcnc-gateway/gateway_util.py": "f64af2807c71cc1aad855d3e2d8c8e99b7992fa8afae2865480ced5e91a2c818",
+    "lcnc-gateway/bulk_pipeline.py": "036269dff0e1db39802464216e5b51862cbbd1fa52f534bcd4c20c32e44fbb0b",
+    "scripts/native_run.py": "3efcf4befc4c3047b1a9291633a8a17ef91268cb796a8b4db52b466bb440f06e",
+    "scripts/test_support/native_cases.py": "8461818efd435dde58a4913db17985355eab09ee34ffb02e64cefee2f91efb48"
+  },
+  "artifacts_sha256": {
+    "maschinentag.r431.codex-backend-baseline.txt": "7ec64632e1f076527bae394fb06d8ea8c5a0d42d125aff67b1b8989fde78c4e2",
+    "maschinentag.r431.codex-native-baseline.txt": "20e9043d0eafe0834c41c7642c54df1f8c5a85472e171bbedbdbe0c0dc2b9f66",
+    "maschinentag.r431.codex-native-new-baseline.txt": "461aa4a281da0b5c0d28313b50be46f39bbfd6b4b4e2f2d45636179779c3ef1f",
+    "maschinentag.r431.codex-r430-unchanged.txt": "ae490749fffef9c92591aca265ec0392ce3874cce975a228c4c4325519087abc",
+    "maschinentag.r431.codex-r430-adapted.txt": "ab2804d54a8695fa3a1e4e3e37713754aefccb0949f20fe8bbf51cb90efffe56",
+    "maschinentag.r431.codex-r430-adapted.py": "2cf0a1099e648c4fd4b1f5b47b1220f80a34ce6722b90793d64961403a8cfe45",
+    "maschinentag.r431.codex-r430-adaptation.diff": "05602b87cb8a71b8c6a5c88009dcb5bc463350f1917efa8bb4281deee351be6c",
+    "maschinentag.r431.codex-backend-probe.py": "fc40d6c8d99a0c49e5484462319a1fdc3cf4ddfe4396e71d49c1564050905f63",
+    "maschinentag.r431.codex-backend-probe.txt": "6574946647d79320f380549fc45becd148cf5bbfee059faa2c243695fd4f3a01",
+    "maschinentag.r431.codex-native-probes.py": "46023fcdb958447feedf3a763c8ad83686581962909b5b9cb741d1c070dfb0cf",
+    "maschinentag.r431.codex-native-probes.txt": "27b0b46790527b4ad317bedc8620590ecfc3b941683e58e6995fecaadbe50cd8",
+    "maschinentag.r431.codex-native-reeval.py": "b134c4ddb8475c43afda5735efb67ff4222bfeca542ca5b80283ed189bcc4bf5",
+    "maschinentag.r431.codex-native-reeval.json": "8f108bfb4df3c8f9cfa22acc0a10caa40ec44f674eae11103181915e809edb07",
+    "maschinentag.r431.codex-range-diff.txt": "214ce01a7cd7855a76812f2324a1c8f65f18628a6da3df6957ab2e1d12a435a7",
+    "maschinentag.r431.codex-rebase-definitions.json": "e8b1aedb8d4f1720deb792422e78afc18ccb1aa235ce4ed4d9b150df566cde1e",
+    "maschinentag.r431.codex-rebase-resolution.json": "6cc731d3fdc3ea2dfd4e6c8bfc843d5187787bf657b553658ec5f6a4913cef91",
+    "maschinentag.r431.codex-run-baseline.sh": "6e6cb5c9b040f3eeb2a67d2afe1a81848b2a716f76f8af6c6693ee0cc50063ee",
+    "maschinentag.r431.codex-run-followups.sh": "2a9102210e08d0bc41c12bbb0aea3b2da8752c2c1505b4744fdce71fe75cc444",
+    "maschinentag.r431.codex-run-probes.sh": "f2734821c222b6dba315542898861be89251563200340367bfa79d649ff1e34b",
+    "maschinentag.r431.codex-run-final-offline.sh": "b6de35ff09dd41c3451ddd9d7138c080b6cb4f4520184623bd1089d3bc9d6a0c"
+  },
+  "run_note": "followups/probes/final-offline scripts continue after expected pytest failures; individual printed exit codes are decisive."
+}

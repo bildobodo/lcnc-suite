@@ -1,0 +1,59 @@
+{
+  "run": "/home/cnc/claude-work/live-tier/20261122T192405-parse-basis",
+  "commit": "e4243b01cadb705829999776f26b4cadf3dc5d84",
+  "trace_sha256": {
+    "trace.ndjson": "6833bf82bda66de55030e57ce8f6ad7a576e7071a9c227fb4d68ad22ed141b66"
+  },
+  "framed": true,
+  "native_mark": "parse-basis.4c1d0f4c842f4ecb9a0f2a6a713dc9f0",
+  "pid": 3826014,
+  "parse_basis": {
+    "case": "parse-basis",
+    "status": "PASS",
+    "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+    "ops": 3,
+    "parses_by_reason": {
+      "tool_offset": 6
+    },
+    "toolsetter_edges": 0,
+    "masked": 0,
+    "held": 3,
+    "hold_ended": [],
+    "verified_same": 4,
+    "bookings": [
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24"
+    ],
+    "read_backs": 3,
+    "outcomes": [
+      "confirmed",
+      "confirmed",
+      "confirmed"
+    ],
+    "quiet_s": 4.6
+  },
+  "nice": {
+    "case": "parse-basis.nice",
+    "status": "PASS",
+    "detail": "6 drift re-parses, every one niced",
+    "drift": 6
+  },
+  "readback_versions": [
+    10,
+    14,
+    18
+  ],
+  "last_readback_to_end_ms": 4552.444000000003,
+  "owed_at_end": null,
+  "loss_reports": []
+}

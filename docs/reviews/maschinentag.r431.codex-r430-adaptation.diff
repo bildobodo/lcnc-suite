@@ -1,0 +1,20 @@
+--- R430-unmodified
++++ R430-full-attempt-key
+@@ -7,7 +7,7 @@
+ class TestR430ReadbackEnd(_HoldCase):
+     def test_r430_cancel_before_first_task_step_ends_the_hold(self):
+         self.probe_op()
+-        key = (gateway._ts_basis_version, "/p.ngc")
++        key = gateway._ts_attempt_key()
+         async def go():
+             # A stop already ready in the loop, before the task this tick creates.
+             asyncio.get_running_loop().call_soon(gateway._preempt_inflight, "abort", 0)
+@@ -20,7 +20,7 @@
+ 
+     def test_r430_binding_error_ends_the_hold_as_failed(self):
+         self.probe_op()
+-        key = (gateway._ts_basis_version, "/p.ngc")
++        key = gateway._ts_attempt_key()
+         def broken():
+             raise linuxcnc.error("synch send failed")
+         broken.__name__ = "task_plan_synch"
