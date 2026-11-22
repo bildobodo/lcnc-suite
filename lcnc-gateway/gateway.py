@@ -4720,9 +4720,10 @@ def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False)
     their timers (their ids stay dead). Their axes are stopped by the
     caller's own path (the disarm's jog stop, the abort or E-Stop itself, the
     disconnect's stop); a later `jog_lease_end` still stops by the booking's
-    key. `drop` (the close) also forgets the connection's id floor."""
+    key. `drop` (the close) also forgets the connection's id floor. Returns
+    the ended ids (the page is told, _tell_leases_ended)."""
     if not conn_key:
-        return
+        return []
     leases = _jog_leases.leases_of(conn_key)
     for lz in leases:
         _jog_leases.end(lz.key)
@@ -6944,8 +6945,16 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
         # (already at receipt) and forgotten. A malformed id ends EVERY lease
         # of the connection (the widened stop, N5).
         lease_id = _jog_lease_mod.lease_id_of(msg.get("lease"))
-        keys = ([(conn_key, lease_id)] if lease_id is not None and conn_key
-                else [lz.key for lz in _jog_leases.leases_of(conn_key)] if conn_key else [])
+        if lease_id is not None and conn_key:
+            keys = [(conn_key, lease_id)]
+        elif conn_key:
+            # widened: every lease of the connection — the listed ones and
+            # any a booking still names (a forgotten lease whose stop failed)
+            owners = {o[0] for o in (_jog_row_owner(r) for r in _active_jogs.values())
+                      if o is not None and o[0][0] == conn_key}
+            keys = sorted({lz.key for lz in _jog_leases.leases_of(conn_key)} | owners)
+        else:
+            keys = []
         failed: List[int] = []
         for key in keys:
             lease = _jog_leases.end(key)
