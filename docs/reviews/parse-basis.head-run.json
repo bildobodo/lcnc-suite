@@ -1,5 +1,5 @@
 {
-  "started": 1795351976.17238,
+  "started": 1795368382.0131838,
   "steps": [
     "tree",
     "copy",
@@ -98,7 +98,12 @@
         "read:24"
       ],
       "read_backs": 3,
-      "quiet_s": 4.0
+      "outcomes": [
+        "confirmed",
+        "confirmed",
+        "confirmed"
+      ],
+      "quiet_s": 4.6
     },
     {
       "case": "parse-basis.nice",
@@ -111,7 +116,7 @@
     "path": "/home/cnc/lcnc-suite/lcnc-gateway/.venv",
     "freeze": "annotated-doc==0.0.4\nannotated-types==0.7.0\nanyio==4.13.0\napt-listchanges==4.8\nBrlapi==0.8.6\ncertifi==2025.1.31\nchardet==5.2.0\ncharset-normalizer==3.4.2\nclick==8.3.3\nconfigobj==5.0.9\ncupshelpers==1.0\ndbus-python==1.4.0\ndecorator==5.2.1\nfastapi==0.136.1\nfeedparser==6.0.11\nh11==0.16.0\nhttpcore==1.0.9\nhttpx==0.28.1\nidna==3.10\niniconfig==2.3.0\nlouis==3.33.0\nmsgspec==0.21.1\nmusicbrainzngs==0.7.1\nmutagen==1.47.0\nnumpy==2.2.4\nolefile==0.47\nopencv==4.10.0\nopencv-python-headless==4.13.0.92\npackaging==25.0\npillow==11.1.0\nplatformdirs==4.3.7\npluggy==1.6.0\npooch==1.8.2\npsutil==7.0.0\npyasyncore==1.0.2\npycairo==1.27.0\npycups==2.0.4\npydantic==2.13.4\npydantic_core==2.46.4\nPygments==2.20.0\nPyGObject==3.50.0\npyinotify==0.9.6\nPyOpenGL==3.1.9\nPyQt5==5.15.11\nPyQt5_sip==12.17.0\nPyQtWebEngine==5.15.7\npyserial==3.5\npysmbc==1.0.25.1\npytest==9.0.3\npython-apt==3.0.0\npython-debian==1.0.1\npython-debianbts==4.1.1\npython-espeak==0.5\npython-multipart==0.0.28\npython-poppler-qt5==21.3.0\npython-xlib==0.33\npyxdg==0.28\nPyYAML==6.0.2\nQScintilla==2.14.1\nquodlibet==4.6.0\nreportbug==13.2.0\nrequests==2.32.3\nruff==0.14.4\nscipy==1.15.3\nsetproctitle==1.3.6\nsgmllib3k==1.0.0\nstarlette==1.0.0\ntqdm==4.67.1\ntyping-inspection==0.4.2\ntyping_extensions==4.15.0\nurllib3==2.3.0\nuvicorn==0.47.0\nuvloop==0.22.1\nwebsockets==16.0\nxdg==5\nYapps2==2.2.1\n"
   },
-  "commit": "7e822146b22c08479d9677aff8ea4ffdaf9eb99c",
+  "commit": "18f0132b6d6e40db5dc5bfad6146a30947e5f6c1",
   "profile": "3axis_xyz",
   "servo": {
     "changes": [
@@ -515,21 +520,21 @@
       "3035": 0
     }
   },
-  "parse_basis_warm_quiet_s": 4.0,
+  "parse_basis_warm_quiet_s": 4.5,
   "parse_basis_file": "native_parse_basis.ngc",
-  "servo_unload": "unloaded",
+  "servo_unload": "RuntimeError: halcmd unloadrt sampler: <commandline>:0: exit value: 255\n<commandline>:0: rmmod failed, returned -1\n<commandline>:0: unloadrt failed",
   "restore": {
     "outcome": "complete",
     "instance": [
       "linuxcncsvr",
-      3186713,
-      230125261
+      3720066,
+      231765232
     ],
     "isolation": [],
     "cleanup": []
   },
   "crashes": [],
-  "ended": 1795352106.6816025,
+  "ended": 1795368505.4147599,
   "variant": "parse-basis",
   "verdict": "PASS"
 }
