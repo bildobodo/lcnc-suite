@@ -46,6 +46,8 @@ class _Lease(_Writer):
         super().setUp()
         self.takes_the_mode()
         gateway._active_jogs.clear()
+        gateway._jog_stop_failed.clear()
+        self.addCleanup(gateway._jog_stop_failed.clear)
         # an earlier test's in-process lifespan leaves the flag set at its
         # teardown (gateway.lifespan) — the expiry skips everything then
         p = mock.patch.object(gateway, "_shutting_down", False)
@@ -367,6 +369,8 @@ class TestTheReportedFailure(_Lease):
         reply = _run(scenario())
         self.assertEqual(reply.get("stop_failed"), [0])
         self.assertEqual(len(attempts), 1, "the settled failure was tried again by the waiting expiry")
+        self.assertEqual([n for n in self.notes if n[1].get("id") == 1], [],
+                         "a settled lease's waiting expiry says nothing either (R428: nothing owed)")
 
     def test_a_partial_start_cleanup_reports_its_failed_stop(self):
         """Codex R428's probe: X written, the lease dies before Y, X's stop
@@ -392,6 +396,68 @@ class TestTheReportedFailure(_Lease):
                             "axes": [{"axis": 0, "vel": 5.0}, {"axis": 1, "vel": 5.0}]})
         reply = self.at_the_write(msg, lambda: self.run_out(1), at=3)
         self.assertEqual(reply, {"ok": False, "error": jog_lease.JOG_LEASE_DEAD, "expired": True})
+
+
+class TestTheFailedBooking(_Lease):
+    """Codex R429: a reported stop failure belongs to exactly its booking
+    (owner, generation) and lives as long as it (MT-I08 rest); it kills the
+    lease — nothing more starts under it (MT-I14); a new generation of the
+    axis owes its own stop; an operator's stop still reaches the booking."""
+
+    def stops_fail_once(self):
+        attempts = []
+
+        def jog(*args):
+            if args[0] == JS:
+                attempts.append(args)
+                if len(attempts) == 1:
+                    raise linuxcnc.error("first stop refused")
+            self.cmd.calls.append(("jog", args, {}))
+        self.cmd.jog = jog
+        return attempts
+
+    def test_an_expiry_failure_is_not_retried_by_the_late_gesture_end(self):
+        self.assertTrue(self.jog(1)["ok"])
+        attempts = self.stops_fail_once()
+        self.expire(1)
+        self.assertEqual(self.notes[-1][1]["stop_failed"], [0])
+        self.assertIsNone(self.lease(1))
+        self.end(1)
+        self.assertEqual(len(attempts), 1, "the forgotten lease must not erase the booking's memory")
+
+    def test_a_failed_change_admits_no_new_start_of_the_same_gesture(self):
+        self.assertTrue(self.jog(1)["ok"])
+        self.stops_fail_once()
+        first = self.receive({"cmd": "jog_change", "lease": 1, "stop": [0], "axes": []})
+        second = self.receive({"cmd": "jog_change", "lease": 1, "stop": [], "axes": [{"axis": 0, "vel": -5.0}]})
+        self.assertEqual(self.send_as(first).get("stop_failed"), [0])
+        result = self.send_as(second)
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(len(self.starts()), 1, "no start after the lease died")
+        self.assertEqual(self.lease(1).ended_by, "stop_failed")
+
+    def test_a_newly_written_generation_owes_its_own_stop(self):
+        """The memory names the booking, never the axis: a new write of X
+        (here an operator's own unleased jog) is stopped by its own path."""
+        self.assertTrue(self.jog(1)["ok"])
+        attempts = self.stops_fail_once()
+        self.assertEqual(self.change(1, [0], []).get("stop_failed"), [0])
+        self.assertEqual(gateway._jog_stop_failed[0][0], (self.ck, 1))
+        self.assertTrue(self.jog(2)["ok"], "another gesture takes X: a new generation")
+        self.assertNotIn(0, gateway._jog_stop_failed, "the new generation is not exempted")
+        self.expire(2)
+        self.assertEqual(len(attempts), 2)
+        self.assertNotIn(0, gateway._active_jogs)
+
+    def test_an_explicit_operator_stop_still_reaches_the_failed_booking(self):
+        self.assertTrue(self.jog(1)["ok"])
+        attempts = self.stops_fail_once()
+        self.expire(1)
+        result = self.send_as({"cmd": "jog_stop", "axis": 0})
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(len(attempts), 2)
+        self.assertNotIn(0, gateway._active_jogs)
+        self.assertNotIn(0, gateway._jog_stop_failed, "the memory ends with the booking")
 
 
 class TestTheWriteLink(_Lease):

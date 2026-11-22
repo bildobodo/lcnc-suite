@@ -1547,6 +1547,15 @@ def _jog_row_owner(row: Optional[Tuple[Any, ...]]) -> Optional[JogOwner]:
     return (row[2], row[3])
 
 
+#: a booking whose lease stop FAILED and was said (Codex R429 MT-I14 / MT-I08
+#: rest): axis → the (lease key, generation) of exactly that booking. It
+#: lives as long as that booking: a lease-bound stop (an end, an expiry, a
+#: change's stop half — even after the lease was forgotten) never tries it
+#: again; a new write of the axis (a new generation), an operator's stop
+#: that reaches it, or a mode switch that clears the bookings ends it.
+_jog_stop_failed: Dict[int, JogOwner] = {}
+
+
 def _jog_row_link(row: Optional[Tuple[Any, ...]]) -> Any:
     """The controller Link a booked jog was WRITTEN through (Codex R427
     MT-I09: a lease's stop is bound to it), or None (an older row)."""
@@ -4141,6 +4150,7 @@ async def set_mode(mode: TaskMode, force: bool = False,
         still_owned()
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
+            _jog_stop_failed.clear()
         return
     def _admit_switch() -> Optional[str]:
         # the caller's class first: its reason is the more specific one
@@ -4177,6 +4187,7 @@ async def set_mode(mode: TaskMode, force: bool = False,
             homed=homed, coordinated=mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO)))
     if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
         _active_jogs.clear()   # the switch took (or is unverifiable): no jog is active
+        _jog_stop_failed.clear()
 
 
 #: a lease's stop for an axis whose row no longer carries that lease — another
@@ -4225,6 +4236,7 @@ async def _send_jog_stop(axis: int, owner: Optional[JogOwner] = None) -> None:
     await _cmd_blocking(lk, op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None,
                         admit=still_owned if owner is not None else None)
     _active_jogs.pop(axis, None)
+    _jog_stop_failed.pop(axis, None)
 
 
 def _auto_running() -> bool:
@@ -4374,6 +4386,7 @@ async def _start_jogs(cmd: str, armed: bool, entries,
 
             def book(axis=axis, jf=jf, arg=arg, lk=lk):
                 _active_jogs[axis] = (jf, arg, lease_key if dist is None else None, next(_jog_gen), lk)
+                _jog_stop_failed.pop(axis, None)   # a new generation: its own stop is owed
                 if lease_key is not None and dist is None:
                     written.append(axis)
             if dist is None:
@@ -4594,12 +4607,12 @@ async def _stop_owned_axes(lease_key: Tuple[str, int],
     owned = sorted(ax for ax, row in _active_jogs.items()
                    if (_jog_row_owner(row) or (None, 0))[0] == lease_key)
     named = owned if axes is None else sorted(set(axes))
-    lease = _jog_leases.get(lease_key)
-    said: set[int] = lease.extra.setdefault("stop_reported", set()) if lease is not None else set()
+    def said(ax: int) -> bool:
+        return _jog_stop_failed.get(ax) == _jog_row_owner(_active_jogs.get(ax))
     out: Dict[str, List[int]] = {"stopped": [], "failed": [], "not_owned": [], "reported": []}
     out["not_owned"] = [ax for ax in named if ax not in owned]
-    out["reported"] = [ax for ax in named if ax in owned and ax in said]
-    todo = [ax for ax in named if ax in owned and ax not in said]
+    out["reported"] = [ax for ax in named if ax in owned and said(ax)]
+    todo = [ax for ax in named if ax in owned and not said(ax)]
     if out["not_owned"]:
         _trace.emit("jog.lease_stop_not_owned", level="info", lease=lease_key[1], axes=out["not_owned"],
                     owners={ax: (_jog_row_owner(_active_jogs.get(ax)) or (None, None))[0] is not None
@@ -4609,7 +4622,7 @@ async def _stop_owned_axes(lease_key: Tuple[str, int],
     if current_link() is None:
         out["failed"] = todo
         _trace.emit("jog.lease_stop_no_link", level="error", lease=lease_key[1], axes=todo)
-        said.update(todo)
+        _stop_failure_said(lease_key, todo)
         return out
     if _auto_running():
         return out
@@ -4638,8 +4651,26 @@ async def _stop_owned_axes(lease_key: Tuple[str, int],
         except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
             _trace.emit_exc("jog.lease_stop_failed", e, lease=lease_key[1], axis=ax)
             out["failed"].append(ax)
-    said.update(out["failed"])
+    _stop_failure_said(lease_key, out["failed"])
     return out
+
+
+def _stop_failure_said(lease_key: Tuple[str, int], axes: List[int]) -> None:
+    """A lease stop failed and is being said (the reply, the expiry notice):
+    remember exactly those bookings (MT-I14 / MT-I08 rest) and kill the lease
+    — no further start or renewal under it (the plan's "the lease is dead");
+    commands of it already received see that after the lock and at their
+    write. Its other owed stops stay (its timer)."""
+    if not axes:
+        return
+    for ax in axes:
+        owner = _jog_row_owner(_active_jogs.get(ax))
+        if owner is not None:
+            _jog_stop_failed[ax] = owner
+    lease = _jog_leases.get(lease_key)
+    if lease is not None and lease.state == "live":
+        _jog_leases.end(lease_key, by="stop_failed")
+        _trace.emit("jog.lease_ended_by_stop_failure", level="warn", lease=lease_key[1], axes=axes)
 
 
 #: the reply and the client message when a lease's stop could not be written

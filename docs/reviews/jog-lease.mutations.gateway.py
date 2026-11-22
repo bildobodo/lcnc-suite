@@ -103,10 +103,26 @@ MUTS = {
     # Codex R428 MT-I08 rest: a waiting expiry does not check its lease is still owed
     "settled_expiry_works_anyway": ([('''            if _jog_leases.get(key) is not lease:''', '''            if False:''')],
         [T + "TestTheReportedFailure::test_a_queued_expiry_does_not_retry_a_reported_end_failure"]),
-    # R428: a reported failure is tried again by the lease
-    "reported_failure_retried": ([('''    todo = [ax for ax in named if ax in owned and ax not in said]''',
+    # R428/R429: a reported failure is tried again by the lease
+    "reported_failure_retried": ([('''    todo = [ax for ax in named if ax in owned and not said(ax)]''',
                                    '''    todo = [ax for ax in named if ax in owned]''')],
-        [T + "TestTheReportedFailure::test_a_partial_start_cleanup_reports_its_failed_stop"]),
+        [T + "TestTheReportedFailure::test_a_partial_start_cleanup_reports_its_failed_stop",
+         T + "TestTheFailedBooking::test_an_expiry_failure_is_not_retried_by_the_late_gesture_end"]),
+    # Codex R429 MT-I14: the memory by AXIS (the R428 form) — a new generation is exempted
+    "memory_by_axis_only": ([('''        return _jog_stop_failed.get(ax) == _jog_row_owner(_active_jogs.get(ax))''',
+                              '''        return ax in _jog_stop_failed'''),
+                             ('''                _jog_stop_failed.pop(axis, None)   # a new generation: its own stop is owed''',
+                              '''                pass''')],
+        [T + "TestTheFailedBooking::test_a_newly_written_generation_owes_its_own_stop"]),
+    # MT-I14: a reported failure leaves the lease alive — the gesture starts again
+    "failure_keeps_lease_alive": ([('''        _jog_leases.end(lease_key, by="stop_failed")''', '''        pass''')],
+        [T + "TestTheFailedBooking::test_a_failed_change_admits_no_new_start_of_the_same_gesture"]),
+    # MT-I08 rest: the memory dies with the lease (the expiry forgets it with the lease)
+    "memory_dies_with_lease": ([('''    _jog_leases.forget(key)
+    await _notify_lease_owner(key[0], {"type": "jog_lease_expired", "id": key[1],''', '''    _jog_leases.forget(key)
+    _jog_stop_failed.clear()
+    await _notify_lease_owner(key[0], {"type": "jog_lease_expired", "id": key[1],''')],
+        [T + "TestTheFailedBooking::test_an_expiry_failure_is_not_retried_by_the_late_gesture_end"]),
     # MT-I09: only the write thread's check gone
     "no_link_check_in_the_write_thread": ([('''        if _jog_row_link(now) is not lk:
             return JOG_STOP_LINK_CHANGED''', '''        if False:

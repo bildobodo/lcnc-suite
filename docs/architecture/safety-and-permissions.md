@@ -562,9 +562,16 @@ joint jog before homing in E.
   booking and says so (`stop_failed`, "Jog stop failed — press E-Stop if it
   still moves") ONCE per lease and axis (Codex R428): the reply that met it
   says it — a multi-jog's cleanup too, never hidden behind "page delayed"
-  (MT-I11; the page shows it first, in the message center) — and the lease
-  never tries that axis again (`reported`); an expiry already waiting for
-  the lock when the lease was settled writes nothing (MT-I08 rest). Without a Link nothing can be written:
+  (MT-I11; the page shows it first, in the message center). The failure is
+  remembered on exactly that BOOKING (`_jog_stop_failed`: axis → owner and
+  generation) for as long as it stands — no lease-bound stop (end, expiry,
+  a change's stop half, even after the lease was forgotten) tries it again
+  (`reported`); a new write of the axis is a new generation and owes its
+  own stop; an operator's stop reaches it and ends the memory (Codex R429
+  MT-I08 rest, MT-I14). A reported failure also ENDS its lease
+  (`ended_by: stop_failed`): nothing more starts or renews under it, its
+  other owed stops stay on its timer. An expiry already waiting for the lock
+  when the lease was settled writes and says nothing (R428). Without a Link nothing can be written:
   the owned axes are `failed` (the HAL chain owns the motion).
 - *Expiry*: one `call_later` timer per lease at its deadline, re-armed for
   what a renewal added; past the deadline the lease is dead and
