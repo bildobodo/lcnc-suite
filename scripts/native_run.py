@@ -1810,14 +1810,18 @@ def _pb_program() -> str:
 
 def _gateway_events_since(ctx, t_ns: int) -> "nc.TraceSlice":
     """THIS run's gateway trace records stamped at or after wall `t_ns`, as
-    an observation (nc.TraceSlice, Codex R431 MT-I17 B): a file not read and
-    a damaged line after the slice's first record are its problems — never
-    dropped, so an unreadable moment settles no owed read-back."""
+    an observation (nc.TraceSlice, Codex R431 MT-I17 B): a file not read, a
+    damaged line after the slice's first record and this gateway's own
+    `trace.write_lost` after it (Codex R432 MT-I18 A — a lost booking may be
+    the op's last) are its problems — never dropped, so an unreadable or
+    incomplete moment settles no owed read-back; the wait's bound refuses."""
     pid = ctx.get("gateway_pid") or ctx.setdefault("gateway_pid", _gateway_pid(ctx))
     files, errors = _trace_files(ctx["run"] / "logs")
-    out, problems = [], list(errors)
+    per_file, problems = [], list(errors)
     for name, _ino, data in files:
-        inside, damaged = False, 0
+        out = []
+        per_file.append((nc._generation(name), out))
+        inside, damaged, lost = False, 0, 0
         for line in data.split(b"\n")[:-1]:     # after the last newline: a line still being written
             try:
                 e = json.loads(line)
@@ -1828,11 +1832,23 @@ def _gateway_events_since(ctx, t_ns: int) -> "nc.TraceSlice":
                 continue
             if (e.get("t_wall_ns") or 0) >= t_ns:
                 inside = True
-                if e.get("pid") == pid:
-                    out.append(e)
+            if not inside:
+                continue
+            if e.get("pid") == pid:
+                out.append(e)
+                if e.get("tag") == "trace.write_lost":
+                    # this gateway lost records it then reported, after the
+                    # slice began (file order): the observation is incomplete
+                    # — its last visible booking proves no end (Codex R432)
+                    lost += int(e.get("count") or 1)
         if damaged:
             problems.append(f"{name}: {damaged} damaged line(s)")
-    return nc.TraceSlice(sorted(out, key=lambda e: e.get("t_wall_ns") or 0), problems)
+        if lost:
+            problems.append(f"{name}: the gateway lost {lost} trace record(s)")
+    # FILE order, the oldest generation first — never sorted by wall time (a
+    # wall step would reorder the bookings the owed check reads last-first)
+    ordered = [e for _g, out in sorted(per_file, key=lambda x: -x[0]) for e in out]
+    return nc.TraceSlice(ordered, problems)
 
 
 def _pb_quiet(c, case: str, owed=None) -> float:

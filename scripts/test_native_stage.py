@@ -8115,3 +8115,135 @@ def test_r431_an_empty_or_damaged_observation_settles_nothing():
     assert "not readable" in nc.pb_owed(nc.TraceSlice(_r431_ops(), ["x: 1 damaged line(s)"]))
     assert nc.pb_owed(nc.TraceSlice(_r431_ops(), [])) is None, "a readable proven end settles"
 
+
+# ── Codex R432 MT-I18 rests: the progress reader and the frame by file order ─
+def _r432_data(events, pid=101):
+    return b"".join((json.dumps(dict(proc="gateway", pid=pid, **e)) + "\n").encode() for e in events)
+
+
+def test_r432_a_gateway_loss_cannot_settle_the_live_owed_wait():
+    """Rest A, Codex's case: the op's `applied` booked, its following
+    `assumed` lost and reported — the last VISIBLE booking proves no end:
+    the wait refuses at its bound or lasts to the real end + 4 s."""
+    from types import SimpleNamespace
+    from unittest import mock
+    clock, calls = _R431Clock(), []
+
+    def files(_path):
+        calls.append(round(clock.t, 3))
+        ev = [{"tag": "toolsetter.basis", "origin": "applied", "version": 10, "keys": [3014], "t_wall_ns": 100},
+              {"tag": "trace.write_lost", "count": 1, "since_ns": 101, "t_wall_ns": 102, "why": {"lock_busy": 1}}]
+        if clock.t >= 5:
+            ev += [{"tag": "toolsetter.basis", "origin": "read", "version": 12, "keys": [3014], "t_wall_ns": 105},
+                   {"tag": "toolsetter.read_back_outcome", "attempt_version": 11, "outcome": "confirmed",
+                    "t_wall_ns": 106}]
+        return [("trace.ndjson", 42, _r432_data(ev))], []
+    with mock.patch.object(nr, "time", clock), mock.patch.object(nr, "_trace_files", files):
+        try:
+            waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+                                  owed=lambda: nc.pb_owed(nr._gateway_events_since(
+                                      {"gateway_pid": 101, "run": Path("/unused")}, 99)))
+        except nr.Refused as e:
+            assert "lost" in str(e), e
+            return
+    assert waited >= 5 + nr.PB_QUIET_S, {"waited": waited, "reads_at": calls}
+
+
+def test_r432_a_readable_confirmed_live_observation_releases_the_wait():
+    """The control: a fully read confirmation returns after the quiet."""
+    from types import SimpleNamespace
+    from unittest import mock
+    clock = _R431Clock()
+    raw = _r432_data([dict(t_wall_ns=100, **e) for e in _r431_ops()])
+    with mock.patch.object(nr, "time", clock), \
+            mock.patch.object(nr, "_trace_files", return_value=([("trace.ndjson", 42, raw)], [])):
+        waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+                              owed=lambda: nc.pb_owed(nr._gateway_events_since(
+                                  {"gateway_pid": 101, "run": Path("/unused")}, 99)))
+    assert nr.PB_QUIET_S <= waited <= nr.PB_QUIET_S + .2
+
+
+def test_r432_the_progress_reader_keeps_file_order_across_a_wall_step():
+    """A wall step back after the slice began: the records stay in FILE
+    order (the last booking is the last written), none is dropped."""
+    ev = [{"tag": "toolsetter.basis", "origin": "assumed", "version": 3, "t_wall_ns": 200},
+          {"tag": "toolsetter.basis", "origin": "read", "version": 4, "t_wall_ns": 150}]   # the wall stepped back
+    from unittest import mock
+    with mock.patch.object(nr, "_trace_files", return_value=([("trace.ndjson", 42, _r432_data(ev))], [])):
+        sl = nr._gateway_events_since({"gateway_pid": 101, "run": Path("/unused")}, 100)
+    assert [e["version"] for e in sl] == [3, 4] and nc.pb_owed(sl) is None
+
+
+@pytest.mark.parametrize("clock_step", ["back_at_end", "back_before_report"])
+def test_r432_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time(clock_step):
+    """Rest B, Codex's two cases: a report between the marks belongs to the
+    window whatever its wall-clock fields say."""
+    ev = [{"tag": "client.diag", "native_mark": "pb", "edge": "start", "t_wall_ns": 100}]
+    ev += [dict(t_wall_ns=110, **e) for e in _r431_ops()]
+    loss = {"tag": "trace.write_lost", "count": 2, "why": {"lock_busy": 2}}
+    loss.update(since_ns=250, t_wall_ns=300) if clock_step == "back_at_end" else loss.update(since_ns=110, t_wall_ns=90)
+    ev += [loss, {"tag": "client.diag", "native_mark": "pb", "edge": "end", "t_wall_ns": 200}]
+    window = nc.frame_window([("trace.ndjson", 42, _r432_data(ev))], "pb", 101)
+    assert window["framed"] and window["losses"], window
+    assert (nc.eval_parse_basis("pb", window, 3)["status"], nc.eval_parse_nice("nice", window)["status"]) == \
+        ("incomplete", "incomplete")
+
+
+def test_r432_a_report_before_the_start_mark_is_excluded_by_order_whatever_its_wall_time():
+    ev = [{"tag": "trace.write_lost", "count": 1, "since_ns": 500, "t_wall_ns": 600}]   # stamped "later"
+    ev += [{"tag": "client.diag", "native_mark": "pb", "edge": "start", "t_wall_ns": 100}]
+    ev += [dict(t_wall_ns=110, **e) for e in _r431_ops()]
+    ev += [{"tag": "client.diag", "native_mark": "pb", "edge": "end", "t_wall_ns": 200}]
+    window = nc.frame_window([("trace.ndjson", 42, _r432_data(ev))], "pb", 101)
+    assert window["framed"] and window["losses"] == []
+    assert nc.eval_parse_basis("pb", window, 3)["status"] == "PASS"
+    # a report in an OLDER generation precedes the window too
+    older = [("trace.ndjson", 42, _r432_data(ev[1:])),
+             ("trace.ndjson.1", 41, _r432_data([{"tag": "trace.write_lost", "count": 1, "since_ns": 900,
+                                                 "t_wall_ns": 950}]))]
+    assert nc.frame_window(older, "pb", 101)["losses"] == []
+
+
+def test_r432_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step(tmp_path):
+    """Codex R432's producer case with the REAL CoordinatedFileHandler: a lock
+    refused at its seam loses a gcode.spawn_start, the handler reports it,
+    then the wall clock steps back before the end mark — the frame keeps
+    the loss and the absence proof is incomplete."""
+    import importlib.util
+    import os
+    import sys
+    from types import SimpleNamespace
+    from unittest import mock
+    gw = Path(nr.__file__).parents[1] / "lcnc-gateway"
+    sys.path.insert(0, str(gw))
+    spec = importlib.util.spec_from_file_location("r432_trace", gw / "lcnc_trace.py")
+    tr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tr)
+    tr._proc_name = "gateway"
+    now = SimpleNamespace(wall=1000000000, mono=1.0)
+    clock = SimpleNamespace(time_ns=lambda: now.wall, monotonic=lambda: now.mono)
+    path = tmp_path / "trace.ndjson"
+    h = tr.CoordinatedFileHandler(str(path), str(tmp_path / "trace.lock"), max_bytes=100000, backups=2,
+                                  report_prefix="trace")
+
+    def emit(e):
+        rec = dict(proc="gateway", pid=os.getpid(), t_wall_ns=now.wall, t_mono_ms=now.mono * 1000, **e)
+        return h.append((json.dumps(rec) + "\n").encode())
+    with mock.patch.object(tr, "time", clock):
+        assert emit(dict(tag="client.diag", native_mark="real", edge="start"))
+        now.wall, now.mono = 1100000000, 1.1
+        for e in _r431_ops():
+            assert emit(e)
+        now.wall, now.mono = 1250000000, 1.25
+        with mock.patch.object(h, "_lock", return_value="lock_busy"):
+            assert not emit(dict(tag="gcode.spawn_start", reason="toolsetter", nice=19))
+        now.wall, now.mono = 1300000000, 1.3
+        assert emit(dict(tag="diagnostic.after_loss"))
+        now.wall, now.mono = 1200000000, 1.4        # the wall stepped back, monotonic went on
+        assert emit(dict(tag="client.diag", native_mark="real", edge="end"))
+        h.close()
+    raw = path.read_bytes()
+    w = nc.frame_window([(path.name, path.stat().st_ino, raw)], "real", os.getpid())
+    assert b'"trace.write_lost"' in raw and w["framed"] and w["losses"], w
+    assert nc.eval_parse_basis("pb", w, 3)["status"] == "incomplete", w
+

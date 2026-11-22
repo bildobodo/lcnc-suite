@@ -54,7 +54,12 @@ readable trace: an unreadable, damaged or empty observation keeps it owed (`nc.T
 `nc.pb_owed`, Codex R431) — and then no parse ran for 4 s; a still-open attempt is incomplete,
 and so is a read-back that did not confirm, whether or not its one contractual parse is in the
 window (the premise is judged before the avoided parses). A `trace.write_lost` of THIS gateway
-overlapping the window (`frame_window`'s `losses`) makes both absence proofs incomplete.
+overlapping the window (`frame_window`'s `losses`) makes both absence proofs incomplete; the
+overlap is decided by FILE ORDER (`nc.window_losses`: a report between the marks always counts,
+one before the start mark never, one after the end mark only unless its loss began after the
+end) — wall-clock fields never take a report out of the window (Codex R432). The progress
+reader keeps file order too and treats its own gateway's loss report as an incomplete
+observation: the wait proves the end or refuses at its bound.
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

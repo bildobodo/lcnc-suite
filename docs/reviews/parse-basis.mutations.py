@@ -118,15 +118,13 @@ def _ts_readback_ended''')],
             return "no booking of the op in the trace yet"''')],
         [NS + "test_r431_an_empty_or_damaged_observation_settles_nothing"]),
     # MT-I17 B: the reader drops its damaged lines and read errors again
-    "reader_drops_problems": ("../scripts/native_run.py", [('''    out, problems = [], list(errors)''', '''    out, problems = [], []'''),
+    "reader_drops_problems": ("../scripts/native_run.py", [('''    per_file, problems = [], list(errors)''', '''    per_file, problems = [], []'''),
                                                          ('''        if damaged:
             problems.append(f"{name}: {damaged} damaged line(s)")''', '''        pass''')],
         [NS + "test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing",
          NS + "test_r431_an_empty_or_damaged_observation_settles_nothing"]),
     # Codex R431 MT-I18: frame_window drops the gateway's losses
-    "frame_drops_losses": ("../scripts/test_support/native_cases.py", [('''            if not (began_after or said_before):
-                losses.append''', '''            if False:
-                losses.append''')],
+    "frame_drops_losses": ("../scripts/test_support/native_cases.py", [('''            out.append({k: r.get(k) for k in ("count", "since_ns", "t_wall_ns", "why")})''', '''            pass''')],
         [NS + "test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran",
          NS + "test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it"]),
     # MT-I18: the basis judge ignores the losses
@@ -143,6 +141,32 @@ def _ts_readback_ended''')],
     "foreign_loss_counts": ("../scripts/test_support/native_cases.py", [('''            if (r is None or r.get("tag") != "trace.write_lost" or r.get("proc") != MARK_PROC
                     or r.get("pid") != pid):''', '''            if r is None or r.get("tag") != "trace.write_lost":''')],
         [NS + "test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it"]),
+    # Codex R432 MT-I18 A: the progress reader drops the gateway's own loss report
+    "reader_ignores_losses": ("../scripts/native_run.py", [('''                    lost += int(e.get("count") or 1)''', '''                    pass''')],
+        [NS + "test_r432_a_gateway_loss_cannot_settle_the_live_owed_wait"]),
+    # MT-I18 A: the progress reader sorts by wall time again
+    "reader_sorts_by_wall": ("../scripts/native_run.py", [('''    ordered = [e for _g, out in sorted(per_file, key=lambda x: -x[0]) for e in out]''',
+                                                         '''    ordered = sorted((e for _g, out in per_file for e in out), key=lambda e: e.get("t_wall_ns") or 0)''')],
+        [NS + "test_r432_the_progress_reader_keeps_file_order_across_a_wall_step"]),
+    # Codex R432 MT-I18 B: a report inside the frame excluded by its since_ns (the wall)
+    "inside_excluded_by_since": ("../scripts/test_support/native_cases.py", [('''            if after and isinstance(since, int) and isinstance(t_end, int) and since > t_end:''',
+                                                                             '''            if isinstance(since, int) and isinstance(t_end, int) and since > t_end:''')],
+        [NS + "test_r432_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end]",
+         NS + "test_r432_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step"]),
+    # MT-I18 B: a report inside the frame excluded by its report wall time before the start
+    "inside_excluded_by_report_time": ("../scripts/test_support/native_cases.py", [('''            if before:
+                continue
+            since = r.get("since_ns")''', '''            t_start = parsed[mark_ino][1][s].get("t_wall_ns")
+            if before or (isinstance(r.get("t_wall_ns"), int) and isinstance(t_start, int)
+                          and r["t_wall_ns"] < t_start):
+                continue
+            since = r.get("since_ns")''')],
+        [NS + "test_r432_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report]"]),
+    # MT-I18 B: a report before the start mark counted (the order relation dropped)
+    "before_start_counted": ("../scripts/test_support/native_cases.py", [('''            if before:
+                continue
+            since = r.get("since_ns")''', '''            since = r.get("since_ns")''')],
+        [NS + "test_r432_a_report_before_the_start_mark_is_excluded_by_order_whatever_its_wall_time"]),
 }
 
 only = sys.argv[1:]

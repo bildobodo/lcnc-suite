@@ -1235,19 +1235,53 @@ def frame_window(files, token: str, pid, errors=()) -> dict:
     if damaged:
         return out(f"{damaged} damaged line(s) in the window — never read as absent")
     events = [r for r in recs[s + 1:e] if r.get("proc") == MARK_PROC and r.get("pid") == pid]
-    t0, t1 = recs[s].get("t_wall_ns"), recs[e].get("t_wall_ns")
-    losses = []
-    for _ino, (_n, rr) in parsed.items():
-        for r in rr:
+    losses = window_losses(parsed, si, s, e, pid)
+    return {"framed": True, "reason": None, "file": name, "events": events, "losses": losses}
+
+
+def _generation(name: str) -> int:
+    """A trace file's age: 0 the current file, N for `<log>.N` (older)."""
+    tail = name.rsplit(".", 1)[-1]
+    return int(tail) if tail.isdigit() else 0
+
+
+def window_losses(parsed: dict, mark_ino, s: int, e: int, pid) -> list:
+    """THIS gateway's `trace.write_lost` reports that may overlap the window
+    between the marks at lines `s` and `e` of the file `mark_ino` (Codex
+    R431/R432 MT-I18), decided by FILE ORDER — wall-clock fields never take
+    a report out of the window it physically stands in (a wall step is no
+    evidence):
+    - a report between the marks belongs to the window, always;
+    - a report BEFORE the start mark (earlier in that file, or in an older
+      generation) is excluded: the writer reports a pending loss in its next
+      written section, so such a report counts only losses before it;
+    - a report AFTER the end mark (later in that file, or in a newer
+      generation) is excluded only when its loss also began after the end
+      mark in the same clock (`since_ns` > the end mark's `t_wall_ns`) — a
+      loss before the end mark's own section would have been reported in it;
+      otherwise (no such relation) it counts: the proof stays incomplete.
+    Another process's report is no evidence of a lost gateway record."""
+    name_of = {ino: n for ino, (n, _r) in parsed.items()}
+    mark_gen = _generation(name_of[mark_ino])
+    t_end = parsed[mark_ino][1][e].get("t_wall_ns")
+    out = []
+    for ino, (n, rr) in parsed.items():
+        gen = _generation(n)
+        for i, r in enumerate(rr):
             if (r is None or r.get("tag") != "trace.write_lost" or r.get("proc") != MARK_PROC
                     or r.get("pid") != pid):
                 continue
-            since, said = r.get("since_ns"), r.get("t_wall_ns")
-            began_after = isinstance(since, int) and isinstance(t1, int) and since > t1
-            said_before = isinstance(said, int) and isinstance(t0, int) and said < t0
-            if not (began_after or said_before):
-                losses.append({k: r.get(k) for k in ("count", "since_ns", "t_wall_ns", "why")})
-    return {"framed": True, "reason": None, "file": name, "events": events, "losses": losses}
+            if ino == mark_ino:
+                before, after = i < s, i > e
+            else:
+                before, after = gen > mark_gen, gen < mark_gen
+            if before:
+                continue
+            since = r.get("since_ns")
+            if after and isinstance(since, int) and isinstance(t_end, int) and since > t_end:
+                continue
+            out.append({k: r.get(k) for k in ("count", "since_ns", "t_wall_ns", "why")})
+    return out
 
 
 def _window_of(frame) -> dict:
