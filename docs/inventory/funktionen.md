@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1190 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1192 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -309,7 +309,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 5 | 5 | 0 |
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |

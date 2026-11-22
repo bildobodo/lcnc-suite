@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from "vue";
 import { touchInput } from "./touchDetect";
 import { request, awaitReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
@@ -49,6 +49,9 @@ const props = defineProps<{
   currentTool: number | null;
   iniFilename: string | null;
   linearUnit: string;
+  /** The Tools tab shows (v-show keeps the panel mounted): the preview card
+   *  is teleported to <body>, so a hidden tab must close it (F22). */
+  active?: boolean;
 }>();
 
 const fire = useFire();
@@ -595,6 +598,41 @@ function uploadLibrary() {
 const hoverTool = ref<Tool | null>(null);
 const hoverPos = ref({ x: 0, y: 0 });
 let hoverTimer = 0;
+// The element the card belongs to — the hovered T cell or the tapped row: a
+// press inside it is its own (the row's tap toggles), any other press closes
+// the card, as does any scroll (it is placed from the row's rect) — F22.
+let previewOwner: HTMLElement | null = null;
+
+/** Close the card AND a pending hover timer (Codex R433: a timer left
+ *  running would open the card after the tab was left). */
+function closePreview() {
+  clearTimeout(hoverTimer);
+  hoverTimer = 0;
+  hoverTool.value = null;
+  previewOwner = null;
+}
+/** The table can show a card now: its tab shows, the library browser does
+ *  not hide the table. */
+const previewShown = () => props.active !== false && !showImportBrowser.value;
+function onPressOutsidePreview(e: PointerEvent) {
+  if (!hoverTool.value && !hoverTimer) return;
+  if (previewOwner && e.target instanceof Node && previewOwner.contains(e.target)) return;
+  closePreview();
+}
+function onScrollUnderPreview() {
+  if (hoverTool.value || hoverTimer) closePreview();
+}
+onMounted(() => {
+  window.addEventListener("pointerdown", onPressOutsidePreview, true);
+  window.addEventListener("scroll", onScrollUnderPreview, true);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("pointerdown", onPressOutsidePreview, true);
+  window.removeEventListener("scroll", onScrollUnderPreview, true);
+  closePreview();
+});
+watch(() => props.active, on => { if (on === false) closePreview(); });
+watch(showImportBrowser, shown => { if (shown) closePreview(); });
 
 // Tap or hover is input behaviour: the session's first touch decides it at
 // once (touchInput), not the touch sizes that follow its press (Codex R231).
@@ -605,8 +643,12 @@ function onToolEnter(tool: Tool, e: MouseEvent) {
   // precedes a tap's click would race the 300ms timer against the toggle.
   if (tapNotHover()) return;
   clearTimeout(hoverTimer);
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const owner = e.currentTarget as HTMLElement;
+  const rect = owner.getBoundingClientRect();
   hoverTimer = window.setTimeout(() => {
+    hoverTimer = 0;
+    if (!previewShown()) return;
+    previewOwner = owner;
     hoverPos.value = { x: rect.right + 8, y: rect.top };
     hoverTool.value = tool;
   }, 300);
@@ -615,16 +657,18 @@ function onToolEnter(tool: Tool, e: MouseEvent) {
 function onToolLeave() {
   // Not touch-gated: the emulated mouseleave when tapping elsewhere is
   // what dismisses a tap-pinned preview.
-  clearTimeout(hoverTimer);
-  hoverTool.value = null;
+  closePreview();
 }
 
 /** Touch equivalent of the hover preview: tap a row to pin it, re-tap to hide. */
 function onToolTap(tool: Tool, e: MouseEvent) {
   if (!tapNotHover()) return;
-  if (hoverTool.value?.T === tool.T) { hoverTool.value = null; return; }
-  const cell = (e.currentTarget as HTMLElement).querySelector("td");
-  const rect = (cell ?? (e.currentTarget as HTMLElement)).getBoundingClientRect();
+  if (hoverTool.value?.T === tool.T) { closePreview(); return; }
+  if (!previewShown()) return;
+  const row = e.currentTarget as HTMLElement;
+  const cell = row.querySelector("td");
+  const rect = (cell ?? row).getBoundingClientRect();
+  previewOwner = row;
   hoverPos.value = { x: rect.right + 8, y: rect.top };
   hoverTool.value = tool;
 }

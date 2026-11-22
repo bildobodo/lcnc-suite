@@ -3636,6 +3636,12 @@
      "id": "listener:ThreeViewer.vue:document.visibilitychange"
     },
     {
+     "id": "listener:ToolTablePanel.vue:window.pointerdown"
+    },
+    {
+     "id": "listener:ToolTablePanel.vue:window.scroll"
+    },
+    {
      "id": "listener:touchDetect.ts:document.contextmenu"
     },
     {

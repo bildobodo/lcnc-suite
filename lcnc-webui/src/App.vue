@@ -2507,6 +2507,7 @@ watch(viewerGcode, (newGcode) => {
               </div>
               <ToolTablePanel
                 ref="toolTableRef"
+                :active="activeTab === 'tools'"
                 :currentTool="st.tool_number ?? null"
                 :iniFilename="ini.ini_filename ?? null"
                 :linearUnit="linearUnit"
