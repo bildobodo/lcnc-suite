@@ -191,6 +191,16 @@ class TestSchemaStampRecording(unittest.TestCase):
         self.assertEqual(len(hits), 1, ev)
         self.assertEqual((hits[0].get("error_line"), hits[0].get("error")), ("7", "Unknown g code used"))
 
+    def test_partial_line_without_a_proven_line(self):
+        # P4-7: the worker leaves the line out where its origin is not proven
+        # (an error inside a remap) and adds parse()'s raw sequence number
+        b, ev = self._refresh_recording(b"__PARTIAL__\t\tRequested tool 14 not found in the tool table\t0\n"
+                                        b"__SCHEMA__\t8\n")
+        hits = [f for t, f in ev if t == "gcode.parse_partial"]
+        self.assertEqual(len(hits), 1, ev)
+        self.assertEqual((hits[0].get("error_line"), hits[0].get("error"), hits[0].get("seq")),
+                         (None, "Requested tool 14 not found in the tool table", "0"))
+
     def test_failed_worker_leaves_prior_stamp(self):
         b = _pipeline(self.ini)
         b.published_schema = 3

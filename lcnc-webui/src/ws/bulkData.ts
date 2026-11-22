@@ -725,7 +725,11 @@ export const previewLoadError = computed<string | null>(
 export const previewParseError = computed<string | null>(() => {
   const g = viewerGcode.value;
   if (!g?.parse_error) return null;
-  return g.error_line != null ? `${g.parse_error} (line ${g.error_line})` : g.parse_error;
+  // a line only where the worker proved it (P4-7): a positive integer — a 0
+  // or a negative number is no line ("(LINE 0)" on the machine day, F29)
+  const line = g.error_line;
+  return typeof line === "number" && Number.isInteger(line) && line >= 1
+    ? `${g.parse_error} (line ${line})` : g.parse_error;
 });
 
 // A remap refusal in preview (distinct from the interpreter abort above: the

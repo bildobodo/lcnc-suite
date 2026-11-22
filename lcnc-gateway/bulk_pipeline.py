@@ -919,10 +919,13 @@ class BulkPipeline:
                     if not ln.strip():
                         continue
                     if ln.startswith("__PARTIAL__"):
-                        _p = ln.split("\t", 2)
+                        # line (empty: no proven line, P4-7), error, and
+                        # parse()'s raw sequence number (diagnosis only)
+                        _p = ln.split("\t", 3)
                         _trace.emit("gcode.parse_partial", level="warn", file=filepath,
                                     error=_p[2] if len(_p) > 2 else "",
-                                    error_line=_p[1] if len(_p) > 1 else "")
+                                    error_line=(_p[1] or None) if len(_p) > 1 else None,
+                                    seq=_p[3] if len(_p) > 3 else None)
                     elif ln.startswith("__REFUSED__"):
                         # A remap refused the program in preview (the
                         # payload is an EMPTY success carrying

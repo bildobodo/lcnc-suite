@@ -29,7 +29,7 @@ const {
   fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, previewDecoding,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
-  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal,
+  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal, previewParseError,
 } = await import("./bulkData");
 
 type FetchCall = { url: string; signal: AbortSignal };
@@ -456,5 +456,24 @@ describe("preview worker channel", () => {
     expect(previewLoadError.value).toContain("decode blew up");
     handleViewerGcodeReady({ version: 7, file: null });  // sentinel was reset
     expect(w.posted.filter((p: any) => p.version === 7)).toHaveLength(2);
+  });
+});
+
+// P4-7 (machine day F29): the banner names a parse error's line only where
+// the worker proved it — a positive integer; 0 ("(LINE 0)" on the machine),
+// a negative or a missing line is left out.
+describe("previewParseError's line", () => {
+  const at = (error_line: unknown) => {
+    viewerGcode.value = { parse_error: "Requested tool 14 not found in the tool table", error_line } as never;
+    return previewParseError.value;
+  };
+  it("names a proven line", () => {
+    expect(at(8)).toBe("Requested tool 14 not found in the tool table (line 8)");
+  });
+  it("leaves out a line that is no line", () => {
+    for (const v of [0, -1, null, undefined, 2.5, "8"]) {
+      expect(at(v), String(v)).toBe("Requested tool 14 not found in the tool table");
+    }
+    viewerGcode.value = null;
   });
 });

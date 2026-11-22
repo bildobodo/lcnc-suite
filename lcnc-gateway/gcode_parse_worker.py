@@ -58,7 +58,7 @@ import sys
 import tempfile
 import time
 from itertools import chain
-from typing import List
+from typing import List, Optional
 
 import msgspec
 import numpy as np
@@ -182,6 +182,31 @@ def _basis_to_machine(vals, unit_scale):
     """Canon offsets (inches) -> machine units, leaving the rotary slots alone."""
     return [v * unit_scale if i in _LINEAR_OFFSET_SLOTS else v
             for i, v in enumerate(vals)]
+
+
+def proven_error_line(canon) -> Optional[int]:
+    """The MAIN file's line a parse error stands on — only where two
+    independent readings of the interpreter agree after the error (P4-7,
+    measured on the real interpreter 2026-11-22): its main context (no call,
+    no remap, the main file) at sequence number N ≥ 1, AND the failing
+    block's byte offset inside line N of the main file. An error inside a
+    called routine or a remap unwinds to the caller with the counter at the
+    call (or 0 in a remap) and the block's offset in ANOTHER file — the two
+    disagree, and no line is said; a frame left from an earlier call proves
+    nothing either way. None outside a parse's interpreter."""
+    t = gcode_canon.interp_this()
+    if t is None or getattr(canon, "main_file", None) is None:
+        return None
+    try:
+        n = int(t.sequence_number)
+        if n < 1 or int(t.call_level) != 0 or int(t.remap_level) != 0:
+            return None
+        if not canon._is_main(t.filename):
+            return None
+        at = canon._byte_line(int(t.blocks[0].offset) + 1)
+    except (AttributeError, IndexError, TypeError, ValueError):
+        return None
+    return n if at == n else None
 
 
 def parse(ctx: dict) -> dict:
@@ -489,10 +514,15 @@ def parse(ctx: dict) -> dict:
             # the preview as PARTIAL instead of presenting a truncated path as a
             # complete one (silent partial-success was the bug).
             parse_error = gcode.strerror(result)
-            error_line = seq
+            # The line only where its origin is PROVEN (machine day F29, P4-7,
+            # Codex R433): parse()'s `seq` is no line — one past it for an
+            # error found while reading, the line for one found while
+            # executing, 0 or 1 inside a remap ("(line 0)" on the machine).
+            error_line = proven_error_line(canon)
             # Machine-readable marker so the gateway can raise the structured
             # parse_partial event WITHOUT decoding the (multi-MB) stdout payload.
-            print(f"__PARTIAL__\t{seq}\t{parse_error}", file=sys.stderr, flush=True)
+            print(f"__PARTIAL__\t{'' if error_line is None else error_line}\t{parse_error}\t{seq}",
+                  file=sys.stderr, flush=True)
         print(f"gcode.parse feed={len(canon.feed)} rapid={len(canon.rapid)} parse_ms={(t1-t0)*1000:.0f}", file=sys.stderr, flush=True)
         if canon.lineno is not None and canon.lineno >= 1 and gcode_canon.interp_this() is None:
             # without the interpreter's own word (gcode_canon.interp_this) the
