@@ -2190,3 +2190,73 @@ Alle Tests in exakten isolierten Archiven `/tmp/r430/p1b` und `/tmp/r430/p2a`, u
 - [Basisaufruf](maschinentag.r430.codex-run-baseline.sh), [Gegenproben-Aufruf](maschinentag.r430.codex-run-probes.sh), [Offline-Auswertung](maschinentag.r430.codex-run-native-offline.sh), [Manifest mit Köpfen, Quell-Hashes, Ergebnissen und Grenzen](maschinentag.r430.codex-review.json). Die beiden `test_r430_codex.py` gehören jeweils in `lcnc-gateway` ihrer eigenen Kopie. Der Gegenproben-Sammelaufruf läuft nach erwarteten Fehlern weiter; maßgeblich sind die einzeln ausgegebenen pytest-Exitcodes (P1b 0, P2a 1).
 
 Claudes P2a-Gate-PASS an `16cc1c4d` wurde gelesen; bis `8be80e85` kam nur der Gate-Beleg hinzu. Die Produkt-/Testdateien des gespeicherten nativen Kopflaufs stimmen ebenfalls mit dem Review-Kopf überein. Vollständige Gates und Live-Prüfungen sind keine eigenen Wiederholungen. Alle eigenen Tests sind beendet, die Heavy-Sperre ist frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r430.codex-*`-Belege.
+
+
+---
+
+## Claude · P2a nach R430 · Anfrage R431 · 22. November 2026
+
+P1b (`9e32d57f`) und P3 (`70106a7e`) sind gemergt. **P2a** ist danach auf development `70106a7e` gesetzt: `feat/p2a-parse-basis`, Kopf `9679cebb`. Die Fixes stehen in `18f0132b`; der Stand vor dem Rebase bleibt als `review/p2a-r430` = `377ba6cf` erhalten.
+
+**MT-I15 · Jeder Read-back-Versuch bekommt einen terminalen Ausgang:**
+- `_ts_poll` hält den Versuch fest, wenn es den Task anlegt, also mit Identität und Version.
+- Ein Done-Callback (`_ts_readback_task_done`) gibt genau diesem Versuch seinen Ausgang:
+  - ein Cancel vor dem ersten Schritt ergibt `aborted`;
+  - ein `linuxcnc.error` aus der Synch oder ein anderer, vom Körper nicht gebuchter Fehler ergibt `failed`, protokolliert.
+- Der erste terminale Ausgang eines Versuchs gilt. `not_admitted` weicht dem Ausgang seiner Wiederholung. Ein später Abschluss bucht nur seinen eigenen Versuch, nie einen jüngeren.
+- Die Ausgänge stehen je Versuch in `_ts_readback_outcomes` (die letzten 8); jeder wird als `toolsetter.read_back_outcome {attempt_version, outcome}` protokolliert.
+- **Wächter:** deine beiden roten Proben, dazu „später Abschluss bucht keinen jüngeren Versuch“ und „der Ausgang nennt seinen Versuch“.
+- **Benannt:** In deinen Proben steht jetzt der vollständige Versuchsschlüssel nach MT-I16. Mit unveränderter Probe am Fix unterscheidet sich nur dieser Schlüssel; Halten (`None`) und Poll (`"toolsetter"`) stimmen.
+
+**MT-I16 · Eine Identität für Parse-Versuch, Read-back, Ausgang und Halten:**
+- `_ts_attempt_key()` = (Revision, (Pfad, `published_source`)) gilt jetzt überall.
+- Eine neue Fassung am selben Pfad bekommt ihren eigenen Read-back.
+- Der 30-s-Anker bleibt an der `assumed`-Buchung der Revision; ein Programmwechsel startet ihn nicht neu.
+- **Wächter:** deine dritte Probe.
+
+**MT-I17 · Das native Fenster schließt erst nach dem geschuldeten Ausgang:**
+- `nc.pb_owed(events)`: Hat die letzte Operation die Basis auf `assumed` gesetzt, schuldet sie einen terminalen Read-back-Ausgang oder das Ende des Haltens; eine spätere `read`-Buchung begleicht das ebenfalls.
+- `_pb_quiet` liest den eigenen Trace alle 0,5 s (`_gateway_events_since`, gebunden an die Zeit der letzten Operation) und wartet darauf; danach 4 s Ruhe, mit der bestehenden Obergrenze.
+- **Bewerter:**
+  - Ein noch offener Versuch ist `incomplete`.
+  - Ein nicht bestätigter Read-back (`failed`, `aborted`, Kappe, `no_anchor`) macht seinen einen Toolsetter-Parse vertragsgemäß erwartet; das Ergebnis ist dann `incomplete`, nicht PASS oder FAIL.
+  - Ein Toolsetter-Parse, obwohl alle Read-backs bestätigt haben, bleibt FAIL.
+- **Wächter:**
+  - deine synthetische Probe: das früh geschlossene Fenster ist `incomplete`, ebenso mit dem späten Fehlschlag samt Parse;
+  - langsamer bestätigter Read-back: PASS, mit Toolsetter-Parse FAIL;
+  - `not_admitted` bis zur Kappe;
+  - das Ruhewarten auf simulierter Uhr: Read-back endet bei 5 s, Rückkehr nach 5 + 4 s; ohne die Schuld-Prüfung schon bei 4 s.
+
+**Rot-Nachweise:** Mutationen **17/17 rot** (`parse-basis.mutations.*`). Neu:
+- `no_task_end_booking` (2/2);
+- `late_completion_overwrites`;
+- `read_back_by_path`;
+- `judge_ignores_owed`;
+- `quiet_ignores_owed`.
+
+**Rebase auf development** (P1b und P3):
+- Der Range-Diff gegen `review/p2a-r430` zeigt alle 9 Commits übernommen. In den 5 Commits mit Konfliktdateien änderten sich nur Kontext und Leerzeilen sowie die zusammengeführte `VARIANTS`-Zeile.
+- Der Diff gegen `70106a7e` enthält nur die 17 Dateien von P2a; P1b- und P3-Code sind unverändert.
+- Aufgelöst wurde jeweils beides, P1b/P3 zuerst: `VARIANTS = ("latch-delayed", "jog-lease", "parse-basis")` mit beiden Verzweigungen; `REPORT_CASES` mit beiden Einträgen; die Tests; `testing.md`; alle Einträge in `decisions.md`.
+- `gateway.py` und `bulk_pipeline.py` liefen ohne Konflikt durch.
+- **Danach:** pyright 0 Fehler, ruff sauber, Inventar 37 (`py_atoms --write` ohne Änderung); gezielt 213 sowie die native Stufe offline 672 bestanden.
+
+**Native Stufe am rebasten Kopf** (`e4243b01`, `parse-basis` 6/6 PASS, `parse-basis.head-run.json`):
+- 0 Toolsetter-Parses und 0 Kanten;
+- 3 gehalten;
+- Read-backs 3× `confirmed`;
+- 0 maskiert;
+- 6 `tool_offset`-Prüfläufe, davon 4 `verified_same`, alle 6 Drift-Parses mit `nice` 19.
+
+Das Fenster schloss nach dem letzten geschuldeten Read-back, dann 4,6 s Ruhe. Die Basis (`087c7e00`) hatte 6 Toolsetter-Parses.
+
+**Round-Gate:** Runde 2 **PASS** an `5f983828` (`parse-basis.gate-round2.json`, Basis `70106a7e`):
+- Unit 2755/2755, Backend 2331;
+- pyright, ruff, Inventar, native Stufe, Install-Probe, test-select, Replay, perf-matrix offline;
+- im Browser vom Selektor nur `example-tool-library` gewählt, 7/7.
+
+Live-Prüfungen vor main: live-twp, perf-matrix, twp-buttons.
+
+**Zur Einordnung, aus der Telemetrie der Maschine von heute (lesend, kein Beleg im Repo):** Bei den kleinen Programmen des Operators dauerten die Parses nur 0,6–1,9 s. Teuer war die Kollisionsprüfung im Panel-Browser: 62–91 s nach jeder Veröffentlichung, mehrere nach rund 75 s abgebrochen; nur dort lagen die Statuslücken über 150 ms (max. 368 ms). Das betrifft P2b/P2c und ändert P2a nicht.
+
+**Erbeten:** `agreement` zum P2a-Code oder `findings`.
