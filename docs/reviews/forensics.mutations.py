@@ -26,6 +26,20 @@ MUTS = [
      "scripts/trace-bundle.py",
      "snap.files.append((entry, fd, st.st_dev, st.st_ino, st.st_size))",
      "snap.files.append((entry, fd, st.st_dev, st.st_ino, st.st_size + (1 << 20)))", "gw"),
+    ("report_settles_every_count", "R428 MT-I12: the written report resets every counter (new losses erased)",
+     "lcnc-gateway/lcnc_trace.py",
+     'self._lost = max(0, self._lost - snap["lost"])', "self._lost = 0", "gw"),
+    ("rotation_before_fragment_close", "R428 MT-I13: the old order — rotate first, then look at the NEW file's end",
+     "lcnc-gateway/lcnc_trace.py",
+     "            if size > 0 and self._end != (ident[0], ident[1], size) \\\n",
+     "            if self.max_bytes > 0 and size > 0 and size + 256 > self.max_bytes:\n"
+     "                self._rotate()\n"
+     "                fd, ident = self._current()\n"
+     "                size = os.fstat(fd).st_size\n"
+     "            if size > 0 and self._end != (ident[0], ident[1], size) \\\n", "gw"),
+    ("crash_copy_glues_generations", "R428 MT-I13: the crash copy concatenates without a boundary",
+     "scripts/trace-bundle.py",
+     "            if text and not text.endswith(\"\\n\"):", "            if False:", "gw"),
     ("stall_at_150", "MT425-04: a 150 ms gap counts (the hold guard's limit is > 150)",
      "lcnc-webui/src/stallWindow.ts",
      "if (gap > HOLD_STALL_MS) {", "if (gap >= HOLD_STALL_MS) {", "web"),

@@ -206,6 +206,7 @@ class CoordinatedFileHandler(logging.Handler):
         # re-lock nor UNLOCK the section's lock (flock is per open file
         # description — a nested unlock would release the outer section)
         self._in_section = False
+        self._report_snap: Optional[dict[str, Any]] = None
 
     # ── the count of what was not written ──────────────────────────────
     def _count_loss(self, why: str) -> None:
@@ -238,8 +239,16 @@ class CoordinatedFileHandler(logging.Handler):
                 "fragments_closed": self._fragments, "rotate_failed": dict(self._rotate_failed)}
 
     def _report_line(self) -> Optional[bytes]:
+        """The pending report — and the snapshot of exactly the counts it
+        carries (`_report_snap`): only those are settled once it is written
+        (Codex R428 MT-I12 — a loss counted while it is written stays
+        pending)."""
+        self._report_snap = None
         if not (self._lost or self._fragments or self._rotate_failed):
             return None
+        self._report_snap = {"lost": self._lost, "why": dict(self._lost_why),
+                             "fragments": self._fragments, "rotate_failed": dict(self._rotate_failed),
+                             "at_ns": time.time_ns()}
         lost = self._lost > 0
         rec: dict[str, Any] = {
             "t_wall_ns": time.time_ns(),
@@ -261,11 +270,29 @@ class CoordinatedFileHandler(logging.Handler):
         return (json.dumps(rec, separators=(",", ":")) + "\n").encode("utf-8", "replace")
 
     def _report_written(self) -> None:
-        self._lost = 0
-        self._lost_since_ns = None
-        self._lost_why = {}
-        self._fragments = 0
-        self._rotate_failed = {}
+        """The report went out: settle exactly what it carried. A loss, a
+        fragment or a refused rotation counted meanwhile (the reentrant path
+        while it was written) stays pending for the next report; a report
+        that failed settles nothing."""
+        snap = self._report_snap
+        self._report_snap = None
+        if snap is None:
+            return
+        self._lost = max(0, self._lost - snap["lost"])
+        for why, n in snap["why"].items():
+            left = self._lost_why.get(why, 0) - n
+            if left > 0:
+                self._lost_why[why] = left
+            else:
+                self._lost_why.pop(why, None)
+        self._lost_since_ns = snap["at_ns"] if self._lost else None
+        self._fragments = max(0, self._fragments - snap["fragments"])
+        for log, n in snap["rotate_failed"].items():
+            left = self._rotate_failed.get(log, 0) - n
+            if left > 0:
+                self._rotate_failed[log] = left
+            else:
+                self._rotate_failed.pop(log, None)
 
     # ── the lock ───────────────────────────────────────────────────────
     def _forget_inherited(self) -> None:
@@ -380,16 +407,12 @@ class CoordinatedFileHandler(logging.Handler):
         try:
             fd, ident = self._current()
             size = os.fstat(fd).st_size
-            report = self._report_line()
-            need = (len(data) if data else 0) + (len(report) if report else 0)
-            if self.max_bytes > 0 and size > 0 and size + need > self.max_bytes:
-                self._rotate()
-                fd, ident = self._current()
-                size = os.fstat(fd).st_size
             if size > 0 and self._end != (ident[0], ident[1], size) \
                     and os.pread(fd, 1, size - 1) != b"\n":
                 # a fragment some writer left (Codex R426): end it first, so
-                # it stays ONE damaged line and this record stays readable
+                # it stays ONE damaged line and this record stays readable —
+                # in the file that holds it, BEFORE a rotation could carry the
+                # open end into a generation (Codex R428 MT-I13)
                 wrote, why = self._write_all(fd, b"\n")
                 if why is not None:
                     if data:
@@ -397,6 +420,12 @@ class CoordinatedFileHandler(logging.Handler):
                     return False
                 self._fragments += 1
                 size += wrote
+            report = self._report_line()
+            need = (len(data) if data else 0) + (len(report) if report else 0)
+            if self.max_bytes > 0 and size > 0 and size + need > self.max_bytes:
+                self._rotate()
+                fd, ident = self._current()
+                size = os.fstat(fd).st_size
             report = self._report_line()   # a fragment closed or a rotation refused joins it
         except OSError as e:
             if data:

@@ -34,7 +34,9 @@ line is written in ONE short exclusive section under the log's STABLE lock —
    `.N-1 → .N … path → .1` is renamed HERE, under the lock; a gap in the chain
    (a rotator that died between two renames) is skipped. A failed rotation is
    reported (`rotate_failed`) and the line goes into the file it has.
-3. **The open end** — a last byte that is no newline is a FRAGMENT some writer
+3. **The open end** — checked BEFORE the size step, in the file that holds
+   it, so a rotation never carries an open end into a generation (Codex R428
+   MT-I13) — a last byte that is no newline is a FRAGMENT some writer
    left (a partial write under `EFBIG` / `ENOSPC`, a process killed mid-line):
    it is ended with a newline first, so the damage stays ONE damaged line and
    this record stays readable (Codex R426's cross-process case: A writes 64
@@ -52,7 +54,9 @@ no hard heartbeat promise follows from it. Without the lock nothing is
 written unlocked: the record is DROPPED and COUNTED per process and log
 (`why`: `lock_busy`, `lock_open:<errno>`, the write's errno …), said once per
 reason on the console (ConsoleGuard), and the next section that gets through
-writes `trace.write_lost {log, count, since_ns, why}` (crash log:
+writes `trace.write_lost {log, count, since_ns, why}` — settling exactly
+the counts that report carried: a loss counted while it is written (the
+reentrant path) stays pending for the next one (Codex R428 MT-I12) — (crash log:
 `crash.write_lost`, level error — a lost crash record is a finding for
 `native_run`) directly, never through `emit()`: a failing report cannot
 recurse. A report that fails keeps its counts (the line it preceded is
@@ -109,7 +113,10 @@ bundler's own process, outside every command and heartbeat path).
 
 The bundle (`trips/<trip_ts_ns>/`): `trace-merged.ndjson` / `.log` (the
 window, wall-time order — display order, not causality), `crash-snapshot.log`
-(crash.log's generations from its OWN snapshot under `crash.lock`, never
+(crash.log's generations from its OWN snapshot under `crash.lock` — a
+generation that ends open keeps its boundary (a newline after it) and is
+named in `open_ends`, damaged lines per source in `damaged`, Codex R428
+MT-I13 — never
 merged into the timeline: the trace already carries every `crash.*` event, so
 nothing is counted twice and nothing deduplicated by content) and
 `bundle.json`: the requested window, `capture_bound_ns`, the sources (name,
