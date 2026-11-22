@@ -1,0 +1,146 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [e2e] › e2e/jog-lease.spec.ts:80:1 › a blocked main thread renews nothing while the worker's heartbeat goes on (4.2s)
+
+
+  1) [e2e] › e2e/jog-lease.spec.ts:80:1 › a blocked main thread renews nothing while the worker's heartbeat goes on 
+
+    Error: the main thread renewed while blocked
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 104
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 1857.283204,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 1958.153,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2057.148542,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2157.365462,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2257.180922,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2357.329591,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2457.248218,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2562.016981,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2657.163556,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2757.230059,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2857.528353,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 2957.315939,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 3058.565485,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 3159.064114,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 3257.138237,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 3357.148573,
+    +   },
+    +   Object {
+    +     "ids": Array [
+    +       1,
+    +     ],
+    +     "t": 3457.200367,
+    +   },
+    + ]
+
+      89 |   const tl = await timeline();
+      90 |   const inside = (t: number) => t > before + 250 && t < after - 250;
+    > 91 |   expect(tl.renewals.filter((r) => inside(r.t)), "the main thread renewed while blocked").toEqual([]);
+         |                                                                                           ^
+      92 |   expect(tl.beats.filter(inside).length, "the worker's heartbeat went on").toBeGreaterThanOrEqual(1);
+      93 |   await expect.poll(async () => (await timeline()).renewals.filter((r) => r.t > after && r.ids.includes(L)).length,
+      94 |     "renewals resume once the thread runs").toBeGreaterThan(0);
+        at /home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/jog-lease.spec.ts:91:91
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/jog-lease-a-blocked-main-t-22b59--worker-s-heartbeat-goes-on-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/jog-lease-a-blocked-main-t-22b59--worker-s-heartbeat-goes-on-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/jog-lease-a-blocked-main-t-22b59--worker-s-heartbeat-goes-on-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/jog-lease-a-blocked-main-t-22b59--worker-s-heartbeat-goes-on-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/jog-lease.spec.ts:80:1 › a blocked main thread renews nothing while the worker's heartbeat goes on 

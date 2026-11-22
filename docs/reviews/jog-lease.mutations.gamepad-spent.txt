@@ -1,0 +1,9 @@
+× A expired and still deflected, B valid: B's release ends B at once; A starts again only after its own rest 4ms
+× the dead man let go ends every gesture; a stick held through it is spent until rest 1ms
+× an explicit stop of every jog leaves a deflected stick spent until rest 0ms
+Tests  3 failed | 24 passed (27)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  src/useGamepad.test.ts > useGamepad jog leases (P1b, plan v3 — Codex R423–R426) > A expired and still deflected, B valid: B's release ends B at once; A starts again only after its own rest
+FAIL  src/useGamepad.test.ts > useGamepad jog leases (P1b, plan v3 — Codex R423–R426) > the dead man let go ends every gesture; a stick held through it is spent until rest
+FAIL  src/useGamepad.test.ts > useGamepad jog leases (P1b, plan v3 — Codex R423–R426) > an explicit stop of every jog leaves a deflected stick spent until rest
+RED

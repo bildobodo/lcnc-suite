@@ -1,0 +1,10 @@
+no_deadline_check_at_write {'failed': 1, 'of': 1}
+no_deadline_check_at_all {'failed': 2, 'of': 2}
+expiry_does_not_stop {'failed': 2, 'of': 2}
+old_owner_stops_new_motion {'failed': 2, 'of': 2}
+renewal_revives {'failed': 1, 'of': 1}
+no_receipt_booking {'failed': 1, 'of': 1}
+abort_keeps_leases {'failed': 1, 'of': 1}
+disarm_keeps_leases {'failed': 1, 'of': 1}
+{"no_deadline_check_at_write": {"failed": 1, "of": 1}, "no_deadline_check_at_all": {"failed": 2, "of": 2}, "expiry_does_not_stop": {"failed": 2, "of": 2}, "old_owner_stops_new_motion": {"failed": 2, "of": 2}, "renewal_revives": {"failed": 1, "of": 1}, "no_receipt_booking": {"failed": 1, "of": 1}, "abort_keeps_leases": {"failed": 1, "of": 1}, "disarm_keeps_leases": {"failed": 1, "of": 1}}
+ALL_RED
