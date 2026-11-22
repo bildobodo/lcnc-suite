@@ -151,8 +151,8 @@ describe("a start's reply", () => {
     lease.watchLeaseReply(g.id, "r-sf");
     replies.get("r-sf")!({ ok: false, error: lease.LEASE_STOP_FAILED_TEXT, stop_failed: [0], expired: true });
     await vi.runAllTimersAsync();
-    expect(g.outside).toEqual([{ why: "refused", text: lease.LEASE_STOP_FAILED_TEXT }]);
-    expect(messages).toEqual([lease.LEASE_STOP_FAILED_TEXT]);
+    expect(g.outside).toEqual([{ why: "stop_failed", text: lease.LEASE_STOP_FAILED_TEXT }]);
+    expect(messages, "said once — the sources do not say it again").toEqual([lease.LEASE_STOP_FAILED_TEXT]);
   });
 
   it("unanswered within REPLY_MS: the gesture ends", async () => {

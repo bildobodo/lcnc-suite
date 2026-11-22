@@ -66,7 +66,8 @@ class Lease:
     with its timer until the path that ended it stopped its axes (`settle`),
     or the timer finds it unsettled at its deadline and stops them itself.
     `ended_by` names that path (source, abort, estop, disarm, hb_stall,
-    not_connected, disconnect)."""
+    not_connected, disconnect, stop_failed — a reported failed stop ends its
+    lease, Codex R429 MT-I14)."""
     conn_key: str
     lease_id: int
     link: Any                 # the controller Link it began on (identity compared)

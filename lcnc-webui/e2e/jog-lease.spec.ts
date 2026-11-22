@@ -77,6 +77,18 @@ test("a held jog button names its lease, the page renews it, its release ends ex
   expect((await timeline()).renewals.filter((r) => r.t > upAt + 150), "no renewal after the release").toEqual([]);
 });
 
+test("an answered start keeps its gesture past REPLY_MS: renewals go on while held", async ({ page }) => {
+  await open(page);
+  await hold(page, "X-");
+  const L = (await startOf()).lease!;
+  await page.waitForTimeout(3600);   // past REPLY_MS (3 s): the answered start ends nothing
+  const now = (await timeline()).now;
+  await expect.poll(async () => (await timeline()).renewals.filter((r) => r.t > now && r.ids.includes(L)).length,
+    "renewals go on after 3.6 s held").toBeGreaterThan(0);
+  expect((await sent()).filter((c) => c.cmd === "jog_lease_end"), "nothing ended it").toEqual([]);
+  await page.mouse.up();
+});
+
 test("a blocked main thread renews nothing while the worker's heartbeat goes on", async ({ page }) => {
   // the page's own word on why a lease ended (jog.lease_ended {why}) and
   // its console — a renewal that never resumes says why (round 6 at

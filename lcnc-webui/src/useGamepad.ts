@@ -120,7 +120,7 @@ export function useGamepad(deps: {
   };
 
   function leaseEnded(why: LeaseEnd, text: string) {
-    if (why !== "stopped" && text) pushMessage(OPERATOR_ERROR, text);
+    if (why !== "stopped" && why !== "stop_failed" && text) pushMessage(OPERATOR_ERROR, text);   // stop_failed: said once by jogLease
   }
 
   /** A stick owner's lease ended from outside: the gateway stopped (or

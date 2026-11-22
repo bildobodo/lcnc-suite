@@ -50,7 +50,9 @@ export const LEASE_CONNECTION_TEXT = "Connection lost — press again";
 export const LEASE_STOP_FAILED_TEXT = "Jog stop failed — press E-Stop if it still moves";
 
 /** Why a lease ended without its source's own end. */
-export type LeaseEnd = "expired" | "refused" | "stopped" | "connection";
+/** `stop_failed`: the reply said a stop failed — jogLease already put it in
+ *  the message center (once); a source shows it at its control at most. */
+export type LeaseEnd = "expired" | "refused" | "stopped" | "connection" | "stop_failed";
 export type LeaseEndCommand = { cmd: "jog_lease_end"; lease: number };
 export type LeaseEndSender = (cmd: LeaseEndCommand) => void;
 /** Told when the lease ends from outside its source (expired, refused, an
@@ -124,7 +126,7 @@ export function watchLeaseReply(id: number, reqId: string | null | undefined | v
     if (stopFailed) {
       const said = typeof reply.error === "string" ? reply.error : LEASE_STOP_FAILED_TEXT;
       pushMessage(OPERATOR_ERROR, said);
-      endFromOutside(id, "refused", said, true);
+      endFromOutside(id, "stop_failed", said, true);
       return;
     }
     const text = reply === null ? "No answer — release and press again"

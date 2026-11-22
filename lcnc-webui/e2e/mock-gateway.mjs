@@ -435,6 +435,12 @@ wss.on("connection", (ws, req) => {
     // ... and a parameter write (settings split package 3): the page sends
     // its purposes one after the other, each once the last was answered
     else if (cmd === "set_params") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, mdi_set: true, persisted: true }));
+    // ... and a leased jog's start or change (P1b): the page ends a gesture
+    // whose start goes unanswered for REPLY_MS (3 s) — the real gateway
+    // answers each; unanswered, every held jog here ended at 3 s (the round-6
+    // flake of the blocked-thread test, Fable 2026-11-22)
+    else if ((cmd === "jog_cont" || cmd === "jog_cont_multi" || cmd === "jog_change") && msg.req_id)
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     // answer everything -> stay connected & armed; the status answering a
     // heartbeat carries the gateway's hold and that heartbeat's number like

@@ -158,7 +158,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
         // until its keyup — its entry stays, a repeat is never a start; the
         // reason goes to the message center (a key has no control to show it).
         const lease = beginLease(c => { opts.send(c); }, (why, text) => {
-          if (why !== "stopped" && text) pushMessage(OPERATOR_ERROR, text);
+          if (why !== "stopped" && why !== "stop_failed" && text) pushMessage(OPERATOR_ERROR, text);   // stop_failed: said once by jogLease
         });
         watchLeaseReply(lease, opts.send({ cmd: "jog_cont", axis: jog.axis, vel, lease }));
         jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: true, end: () => endLease(lease) });
