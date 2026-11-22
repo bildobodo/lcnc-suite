@@ -1623,13 +1623,13 @@ def eval_lease_page_kept(case: str, marks: dict, samples: list, trace_events: li
     if lt:
         return _row(case, "incomplete", f"the page was not healthy while it held: {len(lt)} long tasks "
                     f"> {PAGE_LONGTASK_MS} ms (the first at +{lt[0][0]} s, {lt[0][1]} ms)", long_tasks=lt[:6])
+    expired = _expiries(trace_events, a0, a1 + 0.2, to_mono)
     if timer_gaps is None:
-        return _row(case, "incomplete", "no timer evidence of the page's main thread")
+        return _row(case, "incomplete", "no timer evidence of the page's main thread", expiries=len(expired))
     tg = _timer_gaps(timer_gaps, a0, a1, to_mono)
     if tg:
         return _row(case, "incomplete", f"the page was not healthy while it held: its timers stood {tg[0][1]} ms "
-                    f"at +{tg[0][0]} s (> {PAGE_HEALTHY_GAP_MS} ms)", timer_gaps=tg[:6])
-    expired = _expiries(trace_events, a0, a1 + 0.2, to_mono)
+                    f"at +{tg[0][0]} s (> {PAGE_HEALTHY_GAP_MS} ms)", timer_gaps=tg[:6], expiries=len(expired))
     if expired:
         return _row(case, "FAIL", f"{len(expired)} lease expiries while the page renewed", held_s=round(a1 - a0, 3))
     known = [(t, p) for t, p, _ in samples if t >= a0 and p is not None]

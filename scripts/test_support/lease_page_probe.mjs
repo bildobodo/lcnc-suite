@@ -68,6 +68,14 @@ try {
     await b.hover();
     await page.mouse.down();
   };
+  // warm-up: the first motion of a page pays one-time costs (shaders,
+  // buffers — 580-650 ms stalls in the run at 63aa9451); one short hold and
+  // its release before anything is measured
+  await hold("X+");
+  await page.waitForTimeout(800);
+  await page.mouse.up();
+  await page.waitForTimeout(1500);
+  mark("warm_done");
   // A: healthy — renewed throughout, never interrupted
   await hold("X-");
   mark("a_down");
