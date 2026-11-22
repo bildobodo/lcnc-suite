@@ -12,6 +12,7 @@ real reload helper — only the controller's load_tool_table is a recorder that
 reads the file at the moment it is called. LinuxCNC's own reload is the native
 part (S4b, open)."""
 import asyncio
+import os
 import json
 import tempfile
 import unittest
@@ -255,10 +256,14 @@ class TestAnEditOpenedOnAnotherRowWritesNothing(_ToolEdit):
         self.assertEqual(reloads, [], "no reload")
 
     def measured(self, tool, z):
-        """LinuxCNC's own G10 L1 (an M600): the table file rewritten, Z changed."""
-        self.table.write_text(self.table.read_text().replace(
+        """LinuxCNC's own G10 L1 (an M600): the table file replaced (a new
+        inode, as the gateway's own writer does too), Z changed."""
+        text = self.table.read_text().replace(
             {1: "Z50 D6 ; first", 3: "Z42.1234567 D4 ; third"}[tool],
-            {1: f"Z{z} D6 ; first", 3: f"Z{z} D4 ; third"}[tool]))
+            {1: f"Z{z} D6 ; first", 3: f"Z{z} D4 ; third"}[tool])
+        tmp = self.table.with_suffix(".new")
+        tmp.write_text(text)
+        os.replace(tmp, self.table)
 
     def test_a_length_measured_after_the_dialog_opened_is_not_written_back(self):
         opened = self.opened(1)
@@ -308,6 +313,18 @@ class TestAnEditOpenedOnAnotherRowWritesNothing(_ToolEdit):
         self.assertIn("T3 P3 Z40 D4", self.table.read_text(), "the controller's write stands")
         self.assertIn("Z50 D6 ; first", self.table.read_text(), "T1 not written")
         self.assertEqual((self.library(), reloads), (before_library, []))
+
+    def test_another_tool_measured_after_the_dialog_opened_does_not_block_it(self):
+        # the row is the unit (Fable/Codex): T3 measured by LinuxCNC — the file
+        # replaced, a new inode — while T1's dialog is open; T1 saves, T3's
+        # new length stays
+        opened = self.opened(1)
+        self.measured(3, 40)
+        reply, reloads = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": opened})
+        self.assertTrue(reply["ok"], reply)
+        self.assertEqual(len(reloads), 1)
+        rows = {t["T"]: t for t in parse_tool_table(str(self.table))}
+        self.assertEqual((rows[1]["Z"], rows[3]["Z"]), (49.0, 40.0))
 
     def test_the_row_as_opened_saves(self):
         self.edit({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.opened(1)},
