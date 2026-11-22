@@ -1,0 +1,97 @@
+[
+ {
+  "mutation": "cross_process_fragment_not_closed",
+  "rule": "MT425-02 / R426: a fragment another writer left is not ended",
+  "file": "lcnc-gateway/lcnc_trace.py",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_a_fragment_another_process_left_is_closed_before_the_next_record",
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_the_same_writer_resumes_after_efbig_and_reports_it"
+  ],
+  "summary": []
+ },
+ {
+  "mutation": "write_without_lock",
+  "rule": "MT425-02: the section takes no lock",
+  "file": "lcnc-gateway/lcnc_trace.py",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_two_writers_rotating_keep_every_record_exactly_once",
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_a_held_lock_drops_and_counts_and_the_next_section_reports"
+  ],
+  "summary": []
+ },
+ {
+  "mutation": "launcher_fragment_not_closed",
+  "rule": "MT425-02 / R426: the launcher glues its line to a fragment",
+  "file": "lcnc-suite",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_the_launcher_closes_a_fragment_before_its_line",
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_the_launcher_under_a_file_size_limit_counts_resumes_and_reports"
+  ],
+  "summary": []
+ },
+ {
+  "mutation": "snapshot_reads_past_its_bound",
+  "rule": "MT425-03: the reader reads past the captured size",
+  "file": "scripts/trace-bundle.py",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_bundle.py::test_a_rotation_during_the_read_neither_repeats_nor_loses",
+   "FAILED lcnc-gateway/test_trace_bundle.py::test_the_snapshot_holds_the_writers_lock_only_while_opening"
+  ],
+  "summary": []
+ },
+ {
+  "mutation": "stall_at_150",
+  "rule": "MT425-04: a 150 ms gap counts (the hold guard's limit is > 150)",
+  "file": "lcnc-webui/src/stallWindow.ts",
+  "red": true,
+  "failed": [
+   "× counts gaps past the hold guard's own limit: 150 is none, 151 is one 5ms",
+   "FAIL  src/stallWindow.test.ts > the stall window > counts gaps past the hold guard's own limit: 150 is none, 151 is one"
+  ],
+  "summary": [
+   " ❯ src/stallWindow.test.ts (6 tests | 1 failed) 7ms",
+   " Test Files  1 failed | 2 passed (3)",
+   "      Tests  1 failed | 35 passed (36)"
+  ]
+ },
+ {
+  "mutation": "hold_refusal_without_its_gap",
+  "rule": "MT425-04: a stalled hold's refusal does not carry its gap",
+  "file": "lcnc-webui/src/holdGesture.ts",
+  "red": true,
+  "failed": [
+   "× a stalled end carries the gap that decided it — the gesture's own observation 3ms",
+   "FAIL  src/holdGesture.test.ts > the refusal's evidence (P3, Codex R425 MT425-04) > a stalled end carries the gap that decided it — the gesture's own observation"
+  ],
+  "summary": [
+   " ❯ src/holdGesture.test.ts (23 tests | 1 failed) 8ms",
+   " Test Files  1 failed | 2 passed (3)",
+   "      Tests  1 failed | 35 passed (36)"
+  ]
+ },
+ {
+  "mutation": "transport_loss_not_counted",
+  "rule": "MT425-04 F20: a lost batch is not counted",
+  "file": "lcnc-webui/src/ws/telemetry.ts",
+  "red": true,
+  "failed": [
+   "× is best-effort: a rejecting fetch neither throws nor wedges the queue — and its loss is counted 4ms",
+   "× a non-2xx answer is a counted loss; the report rides the next batch and clears on its delivery 1ms",
+   "× a report in flight is never said twice — it comes back only if its own batch is lost 1ms",
+   "× the gateway's refusal and its rejected lines are losses too; a failed report keeps its count 1ms",
+   "FAIL  src/ws/telemetry.test.ts > telemetry batcher > is best-effort: a rejecting fetch neither throws nor wedges the queue — and its loss is counted",
+   "FAIL  src/ws/telemetry.test.ts > the transport's losses (P3, F20) > a non-2xx answer is a counted loss; the report rides the next batch and clears on its delivery",
+   "FAIL  src/ws/telemetry.test.ts > the transport's losses (P3, F20) > a report in flight is never said twice — it comes back only if its own batch is lost",
+   "FAIL  src/ws/telemetry.test.ts > the transport's losses (P3, F20) > the gateway's refusal and its rejected lines are losses too; a failed report keeps its count"
+  ],
+  "summary": [
+   " Test Files  1 failed | 2 passed (3)",
+   "      Tests  4 failed | 32 passed (36)",
+   " FAIL  src/ws/telemetry.test.ts > the transport's losses (P3, F20) > the gateway's refusal and its rejected lines are losses too; a failed report keeps its count"
+  ]
+ }
+]
