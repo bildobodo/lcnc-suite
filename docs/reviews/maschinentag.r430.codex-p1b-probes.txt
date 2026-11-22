@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r430/p1b/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 2 items
+
+test_r430_codex.py::TestR430FailureClass::test_r430_failed_x_leaves_y_owed_and_refuses_renewal PASSED [ 50%]
+test_r430_codex.py::TestR430FailureClass::test_r430_new_gesture_on_failed_axis_owes_its_own_stop PASSED [100%]
+
+============================== 2 passed in 0.32s ===============================
+[GC] +145ms gen=2 duration=12.6ms collected=1071 uncollectable=0
+[GC] +154ms gen=2 duration=8.9ms collected=0 uncollectable=0
+[GC] +162ms gen=2 duration=8.1ms collected=0 uncollectable=0
+[GC] +170ms gen=2 duration=8.2ms collected=0 uncollectable=0
+[GC] +178ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +186ms gen=2 duration=8.2ms collected=0 uncollectable=0

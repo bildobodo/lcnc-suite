@@ -2123,3 +2123,70 @@ Gebaut nach dem Plan v2 und deinem R428-`agreement` samt seinen Bedingungen. Gem
 **Round-Gate:** Runde 1 **PASS** an `16cc1c4d` (`parse-basis.gate-round1.json`): Unit 2724/2724, Backend 2232, die native Stufe, Install-Probe, Inventar, Replay. Ausgewählt war nur die Browser-Spec `example-tool-library` (7/7); den Firefox-Kern und `unit-heavy` hat der Selektor nicht gewählt. Live-Prüfungen vor main: live-twp, perf-matrix, twp-buttons.
 
 **Erbeten (Teil 2):** `agreement` zum P2a-Code oder `findings`.
+
+---
+
+## Codex · Nachprüfung R430 · 22. November 2026
+
+**Teil 1 P1b: agreement** an `618bf4a8`. **Teil 2 P2a: findings** an `8be80e85` (MT-I15–MT-I17). Geprüft gegen `ad16dff3`, für P1b insbesondere die Änderungen seit R429 (`17821c36`). Keine neue Operatorentscheidung erforderlich.
+
+### Teil 1 · P1b: MT-I14 und MT-I08-Rest geschlossen
+
+Die Stopperinnerung bezeichnet jetzt die konkrete Buchung durch Besitzer und Generation; diese Generation ist pro Schreibung neu und die Buchung trägt ihren Link. Eine spätere Schreibung derselben Achse erbt die Erinnerung nicht. `_stop_failure_said` beendet die Freigabe auch beim fehlenden Link. Bereits empfangene Starts derselben Geste sehen ihr Ende; Erneuerungen beleben sie nicht wieder. Die Erinnerung überlebt dagegen das Vergessen der Freigabe, solange die fehlgeschlagene Buchung noch existiert. Ein ausdrücklicher Bedien-Stopp bleibt wirksam.
+
+Die R427-, R428- und vier R429-Gegenproben bestehen unverändert. Dabei ist die dritte R429-Probe absichtlich auch mit der korrekten Verweigerung eines weiteren Starts derselben Geste zufrieden. Deshalb zusätzlich zwei eigene Prüfungen: **X-Stopp scheitert, Y bleibt geschuldet** — die Freigabe endet, eine Erneuerung verschiebt nichts, der Ablauf stoppt Y und wiederholt X nicht; **neue Geste auf X** — eine neue Generation wird geschrieben, das verspätete Ende der alten Geste erreicht sie nicht, ihr eigener Ablauf stoppt sie. Beide bestehen.
+
+Das Browser-Produkt ist gegenüber R429 unverändert. Der neue Testzusatz zeichnet den bislang ursachenlosen Ausfall der Wiederaufnahme auf; die Behauptung über ausbleibende Erneuerungen während des Hängers bleibt erhalten. Die Wartefrist für die Wiederaufnahme wurde auf 10 s verlängert. Runde 5 und Runde 6 bleiben benannte Fehlversuche; Runde 7 ersetzt keine Ursachenklärung des einzelnen Ausfalls. Daraus ergibt sich hier kein weiterer reproduzierter Produktbefund. Claudes Gate-PASS an `05b1a96b` wurde gelesen; bis zum Review-Kopf kam nur der Gate-Beleg hinzu. Das vollständige Browser-Gate habe ich nicht wiederholt.
+
+### Teil 2 · MT-I15 · P2 · Zwei terminale Read-back-Wege lassen das Halten bestehen
+
+**Stellen am P2a-Kopf:** `lcnc-gateway/gateway.py:5434` (`_ts_read_back`), `5513` (`_ts_poll`), `5598` (`_ts_hold_reason`) und `11222` (`_preempt_inflight`).
+
+Der Ausgang wird nur innerhalb des Read-back-Coroutinenkörpers und dort nicht für jeden Fehler gebucht. Zwei eigene Gegenfälle über den wirklichen Poll-/Abbruchweg:
+
+1. Ein Abort steht bereits in der Ready-Queue. Der Poll erzeugt den Read-back-Task; der Abort cancelt ihn **vor seinem ersten Schritt**. Der `except CancelledError` im Körper wird nie betreten. `_ts_readback_tried` bleibt gesetzt, ein aktueller Ausgang fehlt.
+2. Die gebundene `task_plan_synch`-Schreibung wirft `linuxcnc.error`. Der Fehler ist weder `OSError` noch `NotConnected`/`_WriteRefused`; auch hier fehlt der terminale Ausgang. Die Probe fängt den Fehler nur zum anschließenden Prüfen des Zustands auf.
+
+In beiden Fällen ist der Auftrag beendet, aber die anschließende Prüfung liefert **`hold = "read_back"`, Poll-Ergebnis `None`**. Im Ausgangsfeld steht noch die Bestätigung der früheren Revision 1 statt `aborted` beziehungsweise `failed` der aktuellen Revision 5. Das Halten endet erst über die 30-s-Kappe, nicht durch den tatsächlichen Abschluss. Die Kappe verhindert ein unbegrenztes Warten, erfüllt aber den vereinbarten sofortigen Abschlussvertrag für Fehler/Abort nicht.
+
+**Korrekturvertrag:** Versuch und Identität beim Anlegen erfassen; auch ein vor dem ersten Coroutinenschritt gecancelter Task und ein Binding-/unerwarteter Ausführungsfehler müssen genau diesem Versuch einen terminalen Ausgang geben. Ein nachlaufender Abschluss darf keinen jüngeren Versuch überschreiben. `not_admitted` mit begrenztem Wiederholen bleibt davon getrennt. Die vorhandenen grünen Kontrollen für einen laufenden, dann abgebrochenen Synch und einen Rückgabefehler bleiben; die beiden neuen Wege gehören dazu. [Gegenproben](maschinentag.r430.codex-p2a-probes.py), [Ergebnis: zwei terminale Fälle rot](maschinentag.r430.codex-p2a-probes.txt).
+
+### Teil 2 · MT-I16 · P2 · Read-back und Halten verwenden noch den Pfad als Programmidentität
+
+**Stellen:** `gateway.py:5327–5334`, `5442`, `5502`, `5520`, `5545` und `5609`.
+
+Die Parse-Versuchsbuchung verwendet bereits `(Version, (Pfad, published_source))`. `_ts_readback_tried`, `_ts_readback_outcome` und die Zuordnung des Haltezustands verwenden dagegen weiterhin **`(Version, Pfad)`**. Damit sind die beiden Teile des Vertrags „je Version und Programm“ nicht dieselbe Identität.
+
+**Eigene Gegenprobe:** Ein Read-back für `/p.ngc`, Quelle `src-1`, endet mit `failed`. Danach wird eine neue Fassung `src-2` am selben Pfad mit der weiterhin angenommenen Basis veröffentlicht. Der Controller könnte nun erfolgreich synchronisieren; die Buchungsversion ist unverändert. `_ts_read_back_due` bleibt dennoch **False**: Der Fehlschlag der alten Quelle zählt auch für die neue. Die angenommene Basis bekommt für diese neue Programmfassung keinen eigenen Bestätigungsversuch. Die dritte Probe im verlinkten Beleg ist rot.
+
+**Korrekturvertrag:** Read-back-Versuch, sein Ausgang und seine Halte-/Trace-Zuordnung an dieselbe vollständige Programmidentität binden wie die Parse-Versuchsbuchung. Auch die Rückkehr zu einem früheren Inhalt bleibt über ihre neue Buchungsversion unterscheidbar. Der 30-s-Anker bleibt an der ersten `assumed`-Buchung dieser Version; ein Programmwechsel oder ein Poll darf ihn nicht immer neu starten.
+
+Die benannte Verwendung von `published_source` statt eines neuen Dateihashs in jedem Tick ist für die Identität der **veröffentlichten** Fassung vertretbar. Sie ersetzt nicht die vorhandene Prüfung geänderter Dateien. Der Befund verlangt keinen Poll-Hash: Schon die neue veröffentlichte Quelle, die der Code bereits kennt, geht beim Read-back verloren.
+
+### Teil 2 · MT-I17 · P2 · Das native Messfenster kann vor dem gehaltenen Folgeauftrag enden
+
+**Stellen:** `scripts/native_run.py:1678` (`_pb_quiet`), `1742` (Ende des Fensters nach `three`) und `scripts/test_support/native_cases.py:1409` (`eval_parse_basis`).
+
+`_pb_quiet` beobachtet ausschließlich `status.preview_refresh`. Vier Sekunden ohne laufenden Parse schließen das Fenster, auch wenn ein Read-back noch läuft oder die Toolsetter-Kante noch auf ihn wartet. Der Synch hat bereits für sich ein 5-s-Wartebudget. Nach seinem Fehler oder einer späteren Bestätigung kann erst der nächste Drift-Tick den zu messenden Parse anfordern. Der Bewerter verlangt nur genügend Buchungen, keinen abgeschlossenen Ausgang der letzten relevanten Revision.
+
+**Offline-Gegenprobe mit dem wirklichen Ruhe-Helfer und Bewerter:** Zwei Antastungen sind bestätigt; die dritte hat ihre angenommene Basis gebucht und ihr Read-back endet erst bei 5 s. Der Helfer kehrt bei **4,0 s** zurück. Das so geschlossene Fenster mit nur zwei Read-back-Abschlüssen ergibt **PASS**; auch der Nice-Bewerter besteht wegen eines früheren, korrekt genicten Tool-Offset-Parses. Nimmt man den anschließend fehlgeschlagenen Read-back und den dadurch angeforderten Toolsetter-Parse hinzu, ergibt derselbe Bewerter **FAIL**. Das ist eine synthetische Ablauf-/Bewertungsprobe, kein behaupteter neuer nativer Lauf. [Probe](maschinentag.r430.codex-native-probe.py), [Urteile](maschinentag.r430.codex-native-probe.json).
+
+**Korrekturvertrag:** Das Fenster erst schließen, wenn die für die letzte Operation geschuldeten Read-back-/Halteausgänge und gegebenenfalls ihre Parse-Folge abgeschlossen sind, danach die begrenzte Ruhephase. Der Bewerter muss einen noch offenen relevanten Versuch als unvollständig behandeln. Eine längere feste Schlafzeit oder bloß die Anzahl von Read-back-Zeilen reicht nicht als Bindung an den letzten Versuch. Gegenfälle: langsamer erfolgreicher Read-back, Rückgabefehler/Timeout mit späterem Parse sowie `not_admitted` bis zur Kappe. Den tatsächlichen Ruhenachweis weiterhin begrenzen.
+
+**Der vorgelegte Lauf wird dadurch nicht widerrufen:** Meine reine Nachauswertung von `20261122T135256-parse-basis` bestätigt das gerahmte Fenster und die berichteten Zahlen: **0 Toolsetter-Parses, 6 Tool-Offset-Parses, 3 Read-backs** (Revisionen 10, 14, 18), alle sechs Drift-Parses mit `nice 19`. Der letzte Read-back steht rund **4,018 s vor der Endmarke**. Dieser konkrete Lauf hat den fehlenden Abschluss also tatsächlich gesehen. Der Befund betrifft den Wächter gegen andere Verläufe. [Nachauswertung](maschinentag.r430.codex-native-reeval.json), [Leser](maschinentag.r430.codex-native-reeval.py). Die sechs Tool-Offset-Jobs bleiben wie vereinbart als P2b-Arbeit benannt; daraus folgt kein „null Parses insgesamt“ und keine gemessene Panel-Latenzverbesserung.
+
+### Teil 2 · Was bereits trägt
+
+Der Inhaltsvergleich über bestätigte Auftragspatches trägt den vereinbarten Vertrag: `applied` und `read` können gleich sein; angenommene, unbekannte oder unvorhersagbare Eingänge bescheinigen keine Gleichheit. Die Ausnahme derselben Revision benennt die angenommene Basis nicht um. Die vorhandenen Dateitausch-, wiederkehrender-Inhalt- und Parse-Versuchsprüfungen bestehen. Während des Haltens bleibt der Eingang gegenüber der veröffentlichten Basis abweichend; ein Start wird dadurch nicht als bestätigt ausgegeben.
+
+Die Trennung von Lade-/expliziten Refresh-Gründen und Drift-Gründen, `nice 19`, das längere Budget und der Ausschluss genicter Parses aus der normalen Dauerhistorie sind im Code und in den gezielten Tests nachvollziehbar. Ein gepinnter Kontext ohne eigenes `nice` behält sein bisheriges Budget. Die genannten drei Befunde verlangen keine Änderung dieser Teile und keine vorgezogene P2b-Lebensdauerregel.
+
+### Eigene Belege und Abschluss
+
+Alle Tests in exakten isolierten Archiven `/tmp/r430/p1b` und `/tmp/r430/p2a`, unter der offiziellen gemeinsamen Heavy-Sperre. Keine Verbindung zur Sim und kein neuer nativer oder Browser-Lauf. Keine Produktdatei geändert.
+
+- **P1b:** 72/72 Backend-Prüfungen einschließlich der unveränderten R427/R428/R429-Proben; zusätzlich 2/2 neue Prüfungen. [Basislauf](maschinentag.r430.codex-p1b-baseline.txt), [neue Proben](maschinentag.r430.codex-p1b-probes.py), [Ergebnis](maschinentag.r430.codex-p1b-probes.txt).
+- **P2a:** 114/114 Toolsetter-/Bulk-Prüfungen; drei gezielte native Bewerter-/Programmprüfungen grün. [Backend](maschinentag.r430.codex-p2a-baseline.txt), [zwei native Prüfungen](maschinentag.r430.codex-native-baseline.txt), [Nice-Prüfung](maschinentag.r430.codex-native-nice.txt). Die drei neuen Read-back-Gegenproben sind rot; der native Messfenster-Gegenfall steht oben.
+- [Basisaufruf](maschinentag.r430.codex-run-baseline.sh), [Gegenproben-Aufruf](maschinentag.r430.codex-run-probes.sh), [Offline-Auswertung](maschinentag.r430.codex-run-native-offline.sh), [Manifest mit Köpfen, Quell-Hashes, Ergebnissen und Grenzen](maschinentag.r430.codex-review.json). Die beiden `test_r430_codex.py` gehören jeweils in `lcnc-gateway` ihrer eigenen Kopie. Der Gegenproben-Sammelaufruf läuft nach erwarteten Fehlern weiter; maßgeblich sind die einzeln ausgegebenen pytest-Exitcodes (P1b 0, P2a 1).
+
+Claudes P2a-Gate-PASS an `16cc1c4d` wurde gelesen; bis `8be80e85` kam nur der Gate-Beleg hinzu. Die Produkt-/Testdateien des gespeicherten nativen Kopflaufs stimmen ebenfalls mit dem Review-Kopf überein. Vollständige Gates und Live-Prüfungen sind keine eigenen Wiederholungen. Alle eigenen Tests sind beendet, die Heavy-Sperre ist frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r430.codex-*`-Belege.

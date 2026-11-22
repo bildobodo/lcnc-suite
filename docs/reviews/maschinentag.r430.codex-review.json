@@ -1,0 +1,130 @@
+{
+  "round": "R430",
+  "review_head": "e4f0a5a70ab8aa25d5683b7058d3f51a353af272",
+  "base": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "parts": {
+    "P1b": {
+      "head": "618bf4a8ec5d6bf93cd5726b04fa98d717794e39",
+      "verdict": "agreement",
+      "previous_review_head": "17821c36c6a6acb371143bdc75123c9701f4ff64"
+    },
+    "P2a": {
+      "head": "8be80e85d682f8db50122e607a29571704ed28bf",
+      "verdict": "findings",
+      "ids": [
+        "MT-I15",
+        "MT-I16",
+        "MT-I17"
+      ]
+    }
+  },
+  "isolation": {
+    "archives": [
+      "/tmp/r430/p1b",
+      "/tmp/r430/p2a"
+    ],
+    "python": "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python",
+    "heavy_lock": "official heavy_lock.py on shared default lock; every test run completed",
+    "live_connections": false,
+    "native_runs_started": false,
+    "browser_runs_started": false,
+    "product_edits": false
+  },
+  "checks": [
+    {
+      "name": "P1b baseline plus unchanged R427/R428/R429 probes",
+      "passed": 72,
+      "exit_code": 0
+    },
+    {
+      "name": "P2a toolsetter and bulk baseline",
+      "passed": 114,
+      "exit_code": 0
+    },
+    {
+      "name": "P2a native evaluator and program guards",
+      "passed": 3,
+      "exit_code": 0,
+      "split": "2 in native-baseline.txt; 1 in native-nice.txt"
+    },
+    {
+      "name": "P1b two new failure/bookkeeping probes",
+      "passed": 2,
+      "exit_code": 0
+    },
+    {
+      "name": "P2a three new readback probes",
+      "failed": 3,
+      "exit_code": 1
+    },
+    {
+      "name": "P2a measurement boundary",
+      "kind": "synthetic offline counterexample",
+      "result": "window closes at 4s before 5s read-back end; PASS before, FAIL with late parse"
+    },
+    {
+      "name": "saved native head run re-evaluation",
+      "run": "20261122T135256-parse-basis",
+      "result": "same reported PASS: 0 toolsetter, 6 tool_offset, 3 readbacks, nice 19"
+    }
+  ],
+  "gate_records": {
+    "P1b": {
+      "head": "05b1a96b4e2acc24d7dd7649275f1fa9cea0e2b7",
+      "verdict": "PASS",
+      "difference_to_review_head": "evidence only",
+      "known_failures": "round5 existing frame-step test; round6 lease resume failure without known cause; diagnostics added; no own browser repeat"
+    },
+    "P2a": {
+      "head": "16cc1c4dea3b98cc24eda8a0fd06d56dbb3cd10b",
+      "verdict": "PASS",
+      "difference_to_review_head": "evidence only"
+    }
+  },
+  "sources_sha256": {
+    "p1b": {
+      "lcnc-gateway/gateway.py": "5915b8bae2ab327de5682315d595e066251b2d449712e33d59da3d01db57ebbc",
+      "lcnc-gateway/jog_lease.py": "0d105c91be05e6f850077cde8422dbdc53d62f5e12cd4c97fd95e086fc390348",
+      "lcnc-webui/e2e/jog-lease.spec.ts": "4d5a57ea54d5846a22e1cdc96a0574ce05b4c4d59b20fbb2eab7e7a9ebaa5b22"
+    },
+    "p2a": {
+      "lcnc-gateway/gateway.py": "3305f16539f036157b6d54ed9b72197c44f9ee0c48e6b81822c835a14d488ca5",
+      "lcnc-gateway/gateway_util.py": "f64af2807c71cc1aad855d3e2d8c8e99b7992fa8afae2865480ced5e91a2c818",
+      "lcnc-gateway/bulk_pipeline.py": "036269dff0e1db39802464216e5b51862cbbd1fa52f534bcd4c20c32e44fbb0b",
+      "scripts/native_run.py": "77869873a24bfe050d5ac6a7d5786f0a97e2ffca092e9e54f1eaa73bbc8722fc",
+      "scripts/test_support/native_cases.py": "b3735f11657150afa6acc119a37924f46e779037b8bf15da8a3c5ce66a41e546"
+    }
+  },
+  "unchanged_old_probes": {
+    "427": {
+      "sha256": "8e1c2b7ce786a8d9b02e6f3906848193fef9f03b973ef07778f6797500ef6b9c",
+      "archive_path": "/tmp/r430/p1b/lcnc-gateway/test_r427_codex.py"
+    },
+    "428": {
+      "sha256": "422875a462ef73c5179c8696eae000a26211add8736ba387ef62b668422722e5",
+      "archive_path": "/tmp/r430/p1b/lcnc-gateway/test_r428_codex.py"
+    },
+    "429": {
+      "sha256": "2ee604606351c7062ff0e6cb79cdcb489d624e273b6370a7bbe2e882802cb131",
+      "archive_path": "/tmp/r430/p1b/lcnc-gateway/test_r429_codex.py"
+    }
+  },
+  "artifacts_sha256": {
+    "maschinentag.r430.codex-p1b-baseline.txt": "ffcf6b7253ddfd16276330c1603214a33e4d55905433e94454e11180f31281bc",
+    "maschinentag.r430.codex-p1b-probes.py": "cbc6b21535b7fd2c6c287eaff9909f51de39ab07e0c1acb09f0d330ea8db03c0",
+    "maschinentag.r430.codex-p1b-probes.txt": "2f48e27ea6ab93c499f1811703d4dc0e4c6ab0b038ee96aaf7ede5fdae58d25d",
+    "maschinentag.r430.codex-p2a-baseline.txt": "d6ee3ad1b0f48e1377fa796c4de4693cdde90051f3cd27e35974388ccf9b49a1",
+    "maschinentag.r430.codex-p2a-probes.py": "3376b4de3bb4477e7a980d70385070fcdb45f7fc86e05e908938193d00a82d8b",
+    "maschinentag.r430.codex-p2a-probes.txt": "e00be321ff9c554050a8c2da77a49e8b9b8e4461a4fd6c1348b10d9d49c58b7e",
+    "maschinentag.r430.codex-native-baseline.txt": "0ad029a8a37fc4b2eda90e80cdb6675d2d32fda6845d03e552e3f565461c2ecc",
+    "maschinentag.r430.codex-native-nice.txt": "0dff5a7b4f7b627aa5d5ba9609862b0c83a9c34efeac8569b0ff66edb0c0e2d9",
+    "maschinentag.r430.codex-native-probe.py": "900ee570f124d692390bed62af2daf58ffe0ca5d39eb6aee3456b556d03be3bb",
+    "maschinentag.r430.codex-native-probe.json": "6db5eb2e068d069dea3d70991a3a46b98635bcdf83ac83f072a123a6473725d6",
+    "maschinentag.r430.codex-native-reeval.py": "bb978c59e768873b38d8dce281b0af69a09b0f2333b35c9237d89425cd43e42f",
+    "maschinentag.r430.codex-native-reeval.json": "554ecc52d65fc838e2c65576b4d8443fd8cee07704ce8653500d7557799b52ee",
+    "maschinentag.r430.codex-run-baseline.sh": "49be25d9460c7be444e74d7fe3741839ca0ad2663ab94a6bdf7a4b0a3da16a44",
+    "maschinentag.r430.codex-run-probes.sh": "0334d75c54744fed43231e15be5e7230ddb726d974e16e40dee55c52c4d369fa",
+    "maschinentag.r430.codex-run-native-offline.sh": "1132d51428068a74b5c667b28cd9311d59c401ca95e10bd1589709e29f36278a"
+  },
+  "run_note": "run-probes.sh continues after an expected failure; its printed per-pytest exit codes, not the final shell status, are decisive; no test counter counts inherited repeats as additional coverage."
+}

@@ -1,0 +1,53 @@
+{
+  "run": "/home/cnc/claude-work/live-tier/20261122T135256-parse-basis",
+  "commit": "7e822146b22c08479d9677aff8ea4ffdaf9eb99c",
+  "trace_sha256": {
+    "trace.ndjson": "29797b527da091a8c1223ebfa0205ba5808ed023492fdc02f16ba4159bd56452"
+  },
+  "framed": true,
+  "native_mark": "parse-basis.1329f3f1a1b6419dbd9c231f8d6210bf",
+  "pid": 3185030,
+  "parse_basis": {
+    "case": "parse-basis",
+    "status": "PASS",
+    "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+    "ops": 3,
+    "parses_by_reason": {
+      "tool_offset": 6
+    },
+    "toolsetter_edges": 0,
+    "masked": 0,
+    "held": 3,
+    "hold_ended": [],
+    "verified_same": 4,
+    "bookings": [
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24"
+    ],
+    "read_backs": 3,
+    "quiet_s": 4.0
+  },
+  "nice": {
+    "case": "parse-basis.nice",
+    "status": "PASS",
+    "detail": "6 drift re-parses, every one niced",
+    "drift": 6
+  },
+  "readback_versions": [
+    10,
+    14,
+    18
+  ],
+  "last_readback_to_end_ms": 4018.254000000001,
+  "unclosed_readbacks_at_end": "not inferred only from a count; three read-back records in this measured run"
+}

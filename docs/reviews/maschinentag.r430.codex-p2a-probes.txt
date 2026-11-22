@@ -1,0 +1,100 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r430/p2a/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 3 items
+
+test_r430_codex.py::TestR430ReadbackEnd::test_r430_cancel_before_first_task_step_ends_the_hold FAILED [ 33%]
+test_r430_codex.py::TestR430ReadbackEnd::test_r430_binding_error_ends_the_hold_as_failed FAILED [ 66%]
+test_r430_codex.py::TestR430ReadbackEnd::test_r430_new_source_at_the_same_path_gets_its_readback_attempt FAILED [100%]
+
+=================================== FAILURES ===================================
+__ TestR430ReadbackEnd.test_r430_cancel_before_first_task_step_ends_the_hold ___
+
+self = <test_r430_codex.TestR430ReadbackEnd testMethod=test_r430_cancel_before_first_task_step_ends_the_hold>
+
+    def test_r430_cancel_before_first_task_step_ends_the_hold(self):
+        self.probe_op()
+        key = (gateway._ts_basis_version, "/p.ngc")
+        async def go():
+            # A stop already ready in the loop, before the task this tick creates.
+            asyncio.get_running_loop().call_soon(gateway._preempt_inflight, "abort", 0)
+            self.assertIsNone(gateway._ts_poll(_St))
+            with self.assertRaises(asyncio.CancelledError):
+                await gateway._ts_readback_task
+        _run(go())
+>       self.assertEqual((gateway._ts_readback_outcome, gateway._ts_hold_reason(_St), self.poll()),
+                         ((key, "aborted"), None, "toolsetter"))
+E       AssertionError: Tuples differ: (((1, '/p.ngc'), 'confirmed'), 'read_back', None) != (((5, '/p.ngc'), 'aborted'), None, 'toolsetter')
+E       
+E       First differing element 0:
+E       ((1, '/p.ngc'), 'confirmed')
+E       ((5, '/p.ngc'), 'aborted')
+E       
+E       - (((1, '/p.ngc'), 'confirmed'), 'read_back', None)
+E       + (((5, '/p.ngc'), 'aborted'), None, 'toolsetter')
+
+test_r430_codex.py:18: AssertionError
+_____ TestR430ReadbackEnd.test_r430_binding_error_ends_the_hold_as_failed ______
+
+self = <test_r430_codex.TestR430ReadbackEnd testMethod=test_r430_binding_error_ends_the_hold_as_failed>
+
+    def test_r430_binding_error_ends_the_hold_as_failed(self):
+        self.probe_op()
+        key = (gateway._ts_basis_version, "/p.ngc")
+        def broken():
+            raise linuxcnc.error("synch send failed")
+        broken.__name__ = "task_plan_synch"
+        self.task.task_plan_synch = broken
+        async def go():
+            self.assertIsNone(gateway._ts_poll(_St))
+            try:
+                await gateway._ts_readback_task
+            except linuxcnc.error:
+                pass  # Whether it also reports the error is independent of ending the hold.
+        _run(go())
+>       self.assertEqual((gateway._ts_readback_outcome, gateway._ts_hold_reason(_St), self.poll()),
+                         ((key, "failed"), None, "toolsetter"))
+E       AssertionError: Tuples differ: (((1, '/p.ngc'), 'confirmed'), 'read_back', None) != (((5, '/p.ngc'), 'failed'), None, 'toolsetter')
+E       
+E       First differing element 0:
+E       ((1, '/p.ngc'), 'confirmed')
+E       ((5, '/p.ngc'), 'failed')
+E       
+E       - (((1, '/p.ngc'), 'confirmed'), 'read_back', None)
+E       + (((5, '/p.ngc'), 'failed'), None, 'toolsetter')
+
+test_r430_codex.py:35: AssertionError
+_ TestR430ReadbackEnd.test_r430_new_source_at_the_same_path_gets_its_readback_attempt _
+
+self = <test_r430_codex.TestR430ReadbackEnd testMethod=test_r430_new_source_at_the_same_path_gets_its_readback_attempt>
+
+    def test_r430_new_source_at_the_same_path_gets_its_readback_attempt(self):
+        self.probe_op()
+        self.task.synch_rc = 3
+        self.assertIsNone(self.poll())
+        self.assertEqual(gateway._ts_readback_outcome[1], "failed")
+        old_version = gateway._ts_basis_version
+        # A new file version was loaded/parsed using the still assumed book.
+        gateway._bulk.published_source = "src-2"
+        self.publish()
+        self.task.synch_rc = 1
+        self.assertEqual(gateway._ts_basis_version, old_version)
+>       self.assertTrue(gateway._ts_read_back_due(_St),
+                        "the old source's failed attempt suppressed the new source's read-back")
+E       AssertionError: False is not true : the old source's failed attempt suppressed the new source's read-back
+
+test_r430_codex.py:49: AssertionError
+=========================== short test summary info ============================
+FAILED test_r430_codex.py::TestR430ReadbackEnd::test_r430_cancel_before_first_task_step_ends_the_hold
+FAILED test_r430_codex.py::TestR430ReadbackEnd::test_r430_binding_error_ends_the_hold_as_failed
+FAILED test_r430_codex.py::TestR430ReadbackEnd::test_r430_new_source_at_the_same_path_gets_its_readback_attempt
+============================== 3 failed in 0.27s ===============================
+[GC] +100ms gen=2 duration=10.5ms collected=1402 uncollectable=0
+[GC] +108ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +120ms gen=2 duration=12.6ms collected=0 uncollectable=0
+[GC] +134ms gen=2 duration=14.1ms collected=0 uncollectable=0
+[GC] +162ms gen=2 duration=27.9ms collected=0 uncollectable=0
+[GC] +170ms gen=2 duration=7.7ms collected=0 uncollectable=0

@@ -1,0 +1,73 @@
+{
+  "kind": "synthetic offline boundary probe",
+  "readback_end_at": 5.0,
+  "quiet_returned_at": 4.000000000000002,
+  "quiet_s": 4.0,
+  "nice_before_readback_end": {
+    "case": "pb.nice",
+    "status": "PASS",
+    "detail": "1 drift re-parses, every one niced",
+    "drift": 1
+  },
+  "before_readback_end": {
+    "case": "pb",
+    "status": "PASS",
+    "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+    "ops": 3,
+    "parses_by_reason": {
+      "tool_offset": 1
+    },
+    "toolsetter_edges": 0,
+    "masked": 0,
+    "held": 3,
+    "hold_ended": [],
+    "verified_same": 0,
+    "bookings": [
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24"
+    ],
+    "read_backs": 2,
+    "quiet_s": 4.0
+  },
+  "including_late_parse": {
+    "case": "pb",
+    "status": "FAIL",
+    "detail": "1 toolsetter re-parses (1 edges, 0 masked by another edge) for 3 probe ops with unchanged values",
+    "ops": 3,
+    "parses_by_reason": {
+      "tool_offset": 1,
+      "toolsetter": 1
+    },
+    "toolsetter_edges": 1,
+    "masked": 0,
+    "held": 3,
+    "hold_ended": [
+      "failed"
+    ],
+    "verified_same": 0,
+    "bookings": [
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24"
+    ],
+    "read_backs": 2,
+    "quiet_s": 4.0
+  }
+}
