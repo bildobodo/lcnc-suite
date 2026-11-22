@@ -42,9 +42,9 @@ class _Feed:
             i += 1
             if out is None:
                 continue
-            lk, echo, state = out
+            lk, echo, state, *began = out
             n = gateway._poll_record[0] + 1 if gateway._poll_record else 1
-            gateway._poll_record = (n, time.monotonic(), lk, echo, state)
+            gateway._poll_record = (n, t_w + began[0] if began else time.monotonic(), lk, echo, state)
 
 
 def _outcome(script, serial=7, every=0.03, before=None):
@@ -106,6 +106,14 @@ class TestTheOutcome(unittest.TestCase):
             return (1, time.monotonic() - 1.0, conn, 99, RESET)
         r, _dt = _outcome(lambda c, i, dt: None, before=before)
         self.assertIsNone(r["confirmed"])
+
+    def test_a_poll_in_flight_during_the_write_proves_nothing(self):
+        # a poll that BEGAN before the write and was recorded after it (its
+        # data may predate the write): never this write's echo or outcome
+        # the in-flight poll shows the echo and the task out of ESTOP; every
+        # poll after it shows an echo short of the write — no echo, unknown
+        r, _dt = _outcome(lambda c, i, dt: (c, 99, RESET, -0.005) if i == 0 else (c, 6, RESET))
+        self.assertIsNone(r["confirmed"], r)
 
     def test_an_unread_task_state_at_the_window_end_is_unknown(self):
         r, _dt = _outcome(lambda c, i, dt: (c, 7, ESTOP if dt < 0.1 else None))

@@ -1,0 +1,40 @@
+# P4 mutations — docs/reviews/p4.mutations.py, each under the heavy lock, the tree restored byte-identical after each
+
+## Run 1 (all 24, at d28fc62b's tree): 21 red, 3 green
+{"mutation": "reset_answers_at_once", "red": false}
+{"mutation": "a_timeout_proves_estop", "red": true}
+{"mutation": "a_poll_before_the_write_counts", "red": false}
+{"mutation": "decided_at_the_echo", "red": true}
+{"mutation": "any_link", "red": true}
+{"mutation": "the_reset_is_never_preempted", "red": true}
+{"mutation": "the_page_ignores_the_outcome", "red": true}
+{"mutation": "seq_is_the_line", "red": true}
+{"mutation": "the_main_context_alone", "red": true}
+{"mutation": "the_page_prints_zero", "red": true}
+{"mutation": "the_card_outlives_its_tab", "red": false}
+{"mutation": "a_pending_hover_opens_late", "red": true}
+{"mutation": "no_close_on_an_outside_press", "red": true}
+{"mutation": "the_boss_outside_start_again", "red": true}
+{"mutation": "no_row_check", "red": true}
+{"mutation": "no_table_base_check", "red": true}
+{"mutation": "the_inode_is_the_table", "red": true}
+{"mutation": "the_watch_counts_the_own_write", "red": true}
+{"mutation": "unreadable_is_a_change", "red": true}
+{"mutation": "the_page_sends_a_newer_read", "red": true}
+{"mutation": "discard_during_a_sent_save", "red": true}
+{"mutation": "refresh_resets_an_entry_typed_before", "red": true}
+{"mutation": "a_boss_at_zero", "red": true}
+{"mutation": "empty_is_zero", "red": true}
+{"total": 24, "red": 21}
+
+Green, and why (the GUARDS were short, not the product):
+- reset_answers_at_once: its second guard was a browser spec against the MOCK — it cannot see a gateway mutation; dropped (the gateway guard alone).
+- a_poll_before_the_write_counts: no guard fed a poll that BEGAN before the write and was recorded after it; added test_a_poll_in_flight_during_the_write_proves_nothing.
+- the_card_outlives_its_tab: a keyboard tab switch also ends a HOVER card by Chromium's hover update (mouseleave) and may scroll; added a spec with a TAPPED card and every scroll stopped — only the tab's own close remains.
+
+## Run 2 (the three, with the sharpened guards): 3 red
+{"mutation": "reset_answers_at_once", "red": true}
+{"mutation": "a_poll_before_the_write_counts", "red": true}
+{"mutation": "the_card_outlives_its_tab", "red": true}
+
+Result: 24 of 24 red.

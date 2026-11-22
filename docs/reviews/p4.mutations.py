@@ -37,15 +37,14 @@ MUTS = {
     "reset_answers_at_once": (GW + "gateway.py", [(
         "        return await _estop_reset_outcome(conn, booked)\n",
         "        return {\"ok\": True}\n")],
-        [py(ER + "TestTheHandler::test_not_confirmed_through_the_socket"),
-         pw("e2e/setup-gates.spec.ts", "E-Stop Reset not confirmed: said at the Reset button")]),
+        [py(ER + "TestTheHandler::test_not_confirmed_through_the_socket")]),
     "a_timeout_proves_estop": (GW + "gateway.py", [(
         '            return unknown("no poll after the settle window")',
         '            return {"ok": False, "confirmed": False, "error": ESTOP_RESET_NOT_CONFIRMED}')],
         [py(ER + "TestTheOutcome::test_no_poll_after_the_window_is_unknown")]),
     "a_poll_before_the_write_counts": (GW + "gateway.py", [(
         "            if began > t_w:\n", "            if True:\n")],
-        [py(ER + "TestTheOutcome::test_a_poll_begun_before_the_write_proves_nothing")]),
+        [py(ER + "TestTheOutcome::test_a_poll_in_flight_during_the_write_proves_nothing")]),
     "decided_at_the_echo": (GW + "gateway.py", [(
         "                if echo_at is not None and began >= echo_at + ESTOP_RESET_SETTLE_S:",
         "                if echo_at is not None:")],
@@ -74,7 +73,7 @@ MUTS = {
     # ---- P4-3: the tool card
     "the_card_outlives_its_tab": (WEB + "src/ToolTablePanel.vue", [(
         "watch(() => props.active, on => { if (on === false) closePreview(); });\n", "")],
-        [pw("e2e/tool-preview.spec.ts", "a hover card closes with its tab")]),
+        [pw("e2e/tool-preview.spec.ts", "the tab alone closes the card")]),
     "a_pending_hover_opens_late": (WEB + "src/ToolTablePanel.vue", [
         ("  clearTimeout(hoverTimer);\n  hoverTimer = 0;\n  hoverTool.value = null;", "  hoverTool.value = null;"),
         ("    hoverTimer = 0;\n    if (!previewShown()) return;\n", "    hoverTimer = 0;\n")],

@@ -85,3 +85,19 @@ test("a tapped card closes on a press outside its row and on a scroll", async ({
   await expect(card(page), "the pinned card left with the tab").toHaveCount(0);
   await ctl({ op: "reset" });
 });
+
+test("the tab alone closes the card (no scroll, no press, no hover)", async ({ page }) => {
+  // the other closes stay out: a tapped card (no hover — Chromium's hover
+  // update after the layout would end a hover card by its mouseleave), and
+  // every scroll stopped before the page sees it (a tab switch may scroll
+  // the side pane) — only the tab's own close can end the card (the P4-3
+  // mutation guard)
+  await page.addInitScript(() => {
+    window.addEventListener("scroll", e => e.stopImmediatePropagation(), true);
+  });
+  await openTools(page, true);
+  await page.locator(".toolsTab tbody tr").first().locator("td.colDesc").click();
+  await expect(card(page)).toBeVisible();
+  await leaveToolsByKeyboard(page);
+  await expect(card(page), "the card left with the Tools tab").toHaveCount(0);
+});
