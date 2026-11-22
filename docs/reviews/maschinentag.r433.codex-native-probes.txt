@@ -1,0 +1,65 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r433/head
+plugins: anyio-4.13.0
+collecting ... collected 4 items
+
+scripts/test_r433_codex.py::test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor[False] FAILED [ 25%]
+scripts/test_r433_codex.py::test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor[True] FAILED [ 50%]
+scripts/test_r433_codex.py::test_the_same_rotation_without_a_wall_step_is_recognized PASSED [ 75%]
+scripts/test_r433_codex.py::test_the_rotated_loss_does_not_release_the_live_wait FAILED [100%]
+
+=================================== FAILURES ===================================
+_ test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor[False] _
+
+with_loss = False
+
+    @pytest.mark.parametrize("with_loss", [False, True])
+    def test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor(with_loss):
+        with patch.object(nr, "_trace_files", return_value=observation(150,with_loss)):
+            sl=nr._gateway_events_since({"gateway_pid":101,"run":Path("/unused")},199)
+>       assert nc.pb_owed(sl), {"events":list(sl),"problems":sl.problems}
+E       AssertionError: {'events': [{'origin': 'applied', 'pid': 101, 'proc': 'gateway', 't_wall_ns': 200, ...}], 'problems': []}
+E       assert None
+E        +  where None = <function pb_owed at 0xffff8e36e480>([{'proc': 'gateway', 'pid': 101, 'tag': 'toolsetter.basis', 'origin': 'applied', 'version': 10, 't_wall_ns': 200}])
+E        +    where <function pb_owed at 0xffff8e36e480> = nc.pb_owed
+
+scripts/test_r433_codex.py:29: AssertionError
+_ test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor[True] _
+
+with_loss = True
+
+    @pytest.mark.parametrize("with_loss", [False, True])
+    def test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor(with_loss):
+        with patch.object(nr, "_trace_files", return_value=observation(150,with_loss)):
+            sl=nr._gateway_events_since({"gateway_pid":101,"run":Path("/unused")},199)
+>       assert nc.pb_owed(sl), {"events":list(sl),"problems":sl.problems}
+E       AssertionError: {'events': [{'origin': 'applied', 'pid': 101, 'proc': 'gateway', 't_wall_ns': 200, ...}], 'problems': []}
+E       assert None
+E        +  where None = <function pb_owed at 0xffff8e36e480>([{'proc': 'gateway', 'pid': 101, 'tag': 'toolsetter.basis', 'origin': 'applied', 'version': 10, 't_wall_ns': 200}])
+E        +    where <function pb_owed at 0xffff8e36e480> = nc.pb_owed
+
+scripts/test_r433_codex.py:29: AssertionError
+_____________ test_the_rotated_loss_does_not_release_the_live_wait _____________
+
+    def test_the_rotated_loss_does_not_release_the_live_wait():
+        clock,calls=Clock(),[]
+        def files(_path):
+            calls.append(round(clock.t,3))
+            return observation(150,True)
+        with patch.object(nr,"time",clock),patch.object(nr,"_trace_files",files):
+            try:
+                waited=nr._pb_quiet(SimpleNamespace(status={"preview_refresh":None}),"pb",
+                    owed=lambda:nc.pb_owed(nr._gateway_events_since({"gateway_pid":101,"run":Path("/unused")},199)))
+            except nr.Refused:
+                return
+>       pytest.fail(f"an unconfirmed/lossy observation ended the wait: waited={waited}, reads_at={calls}")
+E       Failed: an unconfirmed/lossy observation ended the wait: waited=4.0, reads_at=[0.0]
+
+scripts/test_r433_codex.py:52: Failed
+=========================== short test summary info ============================
+FAILED scripts/test_r433_codex.py::test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor[False]
+FAILED scripts/test_r433_codex.py::test_a_wall_step_at_rotation_keeps_the_new_generation_after_the_anchor[True]
+FAILED scripts/test_r433_codex.py::test_the_rotated_loss_does_not_release_the_live_wait
+========================= 3 failed, 1 passed in 0.05s ==========================

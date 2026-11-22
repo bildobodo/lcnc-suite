@@ -1,0 +1,288 @@
+{
+  "base": "70106a7e",
+  "meaning": "Static argument extraction; not a native motion measurement",
+  "routines": {
+    "probe_round_boss": {
+      "path": "subroutines/probe_basic/probe_round_boss.ngc",
+      "sha256": "0629b5bdb83cb0464631d27ea4c00261bd583e5ec6041a7054ab680f8559c8fa",
+      "side_probe_calls": [
+        {
+          "line": 70,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 89,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 116,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 135,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 165,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 183,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 223,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 241,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018"
+        }
+      ],
+      "positioning_moves": [
+        {
+          "line": 63,
+          "text": "G38.3 X-[[#<diameter_hint> / 2] + [#<step_off_width>]]"
+        },
+        {
+          "line": 82,
+          "text": "G38.3 X[#<diameter_hint> + #<step_off_width> + #<xy_clearance>]"
+        },
+        {
+          "line": 109,
+          "text": "G38.3 Y-[[#<diameter_hint> / 2] + [#<step_off_width>]]"
+        },
+        {
+          "line": 128,
+          "text": "G38.3 Y[#<diameter_hint> + #<step_off_width> + #<xy_clearance>]"
+        },
+        {
+          "line": 158,
+          "text": "G38.3 X-[[#<diameter_hint> / 2] + [#<step_off_width>]]"
+        },
+        {
+          "line": 176,
+          "text": "G38.3 X[#<diameter_hint> + #<step_off_width> + #<xy_clearance>]"
+        },
+        {
+          "line": 216,
+          "text": "G38.3 Y-[[#<diameter_hint> / 2] + [#<step_off_width>]]"
+        },
+        {
+          "line": 234,
+          "text": "G38.3 Y[#<diameter_hint> + #<step_off_width> + #<xy_clearance>]"
+        }
+      ]
+    },
+    "probe_rect_boss": {
+      "path": "subroutines/probe_basic/probe_rect_boss.ngc",
+      "sha256": "e18af5271c5ae81a763c562aba174b6391226e37b5e47db2cab4367e6c4daee1",
+      "side_probe_calls": [
+        {
+          "line": 72,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 91,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 127,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 146,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018"
+        }
+      ],
+      "positioning_moves": [
+        {
+          "line": 65,
+          "text": "G38.3 X-[[#<x_hint_boss_pocket>/2] + #<step_off_width>]"
+        },
+        {
+          "line": 84,
+          "text": "G38.3 X[#<x_hint_boss_pocket> + #<step_off_width> + #<xy_clearance>]"
+        },
+        {
+          "line": 120,
+          "text": "G38.3 Y-[[#<y_hint_boss_pocket>/2] + #<step_off_width>]"
+        },
+        {
+          "line": 139,
+          "text": "G38.3 Y[#<y_hint_boss_pocket> + #<step_off_width> + #<xy_clearance>]"
+        }
+      ]
+    },
+    "probe_round_pocket": {
+      "path": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "sha256": "c70280cb6ef359e071f878ec6afaf00b9d8a04585fdc52acc44049c9d0f0f179",
+      "side_probe_calls": [
+        {
+          "line": 63,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 68,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018 + #3025"
+        },
+        {
+          "line": 84,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 89,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018 + #3025"
+        },
+        {
+          "line": 105,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 110,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018 + #3025"
+        },
+        {
+          "line": 134,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 139,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018 + #3025"
+        }
+      ],
+      "positioning_moves": [
+        {
+          "line": 56,
+          "text": "G38.3 X[#<step_off_width>]"
+        }
+      ]
+    },
+    "probe_round_pocket_center_start": {
+      "path": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "sha256": "abda3bcb7fe2ac848afe60dc1273999f187b7bd7447720c0556d1988afbe178c",
+      "side_probe_calls": [
+        {
+          "line": 49,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 54,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018 + #3025"
+        },
+        {
+          "line": 70,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 75,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018 + #3025"
+        },
+        {
+          "line": 91,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 96,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018 + #3025"
+        },
+        {
+          "line": 120,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018 + #3025 / 2"
+        },
+        {
+          "line": 125,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018 + #3025"
+        }
+      ],
+      "positioning_moves": []
+    },
+    "probe_rect_pocket": {
+      "path": "subroutines/probe_basic/probe_rect_pocket.ngc",
+      "sha256": "4627e01702b0976ef8306d36438c4e6df8d4bc45968c9fd3d3d5e5264be9fa59",
+      "side_probe_calls": [
+        {
+          "line": 65,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018"
+        },
+        {
+          "line": 70,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018 + #3026"
+        },
+        {
+          "line": 95,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018 + #3027 / 2"
+        },
+        {
+          "line": 100,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018 + #3027"
+        }
+      ],
+      "positioning_moves": [
+        {
+          "line": 58,
+          "text": "G38.3 X[#<step_off_width>]"
+        }
+      ]
+    },
+    "probe_rect_pocket_center_start": {
+      "path": "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+      "sha256": "627a1da528c9ecb6521fa3f191e9cc567b30824b8834bbeaa4da3b0821daa959",
+      "side_probe_calls": [
+        {
+          "line": 50,
+          "routine": "probe_x_minus",
+          "max_xy_argument": "#3018 + #3026 / 2"
+        },
+        {
+          "line": 55,
+          "routine": "probe_x_plus",
+          "max_xy_argument": "#3018 + #3026"
+        },
+        {
+          "line": 80,
+          "routine": "probe_y_plus",
+          "max_xy_argument": "#3018 + #3027 / 2"
+        },
+        {
+          "line": 85,
+          "routine": "probe_y_minus",
+          "max_xy_argument": "#3018 + #3027"
+        }
+      ],
+      "positioning_moves": []
+    }
+  }
+}

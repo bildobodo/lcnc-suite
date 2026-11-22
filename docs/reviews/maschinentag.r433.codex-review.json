@@ -1,0 +1,41 @@
+{
+  "round": "R433",
+  "base": "70106a7e17b3a3d348e6a3c7221ba11d46b4f264",
+  "head": "3ead31b1ab2d3a82f656cb1c3ca1786fde3b9049",
+  "prior_review_head": "5132a02426704487d990a91be8352f050a7e2e5f",
+  "live_review_head": "98cf78c150792dfd269fbb32ad2959b9cee83de8",
+  "archive": "/tmp/r433/head",
+  "native_run_head": "e723d5dde69facc5206c7348f2cf6c3a05e61b3b",
+  "gate_head": "617f4a407f7cf3e2970d3a23c224fa8232bc9d4f",
+  "product_changes_since_R432": [],
+  "tests": {
+    "repository_native_targeted": "28 PASS",
+    "unchanged_R431_R432": "13 PASS",
+    "new_R433": "3 assertion failures, 1 PASS"
+  },
+  "verdicts": {
+    "part1": "findings: MT-I18 A across rotation; B closed",
+    "part2": "findings: MT433-01 tool edit conflict, MT433-02 routine-specific size contract, MT433-03 discard while save pending"
+  },
+  "limits": [
+    "P4 source review at 70106a7e, no P4 implementation or new live tests",
+    "No product edit, build or checkout in live tree",
+    "No repeated full gate; read supplied PASS and existing native run",
+    "R432 probe repeated unchanged writes its scratch producer trace under /tmp/r432; no live artifact overwritten"
+  ],
+  "review_prefix_sha256": "06490149ad4e3910993a913bd3b756c8eea34bb9f1d36d75efb35fd3d76203ea",
+  "files": {
+    "maschinentag.r433.codex-native-baseline.txt": "34e6a37ea23e54511d236c285ee56e3b1d7d705ccade178556dce6f42f655638",
+    "maschinentag.r433.codex-prior-unchanged.txt": "9dadad2fa0b0af04e091f97909adb30347a02880007f0cae268f43d888dcf69f",
+    "maschinentag.r433.codex-r431-probes.py": "46023fcdb958447feedf3a763c8ad83686581962909b5b9cb741d1c070dfb0cf",
+    "maschinentag.r433.codex-r432-probes.py": "62bc8d8305789aa499c0a7580ac86e041d7b2261888ec5f8395740e870be7099",
+    "maschinentag.r433.codex-native-probes.py": "62798df9ab907659eac5cb5f3db77e67eb4b9675ecd971f00851a8e95e9cd692",
+    "maschinentag.r433.codex-native-probes.txt": "aebf32d9d21c0b9d429e9719a7d9350dafcddc96d320950869dc819e158af35e",
+    "maschinentag.r433.codex-native-reeval.py": "a600d6c114c95273a25099e843204be3f1b6b5723f7563fe2c178b9f138357fb",
+    "maschinentag.r433.codex-native-reeval.json": "84f79857c348a61cfab5355d1e4b0100332f0b20d53b329ca6ccd57943a1a799",
+    "maschinentag.r433.codex-p4-source-audit.md": "345231006be0f921f027ad6a2f807f58dbbdb2ea6754d66c23fbd42dfcb883b2",
+    "maschinentag.r433.codex-p4-routine-paths.json": "a88c2b3d28022a234890b368996e04e95a74344869a7bcccfbe520aa699ed082",
+    "maschinentag.r433.codex-run-baseline.sh": "13e3e613b48e8de1de54f2219aa3cd6679ab4c89bae28c5567c7c2591e49412b",
+    "maschinentag.r433.codex-run-followups.sh": "502a9ca3b84f096972a5b59e6537ec69f8e3abe9ff165c8de1335f44329171a3"
+  }
+}

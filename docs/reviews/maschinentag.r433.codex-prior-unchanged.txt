@@ -1,0 +1,22 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r433/head
+plugins: anyio-4.13.0
+collecting ... collected 13 items
+
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[failed] PASSED [  7%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[aborted] PASSED [ 15%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[cap] PASSED [ 23%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[no_anchor] PASSED [ 30%]
+scripts/test_r431_codex.py::test_complete_confirmations_are_a_pass PASSED [ 38%]
+scripts/test_r431_codex.py::test_another_revisions_outcome_does_not_settle_the_last_attempt PASSED [ 46%]
+scripts/test_r431_codex.py::test_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran PASSED [ 53%]
+scripts/test_r431_codex.py::test_temporary_trace_read_failure_does_not_end_the_owed_wait PASSED [ 61%]
+scripts/test_r432_codex.py::test_a_gateway_loss_cannot_settle_the_live_owed_wait PASSED [ 69%]
+scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end] PASSED [ 76%]
+scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report] PASSED [ 84%]
+scripts/test_r432_codex.py::test_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step PASSED [ 92%]
+scripts/test_r432_codex.py::test_a_readable_confirmed_live_observation_releases_the_wait PASSED [100%]
+
+============================== 13 passed in 0.05s ==============================

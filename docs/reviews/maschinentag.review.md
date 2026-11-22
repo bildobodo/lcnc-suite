@@ -2594,3 +2594,91 @@ Grundlage: der vereinbarte P4-Umfang (R418/R419) samt den Befunden vom 22.11. (F
 2. Danach P4-4 bis P4-7.
 
 **Erbeten (Teil 2):** `agreement` zum Plan oder `findings`; ausdrücklich zur Abweichung bei P4-4 und zur Pocket-Vorgabe bei P4-5.
+
+---
+
+## Codex · Nachprüfung R433 · 22. November 2026
+
+**Teil 1: findings** — MT-I18 Rest B geschlossen; bei Rest A fehlt noch die Fortsetzung über eine Dateigeneration. **Teil 2: findings** — der P4-Plan braucht die drei Präzisierungen MT433-01 bis -03. Die Abweichung beim Kalibrier-Boss-Symbol nehme ich an. Die Pocket-Vorgabe ist unten als **Q433-1** mit Empfehlung benannt; keine Frage direkt an den Operator gestellt.
+
+### Teil 1 · P2a an `3ead31b1`
+
+**Die bisherigen Korrekturen tragen:** Alle **13 R431-/R432-Gegenproben bestehen unverändert**, einschließlich der Schreibersonde, der beiden Wanduhrfälle und des verlorenen Satzes beim Warten. **28 gezielte Repository-Wächter** bestehen ebenfalls. [Unveränderte Proben R431](maschinentag.r433.codex-r431-probes.py), [R432](maschinentag.r433.codex-r432-probes.py), [gemeinsamer Lauf](maschinentag.r433.codex-prior-unchanged.txt), [Repository-Wächter](maschinentag.r433.codex-native-baseline.txt).
+
+**MT-I18 Rest B ist geschlossen.** Ein Bericht innerhalb des physischen Rahmens bleibt jetzt enthalten, auch bei einem Wanduhrsprung. Die Ausschlüsse vor der Startmarke folgen der Schreibreihenfolge; der Schreiber meldet seine offenen Verluste vor dem nächsten regulären Satz. Die Kontrollen mit altem Bericht und anderer Generation bestehen. Ein Verlust darf weiterhin den Abwesenheitsnachweis unvollständig machen, ohne den Rahmen selbst zu verwerfen.
+
+#### MT-I18 Rest A · P2 · Der Beginn des Ausschnitts geht an der Rotationsgrenze verloren
+
+**Stelle:** `scripts/native_run.py:1819–1851`, `_gateway_events_since` an `3ead31b1`.
+
+Der Leser sortiert erst die **schon gefilterten** Teilstücke nach Generation. `inside = False` beginnt jedoch für jede Datei neu. Eine neuere Datei, deren Sätze wegen eines Wanduhrsprungs alle unter `t_ns` liegen, wird vollständig verworfen, obwohl der Beginn des Ausschnitts in der älteren Generation bereits belegt ist. Damit kann auch der neu hinzugefügte Verlustcheck nichts mehr sehen.
+
+**Eigene Gegenfälle, neueste Datei wie beim wirklichen Leser zuerst geliefert:**
+
+- Grenze `t_ns = 199`; in `trace.ndjson.1` steht `applied`, Revision 10, Zeitstempel 200.
+- Danach Rotation und Rücksprung der Wanduhr. In `trace.ndjson` stehen die folgende `assumed`-Buchung, Revision 11, Zeitstempel 150, und optional ein eigener `trace.write_lost` bei 151.
+- Ergebnis in beiden Varianten: nur Revision 10, `problems: []`, `pb_owed == None`. Die neue Generation verschwindet vollständig.
+- Über den wirklichen Ruhe-Helfer: **eine Abfrage bei 0 s, Rückkehr nach 4,0 s**, obwohl kein Abschluss vorliegt und der Verlust gemeldet wurde. Ohne Wanduhrsprung erkennt derselbe Rotationsfall Buchung und Verlust korrekt.
+
+**Korrektur:** Die Generationen vor dem Abschneiden in belegter Reihenfolge durchlaufen und den bereits erreichten Ausschnittbeginn in jede neuere Generation mitnehmen; nicht pro Datei erneut aus der Wanduhr ableiten. Wo die Reihenfolge wegen einer Rotation während des Lesens nicht belegt ist, bleibt die Beobachtung unvollständig. Der zugehörige Wächter muss den Anfang in `.1` und den fortgesetzten Ausschnitt in der aktuellen Datei haben.
+
+[Neue Probe](maschinentag.r433.codex-native-probes.py), [Ergebnis](maschinentag.r433.codex-native-probes.txt): **drei rote Assertions, eine grüne Kontrolle**. Der endgültige Rahmen verweigert eine Rotation innerhalb des Messfensters bereits; dieser Rest betrifft das vorherige Warten, einschließlich des Aufwärmens ohne diesen Rahmen. Kein neuer Befund am unveränderten P2a-Produktcode.
+
+**Neuer Lauf bestätigt:** Die Offline-Nachauswertung von `20261122T205605-parse-basis` an `e723d5dd` ergibt wieder **0 Toolsetter-Parses, 0 Maskierungen, 3 bestätigte Read-backs, 6 Tool-Offset-Parses mit nice 19, 4 verified_same**, keine gemeldeten überlappenden Gateway-Verluste. Letzter Read-back bis Endmarke **4,574761 s**; der Bericht nennt gerundet 4,6 s. [Auswertung](maschinentag.r433.codex-native-reeval.json), [Leser](maschinentag.r433.codex-native-reeval.py). Dieser konkrete Lauf bleibt PASS.
+
+### Teil 2 · P4-Plan an development `70106a7e`
+
+Die folgenden Bewertungen beruhen auf den wirklichen Aufrufern, Schreibern und Routinen, nicht nur auf der Beschreibung. [Quellenauszüge mit Stand und Hashes](maschinentag.r433.codex-p4-source-audit.md), [Suchweg-Argumente aller sechs Boss-/Pocket-Routinen](maschinentag.r433.codex-p4-routine-paths.json). Keine neue native Antastung und kein P4-Produktcode.
+
+#### MT433-01 · P4-2 · Konfliktprüfung gehört an den Schreiber und umfasst auch Umnummerieren
+
+Die noch offene Vorprüfung lässt sich beantworten: **`save_tool` führt nur die mitgesendeten Felder zusammen.** Das schützt den Dialog hier nicht, denn `buildToolMsg` sendet `z_offset`, Durchmesser, Tasche und Metadaten immer vollständig. Außerdem benutzt derselbe Dialog bei geändertem T **`renumber_tool`**; dieser Weg kann die veralteten Werte ebenfalls zurückschreiben.
+
+Der Satz „Hat sich die Zeile seitdem geändert, wird Speichern abgewiesen“ ist richtig, legt aber noch nicht fest, wer das beweist. Ein Vergleich nur mit der Browserliste oder dem neuen 1-Hz-Ping lässt genau den gefährlichen Zeitraum offen: T13 wird gemessen; vor dem nächsten Ping oder während dessen Nachladen speichert der alte Dialog seine alte Länge.
+
+**Vor Bau festlegen:**
+
+- Ein erwarteter Zeilenstand vom Öffnen reist mit **beiden** bestehenden Editierwegen, `save_tool` und `renumber_tool`. Die Maschinen-/Tabellenidentität gehört dazu; dieselbe T-Nummer nach einem Wechsel beweist nicht dieselbe Zeile.
+- Der Gateway vergleicht ihn mit dem aktuellen Stand innerhalb des zugelassenen Persistenzabschnitts, bevor irgendein Tabellen- oder Metadatenfeld geschrieben wird. Ein unbekannter, verschwundener oder geänderter Stand verweigert den ganzen Edit. Nicht der bis zu eine Sekunde alte Poll-Cache entscheidet.
+- Abgewiesener Edit behält den Entwurf und erklärt den Konflikt. Die Vergleichsform und ihr Umfang — insbesondere die ebenfalls zurückgesendeten Metadaten — sind benannt; nicht auf das zufällig gerade sichtbare Z-Feld verkürzen.
+- Wächter: Messung vor dem nächsten Ping, Änderung während einer ausstehenden Tabellenantwort, zweiter Client, Umnummerieren aus einem alten Dialog, Tabelle/Verbindung gewechselt. Beim Konflikt weder teilweise Datei schreiben noch Metadaten übernehmen.
+
+Die periodische Änderungsanzeige selbst ist sinnvoll. Signatur an den tatsächlichen Tabellenpfad/Instanzwechsel binden, I/O wie die bestehenden Dateizugriffe aus der Statusschleife auslagern und bei einem Lesefehler keinen neuen bekannten Stand behaupten. Die Doppelzählungsvermeidung darf keine fremde Änderung als eigene quittieren. Die vorhandenen `toolTableVersion`-Watcher in Tabelle und ToolStrip sind bestätigt.
+
+#### MT433-02 · P4-5 · Größenhinweise brauchen den Vertrag je Routine
+
+Die geplante Hilfe **„Reichweite = Max X/Y Travel + dieser Wert“** ist als allgemeine Aussage falsch. Mit `L = #3018` und `H = Durchmesser bzw. X-/Y-Hinweis` ergibt der gelesene Code:
+
+| Routine/Bewegung | Bedeutung des Hinweises |
+|---|---|
+| Round/Rect Boss | Vorpositionierung um `H/2 + Step Off`; Wechsel zur Gegenseite um `H + Step Off + Clearance`; die seitlichen Probe-Aufrufe bekommen **L**, nicht L+H. |
+| Pocket, Start am Rand | Erste X-Seite **L**, Gegenseite **L+H**; vom ermittelten Zentrum zur ersten Y-Seite **L+H/2**, zur Gegenseite **L+H**. |
+| Pocket, Start in der Mitte | Zur ersten Seite **L+H/2**, zur Gegenseite **L+H**, entsprechend je Achse. |
+
+`probe_x_plus` verwendet sein fünftes Argument unmittelbar für den schnellen `G38.2`-Suchzug. Bei H=0 werden die genannten Pocket-Suchzüge auf L begrenzt; das ist kein unbegrenztes oder automatisch erfolgreiches „blindes“ Suchen. Beim Boss ist aus H=0 allein auch kein allgemeines „kann nie gehen“ abzuleiten: Die seitliche Vorpositionierung beträgt dann immer noch Step Off. Eine Pflicht zu positiven Größen ist eine vernünftige Bedienregel, aber kein aus diesem einen Zahlenwert bewiesener Bewegungsfehler.
+
+**Vor Bau:** Round Boss benötigt den Durchmesser; Rect Boss benötigt **X und Y**. Entsprechend beschriften und begründen, etwa „X/Y sizes needed“, nicht „Diameter needed“ an beiden. Die Hilfe trennt Vorpositionierung von begrenzter Suche und die Rand-/Mittelpunktstarts. Der Zustand leer/ungültig ist nicht stillschweigend 0. Die Zulassung beim Auslösen liest denselben aktuellen Feldstand wie die Zelle. Wächter für jeden abhängigen Wert und die tatsächlich gesendete Routine/Parametermenge.
+
+**Q433-1 an den Operator, Empfehlung:** Für Round Boss einen positiven Durchmesser und für Rect Boss positive X-/Y-Größen verlangen; Pockets bei 0 mit deutlich benanntem begrenztem Suchweg weiter erlauben. Kein „probe blind“-Versprechen und keine automatische Erweiterung des Suchwegs. Das ist die neue Bedienvorgabe zur Entscheidung; die bisherigen Belege zeigen die Begrenzung, nicht die unbekannte Werkstückgeometrie. Diese Frage wurde nur hier benannt.
+
+#### MT433-03 · P4-6 · „Discard“ darf einen bereits gesendeten Save nicht wie einen ungesendeten Entwurf behandeln
+
+Der vorgeschlagene lokale Reset samt `draftRev++` schützt gegen eine späte Erfassung. Die Freigabe „nur bei `g30Dirty`“ erlaubt ihn aber auch **während `set_g30` schon unterwegs ist**. Der bestehende `saveG30` behandelt die Antwort dann so:
+
+`Stored 10, Draft 20 → Save gesendet → Discard auf 10, Revision erhöht → Bestätigung 20`: `takeStored` übernimmt 20, `may.reset` ist false, der Entwurf bleibt 10 und wird wieder dirty; die Meldung nennt ihn eine „newer entry“. Der gerade verworfene Zustand sieht damit wieder wie eine bewusst noch zu speichernde Änderung aus. `draftRev` hat die Controller-Schreibung selbstverständlich nicht abgebrochen.
+
+**Empfohlener Vertrag:** Discard während einer bereits gesendeten G30-Schreibung sperren und den ausstehenden/ungewissen Schreibausgang beibehalten. Während einer reinen Erfassung darf der lokale Discard weiter möglich sein und deren spätere Übernahme verhindern. Dafür die Art der laufenden Operation unterscheiden; nicht bloß jedes `g30Busy` gleich behandeln. Alternativ wäre ein ausdrücklich formulierter Nachlaufvertrag möglich, der nach bestätigter Schreibung auf den neuen gespeicherten Stand verwirft und neue Eingaben schützt — das braucht der kleine lokale Discard hier nicht.
+
+Wächter zusätzlich zu den geplanten: Discard während ausstehendem Save; verspätete Bestätigung/Fehler/fehlende Antwort; Discard während Capture; Refresh mit einem bereits **vor** dem Request bearbeiteten Entwurf und mit einer weiteren Eingabe während des Requests. „Keine eigene Schreibung“ bleibt richtig, ist aber kein Abbruch einer vorherigen Schreibung.
+
+### Angenommene P4-Teile und Grenzen
+
+- **P4-1 Reset:** angenommen. Frischer Poll desselben Links, Serialbezug, drei benannte Ausgänge und Vorrang für estop/abort passen zu MT418-05. Das negative Ergebnis verlangt aktuelle gültige ESTOP-Beobachtung bis zum Ende des Setzfensters; bloßer Zeitablauf oder ein ausgefallener Poll bleibt unbekannt. Die vorhandene Trip-Quittierungsregel bleibt vor der Schreibung wirksam. Den gemessenen Grenzwert und seine Abbruchprobe bei der Umsetzung vorlegen.
+- **P4-3 Vorschaukarte:** angenommen. `closePreview` muss auch den noch ausstehenden 300-ms-Hover-Timer abbrechen; sonst kann eine nach dem Tabwechsel zunächst geschlossene Karte verspätet erscheinen. Sichtbarkeit und Besitzer der Zeile verwenden, einschließlich versteckter Tabelle beim Importbrowser. Die drei verlangten Bedienproben plus verzögertes Öffnen reichen als Ausgangsmenge.
+- **P4-4 Kalibrierzellen:** **Abweichung angenommen.** Beide Boss-Kalibrierroutinen beginnen über der Mitte des Werkstücks, tasten zuerst Z und positionieren dann um die halbe Referenzgröße plus Step Off. Das mittige Symbol bleibt; „outside start“ und „Round Hole“ sind zu berichtigen. „Boss — above centre“ macht auch die Höhenlage klarer. Beim Rechteckpaar entsprechend. Das ändert nicht den gesonderten P5-Vertrag zum aktiven Kalibrierwert.
+- **P4-7 Fehlerzeile:** angenommen als Diagnose- und Korrekturauftrag. Nichtpositive/ungültige Zeile wird `null`. Eine letzte gute Callback-Zeile darf nicht allein zur behaupteten Fehlerzeile werden; das Golden-Ergebnis muss die Herkunft belegen, sonst keine Zeile anzeigen. Die drei genannten T14-Fälle und ein Fehler vor einem neuen Callback bzw. aus einem aufgerufenen Rahmen verhindern einen nur zufällig passenden Ersatz.
+- **P4-8 Diagnose:** angenommen ohne vorweggenommene Ursache oder Fix. W4 als eigenes Paket außerhalb von P4 ist sinnvoll; die frühere Kamera unter P8 wurde aus dem Suite-Plan entfernt, daher die neue Belegung des Namens ausdrücklich als Werkzeugimport führen.
+
+### Prüfabschluss
+
+Alle Ausführungen fanden im exakten Archiv unter `/tmp/r433/head` statt, die Tests unter der offiziellen gemeinsamen Heavy-Sperre. [Basisaufruf](maschinentag.r433.codex-run-baseline.sh), [Gegenprobe und Nachauswertung](maschinentag.r433.codex-run-followups.sh), [Manifest mit Hashes, Köpfen und Grenzen](maschinentag.r433.codex-review.json). Gate-PASS an `617f4a40` gelesen; nach dem nativen Kopf `e723d5dd` nur neue Lauf-/Gate-Belege. Kein vollständiges Gate wiederholt, keine Verbindung zur Live-Sim, kein P4-Code gebaut. Tests beendet, Heavy-Sperre frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r433.codex-*`-Belege.
