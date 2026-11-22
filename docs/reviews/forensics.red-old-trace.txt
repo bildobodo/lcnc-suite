@@ -1,0 +1,6 @@
+# test_trace_rotation.py --red <pre-P3 lcnc_trace.py from ad16dff3>
+two writers: {"missing": 91, "twice": 0, "damaged": 0, "files": 37}
+fragment: {"b_records": ["b.after"], "damaged": 1, "fragment_closed": []}
+# control: the same scenarios against P3's lcnc_trace.py
+two writers: {"missing": 0, "twice": 0, "damaged": 0, "files": 40}
+fragment: {"b_records": ["b.after", "boot"], "damaged": 1, "fragment_closed": [{"t_wall_ns": 1795343132041506511, "t_mono_ms": 0.075, "proc": "hal_reader", "pid": 2919999, "tag": "trace.fragment_closed", "level": "warn", "log": "trace.ndjson", "count": 0, "fragments_closed": 1}]}
