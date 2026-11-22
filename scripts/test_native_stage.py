@@ -8401,3 +8401,61 @@ def test_r435_a_wrong_priority_is_a_fail_even_beside_a_missing_answer():
     w = _r435_window(wrong=1, missing=2)
     assert nc.eval_parse_nice("nice", w)["status"] == "FAIL", "a proven fault outweighs an unproven start"
 
+
+# ---- E-Stop Reset's observed outcome (P4-1) ----
+def _reset_rec(outcome, echo, left):
+    return {"tag": "estop.reset_outcome", "outcome": outcome, "echo_ms": echo, "left_ms": left, "settle_s": 0.3}
+
+
+def test_the_estop_reset_judge_passes_the_contract():
+    closed = [_reset_rec("confirmed", 30, 90)] * 5
+    opened = [_reset_rec("not_confirmed", 30, None)] * 3
+    r = nc.eval_estop_reset("estop-reset", ["confirmed"] * 5, [nc.ESTOP_RESET_NOT_CONFIRMED] * 3, "confirmed",
+                            closed, opened, 0.3)
+    assert r["status"] == "PASS", r
+    assert r["transition_ms"] == [60] * 5
+
+
+def test_the_estop_reset_judge_refuses_each_broken_part():
+    closed = [_reset_rec("confirmed", 30, 90)] * 2
+    opened = [_reset_rec("not_confirmed", 30, None)]
+    ok = (["confirmed"] * 2, [nc.ESTOP_RESET_NOT_CONFIRMED], "confirmed", closed, opened, 0.3)
+
+    def judge(**over):
+        args = dict(zip(("closed", "opened", "after", "ce", "oe", "settle"), ok))
+        args.update(over)
+        return nc.eval_estop_reset("r", args["closed"], args["opened"], args["after"], args["ce"], args["oe"],
+                                   args["settle"])
+    assert judge()["status"] == "PASS"
+    for name, over in (
+            ("an open chain read as success", {"opened": ["confirmed"]}),
+            ("an open chain read as unknown", {"opened": ["estop_reset refused: Reset outcome unknown — check E-Stop"]}),
+            ("a closed chain not confirmed", {"closed": ["confirmed", "estop_reset refused: Reset not confirmed"]}),
+            ("no confirmation after the chain closed again", {"after": "estop_reset refused: x"}),
+            ("the gateway said another outcome", {"oe": [_reset_rec("unknown", 30, None)]}),
+            ("a transition the window does not hold twice", {"ce": [_reset_rec("confirmed", 30, 200)] * 2}),
+            ("a confirmation without its measured transition", {"ce": [_reset_rec("confirmed", 30, None)] * 2})):
+        assert judge(**over)["status"] == "FAIL", name
+    assert judge(opened=[])["status"] == "incomplete"
+
+
+def test_the_p4_variant_is_wired():
+    assert "p4" in nr.VARIANTS
+    assert nc.REPORT_CASES["p4"] == ("estop-reset", "error-line-m600", "error-line-m6", "error-line-t")
+    assert [c for c, _w in nr.ERROR_LINE_PROGRAMS] == list(nc.REPORT_CASES["p4"][1:])
+    src = (HERE / "native_run.py").read_text()
+    assert 'steps = base + [estop_reset_cases(), error_line_cases()]' in src
+
+
+def test_the_error_line_judge():
+    def window(*ev):
+        return {"framed": True, "events": list(ev)}
+    err = "Requested tool 97 not found in the tool table"
+    part = lambda line, seq="0": {"tag": "gcode.parse_partial", "error": err, "error_line": line, "seq": seq}  # noqa: E731
+    assert nc.eval_error_line("e", window(part(None)), 8, 97)["status"] == "PASS"
+    assert nc.eval_error_line("e", window(part("8", "9")), 8, 97)["line"] == 8
+    assert nc.eval_error_line("e", window(part("9")), 8, 97)["status"] == "FAIL"
+    assert nc.eval_error_line("e", window(part("0")), 8, 97)["status"] == "FAIL"
+    assert nc.eval_error_line("e", window(), 8, 97)["status"] == "incomplete"
+    assert nc.eval_error_line("e", window({**part(None), "error": "other"}), 8, 97)["status"] == "incomplete"
+    assert nc.eval_error_line("e", {"framed": False, "reason": "x"}, 8, 97)["status"] == "incomplete"

@@ -95,6 +95,37 @@ test("the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed 
   expect(await sentCmds()).not.toContain("set_mode");
 });
 
+// E-Stop Reset answers with its OUTCOME at the button (P4-1, machine day
+// 1.5: the panel took 12 resets with no answer at all — LinuxCNC ignores a
+// reset the open chain refuses, without a word). The gateway's reply says
+// confirmed / not confirmed / unknown; no reply at all is "unknown" too.
+for (const c of [
+  { name: "not confirmed", reply: { ok: false, confirmed: false, error: "Reset not confirmed — E-Stop still active" },
+    hint: "Reset not confirmed — E-Stop still active" },
+  { name: "unknown", reply: { ok: false, confirmed: null, error: "Reset outcome unknown — check E-Stop" },
+    hint: "Reset outcome unknown — check E-Stop" },
+  { name: "no reply", reply: "silent", hint: "No reply — outcome unknown" },
+  { name: "confirmed", reply: { ok: true, confirmed: true }, hint: null },
+] as const) {
+  test(`E-Stop Reset ${c.name}: said at the Reset button`, async ({ page }) => {
+    await open(page);
+    await machine(page, ESTOP, { estopReset: true });
+    const reset = page.getByRole("button", { name: "Reset E-Stop", exact: true });
+    await expect(reset).toBeEnabled();
+    await ctl({ op: "replyFor", cmd: "estop_reset", reply: c.reply });
+    await ctl({ op: "clearCmds" });
+    await reset.click();
+    await expect.poll(sentCmds).toContain("estop_reset");
+    if (c.hint) {
+      await expect(page.locator(".btnHint"), c.name).toHaveText(c.hint, { timeout: 8_000 });
+    } else {
+      await page.waitForTimeout(600);
+      await expect(page.locator(".btnHint"), "a confirmed reset says nothing").toHaveCount(0);
+    }
+    await ctl({ op: "replyFor", cmd: "estop_reset", reply: null });
+  });
+}
+
 test("the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)", async ({ page }) => {
   await open(page);
   const TRIP = "Acknowledge the safety trip first";

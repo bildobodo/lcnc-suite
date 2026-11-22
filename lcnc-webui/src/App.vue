@@ -8,6 +8,7 @@ import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
+import { showBtnHint } from "./btnHint";
 import { connectWs, connected, status, send, request, awaitReply, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, tripReasonLabel, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
@@ -2050,6 +2051,24 @@ function sendEstop() {
   endAllLeases({ wire: false });
 }
 
+// E-Stop Reset answers with its OUTCOME (P4-1, machine day 1.5, MT418-05):
+// the gateway watches the controller after the write and replies confirmed,
+// not confirmed ("E-Stop still active" — the chain stayed open) or unknown.
+// Said AT the Reset button (the strip's E-Stop button in its reset form),
+// once; no reply in time is "outcome unknown", never a success.
+const ESTOP_RESET_REPLY_MS = 5_000;
+const ESTOP_RESET_NO_REPLY = "No reply — outcome unknown";
+const ESTOP_RESET_NOT_SENT = "Not sent — no connection";
+const estopButton = () => document.querySelector('.strip [data-control="estop"]');
+function sendEstopReset() {
+  const id = send({ cmd: "estop_reset" });
+  if (!id) { showBtnHint(estopButton, ESTOP_RESET_NOT_SENT); return; }
+  void awaitReply(id, ESTOP_RESET_REPLY_MS).then((r) => {
+    if (!r) showBtnHint(estopButton, ESTOP_RESET_NO_REPLY);
+    else if (r.ok === false) showBtnHint(estopButton, typeof r.error === "string" ? r.error : "Reset refused");
+  });
+}
+
 function visHandler() {
   if (document.hidden) stopAllJog();
 }
@@ -2794,7 +2813,7 @@ watch(viewerGcode, (newGcode) => {
         :elapsed="elapsedDisplay"
         @arm="arm"
         @estop="sendEstop"
-        @estop-reset="send({ cmd: 'estop_reset' })"
+        @estop-reset="sendEstopReset"
         @machine-on="fire({ cmd: 'machine_on' }, 'safety')"
         @machine-off="fire({ cmd: 'machine_off' }, 'safety')"
         @open-active-codes="openGcodeRef({ active: true })"

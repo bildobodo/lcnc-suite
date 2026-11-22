@@ -1848,6 +1848,7 @@ async def _status_poller():
             _set_phase("status_poller.poll_and_serialize")
             st, status_dict = await loop.run_in_executor(None, _poll_and_serialize)
             _release_after_poll(t0, polled_link)
+            _note_poll(t0, polled_link)
             _check_macro_folder()
             t1 = time.monotonic()
             _set_phase("status_poller.read_errors")
@@ -6545,10 +6546,18 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
         # and ok-out to land before STATE_ESTOP_RESET is evaluated.
         _hal_send({"trip_reset": True})
         await asyncio.sleep(0.02)
-        await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP_RESET), wait=None)
+        # the write booked in its own thread (P4-1, MT418-05): its serial,
+        # its time, on THIS Link — what the outcome is proven against
+        conn = link()
+        booked: Dict[str, Any] = {}
+
+        def _reset_written() -> None:
+            booked.update(serial=getattr(conn.cmd, "serial", None), t=time.monotonic())
+        await _cmd_blocking(conn, op(linuxcnc.command.state, linuxcnc.STATE_ESTOP_RESET), wait=None,
+                            written=_reset_written)
         _estop_hold = False
         _hal_send({"connected": True})
-        return {"ok": True}
+        return await _estop_reset_outcome(conn, booked)
 
     if cmd == "machine_on":
         require_armed(armed)
@@ -10405,6 +10414,99 @@ async def save_gcode(request: Request, path: str = Query(...),
 MAX_MACRO_SIZE = 1 << 20
 _MODE_IGNORED_TEXT = "Ignoring task mode change while jogging"   # emctask.cc:269, untranslated
 _mode_ignored_seq = 0
+
+
+# ---- E-Stop Reset: its outcome observed (P4-1, machine day 1.5, MT418-05,
+# Codex R433/R434) ----
+# LinuxCNC answers the reset's NML write at once and ignores it without a
+# word when the safety chain stays open (emc-enable-in LOW): the panel took
+# 12 resets on the machine day with no answer at all. The handler therefore
+# watches the controller after its write: a poll of the write's Link, begun
+# after the write, whose echo serial reached the command's (the controller
+# TOOK it), then the settle window; the first poll begun at or after the
+# window's end decides — ESTOP still: not confirmed; left: confirmed. No
+# echo, another Link, no deciding poll in time: unknown — never a guessed
+# outcome. Waited in cancellable asyncio sleeps (estop / abort preempt the
+# handler, _preempt_inflight), never in wait_complete slices (they hold the
+# GIL). No retry; no emc-enable-in pre-check (issue #15).
+#: the controller takes the write within this (its echo)
+ESTOP_RESET_ECHO_S = 1.0
+#: after the echo: LinuxCNC leaves ESTOP through iocontrol (the reset sets
+#: user-enable-out, the chain closes, emc-enable-in follows) — measured on
+#: the VM sim (native case estop-reset, P4-1)
+ESTOP_RESET_SETTLE_S = 0.3
+#: how late the deciding poll may begin after the window's end (the idle
+#: poll runs at 5 Hz)
+ESTOP_RESET_LATE_S = 1.0
+ESTOP_RESET_NOT_CONFIRMED = "Reset not confirmed — E-Stop still active"
+ESTOP_RESET_UNKNOWN = "Reset outcome unknown — check E-Stop"
+
+# The poller's last SUCCESSFUL poll, for a handler that must see the
+# controller after its write: (number, began, Link, echo serial, task state).
+# Set after a poll that returned (a failed one raised before) and only while
+# its Link is still the published one.
+_poll_record: Optional[Tuple[int, float, Any, Optional[int], Optional[int]]] = None
+
+
+def _note_poll(polled_at: float, polled_link: Optional["Link"]) -> None:
+    global _poll_record
+    if polled_link is None or current_link() is not polled_link:
+        return
+    stat = polled_link.stat
+    n = _poll_record[0] + 1 if _poll_record is not None else 1
+    _poll_record = (n, polled_at, polled_link, getattr(stat, "echo_serial_number", None),
+                    getattr(stat, "task_state", None))
+
+
+async def _estop_reset_outcome(conn: "Link", booked: Dict[str, Any]) -> Dict[str, Any]:
+    """The reset's reply from what the controller showed after the write
+    (the block above): confirmed / not confirmed / unknown."""
+    serial, t_w = booked.get("serial"), booked.get("t")
+    estop_s = getattr(linuxcnc, "STATE_ESTOP", 1)
+    left_states = {getattr(linuxcnc, n, d) for n, d in
+                   (("STATE_ESTOP_RESET", 2), ("STATE_OFF", 3), ("STATE_ON", 4))}
+    echo_at: Optional[float] = None
+    left_at: Optional[float] = None
+
+    def said(outcome: str, why: Optional[str] = None, state: Optional[int] = None) -> None:
+        ms = (lambda t: None if t is None or t_w is None else round((t - t_w) * 1000, 1))
+        _trace.emit("estop.reset_outcome", level="info" if outcome == "confirmed" else "warn",
+                    outcome=outcome, serial=serial, echo_ms=ms(echo_at), left_ms=ms(left_at),
+                    settle_s=ESTOP_RESET_SETTLE_S, task_state=state, **({"why": why} if why else {}))
+
+    def unknown(why: str) -> Dict[str, Any]:
+        said("unknown", why)
+        return {"ok": False, "confirmed": None, "error": ESTOP_RESET_UNKNOWN}
+    if not isinstance(serial, int) or t_w is None:
+        return unknown("the write booked no serial")
+    seen = _poll_record[0] if _poll_record is not None else 0
+    while True:
+        rec = _poll_record
+        if rec is not None and rec[0] != seen:
+            seen = rec[0]
+            _n, began, lk, echo, state = rec
+            if lk is not conn:
+                return unknown("the Link changed")
+            if began > t_w:
+                if echo_at is None and isinstance(echo, int) and echo >= serial:
+                    echo_at = began
+                if left_at is None and state in left_states:
+                    left_at = began
+                if echo_at is not None and began >= echo_at + ESTOP_RESET_SETTLE_S:
+                    # the deciding poll: a valid observation at the window's end
+                    if state == estop_s:
+                        said("not_confirmed", state=state)
+                        return {"ok": False, "confirmed": False, "error": ESTOP_RESET_NOT_CONFIRMED}
+                    if state in left_states:
+                        said("confirmed", state=state)
+                        return {"ok": True, "confirmed": True}
+                    return unknown("the task state was not read")
+        now = time.monotonic()
+        if echo_at is None and now > t_w + ESTOP_RESET_ECHO_S:
+            return unknown("no echo of the write")
+        if echo_at is not None and now > echo_at + ESTOP_RESET_SETTLE_S + ESTOP_RESET_LATE_S:
+            return unknown("no poll after the settle window")
+        await asyncio.sleep(0.01)
 
 
 async def _status_cycles(n: int, timeout: float = 1.0) -> bool:

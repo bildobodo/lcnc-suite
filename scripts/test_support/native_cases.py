@@ -65,6 +65,12 @@ REPORT_CASES: dict = {
     "parse-basis": (
         'home-all', 'home-joint-0', 'home-joint-1', 'home-joint-2', 'parse-basis', 'parse-basis.nice',
     ),
+    # P4 (machine day): the E-Stop Reset's observed outcome (P4-1) — resets
+    # with the chain closed, held open, closed again — and a parse error's
+    # line on the real task (P4-7)
+    "p4": (
+        'estop-reset', 'error-line-m600', 'error-line-m6', 'error-line-t',
+    ),
 }
 
 #: the jog lease's native case (P1b): the gateway's validity (jog_lease.py
@@ -1952,3 +1958,79 @@ def eval_parse_nice(case: str, window: dict) -> dict:
                     "priority of their own", unproven=unproven[:5], drift=len(drift), applied=len(applied))
     return _row(case, "PASS", f"{len(drift)} drift re-parses, every one niced (the worker applied 19 to "
                 f"{len(applied)})", drift=len(drift), applied=len(applied))
+
+
+# ---- E-Stop Reset: its observed outcome (P4-1, MT418-05, Codex R433/R434) ----
+ESTOP_RESET_NOT_CONFIRMED = "Reset not confirmed — E-Stop still active"
+#: the settle window must hold the measured transition (write → the first
+#: poll showing the task out of ESTOP) at least this many times over
+ESTOP_RESET_MARGIN = 2.0
+
+
+def eval_estop_reset(case: str, closed: list, opened: list, after, closed_events: list,
+                     open_events: list, settle_s: float) -> dict:
+    """The reset's outcome on the real task: with the chain closed every reset
+    is CONFIRMED (the reply and the gateway's `estop.reset_outcome`); with the
+    chain held open at its head every reset is NOT CONFIRMED (never a
+    success, never unknown); the closed chain again: confirmed. The settle
+    window holds the measured transition ESTOP_RESET_MARGIN times over
+    (`left_ms` after the echo of every closed reset). `closed` / `opened` /
+    `after`: "confirmed" or the refusal text of each reply; the events: the
+    gateway's own records of each framed window."""
+    def outcomes(ev):
+        return [e for e in ev if e.get("tag") == "estop.reset_outcome"]
+    oc, oo = outcomes(closed_events), outcomes(open_events)
+    transition = [e["left_ms"] - e["echo_ms"] for e in oc
+                  if isinstance(e.get("left_ms"), (int, float)) and isinstance(e.get("echo_ms"), (int, float))]
+    bounces = [e.get("left_ms") for e in oo if e.get("left_ms") is not None]
+    measured = {"closed": closed, "opened": opened, "after": after, "settle_s": settle_s,
+                "transition_ms": transition, "echo_ms": [e.get("echo_ms") for e in oc + oo],
+                "open_left_ms": bounces}
+    if not closed or not opened:
+        return _row(case, "incomplete", "no reset was asked in a section", **measured)
+    problems = []
+    if any(r != "confirmed" for r in closed):
+        problems.append(f"a reset with the chain closed was not confirmed: {closed}")
+    if any(ESTOP_RESET_NOT_CONFIRMED not in str(r) for r in opened):
+        problems.append(f"a reset with the chain open was not 'not confirmed': {opened}")
+    if after != "confirmed":
+        problems.append(f"the reset after the chain closed again: {after}")
+    if [e.get("outcome") for e in oc] != ["confirmed"] * len(closed):
+        problems.append(f"the gateway's records (closed): {[e.get('outcome') for e in oc]}")
+    if [e.get("outcome") for e in oo] != ["not_confirmed"] * len(opened):
+        problems.append(f"the gateway's records (open): {[e.get('outcome') for e in oo]}")
+    if len(transition) != len(closed):
+        problems.append(f"{len(closed) - len(transition)} confirmed reset(s) without a measured transition")
+    elif max(transition) * ESTOP_RESET_MARGIN > settle_s * 1000:
+        problems.append(f"the settle window {settle_s:g} s is short for the measured transition "
+                        f"{max(transition):g} ms (margin ×{ESTOP_RESET_MARGIN:g})")
+    if problems:
+        return _row(case, "FAIL", "; ".join(problems), **measured)
+    return _row(case, "PASS", f"{len(closed)} confirmed, {len(opened)} not confirmed with the chain open; "
+                              f"transition ≤ {max(transition):g} ms in a {settle_s * 1000:g} ms window", **measured)
+
+
+def eval_error_line(case: str, window: dict, at: int, tool: int) -> dict:
+    """P4-7: the program fails to parse on the missing tool `tool` (the
+    gateway's `gcode.parse_partial` in the framed window), and the preview's
+    line is `at` or none — never another. Which of the two it is, and the
+    worker's raw sequence number, are the measurement."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    ev = window.get("events") or []
+    partial = [e for e in ev if e.get("tag") == "gcode.parse_partial"]
+    refused = [e for e in ev if e.get("tag") == "gcode.parse_refused"]
+    measured = {"partial": [{k: e.get(k) for k in ("error", "error_line", "seq")} for e in partial],
+                "refused": [{k: e.get(k) for k in ("message", "line")} for e in refused]}
+    if not partial:
+        return _row(case, "incomplete", "the parse found no error" + (" (refused instead)" if refused else ""),
+                    **measured)
+    e = partial[-1]
+    if str(tool) not in str(e.get("error") or ""):
+        return _row(case, "incomplete", f"the error is not the missing tool's: {e.get('error')!r}", **measured)
+    line = e.get("error_line")
+    if line in (None, ""):
+        return _row(case, "PASS", f"no line (origin not proven); parse() said {e.get('seq')}", line=None, **measured)
+    if str(line) == str(at):
+        return _row(case, "PASS", f"line {at} (proven); parse() said {e.get('seq')}", line=at, **measured)
+    return _row(case, "FAIL", f"line {line} named — the tool word is on line {at}", line=line, **measured)

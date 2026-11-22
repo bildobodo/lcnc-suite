@@ -441,6 +441,11 @@ wss.on("connection", (ws, req) => {
     // flake of the blocked-thread test, Fable 2026-11-22)
     else if ((cmd === "jog_cont" || cmd === "jog_cont_multi" || cmd === "jog_change") && msg.req_id)
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true }));
+    // ... and an E-Stop Reset with its observed outcome (P4-1): the real
+    // gateway answers after its settle window — confirmed here unless scripted
+    // (replyFor: not confirmed / unknown / silent)
+    else if (cmd === "estop_reset" && msg.req_id)
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, confirmed: true }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     // answer everything -> stay connected & armed; the status answering a
     // heartbeat carries the gateway's hold and that heartbeat's number like

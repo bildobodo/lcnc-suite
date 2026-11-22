@@ -171,7 +171,7 @@ TS_DEADLINE = 240.0
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
 #: how long the latch step waits for the first frame after the continue
 LATCH_RESUME_WAIT_S = 10.0
-VARIANTS = ("latch-delayed", "jog-lease", "parse-basis")
+VARIANTS = ("latch-delayed", "jog-lease", "parse-basis", "p4")
 #: P2a (machine day F24, 2026-11-21: one ~30 s full re-parse per probe op with
 #: unchanged values): a loaded program that runs the toolsetter routine
 #: (T1 M600 — `routine`), padded so its parse is felt; a warm-up probe op
@@ -184,6 +184,20 @@ PB_PADDING = 20000
 PB_QUIET_S, PB_QUIET_MAX_S = 4.0, 240.0
 #: how often the quiet wait re-reads the trace for the last op's owed read-back
 PB_OWED_EVERY_S = 0.5
+#: P4-1 (MT418-05): the E-Stop Reset's observed outcome — resets with the
+#: chain closed, then held open at its head (the sim's e-stop loop into the
+#: WebUI chain, hallib/lcnc_webui.hal), then closed again
+ESTOP_RESET_CLOSED_N, ESTOP_RESET_OPEN_N = 5, 3
+ESTOP_CHAIN_PIN = "and2.0.in0"
+#: the gateway's settle window (gateway.ESTOP_RESET_SETTLE_S — read from its
+#: records, this is only the fallback name for the report)
+ESTOP_RESET_HOLD_S = 0.5
+#: P4-7 (machine day F29, Codex R433): a parse error's line on the real task
+#: — a tool the table lacks, named three ways, its word on line 8 (the
+#: machine's T14 in line 8 said "(LINE 0)"). A number the example tables do
+#: not hold: nothing is deleted from the run's table.
+ERROR_LINE_TOOL, ERROR_LINE_AT = 97, 8
+ERROR_LINE_PROGRAMS = (("error-line-m600", "T{t} M600"), ("error-line-m6", "T{t} M6"), ("error-line-t", "T{t}"))
 #: step 3, the disconnect (SYS-CONN.S4): X back and forth at F6000 in the
 #: machine frame (~20 s); a helper client A in its own process starts it and
 #: goes away; the event read from the trace, then the window W
@@ -839,6 +853,97 @@ def jog_lease_cases():
             raise RuntimeError(f"the session ended after the lease cases — {c.error}")
         return rows
     return ("jog-lease", step)
+
+
+def estop_reset_cases():
+    """P4-1 on the real task (MT418-05, Codex R433/R434): E-Stop, then E-Stop
+    Reset — ESTOP_RESET_CLOSED_N times with the chain closed (each must be
+    confirmed), ESTOP_RESET_OPEN_N times with the chain held OPEN at its head
+    (ESTOP_CHAIN_PIN unlinked and set FALSE — a hardware E-Stop held; each
+    must be NOT confirmed), then once with the chain back on its signal
+    (confirmed). The settle window is judged against the measured transition
+    (the gateway's `estop.reset_outcome` records of each framed section)."""
+    def step(ctx):
+        from test_support import servo as sv
+        from test_support.live_session import Refused as SessionRefused
+        c, rows, gate = ctx["client"], ctx.setdefault("rows", []), ctx["servo"].gate
+
+        def to_estop():
+            c.request("estop")
+            _wait(c, lambda s: s.get("is_estop") is True, 10, "E-Stop")
+
+        def reset():
+            try:
+                c.request("estop_reset")
+                return "confirmed"
+            except SessionRefused as e:
+                return str(e)
+        closed, opened = [], []
+
+        def closed_runs():
+            for _ in range(ESTOP_RESET_CLOSED_N):
+                to_estop()
+                closed.append(reset())
+                if closed[-1] == "confirmed":
+                    _wait(c, lambda s: s.get("is_estop") is False, 10, "out of E-Stop")
+        _v, w_closed = _framed(ctx, c, "estop-reset-closed", closed_runs)
+        signal = sv.signal_of(gate("show", "pin", ESTOP_CHAIN_PIN), ESTOP_CHAIN_PIN)
+        if not signal:
+            raise Refused(f"{ESTOP_CHAIN_PIN} is on no signal — not the chain this case opens")
+        ctx["report"]["estop_chain"] = {"pin": ESTOP_CHAIN_PIN, "signal": signal}
+        gate("unlinkp", ESTOP_CHAIN_PIN)
+        try:
+            gate("setp", ESTOP_CHAIN_PIN, 0)
+
+            def open_runs():
+                for _ in range(ESTOP_RESET_OPEN_N):
+                    to_estop()
+                    opened.append(reset())
+                    time.sleep(ESTOP_RESET_HOLD_S)
+                    if c.status.get("is_estop") is not True:
+                        opened[-1] = f"left E-Stop with the chain open: {opened[-1]}"
+            _v, w_open = _framed(ctx, c, "estop-reset-open", open_runs)
+        finally:
+            gate("net", signal, ESTOP_CHAIN_PIN)     # back on its signal on every way out
+        to_estop()
+        after = reset()
+        if after == "confirmed":
+            _wait(c, lambda s: s.get("is_estop") is False, 10, "out of E-Stop")
+        settle = next((e.get("settle_s") for e in w_closed.get("events", [])
+                       if e.get("tag") == "estop.reset_outcome"), None)
+        if not (w_closed["framed"] and w_open["framed"]):
+            rows.append(nc._row("estop-reset", "incomplete",
+                                f"the trace window: {w_closed.get('reason') or w_open.get('reason')}"))
+        else:
+            rows.append(nc.eval_estop_reset("estop-reset", closed, opened, after, w_closed["events"],
+                                            w_open["events"], settle if isinstance(settle, (int, float)) else 0.0))
+        ctx["report"]["estop_reset_raw"] = {
+            "closed": [e for e in w_closed.get("events", []) if e.get("tag") == "estop.reset_outcome"],
+            "open": [e for e in w_open.get("events", []) if e.get("tag") == "estop.reset_outcome"]}
+        c.request("machine_on")
+        _wait(c, lambda s: s.get("is_enabled") is True, 10, "machine on")
+        return rows
+    return ("estop-reset", step)
+
+
+def error_line_cases():
+    """P4-7 on the real task: each program fails to parse on the missing
+    tool; the preview's line is the program's own line 8 or none — never
+    another (the worker's proven line, gcode_parse_worker.proven_error_line).
+    Which one it is for each form is the measurement (Codex R433: the native
+    case decides)."""
+    def step(ctx):
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
+        if any(t.get("T") == ERROR_LINE_TOOL for t in c.request("get_tool_table")["tools"]):
+            raise Refused(f"T{ERROR_LINE_TOOL} is in the run's table — not a missing tool")
+        head = "G21 G90\nG0 X0\nG0 Y0\nG0 Z0\nG1 X1 F100\nG1 X2\nG1 X3\n"
+        for case, word in ERROR_LINE_PROGRAMS:
+            text = head + word.format(t=ERROR_LINE_TOOL) + "\nG1 X4\nM2\n"
+            _v, window = _framed(ctx, c, case, lambda: _load_program(ctx, c, f"{case}.ngc", text))
+            rows.append(nc.eval_error_line(case, window, ERROR_LINE_AT, ERROR_LINE_TOOL))
+        _when_free(c, "unload_file")
+        return rows
+    return ("error-line", step)
 
 
 def plateau_cases():
@@ -3274,9 +3379,10 @@ def main(argv=None) -> int:
         steps = base + [latch_order(), latch_cases(a.variant)]
     elif a.variant == "jog-lease":
         steps = base + [home_cases(joints), jog_lease_cases()]
-
     elif a.variant == "parse-basis":
         steps = base + [home_cases(joints), parse_basis_cases()]
+    elif a.variant == "p4":
+        steps = base + [estop_reset_cases(), error_line_cases()]
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
                         io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
