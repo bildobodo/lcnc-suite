@@ -1,0 +1,58 @@
+{
+  "method": "R427 plan counterexamples, not an implementation of P2a.\n\n1. Model the proposed replacement of the once-per-version latch by a\n   reusable input key (the comparison in gateway._ts_drift_reason).\n2. Use the real toolsetter_ctx/read_var_snapshot and the unchanged pure\n   apply_var_patches function (AST extracted to avoid native imports),\n   following the worker's read/copy/patch sequence on a temporary var file.\nNo LinuxCNC import, no gateway, no network, no native program execution.\n",
+  "repeated_key_latch": [
+    {
+      "event": "first B",
+      "current": "B",
+      "last_asked_before": null,
+      "published": "A",
+      "request": true
+    },
+    {
+      "event": "back to A",
+      "current": "A",
+      "last_asked_before": "B",
+      "published": "A",
+      "request": false
+    },
+    {
+      "event": "second B",
+      "current": "B",
+      "last_asked_before": "B",
+      "published": "A",
+      "request": false
+    }
+  ],
+  "version_latch_control": [
+    {
+      "event": "first B",
+      "current": 2,
+      "last_asked_before": null,
+      "published": 1,
+      "request": true
+    },
+    {
+      "event": "back to A",
+      "current": 3,
+      "last_asked_before": 2,
+      "published": 1,
+      "request": true
+    },
+    {
+      "event": "second B",
+      "current": 4,
+      "last_asked_before": 3,
+      "published": 3,
+      "request": true
+    }
+  ],
+  "assumed_copy": {
+    "booked": 10.0,
+    "worker_copy_after_patches": 20.0,
+    "patch_for_3014": null,
+    "view": "assumed"
+  },
+  "confirmed_patch_control": {
+    "3014": 10.0
+  }
+}

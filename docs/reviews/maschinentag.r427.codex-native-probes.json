@@ -1,0 +1,50 @@
+{
+  "control": {
+    "case": "r427",
+    "status": "PASS",
+    "detail": "the gateway stopped the jog while the page was blocked",
+    "axis": "X",
+    "blocked_s": 2.5,
+    "expiries": 1,
+    "expiry_after_block_s": 0.55,
+    "late_ms": 3,
+    "standstill_after_block_s": 0.6,
+    "overrun_mm": 12.0
+  },
+  "negative_deadline_evidence": {
+    "case": "r427",
+    "status": "PASS",
+    "detail": "the gateway stopped the jog while the page was blocked",
+    "axis": "X",
+    "blocked_s": 2.5,
+    "expiries": 1,
+    "expiry_after_block_s": 0.55,
+    "late_ms": -100,
+    "standstill_after_block_s": 0.6,
+    "overrun_mm": 12.0
+  },
+  "motion_resumes_during_block": {
+    "case": "r427",
+    "status": "PASS",
+    "detail": "the gateway stopped the jog while the page was blocked",
+    "axis": "X",
+    "blocked_s": 2.5,
+    "expiries": 1,
+    "expiry_after_block_s": 0.55,
+    "late_ms": 3,
+    "standstill_after_block_s": 0.6,
+    "overrun_mm": 12.0
+  },
+  "no_samples_in_standstill_window": {
+    "case": "r427",
+    "status": "PASS",
+    "detail": "the gateway stopped the jog while the page was blocked",
+    "axis": "X",
+    "blocked_s": 2.5,
+    "expiries": 1,
+    "expiry_after_block_s": 0.55,
+    "late_ms": 3,
+    "standstill_after_block_s": 0.6,
+    "overrun_mm": 12.0
+  }
+}

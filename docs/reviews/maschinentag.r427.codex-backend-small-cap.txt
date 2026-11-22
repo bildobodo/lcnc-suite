@@ -1,0 +1,77 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________ TestR427Link.test_old_lease_expiry_never_writes_to_a_new_link _________
+
+self = <test_r427_codex.TestR427Link testMethod=test_old_lease_expiry_never_writes_to_a_new_link>
+
+    def test_old_lease_expiry_never_writes_to_a_new_link(self):
+        self.assertTrue(self.jog(1)['ok'])
+        old = gateway._link
+        newer_cmd = _RecordingCmd()
+        new = gateway._publish_link(old.stat, newer_cmd, old.err, old.pid)
+        self.assertIsNot(new, old)
+        self.expire(1)
+        writes = [args for name, args, _ in newer_cmd.calls if name == 'jog']
+>       self.assertEqual(writes, [], 'an old lease must not send a stop through a replacement Link')
+E       AssertionError: Lists differ: [(0, 1, 0)] != []
+E       
+E       First list contains 1 additional elements.
+E       First extra element 0:
+E       (0, 1, 0)
+E       
+E       - [(0, 1, 0)]
+E       + [] : an old lease must not send a stop through a replacement Link
+
+test_r427_codex.py:22: AssertionError
+___ TestR427EndQueue.test_rejected_end_keeps_an_independent_stop_obligation ____
+
+self = <test_r427_codex.TestR427EndQueue testMethod=test_rejected_end_keeps_an_independent_stop_obligation>
+
+    def test_rejected_end_keeps_an_independent_stop_obligation(self):
+        real = self.real_handle
+        async def handle(msg, armed, conn_key=None):
+            if msg.get('cmd') == 'zz_slow':
+                # Occupy the client FIFO without owning the machine write lock.
+                await asyncio.sleep(1.8)
+                return {'ok': True}
+            return await real(msg, armed, conn_key)
+        gateway.handle_command = handle
+        with mock.patch.object(gateway, '_WS_CMD_QUEUE_MAX', 1):
+            with TestClient(gateway.app) as client, client.websocket_connect('/ws') as ws:
+                self.arm(ws)
+                ws.send_json({'cmd':'jog_cont','axis':0,'vel':5.0,'lease':1,'req_id':'start'})
+                self.pump(ws, 2, until=lambda f:f.get('req_id')=='start')
+                self.assertTrue(self.reply('start')['ok'])
+                ws.send_json({'cmd':'zz_slow','req_id':'slow'})
+                self.pump(ws, .1)
+                for n in range(4):
+                    ws.send_json({'cmd':'jog_lease_end','lease':100+n,'req_id':f'fill-{n}'})
+                ws.send_json({'cmd':'jog_lease_end','lease':1,'req_id':'end'})
+                self.pump(ws, 1, until=lambda f:f.get('req_id')=='end')
+                self.assertIn('queue full', self.reply('end')['error'].lower())
+                self.pump(ws, 2.1)
+                self.assertIsNotNone(self.reply('slow'), 'FIFO has finished; this is not a busy write lock')
+>               self.assertTrue(any(w[0] == JS for w in self.writes()),
+                                f'end was dropped, timer forgot it, no JOG_STOP: {self.writes()}')
+E               AssertionError: False is not true : end was dropped, timer forgot it, no JOG_STOP: [(1, 1, 0, 5.0)]
+
+test_r427_codex.py:50: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +80ms gateway up, 0 clients connected (waiting)
+[VINIT] client#0 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +2802ms lifespan teardown begin
+[SHUTDOWN] +2802ms cancelled 8 bg tasks
+[SHUTDOWN] +2802ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +2802ms HAL sockets disconnected
+[SHUTDOWN] +2802ms camera released
+[SHUTDOWN] +2802ms lifespan teardown complete
+=========================== short test summary info ============================
+FAILED test_r427_codex.py::TestR427Link::test_old_lease_expiry_never_writes_to_a_new_link
+FAILED test_r427_codex.py::TestR427EndQueue::test_rejected_end_keeps_an_independent_stop_obligation
+[GC] +2815ms gen=2 duration=9.9ms collected=1051 uncollectable=0
+[GC] +2822ms gen=2 duration=7.4ms collected=0 uncollectable=0
+[GC] +2829ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +2836ms gen=2 duration=7.2ms collected=0 uncollectable=0
+[GC] +2843ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +2850ms gen=2 duration=6.4ms collected=0 uncollectable=0

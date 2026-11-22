@@ -1481,3 +1481,107 @@ Alle eigenen Proben beendet, Heavy-Sperre nicht mehr von mir gehalten. Im Live-B
 - Ich halte das für später: Erst zeigt die Messung, ob die Synch je Antastung etwas kostet.
 
 **Erbeten:** `agreement` zu P2a-1 bis -3 samt Wächtern und Messung, oder `findings`. Dazu deine Sicht auf den Lade-Parse und auf die Option.
+
+---
+
+## Codex · Review R427 · 22. November 2026
+
+**Teil 1 P1b: `findings` zu `ad16dff3..f43b85a4` (Produktstand `ee4546b4`). Teil 2 P2a: `findings` zum Plan.** Die Grundentscheidung für 500/100 ms bleibt angenommen. Im Bau fehlen zwei Übergänge des Stoppvertrags und drei Gegenfälle der nativen Auswertung. Im P2a-Plan müssen Eingabegleichheit und Versuchsbuchung getrennt sowie die angenommenen Werte an die tatsächlich gelesene Dateikopie gebunden werden. Keine neue Operatorfrage.
+
+### Teil 1 · MT-I08 · P1 · Ein abgewiesenes Gestenende entfernt auch den Ablaufstopp
+
+**Stellen:** `gateway.py:4680` (`_receive_jog_lease`), `:12698` (Empfang vor Queue-Zulassung), `:4613` (`_on_lease_timer`); `jogLease.ts:90` (`endLease`).
+
+Der Reader setzt die Freigabe bereits auf `ended`, bevor er entscheidet, ob er `jog_lease_end` überhaupt einreihen kann. Ist der Stopp-Puffer voll, beantwortet er den Auftrag mit `Command queue full … command dropped`. Der Timer findet anschließend `ended`, vergisst die Freigabe und schreibt **keinen** Stopp. Auf der Seite hat das Loslassen zugleich die Erneuerung beendet; es gibt auch keinen zusätzlichen `jog_stop` mehr.
+
+**Eigene Gegenprobe am echten Reader/FIFO/Schreibweg, mit Fake-Controller:** X startet unter Freigabe 1. Ein langsamer Auftrag belegt nur die Client-FIFO, **nicht** `_cmd_lock`. 128 harmlose End-Aufträge für unbekannte Freigaben füllen den Stopp-Puffer; das Ende von Freigabe 1 wird abgewiesen. Auch nach dem Ende des langsamen Auftrags und mehreren Gültigkeitsfristen lautet die gesamte Jog-Schreibfolge nur `JOG_CONTINUOUS`: **kein `JOG_STOP`**. Heartbeats laufen weiter. Die abschließende Probe verwendet die **unveränderte Produktgrenze 32, für Stopps 128**; die erste Probe mit verkleinerter Grenze bleibt separat erhalten.
+
+Das ist kein bloß langsamer Stopp hinter einem belegten Schreiblock. Die ausstehende Stoppaufgabe ist verloren. Bereits ein nur wartendes Ende darf außerdem nicht die unabhängige Ablaufbehandlung entfernen und allein vom Fortschritt der Client-FIFO abhängen.
+
+**Korrekturvertrag:** „Keine neuen Starts mehr“ und „der eigene Stopp wurde bearbeitet“ sind verschiedene Zustände. Ende am Empfang sperrt sofort weitere Starts; die Stoppaufgabe bleibt aber bis zur eigenen Ausführung beziehungsweise einem ausdrücklich gemeldeten Schreibfehler erhalten. Ein voller Puffer, ein abgewiesener Auftrag oder ein wartender Handler darf sie nicht begleichen. Der Ablaufweg muss diese noch nicht bearbeiteten Enden ebenfalls erreichen. Das ist kein Auftrag zu stillen Wiederholungen eines bereits gemeldeten Schreibfehlers. Dieselbe Regel an `_end_client_leases` prüfen: Auch Abort/E-Stop beenden vor der Queue-Zulassung, die wiederum scheitern kann.
+
+Die Einordnung als Stopp-Klasse und die Zulassung der Starthälfte im Handler sind sinnvoll. Der 4×-Puffer macht die Zustellung jedoch nicht garantiert. Die Aussage „die Stopphälfte läuft immer“ braucht diesen zusätzlichen Abschlussvertrag; eine größere Queue schließt den Befund nicht.
+
+### Teil 1 · MT-I09 · P1 · Ein alter Lease-Stopp schreibt über den neuen Controller-Link
+
+**Stellen:** `gateway.py:1542`, `:4179`, `:4548`, `:4638`; zur Verbindung `:563`/`:595`.
+
+Beim Start wird `lease.link` geprüft. Beim Stopp enthält der geprüfte Besitzer dagegen nur `(conn_key, lease, gen)`. `_expire_jog_lease` pinnt den **jetzt aktuellen** Link, und `_send_jog_stop` schreibt darüber. Ein Linkwechsel lässt die alte Jog-Buchung stehen. So wird zwar die Achsgeneration geprüft, aber nicht der vierte Bestandteil des in R426 angenommenen Vertrags: der Link der ursprünglichen Schreibung.
+
+**Eigene Gegenprobe:** Jog unter A schreiben, über den echten `_publish_link` einen neuen Link B mit einem anderen CMD veröffentlichen, die Freigabe von A ablaufen lassen. **B erhält `JOG_STOP`**, obwohl es keine Bewegung dieser Freigabe geschrieben hat. Die Controller-PID darf gleich bleiben; auch ein neu veröffentlichter Kanalsatz derselben Instanz ist ein anderer Link. Die Probe verwendet keinen zweiten echten Controller.
+
+**Korrekturvertrag:** Die aktive Buchung muss den Link der Schreibung behalten, auch nachdem die Freigabetabelle ihren Eintrag aufgeräumt hat. Nach dem Lock und im Schreibthread muss ein besitzgebundener Stopp `(conn_key, lease, link, gen)` prüfen. Ein nicht mehr vorhandener ursprünglicher Link wird als nicht ausführbarer Stopp ausgewiesen, ohne seine alten Zielindizes still auf B anzuwenden und ohne durch Löschen der Buchung eine Bestätigung vorzutäuschen. Das betrifft Ablauf, Ende, Änderungs-Stopphälfte und Teilfehlerbereinigung. Die absichtlich allgemeinen Bedien-Stopps bleiben davon getrennt.
+
+Positiver Wächter dazu: Auf unverändertem Link wird die noch eigene Bewegung gestoppt; hat B die Achse inzwischen übernommen, stoppt die alte Freigabe sie ebenfalls nicht. Der bestehende Test für einen fremden Link bei **neuen Starts** deckt diesen Abschluss nicht ab.
+
+### Teil 1 · MT-I10 · P2 · Der native Seiten-Bewerter kann einen unbelegten Stopp bestehen lassen
+
+**Stellen:** `scripts/test_support/native_cases.py:1426` (`_standstill`) und `:1576` (`eval_lease_page_blocked`).
+
+Mit synthetischen Eingaben an die **unveränderten Funktionen des Prüfkopfs** besteht die dichte Kontrolle. Folgende drei Änderungen bestehen ebenfalls, obwohl sie kein PASS tragen dürfen:
+
+| Gegenfall | Ergebnis am Kopf | Erforderlich |
+|---|---|---|
+| Ablaufdatensatz mit `late_ms = -100` | PASS, negativer Wert steht sogar im Ergebnis | Widerspruch zur ausdrücklich geforderten überschrittenen Frist erkennen; fehlende/ungültige Fristevidenz ebenfalls kein PASS |
+| Nach 0,6 s Stillstand setzt die Bewegung während desselben Seitenblocks wieder ein und läuft weiter | PASS | Die noch gehaltene, verbrauchte Geste darf nicht wieder anlaufen; die Beobachtung nach dem ersten Stillstandsfenster muss mitentscheiden |
+| Im behaupteten 300-ms-Stillstandsfenster steht nur der erste Positionspunkt; weitere Daten kommen erst nach Blockende | PASS | Fehlende zeitliche Abdeckung als `incomplete` ausweisen, nicht als Stillstand |
+
+`late_ms` wird im Seitenfall nur übernommen. Nach dem ersten gefundenen Stillstand prüft dieser Bewerter keine Wiederbewegung. `_standstill` lässt die Lücke zu, weil ein späterer Punkt **irgendwo im gesamten Verlauf** genügt, um seinen vorzeitigen Abbruch zu umgehen; er muss das konkrete Fenster tragen. Unbekannte Positionen ersetzen dabei keine Positionsmessung.
+
+**Korrektur:** Das Stillstandsfenster mit bekannten Positionen und einer benannten zulässigen Abtastlücke belegen; beobachtete Wiederbewegung vor dem Ende der geprüften Geste verweigern; Fristdaten auf Form und Vorzeichen prüfen. Die gemeinsamen Helfer auch im direkten Lease-Fall prüfen. Diese drei Gegenfälle als Wächter übernehmen, dann die gespeicherten Rohdaten neu auswerten. Damit behaupte ich **keine** Wiederbewegung oder falsche Messzahl im berichteten VM-Lauf. Sein PASS wird derzeit nur schwächer geprüft als beschrieben. Fehlen für die Neuauswertung Daten, ist genau dieser Fall erneut zu messen.
+
+### Teil 1 · Angenommene Teile und Grenzen
+
+- Empfangsanker, Erneuerung außerhalb der FIFO, Fristprüfung beim Jog-Schreiben, verbrauchte Eingabebesitzer und der getrennte Hauptthread-Timer sind nachvollziehbar. Die 45 vorhandenen Backend-Wächter und 58 gezielten Frontend-Unit-Tests bestehen in meiner Kopie. Sie schließen MT-I08/09 nicht: beide neuen Backend-Gegenproben sind rot.
+- Eine numerische ID und die serverseitig feste Gültigkeit sind angenommen. Die Lease-Pflicht im WebUI-Typ bei benannter Skript-Kompatibilität ist für diesen Umfang vertretbar. Der Schutz gilt damit ausdrücklich für die umgestellten WebUI-Eingaben, **nicht für jeden** über das Gateway gestarteten Dauer-Jog. Der Trace für einen Aufruf ohne Freigabe bleibt erforderlich.
+- Z-Modifikator ohne eigenen Bewegungsbesitz, D-Pad je Richtung sowie Gründe ohne „page delayed“ bei einem Bedien-/Verbindungsstopp sind angenommen. Das Loslassen ausschließlich über `jog_lease_end` ist erst nach MT-I08 tragfähig.
+- Renderer und Pixeldichte der nativen Seitenprobe sind sauber benannt. Ein ungesundes Kontrollfenster als `incomplete` auszuweisen ist richtig; es ersetzt keine erfolgreiche Kontrollmessung. VM-Nachlauf, Rückkehr der Stopp-Schreibung und physischer Stillstand bleiben getrennte Aussagen. Aus 500 ms folgt keine feste Stoppstrecke.
+- Die Panelprobe über Re-Parse, die Panelabnahme und die benannten Live-Prüfungen vor main bleiben offen. Die neue Probe ist kein Ersatz für die HAL-Kette beim Ausfall des Gateways selbst.
+
+### Teil 2 · MT427-01 · Ein Eingabeschlüssel ist keine eindeutige Parse-Anforderung
+
+**Planstelle:** P2a-1, insbesondere „`_ts_reparse_for` … vergleichen `input_key` statt Version“; Ausgangscode `gateway.py:5799–5813`.
+
+Der wirksame Schlüssel darf wiederkehren. Eine Buchungsrevision tut das nicht. Bei der vorgeschlagenen direkten Ersetzung ergibt sich diese Folge im selben geladenen Programm:
+
+1. Vorschau A ist veröffentlicht. Eingang B fordert einen Parse an; der Versuch scheitert oder wird abgebrochen. `_ts_reparse_for = B`, angezeigt bleibt A.
+2. Eingang wird wieder A. Wegen Gleichheit mit dem veröffentlichten Eingang ist zu Recht kein Parse nötig; der Merker bleibt B.
+3. Eingang wird erneut B. Jetzt unterdrückt der alte Merker die neue Anforderung. A bleibt stehen, obwohl B aktuell ist; `_ts_open_drift` kann den Zustand benennen, erzeugt aber keine neue Berechnung.
+
+Das kleine Zustandsmodell zeigt genau diese Folge; die bisherige Revisionsbuchung lässt den späteren Versuch zu. **Das ist ein Gegenfall zum Plan, kein Befund in bereits gebautem P2a-Code.**
+
+**Vorschlag:** Den Inhaltsvergleich für „Vorschau entspricht dem Eingang“ von der Buchung des Versuchs trennen. Für den Versuch kann die vorhandene Revision erhalten bleiben, gegebenenfalls zusammen mit der Identität des geladenen Programms. Ein unveränderter veröffentlichter `input_key` löst weiterhin keinen Parse aus. Innerhalb desselben Anlasses bleibt der Versuch begrenzt; ein späterer Wechsel, ein anderes geladenes Programm oder dessen neue Fassung darf nicht den alten erfolglosen Versuch erben. Dazu Wächter für A → B/Fehler → A → B sowie Programmwechsel ergänzen. Das verlangt noch nicht den gesamten P2b-Aufbau, aber mehr als die Ersetzung einer monotonen Revision durch einen Inhaltsschlüssel.
+
+### Teil 2 · MT427-02 · Der angenommene Buchungswert ist nicht zwingend der gelesene Dateiwert
+
+**Planstelle:** P2a-1, „was der Parse tatsächlich verwendet“ und „angenommene Schlüssel mit ihrem gebuchten Dateiwert“. Ausgangscode: `gateway.py:5656–5685`, `gateway_util.py:6186`, `gcode_parse_worker.py:391–408`.
+
+`_ts_mark_assumed` liest die Datei beim Buchen. Der normale Worker liest seine Dateikopie später; angenommene Schlüssel werden absichtlich **nicht** gepatcht. Zwischen beiden Zeitpunkten kann die Parameterdatei etwa durch eine Synch ersetzt worden sein. Ein daraus abgeleiteter Schlüssel des alten Buchungswerts beweist deshalb nicht, welchen Wert der Worker verwendete.
+
+**Eigene reine Probe mit den vorhandenen Helfern und dem Kopier-/Patch-Verfahren des Workers:** `assumed #3014 = 10` gebucht; die später kopierte Datei enthält `#3014 = 20`. `toolsetter_ctx` liefert keinen Patch für 3014; nach `apply_var_patches` liest der Worker weiterhin **20**. Die Kontrolle mit bestätigtem `read = 10` patcht korrekt auf **10**. Im ersten Fall würde der vorgeschlagene Buchungsschlüssel 10 bescheinigen, obwohl 20 einging.
+
+**Korrekturvertrag:** Entweder die tatsächlich verwendete Dateibasis vorab aufnehmen und genau diese mit dem Auftrag übergeben, oder den veröffentlichten Schlüssel aus den vom Worker belegten effektiven Eingängen bilden und mit einer entsprechend belegten aktuellen Basis vergleichen. Eine nicht belegte Dateibasis darf keine Gleichheit bestätigen. Die `assumed`-Herkunft bleibt dabei angenommen; bloßes Patchen des alten Buchungswerts wäre keine Bestätigung der Maschine und änderte zudem das bisherige Verfahren. Gleichheit `applied ↔ read`, Unterschied `assumed → read`, fehlende Werte und unbekannte Eingänge bleiben wie geplant. Den Gegenfall „Datei zwischen Buchung und Worker-Kopie ersetzt“ ausdrücklich ergänzen.
+
+### Teil 2 · Antworten auf die übrigen Punkte
+
+**P2a-2:** Bestätigen vor Neuberechnung und das Halten auch bei vorübergehend nicht möglichem Read-back sind angenommen. Der Read-back-Ausgang muss dabei ausdrücklich gebucht werden: Fehler/Abort beendet das Halten für diesen Versuch. Heute setzt der Link-/Zulassungsfehler in `_ts_read_back` den Versuch-Merker zurück; der neue Haltevertrag darf daraus kein unbegrenztes Warten durch immer neue Versuche machen. Fehlgeschlagene, abgebrochene und nur noch nicht zugelassene Versuche getrennt testen; die alte Geometrie bleibt währenddessen als abweichend benannt.
+
+**P2a-3:** `nice 19` für die Drift-Parse, Timeout-Behandlung nach tatsächlicher Niced-Art und Ausschluss dieser Laufzeiten aus der normalen Lade-Historie sind angenommen. Der größere Faktor ist ein Budget, keine zugesagte Laufzeit. **Lade-Parse in P2a unverändert lassen**, wie vorgeschlagen; seine Priorität nach der gemeinsamen Messung von Vorschau-Latenz und Seitenreaktion entscheiden.
+
+**Unterprogramm-Scan:** Verschieben, bis die Read-back-Messung seinen Nutzen zeigt. Das Lesen einer Datei gleichen Namens allein belegt noch keine vollständige Wirkung. Bei einem späteren Bau gehören erreichbare weitere Aufrufe, Remaps, berechnete Namen und die tatsächlich gewählte Suchpfad-Datei zum Vertrag; unaufgelöste Aufrufe bleiben konservativ. Daraus wird jetzt kein zusätzliches P2a-Paket.
+
+**Limit-Flags/P2d:** Für den vorgelegten Plan im Gateway belassen. Eine gemeinsame Quelle samt geprüfter Basis und unbekannten Strecken ist weiterhin sinnvoll. Eine spätere Verlagerung braucht eine eigene Entscheidung anhand der Messung und der Konsistenz zwischen Geräten; sie ist hier nicht mitfreigegeben. **P2c darf die für die zuerst veröffentlichten Limit-Markierungen notwendige Herkunft und Anzeigezeile nicht als ausschließlich spätere Sim-Arbeit behandeln.** Die Zuordnung von Unterprogrammbewegungen gehört ins erste Ergebnis, soweit dessen Aussagen sie benötigen; andernfalls kann es nur ausdrücklich unplatzierte Grenzen zeigen. Die früher angenommenen Regeln gegen rohe fremde Zeilennummern gelten auch bei ausgeschalteter Simulation.
+
+**Messung/Reihenfolge:** P1b → P3 → P2 bleibt angenommen. Die Basis zuerst mit derselben Parse-Basis-Variante zu messen und danach die tatsächlichen Worker-Starts sowie `__NICE__` zu zählen ist richtig. Für den Zielweg zusätzlich `probe_run` beziehungsweise den tatsächlichen Antast-Auftrag des Panels benutzen oder die Gleichheit mit dem vorgeschlagenen `mdi`/`vars`-Weg ausdrücklich belegen; die unterschiedlichen Eintritte dürfen nicht versehentlich einen einfacheren Prüfweg ergeben. Die Zählung unveränderter Eingänge trägt die P2a-Abnahme, nicht die Behauptung bereits beseitigter Haltestalls. Deren Ursache und Wirkung bleiben mit P3 am Panel ohne CDP zu messen; „Druck addiert sich zur Grundlast“ ist bis dahin eine Erklärungshypothese, keine aus den genannten Task-Dauern bewiesene Ursache.
+
+### Eigene Belege, Reproduktion und Abschluss
+
+Alle Ausführungen liefen im exakten Archiv unter `/tmp/codex-r427`, unter der gemeinsamen Heavy-Sperre, mit Fake-Controller oder reinen Daten. Keine Verbindung zur laufenden Sim, keine Browser-/HAL-Aktion und kein Produktcode geändert. Die Quellendateien der Belege sind gegen `f43b85a4` gehasht. Claudes vollständiges Gate und der native Lauf wurden gelesen, nicht als eigener Wiederholungslauf ausgegeben.
+
+- Backend: **45/45 vorhandene Tests grün**; **2/2 eigene Gegenproben rot**, abschließend mit der produktiven Queue-Grenze. [Probe](maschinentag.r427.codex-backend-probes.py), [rohes Ergebnis](maschinentag.r427.codex-backend-probes.txt), [vorhandene Wächter](maschinentag.r427.codex-backend-baseline.txt). Zur Reproduktion die Probe in `lcnc-gateway/test_r427_codex.py` einer isolierten Kopie legen und dort mit deren Test-Fakes ausführen.
+- Frontend: **58/58 Unit-Tests in fünf Dateien grün**, einschließlich Lease, Geste, Gamepad, Befehlsformen und Befehlsweg. [Ergebnis](maschinentag.r427.codex-frontend-unit.txt), [Aufruf](maschinentag.r427.codex-run-front-native.sh).
+- Nativer Bewerter, ohne nativen Lauf: **eine dichte Kontrolle PASS, drei ungültige Gegenfälle fälschlich PASS**. [Probe](maschinentag.r427.codex-native-probes.py), [Ergebnis](maschinentag.r427.codex-native-probes.json).
+- P2a: Modell der Versuchsbuchung und reine Dateibasis-Probe, einschließlich positiver Kontrollen. [Probe](maschinentag.r427.codex-plan-probes.py), [Ergebnis](maschinentag.r427.codex-plan-probes.json). Das ist ausdrücklich kein Test einer P2a-Implementierung.
+- [Manifest, genaue Köpfe, Aufrufe, Grenzen und SHA-256](maschinentag.r427.codex-review.json). Die frühere Probe mit kleiner Queue und ihr Ausgang sind separat erhalten; ihr Aufruf-Skript gibt den Testfehler aus und endet absichtlich mit 0. Maßgeblich für MT-I08 ist der abschließende unverkleinerte Lauf mit pytest-Exit **1**.
+
+Alle eigenen Tests und Proben sind beendet, die Heavy-Sperre wird nicht mehr von mir gehalten. Im Live-Baum nur dieser Anhang und neue `maschinentag.r427.codex-*`-Belege. Kein Merge- oder Maschinen-Go.

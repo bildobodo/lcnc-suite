@@ -1,0 +1,75 @@
+{
+  "review": "R427",
+  "date": "2026-11-22",
+  "base": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "head": "f43b85a480ca08a719e3d7a473a5f6c6a438b768",
+  "review_head": "fd2950c314175118d842b4f27ad444be8b608e87",
+  "review_before_sha256": "ba1ddf2b30bdc4c2ea0ea150d3a83f585a65ba0079e6df160f6f9fa43bec4bd2",
+  "scope": {
+    "part1": "P1b implementation",
+    "part2": "P2a plan; no P2a implementation exists"
+  },
+  "isolation": "git archive in /tmp/codex-r427; copied node_modules; fake controller only; no browser, live LinuxCNC, HAL, HTTP or WebSocket connection to a running service",
+  "lock": "official scripts/test_support/heavy_lock.py for each execution; all own probes ended and lock released",
+  "commands": [
+    {
+      "command": "bash /tmp/r427/run-backend.sh",
+      "baseline": "45/45 passed",
+      "regressions": "2/2 failed; wrapper intentionally exits 0 after recording pytest exit 1; queue max reduced to 1"
+    },
+    {
+      "command": "bash /tmp/r427/run-front-native.sh",
+      "exit": 0,
+      "frontend": "58/58 tests, 5 files",
+      "native_evaluator": "control PASS; all three invalid traces also PASS (findings)"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -I /tmp/r427/plan-probes.py",
+      "exit": 0,
+      "method": "finite comparison model, actual pure helpers and AST-extracted unchanged apply_var_patches; not a full parse"
+    },
+    {
+      "command": "cd /tmp/codex-r427/lcnc-gateway && PYTHONDONTWRITEBYTECODE=1 LCNC_LOG_DIR=/tmp/r427/logs /home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python -m pytest -q test_r427_codex.py",
+      "exit": 1,
+      "result": "2/2 failed, actual queue max 32 (STOP capacity 128), no bound mutation"
+    }
+  ],
+  "sources_equal_git": {
+    "lcnc-gateway/gateway.py": "749fd86a8bd2bc62d3ccfc3713d3c1a8743db72e3bc25737f24ad558bb6e5e75",
+    "lcnc-gateway/jog_lease.py": "8c337b14a4d952b70f94792b939db87145e6644784914b62005adaca64075b30",
+    "lcnc-gateway/gateway_util.py": "78f3985a8ea870f921399d6295c5e98a7bfb7fda14bf349db379995238af2e22",
+    "lcnc-gateway/gcode_canon.py": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+    "lcnc-gateway/gcode_parse_worker.py": "9ddb9f4eede948885ef653bf802344e66363393eb99f4bc2eb322fde2589bca1",
+    "lcnc-gateway/bulk_pipeline.py": "0ba05dca9a7dff9337ebfaeb36c0d28f33c6b6a4c43aa76052a17384ad97b2f4",
+    "lcnc-gateway/test_jog_lease.py": "7ec4ae0dc969906e8bd26db2d4310c5667f7f04774ce8f51cf52619b66cdc66d",
+    "lcnc-gateway/test_jog_lease_gateway.py": "65c52bc1c10e608efd78dd44b2ea8168f52643dd3fd624052a0c17757bb79823",
+    "lcnc-webui/src/jogLease.ts": "07840f7a2fce412946c81fbdbb8a06b2a96693d5da8c77777daa595ca63e1d86",
+    "lcnc-webui/src/jogGesture.ts": "0cb541aea0670e9db7ab897480c91422099c45fea34d03aecdcb5def7ec2b051",
+    "lcnc-webui/src/useGamepad.ts": "3a6983fdffaadc87e258615cc49caf27efa9bae9ca6c51eec606ab84351505ce",
+    "lcnc-webui/src/useKeyboardShortcuts.ts": "a849b291d1f7129b2d31921537b5f6838bc891158647f862fdb1c64d65d6dadb",
+    "lcnc-webui/src/App.vue": "17b7067c1638e32ef6e5c01711d91aa3e3e09098f2b5fab4509039bd5e744aee",
+    "scripts/test_support/native_cases.py": "dd4814da523cd45b67826d8d672c6087f9abbe8d15662ae8d5da065d737c7db4",
+    "scripts/native_run.py": "2dacd41f07e7e35f3cc7bb4fa9d7c589710eb8b9d764e1be5045335e956bbbf9",
+    "scripts/test_support/lease_page_probe.mjs": "c9ef3b51aada5de39ee8b361e3a7b55399a1599d44e9c9f86ffab9040afcca1f"
+  },
+  "evidence": {
+    "maschinentag.r427.codex-backend-baseline.txt": "b8daf5a7c1f29b57413cafa74b9287db31a6cb0b295253293390fdf814f7b662",
+    "maschinentag.r427.codex-backend-probes.py": "8e1c2b7ce786a8d9b02e6f3906848193fef9f03b973ef07778f6797500ef6b9c",
+    "maschinentag.r427.codex-backend-probes.txt": "3ca75e93b656a29420725bf222cb19017471b7ef44cc8d5584a251fae7eb99ab",
+    "maschinentag.r427.codex-backend-small-cap.py": "78684271db9740197f6a3009a4a35443ed0545ddf3a20fd5d05dadb75a6c5cca",
+    "maschinentag.r427.codex-backend-small-cap.txt": "ebb189bbcdd64b84bb0b0acbe67fb47d8ed617b586065881304aff1b39361ed2",
+    "maschinentag.r427.codex-frontend-unit.txt": "ffe8654b6098cb0842dfd5e1fe9cacac38d908c8e38b6e9f22ed1cd746c7c902",
+    "maschinentag.r427.codex-native-probes.json": "b5d2b137170c6d6b7ecd07de1edb0554103f28428f2d7d70b206dfaf58190911",
+    "maschinentag.r427.codex-native-probes.py": "551060d8d4897ee89ca2cdb0798b1f6913bc9f47c77f2f5229af367ebdd096bd",
+    "maschinentag.r427.codex-plan-probes.json": "45261eda2c26ffb096776696db8032feb1e55fe78ec11814f0243deaab80b993",
+    "maschinentag.r427.codex-plan-probes.py": "6fec7205f182af89a8e0cd1c25eeb031017d8f9c9e67ef1f1e9260fc63c93b3e",
+    "maschinentag.r427.codex-run-backend.sh": "8b3e6e7f135668e54222d08bfc82b3a68939a6ef90f39e64e6f5cf6dd6c5254c",
+    "maschinentag.r427.codex-run-front-native.sh": "a321ef2d1caeb11089341f7817423be2b57302aac5ecffb96c24900b7422a652"
+  },
+  "limits": [
+    "No full gate repeated",
+    "No own browser or native Sim run",
+    "Reported Claude gates and native run are separate evidence, not reproduced by this review",
+    "P2a findings are plan counterexamples, not claimed product defects"
+  ]
+}
