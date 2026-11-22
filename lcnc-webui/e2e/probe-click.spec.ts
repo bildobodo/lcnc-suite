@@ -50,7 +50,11 @@ for (const form of FORMS) {
     const side = page.locator('.sidePane');
     await side.getByRole('tab', { name: 'Probing', exact: true }).click();
     await side.getByRole('tab', { name: form.sub, exact: true }).click();
-    const cell = side.getByRole('tabpanel').locator('.gridCell').first();
+    // Boss/Pocket: the first cell a default panel may run — the Round Boss
+    // needs its diameter (P4-5), the Round Pocket runs at 0
+    const cell = form.sub === 'Boss/Pocket'
+      ? side.getByRole('tabpanel').getByRole('button', { name: /^Probe inside of round hole \(edge start\)/ })
+      : side.getByRole('tabpanel').locator('.gridCell').first();
     await expect(cell).toBeVisible();
     await expect(cell).toBeEnabled();
     await ctl({ op: 'clearCmds' });
@@ -162,4 +166,39 @@ test("Surface: the compensation switch is named", async ({ page }) => {
   await side.getByRole('tab', { name: 'Probing', exact: true }).click();
   await side.getByRole('tab', { name: 'Surface', exact: true }).click();
   await expect(side.getByRole('checkbox', { name: 'Enable Compensation', exact: true })).toHaveCount(1);
+});
+
+// The Boss/Pocket size contract at the cells (P4-5, machine day F25, Codex
+// MT433-02): a boss needs its size — dimmed with the reason, nothing sent —
+// a pocket at 0 runs and says its limited search at the cell; the cell and
+// the press read the same field.
+test("Boss/Pocket: a boss needs its size; a pocket at 0 says its limited search", async ({ page }) => {
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  const side = page.locator('.sidePane');
+  await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+  await side.getByRole('tab', { name: 'Boss/Pocket', exact: true }).click();
+  const panel = side.getByRole('tabpanel');
+  const roundBoss = panel.getByRole('button', { name: 'Probe outside of round feature', exact: true });
+  const rectBoss = panel.getByRole('button', { name: 'Probe outside of rectangular feature', exact: true });
+  await expect(roundBoss).toBeDisabled();
+  await expect(rectBoss).toBeDisabled();
+  await ctl({ op: 'clearCmds' });
+  await roundBoss.locator('xpath=..').click({ force: true });
+  await expect(page.locator('.btnHint')).toHaveText('Diameter needed — enter the rough size');
+  await rectBoss.locator('xpath=..').click({ force: true });
+  await expect(page.locator('.btnHint')).toHaveText('X/Y sizes needed — enter the rough sizes');
+  expect((await sent()).filter(c => c.cmd === 'probe_run'), 'nothing sent').toEqual([]);
+
+  // a diameter opens the Round Boss; X alone does not open the Rect Boss
+  await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { probe: { diameterHint: 25, xHintBP: 30 } } } });
+  await expect(roundBoss).toBeEnabled();
+  await expect(rectBoss).toBeDisabled();
+  await hold(page, roundBoss);
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === 'probe_run').length).toBe(1);
+  const job = (await sent()).find(c => c.cmd === 'probe_run')!;
+  expect([job.routine, job.vars?.['3025']]).toEqual(['probe_round_boss', 25]);
+
+  // a Rect Pocket with Y at 0: it runs and its cell says the limited search
+  await expect(panel.getByRole('button', { name: /^Probe inside of rectangular pocket \(edge start\) — Search limited to Max X\/Y Travel$/ }))
+    .toBeEnabled();
 });

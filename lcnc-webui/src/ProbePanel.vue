@@ -15,7 +15,9 @@ import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
 import FormField from "./FormField.vue";
-import { PROBE_COMMON_FIELDS, PROBE_HINT_FIELDS, CAL_ROUND_FIELD, CAL_RECT_FIELDS, SCAN_FIELDS, unitText } from "./probeFields";
+import { PROBE_COMMON_FIELDS, PROBE_HINT_FIELDS, CAL_ROUND_FIELD, CAL_RECT_FIELDS, SCAN_FIELDS, unitText,
+         bossPocketRefusal, bossPocketNote } from "./probeFields";
+import { showBtnHint } from "./btnHint";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
@@ -247,8 +249,21 @@ function runGridProbe(op: GridOp) {
   emit("runProbe", { vars, macro: op.macro });
 }
 
+// The size contract per cell (P4-5): the cell's state and the press's
+// admission read the SAME fields; a pocket at 0 says its limited search.
+const bossRefusal = computed<Record<string, string | null>>(() =>
+  Object.fromEntries(bossGrid.map(op => [op.id, bossPocketRefusal(op.id, params.value as Record<string, unknown>)])));
+const bossNote = computed<Record<string, string | null>>(() =>
+  Object.fromEntries(bossGrid.map(op => [op.id, bossPocketNote(op.id, params.value as Record<string, unknown>)])));
+const bossLabel = (op: GridOp) => bossNote.value[op.id] ? `${op.description} — ${bossNote.value[op.id]}` : op.description;
+
 function runBossProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
+  const cell = () => document.querySelector(`[data-boss-op="${op.id}"]`);
+  const why = bossPocketRefusal(op.id, params.value as Record<string, unknown>);
+  if (why) { showBtnHint(cell, why); return; }
+  const note = bossPocketNote(op.id, params.value as Record<string, unknown>);
+  if (note) showBtnHint(cell, note);
   activeGridOp.value = op.id;
   saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
@@ -741,8 +756,11 @@ function fmtR(key: string): string {
             type="probeCell"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
-            :title="op.description"
-            :aria-label="op.description"
+            :disabled="!!bossRefusal[op.id]"
+            :reason="bossRefusal[op.id] ?? undefined"
+            :title="bossLabel(op)"
+            :aria-label="bossLabel(op)"
+            :data-boss-op="op.id"
             @click="runBossProbe(op)"
           >
             <!-- Round Boss: solid circle workpiece, probe at CENTER, arrows inward tips at surface -->

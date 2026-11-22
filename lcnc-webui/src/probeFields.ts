@@ -59,13 +59,16 @@ export const PROBE_COMMON_FIELDS: ProbeField[] = [
 
 /** The rough feature sizes under a procedure's grid. */
 export const PROBE_HINT_FIELDS: Partial<Record<"boss" | "angle" | "ridge", ProbeField[]>> = {
+  // P4-5 (machine day F25, Codex MT433-02): what each size does, per routine
+  // — a boss is pre-positioned by it (needed), a pocket's search reaches
+  // Max X/Y Travel plus it (at 0 exactly Max X/Y Travel — never "blind")
   boss: [
     { key: "diameterHint", label: "Diameter", unit: "len", min: 0,
-      help: "Rough feature diameter, used to pre-position the probe. 0 = probe blind." },
+      help: "Round Boss: needed, it places the probe beside the boss. Round Pocket: widens the search; 0 = Max X/Y Travel." },
     { key: "xHintBP", label: "X Hint", unit: "len", min: 0,
-      help: "Rough X size of the boss or pocket. 0 = probe blind." },
+      help: "Rect Boss: needed, it places the probe beside the boss. Rect Pocket: widens the search; 0 = Max X/Y Travel." },
     { key: "yHintBP", label: "Y Hint", unit: "len", min: 0,
-      help: "Rough Y size of the boss or pocket. 0 = probe blind." },
+      help: "Rect Boss: needed, it places the probe beside the boss. Rect Pocket: widens the search; 0 = Max X/Y Travel." },
   ],
   angle: [
     { key: "edgeWidth", label: "Edge Width", unit: "len", min: 0.1,
@@ -140,3 +143,40 @@ export const TS_FINDER_FIELDS: TsField[] = [
   { key: "finderDiffZ", label: "Finder Z Difference", unit: "len",
     help: "Finder reference height relative to the setter surface; may be negative." },
 ];
+
+
+// ─── The Boss/Pocket size contract (P4-5, machine day F25, Codex MT433-02) ───
+// Measured in the routines (probe_round_boss.ngc, probe_rect_boss.ngc, the
+// pocket routines; L = Max X/Y Travel #3018, H = the size): a boss is
+// pre-positioned H/2 + Step Off beside its centre and crosses to the other
+// side by H + Step Off + Clearance — without H it starts ON the boss; a
+// pocket searches L, L + H/2 or L + H. A boss needs its size; a pocket at 0
+// searches exactly L, said at its cell. An empty or invalid size is never
+// taken as 0. The cell and the press read the SAME field state.
+export const SIZE_NEEDED_ROUND = "Diameter needed — enter the rough size";
+export const SIZE_NEEDED_RECT = "X/Y sizes needed — enter the rough sizes";
+export const SIZE_NOT_A_NUMBER = "Size empty — enter the rough size or 0";
+export const SEARCH_LIMITED = "Search limited to Max X/Y Travel";
+const BOSS_POCKET_SIZES: Record<string, readonly ("diameterHint" | "xHintBP" | "yHintBP")[]> = {
+  rb: ["diameterHint"], rp: ["diameterHint"], rpc: ["diameterHint"],
+  xb: ["xHintBP", "yHintBP"], xp: ["xHintBP", "yHintBP"], xpc: ["xHintBP", "yHintBP"],
+};
+const isSize = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
+
+/** Why the Boss/Pocket cell `op` cannot run with these sizes, or null. */
+export function bossPocketRefusal(op: string, p: Record<string, unknown>): string | null {
+  const keys = BOSS_POCKET_SIZES[op];
+  if (!keys) return null;
+  const vals = keys.map(k => p[k]);
+  if (op === "rb" || op === "xb") {
+    return vals.every(v => isSize(v) && v > 0) ? null : op === "rb" ? SIZE_NEEDED_ROUND : SIZE_NEEDED_RECT;
+  }
+  return vals.every(isSize) ? null : SIZE_NOT_A_NUMBER;
+}
+
+/** A pocket run at size 0: its search is Max X/Y Travel alone — said, not refused. */
+export function bossPocketNote(op: string, p: Record<string, unknown>): string | null {
+  const keys = BOSS_POCKET_SIZES[op];
+  if (!keys || op === "rb" || op === "xb" || bossPocketRefusal(op, p)) return null;
+  return keys.some(k => p[k] === 0) ? SEARCH_LIMITED : null;
+}
