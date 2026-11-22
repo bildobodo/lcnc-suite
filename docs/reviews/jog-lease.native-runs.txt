@@ -1,0 +1,33 @@
+# The P1b native runs on 2026-11-22 (VM sim, 3 axes, variant jog-lease): the history behind jog-lease.native.json
+20261122T094410-jog-lease e5162161 jog-lease incomplete {'PASS': 7, 'incomplete': 2} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept incomplete the page did not reach its healthy hold: []
+    jog-lease-page-blocked incomplete the page did not reach its blocked hold: []
+20261122T094634-jog-lease ed25616c jog-lease FAIL {'PASS': 7, 'FAIL': 2} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept FAIL 1 lease expiries while the page renewed
+    jog-lease-page-blocked FAIL the expiry at -0.373 s from the block's start — not while it was blocked
+20261122T095111-jog-lease 7db3648d jog-lease incomplete {'PASS': 7, 'incomplete': 2} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept incomplete the page was not healthy while it held: 2 long tasks > 500 ms (the first at +1.665 s, 982 ms)
+    jog-lease-page-blocked incomplete the page was not healthy before its block: 1 long tasks > 500 ms (the first at +0.105 s, 954 ms)
+20261122T095327-jog-lease 8623fbc8 jog-lease PASS {'PASS': 9} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept PASS moved without a break while renewed
+    jog-lease-page-blocked PASS the gateway stopped the jog while the page was blocked
+20261122T115905-jog-lease ec6e1e38 jog-lease incomplete {'PASS': 7, 'incomplete': 2} complete []
+    jog-lease-expired incomplete the standstill window lacks positions
+    jog-lease-page-kept PASS moved without a break while renewed
+    jog-lease-page-blocked incomplete the standstill window lacks positions
+20261122T120149-jog-lease fe87961c jog-lease FAIL {'PASS': 8, 'FAIL': 1} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept FAIL 1 lease expiries while the page renewed
+    jog-lease-page-blocked PASS the gateway stopped the jog while the page was blocked
+20261122T120453-jog-lease 63aa9451 jog-lease incomplete {'PASS': 8, 'incomplete': 1} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept incomplete the page was not healthy while it held: its timers stood 459 ms at +2.112 s (> 350 ms)
+    jog-lease-page-blocked PASS the gateway stopped the jog while the page was blocked
+20261122T120656-jog-lease 054827c5 jog-lease PASS {'PASS': 9} complete []
+    jog-lease-expired PASS deadline passed, JOG_STOP written, standstill — each observed
+    jog-lease-page-kept PASS moved without a break while renewed
+    jog-lease-page-blocked PASS the gateway stopped the jog while the page was blocked

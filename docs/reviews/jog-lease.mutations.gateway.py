@@ -36,11 +36,18 @@ MUTS = {
     # both ownership checks gone: a lease's stop reaches whatever is booked
     "old_owner_stops_new_motion": ([('''    owned = sorted(ax for ax, row in _active_jogs.items()
                    if (_jog_row_owner(row) or (None, 0))[0] == lease_key)''', '''    owned = sorted(_active_jogs)'''),
-                                    ('''        owner = _jog_row_owner(_active_jogs.get(ax))
+                                    ('''        row = _active_jogs.get(ax)
+        owner = _jog_row_owner(row)
         if owner is None or owner[0] != lease_key:
             out["not_owned"].append(ax)
             continue
-        try:
+        if _jog_row_link(row) is not current_link():''', '''        row = _active_jogs.get(ax)
+        owner = _jog_row_owner(row)
+        if False:
+            out["not_owned"].append(ax)
+            continue
+        if _jog_row_link(row) is not current_link():'''),
+                                    ('''        try:
             await _send_jog_stop(ax, owner=owner)''', '''        try:
             await _send_jog_stop(ax)''')],
         [T + "TestTheExpiry::test_an_expired_lease_leaves_an_axis_another_gesture_took",
@@ -64,6 +71,37 @@ MUTS = {
 ''', '''            pass
 ''')],
         [T + "TestTheClientsLeasesEnd::test_a_disarm_ends_them"]),
+    # Codex R427 MT-I08: an ended lease is forgotten by its timer (the stop lost)
+    "ended_lease_forgotten": ([('''        left = lease.deadline - time.monotonic()
+        if left > 0:
+            _arm_lease_timer(lease, left)
+            return
+    else:''', '''        _jog_leases.forget(key)
+        return
+    else:''')],
+        [T + "TestTheOwedStop::test_an_end_whose_command_never_ran_is_stopped_at_its_deadline",
+         T + "TestTheRefusedEnd::test_an_end_the_full_queue_refused_still_stops_by_the_deadline"]),
+    # MT-I08: the client's end cancels its timer and forgets it at once
+    "client_end_settles_at_receipt": ([('''    for lz in leases:
+        _jog_leases.end(lz.key, by=why)
+    if drop:''', '''    for lz in leases:
+        _jog_leases.end(lz.key, by=why)
+        _settle_lease(lz.key)
+    if drop:''')],
+        [T + "TestTheOwedStop::test_an_abort_written_settles_what_it_ended_one_not_written_leaves_the_stop_owed",
+         T + "TestTheOwedStop::test_a_client_stop_settles_only_a_lease_no_booking_names"]),
+    # Codex R427 MT-I09: both Link checks gone — the old lease stops through B
+    "stop_ignores_write_link": ([('''        if _jog_row_link(row) is not current_link():''', '''        if False:'''),
+                                 ('''        if _jog_row_link(now) is not lk:
+            return JOG_STOP_LINK_CHANGED''', '''        if False:
+            return JOG_STOP_LINK_CHANGED''')],
+        [T + "TestTheWriteLink::test_an_old_leases_expiry_never_writes_through_a_new_link",
+         T + "TestTheWriteLink::test_an_end_and_a_changes_stop_half_on_a_new_link_say_the_stop_failed"]),
+    # MT-I09: only the write thread's check gone
+    "no_link_check_in_the_write_thread": ([('''        if _jog_row_link(now) is not lk:
+            return JOG_STOP_LINK_CHANGED''', '''        if False:
+            return JOG_STOP_LINK_CHANGED''')],
+        [T + "TestTheWriteLink::test_the_write_thread_refuses_a_link_changed_after_the_lock"]),
 }
 
 orig = GW.read_text()
