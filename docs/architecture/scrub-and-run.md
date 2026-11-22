@@ -456,7 +456,14 @@ attempt has not ended (also in a tick where it is not due only for a
 passing reason — a write, a jog, motion, RFL): the read-back books its
 outcome (confirmed / failed / aborted / not_admitted); failed or aborted end
 the hold (one parse), not_admitted retries until `TS_HOLD_MAX_S` (30 s)
-after the booking that left the basis assumed; AUTO-ON (no synch) and an
+after the booking that left the basis assumed (Codex R430: the attempt and
+its identity are taken when the read-back TASK is created, and its
+done-callback gives exactly that attempt a terminal outcome — a cancel
+before its first step is `aborted`, a binding or unexpected error `failed`;
+the first terminal outcome stands, a late completion books only its own
+attempt; the read-back, its outcome and the hold use the parse attempt's
+identity (revision, path + published source), every outcome traced
+`toolsetter.read_back_outcome`); AUTO-ON (no synch) and an
 unknown basis are not held (`gcode.reparse_toolsetter_held` /
 `_hold_ended`). Another edge that takes the parse while the toolsetter input
 differs says so (`gcode.reparse_toolsetter_masked`) and books the attempt.

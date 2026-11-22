@@ -1744,6 +1744,30 @@ def _spawns(events: list) -> list:
     return [e for e in events if e.get("tag") == "gcode.spawn_start" and not e.get("pinned")]
 
 
+#: a read-back's terminal outcomes (gateway `toolsetter.read_back_outcome`;
+#: not_admitted retries until the hold's bound ends it)
+PB_TERMINAL = ("confirmed", "failed", "aborted")
+
+
+def pb_owed(events: list):
+    """What the LAST probe op still owes (Codex R430 MT-I17), or None: when
+    the last toolsetter booking among `events` left the basis assumed, its
+    read-back must have ENDED — a terminal `toolsetter.read_back_outcome` for
+    that revision, or the hold ended for it (`gcode.reparse_toolsetter_hold_
+    ended`: the bound, a failure). A later `read` booking settles it too."""
+    bookings = [e for e in events if e.get("tag") == "toolsetter.basis"]
+    if not bookings or bookings[-1].get("origin") != "assumed":
+        return None
+    v = bookings[-1].get("version")
+    for e in events:
+        if (e.get("tag") == "toolsetter.read_back_outcome" and e.get("attempt_version") == v
+                and e.get("outcome") in PB_TERMINAL):
+            return None
+        if e.get("tag") == "gcode.reparse_toolsetter_hold_ended" and e.get("version") == v:
+            return None
+    return f"the read-back of revision {v} has not ended"
+
+
 def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
     """`ops` probe ops with unchanged values inside a framed window: no
     toolsetter re-parse — neither the edge (`gcode.reparse_toolsetter`), nor
@@ -1771,12 +1795,25 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
         "bookings": [f"{e.get('origin')}:{len(e['keys']) if isinstance(e.get('keys'), list) else '?'}"
                      for e in bookings],
         "read_backs": sum(1 for e in ev if e.get("tag") == "toolsetter.read_back"),
+        "outcomes": [e.get("outcome") for e in ev if e.get("tag") == "toolsetter.read_back_outcome"],
         "quiet_s": quiet_s,
     }
     if len(bookings) < ops:
         return _row(case, "incomplete", f"{len(bookings)} bookings for {ops} probe ops — the basis was not exercised",
                     **measured)
+    owed = pb_owed(ev)
+    if owed:
+        # the window closed before the last op's read-back ended: what it
+        # would still cause is not in it (Codex R430 MT-I17)
+        return _row(case, "incomplete", f"{owed} in the window", **measured)
     ts = by_reason.get("toolsetter", 0)
+    unconfirmed = [o for o in measured["outcomes"] if o in ("failed", "aborted")] + \
+        [w for w in measured["hold_ended"] if w in ("cap", "no_anchor", "failed", "aborted")]
+    if unconfirmed and (ts or measured["toolsetter_edges"] or measured["masked"]):
+        # a read-back that did not confirm ends the hold with ONE parse — the
+        # contract's, not a fault; the measure's premise (confirmed values) failed
+        return _row(case, "incomplete", f"a read-back did not confirm ({', '.join(map(str, unconfirmed))}): "
+                    f"its toolsetter parse ({ts}) is the contract's", **measured)
     if ts or measured["toolsetter_edges"] or measured["masked"]:
         return _row(case, "FAIL", f"{ts} toolsetter re-parses ({measured['toolsetter_edges']} edges, "
                     f"{measured['masked']} masked by another edge) for {ops} probe ops with unchanged values",

@@ -182,6 +182,8 @@ PB_PADDING = 20000
 #: no parse running for this long = quiet (the drift poll runs at idle, the
 #: read-back after it); bounded by PB_QUIET_MAX_S
 PB_QUIET_S, PB_QUIET_MAX_S = 4.0, 240.0
+#: how often the quiet wait re-reads the trace for the last op's owed read-back
+PB_OWED_EVERY_S = 0.5
 #: step 3, the disconnect (SYS-CONN.S4): X back and forth at F6000 in the
 #: machine frame (~20 s); a helper client A in its own process starts it and
 #: goes away; the event read from the trace, then the window W
@@ -1806,22 +1808,44 @@ def _pb_program() -> str:
     return "\n".join(lines + ["M2"]) + "\n"
 
 
-def _pb_quiet(c, case: str) -> float:
-    """Wait until no parse has run for PB_QUIET_S (the status carries
-    `preview_refresh` while one runs); the seconds waited. Refused past
-    PB_QUIET_MAX_S — a parse that never ends is no measure."""
+def _gateway_events_since(ctx, t_ns: int) -> list:
+    """THIS run's gateway trace records stamped at or after wall `t_ns`."""
+    pid = ctx.get("gateway_pid") or ctx.setdefault("gateway_pid", _gateway_pid(ctx))
+    files, _errors = _trace_files(ctx["run"] / "logs")
+    out = []
+    for _name, _ino, data in files:
+        for line in data.splitlines():
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(e, dict) and e.get("pid") == pid and (e.get("t_wall_ns") or 0) >= t_ns:
+                out.append(e)
+    return sorted(out, key=lambda e: e.get("t_wall_ns") or 0)
+
+
+def _pb_quiet(c, case: str, owed=None) -> float:
+    """Wait until the last op owes nothing (`owed()` — its read-back or the
+    hold for it ended, Codex R430 MT-I17; checked every PB_OWED_EVERY_S) and
+    then no parse has run for PB_QUIET_S (the status carries
+    `preview_refresh` while one runs): a parse the ended read-back causes
+    falls inside. The seconds waited. Refused past PB_QUIET_MAX_S — a
+    read-back or a parse that never ends is no measure."""
     t0 = time.monotonic()
     quiet_since = None
+    owed_now, owed_at = (owed() if owed else None), t0
     while True:
         now = time.monotonic()
-        if (c.status or {}).get("preview_refresh"):
+        if owed and owed_now and now - owed_at >= PB_OWED_EVERY_S:
+            owed_now, owed_at = owed(), now
+        if owed_now or (c.status or {}).get("preview_refresh"):
             quiet_since = None
         elif quiet_since is None:
             quiet_since = now
         elif now - quiet_since >= PB_QUIET_S:
             return round(now - t0, 1)
         if now - t0 > PB_QUIET_MAX_S:
-            raise Refused(f"{case}: a parse still ran after {PB_QUIET_MAX_S:g} s")
+            raise Refused(f"{case}: {owed_now or 'a parse still ran'} after {PB_QUIET_MAX_S:g} s")
         time.sleep(0.1)
 
 
@@ -1866,14 +1890,21 @@ def _parse_basis_steps(ctx):
         return r
 
     path = _load_program(ctx, c, PB_FILE, _pb_program(), timeout=PB_QUIET_MAX_S)
+
+    def owed_since(t_ns):
+        """What the op begun at wall `t_ns` still owes, from THIS gateway's trace."""
+        return lambda: nc.pb_owed(_gateway_events_since(ctx, t_ns))
     try:
+        t_op = time.time_ns()
         probe("parse-basis-warm")          # the values applied once, then read back
-        ctx["report"]["parse_basis_warm_quiet_s"] = _pb_quiet(c, "parse-basis-warm")
+        ctx["report"]["parse_basis_warm_quiet_s"] = _pb_quiet(c, "parse-basis-warm", owed_since(t_op))
 
         def three():
+            t_last = time.time_ns()
             for i in range(3):
+                t_last = time.time_ns()
                 probe(f"parse-basis-{i + 1}")
-            return _pb_quiet(c, "parse-basis")
+            return _pb_quiet(c, "parse-basis", owed_since(t_last))
         quiet_s, window = _framed(ctx, c, "parse-basis", three)
         rows.append(nc.eval_parse_basis("parse-basis", window, ops=3, quiet_s=quiet_s))
         rows.append(nc.eval_parse_nice("parse-basis.nice", window))

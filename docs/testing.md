@@ -49,6 +49,9 @@ The toolsetter re-parses a probe op causes (P2a, machine day F24) are a run of t
 `native_run.py … --variant parse-basis` (home, a loaded program that runs the routine, a warm-up
 probe op, then three probe-z ops with unchanged values in one trace window: the re-parses by
 reason — the toolsetter ones judged, a WCS one reported — and every drift parse's priority).
+The window closes only after the LAST op's read-back (or the hold for it) ended and then
+no parse ran for 4 s (`nc.pb_owed`, read from the run's own trace); a still-open attempt is
+incomplete, a read-back that did not confirm makes its one parse the contract's (incomplete).
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

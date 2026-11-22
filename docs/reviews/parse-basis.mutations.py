@@ -10,6 +10,8 @@ import subprocess
 import sys
 
 TB = "test_toolsetter_basis.py::"
+NS = "../scripts/test_native_stage.py::"
+R = TB + "TestReadbackEnds::"
 BP = "test_bulk_pipeline.py::"
 H, E, N = TB + "TestHoldAndAttempt::", TB + "TestConfirmedEquality::", BP + "TestDriftReparseNiced::"
 MUTS = {
@@ -43,7 +45,7 @@ MUTS = {
     # P2a-2: AUTO-ON held (no synch possible there)
     "held_in_auto": ("gateway.py", [('''    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
         return None
-    key = (_ts_basis_version, st.active_file)''', '''    key = (_ts_basis_version, st.active_file)''')],
+    key = _ts_attempt_key()''', '''    key = _ts_attempt_key()''')],
         [H + "test_in_auto_on_and_when_unknown_nothing_is_held"]),
     # MT427-01: the attempt ignores the program
     "attempt_without_program": ("gateway.py", [('''    if _ts_reparse_for == (_ts_basis_version, _ts_program_identity()):''',
@@ -69,6 +71,34 @@ MUTS = {
     # P2a-3: the leash and the history keyed on pinned again
     "leash_by_pinned": ("bulk_pipeline.py", [('''            niced = pinned or ctx.get("nice") is not None''', '''            niced = pinned''')],
         [N + "test_the_leash_and_the_history_follow_the_priority"]),
+    # Codex R430 MT-I15: no done-callback — a cancel before the first step or a binding error books nothing
+    "no_task_end_booking": ("gateway.py", [('''        task.add_done_callback(lambda t, a=attempt: _ts_readback_task_done(t, a))
+''', '''''')],
+        [R + "test_r430_a_cancel_before_the_tasks_first_step_ends_the_hold",
+         R + "test_r430_a_binding_error_ends_the_hold_as_failed"]),
+    # MT-I15: a late completion overwrites another attempt's terminal outcome
+    "late_completion_overwrites": ("gateway.py", [('''    if had is not None and had != "not_admitted":
+        return
+''', '''''')],
+        [R + "test_a_late_completion_never_books_a_newer_attempt"]),
+    # Codex R430 MT-I16: the read-back's attempt by the path only (the parse's keeps the full identity)
+    "read_back_by_path": ("gateway.py", [('''    return (_ts_basis_version, _ts_program_identity())
+
+
+def _ts_readback_ended''', '''    return (_ts_basis_version, _ts_program_identity()[0])
+
+
+def _ts_readback_ended''')],
+        [R + "test_r430_a_new_source_at_the_same_path_gets_its_read_back_attempt"]),
+    # Codex R430 MT-I17: the judge ignores what the last op still owes
+    "judge_ignores_owed": ("../scripts/test_support/native_cases.py", [('''    owed = pb_owed(ev)
+    if owed:''', '''    owed = pb_owed(ev)
+    if False:''')],
+        [NS + "test_r430_the_window_closed_before_the_last_read_back_is_incomplete"]),
+    # MT-I17: the quiet wait ignores the owed read-back (closes at 4 s of no parse)
+    "quiet_ignores_owed": ("../scripts/native_run.py", [('''        if owed_now or (c.status or {}).get("preview_refresh"):''',
+                                                          '''        if (c.status or {}).get("preview_refresh"):''')],
+        [NS + "test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet"]),
 }
 
 only = sys.argv[1:]
