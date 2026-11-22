@@ -1166,11 +1166,8 @@ class TestVerifyAtTheActualOffset(unittest.TestCase):
         self.assertIsNone(self.b.tool_basis_status())
 
 
-class TestDriftReparseNiced(unittest.TestCase):
-    """P2a-3 (Codex R427/R428): every DRIFT re-parse runs at nice 19 — a load,
-    a connect, a schema or an explicit re-parse keeps its priority; the
-    longer leash and the history exclusion follow the priority, not `pinned`;
-    the spawn names it; the fingerprint never does."""
+class _NiceBase(unittest.TestCase):
+    """A pipeline over a small program, its worker recording every ctx."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -1201,6 +1198,13 @@ class TestDriftReparseNiced(unittest.TestCase):
         asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason=reason))
         return self.sent[-1]
 
+
+class TestDriftReparseNiced(_NiceBase):
+    """P2a-3 (Codex R427/R428): every DRIFT re-parse runs at nice 19 — a load,
+    a connect, a schema or an explicit re-parse keeps its priority; the
+    longer leash and the history exclusion follow the priority, not `pinned`;
+    the spawn names it; the fingerprint never does."""
+
     def test_a_drift_reparse_runs_niced_a_load_does_not(self):
         for reason in BulkPipeline.LOAD_REASONS:
             ctx, _t = self.parse(reason)
@@ -1224,3 +1228,51 @@ class TestDriftReparseNiced(unittest.TestCase):
     def test_the_priority_is_no_input(self):
         ctx, _t = self.parse("wcsoff:G54:z")
         self.assertEqual(ctx_digest(ctx), ctx_digest({k: v for k, v in ctx.items() if k != "nice"}))
+
+
+class TestNicedOnlyARefresh(_NiceBase):
+    """Fable's merge check of P2a: a drift re-parse is niced ONLY when it
+    refreshes a preview already published for the same file at the same
+    mtime — a parse the operator waits for keeps its priority."""
+
+    def test_a_load_superseded_by_a_drift_edge_is_not_niced(self):
+        # nothing published yet: the load's restart under a drift reason
+        ctx, t = self.parse("tool_offset")
+        self.assertNotIn("nice", ctx)
+        ctx, t = self.parse("wcsoff:G54:z")
+        self.assertEqual(ctx.get("nice"), BulkPipeline.DRIFT_NICE, "now a preview of this file and mtime stands")
+
+    def test_a_drift_over_a_changed_file_is_not_niced(self):
+        self.parse("file")
+        st = os.stat(self.ngc)
+        os.utime(self.ngc, (st.st_atime, st.st_mtime + 5))     # the file changed meanwhile
+        ctx, _t = self.parse("rotary:A")                        # a pending drift reason masks the change
+        self.assertNotIn("nice", ctx)
+
+    def test_a_drift_over_another_file_is_not_niced(self):
+        self.parse("file")
+        other = os.path.join(self.tmp.name, "q.ngc")
+        open(other, "w").write("G0 X2\nM2\n")
+        st = os.stat(self.ngc)
+        os.utime(other, (st.st_atime, st.st_mtime))        # the same mtime: only the file differs
+        asyncio.run(self.b.refresh_gcode_preview(other, reason="wcsoff:G54:z"))
+        self.assertNotIn("nice", self.sent[-1][0])
+
+    def test_a_drift_over_the_published_same_file_same_mtime_is_niced(self):
+        self.parse("file")
+        ctx, _t = self.parse("wcsoff:G54:z")
+        self.assertEqual(ctx.get("nice"), BulkPipeline.DRIFT_NICE)
+        self.assertTrue(self.b.refreshes_published(self.ngc, os.path.getmtime(self.ngc)))
+
+    def test_the_worker_applied_priority_is_traced_with_its_job(self):
+        def worker(ctx_bytes, timeout):
+            import msgspec
+            ctx = msgspec.msgpack.decode(ctx_bytes)
+            self.sent.append((ctx, timeout))
+            nice = b"__NICE__\t19\n" if ctx.get("nice") else b""
+            return (0, b"x" * 8, b"__SCHEMA__\t8\n" + nice)
+        self.b._run_gcode_worker_blocking = worker
+        self.parse("file")
+        self.parse("wcsoff:G54:z")
+        done = [f for t, f in self.events if t == "gcode.worker_done"]
+        self.assertEqual([f["nice_applied"] for f in done], [None, "19"])

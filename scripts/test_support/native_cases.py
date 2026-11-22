@@ -1902,8 +1902,10 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
 
 def eval_parse_nice(case: str, window: dict) -> dict:
     """Every drift re-parse in the window ran niced (19, P2a-3): the
-    `nice` its `gcode.spawn_start` names. No drift parse: incomplete; a
-    spawn that names no priority (before P2a): incomplete, never PASS."""
+    `nice` its `gcode.spawn_start` asks for AND the priority the worker's
+    os.nice() applied (`gcode.worker_done` nice_applied, by job). No drift
+    parse: incomplete; a spawn that names no priority (before P2a), or no
+    applied priority traced: incomplete, never PASS."""
     if not window.get("framed"):
         return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
     if window.get("losses"):
@@ -1918,4 +1920,15 @@ def eval_parse_nice(case: str, window: dict) -> dict:
     bad = [(e.get("reason"), e.get("nice")) for e in drift if e.get("nice") != 19]
     if bad:
         return _row(case, "FAIL", f"{len(bad)} drift re-parses not niced", not_niced=bad[:5], drift=len(drift))
-    return _row(case, "PASS", f"{len(drift)} drift re-parses, every one niced", drift=len(drift))
+    # what the WORKER's os.nice() answered (gcode.worker_done's nice_applied,
+    # by job — Fable's merge check: the spawn's field is only what was asked)
+    done = {e.get("job"): e for e in window.get("events") or [] if e.get("tag") == "gcode.worker_done"}
+    applied = [(e.get("reason"), done[e.get("job")].get("nice_applied")) for e in drift if e.get("job") in done]
+    if not applied or any(a is None for _r, a in applied):
+        return _row(case, "incomplete", "the worker's applied priority is not traced", drift=len(drift))
+    wrong = [(r, a) for r, a in applied if str(a).strip() != "19"]
+    if wrong:
+        return _row(case, "FAIL", f"{len(wrong)} drift re-parses not niced by the worker", not_niced=wrong[:5],
+                    drift=len(drift))
+    return _row(case, "PASS", f"{len(drift)} drift re-parses, every one niced (the worker applied 19 to "
+                f"{len(applied)})", drift=len(drift), applied=len(applied))

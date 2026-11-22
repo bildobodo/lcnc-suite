@@ -684,6 +684,16 @@ class BulkPipeline:
         _t.start()
         return True
 
+    def refreshes_published(self, filepath: str, mtime: Optional[float]) -> bool:
+        """Does this parse only REFRESH a preview already published for the
+        same file at the same modification time (Fable's merge check of
+        P2a)? Only then is a drift re-parse niced: a load parse superseded by
+        a drift edge restarts under the drift's reason, a pending drift
+        reason can mask a file change — the operator waits for that preview,
+        it keeps its normal priority."""
+        return (self.last_file == filepath and self.preview_available()
+                and mtime is not None and self.last_mtime == mtime)
+
     def preview_refresh_status(self) -> Optional[dict]:
         """The status wire's `preview_refresh` (2026-09-05): what the
         gateway is re-parsing and why, with the expected duration, so the
@@ -779,7 +789,7 @@ class BulkPipeline:
                 _ts_ctx = self._get_toolsetter_ctx()
                 if _ts_ctx:
                     ctx["toolsetter"] = _ts_ctx
-                if reason not in self.LOAD_REASONS:
+                if reason not in self.LOAD_REASONS and self.refreshes_published(filepath, _mtime_at_parse):
                     ctx["nice"] = self.DRIFT_NICE
             # VERIFY (VP-I20, plan Fassungen 4–6): the start tool state moved
             # since the publish. Parse at the actual offset as always, and let
@@ -903,6 +913,7 @@ class BulkPipeline:
             worker_params: Optional[dict] = None
             worker_toolsetter: Optional[dict] = None
             worker_same = False
+            _nice_applied: Optional[str] = None
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -995,6 +1006,8 @@ class BulkPipeline:
                                         level="warn", line=ln[:160])
                     elif ln.startswith("__PARSE_T"):
                         pass   # the parse call's bounds: gcode.parse_span above
+                    elif ln.startswith("__NICE__\t"):
+                        _nice_applied = ln.split("\t", 1)[1]   # what the worker's os.nice() answered
                     elif ln == "__SAME__":
                         worker_same = True
                     elif ln.startswith("__VERIFY__"):
@@ -1017,7 +1030,7 @@ class BulkPipeline:
                         _trace.emit("gcode.worker_log", line=ln)
             _trace.emit("gcode.worker_done", job=_job,
                         parse_ms=round((t_communicated - t_spawn) * 1000, 1),
-                        stdout_bytes=len(stdout))
+                        stdout_bytes=len(stdout), nice_applied=_nice_applied)
             if worker_same and not stdout:
                 # Verified at the actual offset: the published payload stays;
                 # only its tool basis moves to the start the worker seeded.

@@ -264,8 +264,14 @@ class TestReadBack(_BasisCase):
 
 
 class _St:
+    """The drift block's status payload, its REAL field set (Fable's merge
+    check): `enabled` = STAT.enabled (task state ON), `task_mode`, and
+    `state` = STAT.state — the RCS execution status, never STATE_ON."""
     active_file = "/p.ngc"
     current_vel = 0.0
+    enabled = True
+    task_mode = 3            # MODE_MDI
+    state = 1                # RCS_DONE
 
 
 class TestEdges(_BasisCase):
@@ -295,9 +301,10 @@ class TestEdges(_BasisCase):
         # tried — LinuxCNC takes no synch there (Codex R118 VP-I71); due
         # once the task leaves AUTO
         from test_g30 import linuxcnc
-        in_auto = type("InAuto", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_AUTO})
+        in_auto = type("InAuto", (_St,), {"enabled": True, "task_mode": linuxcnc.MODE_AUTO,
+                                          "state": linuxcnc.RCS_DONE})
         self.assertFalse(gateway._ts_read_back_due(in_auto))
-        in_mdi = type("InMdi", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_MDI})
+        in_mdi = type("InMdi", (_St,), {"enabled": True, "task_mode": linuxcnc.MODE_MDI, "state": linuxcnc.RCS_DONE})
         self.assertTrue(gateway._ts_read_back_due(in_mdi))
         self.assertTrue(gateway._ts_read_back_due(_St))
         gateway._ts_readback_tried = gateway._ts_attempt_key()
@@ -545,7 +552,8 @@ class TestHoldAndAttempt(_HoldBase):
     def test_in_auto_on_and_when_unknown_nothing_is_held(self):
         from test_g30 import linuxcnc
         self.probe_op(value=FILE[3014] + 1)
-        in_auto = type("InAuto", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_AUTO})
+        in_auto = type("InAuto", (_St,), {"enabled": True, "task_mode": linuxcnc.MODE_AUTO,
+                                          "state": linuxcnc.RCS_DONE})
         self.assertIsNone(gateway._ts_hold_reason(in_auto))
         self.assertEqual(self.poll(in_auto), "toolsetter", "no synch in AUTO: one parse, not held")
         gateway._ts_book({3009: None}, "unknown")
@@ -666,6 +674,49 @@ class TestReadbackEnds(_HoldBase):
         self.poll()
         out = self.tags("toolsetter.read_back_outcome")[-1]
         self.assertEqual((out["attempt_version"], out["outcome"]), (gateway._ts_basis_version, "failed"))
+
+
+class TestAutoOnFromTheRealPayload(_HoldBase):
+    """Fable's merge check of P2a: "machine ON in AUTO" read from a REAL
+    StatusPayload — the status builder over a STAT with task_state ON,
+    state RCS_DONE, enabled, task_mode AUTO — so a wrong field name cannot
+    pass: not due and not held there; after the task leaves AUTO the
+    read-back IS due for the same attempt (never tried in vain in AUTO)."""
+
+    def payload(self, task_mode):
+        from test_g30 import linuxcnc
+        from status_runtime import StatusRuntime
+
+        class Stat:
+            def __init__(self, **kw):
+                self.__dict__.update(kw)
+
+            def poll(self):
+                pass
+        stat = Stat(ini_filename=None, estop=0, enabled=1, task_state=linuxcnc.STATE_ON,
+                    state=linuxcnc.RCS_DONE, task_mode=task_mode, interp_state=linuxcnc.INTERP_IDLE,
+                    file="/p.ngc", axis_mask=0b111, joints=3, homed=(1, 1, 1), current_vel=0.0,
+                    paused=False, tool_table=())
+        rt = StatusRuntime(get_stat=lambda: stat, get_err=lambda: None, reader_get={}.get,
+                           get_tool_tbl_path=lambda: None, load_tool_library=lambda: {},
+                           get_fb_scale=lambda: 60, get_reader_fresh=lambda: False)
+        rt.program.restore("/p.ngc")       # the gateway's own load record: the loaded program
+        return rt.poll_status()
+
+    def test_auto_on_from_the_real_payload_is_not_due_and_not_held_then_due_after_auto(self):
+        from test_g30 import linuxcnc
+        self.probe_op()
+        in_auto = self.payload(linuxcnc.MODE_AUTO)
+        self.assertEqual((in_auto.enabled, in_auto.task_mode, in_auto.state, in_auto.active_file),
+                         (True, linuxcnc.MODE_AUTO, linuxcnc.RCS_DONE, "/p.ngc"), "the payload's own fields")
+        self.assertNotEqual(in_auto.state, linuxcnc.STATE_ON, "STAT.state is the RCS status")
+        self.assertTrue(gateway._machine_on_in_auto(in_auto))
+        self.assertFalse(gateway._ts_read_back_due(in_auto), "no synch in AUTO-ON: not tried")
+        self.assertIsNone(gateway._ts_hold_reason(in_auto), "not held there")
+        self.assertIsNone(gateway._ts_readback_tried, "nothing latched")
+        in_mdi = self.payload(linuxcnc.MODE_MDI)
+        self.assertFalse(gateway._machine_on_in_auto(in_mdi))
+        self.assertTrue(gateway._ts_read_back_due(in_mdi), "the same attempt is due once out of AUTO")
 
 
 if __name__ == "__main__":

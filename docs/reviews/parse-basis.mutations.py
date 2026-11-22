@@ -43,7 +43,7 @@ MUTS = {
     "hold_without_bound": ("gateway.py", [('''    if time.monotonic() - anchor[1] >= TS_HOLD_MAX_S:''', '''    if False:''')],
         [H + "test_a_read_back_not_admitted_retries_until_the_bound"]),
     # P2a-2: AUTO-ON held (no synch possible there)
-    "held_in_auto": ("gateway.py", [('''    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
+    "held_in_auto": ("gateway.py", [('''    if _machine_on_in_auto(st):
         return None
     key = _ts_attempt_key()''', '''    key = _ts_attempt_key()''')],
         [H + "test_in_auto_on_and_when_unknown_nothing_is_held"]),
@@ -65,7 +65,7 @@ MUTS = {
         pass''')],
         [H + "test_a_masked_toolsetter_reason_is_said_and_booked"]),
     # P2a-3: drift re-parses not niced
-    "drift_not_niced": ("bulk_pipeline.py", [('''                if reason not in self.LOAD_REASONS:
+    "drift_not_niced": ("bulk_pipeline.py", [('''                if reason not in self.LOAD_REASONS and self.refreshes_published(filepath, _mtime_at_parse):
                     ctx["nice"] = self.DRIFT_NICE''', '''                pass''')],
         [N + "test_a_drift_reparse_runs_niced_a_load_does_not"]),
     # P2a-3: the leash and the history keyed on pinned again
@@ -186,6 +186,32 @@ def _ts_readback_ended''')],
             problems.append''', '''        if False:
             problems.append''')],
         [NS + "test_r433_a_rotation_during_the_read_is_no_proven_order"]),
+    # Fable's merge check (1): "machine ON in AUTO" read from the payload's `state` again (dead)
+    "auto_on_by_state": ("gateway.py", [('''    return getattr(st, "enabled", None) is True and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO''',
+                                        '''    return getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO''')],
+        [TB + "TestAutoOnFromTheRealPayload::test_auto_on_from_the_real_payload_is_not_due_and_not_held_then_due_after_auto",
+         TB + "TestEdges::test_an_unconfirmed_basis_is_read_back_once_while_the_program_is_loaded",
+         H + "test_in_auto_on_and_when_unknown_nothing_is_held"]),
+    # Fable's merge check (2): every non-load reason niced again (a superseded load too)
+    "nice_without_published": ("bulk_pipeline.py", [('''                if reason not in self.LOAD_REASONS and self.refreshes_published(filepath, _mtime_at_parse):''',
+                                                     '''                if reason not in self.LOAD_REASONS:''')],
+        [BP + "TestNicedOnlyARefresh::test_a_load_superseded_by_a_drift_edge_is_not_niced",
+         BP + "TestNicedOnlyARefresh::test_a_drift_over_a_changed_file_is_not_niced",
+         BP + "TestNicedOnlyARefresh::test_a_drift_over_another_file_is_not_niced"]),
+    # (2): the mtime not compared
+    "nice_ignores_mtime": ("bulk_pipeline.py", [('''                and mtime is not None and self.last_mtime == mtime)''', '''                )''')],
+        [BP + "TestNicedOnlyARefresh::test_a_drift_over_a_changed_file_is_not_niced"]),
+    # (2): the file not compared
+    "nice_ignores_file": ("bulk_pipeline.py", [('''        return (self.last_file == filepath and self.preview_available()''',
+                                               '''        return (self.preview_available()''')],
+        [BP + "TestNicedOnlyARefresh::test_a_drift_over_another_file_is_not_niced"]),
+    # the worker's applied priority not traced
+    "applied_priority_untraced": ("bulk_pipeline.py", [('''stdout_bytes=len(stdout), nice_applied=_nice_applied)''', '''stdout_bytes=len(stdout))''')],
+        [BP + "TestNicedOnlyARefresh::test_the_worker_applied_priority_is_traced_with_its_job"]),
+    # the nice judge takes the spawn's asked priority for the applied one
+    "judge_ignores_applied": ("../scripts/test_support/native_cases.py", [('''    wrong = [(r, a) for r, a in applied if str(a).strip() != "19"]''', '''    wrong = []'''),
+                                                                         ('''    if not applied or any(a is None for _r, a in applied):''', '''    if False:''')],
+        [NS + "test_parse_nice_reads_the_workers_applied_priority"]),
 }
 
 only = sys.argv[1:]

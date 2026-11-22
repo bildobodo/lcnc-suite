@@ -471,8 +471,20 @@ A probe op (`#3014=` assumed → applied, the routine's call: every key
 assumed, the read-back: read) parses nothing when the values are unchanged
 — the machine day parsed the 344k-line program once per op. Every DRIFT
 re-parse runs at nice 19 (`BulkPipeline.DRIFT_NICE`; a load, connect, schema
-or explicit re-parse keeps its priority), on the pinned parse's longer
-leash and outside the duration history (both keyed on the priority).
+or explicit re-parse keeps its priority) — but ONLY when it refreshes a
+preview already published for the same file at the same mtime
+(`refreshes_published`): a load parse superseded by a drift edge restarts
+under the drift's reason, and a pending drift reason can mask a file
+change; the operator waits for those, they keep their priority (Fable's
+merge check) — on the pinned parse's longer leash and outside the duration
+history (both keyed on the priority). The worker's os.nice() answer rides
+`gcode.worker_done` as `nice_applied`. "Machine ON in AUTO" (no read-back,
+no hold) is the status payload's `enabled` + `task_mode`
+(`_machine_on_in_auto`) — its `state` is STAT.state, the RCS execution
+status, never STATE_ON. The hold covers ONLY the toolsetter edge: another
+edge in the same idle tick (tool_loaded, table_mtime after an M600) parses
+with the assumed input — the native measure proves "0 toolsetter parses"
+for probe ops with unchanged values, not for a tool measure (P2b).
 Native measure: `native_run.py --variant parse-basis`. An M600 /
 M601 remap that is not the suite's (`foreign_m600_codes`) is unknown from
 the first callback it runs in — the interpreter's remap stack names it,

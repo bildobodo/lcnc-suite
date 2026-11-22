@@ -62,7 +62,10 @@ reader keeps file order too and treats its own gateway's loss report as an incom
 observation: the wait proves the end or refuses at its bound. It walks the generations
 oldest first and carries the slice's beginning into every newer file (a wall step at a
 rotation never drops the newer file); one file read under two names (a rotation during the
-read) leaves the order unproven — incomplete (Codex R433).
+read) leaves the order unproven — incomplete (Codex R433). `parse-basis.nice` reads the
+priority each drift parse ASKED for (`gcode.spawn_start` nice) and the one the worker's
+os.nice() APPLIED (`gcode.worker_done` nice_applied, by job); an untraced applied priority is
+incomplete.
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

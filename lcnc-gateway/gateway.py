@@ -5974,6 +5974,16 @@ async def _ts_read_back(file: str, attempt: Optional[tuple] = None) -> None:
                 state=toolsetter_basis_view(_ts_basis)["state"])
 
 
+def _machine_on_in_auto(st) -> bool:
+    """The machine ON in AUTO, as the STATUS PAYLOAD says it (Fable's merge
+    check of P2a): `enabled` is STAT.enabled — task state ON, the payload
+    carries no task_state — and `task_mode`. The payload's `state` is
+    STAT.state, the RCS execution status (DONE / EXEC / ERROR), never
+    STATE_ON: a test on it was dead. LinuxCNC takes no synch there (Codex
+    R118); the synch itself stays the authority (_synch_interp_params)."""
+    return getattr(st, "enabled", None) is True and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO
+
+
 def _ts_read_back_due(st) -> bool:
     """Read the values back now? A loaded program that runs the routine, a
     basis not confirmed, once per (basis version, program), the machine
@@ -5989,7 +5999,7 @@ def _ts_read_back_due(st) -> bool:
         return False
     # Machine ON in AUTO, LinuxCNC takes no synch (Codex R118 VP-I71): not due
     # there — it becomes due once the task leaves AUTO, not tried in vain
-    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
+    if _machine_on_in_auto(st):
         return False
     return not (_get_cmd_lock().locked() or _rfl_busy() or _active_jogs or st.current_vel)
 
@@ -6096,7 +6106,7 @@ def _ts_hold_reason(st) -> Optional[str]:
     AUTO (no synch there, Codex R118)."""
     if toolsetter_basis_view(_ts_basis)["state"] != "assumed":
         return None
-    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
+    if _machine_on_in_auto(st):
         return None
     key = _ts_attempt_key()
     outcome = _ts_readback_outcomes.get(key)

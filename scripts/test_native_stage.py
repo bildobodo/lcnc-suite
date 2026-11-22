@@ -7855,14 +7855,39 @@ def test_parse_basis_judges_the_toolsetter_reparses_only():
     assert pinned["status"] == "PASS", pinned
 
 
+def _nice_window(*spawns, applied=None):
+    """Spawns with jobs 1, 2, … and their worker_done; `applied` maps a job
+    to the worker's answered priority (default: 19 for a drift's job)."""
+    w = _pb_window(spawns=[dict(s, job=i + 1) for i, s in enumerate(spawns)])
+    for i, s in enumerate(spawns):
+        a = (applied or {}).get(i + 1, "19" if s.get("nice") == 19 else "0")
+        if a != "omit":
+            w["events"].append({"tag": "gcode.worker_done", "job": i + 1, "nice_applied": a})
+    return w
+
+
 def test_parse_nice_needs_a_traced_drift_parse():
-    w = lambda *s: _pb_window(spawns=list(s))   # noqa: E731
+    w = _nice_window
     assert nc.eval_parse_nice("n", w())["status"] == "incomplete"
     assert nc.eval_parse_nice("n", w({"reason": "file"}))["status"] == "incomplete", "a load is no drift"
     assert nc.eval_parse_nice("n", w({"reason": "wcsoff:G54:z"}))["status"] == "incomplete", "before P2a: untraced"
     assert nc.eval_parse_nice("n", w({"reason": "wcsoff:G54:z", "nice": 19}, {"reason": "file", "nice": 0}))["status"] == "PASS"
     bad = nc.eval_parse_nice("n", w({"reason": "toolsetter", "nice": 0}))
     assert bad["status"] == "FAIL" and bad["not_niced"] == [("toolsetter", 0)], bad
+
+
+def test_parse_nice_reads_the_workers_applied_priority():
+    """Fable's merge check: the spawn's field is what was ASKED; the
+    worker's os.nice() answer (worker_done nice_applied) is the evidence."""
+    w = _nice_window
+    asked_not_applied = nc.eval_parse_nice("n", w({"reason": "toolsetter", "nice": 19}, applied={1: "0"}))
+    assert asked_not_applied["status"] == "FAIL" and "by the worker" in asked_not_applied["detail"], asked_not_applied
+    failed = nc.eval_parse_nice("n", w({"reason": "toolsetter", "nice": 19}, applied={1: "failed PermissionError: x"}))
+    assert failed["status"] == "FAIL"
+    untraced = nc.eval_parse_nice("n", w({"reason": "toolsetter", "nice": 19}, applied={1: "omit"}))
+    assert untraced["status"] == "incomplete" and "applied priority" in untraced["detail"], untraced
+    ok = nc.eval_parse_nice("n", w({"reason": "toolsetter", "nice": 19}, {"reason": "rotary:A", "nice": 19}))
+    assert ok["status"] == "PASS" and ok["applied"] == 2, ok
 
 
 def test_the_parse_basis_program_runs_the_routine_and_is_felt():
@@ -7966,8 +7991,11 @@ def test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet():
 
 # ── Codex R431: the native proof's premise, its observation, its losses ────
 def _r431_ops(last="confirmed"):
-    """Codex R431's three ops: two confirmed, the last ending as `last`."""
-    ev = [{"tag": "gcode.spawn_start", "reason": "tool_offset", "nice": 19}]
+    """Codex R431's three ops: two confirmed, the last ending as `last` —
+    with one niced drift parse whose worker applied 19 (so a nice judge
+    reaches its loss check, not an untraced priority)."""
+    ev = [{"tag": "gcode.spawn_start", "reason": "tool_offset", "nice": 19, "job": 1},
+          {"tag": "gcode.worker_done", "job": 1, "nice_applied": "19"}]
     for i in range(3):
         v = i * 4 + 3
         ev += [{"tag": "toolsetter.basis", "version": v - 2, "origin": "assumed", "keys": [3014]},
