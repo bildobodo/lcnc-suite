@@ -16,18 +16,26 @@ const { chromium } = require("@playwright/test");
 
 const out = { marks: {}, hints: [], errors: [] };
 const mark = (k) => { out.marks[k] = Date.now(); };
-const browser = await chromium.launch();
+// The VM has no GPU. Headless Chromium's default WebGL is SwiftShader (one
+// core, ~1 s a frame for the moving machine); Mesa's llvmpipe through ANGLE's
+// EGL backend is several times faster — two threads, so LinuxCNC keeps its cores.
+const browser = await chromium.launch({ args: ["--use-angle=gl-egl", "--ignore-gpu-blocklist"],
+                                        env: { ...process.env, LP_NUM_THREADS: "2" } });
 try {
-  // The VM has no GPU: headless Chromium renders the 3D view in software,
-  // ~1.5 s a frame once the machine moves — the page itself would hang and
-  // its lease would rightly end. A pixel ratio of 0.25 cuts the canvas to a
-  // sixteenth (the layout and the controls stay in CSS px); the evaluators
-  // still judge a hold only on a page without a long task.
+  // Software rendering still: SwiftShader took 1.5-1.7 s a frame once the
+  // machine moved (the page hung and its lease rightly ended). A pixel ratio
+  // of 0.25 cuts the canvas to a sixteenth (the layout and the controls stay
+  // in CSS px); the evaluators judge a hold only on a page without a long task.
   const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 0.25 });
   page.on("console", (m) => { if (m.type() === "error") out.errors.push(m.text().slice(0, 300)); });
   await page.goto(url);
   await page.locator("input.setupInput").first().waitFor({ timeout: 30_000 });
   out.dpr = await page.evaluate(() => window.devicePixelRatio);
+  out.gl = await page.evaluate(() => {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    const ext = gl && gl.getExtension("WEBGL_debug_renderer_info");
+    return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null;
+  });
   const arm = page.getByRole("button", { name: "Arm", exact: true });
   await arm.click();
   await page.locator(".pill.armed").waitFor({ timeout: 10_000 });
