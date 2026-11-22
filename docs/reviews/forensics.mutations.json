@@ -6,7 +6,8 @@
   "red": true,
   "failed": [
    "FAILED lcnc-gateway/test_trace_rotation.py::test_a_fragment_another_process_left_is_closed_before_the_next_record",
-   "FAILED lcnc-gateway/test_trace_rotation.py::test_the_same_writer_resumes_after_efbig_and_reports_it"
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_the_same_writer_resumes_after_efbig_and_reports_it",
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_a_fragment_is_closed_in_its_own_file_before_a_rotation"
   ],
   "summary": []
  },
@@ -44,16 +45,46 @@
   "summary": []
  },
  {
+  "mutation": "report_settles_every_count",
+  "rule": "R428 MT-I12: the written report resets every counter (new losses erased)",
+  "file": "lcnc-gateway/lcnc_trace.py",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_a_loss_counted_while_its_report_is_written_stays_pending"
+  ],
+  "summary": []
+ },
+ {
+  "mutation": "rotation_before_fragment_close",
+  "rule": "R428 MT-I13: the old order — rotate first, then look at the NEW file's end",
+  "file": "lcnc-gateway/lcnc_trace.py",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_rotation.py::test_a_fragment_is_closed_in_its_own_file_before_a_rotation"
+  ],
+  "summary": []
+ },
+ {
+  "mutation": "crash_copy_glues_generations",
+  "rule": "R428 MT-I13: the crash copy concatenates without a boundary",
+  "file": "scripts/trace-bundle.py",
+  "red": true,
+  "failed": [
+   "FAILED lcnc-gateway/test_trace_bundle.py::test_a_generation_left_open_keeps_its_boundary_in_the_crash_snapshot"
+  ],
+  "summary": []
+ },
+ {
   "mutation": "stall_at_150",
   "rule": "MT425-04: a 150 ms gap counts (the hold guard's limit is > 150)",
   "file": "lcnc-webui/src/stallWindow.ts",
   "red": true,
   "failed": [
-   "× counts gaps past the hold guard's own limit: 150 is none, 151 is one 5ms",
+   "× counts gaps past the hold guard's own limit: 150 is none, 151 is one 6ms",
    "FAIL  src/stallWindow.test.ts > the stall window > counts gaps past the hold guard's own limit: 150 is none, 151 is one"
   ],
   "summary": [
-   " ❯ src/stallWindow.test.ts (6 tests | 1 failed) 7ms",
+   " ❯ src/stallWindow.test.ts (6 tests | 1 failed) 8ms",
    " Test Files  1 failed | 2 passed (3)",
    "      Tests  1 failed | 35 passed (36)"
   ]
@@ -64,11 +95,11 @@
   "file": "lcnc-webui/src/holdGesture.ts",
   "red": true,
   "failed": [
-   "× a stalled end carries the gap that decided it — the gesture's own observation 3ms",
+   "× a stalled end carries the gap that decided it — the gesture's own observation 7ms",
    "FAIL  src/holdGesture.test.ts > the refusal's evidence (P3, Codex R425 MT425-04) > a stalled end carries the gap that decided it — the gesture's own observation"
   ],
   "summary": [
-   " ❯ src/holdGesture.test.ts (23 tests | 1 failed) 8ms",
+   " ❯ src/holdGesture.test.ts (23 tests | 1 failed) 11ms",
    " Test Files  1 failed | 2 passed (3)",
    "      Tests  1 failed | 35 passed (36)"
   ]
@@ -79,8 +110,8 @@
   "file": "lcnc-webui/src/ws/telemetry.ts",
   "red": true,
   "failed": [
-   "× is best-effort: a rejecting fetch neither throws nor wedges the queue — and its loss is counted 4ms",
-   "× a non-2xx answer is a counted loss; the report rides the next batch and clears on its delivery 1ms",
+   "× is best-effort: a rejecting fetch neither throws nor wedges the queue — and its loss is counted 5ms",
+   "× a non-2xx answer is a counted loss; the report rides the next batch and clears on its delivery 2ms",
    "× a report in flight is never said twice — it comes back only if its own batch is lost 1ms",
    "× the gateway's refusal and its rejected lines are losses too; a failed report keeps its count 1ms",
    "FAIL  src/ws/telemetry.test.ts > telemetry batcher > is best-effort: a rejecting fetch neither throws nor wedges the queue — and its loss is counted",

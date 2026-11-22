@@ -227,3 +227,25 @@ def test_the_gateway_runs_the_bundler_beside_it_and_names_a_failure(tmp_path, mo
                         lambda argv, **kw: subprocess.CompletedProcess(argv, 0, b"", b""))
     gateway._snapshot_trip(124)
     assert [t for t, _ in events] == ["safety.trip_snapshot_done"]
+
+
+def test_a_generation_left_open_keeps_its_boundary_in_the_crash_snapshot(tmp_path):
+    """Codex R428 MT-I13, the bundler: generations written before the fix
+    (or by any writer) may end open — the copy keeps the boundary, the next
+    generation's first record stays one readable line, the open end and the
+    damage are named per source."""
+    (tmp_path / "crash.log.1").write_bytes(b'{"cut":')
+    (tmp_path / "crash.log").write_bytes(json.dumps({"tag": "crash.after", "t_wall_ns": 2}).encode() + b"\n")
+    out = tmp_path / "bundle"
+    out.mkdir()
+    account = _bundler().copy_crash_log(str(tmp_path), str(out))
+    assert account["lock"] == "held"
+    rows = []
+    for line in (out / "crash-snapshot.log").read_bytes().splitlines():
+        try:
+            rows.append(json.loads(line))
+        except ValueError:
+            pass
+    assert [r.get("tag") for r in rows] == ["crash.after"], (out / "crash-snapshot.log").read_text()
+    assert account["open_ends"] == ["crash.log.1"]
+    assert account["damaged"] == {"crash.log.1": 1}

@@ -275,12 +275,31 @@ def copy_crash_log(log_dir: str, out_dir: str) -> dict:
     finally:
         snap.close()
     path = os.path.join(out_dir, "crash-snapshot.log")
+    open_ends: List[str] = []
+    damaged: Dict[str, int] = {}
     with open(path, "wb") as f:
-        for _entry, raw in data:
-            f.write(_redact(raw.decode("utf-8", "replace")).encode("utf-8"))
+        for entry, raw in data:
+            text = _redact(raw.decode("utf-8", "replace"))
+            damaged[entry] = sum(1 for line in text.splitlines() if line.strip() and not _is_json(line))
+            f.write(text.encode("utf-8"))
+            if text and not text.endswith("\n"):
+                # a generation's open end (a fragment some writer left): the
+                # boundary is kept — the next generation's first record never
+                # glues onto it (Codex R428 MT-I13); named per source
+                f.write(b"\n")
+                open_ends.append(entry)
     return {"file": "crash-snapshot.log", "sources": snap.sources(),
             "gaps": [f"{CRASH_NAME}.{n}" for n in snap.gaps], "lock": snap.lock,
-            "capture_bound_ns": snap.capture_bound_ns, "errors": snap.errors}
+            "capture_bound_ns": snap.capture_bound_ns, "errors": snap.errors,
+            "open_ends": open_ends, "damaged": {k: v for k, v in damaged.items() if v}}
+
+
+def _is_json(line: str) -> bool:
+    try:
+        json.loads(line)
+    except ValueError:
+        return False
+    return True
 
 
 def _t0_wall_ns_for_proc(events: Iterable[dict]) -> Dict[Tuple[str, int], int]:

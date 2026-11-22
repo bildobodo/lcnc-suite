@@ -417,3 +417,67 @@ if __name__ == "__main__" and len(sys.argv) == 3 and sys.argv[1] == "--red":
     with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
         print("two writers:", json.dumps(two_writer_verdict(old, Path(d1))))
         print("fragment:", json.dumps(fragment_verdict(old, Path(d2)), default=str))
+
+
+# ── Codex R428 ────────────────────────────────────────────────────────────
+def _json_rows(path):
+    rows = []
+    for line in path.read_bytes().splitlines():
+        try:
+            rows.append(json.loads(line))
+        except ValueError:
+            pass
+    return rows
+
+
+def test_a_loss_counted_while_its_report_is_written_stays_pending(tmp_path):
+    """MT-I12 (Codex R428's probe): a reentrant loss while the report of an
+    earlier one is written is not erased with it — reported later, or still
+    pending; never lost."""
+    import os
+    import lcnc_trace
+    from test_trace_bundle import _rec
+    path = tmp_path / "trace.ndjson"
+    h = lcnc_trace.CoordinatedFileHandler(str(path), str(tmp_path / "trace.lock"),
+                                          max_bytes=0, backups=5, report_prefix="trace")
+
+    def full(fd, data):
+        raise OSError(errno.ENOSPC, "injected full disk")
+    h.raw_write = full
+    assert h.append(_rec(1, "lost.enospc")) is False
+    called = False
+
+    def report_reenters(fd, data):
+        nonlocal called
+        if not called:
+            called = True
+            assert h.append(_rec(2, "lost.reentrant")) is False
+        return os.write(fd, data)
+    h.raw_write = report_reenters
+    try:
+        assert h.append(_rec(3, "after"))
+        h.raw_write = os.write
+        assert h.append(_rec(4, "next"))
+        reports = [r for r in _json_rows(path) if r.get("tag") == "trace.write_lost"]
+        assert sum(r["count"] for r in reports) + h.pending_report()["lost"] == 2, (reports, h.pending_report())
+        assert sum(r["count"] for r in reports) == 2, "the second loss rode the next section's report"
+    finally:
+        h.close()
+
+
+def test_a_fragment_is_closed_in_its_own_file_before_a_rotation(tmp_path):
+    """MT-I13, the writer: the open end a dead writer left is ended where it
+    is, before the rotation moves the file to `.1` — the generation never
+    ends open, the new record is whole."""
+    import lcnc_trace
+    from test_trace_bundle import _rec
+    path = tmp_path / "crash.log"
+    path.write_bytes(b'{"cut":')
+    h = lcnc_trace.CoordinatedFileHandler(str(path), str(tmp_path / "crash.lock"),
+                                          max_bytes=32, backups=5, report_prefix="crash")
+    try:
+        assert h.append(_rec(2, "crash.after", level="error"))
+    finally:
+        h.close()
+    assert (tmp_path / "crash.log.1").read_bytes() == b'{"cut":\n', "closed before it moved"
+    assert "crash.after" in [r.get("tag") for r in _json_rows(path)]
