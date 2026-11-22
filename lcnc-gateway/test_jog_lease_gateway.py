@@ -46,6 +46,11 @@ class _Lease(_Writer):
         super().setUp()
         self.takes_the_mode()
         gateway._active_jogs.clear()
+        # an earlier test's in-process lifespan leaves the flag set at its
+        # teardown (gateway.lifespan) — the expiry skips everything then
+        p = mock.patch.object(gateway, "_shutting_down", False)
+        p.start()
+        self.addCleanup(p.stop)
         p = mock.patch.object(gateway, "_jog_leases", jog_lease.LeaseTable())
         p.start()
         self.addCleanup(p.stop)
