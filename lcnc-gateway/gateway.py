@@ -10562,9 +10562,12 @@ _mode_ignored_seq = 0
 #: the controller takes the write within this (its echo)
 ESTOP_RESET_ECHO_S = 1.0
 #: after the echo: LinuxCNC leaves ESTOP through iocontrol (the reset sets
-#: user-enable-out, the chain closes, emc-enable-in follows) — measured on
-#: the VM sim (native case estop-reset, P4-1)
-ESTOP_RESET_SETTLE_S = 0.3
+#: user-enable-out, the chain closes — hal_watchdog applies `connected` in
+#: its 100 ms select loop — and emc-enable-in follows). Measured on the VM
+#: sim (native case estop-reset, P4-1, 2026-11-23, 5 resets): the echo
+#: 0.1–72 ms after the write, the task out of ESTOP 200–202 ms after the
+#: echo. The window holds that more than twice over.
+ESTOP_RESET_SETTLE_S = 0.5
 #: how late the deciding poll may begin after the window's end (the idle
 #: poll runs at 5 Hz)
 ESTOP_RESET_LATE_S = 1.0
