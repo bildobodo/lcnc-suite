@@ -21,6 +21,10 @@ sys.path.insert(0, str(HERE))
 from test_support import heavy_lock as hl  # noqa: E402
 
 
+#: the table a fake gateway's read names (P4-2: a save carries the row it read)
+_FAKE_TABLE = {"path": "/run/tool.tbl", "instance": "1:2"}
+
+
 @pytest.fixture(autouse=True)
 def own_heavy_lock(tmp_path, monkeypatch):
     """Each test its own lock file: inside a gate the gate holds the real one
@@ -1653,7 +1657,7 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
 
         def request(self, cmd, **kw):
             if cmd == "get_tool_table":
-                return {"tools": [{"T": 1, "Z": self.table}]}
+                return {"tools": [{"T": 1, "Z": self.table}], "table": _FAKE_TABLE}
             if cmd == "get_probe_vars":
                 return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
             if cmd == "save_tool":
@@ -1891,7 +1895,7 @@ def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measuremen
 
         def request(self, cmd, **kw):
             if cmd == "get_tool_table":
-                return {"tools": [{"T": 1, "Z": self.table}]}
+                return {"tools": [{"T": 1, "Z": self.table}], "table": _FAKE_TABLE}
             if cmd == "get_probe_vars":
                 return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
             if cmd == "save_tool":
@@ -2022,7 +2026,7 @@ class RflClient(FrameClient):
                             for ft, st in self.after_confirm]
             return {"ok": True}
         if cmd == "get_tool_table":
-            return {"tools": [{"T": 1, "Z": self.table}]}
+            return {"tools": [{"T": 1, "Z": self.table}], "table": _FAKE_TABLE}
         if cmd == "save_settings":
             return self.settings.save(kw)
         if cmd == "mdi":
@@ -3247,9 +3251,9 @@ def _claim_client(refusals, text="A program or macro is starting or running — 
         table = None
 
         def request(self, cmd, **kw):
+            if cmd == "get_tool_table":       # a read, not an attempt of the write
+                return {"tools": [{"T": 1, "Z": self.table}], "table": _FAKE_TABLE}
             self.asked += 1
-            if cmd == "get_tool_table":
-                return {"tools": [{"T": 1, "Z": self.table}]}
             if self.asked <= refusals:
                 raise Refused(f"{cmd} refused: {text}")
             self.table = kw.get("z_offset")
@@ -3408,7 +3412,7 @@ def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_j
 
         def request(self, cmd, **kw):
             if cmd == "get_tool_table":
-                return {"tools": [{"T": 1, "Z": self.table}]}
+                return {"tools": [{"T": 1, "Z": self.table}], "table": _FAKE_TABLE}
             if cmd in ("save_tool", "set_params"):
                 self.table = kw.get("z_offset", self.table)
                 self.vars.update({int(k): v for k, v in kw.get("sets", {}).get("toolsetter", {}).items()})
@@ -3891,7 +3895,7 @@ class TsClient(FrameClient):
             if on_cmd == cmd and part in text:
                 self.errors.append((self.frames[-1][0] + 0.5, *err))
         if cmd == "get_tool_table":
-            return {"tools": [{"T": t, "Z": z} for t, z in self.table.items()]}
+            return {"tools": [{"T": t, "Z": z} for t, z in self.table.items()], "table": _FAKE_TABLE}
         if cmd == "mdi":
             m = re.match(r"G43 H(\d+)", kw["text"])
             if m:
@@ -8459,3 +8463,12 @@ def test_the_error_line_judge():
     assert nc.eval_error_line("e", window(), 8, 97)["status"] == "incomplete"
     assert nc.eval_error_line("e", window({**part(None), "error": "other"}), 8, 97)["status"] == "incomplete"
     assert nc.eval_error_line("e", {"framed": False, "reason": "x"}, 8, 97)["status"] == "incomplete"
+
+
+def test_the_harness_names_the_tool_edit_fields_of_the_gateway():
+    """P4-2: the harness's save names the row with exactly the gateway's fields."""
+    import ast
+    tree = ast.parse((HERE.parent / "lcnc-gateway/command_policy.py").read_text())
+    gw = next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
+              and any(getattr(t, "id", None) == "TOOL_EDIT_FIELDS" for t in n.targets))
+    assert nr.TOOL_EDIT_FIELDS == gw

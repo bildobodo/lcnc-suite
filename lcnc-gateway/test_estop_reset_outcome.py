@@ -138,8 +138,15 @@ class TestTheHandler(unittest.TestCase):
                     stat.task_state = state             # where the task stands after the write
                     a.send_json({"cmd": "estop_reset"})
                     t0 = time.monotonic()
+                    early = []
                     if preempt:
-                        _drain(a, 0.15, 0.5)
+                        # the reset IN FLIGHT (its handler waiting) before the E-Stop
+                        deadline = time.monotonic() + 3
+                        while not any(getattr(c, "cmd_inflight", None) == "estop_reset"
+                                      for c in list(gateway._clients.values())):
+                            early += [f for _t, f in _drain(a, 0.02, 0.5) if _is_reply(f, "estop_reset")]
+                            if early or time.monotonic() > deadline:
+                                raise AssertionError(f"the reset was never in flight: {early}")
                         b.send_json({"cmd": "estop"})
                     fa = _drain(a, 5.0, 0.5, stop=lambda f: _is_reply(f, "estop_reset"))
                     return fa[-1][1], time.monotonic() - t0, h

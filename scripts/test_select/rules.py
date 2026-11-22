@@ -165,7 +165,7 @@ PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
            "sim-panel.viewer", "strip-actions")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
-         "tool-import", "tool-table-read")
+         "tool-import", "tool-table-read", "tool-preview", "tool-edit")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
 PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")

@@ -1264,8 +1264,27 @@ def _when_free(c, cmd, before=None, at_send=None, **kw):
             time.sleep(0.1)
 
 
+#: the merged row's fields a tool edit sends back whole — command_policy.
+#: TOOL_EDIT_FIELDS (P4-2; test_native_stage holds the two equal: this file
+#: never imports the gateway's modules)
+TOOL_EDIT_FIELDS = ("P", "D", "Z", "remark", "description", "type", "flutes", "oal", "flute_length",
+                    "corner_radius", "body_length", "shaft_diameter", "taper_angle", "point_angle",
+                    "tip_diameter", "material", "holder")
+
+
+def _tool_row_expect(c, tool):
+    """The row state a save of `tool` names (P4-2, Codex MT433-01): the
+    table and the row as the gateway's read shows them NOW — the harness
+    edits a row it has just read, like a dialog opened on that read."""
+    reply = c.request("get_tool_table")
+    row = next((t for t in reply.get("tools") or [] if t.get("T") == tool), None)
+    if row is None or not isinstance(reply.get("table"), dict):
+        raise Refused(f"T{tool} or the table's identity not in the gateway's read")
+    return {"table": reply["table"], "tool": tool, "fields": {f: row.get(f) for f in TOOL_EDIT_FIELDS}}
+
+
 def _set_tool_length(c, tool, length):
-    _when_free(c, "save_tool", tool_number=tool, z_offset=length)
+    _when_free(c, "save_tool", tool_number=tool, z_offset=length, expected=_tool_row_expect(c, tool))
     back = _tool_z(c, tool)
     if back is None or abs(back - length) > nc.SAME:
         raise Refused(f"T{tool}'s length {length} not read back from the table (read {back})")
