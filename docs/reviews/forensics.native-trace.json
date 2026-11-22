@@ -1,0 +1,37 @@
+{
+ "what": "the native run's own trace at the P3 head (VM sim, 3-axis), read after the run",
+ "writers": {
+  "hal_watchdog": 2418,
+  "hal_reader": 815,
+  "launcher": 828,
+  "gateway": 2370,
+  "gcode_parse_worker": 13
+ },
+ "damaged_lines": 0,
+ "loss_fragment_snapshot_tags": {
+  "safety.trip_snapshot_done": 1
+ },
+ "trip_bundles": 1,
+ "bundle": {
+  "requested_window": {
+   "start_ns": 1795345056058903813,
+   "end_ns": 1795345062058903813
+  },
+  "tail_wait_s": 1.187,
+  "truncated_before": false,
+  "tail_missing": false,
+  "damaged_lines": 0
+ },
+ "bundle_sources": [
+  {
+   "name": "trace.ndjson",
+   "dev": 65027,
+   "ino": 3476242,
+   "size": 1587489,
+   "records": 6418,
+   "damaged": 0
+  }
+ ],
+ "bundle_lock": "held",
+ "bundle_window_records": 56
+}
