@@ -300,7 +300,7 @@ class TestEdges(_BasisCase):
         in_mdi = type("InMdi", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_MDI})
         self.assertTrue(gateway._ts_read_back_due(in_mdi))
         self.assertTrue(gateway._ts_read_back_due(_St))
-        gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
+        gateway._ts_readback_tried = gateway._ts_attempt_key()
         self.assertFalse(gateway._ts_read_back_due(_St), "once per version and program")
         gateway._ts_readback_tried = None
         moving = type("M", (_St,), {"current_vel": 3.0})
@@ -401,17 +401,18 @@ class TestConfirmedEquality(unittest.TestCase):
         self.assertEqual(set(a) | set(b), {"version", "patches", "unpredictable", "view"})
 
 
-class TestHoldAndAttempt(_BasisCase):
-    """P2a-1/-2 at the handler level (Codex R427/R428): the attempt per
-    (revision, program), the edge held for the one read-back, its booked
-    outcome, the 30 s bound, the masked reason."""
+class _HoldBase(_BasisCase):
+    """A confirmed basis published for a program that runs the routine; the
+    trace recorded; the poll and the measured probe operation as helpers."""
 
     def setUp(self):
         super().setUp()
-        names = ("_ts_readback_outcome", "_ts_hold_anchor", "_ts_hold_said")
+        names = ("_ts_readback_outcome", "_ts_hold_anchor", "_ts_hold_said", "_ts_readback_outcomes",
+                 "_ts_readback_current")
         saved = [getattr(gateway, n) for n in names]
         self.addCleanup(lambda: [setattr(gateway, n, v) for n, v in zip(names, saved)])
-        gateway._ts_readback_outcome = gateway._ts_hold_anchor = None
+        gateway._ts_readback_outcome = gateway._ts_hold_anchor = gateway._ts_readback_current = None
+        gateway._ts_readback_outcomes = __import__("collections").OrderedDict()
         gateway._ts_hold_said = (None, frozenset())
         bulk = ("published_toolsetter", "published_ctx", "last_file", "published_source")
         saved_b = [getattr(gateway._bulk, n) for n in bulk]
@@ -459,6 +460,13 @@ class TestHoldAndAttempt(_BasisCase):
         _run(gateway._apply_probe_vars({"3014": v}, True))
         gateway._ts_mark_assumed(None)
 
+
+
+class TestHoldAndAttempt(_HoldBase):
+    """P2a-1/-2 at the handler level (Codex R427/R428): the attempt per
+    (revision, program), the edge held for the one read-back, its booked
+    outcome, the 30 s bound, the masked reason."""
+
     def test_the_measured_probe_sequence_parses_nothing(self):
         self.probe_op()
         self.assertEqual(toolsetter_basis_view(gateway._ts_basis)["state"], "assumed")
@@ -494,8 +502,8 @@ class TestHoldAndAttempt(_BasisCase):
 
     def test_an_aborted_read_back_ends_the_hold(self):
         self.probe_op()
-        gateway._ts_readback_outcome = ((gateway._ts_basis_version, "/p.ngc"), "aborted")
-        gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
+        gateway._ts_readback_ended(gateway._ts_attempt_key(), "aborted")
+        gateway._ts_readback_tried = gateway._ts_attempt_key()
         self.assertEqual(self.poll(), "toolsetter")
         self.assertEqual(self.tags("gcode.reparse_toolsetter_hold_ended")[-1]["why"], "aborted")
 
@@ -513,12 +521,12 @@ class TestHoldAndAttempt(_BasisCase):
             with self.assertRaises(asyncio.CancelledError):
                 await gateway._ts_readback_task
         _run(go())
-        self.assertEqual(gateway._ts_readback_outcome, ((gateway._ts_basis_version, "/p.ngc"), "aborted"))
+        self.assertEqual(gateway._ts_readback_outcome, (gateway._ts_attempt_key(), "aborted"))
 
     def test_a_read_back_not_admitted_retries_until_the_bound(self):
         self.probe_op()
-        gateway._ts_readback_outcome = ((gateway._ts_basis_version, "/p.ngc"), "not_admitted")
-        gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
+        gateway._ts_readback_ended(gateway._ts_attempt_key(), "not_admitted")
+        gateway._ts_readback_tried = gateway._ts_attempt_key()
         self.assertEqual(gateway._ts_hold_reason(_St), "not_admitted")
         v, t0 = gateway._ts_hold_anchor
         self.assertEqual(v, gateway._ts_basis_version)
@@ -580,6 +588,84 @@ class TestHoldAndAttempt(_BasisCase):
         with mock.patch.object(gateway._bulk, "schedule_refresh", return_value=False):
             self.assertFalse(gateway._schedule_drift_refresh("/p.ngc", "rotary:A", "toolsetter"))
         self.assertEqual(len(self.tags("gcode.reparse_toolsetter_masked")), 1, "nothing scheduled: nothing said")
+
+
+class TestReadbackEnds(_HoldBase):
+    """Codex R430 MT-I15/MT-I16 (its probes, the attempt key in the full
+    identity form MT-I16 asks for): every end of the read-back task gives
+    exactly its attempt a terminal outcome; the read-back, its outcome and
+    the hold use the parse attempt's program identity."""
+
+    def test_r430_a_cancel_before_the_tasks_first_step_ends_the_hold(self):
+        self.probe_op()
+        key = gateway._ts_attempt_key()
+
+        async def go():
+            # a stop already ready in the loop, before the task this tick creates
+            asyncio.get_running_loop().call_soon(gateway._preempt_inflight, "abort", 0)
+            self.assertIsNone(gateway._ts_poll(_St))
+            with self.assertRaises(asyncio.CancelledError):
+                await gateway._ts_readback_task
+        _run(go())
+        self.assertEqual((gateway._ts_readback_outcome, gateway._ts_hold_reason(_St), self.poll()),
+                         ((key, "aborted"), None, "toolsetter"))
+
+    def test_r430_a_binding_error_ends_the_hold_as_failed(self):
+        from test_g30 import linuxcnc
+        self.probe_op()
+        key = gateway._ts_attempt_key()
+
+        def broken():
+            raise linuxcnc.error("synch send failed")
+        broken.__name__ = "task_plan_synch"
+        self.task.task_plan_synch = broken
+
+        async def go():
+            self.assertIsNone(gateway._ts_poll(_St))
+            try:
+                await gateway._ts_readback_task
+            except linuxcnc.error:
+                pass
+        _run(go())
+        self.assertEqual((gateway._ts_readback_outcome, gateway._ts_hold_reason(_St), self.poll()),
+                         ((key, "failed"), None, "toolsetter"))
+        self.assertEqual(self.tags("toolsetter.read_back_failed")[-1]["why"], "error", "said")
+
+    def test_r430_a_new_source_at_the_same_path_gets_its_read_back_attempt(self):
+        self.probe_op()
+        self.task.synch_rc = 3
+        self.assertIsNone(self.poll())
+        self.assertEqual(gateway._ts_readback_outcome[1], "failed")
+        old_version, anchor = gateway._ts_basis_version, gateway._ts_hold_anchor
+        gateway._bulk.published_source = "src-2"      # a new version of the file, the book still assumed
+        self.publish()
+        self.task.synch_rc = 1
+        self.assertEqual(gateway._ts_basis_version, old_version)
+        self.assertTrue(gateway._ts_read_back_due(_St), "the old source's failed attempt is not the new one's")
+        self.assertEqual(gateway._ts_hold_anchor, anchor, "a program change never restarts the 30 s")
+
+    def test_a_late_completion_never_books_a_newer_attempt(self):
+        self.probe_op()
+        old = gateway._ts_attempt_key()
+        gateway._ts_readback_current = old
+        gateway._ts_book({3009: 77.0}, "assumed")              # a newer revision, a newer attempt
+        new = gateway._ts_attempt_key()
+        self.assertNotEqual(old, new)
+        gateway._ts_readback_current = new
+        gateway._ts_readback_ended(new, "not_admitted")
+        gateway._ts_readback_ended(old, "failed")              # the old task ends late
+        self.assertEqual(gateway._ts_readback_outcomes[new], "not_admitted")
+        self.assertEqual(gateway._ts_readback_outcome, (new, "not_admitted"))
+        gateway._ts_readback_ended(new, "confirmed")           # its retry ends: not_admitted gives way
+        gateway._ts_readback_ended(new, "failed")              # nothing overwrites a terminal outcome
+        self.assertEqual(gateway._ts_readback_outcomes[new], "confirmed")
+
+    def test_every_terminal_outcome_is_traced_with_its_attempt(self):
+        self.probe_op()
+        self.task.synch_rc = 3
+        self.poll()
+        out = self.tags("toolsetter.read_back_outcome")[-1]
+        self.assertEqual((out["attempt_version"], out["outcome"]), (gateway._ts_basis_version, "failed"))
 
 
 if __name__ == "__main__":

@@ -7583,6 +7583,9 @@ def test_a_case_that_loses_its_admission_ends_the_run_and_the_environment_return
 # ── P2a (machine day F24): the parse-basis variant's evaluators ────────────
 def _pb_window(spawns=(), bookings=3, edges=0, held=0, framed=True):
     ev = [{"tag": "toolsetter.basis", "origin": "assumed", "keys": list(range(24))} for _ in range(bookings)]
+    if bookings:
+        # the last op's read-back booked `read` (it owes nothing, R430 MT-I17)
+        ev.append({"tag": "toolsetter.basis", "origin": "read", "keys": list(range(24))})
     ev += [{"tag": "gcode.reparse_toolsetter"} for _ in range(edges)]
     ev += [{"tag": "gcode.reparse_toolsetter_held"} for _ in range(held)]
     ev += [{"tag": "gcode.spawn_start", **s} for s in spawns]
@@ -7627,3 +7630,95 @@ def test_the_parse_basis_program_runs_the_routine_and_is_felt():
     assert text.count("\n") > nr.PB_PADDING and text.rstrip().endswith("M2")
     assert "parse-basis" in nr.VARIANTS
     assert set(nc.REPORT_CASES["parse-basis"]) >= {"parse-basis", "parse-basis.nice"}
+
+
+# ── Codex R430 MT-I17: the window binds to the LAST op's read-back ─────────
+_PB_KEYS = [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014] + list(range(3100, 3116))
+
+
+def _pb_ops(n, last=None, v0=10):
+    """`n` probe ops: every read-back confirmed but the last one's, which
+    ended as `last` (None: not ended yet) — gateway records."""
+    ev, v = [{"tag": "gcode.spawn_start", "reason": "tool_offset", "nice": 19}], v0
+    n_settled = n - 1
+    for i in range(n):
+        v += 3
+        ev += [{"tag": "toolsetter.basis", "origin": "assumed", "keys": [3014], "version": v - 2},
+               {"tag": "toolsetter.basis", "origin": "applied", "keys": [3014], "version": v - 1},
+               {"tag": "toolsetter.basis", "origin": "assumed", "keys": _PB_KEYS, "version": v},
+               {"tag": "gcode.reparse_toolsetter_held", "why": "read_back", "version": v}]
+        outcome = "confirmed" if i < n_settled else last
+        if outcome == "confirmed":
+            ev += [{"tag": "toolsetter.read_back_outcome", "attempt_version": v, "outcome": "confirmed"},
+                   {"tag": "toolsetter.basis", "origin": "read", "keys": _PB_KEYS, "version": v + 1},
+                   {"tag": "toolsetter.read_back"}]
+            v += 1
+        elif outcome is not None:
+            ev += [{"tag": "toolsetter.read_back_outcome", "attempt_version": v, "outcome": outcome}]
+    return ev, v
+
+
+def test_r430_the_window_closed_before_the_last_read_back_is_incomplete():
+    """Codex R430's synthetic probe: two ops confirmed, the third's read-back
+    not ended when the window closed — incomplete, never PASS; including its
+    late failure and the parse it caused — never PASS either."""
+    ev, v = _pb_ops(3, last=None)
+    assert nc.pb_owed(ev) == f"the read-back of revision {v} has not ended"
+    short = nc.eval_parse_basis("pb", {"framed": True, "events": ev}, ops=3, quiet_s=4.0)
+    assert short["status"] == "incomplete" and "has not ended" in short["detail"], short
+    late = ev + [{"tag": "toolsetter.read_back_outcome", "attempt_version": v, "outcome": "failed"},
+                 {"tag": "gcode.reparse_toolsetter_hold_ended", "why": "failed", "version": v},
+                 {"tag": "gcode.reparse_toolsetter", "version": v},
+                 {"tag": "gcode.spawn_start", "reason": "toolsetter", "nice": 19}]
+    row = nc.eval_parse_basis("pb", {"framed": True, "events": late}, ops=3, quiet_s=4.0)
+    assert row["status"] == "incomplete" and "did not confirm" in row["detail"], row
+
+
+def test_a_slow_confirmed_read_back_inside_the_window_passes():
+    ev, _v = _pb_ops(3, last="confirmed")
+    assert nc.pb_owed(ev) is None
+    assert nc.eval_parse_basis("pb", {"framed": True, "events": ev}, ops=3)["status"] == "PASS"
+    # a toolsetter parse with every read-back confirmed is a fault
+    bad = ev + [{"tag": "gcode.reparse_toolsetter"}, {"tag": "gcode.spawn_start", "reason": "toolsetter", "nice": 19}]
+    assert nc.eval_parse_basis("pb", {"framed": True, "events": bad}, ops=3)["status"] == "FAIL"
+
+
+def test_not_admitted_is_owed_until_the_hold_ends_at_its_bound():
+    ev, v = _pb_ops(3, last="not_admitted")
+    assert nc.pb_owed(ev), "not_admitted retries: still owed"
+    capped = ev + [{"tag": "gcode.reparse_toolsetter_hold_ended", "why": "cap", "version": v},
+                   {"tag": "gcode.reparse_toolsetter", "version": v},
+                   {"tag": "gcode.spawn_start", "reason": "toolsetter", "nice": 19}]
+    assert nc.pb_owed(capped) is None
+    row = nc.eval_parse_basis("pb", {"framed": True, "events": capped}, ops=3)
+    assert row["status"] == "incomplete" and "cap" in row["detail"], row
+
+
+def test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet():
+    """The real quiet helper on a simulated clock: the read-back ends at
+    5.0 s — the wait returns only after it AND PB_QUIET_S of no parse;
+    without an owed check it would have returned at 4.0 s (R430)."""
+    from types import SimpleNamespace
+    from unittest import mock
+
+    class Clock:
+        t = 0.0
+
+        def monotonic(self):
+            return self.t
+
+        def sleep(self, s):
+            self.t += s
+
+        def time_ns(self):
+            return int(self.t * 1e9)
+    clock = Clock()
+    c = SimpleNamespace(status={"preview_refresh": None})
+    with mock.patch.object(nr, "time", clock):
+        free = nr._pb_quiet(c, "pb")
+        assert free == nr.PB_QUIET_S
+        clock.t = 0.0
+        waited = nr._pb_quiet(c, "pb", owed=lambda: None if clock.t >= 5.0 else "the read-back has not ended")
+    assert waited >= 5.0 + nr.PB_QUIET_S, waited
+    assert waited <= 5.0 + nr.PB_OWED_EVERY_S + nr.PB_QUIET_S + 0.2, waited
+

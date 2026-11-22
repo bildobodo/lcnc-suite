@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
+import collections
 import gzip
 import hashlib
 import hmac
@@ -5328,9 +5329,16 @@ _ts_readback_tried: Optional[tuple] = None     # (version, file) the last read-b
 # P2a (Codex R427/R428): the attempt a toolsetter re-parse was asked for —
 # (booking version, program identity), never the content (it can recur)
 _ts_reparse_for: Optional[Tuple[int, Tuple[Optional[str], Optional[str]]]] = None
-# the read-back's booked outcome for its attempt: ((version, file), outcome),
-# outcome confirmed / failed / aborted / not_admitted
-_ts_readback_outcome: Optional[Tuple[Tuple[int, Optional[str]], str]] = None
+# the read-back's booked outcome per attempt — (version, program identity),
+# the SAME identity as the parse attempt (Codex R430 MT-I16) — confirmed /
+# failed / aborted / not_admitted; the first terminal outcome of an attempt
+# stands (a not_admitted one may be followed by its retry's), and no
+# completion ever writes another attempt's (MT-I15). Bounded: the last few.
+_ts_readback_outcomes: "collections.OrderedDict[tuple, str]" = collections.OrderedDict()
+# the latest attempt a read-back task was created for, and its outcome (the
+# tests' and the trace's view of "the current read-back")
+_ts_readback_current: Optional[tuple] = None
+_ts_readback_outcome: Optional[Tuple[tuple, str]] = None
 # (version, monotonic) of the booking that left the basis assumed at that
 # version — the hold's anchor (P2a-2); polls and retries never move it
 _ts_hold_anchor: Optional[Tuple[int, float]] = None
@@ -5424,14 +5432,51 @@ def _toolsetter_parse_ctx() -> dict:
     return toolsetter_ctx(_ts_basis, _ts_basis_version)
 
 
-def _ts_readback_ended(attempt: Tuple[int, Optional[str]], outcome: str) -> None:
-    """Book the read-back's outcome for its attempt (P2a-2, Codex R428):
-    confirmed, failed, aborted or not_admitted — the hold reads it."""
+def _ts_attempt_key() -> tuple:
+    """The attempt the toolsetter edge and its read-back belong to: (booking
+    version, program identity) — ONE identity for the parse attempt, the
+    read-back, its outcome and the hold (Codex R430 MT-I16)."""
+    return (_ts_basis_version, _ts_program_identity())
+
+
+def _ts_readback_ended(attempt: tuple, outcome: str, why: Optional[str] = None) -> None:
+    """Book the read-back's outcome for exactly its attempt (P2a-2, Codex
+    R428/R430): confirmed, failed, aborted or not_admitted — the hold reads
+    it. The first terminal outcome stands (a not_admitted one gives way to
+    its retry's); a late completion books only its own attempt."""
     global _ts_readback_outcome
-    _ts_readback_outcome = (attempt, outcome)
+    had = _ts_readback_outcomes.get(attempt)
+    if had is not None and had != "not_admitted":
+        return
+    _ts_readback_outcomes[attempt] = outcome
+    _ts_readback_outcomes.move_to_end(attempt)
+    while len(_ts_readback_outcomes) > 8:
+        _ts_readback_outcomes.popitem(last=False)
+    if _ts_readback_current is None or attempt == _ts_readback_current:
+        _ts_readback_outcome = (attempt, outcome)
+    _trace.emit("toolsetter.read_back_outcome", attempt_version=attempt[0], outcome=outcome,
+                **({"why": why} if why else {}))
 
 
-async def _ts_read_back(file: str) -> None:
+def _ts_readback_task_done(task: "asyncio.Task[None]", attempt: tuple) -> None:
+    """The read-back task's every end gives its attempt a terminal outcome
+    (Codex R430 MT-I15): cancelled — even before its first step, where the
+    body's own handler never runs — is `aborted`; an exception the body did
+    not book (a binding error from the synch, anything unexpected) is
+    `failed`, said; a body that ended without booking is `failed` too."""
+    if task.cancelled():
+        _ts_readback_ended(attempt, "aborted")
+        return
+    exc = task.exception()
+    if exc is not None:
+        _trace.emit("toolsetter.read_back_failed", level="warn", why="error", exc=type(exc).__name__, msg=str(exc))
+        _ts_readback_ended(attempt, "failed", why="error")
+        return
+    if attempt not in _ts_readback_outcomes:
+        _ts_readback_ended(attempt, "failed", why="no outcome")
+
+
+async def _ts_read_back(file: str, attempt: Optional[tuple] = None) -> None:
     """A confirmed read of the toolsetter values (the G30 contract): the
     interpreter writes every line of the parameter file from its own values
     at a synch (_synch_interp_params; rs274ngc_pre.cc save_parameters), a
@@ -5440,7 +5485,8 @@ async def _ts_read_back(file: str) -> None:
     (_preempt_inflight). A failure leaves the basis as it was, said."""
     global _ts_readback_tried
     keys = [str(k) for k in TOOLSETTER_BASIS_KEYS]
-    attempt = (_ts_basis_version, file)
+    if attempt is None:
+        attempt = _ts_attempt_key()   # a direct call; the poll passes the one it created
     try:
         async with _get_cmd_lock():
             async with _get_var_file_lock():
@@ -5499,7 +5545,7 @@ def _ts_read_back_due(st) -> bool:
         return False
     if toolsetter_basis_view(_ts_basis)["state"] == "confirmed":
         return False
-    if _ts_readback_tried == (_ts_basis_version, st.active_file):
+    if _ts_readback_tried == _ts_attempt_key():
         return False
     if _ts_readback_task is not None and not _ts_readback_task.done():
         return False
@@ -5515,10 +5561,15 @@ def _ts_poll(st) -> Optional[str]:
     due; the re-parse reason when the published parse read another input —
     unless the edge is HELD for the read-back (P2a-2): the tick that starts
     the read-back never reports the drift it is about to confirm away."""
-    global _ts_readback_task, _ts_readback_tried
+    global _ts_readback_task, _ts_readback_tried, _ts_readback_current
     if _ts_read_back_due(st):
-        _ts_readback_tried = (_ts_basis_version, st.active_file)
-        _ts_readback_task = asyncio.create_task(_ts_read_back(st.active_file))
+        # the attempt and its identity taken HERE, at the task's creation
+        # (Codex R430 MT-I15): a cancel before its first step still ends it
+        attempt = _ts_attempt_key()
+        _ts_readback_tried = _ts_readback_current = attempt
+        task = asyncio.create_task(_ts_read_back(st.active_file, attempt))
+        task.add_done_callback(lambda t, a=attempt: _ts_readback_task_done(t, a))
+        _ts_readback_task = task
     reason = _ts_drift_reason()
     if reason is None or _ts_hold_reason(st) is not None:
         return None
@@ -5609,8 +5660,8 @@ def _ts_hold_reason(st) -> Optional[str]:
         return None
     if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
         return None
-    key = (_ts_basis_version, st.active_file)
-    outcome = _ts_readback_outcome[1] if _ts_readback_outcome and _ts_readback_outcome[0] == key else None
+    key = _ts_attempt_key()
+    outcome = _ts_readback_outcomes.get(key)
     if outcome in ("failed", "aborted", "confirmed"):
         _ts_hold_note(key, "ended", outcome)
         return None
