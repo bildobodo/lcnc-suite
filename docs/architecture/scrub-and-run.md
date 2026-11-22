@@ -442,7 +442,31 @@ parameter copy, #3116 = 0); unknown or never-stored values set
 `#<_webui_toolsetter_stop>` by initcode — the routine returns at once,
 named from its start. An unconfirmed basis is read back once per version
 while a program that runs the routine is loaded (idle, nothing in flight; an
-abort cancels it); a change re-parses it (reason `toolsetter`). An M600 /
+abort cancels it); a change re-parses it (reason `toolsetter`) — since P2a
+(machine day F24, plan v2 agreed by Codex R427/R428) only a change of the
+EVIDENCED input: `toolsetter_inputs_equal` holds two inputs equal only when
+both are fully confirmed (applied or read, nothing assumed, unknown or
+missing) with equal patches — an assumed key is read from the worker's own
+copy, which the booking does not evidence, so it is equal to nothing; a
+preview parsed from the CURRENT revision needs nothing (its view stays
+named as it is); across revisions the content decides; the attempt stays
+booked per (revision, program identity = path + published source). The
+edge is HELD while the basis is assumed and the one read-back of that
+attempt has not ended (also in a tick where it is not due only for a
+passing reason — a write, a jog, motion, RFL): the read-back books its
+outcome (confirmed / failed / aborted / not_admitted); failed or aborted end
+the hold (one parse), not_admitted retries until `TS_HOLD_MAX_S` (30 s)
+after the booking that left the basis assumed; AUTO-ON (no synch) and an
+unknown basis are not held (`gcode.reparse_toolsetter_held` /
+`_hold_ended`). Another edge that takes the parse while the toolsetter input
+differs says so (`gcode.reparse_toolsetter_masked`) and books the attempt.
+A probe op (`#3014=` assumed → applied, the routine's call: every key
+assumed, the read-back: read) parses nothing when the values are unchanged
+— the machine day parsed the 344k-line program once per op. Every DRIFT
+re-parse runs at nice 19 (`BulkPipeline.DRIFT_NICE`; a load, connect, schema
+or explicit re-parse keeps its priority), on the pinned parse's longer
+leash and outside the duration history (both keyed on the priority).
+Native measure: `native_run.py --variant parse-basis`. An M600 /
 M601 remap that is not the suite's (`foreign_m600_codes`) is unknown from
 the first callback it runs in — the interpreter's remap stack names it,
 before anything its body records (Codex R107 VP-I61: its first move was
