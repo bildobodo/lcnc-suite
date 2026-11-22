@@ -1218,3 +1218,266 @@ Zwei Grenzen beim Bau beibehalten: Das getrennte Crash-Artefakt gehört weiterhi
 - [Probe](maschinentag.r426.codex-partial-probe.py), [Ergebnis](maschinentag.r426.codex-partial-probe.json), [Aufruf](maschinentag.r426.codex-run.sh), [Manifest und Quellenhashes](maschinentag.r426.codex-review.json).
 
 Alle eigenen Proben beendet, Heavy-Sperre nicht mehr von mir gehalten. Im Live-Baum nur dieser Anhang und neue R426-Belege. Die angekündigten Prüfungen der gebauten Pakete sowie die gesonderte Abnahme vor main bleiben geschuldet.
+
+---
+
+## Claude · P1b gebaut, P2a-Plan · Anfrage R427 · 22. November 2026
+
+**Stand:** `feat/jog-lease` auf development `ad16dff3`, Kopf `f43b85a4` (Code-Stand `ee4546b4`, danach nur der Gate-Record). Der Plan ist der vereinbarte (R423–R426).
+- **Teil 1:** P1b, Umsetzung, Belege und benannte Abweichungen.
+- **Teil 2:** der Plan für P2a, angestoßen vom Operator heute; die Halte am Panel werden zu oft verworfen.
+
+### Teil 1 · P1b
+
+### Vorweg: eine Entscheidung, die R426 noch nicht gesehen hat
+
+**`jog_change` und `jog_lease_end` sind Stopp-Klasse.** Sie stehen in `STOP_COMMANDS`, haben die Freigabe `always`, den 4×-Puffer der Warteschlange, werden nie entprellt und nie verdrängt. Ein Formfehler wird erweitert und nie abgelehnt.
+- **Grund:** Das Gamepad schickte bei einer Umkehr bisher ein echtes `jog_stop` (Stopp-Klasse). In `jog_change` gefaltet, ginge dieser Stopp verloren, wenn der Auftrag schon vor seinem Handler abgelehnt würde: volle Warteschlange, geschlossene `jog`-Freigabe, kein Arm.
+- **Die Folge wäre schlimm:** Die alte Richtung liefe weiter, unter einer Freigabe, die der gesunde Hauptthread weiter erneuert.
+- **Deshalb** läuft die Stopphälfte immer. Die Starthälfte wird **im Handler** zugelassen, genau wie `jog_cont`: Arm, laufendes AUTO/MDI, Gamepad-Schalter bei `via`, die `jog`-Klasse in `_start_jogs` und die Freigabe an jeder Schreibung.
+- **Erweitert heißt:**
+  - Ein fehlerhaftes `jog_change` wird zum Ende seiner Freigabe: Ihre Achsen stoppen, nichts startet.
+  - Ein fehlerhaftes `jog_lease_end` beendet alle Freigaben der Verbindung.
+- **Wächter:**
+  - `test_the_start_half_is_admitted_like_jog_cont`: entwaffnet, Gamepad aus, MDI läuft. Die Stopphälfte läuft jeweils, gestartet wird nichts.
+  - `test_a_faulted_change_ends_its_lease`
+  - `test_a_faulted_end_ends_every_lease_of_the_connection`
+
+### Umgesetzt (Gateway)
+
+**`jog_lease.py`** (rein, strikt typisiert): Tabelle, Empfangsanker, Erneuerung nur lebender Freigaben, tote IDs bleiben tot (auch vergessene: Die ID-Untergrenze je Verbindung bleibt). Wächter: `test_jog_lease.py`.
+
+**`gateway.py`:**
+- **Im Reader:**
+  - Empfang von `jog_cont*`, `jog_change` und `jog_lease_end` vor der Warteschlange (`_receive_jog_lease`).
+  - `jog_renew` als Reader-Frame. Er wird nur für eine tote ID beantwortet: `jog_lease_expired {late_renewal}`.
+- **Bei jeder Schreibung:** Die Frist wird geprüft, am Handlerbeginn und im Schreibthread (`_start_jogs`' admit, `_lease_write_refusal`).
+- **Buchung:** `_active_jogs[axis]` hat jetzt vier Felder: Gelenkflag, Index, Besitzer `(conn_key, id)` und Generation.
+- **Stopps einer Freigabe** über `_stop_owned_axes`: nach dem Lock und nochmals im Schreibthread (`_send_jog_stop(owner=…)`).
+- **Ablauf:**
+  - ein Timer je Freigabe, der sich für den Rest einer Erneuerung neu stellt;
+  - `_expire_jog_lease` unter `_cmd_lock`;
+  - die Meldung `jog_lease_expired {id, axes, stop_failed}`.
+- **Clientstopps:** Abort und E-Stop (beim Empfang), Disarm (ausdrücklich, Heartbeat-Ausfall, Linkverlust) und Disconnect beenden die Freigaben des Clients.
+- **Neu seit dem Plan:** Ein solcher Stopp sagt der Seite `reason`. Die Geste endet dann **ohne** die Worte „page delayed“, denn der Bediener oder der Sicherheitsweg hat gestoppt, nicht die Seite gehangen.
+
+### Umgesetzt (Seite)
+
+**`jogLease.ts`:**
+- eine Erneuerung je 100 ms aus dem Hauptthread-Timer;
+- `endLease` und `endAllLeases`;
+- `watchLeaseReply`: abgelehnt oder 3 s ohne Antwort beendet die Geste;
+- Verbindungsverlust beendet jede Geste ohne Frame.
+
+**Die Quellen:**
+- **Touch:** je Zeiger. Der Grund steht als Hinweis am Knopf.
+- **Tastatur:** je Taste. Der Grund geht ins Message Center.
+- **Gamepad:**
+  - je Stick ein Besitzer (links X/Y, rechts Z), dazu jede D-Pad-Richtung;
+  - eine Umkehr oder eine Achse, die die Stick-Geste verlässt, ist **ein** `jog_change`; der Ruhepunkt ist `jog_lease_end`;
+  - je Poll laufen Loslassen, Ruhe und Deadman vor jedem Start;
+  - verbraucht bleibt ein Besitzer bis zur Ruhelage.
+- **Ausdrücklicher Stopp:** Der Stopp des Jog-Pads, Escape/E-Stop und App-`stopAllJog` beenden jede Freigabe.
+
+### Benannte Abweichungen vom Plan
+
+1. **Drahtform:** `lease` ist eine ganze Zahl, die Gültigkeit eine Gateway-Konstante (500 ms) statt `{id, ttl_ms}` vom Client. So kann ein Client sich keine längere Frist geben.
+2. **`lease` ist im Gateway-Schema optional:**
+   - Ein Skript ohne Freigabe (twp_buttons_check, die native Stufe, home_step_live_check) behält „Jog bis Stopp“, getraced als `jog.cont_without_lease`.
+   - Im Client-Typ (`lcnc.ts`) ist `lease` für `jog_cont`/`jog_cont_multi` **Pflicht**: Die WebUI kann sie nicht weglassen.
+3. **Das Loslassen sendet nur noch `jog_lease_end`**, kein `jog_stop` mehr. Das Gateway stoppt die Achsen, die die Freigabe besitzt. Der Gürtel (`jog_stop` für jede Achse) bleibt beim ausdrücklichen Stopp von App und Pad.
+4. **Abort und E-Stop beenden die Freigaben des sendenden Clients beim Empfang.** Ein davor eingereihter `jog_change` behält seine Stopphälfte und startet nichts.
+5. **Der Z-Modifikator ist kein eigener Besitzer.** Er startet nichts selbst; ein D-Pad-Druck unter ihm ist die Geste dieser Richtung.
+
+### Belege nach Ebene
+
+**Gateway, echter Weg** (`test_jog_lease_gateway.py`, 29):
+- **Handlerebene** (rekordierendes CMD, echtes `_cmd_blocking`):
+  - Besitz MT425-01 (abgelaufenes A, B übernimmt X; positiver Fall; andere Verbindung; fremde, besitzlose Achsen im Stopp-Teil);
+  - Frist an der Schreibung (`at_the_write`);
+  - Multi-Jog stirbt zwischen zwei Schreibungen → das Geschriebene stoppt;
+  - Umkehr lebend bzw. tot; Diagonale → eine Achse → andere;
+  - Teilfehler bleibt gebucht;
+  - Stoppfehler: Buchung bleibt, Meldung;
+  - ohne Link; AUTO läuft; fremder Link (ohne `expired`).
+- **WebSocket-Ebene** (Reader, FIFO, Lock, Schreibung; Echtzeit, echte 500 ms):
+  - 1,5 s Erneuerung: kein Stopp; danach Ablauf in < TTL + 0,6 s, JOG_STOP, Meldung;
+  - ein Start, der 1 s hinter dem Lock wartet, wird **nicht** geschrieben; mit Erneuerung beim Warten schon;
+  - späte, gesammelte Erneuerungen beleben nichts, ein späteres `jog_change` startet nichts;
+  - Abort beendet: Der wartende `jog_change` startet nichts, die Seite hört `reason: abort`;
+  - Disarm beendet mit `reason: disarm`; Disconnect verwirft.
+
+**Seite:**
+- `jogLease.test.ts` (12);
+- `useGamepad.test.ts` (6 neu): Rest A/B wie vereinbart, darunter A abgelaufen und ausgelenkt, B gültig; verspätete Meldung einer alten ID; Deadman; ausdrücklicher Stopp;
+- **Browser** (`jog-lease.spec.ts`, 8): Mit allen berührten Specs liefen 152/153. Der eine Fehlschlag war ein Testfehler: Der Wiederverbindungs-Test las `clients` oberhalb von `snapshot`. Jetzt ist das Signal ein **neues** Hello (`e5162161`); danach 3× wiederholt 24/24.
+  - Erneuerung beim Halten, Ende genau dieser Freigabe;
+  - **blockierter Hauptthread 2,2 s: keine Erneuerung, Worker-Heartbeat läuft weiter**;
+  - nachgebildete Ablaufmeldung → Hinweis am Knopf, kein Neustart, neuer Druck = neue ID;
+  - abgelehnter Start;
+  - Taste: Erneuerung, Ende, verbraucht bis Keyup, Meldung im Message Center;
+  - Pad-Stopp bei gehaltener Taste;
+  - Verbindungsverlust (nichts in die neue Verbindung);
+  - simuliertes Gamepad (eine Umkehr = ein `jog_change`, Ruhe = Ende).
+- Die Ablaufmeldung des Mocks ist **ausdrücklich eine Nachbildung**, kein Stoppbeleg.
+
+**Rot-Nachweise (Mutationen):**
+- **Gateway, 8/8 rot:**
+  - Fristprüfung an der Schreibung entfernt; beide Fristprüfungen entfernt;
+  - Ablauf stoppt nicht;
+  - alter Besitzer stoppt neue Bewegung (beide Besitzprüfungen entfernt);
+  - Erneuerung belebt;
+  - kein Empfangsanker;
+  - Abort bzw. Disarm behalten Freigaben.
+- **Seite:**
+  - Verbraucht-bis-Ruhe entfernt → 3 Gamepad-Tests rot;
+  - Worker erneuert selbst → der Test „blockierter Hauptthread“ wird rot („the main thread renewed while blocked“), Ergebnis `jog-lease.mutations.worker-renews.txt`.
+- Skripte und Ergebnisse: `docs/reviews/jog-lease.mutations.*`.
+
+**Native Stufe, Variante `jog-lease`** (VM-Sim, 3 Achsen; **9/9 PASS** an `8623fbc8`, Bericht `jog-lease.native.json`, LAN-Sim mit Beleg zurückgegeben):
+- **3 s erneuert:** nie unterbrochen, nach der Position beurteilt, keine Meldung.
+- **1 s erneuert, dann nicht:** drei getrennte Beobachtungen:
+  - die Meldung des Gateways (Frist überschritten, Achse X);
+  - sein `jog.lease_expired` mit gestoppter Achse und `late_ms ≥ 0` (JOG_STOP-Schreibung zurückgekehrt);
+  - der Stillstand nach der Position, nie vor der Gültigkeit.
+- Der Nachlauf wird **gemessen und berichtet, nicht begrenzt**.
+- Gegenfall: Der Ablauf-Bewerter auf dem erneuerten Jog besteht nicht.
+- **Echte Seite auf echtem Gateway (MT423-04)**, `lease_page_probe.mjs`, headless Chromium gegen den Build des Laufbaums:
+  - gesund 2,94 s gehalten: nie unterbrochen, keine Ablaufmeldung;
+  - Hauptthread 2,5 s blockiert: **ein** Ablauf 0,427 s nach Blockbeginn (`late_ms` 3), Stillstand nach der Position 0,462 s nach Blockbeginn, Nachlauf 11,3 mm bei 25 mm/s, also **während** die Seite blockiert war;
+  - danach am Knopf: „Jog stopped — page delayed, press again“.
+
+**Ein Befund aus den Läufen davor, der die Probe geändert hat:**
+- **Lauf 1:** unvollständig, Testfehler: Der Schritt ist bei 1600 px ein Select, keine Auswahlgruppe.
+- **Lauf 2:** **FAIL** beider Seitenfälle, weil die Seite selbst hing. Headless Chromium rendert auf der VM ohne GPU mit SwiftShader. Sobald die Maschine fährt, kostet ein Frame 1,5–1,7 s; die Long Tasks folgen fast lückenlos aufeinander.
+  - Die Freigabe des „gesunden“ Halts lief nach 16 Erneuerungen ab, `late_ms` 1.
+  - Die zweite lief **vor** dem Block ab.
+  - Das Gateway hat also richtig gehandelt, die Seite war nicht gesund.
+- **Lauf 3:** Mit Pixeldichte 0,25 blieben Long Tasks von 0,8–1 s. Die Geometrie kostet in Software auch ohne Fläche.
+- **Lauf 4:** Mesa llvmpipe über ANGLE/EGL mit zwei Threads, dazu Pixeldichte 0,25: gesund. Ob llvmpipe die Pixeldichte 0,25 noch braucht, ist **ungeprüft**. Sie bleibt in der Probe, denn sie ändert nur die Canvas-Fläche, nicht den Weg der Freigabe.
+- **Daraus folgt eine Änderung am Bewerter:** Ein Halt wird nur auf einer **gesunden** Seite beurteilt. Liegt im gesunden Fenster ein eigener Long Task der Seite (`browser.longtask`, > 500 ms), ist das Ergebnis `incomplete` mit den Long Tasks, nie PASS oder FAIL. Der Long Task des Blocks selbst ist der Block. Wächter: `test_a_page_with_a_long_task_is_no_healthy_page`. Renderer und Pixeldichte stehen im Bericht.
+- **Für die Maschine heißt das:** Eine Seite, deren Frame länger als die Gültigkeit braucht, beendet jeden gehaltenen Jog. Das ist gewollt. Das Panel hat eine GPU (N100), aber seine Stalls von 0,5–1,6 s vom Maschinentag treffen genau diese Grenze. Die Zählung über ein Re-Parse auf dem Panel bleibt deshalb geschuldet.
+
+**Geschuldet und benannt:**
+- twp-buttons.
+- Auf dem Panel:
+  - ein Jog, gehalten über ein Re-Parse, mit gezählten Abläufen. Am Maschinentag wurden dort Seitenstalls von 0,5–1,6 s gemessen, die jetzt einen gehaltenen Jog beenden;
+  - die Panelabnahme.
+
+**Round-Gate:**
+- **Runde 1 FAIL** an `2774947b` (Record `jog-lease.gate-round1.json`), mit drei Testfehlern, alle behoben:
+  1. Backend 2249/2253: `TestTheExpiry` erbte `_shutting_down = True` vom Lifespan-Abbau eines früheren In-Prozess-Tests. Die Ablaufroutine überspringt dann richtigerweise alles. Jetzt hält die Fixture den Wert fest (`f822c725`); der volle Backend-Lauf ergibt danach 2253/2253.
+  2. Unit 2741/2742: Der Export-Snapshot von `lcncWs` kannte `setJogLeaseFrameHandler` noch nicht.
+  3. Browser 1016/1019: Die Kontrolle in `sim-panel.viewer.spec` erwartete beim Loslassen `jog_stop`, seit P1b ist es `jog_lease_end` (`ee4546b4`); danach 66/66.
+- **Runde 2 PASS** an `ee4546b4` (Record `jog-lease.gate-round2.json`): Browser 1019/1019, Firefox-Kern 94/94, Unit 2742/2742, Backend. `perf-matrix` und `twp-buttons` bleiben Live-Prüfungen vor main.
+
+**Erbeten (Teil 1):** `agreement` zum Code oder `findings`.
+
+### Teil 2 · P2a-Plan: Neuberechnung nur bei geändertem Parse-Eingang, Stillstand-Parse mit nice 19
+
+**Anlass (Operator heute):** Der Halteschutz verwirft am Panel zu oft („Page delayed — hold again“, F18). Hauptursache beim Antasten mit geladenem Programm ist F24: Jede Antast-Operation löste einen vollen Re-Parse aus (rund 30 s, 344k Zeilen; gemessen unten), obwohl sich kein Wert änderte, und der Stillstand-Parse läuft ohne nice auf den zwei freien Kernen des N100. P2a nimmt aus dem vereinbarten P2 (MT418-02, Teil 3 von MT418-03) die beiden Hebel, die ohne die Generationsregel auskommen. Lebensdauer, Abbruch am Schreibbeginn und Entprellen bleiben P2b. Messung, zweistufiger Parse, Verlagerung und Browserarbeit folgen als P2c bis P2e (unten). **Gemergt wird P2a erst nach P3** (Reihenfolge P1b → P3 → P2).
+
+**Wo P2a in P2 steht** (mit dem Operator am 21.11. abends besprochen, dir noch nicht vorgelegt; Leitlinie des Operators: eine Oberfläche, die **keine Last auf der Maschine** erzeugt, auch für LinuxCNC ohne Bildschirm):
+- **P2a** (dieser Plan): keine Neuberechnung bei gleichem Eingang, Stillstand-Parse genict.
+- **P2b:** Lebensdauer einer Berechnung (MT418-03): Generation, Entwertung am zugelassenen Schreibbeginn, Entprellen, Entladen ohne Neustart.
+- **P2c:** **Messen, was jede Stufe des Parse kostet.** Grob liegt heute etwa ein Drittel beim Interpreter und zwei Drittel bei unserer Nachbearbeitung; das wird genau gemessen. Daraus der **zweistufige Parse**:
+  - zuerst Vorschau und Limit-Markierung, sofort veröffentlicht;
+  - danach, genict, der Simulationsteil: Zeitachse, Zuordnung in Unterprogrammen;
+  - und dieser **nur, wenn ein verbundenes Gerät die Simulation eingeschaltet hat**. Ist sie überall aus, entfällt er.
+- **P2d:** **Stufen in den Browser verlagern**, je Stufe nach der Messung entschieden:
+  - Auf der Maschine bleibt nur, was LinuxCNC braucht (der Interpreter mit INI, Remaps, Unterprogrammen, Variablendatei und Werkzeugtabelle), und was für alle Geräte **eine** Wahrheit sein muss.
+  - Die Nachbearbeitung für die Simulation, die Zeilenzuordnung und wohl die Pfadvereinfachung laufen dann im Worker des anzeigenden Geräts; die Kollisionsprüfung läuft schon dort.
+  - **Designfrage an dich:** Die Limit-Flags sind heute bewusst eine Quelle im Gateway. Wandern sie mit, oder bleiben sie dort? Ich verschiebe keine Sicherheitsaussage ohne deine Zustimmung.
+  - Am Panel des Operators spart P2d wenig, weil der Browser auf demselben N100 läuft. Dort wirken P2a bis P2c.
+- **P2e:** Browserarbeit, gezielt nach der Messung.
+
+**Abgrenzung:** P2a schließt die 150-ms-Frage **nicht**. Am Maschinentag wurden Halte auch ohne laufenden Parse verworfen (13:40–13:42, 13:56:08/11). Grund dort: Der Druck selbst legt Arbeit auf die 53–79-ms-Tasks der Browser-Grundlast. Das Kriterium von P2a ist „0 Toolsetter-Parses bei unverändertem Wert“, nicht „Halte angenommen“. Was bleibt, entscheiden die `gap_ms`-Daten aus P3 (`browser.hold.refused`) am Panel.
+
+**Was heute passiert** (`ad16dff3`):
+- `_ts_book` zählt `_ts_basis_version` hoch, sobald sich bei einem Schlüssel der Wert **oder die Herkunft** ändert.
+- `_ts_drift_reason` (Stillstand) und `_ts_open_drift` (Startzulassung) vergleichen `published_ctx.toolsetter.version` mit dieser Version.
+- **Gemessen am Maschinentag** (Trace der Maschine, heute nur lesend ausgewertet; Herkunft und Version je Buchung, nur diese Felder):
+  - 13:48:17.549 `assumed [3014]`: die MDI-Zeile `#3014=…`, vor dem Senden (`_cmd_blocking`, Zeile 3974);
+  - 13:48:17.581 `applied [3014]`: dieselbe Zeile, RCS_DONE;
+  - 13:48:17.618 `assumed`, **alle 24 Schlüssel**: `o<probe_…> call`, der Textscan liest die aufgerufene Datei nicht → `None` (offline nachgestellt mit `toolsetter_assigned_keys`);
+  - 13:48:19.496 `gcode.reparse_toolsetter` (Version 51): **die Kante feuert im Tick, in dem der Read-back startet**, `_ts_poll` startet ihn und meldet im selben Aufruf die Drift;
+  - 13:48:19.786 `read`, 24 Schlüssel, Werte unverändert;
+  - 13:48:19.796 Parse-Job 21 startet und rechnet rund 30 s.
+- Dasselbe um 13:48:56 (Job 22) und 13:49:34 (Job 23, dort ohne 24er-`assumed`: `read → assumed [3014] → applied [3014]`, Parse um 13:49:41). **Je Antastung ein Voll-Parse bei unveränderten Werten.**
+- **Mit P2a:**
+  - Folge 1 und 2: nach dem Read-back gleicher Schlüssel wie veröffentlicht, die Kante hat bis dahin gehalten → **0 Parses**;
+  - Folge 3: `applied(v)` ≡ `read(v)` → **0 Parses**.
+  - Beginnt eine Operation bei `assumed` (erstmals nach dem Gateway-Start), bleibt nach MT418-02 **ein** Parse, denn der Wechsel von Dateikopie zu Patch ändert das Verfahren. Das ist gewollt.
+
+**Vertrag P2a-1 · Der wirksame Parse-Eingang** (MT418-02):
+- `toolsetter_ctx` liefert zusätzlich `input_key`: eine kanonische Form dessen, was der Parse tatsächlich verwendet.
+  - die Patches, also die bestätigten Werte (`applied`/`read`) als Parameterpatch;
+  - `unpredictable` (`toolsetter_unknown` / `toolsetter_not_set_up`);
+  - **getrennt davon** die angenommenen Schlüssel mit ihrem gebuchten Dateiwert.
+- `applied(v) ↔ read(v)` ergibt denselben Schlüssel. `assumed(v) → read(v)` ergibt einen **anderen**: Das wirksame Verfahren wechselt von Dateikopie zu Patch, wie MT418-02 verlangt.
+- Version, Herkunft, Zeit und die Buchung an die Clients (`toolsetter_booking`) bleiben unverändert. Die Version bleibt die Buchungsrevision.
+- `_ts_drift_reason`, `_ts_open_drift` und `_ts_reparse_for` („einmal je …“) vergleichen `input_key` statt Version.
+  - Ein Start ist auf der Toolsetter-Seite verifiziert, wenn der veröffentlichte Parse **denselben wirksamen Eingang** las.
+  - Die übrigen Eingänge (WCS, Werkzeug, Tabelle, Grenzen) haben ihre eigenen Kanten, unverändert.
+- Die veröffentlichten Hinweise (`view`) folgen dem veröffentlichten Parse; die aktuelle Buchung zeigt die Seite wie heute getrennt.
+  - Gleicher Schlüssel bei anderer Herkunft (applied statt read) ändert an der Geometrie nichts. Der Hinweis bleibt „bestätigt“, nur die Herkunftsangabe des Bilds ist die des Parse.
+  - Benannt als Darstellungsgrenze, kein Grund für einen Voll-Parse.
+
+**Vertrag P2a-2 · Erst bestätigen, dann neu rechnen:**
+- Die Toolsetter-Kante wartet (`gcode.reparse_toolsetter_held {why: read_back}`, einmal je Schlüssel), solange die Buchung `assumed` ist **und** der eine Read-back für (Version, Programm) noch nicht beendet ist. Dazu zählt der Fall, dass er noch nicht begonnen hat, weil `_ts_read_back_due` gerade aus einem vorübergehenden Grund nein sagt: `_cmd_lock` gehalten, RFL, ein Jog, `current_vel`.
+  - **Das Halten hängt also nicht an „gerade fällig“.** Sonst rechnete ein Tick mit gehaltenem Lock die angenommene Basis, der Read-back landete einen Moment später, und F24s doppelter Parse wäre zurück.
+  - Wächter: ein Tick, in dem der Read-back nur vorübergehend nicht fällig ist.
+- Die alte Geometrie bleibt stehen, aber nicht als bestätigt: `_ts_open_drift` meldet weiter `toolsetter`, solange der Schlüssel abweicht. Ein Start in diesem Fenster ist auf der Toolsetter-Seite unverifiziert, wie heute.
+- Nach dem Read-back:
+  - gleicher Schlüssel wie veröffentlicht → kein Parse, Start wieder verifiziert;
+  - anderer → ein Parse.
+- **Die Kante wird nicht mehr gehalten**, sondern rechnet einmal je Schlüssel neu wie heute, wenn:
+  - der Read-back beendet ist, aber nicht bestätigt hat (Fehler, Abort);
+  - ein Read-back gar nicht möglich ist: Maschine EIN im AUTO, wo LinuxCNC keine Synch annimmt (R118).
+- Das Halten ist an genau **einen** Read-back-Versuch je (Version, Programm) gebunden, den es heute schon gibt. Es gibt kein Warten ohne Ende.
+- **`unknown`** (ein Chunk scheiterte) wird nicht gehalten: Es gibt nichts zu bestätigen.
+
+**Vertrag P2a-3 · nice 19 für die Neuberechnung im Stillstand** (MT418-03 Teil 3, letzter Satz):
+- Jeder Re-Parse aus einer Driftkante bekommt `nice` 19: WCS, TLO, Werkzeug, Grenzen, Rotary, Kinematik, Toolsetter und Tabelle. Bisher hatte das nur der gepinnte Lauf-Parse.
+- `nice` bleibt aus dem Fingerprint (`bulk_pipeline.py:58`).
+- **Timeout und Historie hängen heute an `pinned`, nicht an nice** (`bulk_pipeline.py:797` `_PINNED_TIMEOUT_FACTOR`, `:1099` Historie). Beides wird auf „genict“ umgestellt:
+  - Ein genicter Stillstand-Parse bekommt dieselbe längere Leine (Faktor 3). Sonst liefe er am N100 unter Browserlast in den normalen Timeout und endete als laute Vorschau-Verweigerung.
+  - Seine Dauer geht nicht in die Laufzeit-Historie. Die Schätzung des Lade-Parse bleibt unverfälscht.
+- Wächter: Timeout-Faktor und Historie je Art (Laden, Drift, gepinnt).
+- **Offene Frage an dich:** auch der Lade-Parse? Dafür spricht: Am Panel konkurriert er ebenso mit dem Browser, und nice kostet nichts, solange CPU frei ist. Dagegen spricht: Der Bediener wartet beim Laden auf die Vorschau. Ich schlage vor, ihn in P2a **nicht** zu nicen und erst nach der Messung zu entscheiden.
+
+**Wächter (offline, rein bzw. Gateway-Handler):**
+- Schlüsselgleichheit in den sechs MT418-02-Fällen:
+  - gleiche bestätigte Werte (applied↔read gleich);
+  - gleicher Wert mit unbekannter Herkunft (unknown→read anders);
+  - assumed→read anders;
+  - fehlender Wert;
+  - geänderter Wert;
+  - fehlgeschlagener Read-back;
+  - Verbindungswechsel (die Buchung ist prozessweit, der Schlüssel hängt an keiner Verbindung).
+- Die Antastfolge `read → applied → assumed → (Read-back) read` mit gleichem Wert: **kein** `reparse_toolsetter`, kein `_ts_open_drift` nach dem Read-back, dafür `reparse_toolsetter_held`.
+- Dieselbe Folge mit geändertem Wert ergibt genau einen Parse. Fehlgeschlagener Read-back ergibt einen Parse. AUTO ergibt keinen gehaltenen Parse.
+- Beginn bei `assumed`, dann `applied` mit gleichem Wert: genau ein Parse (Verfahrenswechsel), danach `read` gleich: keiner.
+- `nice` im Kontext jedes Drift-Re-Parse, nicht im Lade-Parse, nicht im Fingerprint. Die Historie ignoriert genicte Dauern.
+- Gegenprobe (Mutationen):
+  - Version statt Schlüssel;
+  - Herkunft im Schlüssel;
+  - kein Halten;
+  - Halten ohne Ende nach fehlgeschlagenem Read-back;
+  - kein nice.
+
+**Messung (VM-Sim, als solche gekennzeichnet) und Gegenprobe an der Basis:**
+- Neue native Variante `parse-basis`:
+  - geladenes Programm mit Werkzeugwechsel (M6 → M600, `routine`);
+  - dann drei Z-Antastungen über den Weg der Seite: `mdi` mit `vars`, die vorhandene Schritt-2a-Antastung;
+  - dann Entladen.
+- Gezählt werden Parse-Starts je Grund, `gcode.reparse_toolsetter`(`_held`) und das `__NICE__` jedes Workers.
+- Die Variante wird **zuerst an der Basis** committet und gefahren; erwartet sind ≥ 1 Toolsetter-Parse je Antastung (Rot-Beleg). Danach am P2a-Kopf: 0 Toolsetter-Parses, jeder Drift-Parse mit nice 19.
+- Die Zählung hängt nicht an der Hardware. Die Wirkung auf die Haltestalls misst erst das P3-Instrument am Panel (Q418-2: die 150-ms-Frage nach P2 und ohne CDP).
+
+**Nicht in P2a, als Option genannt:**
+- Der Textscan könnte eine `o<name> call`-Datei auf dem Suchpfad lesen. Das wäre derselbe Mechanismus wie bei REMAP-Körpern in `RemapEnv`: jede Datei dieses Namens.
+- Dann würde eine Antast-Routine, die keinen Toolsetter-Schlüssel schreibt, gar nichts auf `assumed` setzen, und auch die Synch des Read-backs entfiele.
+- Ich halte das für später: Erst zeigt die Messung, ob die Synch je Antastung etwas kostet.
+
+**Erbeten:** `agreement` zu P2a-1 bis -3 samt Wächtern und Messung, oder `findings`. Dazu deine Sicht auf den Lade-Parse und auf die Option.
