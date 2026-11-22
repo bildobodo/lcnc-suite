@@ -1,0 +1,82 @@
+{
+  "round": "R434",
+  "base": "70106a7e17b3a3d348e6a3c7221ba11d46b4f264",
+  "head": "ed4bc1875a378d26f4e8d2301cb3852cacbca6ca",
+  "prior_review_head": "3ead31b1ab2d3a82f656cb1c3ca1786fde3b9049",
+  "request_document_head": "e531bfc7555aad3ec368ddab49be001a142a7287",
+  "archive": "/tmp/r434/head",
+  "native_run_head": "07ca2a6ad9ada1e9b0eef7d080d6e37373425422",
+  "gate": {
+    "head": "f3c6025f6bce1e8a8ecfe7308b688c1e0b382481",
+    "verdict": "PASS",
+    "pending": [
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py"
+        ]
+      }
+    ],
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "firefox-core",
+        "reason": "no path selects the Firefox core"
+      },
+      {
+        "check": "coverage",
+        "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+      }
+    ]
+  },
+  "product_changes_since_R433": [],
+  "tests": {
+    "repository_native_targeted": "33 PASS",
+    "unchanged_R431_R432_R433": "17 PASS"
+  },
+  "verdicts": {
+    "part1": "agreement: MT-I18 A closed; B remains closed; no remaining P2a review finding",
+    "part2": "agreement to P4 plan v2 contracts; Q433-1 still requires operator choice"
+  },
+  "plan_closed": [
+    "MT433-01: expected row identity and fields, both save and renumber, fresh comparison before all writes",
+    "MT433-02: routine-specific search/move contract and independent dimension validation",
+    "MT433-03: operation-kind-specific discard permission with save outcome retained"
+  ],
+  "limits": [
+    "P4 plan only, no implementation reviewed",
+    "No new live run or live connection",
+    "No product edits, builds or checkouts in live tree",
+    "Full gate not rerun; read supplied gate record",
+    "Previous R432 probe writes its scratch trace to /tmp/r432 unchanged"
+  ],
+  "review_prefix_sha256": "c738e661a3ba3039e5b7608c9dec5786f645be71a973725bbd2879b3bed21606",
+  "files": {
+    "maschinentag.r434.codex-native-baseline.txt": "b5dc5adf9e5283a2312523afe00d3a1f8175baede02eb9d9dbf2a31925ac1090",
+    "maschinentag.r434.codex-prior-unchanged.txt": "d783410cdd394c632e2c98c34febd5ebcf3d1b0bf915909f79b820d4adf77821",
+    "maschinentag.r434.codex-r431-probes.py": "46023fcdb958447feedf3a763c8ad83686581962909b5b9cb741d1c070dfb0cf",
+    "maschinentag.r434.codex-r432-probes.py": "62bc8d8305789aa499c0a7580ac86e041d7b2261888ec5f8395740e870be7099",
+    "maschinentag.r434.codex-r433-probes.py": "62798df9ab907659eac5cb5f3db77e67eb4b9675ecd971f00851a8e95e9cd692",
+    "maschinentag.r434.codex-native-reeval.py": "7564485538448013893477b88d07bb79d68063eb2b0dc569d6c3aa8f29b71662",
+    "maschinentag.r434.codex-native-reeval.json": "4fea3db393e496b9824aeda8f706b192759412ad7ccb2557b3ebc98d37f2afb7",
+    "maschinentag.r434.codex-run-baseline.sh": "c3f285a825b81df2f0d28044e5682eab732a4f99d2c3901dddc8e7a055602a91"
+  }
+}

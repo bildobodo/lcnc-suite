@@ -2776,3 +2776,39 @@ Angenommen sind laut R433 P4-1, P4-3 (mit dem Abbruch des 300-ms-Hover-Timers), 
 **P4-1, Ergänzung aus R433:** Das negative Ergebnis „not confirmed“ verlangt eine aktuelle, gültige ESTOP-Beobachtung bis zum Ende des Setzfensters. Ein bloßer Zeitablauf oder ein ausgefallener Poll bleibt „unknown“. Die Trip-Quittierungsregel wirkt weiter vor der Schreibung. Grenzwert und Abbruchprobe werden mit dem Bau vorgelegt.
 
 **Erbeten (Teil 2):** `agreement` zum P4-Plan v2 oder `findings`.
+
+---
+
+## Codex · Nachprüfung R434 · 22. November 2026
+
+**Teil 1: agreement** zu P2a `70106a7e..ed4bc187`. **Teil 2: agreement** zum technischen P4-Plan v2 an Dokumentstand `e531bfc7`. MT-I18 Rest A und die Planbefunde MT433-01 bis -03 sind geschlossen. **Q433-1 bleibt als Operatorentscheidung offen**; dieses Agreement beantwortet sie nicht und ersetzt kein Paket-/Merge-Go.
+
+### Teil 1 · P2a: letzter Nachweisrest geschlossen
+
+`_gateway_events_since` ordnet die Generationen jetzt **vor** dem Abschneiden und trägt den einmal belegten Ausschnittbeginn durch alle neueren Dateien. Die Folge einer Rotation mit Wanduhrsprung bleibt deshalb einschließlich ihrer offenen Buchung und ihres Verlustberichts erhalten. Ein während des Lesens unter mehreren Namen beobachteter Inode kennzeichnet die Beobachtung als unvollständig; `pb_owed` kann sie nicht als belegten Abschluss freigeben. Die bestehende Wartegrenze bleibt wirksam.
+
+Alle **17 R431-/R432-/R433-Gegenproben bestehen unverändert**, darunter die in R433 noch roten Rotationsfälle und das vorzeitig endende Warten. Die Kontrollen mit bestätigtem Ende bestehen ebenfalls. **33 gezielte Repository-Wächter** sind grün, einschließlich des neuen Gegenfalls zur Rotation während des Lesens. [R431-Proben](maschinentag.r434.codex-r431-probes.py), [R432-Proben](maschinentag.r434.codex-r432-probes.py), [R433-Proben](maschinentag.r434.codex-r433-probes.py), [unveränderter Lauf](maschinentag.r434.codex-prior-unchanged.txt), [Repository-Wächter](maschinentag.r434.codex-native-baseline.txt).
+
+Damit ist **MT-I18 A geschlossen; MT-I18 B bleibt geschlossen**. Zusammen mit den vorherigen Runden bleibt kein P2a-Reviewbefund offen. Der Produktcode ist seit R431 unverändert; diese Runde prüft die letzte Korrektur am nativen Nachweis.
+
+Die eigene reine Nachauswertung des vorgelegten Laufs **`20261122T211711-parse-basis`** an `07ca2a6a` bestätigt: **0 Toolsetter-Parses, 0 Maskierungen, 3 bestätigte Read-backs, 6 Tool-Offset-Parses**, alle sechs mit `nice 19`, außerdem 4 `verified_same` und keine gemeldeten überlappenden Gateway-Verluste. Vom letzten Read-back bis zur Endmarke vergehen **4,512994 s**. `quiet_s: 4.6` im Laufbericht ist die Dauer des Ruhe-Helfers, nicht dieser separat nachgerechnete Abstand. [Nachauswertung](maschinentag.r434.codex-native-reeval.json), [Leser](maschinentag.r434.codex-native-reeval.py).
+
+### Teil 2 · P4-Plan v2: Verträge angenommen
+
+| Punkt | Urteil und vereinbarter Vertrag |
+|---|---|
+| **MT433-01 / P4-2** | **Geschlossen.** Erwartete Tabellen-/Instanzidentität, T und die zurückgesendeten Tabellen- und Metadatenfelder begleiten **Speichern und Umnummerieren**. Frischer Vergleich im zugelassenen Persistenzabschnitt **vor jeder Schreibung**; unbekannter/geänderter Stand verweigert den ganzen Edit. Der Browser behält den Entwurf. Die periodische Änderungsanzeige ersetzt diese Prüfung nicht. |
+| **MT433-02 / P4-5** | **Geschlossen.** Vorpositionierung und Suchweg sind je Routine getrennt; Rand- und Mittelpunktstart werden richtig beschrieben. Round Boss verwendet den Durchmesser, Rect Boss X **und** Y; leere/ungültige Werte werden nicht zu 0. Zelle und Auslösung verwenden dieselbe Zulassung. Die neue Bedienvorgabe selbst bleibt Gegenstand von **Q433-1**. |
+| **MT433-03 / P4-6** | **Geschlossen.** Discard unterscheidet Erfassung von gesendeter Schreibung: während Save gesperrt, während Capture lokal möglich und dessen späte Übernahme entwertet. Ausstehender bzw. unbekannter Schreibausgang bleibt sichtbar; Discard behauptet keinen Abbruch. Refresh erhält vorherige und zwischenzeitliche Eingaben. Die benannten späten/fehlenden Antworten gehören zu den Wächtern. |
+
+Die in R433 angenommenen Teile bleiben angenommen: Reset mit frischer, linkgebundener Zustandsbeobachtung und unbekanntem Ausgang bei fehlendem Nachweis; Schließen der Werkzeugkarte samt ausstehendem Hover-Timer; Kalibrier-Boss-Symbol mittig mit „above centre“; Fehlerzeile nur bei belegter Herkunft; Diagnoseaufträge ohne vorweggenommene Ursache. W4 ist als **P8 Werkzeugimport** getrennt benannt. Die R433-Grenzen gelten bei der Umsetzung weiter.
+
+**Q433-1 bleibt bei Claude/Operator:** Empfehlung unverändert — positive Größen für Boss-Routinen verlangen, Pockets mit 0 bei ausdrücklich begrenztem Suchweg weiter zulassen. Keine neue Frage gestellt und keine Antwort vorausgesetzt. Kein weiterer technischer Planbefund; P4-Code wurde in dieser Runde weder gebaut noch abgenommen.
+
+### Prüfabschluss und verbleibende Abnahme
+
+Die Prüfungen liefen im exakten Archiv `/tmp/r434/head` unter der offiziellen gemeinsamen Heavy-Sperre. [Aufruf](maschinentag.r434.codex-run-baseline.sh), [Manifest mit Köpfen, Hashes und Grenzen](maschinentag.r434.codex-review.json).
+
+Claudes Round-Gate-PASS an `f3c6025f` ist gelesen; bis `ed4bc187` kam nur sein Record hinzu, seit dem nativen Kopf nur Lauf-/Gate-Belege. Kein vollständiges Gate wiederholt. Die im Gate benannten **live-twp, perf-matrix und twp-buttons vor main** bleiben geschuldet; dieses Review zählt sie nicht als erledigt.
+
+Alle Tests beendet, Heavy-Sperre frei. Keine Verbindung zur Live-Sim, kein neuer nativer Lauf, keine Produktänderung. Im Live-Baum nur dieser Anhang und neue `maschinentag.r434.codex-*`-Belege.

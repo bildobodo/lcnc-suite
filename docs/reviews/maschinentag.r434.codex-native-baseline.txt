@@ -1,0 +1,42 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r434/head
+plugins: anyio-4.13.0
+collecting ... collected 694 items / 661 deselected / 33 selected
+
+scripts/test_native_stage.py::test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[none] PASSED [  3%]
+scripts/test_native_stage.py::test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[foreign-before] PASSED [  6%]
+scripts/test_native_stage.py::test_a_window_rotated_within_is_not_framed[gateway-during] PASSED [  9%]
+scripts/test_native_stage.py::test_a_window_rotated_within_is_not_framed[foreign-during] PASSED [ 12%]
+scripts/test_native_stage.py::test_a_window_is_framed_only_by_one_start_and_one_end_mark_of_this_gateway PASSED [ 15%]
+scripts/test_native_stage.py::test_parse_basis_judges_the_toolsetter_reparses_only PASSED [ 18%]
+scripts/test_native_stage.py::test_parse_nice_needs_a_traced_drift_parse PASSED [ 21%]
+scripts/test_native_stage.py::test_the_parse_basis_program_runs_the_routine_and_is_felt PASSED [ 24%]
+scripts/test_native_stage.py::test_r430_the_window_closed_before_the_last_read_back_is_incomplete PASSED [ 27%]
+scripts/test_native_stage.py::test_a_slow_confirmed_read_back_inside_the_window_passes PASSED [ 30%]
+scripts/test_native_stage.py::test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet PASSED [ 33%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[failed] PASSED [ 36%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[aborted] PASSED [ 39%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[cap] PASSED [ 42%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[no_anchor] PASSED [ 45%]
+scripts/test_native_stage.py::test_r431_three_confirmations_are_a_pass_and_another_revisions_end_settles_nothing PASSED [ 48%]
+scripts/test_native_stage.py::test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran PASSED [ 51%]
+scripts/test_native_stage.py::test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it PASSED [ 54%]
+scripts/test_native_stage.py::test_r431_a_transient_read_failure_does_not_end_the_owed_wait PASSED [ 57%]
+scripts/test_native_stage.py::test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing PASSED [ 60%]
+scripts/test_native_stage.py::test_r431_an_empty_or_damaged_observation_settles_nothing PASSED [ 63%]
+scripts/test_native_stage.py::test_r432_a_gateway_loss_cannot_settle_the_live_owed_wait PASSED [ 66%]
+scripts/test_native_stage.py::test_r432_a_readable_confirmed_live_observation_releases_the_wait PASSED [ 69%]
+scripts/test_native_stage.py::test_r432_the_progress_reader_keeps_file_order_across_a_wall_step PASSED [ 72%]
+scripts/test_native_stage.py::test_r432_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end] PASSED [ 75%]
+scripts/test_native_stage.py::test_r432_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report] PASSED [ 78%]
+scripts/test_native_stage.py::test_r432_a_report_before_the_start_mark_is_excluded_by_order_whatever_its_wall_time PASSED [ 81%]
+scripts/test_native_stage.py::test_r432_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step PASSED [ 84%]
+scripts/test_native_stage.py::test_r433_a_wall_step_at_a_rotation_keeps_the_new_generation_after_the_beginning[False] PASSED [ 87%]
+scripts/test_native_stage.py::test_r433_a_wall_step_at_a_rotation_keeps_the_new_generation_after_the_beginning[True] PASSED [ 90%]
+scripts/test_native_stage.py::test_r433_the_same_rotation_without_a_wall_step_is_recognized PASSED [ 93%]
+scripts/test_native_stage.py::test_r433_the_rotated_loss_does_not_release_the_live_wait PASSED [ 96%]
+scripts/test_native_stage.py::test_r433_a_rotation_during_the_read_is_no_proven_order PASSED [100%]
+
+====================== 33 passed, 661 deselected in 0.54s ======================
