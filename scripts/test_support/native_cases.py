@@ -1424,9 +1424,13 @@ LEASE_MIN_STEP_MM = 1.0
 
 
 #: the widest gap between two KNOWN positions a standstill window may hold
-#: (the status runs at 30 Hz: ~33 ms; Codex R427 MT-I10 — a window carried
-#: by one point and data after it is no standstill)
-LEASE_SAMPLE_GAP_S = 0.1
+#: (Codex R427 MT-I10 — a window carried by one point and data after it is
+#: no standstill). The gateway's status runs at 30 Hz while the machine
+#: moves and at its idle rate once it stands (gateway._IDLE_POLL_HZ = 5:
+#: 200 ms, measured 0.20–0.22 s in the run of 2026-11-22 at ec6e1e38) — a
+#: standstill is sampled at the idle rate, so the bound is one idle period
+#: plus its jitter: a still window (LEASE_STILL_S) then holds at least two.
+LEASE_SAMPLE_GAP_S = 0.25
 
 
 def _standstill_at(course):
