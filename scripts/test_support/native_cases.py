@@ -62,6 +62,9 @@ REPORT_CASES: dict = {
         'jog-lease-kept', 'jog-lease-expired', 'jog-lease-expired.counter-kept',
         'jog-lease-page-kept', 'jog-lease-page-blocked',
     ),
+    "parse-basis": (
+        'home-all', 'home-joint-0', 'home-joint-1', 'home-joint-2', 'parse-basis', 'parse-basis.nice',
+    ),
 }
 
 #: the jog lease's native case (P1b): the gateway's validity (jog_lease.py
@@ -1731,3 +1734,63 @@ def eval_lease_page_blocked(case: str, axis: int, marks: dict, samples: list, tr
         return _row(case, "incomplete", f"the stillness until the release is not observed: {why}", **measured)
     return _row(case, "PASS", "the gateway stopped the jog while the page was blocked", **measured)
 
+# ── P2a (machine day F24): the re-parses a probe op causes ─────────────────
+#: the parse reasons of a load or an explicit refresh — every other reason is
+#: a drift edge (wcsoff:…, tlo:…, toolsetter, limits, a table …)
+LOAD_REASONS = ("file", "reparse", "connect", "schema")
+
+
+def _spawns(events: list) -> list:
+    return [e for e in events if e.get("tag") == "gcode.spawn_start" and not e.get("pinned")]
+
+
+def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
+    """`ops` probe ops with unchanged values inside a framed window: no
+    toolsetter re-parse — neither the edge (`gcode.reparse_toolsetter`) nor
+    a parse started for it. The basis must have been booked in the window
+    (the ops exercised it — else incomplete, never a vacuous PASS). Every
+    parse by reason, the held edges, the bookings and the read-backs are
+    reported; a re-parse for another reason (a WCS the probe wrote) is
+    P2b's, reported, not judged here."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    ev = window.get("events") or []
+    spawns = _spawns(ev)
+    by_reason: dict = {}
+    for e in spawns:
+        by_reason[str(e.get("reason"))] = by_reason.get(str(e.get("reason")), 0) + 1
+    bookings = [e for e in ev if e.get("tag") == "toolsetter.basis"]
+    measured = {
+        "ops": ops, "parses_by_reason": by_reason,
+        "toolsetter_edges": sum(1 for e in ev if e.get("tag") == "gcode.reparse_toolsetter"),
+        "held": sum(1 for e in ev if e.get("tag") == "gcode.reparse_toolsetter_held"),
+        "bookings": [f"{e.get('origin')}:{len(e['keys']) if isinstance(e.get('keys'), list) else '?'}"
+                     for e in bookings],
+        "read_backs": sum(1 for e in ev if e.get("tag") == "toolsetter.read_back"),
+        "quiet_s": quiet_s,
+    }
+    if len(bookings) < ops:
+        return _row(case, "incomplete", f"{len(bookings)} bookings for {ops} probe ops — the basis was not exercised",
+                    **measured)
+    ts = by_reason.get("toolsetter", 0)
+    if ts or measured["toolsetter_edges"]:
+        return _row(case, "FAIL", f"{ts} toolsetter re-parses ({measured['toolsetter_edges']} edges) for {ops} "
+                    "probe ops with unchanged values", **measured)
+    return _row(case, "PASS", f"no toolsetter re-parse for {ops} probe ops with unchanged values", **measured)
+
+
+def eval_parse_nice(case: str, window: dict) -> dict:
+    """Every drift re-parse in the window ran niced (19, P2a-3): the
+    `nice` its `gcode.spawn_start` names. No drift parse: incomplete; a
+    spawn that names no priority (before P2a): incomplete, never PASS."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    drift = [e for e in _spawns(window.get("events") or []) if str(e.get("reason")) not in LOAD_REASONS]
+    if not drift:
+        return _row(case, "incomplete", "no drift re-parse in the window")
+    if any("nice" not in e for e in drift):
+        return _row(case, "incomplete", "the parse priority is not traced", drift=len(drift))
+    bad = [(e.get("reason"), e.get("nice")) for e in drift if e.get("nice") != 19]
+    if bad:
+        return _row(case, "FAIL", f"{len(bad)} drift re-parses not niced", not_niced=bad[:5], drift=len(drift))
+    return _row(case, "PASS", f"{len(drift)} drift re-parses, every one niced", drift=len(drift))

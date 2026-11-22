@@ -7820,3 +7820,46 @@ def test_the_blocked_page_judge_refuses_codex_r428s_unobserved_stretches():
     holed = [x for x in course if not (0.4 < x[0] < 0.9)]
     assert "no position for" in nc._uncovered(holed, holed[-1][0])
     assert "before the end" in nc._uncovered(course[:10], 1.0)
+
+# ── P2a (machine day F24): the parse-basis variant's evaluators ────────────
+def _pb_window(spawns=(), bookings=3, edges=0, held=0, framed=True):
+    ev = [{"tag": "toolsetter.basis", "origin": "assumed", "keys": list(range(24))} for _ in range(bookings)]
+    ev += [{"tag": "gcode.reparse_toolsetter"} for _ in range(edges)]
+    ev += [{"tag": "gcode.reparse_toolsetter_held"} for _ in range(held)]
+    ev += [{"tag": "gcode.spawn_start", **s} for s in spawns]
+    return {"framed": framed, "reason": None if framed else "two files", "events": ev}
+
+
+def test_parse_basis_judges_the_toolsetter_reparses_only():
+    # the base (F24): one toolsetter parse per op
+    base = nc.eval_parse_basis("pb", _pb_window(spawns=[{"reason": "toolsetter"}] * 3, edges=3), ops=3)
+    assert base["status"] == "FAIL" and base["parses_by_reason"] == {"toolsetter": 3}, base
+    # P2a: the edge held, no toolsetter parse; a WCS re-parse is P2b's — reported, not judged
+    p2a = nc.eval_parse_basis("pb", _pb_window(spawns=[{"reason": "wcsoff:G54:z", "nice": 19}], held=3), ops=3)
+    assert p2a["status"] == "PASS" and p2a["held"] == 3 and p2a["parses_by_reason"] == {"wcsoff:G54:z": 1}, p2a
+    # an edge without a parse still fails: the edge itself is the waste's start
+    assert nc.eval_parse_basis("pb", _pb_window(edges=1), ops=3)["status"] == "FAIL"
+    # the ops booked nothing: no vacuous PASS
+    assert nc.eval_parse_basis("pb", _pb_window(bookings=1), ops=3)["status"] == "incomplete"
+    assert nc.eval_parse_basis("pb", _pb_window(framed=False), ops=3)["status"] == "incomplete"
+    # a pinned (mid-run) parse is no idle re-parse of this window
+    pinned = nc.eval_parse_basis("pb", _pb_window(spawns=[{"reason": "toolsetter", "pinned": True}]), ops=3)
+    assert pinned["status"] == "PASS", pinned
+
+
+def test_parse_nice_needs_a_traced_drift_parse():
+    w = lambda *s: _pb_window(spawns=list(s))   # noqa: E731
+    assert nc.eval_parse_nice("n", w())["status"] == "incomplete"
+    assert nc.eval_parse_nice("n", w({"reason": "file"}))["status"] == "incomplete", "a load is no drift"
+    assert nc.eval_parse_nice("n", w({"reason": "wcsoff:G54:z"}))["status"] == "incomplete", "before P2a: untraced"
+    assert nc.eval_parse_nice("n", w({"reason": "wcsoff:G54:z", "nice": 19}, {"reason": "file", "nice": 0}))["status"] == "PASS"
+    bad = nc.eval_parse_nice("n", w({"reason": "toolsetter", "nice": 0}))
+    assert bad["status"] == "FAIL" and bad["not_niced"] == [("toolsetter", 0)], bad
+
+
+def test_the_parse_basis_program_runs_the_routine_and_is_felt():
+    text = nr._pb_program()
+    assert f"T{nr.MEASURED_TOOL} M600" in text.splitlines()[:3]
+    assert text.count("\n") > nr.PB_PADDING and text.rstrip().endswith("M2")
+    assert "parse-basis" in nr.VARIANTS
+    assert set(nc.REPORT_CASES["parse-basis"]) >= {"parse-basis", "parse-basis.nice"}

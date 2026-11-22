@@ -44,6 +44,11 @@ axis stopped and the standstill by the position, each observed; the overrun is
 reported, never bounded; a counter runs the expiry judge on the renewed jog). The
 client renews as the page's main thread does; the real page on the sim with its
 main thread blocked is the browser probe, a separate live check.
+
+The toolsetter re-parses a probe op causes (P2a, machine day F24) are a run of their own too:
+`native_run.py … --variant parse-basis` (home, a loaded program that runs the routine, a warm-up
+probe op, then three probe-z ops with unchanged values in one trace window: the re-parses by
+reason — the toolsetter ones judged, a WCS one reported — and every drift parse's priority).
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

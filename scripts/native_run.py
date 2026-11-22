@@ -171,7 +171,17 @@ TS_DEADLINE = 240.0
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
 #: how long the latch step waits for the first frame after the continue
 LATCH_RESUME_WAIT_S = 10.0
-VARIANTS = ("latch-delayed", "jog-lease")
+VARIANTS = ("latch-delayed", "jog-lease", "parse-basis")
+#: P2a (machine day F24, 2026-11-21: one ~30 s full re-parse per probe op with
+#: unchanged values): a loaded program that runs the toolsetter routine
+#: (T1 M600 — `routine`), padded so its parse is felt; a warm-up probe op
+#: applies the values once; then three probe-z ops with exactly those values.
+#: The re-parses inside the window, by reason, are the measure.
+PB_FILE = "native_parse_basis.ngc"
+PB_PADDING = 20000
+#: no parse running for this long = quiet (the drift poll runs at idle, the
+#: read-back after it); bounded by PB_QUIET_MAX_S
+PB_QUIET_S, PB_QUIET_MAX_S = 4.0, 240.0
 #: step 3, the disconnect (SYS-CONN.S4): X back and forth at F6000 in the
 #: machine frame (~20 s); a helper client A in its own process starts it and
 #: goes away; the event read from the trace, then the window W
@@ -1787,6 +1797,87 @@ def _probe_steps(ctx):
     return rows
 
 
+# ── P2a (machine day F24): the re-parses a probe op causes ─────────────────
+def _pb_program() -> str:
+    """A program that runs the toolsetter routine, padded with a zig-zag so
+    a full parse costs seconds (it is parsed, never run)."""
+    lines = ["G21 G90 G94", f"T{MEASURED_TOOL} M600", "G0 X10 Y10"]
+    lines += [f"G1 X{10 + (i % 2) * 50} Y{10 + (i % 400) * 0.25:.2f} F3000" for i in range(PB_PADDING)]
+    return "\n".join(lines + ["M2"]) + "\n"
+
+
+def _pb_quiet(c, case: str) -> float:
+    """Wait until no parse has run for PB_QUIET_S (the status carries
+    `preview_refresh` while one runs); the seconds waited. Refused past
+    PB_QUIET_MAX_S — a parse that never ends is no measure."""
+    t0 = time.monotonic()
+    quiet_since = None
+    while True:
+        now = time.monotonic()
+        if (c.status or {}).get("preview_refresh"):
+            quiet_since = None
+        elif quiet_since is None:
+            quiet_since = now
+        elif now - quiet_since >= PB_QUIET_S:
+            return round(now - t0, 1)
+        if now - t0 > PB_QUIET_MAX_S:
+            raise Refused(f"{case}: a parse still ran after {PB_QUIET_MAX_S:g} s")
+        time.sleep(0.1)
+
+
+def parse_basis_cases():
+    """P2a's measure on the real task (plan R427 Teil 2): with a program
+    loaded that runs the routine, three probe-z ops with unchanged values —
+    the toolsetter re-parses they cause (the base: one per op, F24; P2a:
+    none), every drift re-parse's priority, the quiet time after the ops."""
+    def step(ctx):
+        with _admitted_sends(ctx["client"]):
+            return _parse_basis_steps(ctx)
+    return ("parse-basis", step)
+
+
+def _parse_basis_steps(ctx):
+    c, rows = ctx["client"], ctx.setdefault("rows", [])
+    plate = ctx["plate"] = plate_from_hal(_hal_texts(ctx["ini"]))
+    ctx["report"]["plate"] = plate
+    _set_tool_length(c, PROBE_TOOL, PROBE_L0)
+    for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
+        _short(c, line)
+    _probe_tool(c)
+    probe_vars = {**_vars(c, PROBE_VARS), 3030: 0}
+    payload = {"text": "O<probe_z_minus_wco> CALL", "vars": {str(k): v for k, v in probe_vars.items()}}
+
+    def probe(case):
+        _over_plate(c, plate, PROBE_OVER)
+        _override_free(c)
+        try:
+            r = _probe_job(c, case, "mdi", payload)
+        except Exception:
+            rows.append(_finish_row(f"{case}.finish", _finish(c, [])))
+            raise
+        if r["error"]:
+            rows.extend([nc.eval_wait_failed(case, r["error"]), _finish_row(f"{case}.finish", _finish(c, []))])
+            raise Refused(f"{case}: {r['error']}")
+        return r
+
+    path = _load_program(ctx, c, PB_FILE, _pb_program(), timeout=PB_QUIET_MAX_S)
+    try:
+        probe("parse-basis-warm")          # the values applied once, then read back
+        ctx["report"]["parse_basis_warm_quiet_s"] = _pb_quiet(c, "parse-basis-warm")
+
+        def three():
+            for i in range(3):
+                probe(f"parse-basis-{i + 1}")
+            return _pb_quiet(c, "parse-basis")
+        quiet_s, window = _framed(ctx, c, "parse-basis", three)
+        rows.append(nc.eval_parse_basis("parse-basis", window, ops=3, quiet_s=quiet_s))
+        rows.append(nc.eval_parse_nice("parse-basis.nice", window))
+    finally:
+        c.request("unload_file")
+    ctx["report"]["parse_basis_file"] = path.name
+    return rows
+
+
 # ── Package G2 (Codex R326): the workpiece, the scan, the compensation ─────
 
 def parse_signals(text: str) -> dict:
@@ -3111,6 +3202,9 @@ def main(argv=None) -> int:
         steps = base + [latch_order(), latch_cases(a.variant)]
     elif a.variant == "jog-lease":
         steps = base + [home_cases(joints), jog_lease_cases()]
+
+    elif a.variant == "parse-basis":
+        steps = base + [home_cases(joints), parse_basis_cases()]
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
                         io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
