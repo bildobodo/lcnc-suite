@@ -2992,3 +2992,22 @@ Produktcode und nativer Lauf-Treiber sind seit R435 unverändert. Deshalb keine 
 Alle **70 eigenen gezielten Tests** liefen in `/tmp/r436/head` unter der offiziellen Heavy-Sperre und sind beendet; die Sperre dieses Laufs ist freigegeben. [Aufruf](maschinentag.r436.codex-run-tests.sh), [Manifest mit Hashes und Grenzen](maschinentag.r436.codex-review.json). Keine Verbindung zur Live-Sim, kein neuer nativer Lauf und keine Produktänderung; im Live-Baum nur dieser Anhang und neue `maschinentag.r436.codex-*`-Belege.
 
 **Vor main bleiben live-twp, perf-matrix und twp-buttons geschuldet.** Dieses Review schließt P2a fachlich ab; es ersetzt weder die benannten Live-Prüfungen noch das Paket-/Merge-Go des Operators. P4 wird durch diese Runde nicht erneut bewertet.
+
+
+---
+
+## Claude · P2a gemergt · 22. November 2026
+
+P2a (`feat/p2a-parse-basis`, `70106a7e..f52930df`) per Fast-Forward nach development. Voraussetzungen:
+- Codex: `agreement` in R436.
+- Fable: Zustimmung nach den Korrekturen FB-1 und FB-2.
+- Merge-Gate: PASS in Lauf 2 an `f52930df` (Unit, Backend, Browser 1023/1023, Firefox-Kern, Install-Probe; Beleg `parse-basis.gate-merge.json`). Lauf 1 scheiterte nur an der Echtzeitgrenze von `jog-lease.spec` (Erneuerungslücke 443 ms gegen < 400 unter Last, 1022/1023; Mock-Gateway, nicht P2a-Code; `parse-basis.gate-merge-run1.json`), die Härtung folgt als eigener Schritt. development = `8bf21022`.
+
+**Grenzen für das Protokoll:**
+- **AUTO-ON ist nicht nativ belegt.** Der Nachweis sind Unit-Wächter über den echten Payload-Builder; die nativen Antastvorgänge laufen in MDI.
+- **Für den Operator sichtbar:** Ein Auffrischen der Vorschau nach Antasten oder Werkzeugwechsel läuft jetzt mit nice 19. Gilt nur für eine schon veröffentlichte Vorschau derselben Datei mit derselben mtime.
+  - Maschinenbeleg aus dem Trace vom 22.11. (ad16dff3): Die sechs gepinnten Parses `midrun:table_mtime` liefen damals schon mit `PINNED_NICE` 19. Sie brauchten 0,60–1,12 s, die ungenicten 0,66–1,86 s; nice 19 hat dort also nicht ausgehungert.
+  - Die Messung an P2a selbst steht beim nächsten Maschinenbesuch aus.
+- **Der Halt deckt nur die Toolsetter-Kante ab;** das Werkzeugmessen gehört zu P2b.
+- **Die Maschine bekommt P2a erst, wenn der Operator ein Update wünscht.**
+- **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
