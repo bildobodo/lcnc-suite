@@ -106,6 +106,8 @@ const DATA_MAPS: Record<string, string> = {
   "touchoff.axes": "keys TOUCHOFF_LETTERS, finite numbers (AxisMap)",
   "set_g30.values": "keys axis letters, finite numbers", "set_g30.based_on": "keys axis letters, finite numbers",
   "touchoff.expect": "exactly kins_type and g5x_index: an integer of its range or null = no claim (ExpectMap, R363 VM363-02)",
+  "save_tool.expected": "exactly {table: {path, instance}, tool, fields: TOOL_EDIT_FIELDS → null | finite number | string ≤ 255} (ToolRowExpect, P4-2)",
+  "renumber_tool.expected": "exactly {table: {path, instance}, tool, fields: TOOL_EDIT_FIELDS → null | finite number | string ≤ 255} (ToolRowExpect, P4-2)",
   // package 3a (R363): each entry is checked like the single jog (Entry) —
   // the axis index, ±max_jog_velocity (clamped), the step's distance (its
   // travel bound is the handler's, by the addressed target) — before the

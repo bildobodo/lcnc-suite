@@ -3296,11 +3296,73 @@ async def _reload_tool_table_and_bump():
     Status_loop sends `tool_table_changed` to every client whose
     `_last_tool_table_version` lags this counter, so a remote edit
     propagates within one tick instead of waiting for manual refresh.
+    The file's signature after OUR write becomes the watch's baseline
+    (P4-2): the watch does not count our own write a second time. A foreign
+    write that landed before this read is still seen by every client — this
+    bump makes them read the file as it is now.
     """
     global _tool_table_version
     if _cmd_now():
         await _cmd_blocking(link(), op(linuxcnc.command.load_tool_table), wait=None)
+    path = get_tool_tbl_path()
+    if path:
+        sig = await asyncio.to_thread(_tool_table_file_sig, path)
+        if sig is not None:
+            _tool_table_watch["sig"] = sig
     _tool_table_version += 1
+
+
+# ---- The tool table file watched (P4-2, machine day F15, Codex MT433-01) ----
+# LinuxCNC writes tool.tbl itself (a G10 L1 of an M600 measurement); nothing
+# told the clients — the Tools tab and the strip showed the old length until
+# a reload. Once a second, off the loop, the file's signature (inode, mtime,
+# size) on its canonical path and the bound instance: a change bumps the
+# version (`tools.table_file_changed`); an unreadable file says so once and
+# claims no new known state (the baseline stays). The row check of an edit
+# is the writer's (_tool_edit_check) — this ping only makes the clients read.
+TOOL_TABLE_WATCH_S = 1.0
+_tool_table_watch: Dict[str, Any] = {"sig": None, "failed": False}
+
+
+def _tool_table_file_sig(path: str) -> Optional[Tuple[str, str, int, int, int]]:
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    ident = _tool_table_identity(path)
+    return (ident["path"], ident["instance"], st.st_ino, st.st_mtime_ns, st.st_size)
+
+
+def _tool_table_watch_step(sig: Optional[Tuple[str, str, int, int, int]]) -> bool:
+    """One watch reading: True when it is a change the clients must read.
+    The first reading (and the first after another path or instance) sets the
+    baseline and is a change only when there was another one before."""
+    global _tool_table_version
+    if sig is None:
+        if not _tool_table_watch["failed"]:
+            _tool_table_watch["failed"] = True
+            _trace.emit("tools.table_file_unread", level="warn")
+        return False
+    _tool_table_watch["failed"] = False
+    old = _tool_table_watch["sig"]
+    _tool_table_watch["sig"] = sig
+    if old is None or old == sig:
+        return False
+    _trace.emit("tools.table_file_changed", same_table=old[:2] == sig[:2], ino=sig[2], size=sig[4])
+    _tool_table_version += 1
+    return True
+
+
+async def _tool_table_watch_loop() -> None:
+    while True:
+        await asyncio.sleep(TOOL_TABLE_WATCH_S)
+        path = get_tool_tbl_path()
+        if not path:
+            continue
+        try:
+            _tool_table_watch_step(await asyncio.to_thread(_tool_table_file_sig, path))
+        except Exception as e:  # noqa: BLE001 — named; the next second tries again
+            _trace.emit("tools.table_watch_failed", level="warn", exc=type(e).__name__, msg=str(e))
 
 
 async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
@@ -9891,6 +9953,8 @@ async def lifespan(app: "FastAPI") -> AsyncIterator[None]:
     _start_status_poller()
     # Bound-instance liveness, independent of connected clients (session binding).
     register_bg_task(asyncio.create_task(_instance_watch_loop()))
+    # The tool table file: LinuxCNC's own writes reach the clients (P4-2)
+    register_bg_task(asyncio.create_task(_tool_table_watch_loop()))
     # Warm the machine-path caches now (both resolve from LCNC_INI_FILE, which the
     # launcher exports before uvicorn, and neither touches NML) so the first
     # /upload or tool op doesn't pay an INI parse / makedirs on the event loop (B4).

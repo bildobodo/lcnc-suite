@@ -40,6 +40,21 @@ export interface ToolFields {
   material: string | null; holder: string | null;
 }
 
+/** The merged row's fields a tool edit sends back whole — the row state a
+ *  save or a renumber is checked against at the gateway's write (P4-2,
+ *  machine day F15, Codex MT433-01): command_policy.TOOL_EDIT_FIELDS. */
+export const TOOL_EDIT_FIELDS = ["P", "D", "Z", "remark", "description", "type", "flutes", "oal", "flute_length",
+  "corner_radius", "body_length", "shaft_diameter", "taper_angle", "point_angle", "tip_diameter", "material",
+  "holder"] as const;
+export type ToolEditField = typeof TOOL_EDIT_FIELDS[number];
+/** The table a row belongs to, as get_tool_table names it: its canonical
+ *  path and the LinuxCNC instance the gateway is bound to. */
+export interface ToolTableIdentity { path: string; instance: string }
+/** The row a tool edit dialog was opened on (command_policy.ToolRowExpect). */
+export interface ToolRowExpect {
+  table: ToolTableIdentity; tool: number; fields: Record<ToolEditField, number | string | null>;
+}
+
 /** A parameter write's purpose: each its own variables and switch (the
  *  gateway's `features.PURPOSE_VARS`). */
 export type ParamPurpose = "probe" | "surface" | "toolsetter";
@@ -115,9 +130,9 @@ export type WsCommand =
   | { cmd: "set_block_delete"; value: boolean }
   // Tool table
   | { cmd: "get_tool_table" }
-  | ({ cmd: "save_tool" } & ToolFields)
+  | ({ cmd: "save_tool"; expected: ToolRowExpect } & ToolFields)
   | ({ cmd: "add_tool" } & ToolFields)
-  | ({ cmd: "renumber_tool"; old_tool_number: number } & ToolFields)
+  | ({ cmd: "renumber_tool"; old_tool_number: number; expected: ToolRowExpect } & ToolFields)
   | { cmd: "delete_tool"; tool_number: number }
   | { cmd: "tool_change"; tool_number: number }
   // Coolant

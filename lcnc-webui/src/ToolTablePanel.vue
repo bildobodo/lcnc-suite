@@ -26,6 +26,7 @@ import { toolPreviewNotice } from "./toolPreviewNotice";
 import { summarizeToolImport } from "./toolImportSummary";
 import DialogFrame from "./DialogFrame.vue";
 import { vStickyHead } from "./stickyHead";
+import { TOOL_EDIT_FIELDS, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -39,6 +40,9 @@ const TOOL_READ_TIMEOUT_MS = 60_000;
 /** A table write (persist + reload into LinuxCNC, behind this client's queue)
  *  waits as long as a read before it says the outcome is unknown. */
 const TOOL_WRITE_REPLY_MS = TOOL_READ_TIMEOUT_MS;
+/** A save with no read of the table behind its dialog (P4-2): nothing to
+ *  prove the row against — the dialog is opened again on a read. */
+const TOOL_NOT_READ = "Tool table not read — reopen";
 const REFETCH_AFTER_DELETE_MS = 300;
 // Parametric preview canvas in the edit dialog — one constant drives the
 // canvas size AND the preview column's width (--preview-w).
@@ -160,6 +164,11 @@ function toggleSort(key: "T" | "D" | "Z") {
 // connection, ends the read with the reason and Retry; a reconnect reads
 // again. Only the newest read applies.
 let readSeq = 0;
+// The table the last read came from (P4-2): what an edit dialog names as the
+// row's table when it saves — another table or LinuxCNC instance is another row.
+const tableIdentity = ref<ToolTableIdentity | null>(null);
+const isTableIdentity = (t: unknown): t is ToolTableIdentity =>
+  !!t && typeof (t as ToolTableIdentity).path === "string" && typeof (t as ToolTableIdentity).instance === "string";
 async function fetchTools() {
   const seq = ++readSeq;
   loading.value = true;
@@ -173,6 +182,7 @@ async function fetchTools() {
   loading.value = false;
   if (reply?.ok && Array.isArray(reply.tools)) {
     tools.value = reply.tools;
+    tableIdentity.value = isTableIdentity(reply.table) ? { path: reply.table.path, instance: reply.table.instance } : null;
     tableError.value = null;
   } else {
     tableError.value = reply === null
@@ -242,7 +252,24 @@ function fieldContext(name: string, unit: FieldUnit): string {
   return u ? `${who} · ${name} · ${u}` : `${who} · ${name}`;
 }
 
+// The row state the dialog was opened on (P4-2, machine day F15, Codex
+// MT433-01): a save and a renumber send it, and the gateway refuses the whole
+// edit when the row changed meanwhile — a length measured (G10 L1 of an M600)
+// after the dialog opened is never written back with the old value.
+let editExpected: ToolRowExpect | null = null;
+function rowExpect(tool: Tool): ToolRowExpect | null {
+  const table = tableIdentity.value;
+  if (!table) return null;
+  const row = tool as unknown as Record<string, unknown>;
+  const fields = Object.fromEntries(TOOL_EDIT_FIELDS.map((f) => {
+    const v = row[f];
+    return [f, typeof v === "number" || typeof v === "string" ? v : null];
+  })) as ToolRowExpect["fields"];
+  return { table: { ...table }, tool: tool.T, fields };
+}
+
 function openEdit(tool: Tool) {
+  editExpected = rowExpect(tool);
   showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
@@ -324,11 +351,17 @@ function saveEdit() {
   // save take the same reply-driven path (UI-12): the dialog stays open —
   // fields editable until the send actually happened, disabled while the
   // reply is pending — and closes only on ITS ok.
+  const expected = editExpected;
+  if (!isNewTool.value && !expected) {
+    // no read the dialog was opened on: nothing to prove the row against
+    editError.value = TOOL_NOT_READ;
+    return;
+  }
   const payload = !isNewTool.value && form.T !== orig.T
-    ? { cmd: "renumber_tool" as const, old_tool_number: orig.T, ...buildToolMsg(form) }
+    ? { cmd: "renumber_tool" as const, old_tool_number: orig.T, expected: expected!, ...buildToolMsg(form) }
     : isNewTool.value
       ? { cmd: "add_tool" as const, ...buildToolMsg(form) }
-      : { cmd: "save_tool" as const, ...buildToolMsg(form) };
+      : { cmd: "save_tool" as const, expected: expected!, ...buildToolMsg(form) };
   const id = fire(payload, "toolTableWrite");
   if (id === null) return;                       // nothing sent — fire() said why; no pending
   saveSession.value = { id, cmd: payload.cmd };

@@ -128,6 +128,13 @@ def state(**over) -> MachineState:
     return MachineState(**base)
 
 
+
+#: a well-formed tool-edit row state (P4-2)
+_TOOL_EXPECT = {"table": {"path": "/cfg/tool.tbl", "instance": "100:200"}, "tool": 5,
+                "fields": {f: None for f in ("P", "D", "Z", "remark", "description", "type", "flutes", "oal",
+                                             "flute_length", "corner_radius", "body_length", "shaft_diameter",
+                                             "taper_angle", "point_angle", "tip_diameter", "material", "holder")}}
+
 class TestCoverage(unittest.TestCase):
     def test_command_set_was_actually_parsed(self):
         # Guard: a broken source parse must not let the coverage checks pass
@@ -613,11 +620,36 @@ class TestPayloadSchema(unittest.TestCase):
         # Test strategy step 2: the schema bounded a `new_number` the UI never
         # sends; `old_tool_number` had no bound, pocket and diameter none for a
         # renumber (save and add bound them). Both numbers, pocket, diameter.
-        ok = {"old_tool_number": 5, "tool_number": 7, "pocket": 7, "diameter": 6.0}
+        ok = {"old_tool_number": 5, "tool_number": 7, "pocket": 7, "diameter": 6.0, "expected": _TOOL_EXPECT}
         self.assertEqual(validate_payload("renumber_tool", ok, self.LIM), {})
         for field, bad in (("old_tool_number", -1), ("old_tool_number", 10 ** 9), ("tool_number", -2),
                            ("pocket", 10 ** 9), ("diameter", -1.0)):
             self.assertIn(field, self._reject("renumber_tool", {**ok, field: bad}), (field, bad))
+
+    def test_a_tool_edit_carries_the_row_it_was_opened_on(self):
+        # P4-2 (Codex MT433-01): save and renumber name the row state — required,
+        # exactly its keys, the table's two strings, the edited fields exactly,
+        # each null, a finite number or a short string
+        import copy
+        from command_policy import TOOL_EDIT_FIELDS
+        for cmd, base in (("save_tool", {"tool_number": 5}), ("renumber_tool", {"old_tool_number": 5, "tool_number": 6})):
+            with self.subTest(cmd=cmd):
+                self.assertEqual(validate_payload(cmd, {**base, "expected": _TOOL_EXPECT}, self.LIM), {})
+                self.assertIn("expected", self._reject(cmd, base))
+                bad = []
+                for mutate in (lambda e: e.pop("tool"), lambda e: e.update(extra=1),
+                               lambda e: e["table"].pop("instance"), lambda e: e["table"].update(path=5),
+                               lambda e: e["fields"].pop("Z"), lambda e: e["fields"].update(X=1.0),
+                               lambda e: e["fields"].update(Z=True), lambda e: e["fields"].update(Z=[1]),
+                               lambda e: e["fields"].update(remark="x" * 256), lambda e: e.update(tool=-1)):
+                    e = copy.deepcopy(_TOOL_EXPECT)
+                    mutate(e)
+                    bad.append(self._reject(cmd, {**base, "expected": e}))
+                self.assertTrue(all("expected" in b for b in bad), bad)
+                e = copy.deepcopy(_TOOL_EXPECT)
+                e["fields"].update(Z=-42.5, type="flat", flutes=None)
+                self.assertEqual(validate_payload(cmd, {**base, "expected": e}, self.LIM), {})
+        self.assertEqual(set(_TOOL_EXPECT["fields"]), set(TOOL_EDIT_FIELDS))
 
     def test_axis_and_joint_indices_bounded_by_the_machine(self):
         self.assertIn("maximum 4", self._reject("jog_cont", {"axis": 7, "vel": 1.0}))

@@ -33,6 +33,7 @@ from settings_store import SettingsStore  # noqa: E402
 from test_button_gates import _payload  # noqa: E402
 from test_button_gates_b import _Admission, _FakeRequest, _FakeUpload, _Pending  # noqa: E402
 from test_macros_gateway import _Folder, _body, FACE, rev  # noqa: E402
+from tool_expect_fixture import row_expect  # noqa: E402
 
 
 async def until(event):
@@ -133,12 +134,18 @@ class TestNoControllerStatusIsNoKnownIdle(_Admission):
 class TestWsToolEditsReadTheCurrentWriter(_Admission):
     """BG-23: the dispatcher's arm is not the commit's."""
 
-    MSGS = {
-        "save_tool": {"cmd": "save_tool", "tool_number": 1, "z_offset": 12},
-        "add_tool": {"cmd": "add_tool", "tool_number": 2, "z_offset": 1},
-        "delete_tool": {"cmd": "delete_tool", "tool_number": 1},
-        "renumber_tool": {"cmd": "renumber_tool", "old_tool_number": 1, "tool_number": 2},
-    }
+    TBL = "/tmp/bg-r211-unused.tbl"
+
+    @property
+    def MSGS(self):
+        # the row state the dialog opened on: the row the read below returns (P4-2)
+        exp = row_expect(self.TBL, _row(0.), {}, 1)
+        return {
+            "save_tool": {"cmd": "save_tool", "tool_number": 1, "z_offset": 12, "expected": exp},
+            "add_tool": {"cmd": "add_tool", "tool_number": 2, "z_offset": 1},
+            "delete_tool": {"cmd": "delete_tool", "tool_number": 1},
+            "renumber_tool": {"cmd": "renumber_tool", "old_tool_number": 1, "tool_number": 2, "expected": exp},
+        }
 
     def run_edit(self, msg, during_read):
         gateway._shared_status = _payload()
@@ -155,7 +162,7 @@ class TestWsToolEditsReadTheCurrentWriter(_Admission):
         async def reload():
             pass
         with patch.object(gateway, "parse_tool_table", read), \
-                patch.object(gateway, "get_tool_tbl_path", lambda: "/tmp/bg-r211-unused.tbl"), \
+                patch.object(gateway, "get_tool_tbl_path", lambda: self.TBL), \
                 patch.object(gateway, "write_tool_table", lambda *a: writes.append(a)), \
                 patch.object(gateway, "load_tool_library", lambda: {}), \
                 patch.object(gateway, "save_tool_library", lambda *a, **k: None), \
@@ -228,7 +235,8 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
 
             async def run():
                 first = (gateway._execute_client_command(901, self.writer, None,
-                                                         {"cmd": "save_tool", "tool_number": 1, "z_offset": 12})
+                                                         {"cmd": "save_tool", "tool_number": 1, "z_offset": 12,
+                                                          "expected": row_expect(str(table), _row(0.), {"writer": "A"}, 1)})
                          if ws_first else
                          gateway._persist_imported_tools(str(table), _row(12.), {"writer": "A"}, self.writer.conn_key))
                 a = asyncio.create_task(first)

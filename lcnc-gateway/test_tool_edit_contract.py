@@ -27,6 +27,7 @@ from test_button_gates import _payload  # noqa: E402
 from test_button_gates_b import _Admission  # noqa: E402
 from tool_store import ToolLibraryStore  # noqa: E402
 from tool_table import parse_tool_table  # noqa: E402
+from tool_expect_fixture import row_expect  # noqa: E402
 
 T1 = "T1 P8 X0.5 Y-0.25 Z50 D6 ; first"
 T3 = "T3 P3 Z42.1234567 D4 ; third"
@@ -81,7 +82,20 @@ class _ToolEdit(_Admission):
     def library(self):
         return json.loads(json.dumps(self.store.load()))   # a copy: the store hands out its own dict
 
+    def opened(self, tool):
+        """The row state a dialog opened NOW on `tool` sends (P4-2)."""
+        return row_expect(str(self.table), parse_tool_table(str(self.table)), self.library(), tool)
+
+    def with_expect(self, msg):
+        """A save / renumber not about the row check: opened on the row as it is."""
+        if msg.get("cmd") in ("save_tool", "renumber_tool") and "expected" not in msg:
+            t = msg["tool_number"] if msg["cmd"] == "save_tool" else msg["old_tool_number"]
+            if any(r["T"] == t for r in parse_tool_table(str(self.table))):
+                msg = {**msg, "expected": self.opened(t)}
+        return msg
+
     def send(self, msg):
+        msg = self.with_expect(msg)
         gateway._shared_status = _payload()
         gateway._cmd_lock = None
         current().stat.tool_in_spindle = 0
@@ -220,6 +234,83 @@ class TestALineNotUnderstoodStopsTheEdit(_ToolEdit):
     def test_comment_and_blank_lines_are_no_tool_and_stop_nothing(self):
         self.table.write_text(";Tool  Pocket Z Offset\n\n# a note\n" + table())
         self.edit({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0},
+                  {**EXPECTED, 1: {**EXPECTED[1], "Z": 49.0}}, LIBRARY)
+
+
+class TestAnEditOpenedOnAnotherRowWritesNothing(_ToolEdit):
+    """P4-2 (machine day F15, Codex MT433-01): the dialog sends the row state
+    it was opened on; the gateway compares it with the row read in the
+    write's own thread — a measured length, another client's save, an old
+    dialog's renumber, another table or instance refuse the WHOLE edit:
+    neither the file, nor the metadata, nor a reload."""
+
+    def refused(self, msg, fields):
+        before_table, before_library = self.table.read_text(), self.library()
+        reply, reloads = self.send(msg)
+        self.assertEqual((reply["ok"], reply.get("conflict"), reply.get("error")),
+                         (False, True, gateway.TOOL_CHANGED), reply)
+        self.assertEqual(reply.get("fields"), fields)
+        self.assertEqual(self.table.read_text(), before_table, "the file untouched")
+        self.assertEqual(self.library(), before_library, "the metadata untouched")
+        self.assertEqual(reloads, [], "no reload")
+
+    def measured(self, tool, z):
+        """LinuxCNC's own G10 L1 (an M600): the table file rewritten, Z changed."""
+        self.table.write_text(self.table.read_text().replace(
+            {1: "Z50 D6 ; first", 3: "Z42.1234567 D4 ; third"}[tool],
+            {1: f"Z{z} D6 ; first", 3: f"Z{z} D4 ; third"}[tool]))
+
+    def test_a_length_measured_after_the_dialog_opened_is_not_written_back(self):
+        opened = self.opened(1)
+        self.measured(1, 55)
+        self.refused({"cmd": "save_tool", "tool_number": 1, "z_offset": 50.0, "expected": opened}, ["Z"])
+        self.assertIn("Z55", self.table.read_text())
+
+    def test_a_renumber_from_an_old_dialog(self):
+        opened = self.opened(1)
+        self.measured(1, 55)
+        self.refused({"cmd": "renumber_tool", "old_tool_number": 1, "tool_number": 7, "expected": opened}, ["Z"])
+
+    def test_another_clients_save_since_the_dialog_opened(self):
+        opened = self.opened(1)
+        reply, _r = self.send({"cmd": "save_tool", "tool_number": 1, "diameter": 8.0, "flutes": 4})
+        self.assertTrue(reply["ok"], reply)          # the other client, on the row as it was then
+        self.refused({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": opened}, ["D", "flutes"])
+
+    def test_another_table_or_instance(self):
+        for name, table in (("instance", {**self.opened(1)["table"], "instance": "1:2"}),
+                            ("path", {**self.opened(1)["table"], "path": "/elsewhere/tool.tbl"})):
+            with self.subTest(name):
+                self.refused({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0,
+                              "expected": {**self.opened(1), "table": table}}, ["table"])
+
+    def test_a_row_gone_or_another_number(self):
+        opened = self.opened(3)
+        self.refused({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": opened}, ["tool"])
+        reply, _r = self.send({"cmd": "delete_tool", "tool_number": 3})
+        self.assertTrue(reply["ok"], reply)
+        self.assertEqual(self.send({"cmd": "save_tool", "tool_number": 3, "z_offset": 1.0, "expected": opened})[0]
+                         ["error"], "Tool T3 not found")
+
+    def test_another_row_changed_between_the_edits_read_and_its_write(self):
+        # T3 measured while the edit of T1 waits for its write: a rewrite from
+        # the older read would put T3's old length back
+        real = gateway._write_admission_refusal
+
+        def admit(*a, **k):
+            self.measured(3, 40)
+            return real(*a, **k)
+        before_library = self.library()
+        msg = self.with_expect({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0})
+        with patch.object(gateway, "_write_admission_refusal", admit):
+            reply, reloads = self.send(msg)
+        self.assertEqual((reply["ok"], reply.get("conflict"), reply.get("fields")), (False, True, ["table"]), reply)
+        self.assertIn("T3 P3 Z40 D4", self.table.read_text(), "the controller's write stands")
+        self.assertIn("Z50 D6 ; first", self.table.read_text(), "T1 not written")
+        self.assertEqual((self.library(), reloads), (before_library, []))
+
+    def test_the_row_as_opened_saves(self):
+        self.edit({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.opened(1)},
                   {**EXPECTED, 1: {**EXPECTED[1], "Z": 49.0}}, LIBRARY)
 
 

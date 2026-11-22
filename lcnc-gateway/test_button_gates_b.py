@@ -490,7 +490,9 @@ class TestWsToolEditAdmittedAtTheWrite(_Admission):
         self.addCleanup(p.stop)
         gateway._reader_get = {"tool_change": True}.get   # fresh: a request now
         gateway._shared_status = _payload(tool_change_requested=False)   # the snapshot did not know
-        r = _run(gateway.handle_command({"cmd": "save_tool", "tool_number": 1, "z_offset": 1.5},
+        from tool_expect_fixture import row_expect
+        exp = row_expect("/tmp/bg-unused.tbl", [{"T": 1, "P": 1, "Z": 0.0, "D": 3.0, "remark": ""}], {}, 1)
+        r = _run(gateway.handle_command({"cmd": "save_tool", "tool_number": 1, "z_offset": 1.5, "expected": exp},
                                         True, self.writer.conn_key))     # the connection (BG-23)
         self.assertFalse(r["ok"], r)
         self.assertIn("tool change", r["error"].lower())
