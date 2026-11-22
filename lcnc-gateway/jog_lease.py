@@ -54,7 +54,14 @@ LeaseKey = Tuple[str, int]
 @dataclass
 class Lease:
     """One gesture's lease. `state`: live → ended (its source said so, or a
-    stop of this client ended it) or expired (no renewal by the deadline)."""
+    stop of this client ended it) or expired (no renewal by the deadline).
+
+    Ended is NOT settled (Codex R427 MT-I08): an end stops new starts at
+    once, but its STOP is still owed until it ran — the lease stays listed
+    with its timer until the path that ended it stopped its axes (`settle`),
+    or the timer finds it unsettled at its deadline and stops them itself.
+    `ended_by` names that path (source, abort, estop, disarm, hb_stall,
+    not_connected, disconnect)."""
     conn_key: str
     lease_id: int
     link: Any                 # the controller Link it began on (identity compared)
@@ -64,6 +71,7 @@ class Lease:
     renewals: int = 0
     timer: Any = None         # the gateway's TimerHandle (owned there)
     stop_scheduled: bool = False
+    ended_by: Optional[str] = None
     extra: Dict[str, Any] = field(default_factory=lambda: dict[str, Any]())
 
     @property
@@ -142,14 +150,23 @@ class LeaseTable:
         return len(self._leases)
 
     # --- endings -----------------------------------------------------------
-    def end(self, key: LeaseKey) -> Optional[Lease]:
+    def end(self, key: LeaseKey, by: str = "source") -> Optional[Lease]:
         """The source ended the gesture (or a stop of its client ended every
-        gesture): no more starts under it. Returns the lease (still listed —
-        the caller stops its axes, then forgets it), or None when unknown."""
+        gesture): no more starts under it. Returns the lease — still listed
+        with its timer: its stop is owed until the caller's path ran it and
+        forgot the lease — or None when unknown."""
         lease = self._leases.get(key)
         if lease is not None and lease.state == "live":
             lease.state = "ended"
+            lease.ended_by = by
         return lease
+
+    def unsettled(self, by: Tuple[str, ...], conn_key: Optional[str] = None) -> List[Lease]:
+        """The ended leases whose stop is still owed, ended by one of `by`
+        (of `conn_key` only, when given)."""
+        return [lz for lz in self._leases.values()
+                if lz.state == "ended" and lz.ended_by in by
+                and (conn_key is None or lz.conn_key == conn_key)]
 
     def due(self, key: LeaseKey, now: float) -> Optional[float]:
         """The expiry timer fired: the seconds left when the lease is still
@@ -172,14 +189,14 @@ class LeaseTable:
             del self._leases[key]
 
     def drop_connection(self, conn_key: str) -> List[Lease]:
-        """The connection ended: every lease of it ends with it (returned so
-        the caller cancels their timers). The connection's id floor goes too
-        — a new connection has a new key."""
+        """The connection ended: every live lease of it ends with it (by
+        `disconnect`) and stays listed until its stop ran (MT-I08); the
+        connection's id floor goes — a new connection has a new key."""
         gone = self.leases_of(conn_key)
         for lease in gone:
             if lease.state == "live":
                 lease.state = "ended"
-            del self._leases[lease.key]
+                lease.ended_by = "disconnect"
         self._max_id.pop(conn_key, None)
         return gone
 

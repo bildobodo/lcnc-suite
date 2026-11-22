@@ -132,9 +132,28 @@ class TestTimerAndEnd(unittest.TestCase):
         t.receive_start("b", 1, "link", now=0.0)
         gone = t.drop_connection("a")
         self.assertEqual(sorted(lz.lease_id for lz in gone), [1, 2])
-        self.assertTrue(all(lz.state == "ended" for lz in gone))
-        self.assertEqual(len(t), 1)
+        self.assertTrue(all(lz.state == "ended" and lz.ended_by == "disconnect" for lz in gone))
+        # their stops are still owed (Codex R427 MT-I08): listed until settled
+        self.assertEqual(sorted(lz.lease_id for lz in t.unsettled(("disconnect",), "a")), [1, 2])
         self.assertTrue(t.is_live(("b", 1), 0.1))
+        self.assertFalse(t.is_live(("a", 1), 0.1), "nothing starts under them")
+        for lz in gone:
+            t.forget(lz.key)
+        self.assertEqual(len(t), 1)
+
+    def test_an_end_stops_starts_but_owes_its_stop(self):
+        """MT-I08: ended is not settled — the lease stays listed (its timer
+        stops what it owns at the deadline) until the stop ran."""
+        t = jl.LeaseTable()
+        t.receive_start("a", 1, "link", now=0.0)
+        t.end(("a", 1), by="abort")
+        self.assertFalse(t.is_live(("a", 1), 0.1))
+        self.assertEqual([lz.lease_id for lz in t.unsettled(("abort",))], [1])
+        self.assertEqual(t.unsettled(("estop",)), [])
+        self.assertEqual(t.renew("a", [1], now=0.2), [1], "an ended lease is never renewed")
+        self.assertEqual(t.get(("a", 1)).state, "ended", "a renewal does not turn it into expired")
+        t.end(("a", 1), by="source")
+        self.assertEqual(t.get(("a", 1)).ended_by, "abort", "the first end names it")
 
 
 class TestWireForms(unittest.TestCase):

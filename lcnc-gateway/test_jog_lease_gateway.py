@@ -238,6 +238,142 @@ class TestTheExpiry(_Lease):
         self.assertEqual(self.stops(), [])
 
 
+class TestTheOwedStop(_Lease):
+    """Codex R427 MT-I08: an end stops new starts at its receipt, but its
+    STOP stays owed until it ran — a refused, dropped or waiting end never
+    settles it; the lease's timer stops what it still owns at the deadline."""
+
+    def fire(self, lease_id, ck=None):
+        """The lease's timer fires: the expiry task it creates runs here."""
+        created = []
+        with mock.patch.object(gateway.asyncio, "create_task",
+                               side_effect=lambda coro: created.append(coro) or mock.Mock()), \
+                mock.patch.object(gateway, "register_bg_task"), \
+                mock.patch.object(gateway, "_arm_lease_timer") as arm:
+            gateway._on_lease_timer((ck or self.ck, lease_id))
+        gateway._cmd_lock = None
+        for coro in created:
+            _run(coro)
+        return arm
+
+    def test_an_end_whose_command_never_ran_is_stopped_at_its_deadline(self):
+        self.jog(1)
+        self.receive({"cmd": "jog_lease_end", "lease": 1})    # read; its command refused (queue full)
+        self.assertEqual(self.stops(), [])
+        self.assertEqual(self.lease(1).state, "ended")
+        arm = self.fire(1)                                    # before the deadline: waits for it
+        arm.assert_called_once()
+        self.assertEqual(self.stops(), [])
+        self.run_out(1)
+        self.fire(1)
+        self.assertEqual(self.stops(), [(JS, 1, 0)])
+        self.assertIsNone(self.lease(1), "settled by its expiry")
+        self.assertEqual(self.notes[0][1]["reason"], "source", "an ended gesture: no page-delay words")
+
+    def test_the_end_handler_settles_once_its_stop_ran(self):
+        self.jog(1)
+        self.assertEqual(self.end(1), {"ok": True})
+        self.assertEqual(self.stops(), [(JS, 1, 0)])
+        self.assertIsNone(self.lease(1))
+
+    def test_an_end_whose_stop_failed_is_said_once_never_retried(self):
+        self.jog(1)
+        recorded = self.cmd.calls
+
+        def jog(*a):
+            if a[0] == JS:
+                raise linuxcnc.error("channel gone")
+            recorded.append(("jog", a, {}))
+        self.cmd.jog = jog
+        r = self.end(1)
+        self.assertEqual(r["stop_failed"], [0])
+        self.assertIsNone(self.lease(1), "a reported failure settles: no silent retry")
+        self.assertEqual(self.owner(0), (self.ck, 1), "the booking stays: an operator stop still reaches it")
+
+    def test_an_abort_written_settles_what_it_ended_one_not_written_leaves_the_stop_owed(self):
+        self.jog(1, axis=0)
+        gateway._end_client_leases(self.ck, why="abort")
+        self.assertEqual(self.send_as({"cmd": "abort"})["ok"], True)
+        self.assertEqual(gateway._jog_leases.unsettled(("abort",)), [])
+        # the next gesture's abort is refused at its write: the stop stays owed
+        self.jog(2, axis=1)
+        gateway._end_client_leases(self.ck, why="abort")
+
+        def refuse(*a):
+            raise linuxcnc.error("abort refused")
+        self.cmd.abort = refuse
+        self.send_as({"cmd": "abort"})
+        self.assertEqual([lz.lease_id for lz in gateway._jog_leases.unsettled(("abort",))], [2])
+        self.run_out(2)
+        self.fire(2)
+        self.assertIn((JS, 1, 1), self.stops())
+
+    def test_an_estop_written_settles_the_ends_of_abort_and_estop(self):
+        self.jog(1)
+        gateway._end_client_leases(self.ck, why="estop")
+        self.send_as({"cmd": "estop"})
+        self.assertEqual(gateway._jog_leases.unsettled(("estop", "abort")), [])
+
+    def test_a_client_stop_settles_only_a_lease_no_booking_names(self):
+        self.jog(1, axis=0)
+        self.jog(2, axis=1)
+        gateway._end_client_leases(self.ck, why="disarm")
+        gateway._active_jogs.pop(0)                 # X's stop was written; Y's failed (still booked)
+        gateway._settle_leases_ended_by(("disarm",), self.ck, only_unowned=True)
+        self.assertEqual([lz.lease_id for lz in gateway._jog_leases.unsettled(("disarm",))], [2])
+        self.run_out(2)
+        self.fire(2)
+        self.assertEqual(self.stops(), [(JS, 1, 1)], "the owed stop of the failed one, at its deadline")
+
+
+class TestTheWriteLink(_Lease):
+    """Codex R427 MT-I09: a lease's stop is bound to the Link its jog was
+    written through — never applied to a replacement Link, the booking kept
+    and the failure said; on the same Link its own jog stops."""
+
+    def new_link(self):
+        old = gateway._link
+        newer = _RecordingCmd()
+        new = gateway._publish_link(old.stat, newer, old.err, old.pid)
+        self.assertIsNot(new, old)
+        return newer
+
+    def test_the_booking_carries_the_writes_link(self):
+        self.jog(1)
+        self.assertIs(gateway._jog_row_link(gateway._active_jogs[0]), gateway._link)
+
+    def test_an_old_leases_expiry_never_writes_through_a_new_link(self):
+        """Codex R427's probe: B must not receive the JOG_STOP of A's lease."""
+        self.assertTrue(self.jog(1)["ok"])
+        newer = self.new_link()
+        self.expire(1)
+        self.assertEqual([a for n, a, _k in newer.calls if n == "jog"], [])
+        self.assertEqual(self.owner(0), (self.ck, 1), "kept: nothing confirmed a stop")
+        self.assertEqual(self.notes[0][1]["stop_failed"], [0])
+        self.assertEqual(self.notes[0][1]["error"], gateway.JOG_LEASE_STOP_FAILED)
+
+    def test_an_end_and_a_changes_stop_half_on_a_new_link_say_the_stop_failed(self):
+        self.jog(1, axis=0)
+        self.jog(1, axis=1)
+        newer = self.new_link()
+        r = self.change(1, [0], [])
+        self.assertEqual(r.get("stop_failed"), [0], r)
+        r = self.end(1)
+        self.assertEqual(r["stop_failed"], [0, 1], r)
+        self.assertEqual([a for n, a, _k in newer.calls if n == "jog"], [])
+
+    def test_the_write_thread_refuses_a_link_changed_after_the_lock(self):
+        self.jog(1)
+        owner = gateway._jog_row_owner(gateway._active_jogs[0])
+        row = gateway._active_jogs[0]
+        gateway._active_jogs[0] = row[:4] + (object(),)    # booked through another Link meanwhile
+        gateway._cmd_lock = None
+        with self.assertRaises(gateway._WriteRefused) as cm:
+            _run(gateway._send_jog_stop(0, owner=owner))
+        self.assertEqual(str(cm.exception), gateway.JOG_STOP_LINK_CHANGED)
+        self.assertEqual(self.stops(), [])
+
+
 class TestTheChange(_Lease):
     def test_a_reversal_under_a_live_lease(self):
         self.jog(1, vel=5.0)
@@ -501,6 +637,37 @@ class TestTheReceiptAnchor(_Ws):
             self.assertEqual(len(late), 5)
             self.assertEqual(self.reply("c4").get("expired"), True)
             self.assertEqual([w for w in self.writes() if w[0] == JC], [(JC, 1, 0, 5.0)], "never a second start")
+
+
+class TestTheRefusedEnd(_Ws):
+    def test_an_end_the_full_queue_refused_still_stops_by_the_deadline(self):
+        """Codex R427 MT-I08 probe, at the product's queue limits: a slow
+        command holds only the client's FIFO (not `_cmd_lock`), harmless
+        ends fill the stop buffer, the gesture's own end is refused — the
+        lease's timer still writes JOG_STOP."""
+        real = self.real_handle
+
+        async def handle(msg, armed, conn_key=None):
+            if msg.get("cmd") == "zz_slow":
+                await asyncio.sleep(1.8)
+                return {"ok": True}
+            return await real(msg, armed, conn_key)
+        gateway.handle_command = handle
+        with TestClient(gateway.app) as client, client.websocket_connect("/ws") as ws:
+            self.arm(ws)
+            ws.send_json({"cmd": "jog_cont", "axis": 0, "vel": 5.0, "lease": 1, "req_id": "start"})
+            self.pump(ws, 2, until=lambda f: f.get("req_id") == "start", renew=[1])
+            self.assertTrue(self.reply("start")["ok"])
+            ws.send_json({"cmd": "zz_slow", "req_id": "slow"})
+            self.pump(ws, 0.1, renew=[1])
+            for n in range(4 * gateway._WS_CMD_QUEUE_MAX):
+                ws.send_json({"cmd": "jog_lease_end", "lease": 100 + n, "req_id": f"fill-{n}"})
+            ws.send_json({"cmd": "jog_lease_end", "lease": 1, "req_id": "end"})
+            self.pump(ws, 1.5, until=lambda f: f.get("req_id") == "end")
+            self.assertIn("queue full", (self.reply("end") or {}).get("error", "").lower())
+            self.pump(ws, 1.0)
+            self.assertIn(JS, [w[0] for w in self.writes()],
+                          f"the refused end's stop was lost: {self.writes()}")
 
 
 class TestTheClientsLeasesEnd(_Ws):

@@ -1546,6 +1546,14 @@ def _jog_row_owner(row: Optional[Tuple[Any, ...]]) -> Optional[JogOwner]:
         return None
     return (row[2], row[3])
 
+
+def _jog_row_link(row: Optional[Tuple[Any, ...]]) -> Any:
+    """The controller Link a booked jog was WRITTEN through (Codex R427
+    MT-I09: a lease's stop is bound to it), or None (an older row)."""
+    if row is None or len(row) < 5:
+        return None
+    return row[4]
+
 # ---- Program-elapsed timer (server-authoritative) ----
 # Tracked across status polls so every connected client (including ones that
 # joined mid-program) sees the same elapsed time. Anchored to time.monotonic()
@@ -4174,6 +4182,9 @@ async def set_mode(mode: TaskMode, force: bool = False,
 #: a lease's stop for an axis whose row no longer carries that lease — another
 #: gesture or an operator stop took it (P1b, Codex R425 MT425-01)
 JOG_STOP_NOT_OWNED = "Jog taken over — not this gesture's to stop"
+#: a lease's stop met a booking written through another controller Link
+#: (Codex R427 MT-I09): nothing written, the booking kept
+JOG_STOP_LINK_CHANGED = "Jog written on another controller link — not stopped by its lease"
 
 
 async def _send_jog_stop(axis: int, owner: Optional[JogOwner] = None) -> None:
@@ -4193,12 +4204,25 @@ async def _send_jog_stop(axis: int, owner: Optional[JogOwner] = None) -> None:
     — names the (lease, generation) it saw after taking `_cmd_lock`; the
     write's own last check, in its thread, refuses (JOG_STOP_NOT_OWNED,
     nothing written) unless the row still carries exactly that owner. An
-    operator's stop names none and stops the axis whoever wrote it."""
+    operator's stop names none and stops the axis whoever wrote it.
+
+    A lease's stop is also bound to the Link the jog was WRITTEN through
+    (Codex R427 MT-I09): through another Link — a new channel set, even of
+    the same instance — its indices are not written (JOG_STOP_LINK_CHANGED,
+    the booking kept, the caller says the stop failed). An operator's stop
+    is unbound: it acts on the Link there is."""
     row = _active_jogs[axis]
     jf, arg = row[0], row[1]
+    lk = link()
+
     def still_owned() -> Optional[str]:
-        return None if _jog_row_owner(_active_jogs.get(axis)) == owner else JOG_STOP_NOT_OWNED
-    await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None,
+        now = _active_jogs.get(axis)
+        if _jog_row_owner(now) != owner:
+            return JOG_STOP_NOT_OWNED
+        if _jog_row_link(now) is not lk:
+            return JOG_STOP_LINK_CHANGED
+        return None
+    await _cmd_blocking(lk, op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None,
                         admit=still_owned if owner is not None else None)
     _active_jogs.pop(axis, None)
 
@@ -4346,14 +4370,16 @@ async def _start_jogs(cmd: str, armed: bool, entries,
                 return {"ok": False, "error": JOG_MODE_CHANGED}
             targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]
         for axis, jf, arg, vel, dist in targets:
-            def book(axis=axis, jf=jf, arg=arg):
-                _active_jogs[axis] = (jf, arg, lease_key if dist is None else None, next(_jog_gen))
+            lk = link()   # the write's Link — booked with it (MT-I09)
+
+            def book(axis=axis, jf=jf, arg=arg, lk=lk):
+                _active_jogs[axis] = (jf, arg, lease_key if dist is None else None, next(_jog_gen), lk)
                 if lease_key is not None and dist is None:
                     written.append(axis)
             if dist is None:
-                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=jog_admit, written=book)
+                rc = await _cmd_blocking(lk, op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=jog_admit, written=book)
             else:
-                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=jog_admit, written=book)
+                rc = await _cmd_blocking(lk, op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=jog_admit, written=book)
             _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc,
                        lease=lease_key[1] if lease_key is not None and dist is None else None)
     except _WriteRefused as refused:
@@ -4575,9 +4601,16 @@ async def _stop_owned_axes(lease_key: Tuple[str, int],
     if _auto_running():
         return out
     for ax in todo:
-        owner = _jog_row_owner(_active_jogs.get(ax))
+        row = _active_jogs.get(ax)
+        owner = _jog_row_owner(row)
         if owner is None or owner[0] != lease_key:
             out["not_owned"].append(ax)
+            continue
+        if _jog_row_link(row) is not current_link():
+            # written through another Link (MT-I09): its indices are not
+            # applied here; the booking stays, the stop is said to have failed
+            _trace.emit("jog.lease_stop_link_changed", level="error", lease=lease_key[1], axis=ax)
+            out["failed"].append(ax)
             continue
         try:
             await _send_jog_stop(ax, owner=owner)
@@ -4612,21 +4645,26 @@ def _arm_lease_timer(lease: "_jog_lease_mod.Lease", delay: float) -> None:
 
 def _on_lease_timer(key: Tuple[str, int]) -> None:
     """A lease's expiry timer fired: alive (renewed) → re-arm for the rest;
-    ended by its source → that end handles its stop; else the lease EXPIRED:
-    its still-owned axes stop (_expire_jog_lease)."""
+    ended but not settled (its stop still owed) → re-arm until its deadline,
+    then stop what it still owns; else the lease EXPIRED: its still-owned
+    axes stop (_expire_jog_lease)."""
     lease = _jog_leases.get(key)
     if lease is None:
         return
     if lease.state == "ended":
-        # its source (or a stop of its client) ended it: that path stops its
-        # axes; a lease whose end never reached its handler is forgotten here
-        # — its id stays dead, a late end still stops by the booking's key
-        _jog_leases.forget(key)
-        return
-    left = _jog_leases.due(key, time.monotonic())
-    if left is not None:
-        _arm_lease_timer(lease, left)
-        return
+        # ended, its stop still owed (Codex R427 MT-I08): the path that ended
+        # it settles it once its stop ran; an end whose command was refused
+        # (a full queue), dropped or still waiting must not lose the stop —
+        # at its deadline the expiry stops what the lease still owns
+        left = lease.deadline - time.monotonic()
+        if left > 0:
+            _arm_lease_timer(lease, left)
+            return
+    else:
+        left = _jog_leases.due(key, time.monotonic())
+        if left is not None:
+            _arm_lease_timer(lease, left)
+            return
     if lease.stop_scheduled:
         return
     lease.stop_scheduled = True
@@ -4658,11 +4696,12 @@ async def _expire_jog_lease(lease: "_jog_lease_mod.Lease") -> None:
                                   if (_jog_row_owner(row) or (None, 0))[0] == key)
     _trace.emit("jog.lease_expired", level="warn" if (result["stopped"] or result["failed"]) else "info",
                 lease=key[1], stopped=result["stopped"], failed=result["failed"],
-                late_ms=late_ms, renewals=lease.renewals,
+                late_ms=late_ms, renewals=lease.renewals, ended_by=lease.ended_by,
                 age_ms=round((time.monotonic() - lease.began) * 1000))
     _jog_leases.forget(key)
     await _notify_lease_owner(key[0], {"type": "jog_lease_expired", "id": key[1],
                                        "axes": result["stopped"], "stop_failed": result["failed"],
+                                       **({"reason": lease.ended_by} if lease.ended_by else {}),
                                        **({"error": JOG_LEASE_STOP_FAILED} if result["failed"] else {})})
 
 
@@ -4724,18 +4763,40 @@ def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False)
     the ended ids (the page is told, _tell_leases_ended)."""
     if not conn_key:
         return []
-    leases = _jog_leases.leases_of(conn_key)
+    leases = [lz for lz in _jog_leases.leases_of(conn_key) if lz.state == "live"]
     for lz in leases:
-        _jog_leases.end(lz.key)
-        if lz.timer is not None:
-            lz.timer.cancel()
-        _jog_leases.forget(lz.key)
+        _jog_leases.end(lz.key, by=why)
     if drop:
         _jog_leases.drop_connection(conn_key)
     if not leases:
         return []
     _trace.emit("jog.leases_ended", level="info", why=why, leases=[lz.lease_id for lz in leases], dropped=drop)
     return [lz.lease_id for lz in leases]
+
+
+def _settle_lease(key: Tuple[str, int]) -> None:
+    """The lease's stop ran (its own end, its expiry, or the stop of the
+    path that ended it): no timer, forgotten — its id stays dead."""
+    lease = _jog_leases.get(key)
+    if lease is None:
+        return
+    if lease.timer is not None:
+        lease.timer.cancel()
+    _jog_leases.forget(key)
+
+
+def _settle_leases_ended_by(whys: Tuple[str, ...], conn_key: Optional[str] = None, *,
+                            only_unowned: bool = False) -> None:
+    """The stop of the path that ended these leases RAN (Codex R427
+    MT-I08): an abort or E-Stop written, a disarm's / heartbeat stall's /
+    disconnect's jog stop done. `only_unowned`: settle only a lease no booked
+    jog still names — a jog stop that failed keeps its booking, and the
+    lease's own expiry stops it at the deadline (and says so)."""
+    owners = {o[0] for o in (_jog_row_owner(r) for r in _active_jogs.values()) if o is not None}
+    for lz in _jog_leases.unsettled(whys, conn_key):
+        if only_unowned and lz.key in owners:
+            continue
+        _settle_lease(lz.key)
 
 
 async def _tell_leases_ended(ws: Any, ids: List[int], why: str) -> None:
@@ -6199,6 +6260,7 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
 
     if cmd == "estop":
         await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP), wait=None)
+        _settle_leases_ended_by(("estop", "abort"))   # written: every motion stops (MT-I08)
         _estop_hold = True
         _hal_send({"connected": False})  # hold via _estop_hold
         return {"ok": True}
@@ -6296,6 +6358,7 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
         # A stop needs no arm (button gates BG-08): arm authorizes NEW
         # machine effects — E-Stop was already open to every client.
         await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None)
+        _settle_leases_ended_by(("abort",))   # written: the jogs stop with it (MT-I08)
         return {"ok": True}
     return _UNHANDLED
 
@@ -6958,15 +7021,14 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
         failed: List[int] = []
         for key in keys:
             lease = _jog_leases.end(key)
-            if lease is not None and lease.timer is not None:
-                lease.timer.cancel()
             result = await _stop_owned_axes(key)
             failed += result["failed"]
             if lease is not None:
                 _trace.emit("jog.lease_end", level="info", lease=key[1], stopped=result["stopped"],
                             failed=result["failed"], renewals=lease.renewals,
                             age_ms=round((time.monotonic() - lease.began) * 1000))
-                _jog_leases.forget(key)
+            # its own stop ran (a failed write is said in the reply): settled
+            _settle_lease(key)
         if failed:
             return {"ok": False, "error": JOG_LEASE_STOP_FAILED, "stop_failed": failed}
         return {"ok": True}
@@ -11570,6 +11632,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
                 try:
                     async with _get_cmd_lock():
                         await _jog_stop_for_client()
+                    _settle_leases_ended_by(("disarm",), client.conn_key, only_unowned=True)
                 except Exception as _e:
                     _trace.emit(
                         "safety.explicit_disarm_jog_stop_failed", level="error",
@@ -12175,6 +12238,7 @@ async def ws_endpoint(ws: WebSocket):
                                 try:
                                     async with _get_cmd_lock():
                                         await _jog_stop_for_client()
+                                    _settle_leases_ended_by(("hb_stall",), client.conn_key, only_unowned=True)
                                 except Exception as _e:
                                     _trace.emit(
                                         "safety.hb_stall_jog_stop_failed", level="error",
@@ -12809,6 +12873,7 @@ async def ws_endpoint(ws: WebSocket):
                     _set_phase(f"ws_endpoint.finally.armed_jog_stop.cmd_lock_held client#{client_id}")
                     link().stat.poll()
                     await _jog_stop_for_client()
+                _settle_leases_ended_by(("disconnect",), client.conn_key, only_unowned=True)
             except Exception as _e:
                 _trace.emit(
                     "safety.disconnect_jog_stop_failed", level="error",
