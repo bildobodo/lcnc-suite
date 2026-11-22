@@ -193,12 +193,11 @@ test("Boss/Pocket: a boss needs its size; a pocket at 0 says its limited search"
   await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { probe: { diameterHint: 25, xHintBP: 30 } } } });
   await expect(roundBoss).toBeEnabled();
   await expect(rectBoss).toBeDisabled();
+  // a Rect Pocket with Y at 0: open, and its cell says the limited search
+  await expect(panel.getByRole('button', { name: /^Probe inside of rectangular pocket \(edge start\) — Search limited to Max X\/Y Travel$/ }))
+    .toBeEnabled();
   await hold(page, roundBoss);
   await expect.poll(async () => (await sent()).filter(c => c.cmd === 'probe_run').length).toBe(1);
   const job = (await sent()).find(c => c.cmd === 'probe_run')!;
   expect([job.routine, job.vars?.['3025']]).toEqual(['probe_round_boss', 25]);
-
-  // a Rect Pocket with Y at 0: it runs and its cell says the limited search
-  await expect(panel.getByRole('button', { name: /^Probe inside of rectangular pocket \(edge start\) — Search limited to Max X\/Y Travel$/ }))
-    .toBeEnabled();
 });

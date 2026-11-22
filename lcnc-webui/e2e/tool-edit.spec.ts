@@ -57,8 +57,12 @@ test("a conflict keeps the dialog, its draft and says why", async ({ page }) => 
 
 test("a renumber sends the row it was opened on too", async ({ page }) => {
   const dialog = await openEditor(page);
-  await dialog.getByLabel("Tool #", { exact: true }).fill("9");
-  await dialog.getByLabel("Tool #", { exact: true }).blur();
+  // the number through the field's keypad, the operator's way
+  await dialog.getByLabel("Tool #", { exact: true }).click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("9");
+  await page.keyboard.press("Enter");
+  await expect(dialog.getByLabel("Tool #", { exact: true })).toHaveValue("9");
   await ctl({ op: "replyFor", cmd: "renumber_tool", reply: { ok: true, tool_number: 9 } });
   await ctl({ op: "clearCmds" });
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
