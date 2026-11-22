@@ -1920,15 +1920,35 @@ def eval_parse_nice(case: str, window: dict) -> dict:
     bad = [(e.get("reason"), e.get("nice")) for e in drift if e.get("nice") != 19]
     if bad:
         return _row(case, "FAIL", f"{len(bad)} drift re-parses not niced", not_niced=bad[:5], drift=len(drift))
-    # what the WORKER's os.nice() answered (gcode.worker_done's nice_applied,
-    # by job — Fable's merge check: the spawn's field is only what was asked)
-    done = {e.get("job"): e for e in window.get("events") or [] if e.get("tag") == "gcode.worker_done"}
-    applied = [(e.get("reason"), done[e.get("job")].get("nice_applied")) for e in drift if e.get("job") in done]
-    if not applied or any(a is None for _r, a in applied):
-        return _row(case, "incomplete", "the worker's applied priority is not traced", drift=len(drift))
-    wrong = [(r, a) for r, a in applied if str(a).strip() != "19"]
+    # what the WORKER's os.nice() answered (gcode.worker_done's nice_applied —
+    # Fable's merge check: the spawn's field is only what was asked). EVERY
+    # judged drift start needs its OWN answer, matched by job id (Codex R435
+    # MT-I19): a start without one is unproven — never filtered out; a start
+    # without a job id, a job started twice or answered twice is ambiguous.
+    jobs = [e.get("job") for e in drift]
+    if any(not isinstance(j, int) or isinstance(j, bool) for j in jobs):
+        return _row(case, "incomplete", "a drift parse without its job id", drift=len(drift))
+    twice = sorted({j for j in jobs if jobs.count(j) > 1})
+    if twice:
+        return _row(case, "incomplete", f"job(s) {twice} started twice in the window", drift=len(drift))
+    answers: dict = {}
+    for e in window.get("events") or []:
+        if e.get("tag") == "gcode.worker_done":
+            answers.setdefault(e.get("job"), []).append(e.get("nice_applied"))
+    applied, wrong, unproven = [], [], []
+    for e in drift:
+        got = answers.get(e.get("job"), [])
+        if len(got) != 1 or got[0] is None:
+            unproven.append((e.get("job"), e.get("reason"), "answered twice" if len(got) > 1 else "no answer"))
+            continue
+        applied.append(e.get("job"))
+        if str(got[0]).strip() != "19":
+            wrong.append((e.get("reason"), got[0]))
     if wrong:
         return _row(case, "FAIL", f"{len(wrong)} drift re-parses not niced by the worker", not_niced=wrong[:5],
-                    drift=len(drift))
+                    drift=len(drift), applied=len(applied))
+    if unproven:
+        return _row(case, "incomplete", f"{len(unproven)} of {len(drift)} drift re-parses have no applied "
+                    "priority of their own", unproven=unproven[:5], drift=len(drift), applied=len(applied))
     return _row(case, "PASS", f"{len(drift)} drift re-parses, every one niced (the worker applied 19 to "
                 f"{len(applied)})", drift=len(drift), applied=len(applied))

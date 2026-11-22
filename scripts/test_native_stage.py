@@ -8339,3 +8339,65 @@ def test_r433_a_rotation_during_the_read_is_no_proven_order():
     # the control: the same records read once are a proven end
     assert nc.pb_owed(_r433_slice(([("trace.ndjson", 42, ended)], []))) is None
 
+
+# ── Codex R435 MT-I19: every drift start needs its OWN applied priority ────
+def _r435_window(*, missing=None, wrong=None, fail=False):
+    events = []
+    for job in (1, 2):
+        events.append({"tag": "gcode.spawn_start", "job": job, "reason": "tool_offset", "nice": 19})
+        if job != missing:
+            events.append({"tag": "gcode.worker_done", "job": job, "nice_applied": "0" if job == wrong else "19"})
+        elif fail:
+            events.append({"tag": "gcode.parse_worker_failed", "job": job, "rc": 1})
+    return {"framed": True, "losses": [], "events": events}
+
+
+def test_r435_all_workers_confirmed_is_a_pass():
+    out = nc.eval_parse_nice("nice", _r435_window())
+    assert out["status"] == "PASS" and out["applied"] == out["drift"] == 2, out
+
+
+def test_r435_a_known_wrong_priority_fails():
+    assert nc.eval_parse_nice("nice", _r435_window(wrong=2))["status"] == "FAIL"
+
+
+@pytest.mark.parametrize("missing", [1, 2])
+def test_r435_one_worker_answer_missing_is_incomplete(missing):
+    out = nc.eval_parse_nice("nice", _r435_window(missing=missing))
+    assert out["status"] == "incomplete" and out["applied"] == 1, out
+
+
+def test_r435_a_worker_failure_without_answer_is_no_proof_of_nice():
+    assert nc.eval_parse_nice("nice", _r435_window(missing=2, fail=True))["status"] == "incomplete"
+
+
+def test_r435_an_unrelated_answer_does_not_cover_the_missing_job():
+    w = _r435_window(missing=2)
+    w["events"].append({"tag": "gcode.worker_done", "job": 99, "nice_applied": "19"})
+    assert nc.eval_parse_nice("nice", w)["status"] == "incomplete"
+
+
+def test_r435_no_answers_is_incomplete():
+    w = _r435_window()
+    w["events"] = [e for e in w["events"] if e["tag"] != "gcode.worker_done"]
+    assert nc.eval_parse_nice("nice", w)["status"] == "incomplete"
+
+
+def test_r435_a_job_answered_or_started_twice_is_ambiguous():
+    w = _r435_window()
+    w["events"].append({"tag": "gcode.worker_done", "job": 1, "nice_applied": "19"})   # job 1 answered twice
+    out = nc.eval_parse_nice("nice", w)
+    assert out["status"] == "incomplete" and "answered twice" in str(out["unproven"]), out
+    w = _r435_window()
+    w["events"].append({"tag": "gcode.spawn_start", "job": 2, "reason": "rotary:A", "nice": 19})  # 2 started twice
+    assert nc.eval_parse_nice("nice", w)["status"] == "incomplete"
+    w = _r435_window()
+    w["events"] += [{"tag": "gcode.spawn_start", "reason": "rotary:A", "nice": 19},              # no job id …
+                    {"tag": "gcode.worker_done", "nice_applied": "19"}]                          # … nor its answer
+    assert nc.eval_parse_nice("nice", w)["status"] == "incomplete", "None never matches None"
+
+
+def test_r435_a_wrong_priority_is_a_fail_even_beside_a_missing_answer():
+    w = _r435_window(wrong=1, missing=2)
+    assert nc.eval_parse_nice("nice", w)["status"] == "FAIL", "a proven fault outweighs an unproven start"
+

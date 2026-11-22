@@ -64,8 +64,10 @@ oldest first and carries the slice's beginning into every newer file (a wall ste
 rotation never drops the newer file); one file read under two names (a rotation during the
 read) leaves the order unproven — incomplete (Codex R433). `parse-basis.nice` reads the
 priority each drift parse ASKED for (`gcode.spawn_start` nice) and the one the worker's
-os.nice() APPLIED (`gcode.worker_done` nice_applied, by job); an untraced applied priority is
-incomplete.
+os.nice() APPLIED (`gcode.worker_done` nice_applied, by job): EVERY drift start needs its own
+answer — one without (a failed worker, a lost line), a job without an id, started or answered
+twice is incomplete, never filtered out; an applied priority other than 19 is a FAIL (Codex
+R435). `docs/reviews/parse-basis.reeval.py` re-judges a stored run with the current judges.
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

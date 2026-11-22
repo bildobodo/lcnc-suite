@@ -1,0 +1,65 @@
+{
+ "what": "offline re-judgement of a stored native run with the current judges",
+ "run": "20261122T214315-parse-basis",
+ "commit": "9cae47aa668131b9e7baae8f2270a332b72e81ed",
+ "framed": true,
+ "losses": [],
+ "parse_basis": {
+  "case": "parse-basis",
+  "status": "PASS",
+  "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+  "ops": 3,
+  "parses_by_reason": {
+   "tool_offset": 6
+  },
+  "toolsetter_edges": 0,
+  "masked": 0,
+  "held": 3,
+  "hold_ended": [],
+  "verified_same": 4,
+  "bookings": [
+   "assumed:1",
+   "applied:1",
+   "assumed:24",
+   "read:24",
+   "assumed:1",
+   "applied:1",
+   "assumed:24",
+   "read:24",
+   "assumed:1",
+   "applied:1",
+   "assumed:24",
+   "read:24"
+  ],
+  "read_backs": 3,
+  "outcomes": [
+   "confirmed",
+   "confirmed",
+   "confirmed"
+  ],
+  "quiet_s": 4.5
+ },
+ "parse_basis_nice": {
+  "case": "parse-basis.nice",
+  "status": "PASS",
+  "detail": "6 drift re-parses, every one niced (the worker applied 19 to 6)",
+  "drift": 6,
+  "applied": 6
+ },
+ "drift_jobs": [
+  5,
+  6,
+  7,
+  8,
+  9,
+  10
+ ],
+ "nice_with_one_worker_done_dropped": {
+  "5": "incomplete",
+  "6": "incomplete",
+  "7": "incomplete",
+  "8": "incomplete",
+  "9": "incomplete",
+  "10": "incomplete"
+ }
+}

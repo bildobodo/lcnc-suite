@@ -209,9 +209,34 @@ def _ts_readback_ended''')],
     "applied_priority_untraced": ("bulk_pipeline.py", [('''stdout_bytes=len(stdout), nice_applied=_nice_applied)''', '''stdout_bytes=len(stdout))''')],
         [BP + "TestNicedOnlyARefresh::test_the_worker_applied_priority_is_traced_with_its_job"]),
     # the nice judge takes the spawn's asked priority for the applied one
-    "judge_ignores_applied": ("../scripts/test_support/native_cases.py", [('''    wrong = [(r, a) for r, a in applied if str(a).strip() != "19"]''', '''    wrong = []'''),
-                                                                         ('''    if not applied or any(a is None for _r, a in applied):''', '''    if False:''')],
+    "judge_ignores_applied": ("../scripts/test_support/native_cases.py", [('''    if wrong:
+        return _row(case, "FAIL", f"{len(wrong)} drift re-parses not niced by the worker"''', '''    if False:
+        return _row(case, "FAIL", f"{len(wrong)} drift re-parses not niced by the worker"'''),
+                                                                         ('''    if unproven:
+        return _row(case, "incomplete", f"{len(unproven)} of {len(drift)} drift re-parses''', '''    if False:
+        return _row(case, "incomplete", f"{len(unproven)} of {len(drift)} drift re-parses''')],
         [NS + "test_parse_nice_reads_the_workers_applied_priority"]),
+    # Codex R435 MT-I19: a start without its own answer filtered out (incomplete only if none answered)
+    "nice_filters_unanswered": ("../scripts/test_support/native_cases.py", [('''    if unproven:
+        return _row(case, "incomplete", f"{len(unproven)} of {len(drift)} drift re-parses''', '''    if unproven and not applied:
+        return _row(case, "incomplete", f"{len(unproven)} of {len(drift)} drift re-parses''')],
+        [NS + "test_r435_one_worker_answer_missing_is_incomplete[1]",
+         NS + "test_r435_one_worker_answer_missing_is_incomplete[2]",
+         NS + "test_r435_a_worker_failure_without_answer_is_no_proof_of_nice",
+         NS + "test_r435_an_unrelated_answer_does_not_cover_the_missing_job"]),
+    # MT-I19: answers kept in an overwriting dict (a job answered twice passes)
+    "nice_answers_overwrite": ("../scripts/test_support/native_cases.py", [('''            answers.setdefault(e.get("job"), []).append(e.get("nice_applied"))''',
+                                                                         '''            answers[e.get("job")] = [e.get("nice_applied")]''')],
+        [NS + "test_r435_a_job_answered_or_started_twice_is_ambiguous"]),
+    # MT-I19: a job started twice not checked
+    "nice_twice_started_ok": ("../scripts/test_support/native_cases.py", [('''    if twice:
+        return _row(case, "incomplete", f"job(s) {twice} started twice in the window", drift=len(drift))''',
+                                                                        '''    if False:
+        return _row(case, "incomplete", f"job(s) {twice} started twice in the window", drift=len(drift))''')],
+        [NS + "test_r435_a_job_answered_or_started_twice_is_ambiguous"]),
+    # MT-I19: a start without a job id matched by an answer without one
+    "nice_jobless_ok": ("../scripts/test_support/native_cases.py", [('''    if any(not isinstance(j, int) or isinstance(j, bool) for j in jobs):''', '''    if False:''')],
+        [NS + "test_r435_a_job_answered_or_started_twice_is_ambiguous"]),
 }
 
 only = sys.argv[1:]
