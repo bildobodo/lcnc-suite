@@ -1,0 +1,227 @@
+{
+  "run": "/home/cnc/claude-work/live-tier/20261122T214315-parse-basis",
+  "commit": "9cae47aa668131b9e7baae8f2270a332b72e81ed",
+  "trace_sha256": {
+    "trace.ndjson": "b0f4220aad0bc7b4798138d050cd621913b8b30d136bac077dad750960a3e730"
+  },
+  "framed": true,
+  "native_mark": "parse-basis.2b568ab09ae3428eb1f930f551b53115",
+  "pid": 4007593,
+  "parse_basis": {
+    "case": "parse-basis",
+    "status": "PASS",
+    "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+    "ops": 3,
+    "parses_by_reason": {
+      "tool_offset": 6
+    },
+    "toolsetter_edges": 0,
+    "masked": 0,
+    "held": 3,
+    "hold_ended": [],
+    "verified_same": 4,
+    "bookings": [
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24",
+      "assumed:1",
+      "applied:1",
+      "assumed:24",
+      "read:24"
+    ],
+    "read_backs": 3,
+    "outcomes": [
+      "confirmed",
+      "confirmed",
+      "confirmed"
+    ],
+    "quiet_s": 4.5
+  },
+  "nice": {
+    "case": "parse-basis.nice",
+    "status": "PASS",
+    "detail": "6 drift re-parses, every one niced (the worker applied 19 to 6)",
+    "drift": 6,
+    "applied": 6
+  },
+  "readback_versions": [
+    10,
+    14,
+    18
+  ],
+  "last_readback_to_end_ms": 4531.38900000001,
+  "owed_at_end": null,
+  "loss_reports": [],
+  "priority_jobs": [
+    {
+      "job": 5,
+      "reason": "tool_offset",
+      "requested": 19,
+      "answers": [
+        "19"
+      ]
+    },
+    {
+      "job": 6,
+      "reason": "tool_offset",
+      "requested": 19,
+      "answers": [
+        "19"
+      ]
+    },
+    {
+      "job": 7,
+      "reason": "tool_offset",
+      "requested": 19,
+      "answers": [
+        "19"
+      ]
+    },
+    {
+      "job": 8,
+      "reason": "tool_offset",
+      "requested": 19,
+      "answers": [
+        "19"
+      ]
+    },
+    {
+      "job": 9,
+      "reason": "tool_offset",
+      "requested": 19,
+      "answers": [
+        "19"
+      ]
+    },
+    {
+      "job": 10,
+      "reason": "tool_offset",
+      "requested": 19,
+      "answers": [
+        "19"
+      ]
+    }
+  ],
+  "sensitivity": [
+    {
+      "mutation": "omit_one_worker_done",
+      "job": 5,
+      "expected": "incomplete",
+      "actual": {
+        "case": "nice",
+        "status": "incomplete",
+        "detail": "1 of 6 drift re-parses have no applied priority of their own",
+        "unproven": [
+          [
+            5,
+            "tool_offset",
+            "no answer"
+          ]
+        ],
+        "drift": 6,
+        "applied": 5
+      }
+    },
+    {
+      "mutation": "omit_one_worker_done",
+      "job": 6,
+      "expected": "incomplete",
+      "actual": {
+        "case": "nice",
+        "status": "incomplete",
+        "detail": "1 of 6 drift re-parses have no applied priority of their own",
+        "unproven": [
+          [
+            6,
+            "tool_offset",
+            "no answer"
+          ]
+        ],
+        "drift": 6,
+        "applied": 5
+      }
+    },
+    {
+      "mutation": "omit_one_worker_done",
+      "job": 7,
+      "expected": "incomplete",
+      "actual": {
+        "case": "nice",
+        "status": "incomplete",
+        "detail": "1 of 6 drift re-parses have no applied priority of their own",
+        "unproven": [
+          [
+            7,
+            "tool_offset",
+            "no answer"
+          ]
+        ],
+        "drift": 6,
+        "applied": 5
+      }
+    },
+    {
+      "mutation": "omit_one_worker_done",
+      "job": 8,
+      "expected": "incomplete",
+      "actual": {
+        "case": "nice",
+        "status": "incomplete",
+        "detail": "1 of 6 drift re-parses have no applied priority of their own",
+        "unproven": [
+          [
+            8,
+            "tool_offset",
+            "no answer"
+          ]
+        ],
+        "drift": 6,
+        "applied": 5
+      }
+    },
+    {
+      "mutation": "omit_one_worker_done",
+      "job": 9,
+      "expected": "incomplete",
+      "actual": {
+        "case": "nice",
+        "status": "incomplete",
+        "detail": "1 of 6 drift re-parses have no applied priority of their own",
+        "unproven": [
+          [
+            9,
+            "tool_offset",
+            "no answer"
+          ]
+        ],
+        "drift": 6,
+        "applied": 5
+      }
+    },
+    {
+      "mutation": "omit_one_worker_done",
+      "job": 10,
+      "expected": "incomplete",
+      "actual": {
+        "case": "nice",
+        "status": "incomplete",
+        "detail": "1 of 6 drift re-parses have no applied priority of their own",
+        "unproven": [
+          [
+            10,
+            "tool_offset",
+            "no answer"
+          ]
+        ],
+        "drift": 6,
+        "applied": 5
+      }
+    }
+  ],
+  "original_report_sha256": "92bac35d2525d0ba37020d095a1d560adbacf5dc45dd4c69e6a5bb8aea10a44d"
+}

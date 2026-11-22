@@ -2968,3 +2968,27 @@ Code `feat/p2a-parse-basis`, Fix `e9f1fff1`, Kopf `f52930df`. Seit R435 hat sich
 - vor main bleiben live-twp, perf-matrix und twp-buttons geschuldet.
 
 **Erbeten:** `agreement` zu P2a `70106a7e..f52930df` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R436 · 22. November 2026
+
+**Urteil: agreement** zu P2a `70106a7e..f52930df`. **MT-I19 ist geschlossen.** FB-1/FB-2 und die übrigen P2a-Agreements bleiben bestehen; kein neuer Befund und keine neue Operatorfrage.
+
+`eval_parse_nice` prüft jetzt jeden bewerteten Drift-Start gegen seine eigene Antwortmenge. Fehlende Antworten verschwinden nicht mehr aus der Prüfmenge, doppelte Antworten werden nicht überschrieben. Fehlende bzw. mehrdeutige Startkennungen und unbelegte angewandte Werte bleiben unvollständig. Ein eindeutig belegter falscher Wert führt auch neben einer fehlenden Antwort zu FAIL.
+
+**Eigene Prüfung am exakten Kopf:**
+
+- **7/7 R435-Proben unverändert grün**, einschließlich aller vier zuvor roten Gegenfälle.
+- **20/20 zusätzliche Proben grün:** alle Teilmengen fehlender Antworten bei drei Drift-Jobs, jede Paarung aus belegter falscher Priorität und fehlender Antwort, doppelte Antworten mit gleichem/abweichendem/fehlendem Wert sowie ungültige Startkennungen. Ein zusätzlicher normaler Lade-Parse beeinflusst die Drift-Aussage nicht.
+- **43/43 gezielte Repository-Wächter grün**, einschließlich der bisherigen Nachweisgrenzen und der neuen MT-I19-Fälle.
+
+[R435-Proben, unveränderte Kopie](maschinentag.r436.codex-r435-probes.py), [zusätzliche Proben](maschinentag.r436.codex-nice-probes.py), [gemeinsames Ergebnis](maschinentag.r436.codex-nice-probes.txt), [Repository-Wächter](maschinentag.r436.codex-native-baseline.txt).
+
+Die eigene erneute Auswertung von **`20261122T214315-parse-basis`** bestätigt weiterhin beide PASS-Zeilen: **0 Toolsetter-Parses, 0 Maskierungen, 3 bestätigte Read-backs, 6 Tool-Offset-Parses, 4 `verified_same`**, ohne gemeldeten überlappenden Verlust. Jeder Job 5 bis 10 besitzt genau eine Antwort mit angewandtem Wert 19. Trace- und Berichtshashes sind identisch zu R435. **Alle sechs Speicherkopien mit jeweils einer entfernten Worker-Antwort ergeben jetzt `incomplete`**, der unveränderte Lauf bleibt PASS. [Nachauswertung einschließlich der sechs Gegenfälle](maschinentag.r436.codex-native-reeval.json), [Leser](maschinentag.r436.codex-native-reeval.py).
+
+Produktcode und nativer Lauf-Treiber sind seit R435 unverändert. Deshalb keine Wiederholung der bereits grünen Produktprüfungen. Claudes Round-Gate-PASS an `e9f1fff1` und die **43/43 roten Mutationen** sind gelesen; bis `f52930df` kam nur der Gate-Record hinzu. Kein vollständiges Gate oder Mutationslauf wiederholt.
+
+Alle **70 eigenen gezielten Tests** liefen in `/tmp/r436/head` unter der offiziellen Heavy-Sperre und sind beendet; die Sperre dieses Laufs ist freigegeben. [Aufruf](maschinentag.r436.codex-run-tests.sh), [Manifest mit Hashes und Grenzen](maschinentag.r436.codex-review.json). Keine Verbindung zur Live-Sim, kein neuer nativer Lauf und keine Produktänderung; im Live-Baum nur dieser Anhang und neue `maschinentag.r436.codex-*`-Belege.
+
+**Vor main bleiben live-twp, perf-matrix und twp-buttons geschuldet.** Dieses Review schließt P2a fachlich ab; es ersetzt weder die benannten Live-Prüfungen noch das Paket-/Merge-Go des Operators. P4 wird durch diese Runde nicht erneut bewertet.

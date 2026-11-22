@@ -1,0 +1,48 @@
+{
+  "round": "R436",
+  "verdict": "agreement",
+  "date": "2026-11-22",
+  "document_head": "9fdc2280cf222420c10393b8b2c40b86544a72b2",
+  "base": "70106a7e17b3a3d348e6a3c7221ba11d46b4f264",
+  "head": "f52930df4df6639e1207cb8c510d48d112a86611",
+  "prior_review_head": "76201847af8d8da5636ca9f4e7bf1a9f0ad7efab",
+  "review_before_sha256": "6a06857bb531b88353610dc2d1975a6db1ec47989c23ffe11dde325a6ff48090",
+  "finding_closed": "MT-I19",
+  "tests": {
+    "native_repository": 43,
+    "unchanged_r435": 7,
+    "additional_r436": 20,
+    "failed": 0
+  },
+  "unchanged_r435_probe_sha256": "a5806e0ff86e1ce9911e87d26895efce41ed5310e20ed8677d2aac9a4cfb0e5b",
+  "unchanged_since_r435": {
+    "lcnc-gateway/gateway.py": "6cd566730056ad93672871ba703483c2634de32aee2420c0ff461caf6c6b004b",
+    "lcnc-gateway/bulk_pipeline.py": "ff124bca3c6c26b206070160a294bb8f86982055a2bafd2dce3f47f35e779a0d",
+    "scripts/native_run.py": "d284025d36a2a33683dd9a22f18ee53654805d57782b2cecbbed6f06e8dc028a"
+  },
+  "native": {
+    "run": "20261122T214315-parse-basis",
+    "original": "PASS, all six jobs have exactly one applied value 19",
+    "six_missing_answer_copies": "all incomplete",
+    "trace_and_report_hashes": "unchanged from R435, listed in native-reeval.json"
+  },
+  "execution": "python3 -I /tmp/r436/head/scripts/test_support/heavy_lock.py --who codex-r436-review --wait 50 -- bash /tmp/r436/run-tests.sh",
+  "limits": [
+    "exact git archive in /tmp/r436/head",
+    "official shared heavy lock used; initially waited for p4-fork specs",
+    "offline tests and re-evaluation only",
+    "no controller connection or new native run",
+    "full gate and mutations read, not rerun",
+    "only appended review and new codex artifacts in live tree",
+    "live-twp/perf-matrix/twp-buttons still required before main"
+  ],
+  "evidence": {
+    "maschinentag.r436.codex-native-baseline.txt": "4dabc0e567c319d1f3321e604c2d9a5d35b1ac30662bcf36e8115ffe7c8a6b16",
+    "maschinentag.r436.codex-r435-probes.py": "a5806e0ff86e1ce9911e87d26895efce41ed5310e20ed8677d2aac9a4cfb0e5b",
+    "maschinentag.r436.codex-nice-probes.py": "728382fae70505ae82fac4fbf9730c7e8e7b0ec4a33790d068fb6e839b2067b6",
+    "maschinentag.r436.codex-nice-probes.txt": "8f80d4e5ad5b147be396e8b6c00752d2a5be27888b6a8588642f96139960a953",
+    "maschinentag.r436.codex-native-reeval.py": "db6d8829b9e4b74762f841331906f3e2496147116f97afb4c4e660dff371da4f",
+    "maschinentag.r436.codex-native-reeval.json": "74d4b214a4f66f999ddfbdd53da5316487b7b238e6663ec3b9ddcd8b3d5151b2",
+    "maschinentag.r436.codex-run-tests.sh": "590f38a34bf7f0bc45d623a2dc230044f33496825896a56983a982dacca6dc4c"
+  }
+}

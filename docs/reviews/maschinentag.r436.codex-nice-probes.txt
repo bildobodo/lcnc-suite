@@ -1,0 +1,35 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r436/head
+plugins: anyio-4.13.0
+collecting ... collected 27 items
+
+scripts/test_r435_codex_nice.py::test_all_workers_confirmed PASSED       [  3%]
+scripts/test_r435_codex_nice.py::test_known_wrong_priority_fails PASSED  [  7%]
+scripts/test_r435_codex_nice.py::test_one_worker_answer_missing_is_incomplete[1] PASSED [ 11%]
+scripts/test_r435_codex_nice.py::test_one_worker_answer_missing_is_incomplete[2] PASSED [ 14%]
+scripts/test_r435_codex_nice.py::test_worker_failure_without_answer_is_not_proof_of_nice PASSED [ 18%]
+scripts/test_r435_codex_nice.py::test_unrelated_answer_does_not_cover_the_missing_job PASSED [ 22%]
+scripts/test_r435_codex_nice.py::test_no_answers_is_incomplete PASSED    [ 25%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing0] PASSED [ 29%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing1] PASSED [ 33%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing2] PASSED [ 37%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing3] PASSED [ 40%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing4] PASSED [ 44%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing5] PASSED [ 48%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing6] PASSED [ 51%]
+scripts/test_r436_codex_nice.py::test_every_subset_of_missing_answers[missing7] PASSED [ 55%]
+scripts/test_r436_codex_nice.py::test_known_fault_survives_other_missing_answer_in_every_position[11-22] PASSED [ 59%]
+scripts/test_r436_codex_nice.py::test_known_fault_survives_other_missing_answer_in_every_position[11-33] PASSED [ 62%]
+scripts/test_r436_codex_nice.py::test_known_fault_survives_other_missing_answer_in_every_position[22-11] PASSED [ 66%]
+scripts/test_r436_codex_nice.py::test_known_fault_survives_other_missing_answer_in_every_position[22-33] PASSED [ 70%]
+scripts/test_r436_codex_nice.py::test_known_fault_survives_other_missing_answer_in_every_position[33-11] PASSED [ 74%]
+scripts/test_r436_codex_nice.py::test_known_fault_survives_other_missing_answer_in_every_position[33-22] PASSED [ 77%]
+scripts/test_r436_codex_nice.py::test_multiple_answers_cannot_be_overwritten[None] PASSED [ 81%]
+scripts/test_r436_codex_nice.py::test_multiple_answers_cannot_be_overwritten[19] PASSED [ 85%]
+scripts/test_r436_codex_nice.py::test_multiple_answers_cannot_be_overwritten[0] PASSED [ 88%]
+scripts/test_r436_codex_nice.py::test_unproven_start_id_is_not_accepted[None] PASSED [ 92%]
+scripts/test_r436_codex_nice.py::test_unproven_start_id_is_not_accepted[True] PASSED [ 96%]
+scripts/test_r436_codex_nice.py::test_unproven_start_id_is_not_accepted[22] PASSED [100%]
+
+============================== 27 passed in 0.03s ==============================
