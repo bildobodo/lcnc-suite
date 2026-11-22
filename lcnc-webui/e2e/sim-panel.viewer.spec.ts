@@ -741,7 +741,7 @@ async function jogLive(page: Page) {
     await page.waitForTimeout(100);
     await page.keyboard.up("ArrowRight");
     return jogs();
-  }, { message: "control: an arrow on the unfocused page jogs" }).toEqual(expect.arrayContaining(["jog_cont", "jog_stop"]));
+  }, { message: "control: an arrow on the unfocused page jogs" }).toEqual(expect.arrayContaining(["jog_cont", "jog_lease_end"]));   // P1b: the release ends its lease
   await ctl({ op: "clearCmds" });
 }
 
