@@ -37,6 +37,10 @@ stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client th
 preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
 `trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
 of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
+The toolsetter re-parses a probe op causes (P2a, machine day F24) are a run of their own too:
+`native_run.py … --variant parse-basis` (home, a loaded program that runs the routine, a warm-up
+probe op, then three probe-z ops with unchanged values in one trace window: the re-parses by
+reason — the toolsetter ones judged, a WCS one reported — and every drift parse's priority).
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together
