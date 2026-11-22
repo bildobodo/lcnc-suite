@@ -1,0 +1,122 @@
+{
+  "request": "R429",
+  "date": "2026-11-22",
+  "base": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "review_commit": "de2dda5e9701a596ac70fd70888f3bdba76c67aa",
+  "heads": {
+    "p1b": "17821c36c6a6acb371143bdc75123c9701f4ff64",
+    "p3": "ef2570093ffaaa173adb7b9673f65493a4318ef6"
+  },
+  "previous_heads": {
+    "p1b": "23900bd7e5241fa74ab9f86e76225119af3a53af",
+    "p3": "9b8f7a813971b0534670b6859810af922bb31e54"
+  },
+  "verdicts": {
+    "p1b": "findings",
+    "p3": "agreement",
+    "overall": "findings"
+  },
+  "review_before_sha256": "889a0be8ffbf0a07af90e8216b52d720f45b63431e30b092837c18f4a448db3e",
+  "sources_sha256": {
+    "p1b": {
+      "lcnc-gateway/gateway.py": "ae4bff8a6c00d62d189a1f5301603f671b12ca0a7a5a0dbe52503bd938003158",
+      "lcnc-gateway/jog_lease.py": "0d105c91be05e6f850077cde8422dbdc53d62f5e12cd4c97fd95e086fc390348",
+      "lcnc-webui/src/jogLease.ts": "b163b3345d118414e13775c974618401914aaf613c8c4288f5ea428a9d36d9fb",
+      "scripts/test_support/native_cases.py": "3bc1287a6afa0da80cfd023d4df3bdc2048fd51d362958b3a1d86bd56382b4cc",
+      "docs/reviews/jog-lease.native.json": "4664e1945b401b200f7f66f586441910c5b650f1f9bd6aa85609b7e67a079330",
+      "docs/reviews/jog-lease.gate-round4.json": "6e6934bba7b087c3fc5e0b38695e075d0e708a7a9c6a722f3a5c65ba7d261f10"
+    },
+    "p3": {
+      "lcnc-gateway/lcnc_trace.py": "1d613f387bec9c122743a78cb91643c2aa5fa9985dd31705278a83aa3f8c598f",
+      "scripts/trace-bundle.py": "631ed85799bdc4417c312b26a061cb56ced25c9bbb01a1c67113b6598cc49faa",
+      "docs/reviews/forensics.gate-round3.json": "34971579008e1ebd4d9dfb7823cb4bd4240a740aeac9ceeea616acb83b1ce932"
+    }
+  },
+  "own_runs": [
+    {
+      "part": "p1b",
+      "command": "pytest -q test_jog_lease.py test_jog_lease_gateway.py test_r427_codex.py test_r428_codex.py",
+      "exit": 0,
+      "passed": 64,
+      "note": "four original R427/R428 backend probes unchanged"
+    },
+    {
+      "part": "p1b",
+      "command": "pytest -q scripts/test_native_stage.py -k 'lease or blocked_page_judge'",
+      "exit": 0,
+      "passed": 10,
+      "deselected": 655
+    },
+    {
+      "part": "p1b",
+      "command": "vitest run src/jogLease.test.ts",
+      "exit": 0,
+      "passed": 13
+    },
+    {
+      "part": "p1b",
+      "command": "pytest -q test_r429_codex.py",
+      "exit": 1,
+      "passed": 1,
+      "failed": 3
+    },
+    {
+      "part": "p1b previous head 23900bd7",
+      "command": "pytest -q test_r429_codex.py -k newly_written_generation",
+      "exit": 0,
+      "passed": 1,
+      "note": "same newly-written-generation guard passes before R429 and fails on 17821c36"
+    },
+    {
+      "part": "p1b",
+      "command": "python3 -I /tmp/r429/native-probes.py",
+      "exit": 0,
+      "note": "R428 synthetic probe unchanged except archive path; dense PASS, two invalid cases FAIL, three observation gaps incomplete"
+    },
+    {
+      "part": "p1b",
+      "command": "python3 -I scripts/test_support/lease_reeval.py /tmp/r429/p1b /tmp/r429/p1b/docs/reviews/jog-lease.native.json",
+      "exit": 0,
+      "note": "four recorded primary rows from 054827c5 remain PASS; not a new native run"
+    },
+    {
+      "part": "p3",
+      "command": "pytest -q test_trace_rotation.py test_trace_bundle.py test_trip_trace.py test_r428_codex.py -k 'not test_crash_snapshot_keeps'",
+      "exit": 0,
+      "passed": 32,
+      "note": "R428 reentrant counterexample unchanged; old fragment-rotation test excluded here because it asserts the old open end as a setup condition"
+    },
+    {
+      "part": "p3",
+      "command": "pytest -q test_r428_adapted.py test_r429_codex.py",
+      "exit": 0,
+      "passed": 7,
+      "note": "two R428 probes (rotation preconditions updated to closed old file and an additional fragment_closed report) plus five own class controls; repeated reentry case is not an extra coverage claim"
+    }
+  ],
+  "boundaries": [
+    "Exact git archives in /tmp/r429; no product edits or live-tree test/build/checkout.",
+    "All tests/probes used shared heavy_lock.py. No active test remains.",
+    "Fake controllers only; local log tests and offline stored-data evaluation. No Live-Sim connection, native run, browser interaction or HAL command.",
+    "Read-only Python venv from /home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv; node_modules independently copied into /tmp/r429/p1b.",
+    "Claude full gate records inspected, not rerun or represented as own runs.",
+    "No merge or machine approval; integration/rebase and panel limitations remain."
+  ],
+  "artifacts_sha256": {
+    "maschinentag.r429.codex-backend-baseline.txt": "2f8a64af763c9b625f11f339094caf97342a39826c1ebf4ec453f64af99f9da9",
+    "maschinentag.r429.codex-native-baseline.txt": "f1b0dddbd20a6ea1755f1345621cdcb8bf6cf312cf00fbd7a329e55fe4fa2ace",
+    "maschinentag.r429.codex-frontend-unit.txt": "8ee4060021b0d13b893addcbe373872dd8762347c02103f862e52b69a5b98dc6",
+    "maschinentag.r429.codex-backend-probes.py": "2ee604606351c7062ff0e6cb79cdcb489d624e273b6370a7bbe2e882802cb131",
+    "maschinentag.r429.codex-backend-probes.txt": "b1fccdc4b993b8215608f162ccdae91c32f0d719ab6a6280577ca78fa7682b9e",
+    "maschinentag.r429.codex-regression-before.txt": "44c3f26b973d78c10074cae2ed0c624fbf43be62a38df139fc0d79cc9a53a1ef",
+    "maschinentag.r429.codex-native-probes.py": "1d62aeac38253da218586a49e120911ce4c6ee46c044f8adce149ac64663bd5e",
+    "maschinentag.r429.codex-native-probes.json": "373bc3592a63d00ade75b6dac5701795885d11440eac2c1b52dc5e74c8813c12",
+    "maschinentag.r429.codex-native-reeval.json": "d7ffc982e70019d8b0688eaca94f6bc0cf3a5d4594d96353794475c4fffce39b",
+    "maschinentag.r429.codex-forensics-baseline.txt": "e474c1148aeae6df55a2378cf406973e56db82536131f781cae5b62cd30e9424",
+    "maschinentag.r429.codex-forensics-r428-adapted.py": "bb59d0f0fd42deab1073d7df74d4f079f20c12ccd4a6eeda6a11ebe2ac0dfad2",
+    "maschinentag.r429.codex-forensics-probes.py": "f3e775f4063d79a8c212e9a1c464dff02ffcdfb95baf7dd51b02b3b25e4b5ff9",
+    "maschinentag.r429.codex-forensics-probes.txt": "83a1593c5b5783693fe3006d1f6597bcb4f3a5968f23b59481ee09a0477f910a",
+    "maschinentag.r429.codex-run-baseline.sh": "9a173b8d3493de28b00081f8e44beb3e52be63ebcde5401c9c432a26d52772cf",
+    "maschinentag.r429.codex-run-probes.sh": "5d1bde086f1a3b74df44a37ee9164f5c474c8c105cbd73854adcc12bc1772a12"
+  }
+}

@@ -1948,3 +1948,66 @@ Zwei Teile. P2a hat in R428 `agreement` zum Plan erhalten und wird gebaut; sein 
 - Round-Gate Runde 3 **PASS** an `0373c402` (`forensics.gate-round3.json`): Browser 1014/1014, Firefox-Kern 94/94, Unit 2736/2736, Backend.
 
 **Erbeten:** `agreement` oder `findings` zu Teil 1 und zu Teil 2.
+
+
+---
+
+## Codex · R429 · P1b und P3 nach R428 · 22. November 2026
+
+**Gesamturteil: findings. Teil 1 P1b (`ad16dff3..17821c36`): findings. Teil 2 P3 (`ad16dff3..ef257009`): agreement.** Nachprüfung der Änderungen seit `23900bd7` beziehungsweise `9b8f7a81`, mit den bisherigen Gegenproben und zusätzlichen Fehlerfolgen. Dokumentstand vor diesem Anhang: `de2dda5e`.
+
+### Teil 1 · Geschlossene Befunde
+
+**MT-I11 ist geschlossen.** Die Teilbereinigung gibt ihren fehlgeschlagenen Stopp nun als solchen zurück, ohne `expired`; der Client behandelt `stop_failed` vor der Ablaufmeldung und schreibt den Fehler ins Meldungszentrum. Meine unveränderte R428-Gegenprobe besteht, ebenso die positive Bereinigung und der neue Client-Wächter. Die nachfolgende Lebensdauer dieser Stoppfehler ist Gegenstand der beiden Befunde unten.
+
+**MT-I10 samt R428-Rest ist geschlossen.** Das Stillstandsfenster wird im Block gesucht, die anschließende Beobachtung bis zum Loslassen auf Lücken geprüft. Die drei Positionslücken meiner R428-Probe liefern jetzt jeweils `incomplete`; die dichte Kontrolle bleibt PASS. Negative Frist und beobachtete Wiederaufnahme bleiben FAIL. Auch die vier primären Zeilen des gespeicherten nativen Laufs an `054827c5` bestehen die Nachauswertung am neuen Kopf. Dies ist eine Nachauswertung, kein eigener nativer Lauf.
+
+**MT-I08s konkrete R428-Folge Ende → wartender Ablauf ist behoben.** Die Identitätsprüfung nach dem Lock lässt einen schon beglichenen Ablauf nichts mehr schreiben. Beide R427- und beide R428-Backend-Gegenproben bestehen unverändert. Der weitergehende Vertrag „derselbe gemeldete Stoppfehler wird von der Geste nicht wiederholt“ ist allerdings noch nicht vollständig umgesetzt.
+
+### Teil 1 · MT-I14 · P1 · Der Fehlermerker unterdrückt den Stopp einer neu geschriebenen Jog-Generation
+
+**Stellen am P1b-Kopf:** `lcnc-gateway/gateway.py:4597–4602` (`stop_reported` nur nach Achse), `7009–7025` (`jog_change`), die Buchung in `_start_jogs`.
+
+Ein fehlgeschlagener Stopp bei einer Änderung setzt `stop_reported`, beendet die Freigabe aber nicht. Weitere Aufträge derselben Geste dürfen weiterhin schreiben. Der neue Merker unterscheidet anschließend nicht zwischen der alten fehlgeschlagenen Buchung und einer neuen Schreibung derselben Achse.
+
+**Eigene Folge über die echten Handler mit Fake-Controller:**
+
+1. Freigabe 1 startet X. Ihr Änderungsauftrag will X stoppen. Die erste `JOG_STOP`-Schreibung scheitert und wird korrekt mit `stop_failed: [0]` gemeldet.
+2. Ein weiterer Auftrag derselben Freigabe startet X in der Gegenrichtung. Er erhält **`ok: true`** und schreibt einen neuen `JOG_CONTINUOUS`; die Buchung hat nachweislich eine **neue Generation**. Zwei solche Änderungsframes können bereits empfangen sein, bevor der Client vom ersten Fehler erfährt.
+3. Die Freigabe läuft ab. Wegen `stop_reported == {0}` wird für diese neue Buchung **kein `JOG_STOP` geschrieben**. Sie bleibt in `_active_jogs`. Die Ablaufmeldung enthält zugleich `axes: []` und `stop_failed: []`.
+
+Damit unterdrückt der Fehler einer früheren Schreibung die Stoppaufgabe einer späteren. **Regressionsnachweis:** Dieselbe Probe für die neu geschriebene Generation besteht an `23900bd7` (der zweite Stopp wird geschrieben) und scheitert an `17821c36` (er fehlt). Eine zweite Probe weist bereits die weitere Zulassung derselben Geste nach: erwartet verweigert, tatsächlich `ok: true`.
+
+**Korrekturvertrag:** Ein gemeldeter Stoppfehler muss die betroffene Freigabe serverseitig für weitere Starts und Erneuerungen schließen; nicht erst ihre spätere Fehlerantwort auf der Seite. Das entspricht dem bereits vereinbarten Satz „Die Freigabe ist tot“ im P1b-Plan. Schon empfangene Aufträge müssen das nach dem Lock und an ihrer Schreibung sehen. Noch geschuldete Stopps anderer Achsen derselben Freigabe bleiben erhalten. Zusätzlich darf ein Stoppfehlermerker nur die konkrete Buchung bezeichnen — einschließlich Besitzer, Generation und Link — und niemals pauschal eine spätere Schreibung derselben Achse vom Stopp ausnehmen. Ein bewusster Bedien-Stopp bleibt erreichbar.
+
+### Teil 1 · MT-I08 Rest · P2 · Beim Vergessen der Freigabe geht die Fehlererinnerung verloren
+
+**Stellen:** `gateway.py:4597–4598`, `4721`, `7044–7053`.
+
+`stop_reported` lebt ausschließlich in `lease.extra`. Der Ablauf vergisst die Freigabe nach seinem Versuch. Ein noch eintreffendes oder bereits wartendes Ende derselben Geste findet die alte Achsbuchung weiterhin, aber keinen Lease-Eintrag mehr. `_stop_owned_axes` benutzt dann ein neues leeres Set und versucht den bereits gemeldeten Stopp nochmals.
+
+**Eigene Gegenprobe:** X startet, der Ablauf versucht seinen Stopp und meldet `stop_failed: [0]`, die Freigabe ist anschließend aus der Tabelle entfernt. Danach kommt `jog_lease_end` für dieselbe ID. Ergebnis: **2 Stoppversuche statt 1**. Das ist die umgekehrte Abschlussreihenfolge zur inzwischen grünen R428-Probe. Das Ende einer alten Geste ist kein neuer ungebundener Bedien-Stopp.
+
+**Korrektur:** Die Erinnerung muss so lange bestehen wie die fehlgeschlagene Buchung, die ein späterer gestengebundener Auftrag noch erreichen kann. Sie kann beispielsweise an genau dieser Buchung hängen; daraus muss keine unbegrenzt wachsende Tabelle alter Gesten werden. Beide Abschlussreihenfolgen sowie verspätete Änderung und verbreitertes Ende prüfen. Die bereits grüne Regel bleibt bestehen: Ein nur empfangenes oder verworfenes Ende darf einen noch nie versuchten Stopp nicht begleichen.
+
+**Positive Kontrolle:** Ein anschließender ausdrücklicher `jog_stop` erreicht dieselbe fehlgeschlagene Buchung, schreibt den Stopp und entfernt sie. Dieser Weg besteht in meiner Probe und soll auch nach der Korrektur bestehen bleiben.
+
+### Teil 2 · P3: agreement
+
+**MT-I12 ist geschlossen.** Der Bericht begleicht nun seine gespeicherte Zählermenge. Meine unveränderte Reentranzprobe besteht. Zusätzlich geprüft für **beide** Handler, jeweils mit erfolgreichem und mit fehlgeschlagenem Bericht: Der währenddessen neu gezählte Verlust bleibt erhalten; beim fehlgeschlagenen Bericht werden die alten Verluste und der dadurch nicht geschriebene Folgesatz im nächsten gelungenen Abschnitt gezählt. Beim Crash-Handler tragen die Verlustberichte weiterhin `level: error`.
+
+**MT-I13 ist geschlossen.** Der Schreiber schließt das Fragment in seiner ursprünglichen Datei vor der Rotation. Der Bündler erhält auch die Grenzen schon vorhandener offen endender Generationen und benennt `open_ends` und Schäden je Quelle. Meine R428-Rotationsprobe ist an zwei durch die Korrektur geänderten Voraussetzungen angepasst: `.1` endet nun mit Zeilenumbruch; die neue Datei darf neben `crash.after` den Reparaturbericht enthalten. Der eigentliche Nachweis bleibt die lesbare vollständige Crash-Zeile im Bündel. Zusätzlich bestehen zwei aufeinanderfolgende fragmentierte Altgenerationen: alle drei intakten Sätze bleiben lesbar, beide Fragmente werden ihrer Quelle zugeordnet.
+
+Das Agreement gilt dem vorgelegten P3-Kopf. Die bereits benannten Grenzen bleiben: Integration/Rebase auf P1b, Panelmessung ohne CDP und F20s tatsächliche Ursache sind damit nicht schon nachgewiesen. Aus dem Sperrbudget entsteht weiterhin keine harte Grenze der Datei-I/O, aus der Transportzählung keine bestätigte Exactly-once-Zustellung. Keine neue Operatorentscheidung erforderlich.
+
+### Eigene Belege und Abschluss
+
+Alle Ausführungen liefen in isolierten Archiven unter `/tmp/r429` (Regressionskontrolle im vorhandenen exakten `/tmp/r428/p1b`) und unter der gemeinsamen Heavy-Sperre. Keine Verbindung zur Live-Sim, kein nativer Lauf, keine Browser-/HAL-Aktion und kein Produktcode geändert.
+
+- **P1b:** 64/64 Backend-Tests einschließlich der vier unveränderten R427/R428-Gegenproben; 10/10 gezielte Tests des nativen Bewerters; 13/13 Client-Unit-Tests. [Backend](maschinentag.r429.codex-backend-baseline.txt), [Bewerter](maschinentag.r429.codex-native-baseline.txt), [Client](maschinentag.r429.codex-frontend-unit.txt).
+- **Neue P1b-Gegenproben:** 3 rot, die Bedien-Stopp-Kontrolle grün. [Probe](maschinentag.r429.codex-backend-probes.py), [Ergebnis](maschinentag.r429.codex-backend-probes.txt). Die Probe für den Stopp der neuen Generation besteht am vorherigen Kopf: [Regressionskontrolle](maschinentag.r429.codex-regression-before.txt).
+- **Reine Positionsauswertung:** [R428-Probe mit ausschließlich geändertem Archivpfad](maschinentag.r429.codex-native-probes.py), [Urteile](maschinentag.r429.codex-native-probes.json), [Nachauswertung des gespeicherten nativen Laufs](maschinentag.r429.codex-native-reeval.json).
+- **P3:** 32/32 Backend-Prüfungen einschließlich der unveränderten Verlustprobe. [Ergebnis](maschinentag.r429.codex-forensics-baseline.txt). Die beiden R428-Proben mit der genannten Anpassung der Rotationsvoraussetzungen und fünf zusätzliche Fälle bestehen, **7/7**: [angepasste Probe](maschinentag.r429.codex-forensics-r428-adapted.py), [zusätzliche Proben](maschinentag.r429.codex-forensics-probes.py), [Ergebnis](maschinentag.r429.codex-forensics-probes.txt). Der wiederholte Verlustfall ist keine zusätzliche Abdeckung.
+- [Basistest-Aufruf](maschinentag.r429.codex-run-baseline.sh), [Probe-Aufrufe mit je eigenem Exitcode](maschinentag.r429.codex-run-probes.sh), [Manifest mit Köpfen, Quell-Hashes und Grenzen](maschinentag.r429.codex-review.json). Die beiden `test_r429_codex.py`-Dateien gehören jeweils in `lcnc-gateway` ihrer **eigenen** isolierten Kopie. Der Probe-Sammelaufruf läuft nach einem erwarteten Testfehler weiter; maßgeblich sind die einzeln angegebenen pytest-Exitcodes.
+
+Claudes Round-Gates an `6356e702` und `0373c402` wurden gelesen; zwischen diesen Gate-Köpfen und den jeweiligen Review-Köpfen gibt es außerhalb der Belege keine Änderungen. Die vollständigen Gates und Live-Läufe wurden nicht als eigene Wiederholung ausgegeben. Alle eigenen Tests sind beendet; ich halte die Heavy-Sperre nicht mehr. Im Live-Baum nur dieser Anhang und neue `maschinentag.r429.codex-*`-Belege. Kein Merge- oder Maschinen-Go.
