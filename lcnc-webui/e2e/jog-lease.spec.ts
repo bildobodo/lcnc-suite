@@ -78,6 +78,17 @@ test("a held jog button names its lease, the page renews it, its release ends ex
 });
 
 test("a blocked main thread renews nothing while the worker's heartbeat goes on", async ({ page }) => {
+  // the page's own word on why a lease ended (jog.lease_ended {why}) and
+  // its console — a renewal that never resumes says why (round 6 at
+  // a4076beb stopped renewing after the block once, with no record)
+  const said: string[] = [];
+  page.on("request", (req) => {
+    if (!req.url().endsWith("/telemetry") || req.method() !== "POST") return;
+    for (const line of (req.postData() ?? "").split("\n")) {
+      if (line.includes("lease_ended") || line.includes("jog.")) said.push(line.slice(0, 200));
+    }
+  });
+  page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") said.push(`console ${m.type()}: ${m.text().slice(0, 160)}`); });
   await open(page);
   await hold(page, "Y+");
   const L = (await startOf()).lease!;
@@ -91,7 +102,11 @@ test("a blocked main thread renews nothing while the worker's heartbeat goes on"
   expect(tl.renewals.filter((r) => inside(r.t)), "the main thread renewed while blocked").toEqual([]);
   expect(tl.beats.filter(inside).length, "the worker's heartbeat went on").toBeGreaterThanOrEqual(1);
   await expect.poll(async () => (await timeline()).renewals.filter((r) => r.t > after && r.ids.includes(L)).length,
-    "renewals resume once the thread runs").toBeGreaterThan(0);
+    { message: "renewals resume once the thread runs", timeout: 10_000 }).toBeGreaterThan(0)
+    .catch(async (e) => {
+      const sent = (await ctl({ op: "lastCmds" }) as { cmds?: { cmd: string }[] }).cmds?.map((c) => c.cmd) ?? [];
+      throw new Error(`${String(e).slice(0, 300)}\nthe page said: ${JSON.stringify(said)}\ncommands: ${JSON.stringify(sent)}`);
+    });
   await page.mouse.up();
 });
 
