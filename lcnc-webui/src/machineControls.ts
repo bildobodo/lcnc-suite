@@ -254,6 +254,7 @@ export const BUTTON_TYPES = {
   g30Capture:     { gate: 'g30Capture', variant: 'default', size: 'md' },   // + standstill (Codex R25 OP-I02)
   g30Save:        { gate: 'g30Write',     variant: 'primary', size: 'md' },   // machineFrame + the synch (BG-13)
   g30Read:        { gate: 'parameterRead', variant: 'default', size: 'md' },   // no synch ON + AUTO (BG-13)
+  g30Discard:     { gate: 'always',   variant: 'danger',  size: 'md' },   // the draft only; waits for a sent save (P4-6)
   // Discard in an inline note is the same destructive choice as in a
   // dialog — danger wherever it appears (design wave D1, UI-N31).
   inlineDanger:   { gate: 'always',  variant: 'danger',  size: 'sm' },

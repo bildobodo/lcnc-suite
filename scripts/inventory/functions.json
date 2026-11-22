@@ -382,7 +382,7 @@
     {"id": "S3", "kind": "Daten", "text": "Das Formular zeigt, was die Maschine hält — aus der Buchung des Gateways je Verbindung: im Interpreter bestätigt, gespeichert und noch nicht übernommen, nicht bestätigt (n von 23), noch nicht bekannt; ohne Einrichtung kein Abgleich; ein Speichern, das die Rücklesung schon bestätigt, sendet nichts.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed"}, {"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "not set up: no machine line beyond the setup note, which says nothing is written"}, {"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "a save while the machine is not ready sends nothing; the line says it is not yet in the machine"}, {"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309)"}, {"layer": "unit", "file": "toolsetterState.test.ts", "title": "equal numbers only assumed: not confirmed — the file's numbers are no proof"}, {"layer": "unit", "file": "toolsetterState.test.ts", "title": "one key unknown beside taken ones: not confirmed, the part named"}, {"layer": "unit", "file": "ws/statusStore.test.ts", "title": "belongs to its connection — a new one shows none until its own arrives"}]}
    ]},
   {"id": "F-G30", "area": "werkzeug", "name": "Werkzeugwechselposition G30 lesen, übernehmen, speichern",
-   "atoms": ["control:ToolsetterSettings.vue|MachineBtn:g30*=3",
+   "atoms": ["control:ToolsetterSettings.vue|MachineBtn:g30*=4",
              "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@update:modelValue*=1", "cmd:*_g30=3",
              "http:GET /g30"],
    "statements": [
@@ -680,7 +680,7 @@
              "control:FloatingOverlays.vue|*=1", "listener:inputSession.ts:*=8", "listener:MachineInput.vue:*=2",
              "listener:FloatingOverlays.vue:*=4"]},
   {"id": "SYS-CONTROLS", "area": "system", "name": "Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe",
-   "atoms": ["buttonType:*=109", "inputDef:*=49", "control:Btn.vue|*=1", "control:MachineBtn.vue|*=1",
+   "atoms": ["buttonType:*=110", "inputDef:*=49", "control:Btn.vue|*=1", "control:MachineBtn.vue|*=1",
              "control:MachineChoice.vue|*=1", "control:MachineColor.vue|*=1", "control:MachineInput.vue|*=2",
              "control:MachineRadio.vue|*=1", "control:MachineSelect.vue|*=1", "control:MachineSlider.vue|*=1",
              "control:MachineToggle.vue|*=2", "control:ChoiceGroup.vue|*=1", "control:HelpIcon.vue|*=1",

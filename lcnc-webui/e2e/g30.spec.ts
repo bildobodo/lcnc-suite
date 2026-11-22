@@ -171,7 +171,7 @@ test("a capture answered after the draft was edited takes nothing over; a refres
   await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("read_g30");
   await enter(page, "Y", 6);
   await deliver("read_g30", { ok: true, confirmed: true, values: { ...STORED, X: 105 } });
-  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Stored G30 refreshed — your newer entry stays a draft");
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Stored G30 refreshed — your entry stays a draft");
   expect(await values(page)).toEqual(["100", "6", "-26.275"]);
   await expect(storedLine(page)).toHaveText("Stored: confirmed by LinuxCNC · draft not saved");
 });
@@ -245,3 +245,76 @@ test("a file read answered after a reconnect supplies no basis; the reconnect re
   }
 });
 
+
+// G30 Discard (P4-6, machine day F17, Codex MT433-03): the draft back to the
+// stored values, nothing written; it waits for a SENT save (the controller's
+// write is no draft — its outcome stays shown) and stays open while a
+// capture is out (the capture then takes nothing over). Refresh keeps an
+// entry typed BEFORE it as well as one typed during it.
+const discard = (page: Page) => page.getByRole("button", { name: "Discard G30 draft", exact: true });
+
+test("Discard puts the draft back to the stored values and writes nothing", async ({ page }) => {
+  await open(page, STORED);
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await expect(discard(page), "nothing to discard").toBeDisabled();
+  await enter(page, "X", 120);
+  await expect(storedLine(page)).toHaveText(/draft not saved$/);
+  await discard(page).click();
+  expect(await values(page)).toEqual(["100", "0", "-26.275"]);
+  await expect(storedLine(page)).not.toHaveText(/draft not saved$/);
+  expect(await sent(), "Discard writes nothing").toEqual([]);
+});
+
+test("Discard waits for a sent save; the save's outcome is shown", async ({ page }) => {
+  await open(page, STORED);
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await enter(page, "X", 120);
+  await page.getByRole("button", { name: "Save G30", exact: true }).click();
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("set_g30");
+  await expect(discard(page), "a sent save is no draft").toBeDisabled();
+  await discard(page).locator("xpath=..").click({ force: true });
+  await expect(page.locator(".btnHint")).toHaveText("Saving — wait for the answer");
+  await deliver("set_g30", { ok: true, confirmed: true, values: { ...STORED, X: 120 } });
+  await expect(note(page, "ok")).toHaveText("G30 saved — confirmed by LinuxCNC");
+  expect(await values(page)).toEqual(["120", "0", "-26.275"]);
+  await expect(discard(page), "nothing left to discard").toBeDisabled();
+});
+
+test("a save with no answer keeps Discard closed until it ends, then says it is not confirmed", async ({ page }) => {
+  await open(page, STORED, { set_g30: { ok: false, confirmed: null, error: "G30 not confirmed — refresh" } });
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await enter(page, "X", 120);
+  await page.getByRole("button", { name: "Save G30", exact: true }).click();
+  await expect(note(page, "error")).toHaveText("G30 not confirmed — refresh");
+  await expect(discard(page), "the save ended: the draft is the operator's again").toBeEnabled();
+  await discard(page).click();
+  expect(await values(page)).toEqual(["100", "0", "-26.275"]);
+});
+
+test("Discard while a capture is out: the capture takes nothing over", async ({ page }) => {
+  await open(page, STORED);
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await enter(page, "Y", 7);
+  await page.getByRole("button", { name: "Use Current Position", exact: true }).click();
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("capture_g30");
+  await expect(discard(page), "a capture is out: Discard stays open").toBeEnabled();
+  await discard(page).click();
+  expect(await values(page)).toEqual(["100", "0", "-26.275"]);
+  await deliver("capture_g30", { ok: true, confirmed: true, values: STORED, current: { X: 10, Y: 20, Z: -5 }, units: "mm" });
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Capture dropped — the draft was edited meanwhile");
+  expect(await values(page)).toEqual(["100", "0", "-26.275"]);
+  expect((await sent()).map(c => c.cmd), "nothing written").toEqual(["capture_g30"]);
+});
+
+test("Refresh keeps an entry typed BEFORE it (machine day F17)", async ({ page }) => {
+  await open(page, STORED, { read_g30: { ok: true, confirmed: true, values: { ...STORED, X: 105 } } });
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await enter(page, "Y", 4);
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Stored G30 refreshed — your entry stays a draft");
+  expect(await values(page)).toEqual(["100", "4", "-26.275"]);
+  await expect(storedLine(page)).toHaveText("Stored: confirmed by LinuxCNC · draft not saved");
+  // an untouched draft follows the stored values
+  await discard(page).click();
+  expect(await values(page)).toEqual(["105", "0", "-26.275"]);
+});

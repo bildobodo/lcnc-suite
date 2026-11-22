@@ -1434,6 +1434,9 @@
      "id": "control:ToolsetterSettings.vue|MachineBtn:g30Capture|@click=captureG30"
     },
     {
+     "id": "control:ToolsetterSettings.vue|MachineBtn:g30Discard|@click=discardG30"
+    },
+    {
      "id": "control:ToolsetterSettings.vue|MachineBtn:g30Read|@click=refreshG30"
     },
     {
@@ -2000,6 +2003,9 @@
     },
     {
      "id": "buttonType:g30Capture"
+    },
+    {
+     "id": "buttonType:g30Discard"
     },
     {
      "id": "buttonType:g30Read"

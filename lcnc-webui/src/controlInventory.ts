@@ -606,6 +606,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
   "ToolTablePanel.vue|tr|@click=onToolTap(tool, $event)":
     ["local", "a tool row's hover preview on touch"],
   // ── ViewCube.vue ──
+  "ToolsetterSettings.vue|MachineBtn:g30Discard|@click=discardG30":
+    ["draft", "discards the G30 draft back to the stored values — nothing written; it waits for a sent save (P4-6)"],
   "ViewCube.vue|canvas|@click=onClick @pointerleave=onPointerLeave @pointermove=onPointerMove":
     ["nav", "the orientation cube: the viewer's camera"],
 };

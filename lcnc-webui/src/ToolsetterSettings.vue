@@ -139,6 +139,10 @@ const g30Basis = ref<G30Values | null>(null);
 const g30Draft = reactive<G30Values>({});
 const g30DraftContext = ref<G30Context | null>(null);
 const g30Busy = ref(false);
+// Which G30 request is out (P4-6, Codex MT433-03): Discard waits for a SENT
+// save — the controller's write is no draft a local reset can take back —
+// and stays open while a capture or a read is out.
+const g30Op = ref<null | "read" | "capture" | "save">(null);
 const g30Note = ref<{ kind: "ok" | "warn" | "error"; text: string } | null>(null);
 
 // The status frame carries the machine's fields under `data`.
@@ -194,9 +198,10 @@ async function loadG30() {
     const may = applies(t);
     if (data.ok) {
       if (!may.stored) return;   // a newer reply is shown already
+      const keep = g30Dirty.value;      // an entry stays a draft (P4-6, F17)
       takeStored(t, data.values, "file");
       g30StoredAt.value = data.mtime_ms ?? null;
-      if (may.reset) resetG30Draft();
+      if (!keep) resetG30Draft();
     } else {
       g30Note.value = { kind: "error", text: `G30 read failed: ${data.error ?? "no data"}` };
     }
@@ -208,11 +213,25 @@ async function loadG30() {
 /** Run one G30 command; a lost reply is "not confirmed", never success. */
 async function g30Request(msg: { cmd: "read_g30" } | { cmd: "capture_g30" } | { cmd: "set_g30"; values: Record<string, number>; based_on: Record<string, number> }) {
   g30Busy.value = true;
+  g30Op.value = msg.cmd === "set_g30" ? "save" : msg.cmd === "capture_g30" ? "capture" : "read";
   try {
     return await request(msg, 15000);
   } finally {
     g30Busy.value = false;
+    g30Op.value = null;
   }
+}
+
+/** Discard the G30 draft (P4-6, machine day F17, Codex MT433-03): back to
+ *  the stored values, nothing written. A capture still out is dropped (its
+ *  draft revision is gone); a SENT save is waited for — Discard does not
+ *  abort a write, and its outcome stays shown. */
+const g30DiscardWhy = computed(() => g30Op.value === "save" ? "Saving — wait for the answer" : undefined);
+function discardG30() {
+  if (!g30Dirty.value || g30Op.value === "save") return;
+  resetG30Draft();
+  draftRev++;
+  g30Note.value = null;
 }
 
 async function refreshG30() {
@@ -221,9 +240,12 @@ async function refreshG30() {
   const may = applies(t);
   if (r?.ok) {
     if (!may.stored) return;
+    // An entry stays a draft — typed BEFORE the press as well as during the
+    // read (P4-6, machine day F17: Refresh reset a draft typed before it)
+    const keep = g30Dirty.value;
     takeStored(t, r.values, "confirmed");
-    if (may.reset) { resetG30Draft(); g30Note.value = null; }
-    else g30Note.value = { kind: "warn", text: "Stored G30 refreshed — your newer entry stays a draft" };
+    if (!keep) { resetG30Draft(); g30Note.value = null; }
+    else g30Note.value = { kind: "warn", text: "Stored G30 refreshed — your entry stays a draft" };
   } else {
     if (r?.confirmed === false && may.stored) g30StoredState.value = "unconfirmed";
     g30Note.value = { kind: "error", text: r?.error ?? "No reply — G30 not confirmed" };
@@ -349,6 +371,8 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
       <MachineBtn type="g30Save" :disabled="g30Busy || 'error' in g30SaveCheck"
                   :reason="'error' in g30SaveCheck ? g30SaveCheck.error : undefined" @click="saveG30">Save G30</MachineBtn>
       <MachineBtn type="g30Read" :disabled="g30Busy" @click="refreshG30">Refresh</MachineBtn>
+      <MachineBtn type="g30Discard" :disabled="!g30Dirty || !!g30DiscardWhy" :reason="g30DiscardWhy"
+                  aria-label="Discard G30 draft" @click="discardG30">Discard</MachineBtn>
     </div>
     <div v-if="g30Note" class="statusNote wide" :class="g30Note.kind" :role="g30Note.kind === 'ok' ? undefined : 'alert'"><span>{{ g30Note.text }}</span></div>
 
