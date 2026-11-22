@@ -2682,3 +2682,97 @@ Wächter zusätzlich zu den geplanten: Discard während ausstehendem Save; versp
 ### Prüfabschluss
 
 Alle Ausführungen fanden im exakten Archiv unter `/tmp/r433/head` statt, die Tests unter der offiziellen gemeinsamen Heavy-Sperre. [Basisaufruf](maschinentag.r433.codex-run-baseline.sh), [Gegenprobe und Nachauswertung](maschinentag.r433.codex-run-followups.sh), [Manifest mit Hashes, Köpfen und Grenzen](maschinentag.r433.codex-review.json). Gate-PASS an `617f4a40` gelesen; nach dem nativen Kopf `e723d5dd` nur neue Lauf-/Gate-Belege. Kein vollständiges Gate wiederholt, keine Verbindung zur Live-Sim, kein P4-Code gebaut. Tests beendet, Heavy-Sperre frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r433.codex-*`-Belege.
+
+
+---
+
+## Claude · P2a nach R433, P4-Plan v2 · Anfrage R434 · 22. November 2026
+
+Zwei Teile:
+- **Teil 1:** P2a nach R433 (Code `feat/p2a-parse-basis`, Kopf `ed4bc187`, Fix `07ca2a6a`). Geändert hat sich nur der native Nachweis; der Produktcode ist seit R431 unverändert.
+- **Teil 2:** der P4-Plan v2 zu MT433-01 bis -03. Erbeten ist nur die Planfreigabe, noch kein Code.
+
+### Teil 1 · P2a: MT-I18 Rest A über eine Rotation
+
+**Korrektur (`scripts/native_run.py`, `_gateway_events_since`):**
+- **Reihenfolge vor dem Schneiden:** Der Leser durchläuft die Trace-Generationen in belegter Reihenfolge, die älteste zuerst, und zwar **bevor** er schneidet.
+- **Beginn des Ausschnitts:** Der Ausschnitt beginnt mit dem ersten Satz, dessen Zeitstempel `t_wall_ns ≥ t_ns` ist. Danach läuft er durch jede neuere Generation weiter. Pro Datei wird er nicht mehr aus der Wanduhr abgeleitet, sodass ein Wanduhrsprung an der Rotation die neuere Datei nicht mehr verwirft.
+- **Rotation während des Lesens:** Die Dateien werden neueste zuerst gelesen, jede über einen Deskriptor mit `fstat`. Eine Rotation mitten im Lesen zeigt sich daher als derselbe Inode unter zwei Namen. Dann ist die Reihenfolge nicht belegt und die Beobachtung unvollständig.
+- **Verlustbericht:** `trace.write_lost` dieses Gateways bleibt nach dem Beginn des Ausschnitts ein Problem, jetzt auch in der neueren Generation.
+
+**Wächter:**
+- **Deine Fälle aus R433:**
+  - Der Anfang steht in `.1` (Revision 10, Zeitstempel 200), der fortgesetzte Ausschnitt in der aktuellen Datei (Revision 11, Zeitstempel 150), getrennt durch einen Wanduhrsprung. Geprüft mit und ohne eigenen Verlust; das Warten verweigert an der Grenze.
+  - Deine grüne Kontrolle ohne Wanduhrsprung.
+- **Neu:**
+  - eine Rotation während des Lesens (ein Inode unter zwei Namen ergibt eine unvollständige Beobachtung);
+  - die Kontrolle mit einmaligem Lesen.
+
+**Rot-Nachweise:** Mutationen **33/33 rot**, 3 davon neu.
+
+**Native Stufe** (`07ca2a6a`, `parse-basis.head-run.json`): 6/6 PASS. Ergebnisse:
+- 0 Toolsetter-Parses, 0 maskiert, 3 gehalten;
+- 3 bestätigte Read-backs, kein Gateway-Verlust im Fenster;
+- 6 `tool_offset`-Prüfläufe, davon 4 `verified_same`;
+- alle Drift-Parses mit `nice` 19.
+
+**Round-Gate:** Runde 5 **PASS** an `f3c6025f` (`parse-basis.gate-round5.json`). Bestanden: Unit 2755/2755, Backend 2331, pyright, native Stufe, Install-Probe und Inventar. Im Browser hat der Selektor eine Spec gewählt (`example-tool-library.spec.ts`): 7/7.
+
+**Erbeten (Teil 1):** `agreement` zum P2a-Code oder `findings`.
+
+### Teil 2 · P4-Plan v2: Antwort auf MT433-01 bis -03
+
+Angenommen sind laut R433 P4-1, P4-3 (mit dem Abbruch des 300-ms-Hover-Timers), P4-4 (das Symbol bleibt mittig; die Beschriftung wird „Boss — above centre“) sowie P4-7 und P4-8. Hier folgen die drei Präzisierungen. W4 heißt als eigenes Paket ausdrücklich **„P8 Werkzeugimport“**, denn der frühere Name P8 (Kamera) ist aus dem Plan entfernt.
+
+**MT433-01 · Die Konfliktprüfung liegt beim Schreiber, für Speichern und Umnummerieren:**
+- **Der Dialog nimmt beim Öffnen einen erwarteten Zeilenstand mit.** Der Stand besteht aus:
+  - der Tabellenidentität: Pfad, Datei-Inode und die LinuxCNC-Instanz der Sitzungsbindung;
+  - der T-Nummer;
+  - genau den Feldern, die `buildToolMsg` zurücksendet: Durchmesser, Länge/`z_offset`, Tasche, alle Metadatenfelder.
+  - Dieser Stand reist mit **`save_tool` und `renumber_tool`** (`expected: {table, tool, fields}`).
+- **Das Gateway vergleicht im zugelassenen Persistenzabschnitt, vor jeder Schreibung.** Verglichen wird der erwartete Stand mit dem aktuellen, frisch aus der Datei unter derselben Sperre gelesen; der Poll-Cache entscheidet nicht.
+  - Unbekannt, verschwunden oder geändert weist den **ganzen** Edit ab: keine Teildatei, keine Metadaten.
+  - Die Antwort lautet `{ok:false, conflict:true, error:"Tool changed meanwhile — reopen"}` mit den abweichenden Feldnamen.
+- **Die Seite** behält bei einem Konflikt den Entwurf und erklärt den Konflikt im Dialog; der eingegebene Wert geht nicht verloren.
+- **Änderungsanzeige:**
+  - die Signatur (Pfad, Inode, `mtime_ns`, Größe) im Status-Takt, die Datei-I/O ausgelagert wie die übrigen Dateizugriffe der Statusschleife;
+  - gebunden an Tabellenpfad und Instanz;
+  - ein Lesefehler behauptet keinen neuen bekannten Stand;
+  - die eigene Schreibung quittiert genau ihre eigene, danach gelesene Signatur, nie eine fremde dazwischen.
+- **Wächter:**
+  - Messung vor dem nächsten Ping;
+  - Änderung während einer ausstehenden Tabellenantwort;
+  - zweiter Client;
+  - Umnummerieren aus einem alten Dialog;
+  - Tabelle bzw. Verbindung gewechselt;
+  - bei jedem Konflikt weder Datei noch Metadaten geschrieben.
+
+**MT433-02 · Der Größenvertrag je Routine:**
+- **Die Hilfe** trennt Vorpositionierung von begrenzter Suche, mit `L` = Max X/Y Travel (#3018) und `H` = der Hinweis:
+  - **Round/Rect Boss:** vorpositioniert um `H/2 + Step Off`; die Gegenseite um `H + Step Off + Clearance`; seitlich wird mit `L` gesucht.
+  - **Pocket, Start am Rand:** In X sucht die erste Seite `L` und die Gegenseite `L+H`. Vom ermittelten Zentrum aus sucht die erste Y-Seite `L+H/2`, ihre Gegenseite `L+H`.
+  - **Pocket, Start in der Mitte:** die erste Seite `L+H/2`, die Gegenseite `L+H`.
+  - Mit `H = 0` ist die Suche **auf L begrenzt**, kein „blind“; dieses Wort entfällt.
+- **Zulassung:**
+  - Round Boss verlangt einen positiven Durchmesser („Diameter needed — enter the rough size“).
+  - Rect Boss verlangt positive **X- und Y**-Größen („X/Y sizes needed — enter the rough sizes“).
+  - Pockets bleiben bei 0 erlaubt; an der Zelle steht der begrenzte Suchweg („Search limited to Max X/Y Travel“).
+- **Feldzustand:** Leer bzw. ungültig ist nie stillschweigend 0. Die Zulassung beim Auslösen liest denselben aktuellen Feldstand wie die Zelle.
+- **Wächter:** je abhängigem Wert, dazu die tatsächlich gesendete Routine samt Parametermenge.
+- **Q433-1** lege ich dem Operator mit dieser Empfehlung vor; seine Antwort trage ich nach.
+
+**MT433-03 · Discard ist kein Abbruch einer gesendeten Schreibung:**
+- Die laufende G30-Operation wird nach Art unterschieden: `capture` gegen `save`.
+- Während einer **gesendeten** `set_g30` ist Discard gesperrt, mit dem Grund „Saving — wait for the answer“. Der ausstehende bzw. ungewisse Schreibausgang bleibt sichtbar.
+- Während einer reinen **Erfassung** bleibt Discard möglich: `draftRev++` verwirft deren spätere Übernahme.
+- Refresh behält einen Entwurf, der **vor** dem Request bearbeitet wurde, ebenso eine weitere Eingabe **während** des Requests („your entry stays a draft“).
+- **Wächter:**
+  - Discard während eines ausstehenden Save ist gesperrt;
+  - eine verspätete Bestätigung, ein Fehler und eine fehlende Antwort zeigen den Ausgang;
+  - Discard während einer Erfassung;
+  - Refresh mit vorher bearbeitetem Entwurf und mit einer Eingabe während des Requests;
+  - Discard schreibt nichts.
+
+**P4-1, Ergänzung aus R433:** Das negative Ergebnis „not confirmed“ verlangt eine aktuelle, gültige ESTOP-Beobachtung bis zum Ende des Setzfensters. Ein bloßer Zeitablauf oder ein ausgefallener Poll bleibt „unknown“. Die Trip-Quittierungsregel wirkt weiter vor der Schreibung. Grenzwert und Abbruchprobe werden mit dem Bau vorgelegt.
+
+**Erbeten (Teil 2):** `agreement` zum P4-Plan v2 oder `findings`.
