@@ -478,6 +478,12 @@ class BulkPipeline:
     #: (weaker still): a machine PC rendering its own HMI browser would give
     #: an idle-class parse very little.
     PINNED_NICE = 19
+    #: ... and every DRIFT re-parse at idle too (P2a-3, Codex R427/R428):
+    #: a re-parse no operator waits for yields the CPU to the page and to
+    #: LinuxCNC (the panel's two free cores, F18) — a load, a connect, a schema
+    #: or an explicit re-parse keeps its normal priority (LOAD_REASONS)
+    DRIFT_NICE = 19
+    LOAD_REASONS = ("file", "reparse", "connect", "schema")
     #: ... and gets a longer leash: niced under a busy run it may take a
     #: multiple of its idle time. Its duration never enters the history.
     _PINNED_TIMEOUT_FACTOR = 3.0
@@ -773,6 +779,8 @@ class BulkPipeline:
                 _ts_ctx = self._get_toolsetter_ctx()
                 if _ts_ctx:
                     ctx["toolsetter"] = _ts_ctx
+                if reason not in self.LOAD_REASONS:
+                    ctx["nice"] = self.DRIFT_NICE
             # VERIFY (VP-I20, plan Fassungen 4–6): the start tool state moved
             # since the publish. Parse at the actual offset as always, and let
             # the worker compare its payload with the published one — when
@@ -793,7 +801,11 @@ class BulkPipeline:
             # the fixture table + g92 the var-file patches were built from.
             expected_ms = self.expected_parse_ms(filepath)
             timeout_s = self.parse_timeout_s(filepath)
-            if pinned:
+            # a niced parse (pinned, or a drift re-parse) gets the longer
+            # leash — a budget, no promised duration — and stays out of the
+            # duration history (P2a-3: keyed on the priority, not on `pinned`)
+            niced = pinned or ctx.get("nice") is not None
+            if niced:
                 timeout_s *= self._PINNED_TIMEOUT_FACTOR
             if pinned:
                 # A pinned parse's inputs ARE the published seeds.
@@ -831,7 +843,7 @@ class BulkPipeline:
             _trace.emit("gcode.spawn_start", job=_job, basis=_basis,
                         file=os.path.basename(filepath), active_idx=active_idx,
                         reason=reason, expected_ms=expected_ms,
-                        timeout_s=round(timeout_s, 1),
+                        timeout_s=round(timeout_s, 1), nice=ctx.get("nice") or 0,
                         **(_PINNED if pinned else {}))
 
             t_spawn = time.monotonic()
@@ -1096,8 +1108,9 @@ class BulkPipeline:
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse
-            if not pinned:
-                # A niced mid-run parse is no estimate for the next idle one.
+            if not niced:
+                # A niced parse (mid-run or a drift re-parse) is no estimate
+                # for the next normal one.
                 self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)
             _trace.emit("gcode.publish", job=_job, basis=_basis, active_idx=active_idx,
                         **(_PINNED if pinned else {}),

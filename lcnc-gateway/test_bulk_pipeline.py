@@ -1164,3 +1164,63 @@ class TestVerifyAtTheActualOffset(unittest.TestCase):
         self.b.clear_preview()
         self.assertIsNone(self.b.tool_basis)
         self.assertIsNone(self.b.tool_basis_status())
+
+
+class TestDriftReparseNiced(unittest.TestCase):
+    """P2a-3 (Codex R427/R428): every DRIFT re-parse runs at nice 19 — a load,
+    a connect, a schema or an explicit re-parse keeps its priority; the
+    longer leash and the history exclusion follow the priority, not `pinned`;
+    the spawn names it; the fingerprint never does."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.ini = os.path.join(self.tmp.name, "m.ini")
+        open(self.ini, "w").write("[EMC]\n")
+        self.ngc = os.path.join(self.tmp.name, "p.ngc")
+        open(self.ngc, "w").write("G0 X1\nM2\n")
+        self.b = _pipeline(self.ini)
+        self.sent = []
+
+        def worker(ctx_bytes, timeout):
+            import msgspec
+            self.sent.append((msgspec.msgpack.decode(ctx_bytes), timeout))
+            return (0, b"x" * 8, b"__SCHEMA__\t8\n")
+        self.b._run_gcode_worker_blocking = worker
+        import lcnc_trace
+        self.events = []
+        real = lcnc_trace.emit
+
+        def rec(tag, level="info", msg="", **fields):
+            self.events.append((tag, dict(fields)))
+            return real(tag, level, msg, **fields)
+        lcnc_trace.emit = rec
+        self.addCleanup(lambda: setattr(lcnc_trace, "emit", real))
+
+    def parse(self, reason):
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason=reason))
+        return self.sent[-1]
+
+    def test_a_drift_reparse_runs_niced_a_load_does_not(self):
+        for reason in BulkPipeline.LOAD_REASONS:
+            ctx, _t = self.parse(reason)
+            self.assertNotIn("nice", ctx, reason)
+        for reason in ("wcsoff:G54:z", "toolsetter", "rotary:A", "kins:type", "limits"):
+            ctx, _t = self.parse(reason)
+            self.assertEqual(ctx.get("nice"), BulkPipeline.DRIFT_NICE, reason)
+        spawns = [f for t, f in self.events if t == "gcode.spawn_start"]
+        self.assertEqual([f["nice"] for f in spawns], [0] * 4 + [19] * 5)
+
+    def test_the_leash_and_the_history_follow_the_priority(self):
+        self.b.parse_ms_by_file[self.ngc] = 30000                # 3 × 30 s = 90 s normal
+        _ctx, t_load = self.parse("file")
+        self.assertEqual(t_load, 90.0)
+        loaded = self.b.parse_ms_by_file[self.ngc]
+        self.assertLess(loaded, 30000, "a load's duration enters the history")
+        _ctx, t_drift = self.parse("wcsoff:G54:z")
+        self.assertEqual(t_drift, self.b.parse_timeout_s(self.ngc) * BulkPipeline._PINNED_TIMEOUT_FACTOR)
+        self.assertEqual(self.b.parse_ms_by_file[self.ngc], loaded, "a niced parse is no estimate")
+
+    def test_the_priority_is_no_input(self):
+        ctx, _t = self.parse("wcsoff:G54:z")
+        self.assertEqual(ctx_digest(ctx), ctx_digest({k: v for k, v in ctx.items() if k != "nice"}))
