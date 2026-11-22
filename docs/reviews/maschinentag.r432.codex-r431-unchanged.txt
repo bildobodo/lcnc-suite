@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r432/head
+plugins: anyio-4.13.0
+collecting ... collected 8 items
+
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[failed] PASSED [ 12%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[aborted] PASSED [ 25%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[cap] PASSED [ 37%]
+scripts/test_r431_codex.py::test_unconfirmed_last_attempt_is_not_a_zero_parse_pass[no_anchor] PASSED [ 50%]
+scripts/test_r431_codex.py::test_complete_confirmations_are_a_pass PASSED [ 62%]
+scripts/test_r431_codex.py::test_another_revisions_outcome_does_not_settle_the_last_attempt PASSED [ 75%]
+scripts/test_r431_codex.py::test_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran PASSED [ 87%]
+scripts/test_r431_codex.py::test_temporary_trace_read_failure_does_not_end_the_owed_wait PASSED [100%]
+
+============================== 8 passed in 0.04s ===============================

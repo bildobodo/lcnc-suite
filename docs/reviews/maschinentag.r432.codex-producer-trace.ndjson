@@ -1,0 +1,26 @@
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1000000000, "t_mono_ms": 1000.0, "tag": "client.diag", "native_mark": "real", "edge": "start"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "gcode.spawn_start", "reason": "tool_offset", "nice": 19}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 1, "origin": "assumed", "keys": [3014]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 2, "origin": "applied", "keys": [3014]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 3, "origin": "assumed", "keys": [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014, 3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "gcode.reparse_toolsetter_held", "version": 3, "why": "read_back"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 4, "origin": "read", "keys": [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014, 3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.read_back_outcome", "attempt_version": 3, "outcome": "confirmed"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.read_back", "version": 4, "state": "confirmed"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 5, "origin": "assumed", "keys": [3014]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 6, "origin": "applied", "keys": [3014]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 7, "origin": "assumed", "keys": [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014, 3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "gcode.reparse_toolsetter_held", "version": 7, "why": "read_back"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 8, "origin": "read", "keys": [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014, 3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.read_back_outcome", "attempt_version": 7, "outcome": "confirmed"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.read_back", "version": 8, "state": "confirmed"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 9, "origin": "assumed", "keys": [3014]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 10, "origin": "applied", "keys": [3014]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 11, "origin": "assumed", "keys": [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014, 3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "gcode.reparse_toolsetter_held", "version": 11, "why": "read_back"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.basis", "version": 12, "origin": "read", "keys": [3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014, 3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115]}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.read_back_outcome", "attempt_version": 11, "outcome": "confirmed"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1100000000, "t_mono_ms": 1100.0, "tag": "toolsetter.read_back", "version": 12, "state": "confirmed"}
+{"t_wall_ns":1300000000,"t_mono_ms":1300.0,"proc":"gateway","pid":3908891,"tag":"trace.write_lost","level":"warn","log":"trace.ndjson","count":1,"since_ns":1250000000,"why":{"lock_busy":1}}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1300000000, "t_mono_ms": 1300.0, "tag": "diagnostic.after_loss"}
+{"proc": "gateway", "pid": 3908891, "t_wall_ns": 1200000000, "t_mono_ms": 1400.0, "tag": "client.diag", "native_mark": "real", "edge": "end"}

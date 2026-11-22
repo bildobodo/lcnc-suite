@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r432/head
+plugins: anyio-4.13.0
+collecting ... collected 682 items / 676 deselected / 6 selected
+
+scripts/test_native_stage.py::test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[none] PASSED [ 16%]
+scripts/test_native_stage.py::test_the_window_is_the_gateways_stream_whatever_another_writer_rotated[foreign-before] PASSED [ 33%]
+scripts/test_native_stage.py::test_a_window_rotated_within_is_not_framed[gateway-during] PASSED [ 50%]
+scripts/test_native_stage.py::test_a_window_rotated_within_is_not_framed[foreign-during] PASSED [ 66%]
+scripts/test_native_stage.py::test_a_window_is_framed_only_by_one_start_and_one_end_mark_of_this_gateway PASSED [ 83%]
+scripts/test_native_stage.py::test_a_slow_confirmed_read_back_inside_the_window_passes PASSED [100%]
+
+====================== 6 passed, 676 deselected in 0.50s =======================

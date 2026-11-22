@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r432/head
+plugins: anyio-4.13.0
+collecting ... collected 682 items / 681 deselected / 1 selected
+
+scripts/test_native_stage.py::test_r430_the_window_closed_before_the_last_read_back_is_incomplete PASSED [100%]
+
+====================== 1 passed, 681 deselected in 0.39s =======================

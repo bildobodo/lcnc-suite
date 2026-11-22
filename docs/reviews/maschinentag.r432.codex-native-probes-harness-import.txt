@@ -1,0 +1,239 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r432/head
+plugins: anyio-4.13.0
+collecting ... collected 5 items
+
+scripts/test_r432_codex.py::test_a_gateway_loss_cannot_settle_the_live_owed_wait FAILED [ 20%]
+scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end] FAILED [ 40%]
+scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report] FAILED [ 60%]
+scripts/test_r432_codex.py::test_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step FAILED [ 80%]
+scripts/test_r432_codex.py::test_a_readable_confirmed_live_observation_releases_the_wait PASSED [100%]
+
+=================================== FAILURES ===================================
+_____________ test_a_gateway_loss_cannot_settle_the_live_owed_wait _____________
+
+    def test_a_gateway_loss_cannot_settle_the_live_owed_wait():
+        clock, calls = Clock(), []
+        def files(_path):
+            calls.append(round(clock.t, 3))
+            # The last op applied one input; its subsequent assumed booking
+            # was lost, which the very same gateway explicitly reported.
+            ev = [{"tag": "toolsetter.basis", "origin": "applied", "version": 10,
+                   "keys": [3014], "t_wall_ns": 100},
+                  {"tag": "trace.write_lost", "count": 1, "since_ns": 101,
+                   "t_wall_ns": 102, "why": {"lock_busy": 1}}]
+            if clock.t >= 5:
+                ev += [{"tag": "toolsetter.basis", "origin": "read", "version": 12,
+                        "keys": [3014], "t_wall_ns": 105},
+                       {"tag": "toolsetter.read_back_outcome", "attempt_version": 11,
+                        "outcome": "confirmed", "t_wall_ns": 106}]
+            return [("trace.ndjson", 42, data(ev))], []
+        with patch.object(nr, "time", clock), patch.object(nr, "_trace_files", files):
+            try:
+                waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+                    owed=lambda: nc.pb_owed(nr._gateway_events_since(
+                        {"gateway_pid": 101, "run": Path("/unused")}, 99)))
+            except nr.Refused:
+                return
+>       assert waited >= 5 + nr.PB_QUIET_S, {"waited": waited, "reads_at": calls}
+E       AssertionError: {'reads_at': [0.0], 'waited': 4.0}
+E       assert 4.0 >= (5 + 4.0)
+E        +  where 4.0 = nr.PB_QUIET_S
+
+scripts/test_r432_codex.py:39: AssertionError
+_ test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end] _
+
+clock_step = 'back_at_end'
+
+    @pytest.mark.parametrize("clock_step", ["back_at_end", "back_before_report"])
+    def test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time(clock_step):
+        ev = [{"tag": "client.diag", "native_mark": "pb", "edge": "start", "t_wall_ns": 100}]
+        ev += [dict(t_wall_ns=110, **e) for e in ops()]
+        loss = {"tag": "trace.write_lost", "count": 2, "why": {"lock_busy": 2}}
+        if clock_step == "back_at_end":
+            loss.update(since_ns=250, t_wall_ns=300)
+        else:
+            loss.update(since_ns=110, t_wall_ns=90)
+        ev += [loss, {"tag": "client.diag", "native_mark": "pb", "edge": "end", "t_wall_ns": 200}]
+        window = nc.frame_window([("trace.ndjson", 42, data(ev))], "pb", 101)
+        assert window["framed"], window
+        basis, nice = nc.eval_parse_basis("pb", window, 3), nc.eval_parse_nice("nice", window)
+>       assert (basis["status"], nice["status"]) == ("incomplete", "incomplete"), {
+            "losses": window["losses"], "basis": basis, "nice": nice}
+E       AssertionError: {'basis': {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}, 'losses': [], 'nice': {'case': 'nice', 'detail': '1 drift re-parses, every one niced', 'drift': 1, 'status': 'PASS'}}
+E       assert ('PASS', 'PASS') == ('incomplete', 'incomplete')
+E         
+E         At index 0 diff: 'PASS' != 'incomplete'
+E         
+E         Full diff:
+E           (
+E         -     'incomplete',
+E         -     'incomplete',...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+scripts/test_r432_codex.py:55: AssertionError
+_ test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report] _
+
+clock_step = 'back_before_report'
+
+    @pytest.mark.parametrize("clock_step", ["back_at_end", "back_before_report"])
+    def test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time(clock_step):
+        ev = [{"tag": "client.diag", "native_mark": "pb", "edge": "start", "t_wall_ns": 100}]
+        ev += [dict(t_wall_ns=110, **e) for e in ops()]
+        loss = {"tag": "trace.write_lost", "count": 2, "why": {"lock_busy": 2}}
+        if clock_step == "back_at_end":
+            loss.update(since_ns=250, t_wall_ns=300)
+        else:
+            loss.update(since_ns=110, t_wall_ns=90)
+        ev += [loss, {"tag": "client.diag", "native_mark": "pb", "edge": "end", "t_wall_ns": 200}]
+        window = nc.frame_window([("trace.ndjson", 42, data(ev))], "pb", 101)
+        assert window["framed"], window
+        basis, nice = nc.eval_parse_basis("pb", window, 3), nc.eval_parse_nice("nice", window)
+>       assert (basis["status"], nice["status"]) == ("incomplete", "incomplete"), {
+            "losses": window["losses"], "basis": basis, "nice": nice}
+E       AssertionError: {'basis': {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}, 'losses': [], 'nice': {'case': 'nice', 'detail': '1 drift re-parses, every one niced', 'drift': 1, 'status': 'PASS'}}
+E       assert ('PASS', 'PASS') == ('incomplete', 'incomplete')
+E         
+E         At index 0 diff: 'PASS' != 'incomplete'
+E         
+E         Full diff:
+E           (
+E         -     'incomplete',
+E         -     'incomplete',...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+scripts/test_r432_codex.py:55: AssertionError
+_ test_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step _
+
+tmp_path = PosixPath('/tmp/pytest-of-cnc/pytest-4651/test_the_real_trace_writer_can0')
+
+    def test_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step(tmp_path):
+        import importlib.util
+        import os
+        spec = importlib.util.spec_from_file_location("r432_trace", Path(nr.__file__).parents[1] / "lcnc-gateway/lcnc_trace.py")
+        tr = importlib.util.module_from_spec(spec)
+>       spec.loader.exec_module(tr)
+
+scripts/test_r432_codex.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<frozen importlib._bootstrap_external>:1026: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """Suite-wide structured trace bus.
+    
+    Every component (gateway, hal_reader, hal_watchdog) imports this module and
+    calls `init(<proc_name>)` once at startup, then `emit(tag, **fields)` for
+    each event. All events land in trace.ndjson under the resolved log dir
+    (see lcnc_paths.resolve(); default <install-dir>/runlogs).
+    
+    Why one shared file across processes: one timeline. Each line carries `proc`
+    + `pid` so the bundler can demux later; the lines of several writers never
+    interleave because each is written whole inside the log's lock (below —
+    emit() still caps a line at _MAX_LINE_BYTES so one event stays one bounded
+    write).
+    
+    Multi-writer rollover — ONE coordinated section per line (P3, machine day
+    2026-11-21, F23; Codex R425 MT425-02, R426): every writer — gateway,
+    hal_reader, hal_watchdog, the parse worker and the launcher's two lines —
+    takes the log's stable lock (`trace.lock` / `crash.lock`, never rotated,
+    never matched by a `trace.ndjson*` / `crash.log*` glob) and, inside ONE
+    short exclusive section, checks the file's identity (reopens after another
+    writer's rotation), its size (rotates the chain `.N … .1`), its open end
+    (a fragment a writer left behind — a partial write under EFBIG / ENOSPC,
+    a process killed mid-write — is terminated with a newline first: the
+    damage stays one damaged line and the next record stays readable) and
+    writes the COMPLETE line. The rotation used to be uncoordinated and was
+    called "rare"; it is DETERMINISTIC at every rollover: the other processes
+    kept their fd and wrote on into the renamed file (the machine day's trace
+    lay in three files, gateway → .1, hal_reader → .2, the rest → trace.ndjson).
+    The lock is taken with LOCK_NB and retried for at most _LOCK_BUDGET_S —
+    it bounds the wait for the LOCK, not the file I/O. Without it nothing is
+    written unlocked: the record is dropped and COUNTED per process and log,
+    and the next section that gets through writes `trace.write_lost` (crash
+    log: `crash.write_lost`) — directly, never through emit(). A process that
+    ends first cannot report its loss (close() tries once more). The
+    stdlib-only handler (fcntl) is shared by the HAL siblings under the system
+    python.
+    
+    Why direct file write (not queue + thread): NDJSON encoding is < 50 us per
+    event; line-buffered O_APPEND write is 1-10 us uncached. At our event rate
+    (~50/s steady, ~500/s burst) the cost is negligible vs the asyncio loop's
+    heartbeat budget.
+    
+    Format example:
+        {"t_wall_ns": 1735000000123456789, "t_mono_ms": 12345.6,
+         "proc": "gateway", "pid": 1234,
+         "tag": "lag", "level": "warn", "msg": "loop stalled",
+         "drift_ms": 646}
+    
+    ────────────────────────────────────────────────────────────────────────────
+    Logging-bucket policy (the contract for choosing print vs _trace.emit):
+    
+      Operational events  →  _trace.emit only
+        ws connect/disconnect, hal connect, state changes, settings reload,
+        tool-table edits, safety trips, reader stale, NML poison, self-restart,
+        rare-fault error paths. These are queryable, structured, aggregatable.
+        Tag style: dot-namespaced (e.g. "ws.connect.viewer_init",
+        "hal.send_timeout"). level= info | warn | error.
+    
+      Lifecycle markers   →  _trace.emit only
+        BOOT, VINIT, SHUTDOWN — singular events with timing. The bundler
+        reconstructs cross-process timelines from these.
+    
+      User-facing console →  print(...) only
+        The small set of messages the operator must see in the gateway terminal
+        (uvicorn's own startup banner, deliberate machine-state announcements,
+        user-typed shutdown confirmations). Keep these terse — one line each.
+        A line inside a chain that must run to its end (the shutdown, a HAL
+        disconnect) goes through `console(text)` and comes AFTER the chain's
+        trace; no console write ever raises (ConsoleGuard, below).
+    
+      TEMP probes         →  print(...), marked with `# TEMP`
+        [HB-STALL], [LAG], [GC], [HB-WAKE], [HB-TRACE]. These exist to chase a
+        specific bug; once the root cause is fixed and the probe code is
+        removed, the print goes with it. Don't pollute the trace bus.
+    
+      Per-tick spam       →  _trace.emit warn, rate-limit if needed
+        Poller errors, missing-field warns. _trace's structured form lets a
+        bundler aggregate (e.g. "10× poller.no_machine_pos in 60 s").
+    
+    NEVER emit the same event through both channels — pick one. Dual-emit
+    fragments diagnostic search and was the highest-priority cleanup in
+    Initiative E. See ws.connect.viewer_init / ws.connect.settings for the
+    canonical patterns.
+    """
+    from __future__ import annotations
+    
+    import errno
+    import fcntl
+    import json
+    import logging
+    import os
+    import signal
+    import sys
+    import threading
+    import time
+    import traceback
+    from types import FrameType, TracebackType
+    from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Optional, TextIO, TypeGuard, Union
+    
+    if TYPE_CHECKING:
+        import asyncio
+    
+>   import lcnc_paths
+E   ModuleNotFoundError: No module named 'lcnc_paths'
+
+lcnc-gateway/lcnc_trace.py:102: ModuleNotFoundError
+=========================== short test summary info ============================
+FAILED scripts/test_r432_codex.py::test_a_gateway_loss_cannot_settle_the_live_owed_wait
+FAILED scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end]
+FAILED scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report]
+FAILED scripts/test_r432_codex.py::test_the_real_trace_writer_can_put_a_loss_inside_the_frame_across_a_wall_step
+========================= 4 failed, 1 passed in 0.06s ==========================

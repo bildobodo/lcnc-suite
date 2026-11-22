@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r432/head
+plugins: anyio-4.13.0
+collecting ... collected 682 items / 668 deselected / 14 selected
+
+scripts/test_native_stage.py::test_parse_basis_judges_the_toolsetter_reparses_only PASSED [  7%]
+scripts/test_native_stage.py::test_parse_nice_needs_a_traced_drift_parse PASSED [ 14%]
+scripts/test_native_stage.py::test_the_parse_basis_program_runs_the_routine_and_is_felt PASSED [ 21%]
+scripts/test_native_stage.py::test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet PASSED [ 28%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[failed] PASSED [ 35%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[aborted] PASSED [ 42%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[cap] PASSED [ 50%]
+scripts/test_native_stage.py::test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[no_anchor] PASSED [ 57%]
+scripts/test_native_stage.py::test_r431_three_confirmations_are_a_pass_and_another_revisions_end_settles_nothing PASSED [ 64%]
+scripts/test_native_stage.py::test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran PASSED [ 71%]
+scripts/test_native_stage.py::test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it PASSED [ 78%]
+scripts/test_native_stage.py::test_r431_a_transient_read_failure_does_not_end_the_owed_wait PASSED [ 85%]
+scripts/test_native_stage.py::test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing PASSED [ 92%]
+scripts/test_native_stage.py::test_r431_an_empty_or_damaged_observation_settles_nothing PASSED [100%]
+
+====================== 14 passed, 668 deselected in 0.41s ======================

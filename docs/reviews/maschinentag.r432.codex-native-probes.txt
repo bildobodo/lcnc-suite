@@ -1,0 +1,112 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p2a/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/r432/head
+plugins: anyio-4.13.0
+collecting ... collected 3 items
+
+scripts/test_r432_codex.py::test_a_gateway_loss_cannot_settle_the_live_owed_wait FAILED [ 33%]
+scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end] FAILED [ 66%]
+scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report] FAILED [100%]
+
+=================================== FAILURES ===================================
+_____________ test_a_gateway_loss_cannot_settle_the_live_owed_wait _____________
+
+    def test_a_gateway_loss_cannot_settle_the_live_owed_wait():
+        clock, calls = Clock(), []
+        def files(_path):
+            calls.append(round(clock.t, 3))
+            # The last op applied one input; its subsequent assumed booking
+            # was lost, which the very same gateway explicitly reported.
+            ev = [{"tag": "toolsetter.basis", "origin": "applied", "version": 10,
+                   "keys": [3014], "t_wall_ns": 100},
+                  {"tag": "trace.write_lost", "count": 1, "since_ns": 101,
+                   "t_wall_ns": 102, "why": {"lock_busy": 1}}]
+            if clock.t >= 5:
+                ev += [{"tag": "toolsetter.basis", "origin": "read", "version": 12,
+                        "keys": [3014], "t_wall_ns": 105},
+                       {"tag": "toolsetter.read_back_outcome", "attempt_version": 11,
+                        "outcome": "confirmed", "t_wall_ns": 106}]
+            return [("trace.ndjson", 42, data(ev))], []
+        with patch.object(nr, "time", clock), patch.object(nr, "_trace_files", files):
+            try:
+                waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+                    owed=lambda: nc.pb_owed(nr._gateway_events_since(
+                        {"gateway_pid": 101, "run": Path("/unused")}, 99)))
+            except nr.Refused:
+                return
+>       assert waited >= 5 + nr.PB_QUIET_S, {"waited": waited, "reads_at": calls}
+E       AssertionError: {'reads_at': [0.0], 'waited': 4.0}
+E       assert 4.0 >= (5 + 4.0)
+E        +  where 4.0 = nr.PB_QUIET_S
+
+scripts/test_r432_codex.py:39: AssertionError
+_ test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end] _
+
+clock_step = 'back_at_end'
+
+    @pytest.mark.parametrize("clock_step", ["back_at_end", "back_before_report"])
+    def test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time(clock_step):
+        ev = [{"tag": "client.diag", "native_mark": "pb", "edge": "start", "t_wall_ns": 100}]
+        ev += [dict(t_wall_ns=110, **e) for e in ops()]
+        loss = {"tag": "trace.write_lost", "count": 2, "why": {"lock_busy": 2}}
+        if clock_step == "back_at_end":
+            loss.update(since_ns=250, t_wall_ns=300)
+        else:
+            loss.update(since_ns=110, t_wall_ns=90)
+        ev += [loss, {"tag": "client.diag", "native_mark": "pb", "edge": "end", "t_wall_ns": 200}]
+        window = nc.frame_window([("trace.ndjson", 42, data(ev))], "pb", 101)
+        assert window["framed"], window
+        basis, nice = nc.eval_parse_basis("pb", window, 3), nc.eval_parse_nice("nice", window)
+>       assert (basis["status"], nice["status"]) == ("incomplete", "incomplete"), {
+            "losses": window["losses"], "basis": basis, "nice": nice}
+E       AssertionError: {'basis': {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}, 'losses': [], 'nice': {'case': 'nice', 'detail': '1 drift re-parses, every one niced', 'drift': 1, 'status': 'PASS'}}
+E       assert ('PASS', 'PASS') == ('incomplete', 'incomplete')
+E         
+E         At index 0 diff: 'PASS' != 'incomplete'
+E         
+E         Full diff:
+E           (
+E         -     'incomplete',
+E         -     'incomplete',...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+scripts/test_r432_codex.py:55: AssertionError
+_ test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report] _
+
+clock_step = 'back_before_report'
+
+    @pytest.mark.parametrize("clock_step", ["back_at_end", "back_before_report"])
+    def test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time(clock_step):
+        ev = [{"tag": "client.diag", "native_mark": "pb", "edge": "start", "t_wall_ns": 100}]
+        ev += [dict(t_wall_ns=110, **e) for e in ops()]
+        loss = {"tag": "trace.write_lost", "count": 2, "why": {"lock_busy": 2}}
+        if clock_step == "back_at_end":
+            loss.update(since_ns=250, t_wall_ns=300)
+        else:
+            loss.update(since_ns=110, t_wall_ns=90)
+        ev += [loss, {"tag": "client.diag", "native_mark": "pb", "edge": "end", "t_wall_ns": 200}]
+        window = nc.frame_window([("trace.ndjson", 42, data(ev))], "pb", 101)
+        assert window["framed"], window
+        basis, nice = nc.eval_parse_basis("pb", window, 3), nc.eval_parse_nice("nice", window)
+>       assert (basis["status"], nice["status"]) == ("incomplete", "incomplete"), {
+            "losses": window["losses"], "basis": basis, "nice": nice}
+E       AssertionError: {'basis': {'bookings': ['assumed:1', 'applied:1', 'assumed:24', 'read:24', 'assumed:1', 'applied:1', ...], 'case': 'pb', 'detail': 'no toolsetter re-parse for 3 probe ops with unchanged values', 'held': 3, ...}, 'losses': [], 'nice': {'case': 'nice', 'detail': '1 drift re-parses, every one niced', 'drift': 1, 'status': 'PASS'}}
+E       assert ('PASS', 'PASS') == ('incomplete', 'incomplete')
+E         
+E         At index 0 diff: 'PASS' != 'incomplete'
+E         
+E         Full diff:
+E           (
+E         -     'incomplete',
+E         -     'incomplete',...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+scripts/test_r432_codex.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_r432_codex.py::test_a_gateway_loss_cannot_settle_the_live_owed_wait
+FAILED scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_at_end]
+FAILED scripts/test_r432_codex.py::test_a_loss_physically_inside_the_frame_is_not_excluded_by_wall_time[back_before_report]
+============================== 3 failed in 0.05s ===============================

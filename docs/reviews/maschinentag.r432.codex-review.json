@@ -1,0 +1,47 @@
+{
+  "round": "R432",
+  "base": "70106a7e17b3a3d348e6a3c7221ba11d46b4f264",
+  "head": "5132a02426704487d990a91be8352f050a7e2e5f",
+  "prior_review_head": "9679cebbd9060a17de3cd3222f2ae6827f194a7c",
+  "live_review_head": "1bf8c6603764259c45513056a2e3cdf193e45490",
+  "archive": "/tmp/r432/head",
+  "native_run_head": "b39250adff555c8a95626d489bc66f4e266f210c",
+  "gate_head": "eab9147715c3c62eaa04beeca58e08eef86c61c8",
+  "product_changes_since_R431": [],
+  "tests": {
+    "repository_native_targeted": "14 + 1 + 6 PASS",
+    "unchanged_R431": "8 PASS",
+    "own_R432": "4 assertion failures, 1 PASS",
+    "first_producer_attempt": "ModuleNotFoundError lcnc_paths in test harness; import path fixed; subsequent failure is semantic"
+  },
+  "verdict": "findings",
+  "findings": [
+    "MT-I18 Rest A: live observation ignores its own reported trace loss",
+    "MT-I18 Rest B: wall clock exclusion overrides physical frame order"
+  ],
+  "limits": [
+    "No live connection or new native run",
+    "No build, checkout or tests in live tree",
+    "No product edits",
+    "No repeated full gate; read supplied PASS record and prior product review"
+  ],
+  "review_prefix_sha256": "2110b77e562c9405b422bef94245cac893b68bf0e4947206000cb715496730b1",
+  "files": {
+    "maschinentag.r432.codex-native-baseline.txt": "4226d968df39f8d12498b8f53cf9b7c46cba0d1fe5836816375722937bbc1f74",
+    "maschinentag.r432.codex-r431-unchanged.txt": "e6fd1c5918245aa1367765520324fdfe37617826fd76f6eb860f8488b151aa01",
+    "maschinentag.r432.codex-r431-probes.py": "46023fcdb958447feedf3a763c8ad83686581962909b5b9cb741d1c070dfb0cf",
+    "maschinentag.r432.codex-native-related.txt": "dc3377b0c178473ae022ee586a76154d1dff186888d40225305195db6ab33586",
+    "maschinentag.r432.codex-frame-guards.txt": "86cdca7a083e64a04c9e5680f85da8c93c1e7c13cdaad5904eb1531a023d2255",
+    "maschinentag.r432.codex-native-probes.py": "62bc8d8305789aa499c0a7580ac86e041d7b2261888ec5f8395740e870be7099",
+    "maschinentag.r432.codex-native-probes.txt": "2ecfcb86e385f66f9109a82e54e9f870a97d0823963b478e0f26d787dd9e3f1c",
+    "maschinentag.r432.codex-native-probes-final.txt": "41eb36b58416bcdccee91f53f73984256f6dae6ebceaa6f636e9bda3f1418e68",
+    "maschinentag.r432.codex-native-probes-harness-import.txt": "8998ed91ef6836d2c64297b24a7460d3c50721591009221b60aaa371baada5c7",
+    "maschinentag.r432.codex-native-reeval.py": "7daa4ef64565aa998993f7a269754948226846690b4b71f87acd389c38911faf",
+    "maschinentag.r432.codex-native-reeval.json": "f86700a8716436494d4d6f7339e6604d7432eba3872b4979b35d27eecb5b8a57",
+    "maschinentag.r432.codex-producer-trace.ndjson": "46047c356750731b9aa6a73d4929acd14c78dda3c41298a698884e1526cad6fb",
+    "maschinentag.r432.codex-run-baseline.sh": "b1fae52fe3296ec05fb3cb634320088b9a3aa5f09f6867239f312e9f1ac065fa",
+    "maschinentag.r432.codex-run-followups.sh": "53b245276cf3eeaaabe334ce4b9e1304290ab0f8e0a64d1b8ba6244d0043b686",
+    "maschinentag.r432.codex-run-final.sh": "df69f323a952df0b9437d49ed0f0bc2c88b95165af1a0c24a6a56927d57d0249",
+    "maschinentag.r432.codex-run-producer.sh": "73d4d0df31756f6798e7b12693dc8b5f7a8bddbd23506b33fab8eec90e6c8876"
+  }
+}
