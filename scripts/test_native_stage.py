@@ -7598,6 +7598,11 @@ def test_parse_basis_judges_the_toolsetter_reparses_only():
     assert p2a["status"] == "PASS" and p2a["held"] == 3 and p2a["parses_by_reason"] == {"wcsoff:G54:z": 1}, p2a
     # an edge without a parse still fails: the edge itself is the waste's start
     assert nc.eval_parse_basis("pb", _pb_window(edges=1), ops=3)["status"] == "FAIL"
+    # a toolsetter reason masked by another edge's parse is no PASS either (P2a)
+    masked = _pb_window(spawns=[{"reason": "wcsoff:G54:z", "nice": 19}], held=3)
+    masked["events"].append({"tag": "gcode.reparse_toolsetter_masked", "by": "wcsoff:G54:z"})
+    row = nc.eval_parse_basis("pb", masked, ops=3)
+    assert row["status"] == "FAIL" and row["masked"] == 1, row
     # the ops booked nothing: no vacuous PASS
     assert nc.eval_parse_basis("pb", _pb_window(bookings=1), ops=3)["status"] == "incomplete"
     assert nc.eval_parse_basis("pb", _pb_window(framed=False), ops=3)["status"] == "incomplete"

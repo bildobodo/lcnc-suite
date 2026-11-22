@@ -1408,8 +1408,9 @@ def _spawns(events: list) -> list:
 
 def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
     """`ops` probe ops with unchanged values inside a framed window: no
-    toolsetter re-parse — neither the edge (`gcode.reparse_toolsetter`) nor
-    a parse started for it. The basis must have been booked in the window
+    toolsetter re-parse — neither the edge (`gcode.reparse_toolsetter`), nor
+    the reason masked by another edge that took the parse
+    (`gcode.reparse_toolsetter_masked`, P2a), nor a parse started for it. The basis must have been booked in the window
     (the ops exercised it — else incomplete, never a vacuous PASS). Every
     parse by reason, the held edges, the bookings and the read-backs are
     reported; a re-parse for another reason (a WCS the probe wrote) is
@@ -1425,7 +1426,10 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
     measured = {
         "ops": ops, "parses_by_reason": by_reason,
         "toolsetter_edges": sum(1 for e in ev if e.get("tag") == "gcode.reparse_toolsetter"),
+        "masked": sum(1 for e in ev if e.get("tag") == "gcode.reparse_toolsetter_masked"),
         "held": sum(1 for e in ev if e.get("tag") == "gcode.reparse_toolsetter_held"),
+        "hold_ended": [e.get("why") for e in ev if e.get("tag") == "gcode.reparse_toolsetter_hold_ended"],
+        "verified_same": sum(1 for e in ev if e.get("tag") == "gcode.reparse_verified_same"),
         "bookings": [f"{e.get('origin')}:{len(e['keys']) if isinstance(e.get('keys'), list) else '?'}"
                      for e in bookings],
         "read_backs": sum(1 for e in ev if e.get("tag") == "toolsetter.read_back"),
@@ -1435,9 +1439,10 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
         return _row(case, "incomplete", f"{len(bookings)} bookings for {ops} probe ops — the basis was not exercised",
                     **measured)
     ts = by_reason.get("toolsetter", 0)
-    if ts or measured["toolsetter_edges"]:
-        return _row(case, "FAIL", f"{ts} toolsetter re-parses ({measured['toolsetter_edges']} edges) for {ops} "
-                    "probe ops with unchanged values", **measured)
+    if ts or measured["toolsetter_edges"] or measured["masked"]:
+        return _row(case, "FAIL", f"{ts} toolsetter re-parses ({measured['toolsetter_edges']} edges, "
+                    f"{measured['masked']} masked by another edge) for {ops} probe ops with unchanged values",
+                    **measured)
     return _row(case, "PASS", f"no toolsetter re-parse for {ops} probe ops with unchanged values", **measured)
 
 

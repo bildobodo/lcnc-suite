@@ -6198,6 +6198,29 @@ def toolsetter_ctx(basis: dict, version: int) -> dict:
     return {"version": int(version), "patches": patches, "unpredictable": unpred, "view": view}
 
 
+def toolsetter_inputs_equal(a: Optional[Dict[str, Any]], b: Optional[Dict[str, Any]]) -> bool:
+    """Do two parse ctx `toolsetter` entries (toolsetter_ctx) give the parse
+    the SAME evidenced input (P2a-1, Codex R427 MT427-02)? Only when both are
+    fully CONFIRMED — every key applied or read, none assumed, unknown or
+    missing (view state `confirmed`), nothing unpredictable — and their
+    parameter patches are equal. A confirmed key reaches the worker as a
+    patch the job itself carries (apply_var_patches); an ASSUMED key is read
+    from the worker's own copy of the parameter file, which the booking does
+    not evidence (the file may be replaced between the booking and the copy):
+    such an input is equal to nothing. `applied` and `read` of one value are
+    the same input. Pure."""
+    def confirmed(ts: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not isinstance(ts, dict) or ts.get("unpredictable") is not None:
+            return None
+        view = ts.get("view")
+        patches = ts.get("patches")
+        if not isinstance(view, dict) or view.get("state") != "confirmed" or not isinstance(patches, dict):
+            return None
+        return patches
+    pa, pb = confirmed(a), confirmed(b)
+    return pa is not None and pb is not None and pa == pb
+
+
 def g30_window_refusal(values: Dict[str, float], letters, limits) -> Optional[str]:
     """None when every value is a configured axis inside its window, else the
     refusal (≤ 60 chars). `limits` = read_axis_limits(): AXIS_<L>, else

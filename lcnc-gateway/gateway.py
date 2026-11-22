@@ -102,6 +102,7 @@ from gateway_util import (
     PREVIEW_SCHEMA,
     evaluate_tlo_drift, evaluate_start_drift,
     TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
+    toolsetter_inputs_equal,
     RemapEnv, resolve_subroutine_dirs,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_changed, preview_file_edge_action,
     midrun_table_gate_open, midrun_table_action,
@@ -2225,9 +2226,7 @@ async def _status_poller():
                     # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type",
                     # "tlo:…") is the reason the trace and the operator's
                     # banner carry — not the bare "drift" it used to be.
-                    if (_bulk.schedule_refresh(st.active_file, _drift, _spawn_preview_task)
-                            and _drift == "toolsetter"):
-                        _ts_reparse_asked()
+                    _schedule_drift_refresh(st.active_file, _drift, _ts_reason)
             elif not st.active_file and (_bulk.last_file is not None
                                          or _bulk.preview_available()):
                 # Unload: one contract (clear_preview — it was dead code
@@ -3868,8 +3867,10 @@ def _ts_open_drift() -> Optional[str]:
     pts = _bulk.published_toolsetter
     if not pts or not pts.get("routine"):
         return None
-    pv = ((_bulk.published_ctx or {}).get("toolsetter") or {}).get("version")
-    return None if pv == _ts_basis_version else "toolsetter"
+    pv, pub = _ts_published_input()
+    if pv == _ts_basis_version or toolsetter_inputs_equal(pub, _toolsetter_parse_ctx()):
+        return None
+    return "toolsetter"
 
 
 def _run_basis_status() -> Optional[Dict[str, Any]]:
@@ -5324,11 +5325,24 @@ _ts_basis: Dict[int, Dict[str, Any]] = {}
 _ts_basis_version = 0
 _ts_readback_task: Optional[asyncio.Task] = None
 _ts_readback_tried: Optional[tuple] = None     # (version, file) the last read-back ran for
-_ts_reparse_for: Optional[int] = None          # the version a toolsetter re-parse was asked for
+# P2a (Codex R427/R428): the attempt a toolsetter re-parse was asked for —
+# (booking version, program identity), never the content (it can recur)
+_ts_reparse_for: Optional[Tuple[int, Tuple[Optional[str], Optional[str]]]] = None
+# the read-back's booked outcome for its attempt: ((version, file), outcome),
+# outcome confirmed / failed / aborted / not_admitted
+_ts_readback_outcome: Optional[Tuple[Tuple[int, Optional[str]], str]] = None
+# (version, monotonic) of the booking that left the basis assumed at that
+# version — the hold's anchor (P2a-2); polls and retries never move it
+_ts_hold_anchor: Optional[Tuple[int, float]] = None
+# what the hold already said for which attempt (traced once per kind)
+_ts_hold_said: Tuple[Optional[tuple], frozenset] = (None, frozenset())
+#: the longest the toolsetter edge waits for its read-back (P2a-2): a read-back
+#: that is not admitted may retry, the hold ends this long after the booking
+TS_HOLD_MAX_S = 30.0
 
 
 def _ts_book(values: Dict[int, Optional[float]], origin: str) -> None:
-    global _ts_basis_version
+    global _ts_basis_version, _ts_hold_anchor
     now = time.time()
     changed = []
     for k, v in values.items():
@@ -5341,6 +5355,8 @@ def _ts_book(values: Dict[int, Optional[float]], origin: str) -> None:
     if changed:
         _ts_basis_version += 1
         _trace.emit("toolsetter.basis", origin=origin, keys=changed, version=_ts_basis_version)
+        if toolsetter_basis_view(_ts_basis)["state"] == "assumed":
+            _ts_hold_anchor = (_ts_basis_version, time.monotonic())
 
 
 def _ts_file_values(keys) -> Dict[int, Optional[float]]:
@@ -5408,6 +5424,13 @@ def _toolsetter_parse_ctx() -> dict:
     return toolsetter_ctx(_ts_basis, _ts_basis_version)
 
 
+def _ts_readback_ended(attempt: Tuple[int, Optional[str]], outcome: str) -> None:
+    """Book the read-back's outcome for its attempt (P2a-2, Codex R428):
+    confirmed, failed, aborted or not_admitted — the hold reads it."""
+    global _ts_readback_outcome
+    _ts_readback_outcome = (attempt, outcome)
+
+
 async def _ts_read_back(file: str) -> None:
     """A confirmed read of the toolsetter values (the G30 contract): the
     interpreter writes every line of the parameter file from its own values
@@ -5417,6 +5440,7 @@ async def _ts_read_back(file: str) -> None:
     (_preempt_inflight). A failure leaves the basis as it was, said."""
     global _ts_readback_tried
     keys = [str(k) for k in TOOLSETTER_BASIS_KEYS]
+    attempt = (_ts_basis_version, file)
     try:
         async with _get_cmd_lock():
             async with _get_var_file_lock():
@@ -5428,18 +5452,22 @@ async def _ts_read_back(file: str) -> None:
                     path = _resolve_var_file_path()
                     if not path:
                         _trace.emit("toolsetter.read_back_failed", level="warn", why="no parameter file")
+                        _ts_readback_ended(attempt, "failed")
                         return
                     ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
                     rc, how = await _synch_interp_params()
                     if rc != getattr(linuxcnc, "RCS_DONE", 1):
                         _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc, how=how)
+                        _ts_readback_ended(attempt, "failed")
                         return
                     ino1, vals = await _var_file_thread(read_var_snapshot, path, keys)
                     if ino1 == ino0:
                         _trace.emit("toolsetter.read_back_failed", level="warn", why="not saved")
+                        _ts_readback_ended(attempt, "failed")
                         return
                     link()     # the owner, admitted again for the booking (no await between)
                     _ts_book({int(k): v for k, v in vals.items()}, "read")
+                    _ts_readback_ended(attempt, "confirmed")
     except (NotConnected, _WriteRefused) as e:
         # no connection, or its Link changed: the synch's own write refused
         # (_WriteRefused) — nothing synched and nothing booked; due again on
@@ -5447,11 +5475,17 @@ async def _ts_read_back(file: str) -> None:
         # program is released). Only for THESE: a file PermissionError is the
         # file's (below) and keeps the latch (Fable's check of f4ba0f31).
         _ts_readback_tried = None
+        _ts_readback_ended(attempt, "not_admitted")
         _trace.emit("toolsetter.read_back_failed", level="warn", why="link", exc=type(e).__name__, msg=str(e))
         return
     except OSError as e:
+        _ts_readback_ended(attempt, "failed")
         _trace.emit("toolsetter.read_back_failed", level="warn", why="file", exc=type(e).__name__, msg=str(e))
         return
+    except asyncio.CancelledError:
+        # an abort ended it (_preempt_inflight): this attempt confirmed nothing
+        _ts_readback_ended(attempt, "aborted")
+        raise
     _trace.emit("toolsetter.read_back", file=os.path.basename(file), version=_ts_basis_version,
                 state=toolsetter_basis_view(_ts_basis)["state"])
 
@@ -5478,29 +5512,118 @@ def _ts_read_back_due(st) -> bool:
 
 def _ts_poll(st) -> Optional[str]:
     """The idle drift block's toolsetter step: start the read-back when it is
-    due; the re-parse reason when the published parse read other values."""
+    due; the re-parse reason when the published parse read another input —
+    unless the edge is HELD for the read-back (P2a-2): the tick that starts
+    the read-back never reports the drift it is about to confirm away."""
     global _ts_readback_task, _ts_readback_tried
     if _ts_read_back_due(st):
         _ts_readback_tried = (_ts_basis_version, st.active_file)
         _ts_readback_task = asyncio.create_task(_ts_read_back(st.active_file))
-    return _ts_drift_reason()
+    reason = _ts_drift_reason()
+    if reason is None or _ts_hold_reason(st) is not None:
+        return None
+    return reason
+
+
+def _schedule_drift_refresh(active_file: str, drift: str, ts_reason: Optional[str]) -> bool:
+    """Schedule the idle drift re-parse for `drift`. A toolsetter reason
+    books its attempt (once per revision and program); when ANOTHER edge
+    takes the parse while the toolsetter input differs too, that parse
+    reads the current toolsetter input as well — the reason is said
+    (`gcode.reparse_toolsetter_masked`, never hidden behind the other edge)
+    and its attempt booked (P2a, Codex R428)."""
+    if not _bulk.schedule_refresh(active_file, drift, _spawn_preview_task):
+        return False
+    if drift == "toolsetter":
+        _ts_reparse_asked()
+    elif ts_reason:
+        _trace.emit("gcode.reparse_toolsetter_masked", by=drift, version=_ts_basis_version)
+        _ts_reparse_asked()
+    return True
+
+
+def _ts_program_identity() -> Tuple[Optional[str], Optional[str]]:
+    """The published program: its path and the source fingerprint it was
+    parsed from (a new version of the file is another program)."""
+    return (canonical_path(_bulk.last_file or ""), _bulk.published_source)
 
 
 def _ts_reparse_asked() -> None:
+    """A re-parse that reads the current toolsetter input was scheduled: the
+    attempt is booked for (this revision, this program) — once (P2a-1)."""
     global _ts_reparse_for
-    _ts_reparse_for = _ts_basis_version
+    _ts_reparse_for = (_ts_basis_version, _ts_program_identity())
+
+
+def _ts_published_input() -> Tuple[Optional[int], Optional[Dict[str, Any]]]:
+    """(version, ctx entry) of the toolsetter input the published parse read."""
+    ts = (_bulk.published_ctx or {}).get("toolsetter") or {}
+    return ts.get("version"), (ts if ts else None)
 
 
 def _ts_drift_reason() -> Optional[str]:
-    """The published parse read other toolsetter values than the book holds
-    now — and the program runs the routine: re-parse (once per version)."""
+    """The published parse read another toolsetter input than the book holds
+    now — and the program runs the routine: re-parse, once per (revision,
+    program) attempt (P2a-1, Codex R427 MT427-01/02). A preview parsed from
+    the CURRENT revision needs nothing (an assumed basis stays named as such
+    in its view — never relabelled confirmed); across revisions the CONTENT
+    decides, and only two fully confirmed inputs are equal
+    (toolsetter_inputs_equal)."""
     pts = _bulk.published_toolsetter
     if not pts or not pts.get("routine"):
         return None
-    pv = ((_bulk.published_ctx or {}).get("toolsetter") or {}).get("version")
-    if pv == _ts_basis_version or _ts_reparse_for == _ts_basis_version:
+    pv, pub = _ts_published_input()
+    if pv == _ts_basis_version:
+        return None
+    if toolsetter_inputs_equal(pub, _toolsetter_parse_ctx()):
+        return None
+    if _ts_reparse_for == (_ts_basis_version, _ts_program_identity()):
         return None
     return "toolsetter"
+
+
+def _ts_hold_note(key: tuple, kind: str, why: str) -> None:
+    """Trace the hold's `held` / `ended` once per attempt and kind."""
+    global _ts_hold_said
+    said_key, kinds = _ts_hold_said
+    if said_key != key:
+        kinds = frozenset()
+    if kind in kinds:
+        return
+    _ts_hold_said = (key, kinds | {kind})
+    tag = "gcode.reparse_toolsetter_held" if kind == "held" else "gcode.reparse_toolsetter_hold_ended"
+    _trace.emit(tag, why=why, version=key[0])
+
+
+def _ts_hold_reason(st) -> Optional[str]:
+    """Why the toolsetter edge waits now, or None (P2a-2, Codex R427/R428):
+    the basis is ASSUMED and the one read-back of this attempt (revision,
+    program) has not ended — whether it runs, or is not due for a passing
+    reason (a write, a jog, motion, RFL). Its booked outcome ends the hold:
+    failed or aborted → one parse; not_admitted retries, but the hold ends
+    TS_HOLD_MAX_S after the booking that left the basis assumed (the anchor
+    never moves with polls or retries). Not held: a confirmed basis, an
+    unknown or unset one (nothing a read-back confirms), the machine ON in
+    AUTO (no synch there, Codex R118)."""
+    if toolsetter_basis_view(_ts_basis)["state"] != "assumed":
+        return None
+    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
+        return None
+    key = (_ts_basis_version, st.active_file)
+    outcome = _ts_readback_outcome[1] if _ts_readback_outcome and _ts_readback_outcome[0] == key else None
+    if outcome in ("failed", "aborted", "confirmed"):
+        _ts_hold_note(key, "ended", outcome)
+        return None
+    anchor = _ts_hold_anchor
+    if anchor is None or anchor[0] != _ts_basis_version:
+        _ts_hold_note(key, "ended", "no_anchor")
+        return None
+    if time.monotonic() - anchor[1] >= TS_HOLD_MAX_S:
+        _ts_hold_note(key, "ended", "cap")
+        return None
+    why = "not_admitted" if outcome == "not_admitted" else "read_back"
+    _ts_hold_note(key, "held", why)
+    return why
 
 
 async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool,

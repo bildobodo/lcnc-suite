@@ -21,7 +21,9 @@ import unittest
 from test_g30 import _G30Case, _run
 import gateway  # noqa: E402  (test_g30 installed the fake binding first)
 from link_fixture import FakeConnection, current, swap_connection  # noqa: E402
-from gateway_util import TOOLSETTER_BASIS_KEYS, RemapEnv, toolsetter_basis_view  # noqa: E402
+from gateway_util import (TOOLSETTER_BASIS_KEYS, RemapEnv, toolsetter_basis_view,  # noqa: E402
+                          toolsetter_ctx, toolsetter_inputs_equal)
+from unittest import mock  # noqa: E402
 
 FILE = {k: float(i) for i, k in enumerate(TOOLSETTER_BASIS_KEYS)}
 
@@ -322,6 +324,262 @@ class TestEdges(_BasisCase):
         # a program the scan does not vouch for (another file, no scan): any
         gateway._bulk.last_file = "/other.ngc"
         self.assertIsNone(gateway._ts_program_writes())
+
+
+def _basis(origin="read", **over):
+    """A basis of every key from FILE with `origin`; `over`: key → (value, origin)."""
+    b = {k: {"value": v, "origin": origin, "t": 1.0} for k, v in FILE.items()}
+    for k, (v, o) in over.items():
+        b[int(k)] = {"value": v, "origin": o, "t": 2.0}
+    return b
+
+
+class TestConfirmedEquality(unittest.TestCase):
+    """P2a-1 (Codex R427 MT427-02, the six MT418-02 cases): two toolsetter
+    inputs are equal only when both are fully CONFIRMED with equal patches."""
+
+    def eq(self, a, b):
+        return toolsetter_inputs_equal(toolsetter_ctx(a, 1), toolsetter_ctx(b, 2))
+
+    def test_the_same_confirmed_values_applied_or_read_are_one_input(self):
+        self.assertTrue(self.eq(_basis("read"), _basis("applied")))
+        self.assertTrue(self.eq(_basis("read"), _basis("read")))
+
+    def test_the_same_value_of_unknown_origin_is_not(self):
+        self.assertFalse(self.eq(_basis("read", **{"3009": (None, "unknown")}), _basis("read")))
+
+    def test_an_assumed_value_is_equal_to_nothing(self):
+        same = _basis("read", **{"3009": (FILE[3009], "assumed")})
+        self.assertFalse(self.eq(same, _basis("read")), "assumed → read")
+        self.assertFalse(self.eq(same, same), "assumed ↔ assumed with the same booking")
+
+    def test_a_missing_or_changed_value_is_not(self):
+        missing = _basis("read")
+        del missing[3009]
+        self.assertFalse(self.eq(missing, _basis("read")))
+        self.assertFalse(self.eq(_basis("read", **{"3009": (99.0, "read")}), _basis("read")))
+
+    def test_a_failed_read_back_leaves_it_unequal(self):
+        """A failed read-back books nothing: the basis stays assumed."""
+        assumed = _basis("assumed")
+        self.assertFalse(self.eq(assumed, _basis("read")))
+
+    def test_nothing_set_up_is_equal_to_nothing(self):
+        empty = {k: {"value": None, "origin": "assumed", "t": 1.0} for k in TOOLSETTER_BASIS_KEYS}
+        self.assertFalse(self.eq(empty, empty))
+        self.assertFalse(toolsetter_inputs_equal(None, toolsetter_ctx(_basis("read"), 1)))
+
+    def test_the_file_replaced_between_booking_and_copy_proves_nothing(self):
+        """Codex R427's probe: assumed 10 booked, the worker's copy holds 20 —
+        the assumed key is no patch, the worker reads 20; equality with a
+        confirmed 10 (or 20) is never claimed."""
+        import os
+        import tempfile
+        from gcode_canon import apply_var_patches
+        from gateway_util import read_var_snapshot
+        booked = _basis("read", **{"3014": (10.0, "assumed")})
+        ctx = toolsetter_ctx(booked, 1)
+        self.assertNotIn("3014", ctx["patches"])
+        with tempfile.TemporaryDirectory() as td:
+            copy = os.path.join(td, "linuxcnc.var")     # the worker's copy, written after the booking
+            with open(copy, "w") as f:
+                f.write("".join(f"{k}\t{(20.0 if k == 3014 else v):.6f}\n" for k, v in FILE.items()))
+            apply_var_patches(copy, ctx["patches"])
+            _ino, vals = read_var_snapshot(copy, ["3014"])
+        self.assertEqual(vals["3014"], 20.0, "the worker reads the copy's 20")
+        # the published parse read 20 from its copy under "assumed 10"; the
+        # book still says "assumed 10" a revision later — the booking proves
+        # nothing about what the worker read: never equal
+        self.assertFalse(toolsetter_inputs_equal(ctx, toolsetter_ctx(booked, 2)))
+        for confirmed in (10.0, 20.0):
+            self.assertFalse(toolsetter_inputs_equal(ctx, toolsetter_ctx(_basis("read", **{"3014": (confirmed, "read")}), 2)))
+
+    def test_equality_names_no_connection(self):
+        """The basis is the process's (session binding): a connection change
+        changes nothing the comparison reads."""
+        a, b = toolsetter_ctx(_basis("read"), 1), toolsetter_ctx(_basis("applied"), 7)
+        self.assertEqual(set(a) | set(b), {"version", "patches", "unpredictable", "view"})
+
+
+class TestHoldAndAttempt(_BasisCase):
+    """P2a-1/-2 at the handler level (Codex R427/R428): the attempt per
+    (revision, program), the edge held for the one read-back, its booked
+    outcome, the 30 s bound, the masked reason."""
+
+    def setUp(self):
+        super().setUp()
+        names = ("_ts_readback_outcome", "_ts_hold_anchor", "_ts_hold_said")
+        saved = [getattr(gateway, n) for n in names]
+        self.addCleanup(lambda: [setattr(gateway, n, v) for n, v in zip(names, saved)])
+        gateway._ts_readback_outcome = gateway._ts_hold_anchor = None
+        gateway._ts_hold_said = (None, frozenset())
+        bulk = ("published_toolsetter", "published_ctx", "last_file", "published_source")
+        saved_b = [getattr(gateway._bulk, n) for n in bulk]
+        self.addCleanup(lambda: [setattr(gateway._bulk, n, v) for n, v in zip(bulk, saved_b)])
+        gateway._bulk.published_toolsetter = {"routine": True, "writes": []}
+        gateway._bulk.last_file = "/p.ngc"
+        gateway._bulk.published_source = "src-1"
+        self.events = []
+        real = gateway._trace.emit
+
+        def rec(tag, level="info", msg="", **fields):
+            self.events.append((tag, fields))
+            return real(tag, level, msg, **fields)
+        p = mock.patch.object(gateway._trace, "emit", side_effect=rec)
+        p.start()
+        self.addCleanup(p.stop)
+        # a confirmed basis, published
+        gateway._ts_ensure()
+        _run(gateway._ts_read_back("/p.ngc"))
+        self.publish()
+
+    def publish(self):
+        """The current input became the published parse's."""
+        gateway._bulk.published_ctx = {"toolsetter": gateway._toolsetter_parse_ctx()}
+
+    def tags(self, tag):
+        return [f for t, f in self.events if t == tag]
+
+    def poll(self, st=_St):
+        """One idle drift tick's toolsetter step; the read-back it may start
+        is awaited to its end."""
+        async def go():
+            r = gateway._ts_poll(st)
+            task = gateway._ts_readback_task
+            if task is not None and not task.done():
+                await task
+            return r
+        return _run(go())
+
+    def probe_op(self, value=None):
+        """The measured probe operation (machine day 13:48): the MDI line
+        #3014=v (assumed, then applied), the routine call (every key
+        assumed)."""
+        v = FILE[3014] if value is None else value
+        _run(gateway._apply_probe_vars({"3014": v}, True))
+        gateway._ts_mark_assumed(None)
+
+    def test_the_measured_probe_sequence_parses_nothing(self):
+        self.probe_op()
+        self.assertEqual(toolsetter_basis_view(gateway._ts_basis)["state"], "assumed")
+        self.assertIsNone(self.poll(), "the tick that starts the read-back reports no drift")
+        self.assertEqual(toolsetter_basis_view(gateway._ts_basis)["state"], "confirmed")
+        self.assertIsNone(gateway._ts_drift_reason(), "read back the same: equal, no parse")
+        self.assertIsNone(gateway._ts_open_drift(), "a start is verified on the toolsetter side")
+        self.assertEqual([f["why"] for f in self.tags("gcode.reparse_toolsetter_held")], ["read_back"])
+
+    def test_a_changed_value_parses_once(self):
+        self.probe_op(value=FILE[3014] + 1)
+        self.assertIsNone(self.poll(), "held for the read-back")
+        self.assertEqual(self.poll(), "toolsetter", "confirmed and different: one parse")
+        gateway._ts_reparse_asked()
+        self.assertIsNone(self.poll(), "once")
+
+    def test_a_tick_the_read_back_is_not_due_in_is_held(self):
+        self.probe_op()
+        moving = type("Moving", (_St,), {"current_vel": 3.0})
+        self.assertIsNone(self.poll(moving))
+        self.assertIsNone(gateway._ts_readback_tried, "nothing started while it moves")
+        self.assertEqual(self.tags("gcode.reparse_toolsetter_held")[-1]["why"], "read_back")
+
+    def test_a_failed_read_back_ends_the_hold_with_one_parse(self):
+        self.probe_op()
+        self.task.synch_rc = 3
+        self.assertIsNone(self.poll(), "held while it runs")
+        self.assertEqual(gateway._ts_readback_outcome[1], "failed")
+        self.assertEqual(self.poll(), "toolsetter")
+        gateway._ts_reparse_asked()
+        self.assertIsNone(self.poll(), "no repeat of the same attempt")
+        self.assertEqual([f["why"] for f in self.tags("gcode.reparse_toolsetter_hold_ended")], ["failed"])
+
+    def test_an_aborted_read_back_ends_the_hold(self):
+        self.probe_op()
+        gateway._ts_readback_outcome = ((gateway._ts_basis_version, "/p.ngc"), "aborted")
+        gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
+        self.assertEqual(self.poll(), "toolsetter")
+        self.assertEqual(self.tags("gcode.reparse_toolsetter_hold_ended")[-1]["why"], "aborted")
+
+    def test_an_abort_books_the_aborted_outcome(self):
+        self.probe_op()
+        entered, release = threading.Event(), threading.Event()
+        self.task.block = ("synch", entered, release)
+
+        async def go():
+            gateway._ts_readback_task = asyncio.create_task(gateway._ts_read_back("/p.ngc"))
+            while not entered.is_set():
+                await asyncio.sleep(0.01)
+            gateway._preempt_inflight("abort", 0)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await gateway._ts_readback_task
+        _run(go())
+        self.assertEqual(gateway._ts_readback_outcome, ((gateway._ts_basis_version, "/p.ngc"), "aborted"))
+
+    def test_a_read_back_not_admitted_retries_until_the_bound(self):
+        self.probe_op()
+        gateway._ts_readback_outcome = ((gateway._ts_basis_version, "/p.ngc"), "not_admitted")
+        gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
+        self.assertEqual(gateway._ts_hold_reason(_St), "not_admitted")
+        v, t0 = gateway._ts_hold_anchor
+        self.assertEqual(v, gateway._ts_basis_version)
+        gateway._ts_hold_anchor = (v, t0 - gateway.TS_HOLD_MAX_S)     # 30 s since the booking
+        self.assertIsNone(gateway._ts_hold_reason(_St))
+        self.assertEqual(self.tags("gcode.reparse_toolsetter_hold_ended")[-1]["why"], "cap")
+
+    def test_polls_never_move_the_anchor(self):
+        self.probe_op()
+        anchor = gateway._ts_hold_anchor
+        moving = type("Moving", (_St,), {"current_vel": 3.0})
+        for _ in range(3):
+            self.poll(moving)
+        self.assertEqual(gateway._ts_hold_anchor, anchor)
+
+    def test_in_auto_on_and_when_unknown_nothing_is_held(self):
+        from test_g30 import linuxcnc
+        self.probe_op(value=FILE[3014] + 1)
+        in_auto = type("InAuto", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_AUTO})
+        self.assertIsNone(gateway._ts_hold_reason(in_auto))
+        self.assertEqual(self.poll(in_auto), "toolsetter", "no synch in AUTO: one parse, not held")
+        gateway._ts_book({3009: None}, "unknown")
+        self.assertIsNone(gateway._ts_hold_reason(_St), "unknown: nothing a read-back confirms")
+
+    def test_a_preview_of_the_current_revision_needs_nothing_and_stays_assumed(self):
+        """Codex R428: the same-revision exception avoids a repeat — it never
+        relabels an assumed basis as confirmed."""
+        gateway._ts_mark_assumed(None)
+        self.publish()                       # a load with the basis assumed
+        self.assertIsNone(gateway._ts_drift_reason())
+        self.assertIsNone(gateway._ts_open_drift())
+        self.assertEqual(gateway._bulk.published_ctx["toolsetter"]["view"]["state"], "assumed")
+
+    def test_a_recurring_input_after_a_failed_attempt_is_a_new_attempt(self):
+        """MT427-01: A → B (its parse failed) → A → B: the second B is a new
+        revision, a new attempt."""
+        _run(gateway._apply_probe_vars({"3009": 50.0}, True))      # B
+        self.assertEqual(gateway._ts_drift_reason(), "toolsetter")
+        gateway._ts_reparse_asked()                                 # its parse fails: nothing published
+        self.assertIsNone(gateway._ts_drift_reason(), "the same attempt never repeats")
+        _run(gateway._apply_probe_vars({"3009": FILE[3009]}, True))  # A again
+        self.assertIsNone(gateway._ts_drift_reason(), "equal to the published A")
+        _run(gateway._apply_probe_vars({"3009": 50.0}, True))      # B again
+        self.assertEqual(gateway._ts_drift_reason(), "toolsetter", "a new attempt")
+
+    def test_another_program_is_another_attempt(self):
+        _run(gateway._apply_probe_vars({"3009": 50.0}, True))
+        gateway._ts_reparse_asked()
+        self.assertIsNone(gateway._ts_drift_reason())
+        gateway._bulk.published_source = "src-2"                   # a new version of the file
+        self.assertEqual(gateway._ts_drift_reason(), "toolsetter")
+
+    def test_a_masked_toolsetter_reason_is_said_and_booked(self):
+        _run(gateway._apply_probe_vars({"3009": 50.0}, True))
+        with mock.patch.object(gateway._bulk, "schedule_refresh", return_value=True):
+            self.assertTrue(gateway._schedule_drift_refresh("/p.ngc", "wcsoff:G54:z", "toolsetter"))
+        self.assertEqual([f["by"] for f in self.tags("gcode.reparse_toolsetter_masked")], ["wcsoff:G54:z"])
+        self.assertIsNone(gateway._ts_drift_reason(), "the other edge's parse reads it: booked")
+        with mock.patch.object(gateway._bulk, "schedule_refresh", return_value=False):
+            self.assertFalse(gateway._schedule_drift_refresh("/p.ngc", "rotary:A", "toolsetter"))
+        self.assertEqual(len(self.tags("gcode.reparse_toolsetter_masked")), 1, "nothing scheduled: nothing said")
 
 
 if __name__ == "__main__":
