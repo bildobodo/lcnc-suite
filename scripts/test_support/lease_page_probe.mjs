@@ -25,7 +25,12 @@ try {
   const arm = page.getByRole("button", { name: "Arm", exact: true });
   await arm.click();
   await page.locator(".pill.armed").waitFor({ timeout: 10_000 });
-  await page.getByRole("radiogroup", { name: "Jog step", exact: true }).getByRole("radio", { name: "Cont", exact: true }).click();
+  // the step is a choice group or, where the strip is short of room, a select
+  const group = page.getByRole("radiogroup", { name: "Jog step", exact: true });
+  const select = page.getByRole("combobox", { name: "Jog step", exact: true });
+  await group.or(select).first().waitFor({ timeout: 10_000 });
+  if (await group.count()) await group.getByRole("radio", { name: "Cont", exact: true }).click();
+  else await select.selectOption({ label: "Cont" });
   const strip = page.locator('[data-strip="jog"]');
   const hold = async (name) => {
     const b = strip.getByRole("button", { name, exact: true });
