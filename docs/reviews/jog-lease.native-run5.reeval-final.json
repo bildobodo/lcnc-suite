@@ -1,0 +1,42 @@
+{
+ "report": "/home/cnc/claude-work/live-tier/20261122T115905-jog-lease/report.json",
+ "commit": "ec6e1e38",
+ "rows": {
+  "jog-lease-kept": {
+   "case": "jog-lease-kept",
+   "status": "PASS",
+   "detail": "moved without a break while renewed",
+   "lease": 1,
+   "notices": 0,
+   "held_s": 2.779,
+   "frames": 81
+  },
+  "jog-lease-expired": {
+   "case": "jog-lease-expired",
+   "status": "PASS",
+   "detail": "deadline passed, JOG_STOP written, standstill \u2014 each observed",
+   "lease": 2,
+   "axis": "X",
+   "notices": 1,
+   "traced": 1,
+   "notice_s": 0.527,
+   "late_ms": 1,
+   "renewals": 10,
+   "standstill_s": 0.562,
+   "overrun_mm": 10.637
+  },
+  "jog-lease-page-kept": {
+   "case": "jog-lease-page-kept",
+   "status": "incomplete",
+   "detail": "no timer evidence of the page's main thread",
+   "expiries": 0
+  },
+  "jog-lease-page-blocked": {
+   "case": "jog-lease-page-blocked",
+   "status": "incomplete",
+   "detail": "no timer evidence of the page's main thread",
+   "axis": "X",
+   "blocked_s": 2.501
+  }
+ }
+}

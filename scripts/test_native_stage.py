@@ -7766,8 +7766,8 @@ def test_the_direct_expiry_judge_shares_the_hardened_helpers():
 
 def test_the_page_judges_read_the_pages_own_timer_gaps():
     """A main thread that stood past PAGE_HEALTHY_GAP_MS while it held is no
-    healthy page — several short tasks back to back as surely as one long
-    task (the run of 2026-11-22 at fe87961c: 721 ms, no task past 500 ms):
+    healthy page, whatever made the gap (the run of 2026-11-22 at fe87961c
+    expired a hold with no long task past 500 ms reported):
     incomplete, never FAIL; within it an expiry IS a fault; no timer
     evidence at all is incomplete; a block the timers do not show is no
     block of THIS thread."""

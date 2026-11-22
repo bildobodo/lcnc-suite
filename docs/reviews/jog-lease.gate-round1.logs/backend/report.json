@@ -1,0 +1,84 @@
+{
+  "mode": "offline",
+  "started": "2026-11-22T08:58:03.082947+00:00",
+  "root": "/home/cnc/lcnc-suite-p1b",
+  "gates": [
+    {
+      "name": "ruff",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "ruff",
+        "check",
+        "--no-cache"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "ruff.log",
+      "started": "2026-11-22T08:58:03.092375+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.07,
+      "finished": "2026-11-22T08:58:03.162417+00:00",
+      "notes": []
+    },
+    {
+      "name": "pyright",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-p1b/scripts/run_pyright.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "pyright.log",
+      "started": "2026-11-22T08:58:03.162631+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 14.25,
+      "finished": "2026-11-22T08:58:17.415004+00:00",
+      "notes": []
+    },
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "--junitxml=/home/cnc/lcnc-suite-p1b/docs/reviews/jog-lease.gate-round1.logs/backend/backend.junit.xml",
+        "-o",
+        "junit_suite_name=backend-b7263f53-6751-48e2-b86c-0fc6ed149337"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-11-22T08:58:17.415200+00:00",
+      "status": "fail",
+      "exit_code": 1,
+      "seconds": 109.41,
+      "finished": "2026-11-22T09:00:06.827012+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "2774947b00fa3589b143f1321429ea0efaa8c76c",
+  "tracked_changes": [],
+  "runner_sha256": "f38a8e687a5d29d8474409dd97cca785bc9febb649248cd97aa46d7096738c7f",
+  "status": "fail",
+  "changed_file_sha256": {
+    "docs/reviews/jog-lease.gate-round1.logs/selection.json": "13f398fe141beba1f34d271a5ec537f095de58c55ac45ba8614f6c913264b2e9",
+    "docs/reviews/jog-lease.gate-round1.logs/unit-light.json": "3bfc7f153d868027273065d525935710eaa43e427261cdd64830b513726bd184",
+    "docs/reviews/jog-lease.gate-round1.logs/unit-light.list.json": "1fc22cf8061cf387de0f8e7641b78990cadc930074c1b0b85237b1a2878b1c4a",
+    "docs/reviews/jog-lease.gate-round1.logs/unit-light.options.json": "512634cc08ceab358d08e756184c0a289ad9a2625fddb2fbd80e60ed8e456ba0"
+  },
+  "not_run": [
+    "5axis-model",
+    "audit-css",
+    "review-handshake",
+    "readback-target",
+    "parity-compare",
+    "test-select",
+    "replay",
+    "firefox-units",
+    "inventory",
+    "native-stage",
+    "install-probe",
+    "perf-matrix"
+  ],
+  "finished": "2026-11-22T09:00:06.827364+00:00"
+}

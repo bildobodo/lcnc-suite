@@ -1,0 +1,310 @@
+{
+  "mode": "offline",
+  "started": "2026-11-22T09:46:36.654702+00:00",
+  "root": "/home/cnc/lcnc-suite-p1b",
+  "gates": [
+    {
+      "name": "ruff",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "ruff",
+        "check",
+        "--no-cache"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "ruff.log",
+      "started": "2026-11-22T09:46:36.712989+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.06,
+      "finished": "2026-11-22T09:46:36.777870+00:00",
+      "notes": []
+    },
+    {
+      "name": "pyright",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-p1b/scripts/run_pyright.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "pyright.log",
+      "started": "2026-11-22T09:46:36.778239+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 16.4,
+      "finished": "2026-11-22T09:46:53.177625+00:00",
+      "notes": []
+    },
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "--junitxml=/home/cnc/lcnc-suite-p1b/docs/reviews/jog-lease.gate-round2.logs/backend/backend.junit.xml",
+        "-o",
+        "junit_suite_name=backend-2207ba23-a58a-4a80-b6da-4bcafc315340"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-11-22T09:46:53.178101+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 109.74,
+      "finished": "2026-11-22T09:48:42.922029+00:00",
+      "notes": []
+    },
+    {
+      "name": "5axis-model",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_5axis_xyzac.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "5axis-model.log",
+      "started": "2026-11-22T09:48:42.922333+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.87,
+      "finished": "2026-11-22T09:48:43.789474+00:00",
+      "notes": []
+    },
+    {
+      "name": "audit-css",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_audit_scoped_css.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "audit-css.log",
+      "started": "2026-11-22T09:48:43.789650+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 1.22,
+      "finished": "2026-11-22T09:48:45.013758+00:00",
+      "notes": []
+    },
+    {
+      "name": "review-handshake",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_review_handshake.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "review-handshake.log",
+      "started": "2026-11-22T09:48:45.013937+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.57,
+      "finished": "2026-11-22T09:48:49.582814+00:00",
+      "notes": []
+    },
+    {
+      "name": "readback-target",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_toolsetter_readback_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "readback-target.log",
+      "started": "2026-11-22T09:48:49.583019+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.17,
+      "finished": "2026-11-22T09:48:49.748269+00:00",
+      "notes": []
+    },
+    {
+      "name": "parity-compare",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_parity_compare.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "parity-compare.log",
+      "started": "2026-11-22T09:48:49.748470+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.22,
+      "finished": "2026-11-22T09:48:49.967948+00:00",
+      "notes": []
+    },
+    {
+      "name": "test-select",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_select/test_selector.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "test-select.log",
+      "started": "2026-11-22T09:48:49.968123+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 5.2,
+      "finished": "2026-11-22T09:48:55.167868+00:00",
+      "notes": []
+    },
+    {
+      "name": "replay",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_select/test_replay.py",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_select/test_http_paths.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "replay.log",
+      "started": "2026-11-22T09:48:55.168185+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.27,
+      "finished": "2026-11-22T09:48:55.436009+00:00",
+      "notes": []
+    },
+    {
+      "name": "firefox-units",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_fetch_firefox.py",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_select/test_firefox.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "firefox-units.log",
+      "started": "2026-11-22T09:48:55.436205+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.27,
+      "finished": "2026-11-22T09:48:55.701855+00:00",
+      "notes": []
+    },
+    {
+      "name": "inventory",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/inventory/test_inventory.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "inventory.log",
+      "started": "2026-11-22T09:48:55.702086+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 1.43,
+      "finished": "2026-11-22T09:48:57.133684+00:00",
+      "notes": []
+    },
+    {
+      "name": "native-stage",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_native_stage.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "native-stage.log",
+      "started": "2026-11-22T09:48:57.133918+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 54.25,
+      "finished": "2026-11-22T09:49:51.384757+00:00",
+      "notes": []
+    },
+    {
+      "name": "install-probe",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_install_probe.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "install-probe.log",
+      "started": "2026-11-22T09:49:51.385496+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 44.59,
+      "finished": "2026-11-22T09:50:35.971213+00:00",
+      "notes": []
+    },
+    {
+      "name": "perf-matrix",
+      "command": [
+        "/home/cnc/lcnc-suite-p1b/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-p1b/scripts/test_perf_matrix.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-p1b",
+      "log": "perf-matrix.log",
+      "started": "2026-11-22T09:50:35.971398+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.41,
+      "finished": "2026-11-22T09:50:40.378862+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "ee4546b44397424c31c9ea23dc9875aebc9d12d5",
+  "tracked_changes": [],
+  "runner_sha256": "f38a8e687a5d29d8474409dd97cca785bc9febb649248cd97aa46d7096738c7f",
+  "status": "pass",
+  "changed_file_sha256": {
+    "docs/reviews/jog-lease.gate-round1.logs/backend/backend.junit.xml": "b81551e72773c2f0ad0da7c9ba12de215962387f77354f76cb48ebb389c9a54d",
+    "docs/reviews/jog-lease.gate-round1.logs/backend/report.json": "70ef8b532736831f5111dd924b4796b97fe604605fe7ae6a1a35ea06a5742815",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-http/firefox-6d5ce755-50b1-4307-be0f-b66436e47f29-w0.jsonl": "71b38d64f8063c53d37f19f82de90255ea98ad1d0ca4ab719c70a1ab1b914297",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-http/firefox-6d5ce755-50b1-4307-be0f-b66436e47f29-w1.jsonl": "928159545c63b694e73acfa2b8f797fe31e7aa066cd9cbcb835afe1901668803",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-http/firefox-6d5ce755-50b1-4307-be0f-b66436e47f29-w2.jsonl": "9be748c93f910eea3bd8d0a17233a0273648abfdab95610190b60c52fb65ebe0",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-list.json": "3f5e910860633817f9fd01e9d56ef6e3312ff39c86ea59e81870549c83a2a03f",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-mock-events.jsonl": "31a5bcea7732c4e1b5bd8c16ba7e3f5649799a365ab9344d63523d16c46fd34e",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-replay.json": "9b365a2516c1895ea990522f6c94a7c525244db34987608005261b551b0791b2",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-replay/firefox-6d5ce755-50b1-4307-be0f-b66436e47f29-679e8842-75c8-48a2-99c6-45006fe7352f.jsonl": "f31a76da52ece61b793400bb129a8fe0bda92e2b9c75064081d41ec59c9f7c26",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-replay/firefox-6d5ce755-50b1-4307-be0f-b66436e47f29-cdd4d826-1d35-481c-82bc-9fe4a2b33e6b.jsonl": "482a66632e53540b13c5decedd521d4cf676ec75a9391e9b7b86afee90e0d105",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox-replay/firefox-6d5ce755-50b1-4307-be0f-b66436e47f29-d433deb2-b1e5-40f8-a89d-97a93da6d301.jsonl": "920218a5b22ab11a83b47b4b6b93e6301e5227cd7a6693eef0d543d26adcb028",
+    "docs/reviews/jog-lease.gate-round1.logs/firefox.json": "87ff59a47b8e4154c050edaf5e96113e929e686c32f4b41f6c8cfbb21bf914f0",
+    "docs/reviews/jog-lease.gate-round1.logs/guard/guard-events.jsonl": "6948e211387d3121358c6a892a0bbe626f1c4b72746d2840f2aea847ee5fdaf3",
+    "docs/reviews/jog-lease.gate-round1.logs/guard/guard.json": "91ea3866bc169294a64a8e73b4883eb6b74a2edb454c159ea9cc2b8b3d09536a",
+    "docs/reviews/jog-lease.gate-round1.logs/guard/replay/firefox-guard-8b1be8f3-cb2f-4f0d-b934-ef0e12968f62-e284f352-b921-4773-b771-88763b4dc1fb.jsonl": "6e645149a0cd7838c471c2a7be1236898f60d38ceb47ce187b48c18d111fb36d",
+    "docs/reviews/jog-lease.gate-round1.logs/http/gate-aa731cfd-9016-45bd-b04e-9100fda02524-w0.jsonl": "9a3ee7162aa9404e80c4cca68969d746b8948f72800d3ebda6216ffaa4d2652c",
+    "docs/reviews/jog-lease.gate-round1.logs/http/gate-aa731cfd-9016-45bd-b04e-9100fda02524-w1.jsonl": "48389bdb6302db9a425fce8c2430e6dfc3fb84bc59da6af96e6494d933041374",
+    "docs/reviews/jog-lease.gate-round1.logs/http/gate-aa731cfd-9016-45bd-b04e-9100fda02524-w2.jsonl": "e2f5401092ac9495b6129f90ac39626d90a5e43ee6e92fba6354dc76ed068561",
+    "docs/reviews/jog-lease.gate-round1.logs/http/gate-aa731cfd-9016-45bd-b04e-9100fda02524-w3.jsonl": "75cf88ad6eb8fd64f4206e7b0a5d9b6523ceb8f959a30ef48a46914a522ded12",
+    "docs/reviews/jog-lease.gate-round1.logs/http/gate-aa731cfd-9016-45bd-b04e-9100fda02524-w4.jsonl": "c79ae4acdceba04f75366d1e661fee6ad94675ea7b8c48668676b0d5999388dc",
+    "docs/reviews/jog-lease.gate-round1.logs/http/gate-aa731cfd-9016-45bd-b04e-9100fda02524-w5.jsonl": "3201c616f7ec1ba528e738e5e80b178825b9a43740e3f29b69165ff5f0975f3d",
+    "docs/reviews/jog-lease.gate-round1.logs/list-run.json": "dcfbb4f14dce6441a162934e8b5b225d03b6e4250f6c977072dc260293d6dc94",
+    "docs/reviews/jog-lease.gate-round1.logs/mock-events.jsonl": "165f192a0f92eb42c27f5263af442b9563f47a9504f31e27d04dabcce6c6e4d6",
+    "docs/reviews/jog-lease.gate-round1.logs/playwright.json": "24596178b480639b47fa55bd394898d3cac573a8858b33f0e786191d61eb6f60",
+    "docs/reviews/jog-lease.gate-round1.logs/replay.json": "6c95648453d87743df6832a3fd13990dadfd77a905dff8ae25f987450e4306ab",
+    "docs/reviews/jog-lease.gate-round1.logs/replay/gate-aa731cfd-9016-45bd-b04e-9100fda02524-2f954b29-422a-4144-ae92-834e3edf74c7.jsonl": "692b8299c3db2051cee7f4a6967e1e1dbcf79eae8879c6bb2cf72456e197fef5",
+    "docs/reviews/jog-lease.gate-round1.logs/replay/gate-aa731cfd-9016-45bd-b04e-9100fda02524-326184e8-c381-4339-bc8b-0a33cee39af7.jsonl": "85cccc0b38396fe418929dd82eca487179418c429e0626352ec703500d732801",
+    "docs/reviews/jog-lease.gate-round1.logs/replay/gate-aa731cfd-9016-45bd-b04e-9100fda02524-52dc1798-d70f-423f-aea7-5e3753af8530.jsonl": "75b119e28f171d5eb95f9e27c97a7323536fa6b0a0b7f82e5f7f99d8e53afcca",
+    "docs/reviews/jog-lease.gate-round1.logs/replay/gate-aa731cfd-9016-45bd-b04e-9100fda02524-75e5ac3f-2cb5-4394-a825-3d3f2ec3d8e4.jsonl": "a5496e25dca53f893f3ca322b471d4c6936e20377ad59d056e7f64ef32e2cbf6",
+    "docs/reviews/jog-lease.gate-round1.logs/replay/gate-aa731cfd-9016-45bd-b04e-9100fda02524-abb1ecb6-c4a8-4e27-a9d7-cc74e1650a73.jsonl": "270df2818c397f188fa0df4da63fae2633c152fb3d978b880893328618d6caeb",
+    "docs/reviews/jog-lease.gate-round1.logs/replay/gate-aa731cfd-9016-45bd-b04e-9100fda02524-e5073735-02db-4d0f-a028-1b1dbb5bfef5.jsonl": "2dcb46f1b7d1e9a07cb8d5f15b9ffbc499895cf2e7eeb8ca8c230b289606543a",
+    "docs/reviews/jog-lease.gate-round1.logs/selection.json": "13f398fe141beba1f34d271a5ec537f095de58c55ac45ba8614f6c913264b2e9",
+    "docs/reviews/jog-lease.gate-round1.logs/unit-light.json": "3bfc7f153d868027273065d525935710eaa43e427261cdd64830b513726bd184",
+    "docs/reviews/jog-lease.gate-round1.logs/unit-light.list.json": "1fc22cf8061cf387de0f8e7641b78990cadc930074c1b0b85237b1a2878b1c4a",
+    "docs/reviews/jog-lease.gate-round1.logs/unit-light.options.json": "512634cc08ceab358d08e756184c0a289ad9a2625fddb2fbd80e60ed8e456ba0",
+    "docs/reviews/jog-lease.gate-round2.logs/selection.json": "77deadefcdcc00cf1d3feecb0953d2ccbb7924c014a72df45a088df05906a36c",
+    "docs/reviews/jog-lease.gate-round2.logs/unit-light.json": "4e7b68be83b64862f9b0ec48a8b0321ac1b80bab639de5094a65a63ffbc22be1",
+    "docs/reviews/jog-lease.gate-round2.logs/unit-light.list.json": "bf289206e91ec35d2ba49fac69f7b8fd8363e66c68701782a80e1920c00e39c0",
+    "docs/reviews/jog-lease.gate-round2.logs/unit-light.options.json": "404cd126bd455b4a35c2c35dfba130902d9ae7dd60e3ee6f3f9b8b54d85e67a9"
+  },
+  "not_run": [],
+  "finished": "2026-11-22T09:50:40.379122+00:00"
+}

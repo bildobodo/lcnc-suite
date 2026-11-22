@@ -4754,13 +4754,15 @@ def _receive_jog_renew(conn_key: str, msg: Dict[str, Any]) -> List[int]:
 
 
 def _end_client_leases(conn_key: Optional[str], *, why: str, drop: bool = False) -> List[int]:
-    """End every lease of a connection (its disarm, its abort / E-Stop, its
-    close): no more starts under them — they are ended and forgotten with
-    their timers (their ids stay dead). Their axes are stopped by the
-    caller's own path (the disarm's jog stop, the abort or E-Stop itself, the
-    disconnect's stop); a later `jog_lease_end` still stops by the booking's
-    key. `drop` (the close) also forgets the connection's id floor. Returns
-    the ended ids (the page is told, _tell_leases_ended)."""
+    """End every live lease of a connection (its disarm, its abort / E-Stop,
+    the link's loss, its close): no more starts under them. They stay listed
+    WITH their timers (`ended_by` = `why`) — their stop is owed (Codex R427
+    MT-I08) until the caller's own path ran it and settled them
+    (_settle_leases_ended_by: the abort or E-Stop written, the disarm's /
+    stall's / disconnect's jog stop); a path that never ran leaves the
+    timer to stop what they own at the deadline. `drop` (the close) also
+    forgets the connection's id floor. Returns the ended ids (the page is
+    told, _tell_leases_ended)."""
     if not conn_key:
         return []
     leases = [lz for lz in _jog_leases.leases_of(conn_key) if lz.state == "live"]

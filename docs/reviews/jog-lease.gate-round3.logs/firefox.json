@@ -1,0 +1,3371 @@
+{
+  "config": {
+    "configFile": "/home/cnc/lcnc-suite-p1b/lcnc-webui/playwright.firefox.config.ts",
+    "rootDir": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "firefox-151310ea-b591-453a-b866-ab28e01fd003",
+      "actualWorkers": 3
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/cnc/lcnc-suite-p1b/docs/reviews/jog-lease.gate-round3.logs/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "firefox-151310ea-b591-453a-b866-ab28e01fd003",
+          "actualWorkers": 3
+        },
+        "id": "firefox-core",
+        "name": "firefox-core",
+        "testDir": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/\\/(probe-visual\\.spec\\.ts|layout\\.spec\\.ts|smoke\\.spec\\.ts|dialogs\\.spec\\.ts|hold-stall-mouse\\.spec\\.ts|strip-fit\\.spec\\.ts|probe-click\\.spec\\.ts|tabs\\.spec\\.ts|visual\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 3,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "dialogs.spec.ts",
+      "file": "dialogs.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "dialog 1 Program Stats: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4140,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:20.626Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-45e76ca954b6aa9bfc80",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3977,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:26.580Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-b1588909d73afd891bca",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 3 Settings discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3828,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:30.569Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-777c21f9ea83ec22268f",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 4 Messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3184,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:34.404Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-5fc1b578f4556d48c8c4",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 4a Clear all messages: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3563,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:37.596Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-a885532b6ea835d96bdd",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 5 Tool change: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3839,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:41.168Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-eb2a986c9e1e89dee3b7",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 6 Macro parameters: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3894,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:45.020Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-b50350ca592403d68b42",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 7 Shutdown: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5305,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:48.927Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-1a3f0591f0fb11ff8519",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 8 Compensation: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5098,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:54.245Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-b6039c47563acb1971e4",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4817,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:59.353Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-cd1584c9c8f041e8cb2c",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 10 Probe calibration reset: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3711,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:04.180Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-0e2b776232b428bac823",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 11 Editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4313,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:07.902Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-54a43fc6c192c8dc62ba",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 12 Upload conflict: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3072,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:12.227Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-cbba05d535b3b0607b89",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 13 Run from line: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2344,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:15.309Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-bf3f43b3493822a66404",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 14 Delete tool: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1836,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:17.659Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-c33a1128f1105971941b",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 15 Tool editor: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2396,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:19.501Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-f7db284c85a2b833de2e",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 16 Tool editor discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1975,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:21.903Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-97daad8c0f4607fe534f",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 17 Import preview: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2086,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:23.884Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-aca08a7a8181dc41584b",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 18 Replace table: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1877,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:25.975Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-a219cc62eff635a88a7c",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 19 Remove gamepad profile: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2079,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:27.859Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-0bbda0faf413e191e262",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 21 Reset settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1926,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:29.944Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-faabb237c0e35e0b3e5e",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 23 New macro: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2179,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:31.876Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-25237db043c230fd0ee0",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 24 Delete macro file: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1772,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:34.060Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-a0389ce2212be60834d7",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 25 Macros tab discard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2031,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:35.840Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-488e80171201f9d73f64",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 22 Gamepad mapping wizard: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2221,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:37.876Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-dde505008fe4dd433bd1",
+          "file": "dialogs.spec.ts",
+          "line": 625,
+          "column": 3
+        },
+        {
+          "title": "dialog 1 Program Stats at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1097,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:40.102Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-2d4dc1855db2ae2d4c36",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 2 Settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 947,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:41.205Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-f13c89d800a5ca1533cf",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 3 Settings discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1122,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:42.157Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-e83518a47846acf6e84c",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 4 Messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 951,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:43.285Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-dd2e2ec02925f63133f3",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 4a Clear all messages at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 941,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:44.243Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-0f5bd31de0bd05c28865",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 5 Tool change at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1039,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:45.193Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-61a4de9a00fc9075291c",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 6 Macro parameters at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1073,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:46.240Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-3931b6601b8880f9b0fc",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 7 Shutdown at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:47.319Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-f88a9b99425916c3ac24",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 8 Compensation at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1206,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:48.371Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-529cf52f709371b86598",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 9 G-code Reference at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1087,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:49.583Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-776272a30b53c5bfa081",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 10 Probe calibration reset at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 943,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:50.676Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-369c1fdabc2cd9116c91",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 11 Editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1171,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:51.626Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-3c211a7be50b6217e8e3",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 12 Upload conflict at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1145,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:52.803Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-a713b155419a094cba9f",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 13 Run from line at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1167,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:53.954Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-3b2a8ec87070f4db821c",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 14 Delete tool at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 964,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:55.126Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-71c7538f175639753cd1",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 15 Tool editor at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1270,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:56.096Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-010ec80bfa5eae8a6a8d",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 16 Tool editor discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1215,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:57.371Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-4e7ff54f7fc5ba425a19",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 17 Import preview at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1185,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:58.592Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-7638c6047936fdd77b3f",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 18 Replace table at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1056,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:59.783Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-6ee4259772b30a47e2d1",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 19 Remove gamepad profile at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1018,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:48:00.845Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-7eb16e6a8869f039ed40",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 21 Reset settings at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1138,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:48:01.868Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-3c266b54fa0b303f9f00",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 23 New macro at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1198,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:48:03.012Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-92ef7927cc99799a136a",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 24 Delete macro file at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 941,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:48:04.217Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-68b79dd059d2cdf6346d",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 25 Macros tab discard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1120,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:48:05.165Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-d65789f2bcc44b386ddd",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        },
+        {
+          "title": "dialog 22 Gamepad mapping wizard at 150 % portrait (touch): nothing sideways, inside the content area, the backdrop's corners",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1351,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:48:06.290Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8c8ce29fa4987e6487c-ea95bdf680d1d99a7b8d",
+          "file": "dialogs.spec.ts",
+          "line": 715,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "hold-stall-mouse.spec.ts",
+      "file": "hold-stall-mouse.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "mouse: a tap sends nothing, a hold on a smooth page sends once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 4416,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse smooth: {\"taps\":[{\"delivered\":152,\"fired\":0,\"hints\":[\"Hold to activate\"]}],\"holds\":[{\"delivered\":805,\"fired\":1,\"hints\":[]}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:20.606Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-51450b9e6aa7cc04ebcd",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 104,
+          "column": 1
+        },
+        {
+          "title": "mouse: a tap or a hold across a blocked page never fires",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 6272,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse block 0→540 ms, press 120 ms: [{\"delivered\":684,\"block\":{\"from\":16,\"to\":540},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall-mouse block 100→700 ms, press 250 ms: [{\"delivered\":702,\"block\":{\"from\":100,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    },
+                    {
+                      "text": "hold-stall-mouse block 100→700 ms, press 800 ms: [{\"delivered\":808,\"block\":{\"from\":102,\"to\":700},\"hints\":[\"Page delayed — hold again\"]}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:26.730Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-1a0fd387a5d361be925c",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 139,
+          "column": 1
+        },
+        {
+          "title": "mouse: an ended press's step never fires a new short press (an abort, then a new press)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2838,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse abort, then a new press: {\"downs\":[1596,2046],\"ups\":[1696,2160],\"block\":null,\"hints\":[\"Hold to activate\"]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:33.016Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-a115e0eb6b35f6188989",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 168,
+          "column": 1
+        },
+        {
+          "title": "mouse: a hint already on screen is not the next press's — a silent whole press stays unexcused",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2177,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "hold-stall-mouse stale hint: {\"delivered\":800,\"fired\":0,\"hints\":[]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:35.864Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "12afa980e4da56872210-61f77b96a464874d1dee",
+          "file": "hold-stall-mouse.spec.ts",
+          "line": 200,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "layout.spec.ts",
+      "file": "layout.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "desktop, homed: a probe grid's cells keep their size whatever the glyph contributes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3346,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:20.696Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-02196f6c59c977320c94",
+          "file": "layout.spec.ts",
+          "line": 160,
+          "column": 5
+        },
+        {
+          "title": "desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2590,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:26.109Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-151e6346e01e92c92213",
+          "file": "layout.spec.ts",
+          "line": 160,
+          "column": 5
+        },
+        {
+          "title": "touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2182,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:28.707Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-090d1e115bebf2988069",
+          "file": "layout.spec.ts",
+          "line": 160,
+          "column": 5
+        },
+        {
+          "title": "touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2294,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:30.902Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-bb610e7da0508d3f4fea",
+          "file": "layout.spec.ts",
+          "line": 160,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "probe-click.spec.ts",
+      "file": "probe-click.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Outside: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2343,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:33.229Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-bfa33cfb11304688682f",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2533,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:35.583Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-d29b42456e9a7fefb4ce",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2611,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:38.124Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-fb8194a8fe1673603ed4",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Angle: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2528,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:40.747Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-37bc39b11540d1a4301c",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2581,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:43.286Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-2a45686ba1b94a16b410",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2441,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:45.876Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-592459b9d79177e160f3",
+          "file": "probe-click.spec.ts",
+          "line": 68,
+          "column": 1
+        },
+        {
+          "title": "z_surface: the job the button sends is the native stage's whole job",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2383,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:48.327Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-2aab461ea6b8e8229728",
+          "file": "probe-click.spec.ts",
+          "line": 101,
+          "column": 3
+        },
+        {
+          "title": "surface_scan: the job the button sends is the native stage's whole job",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 3326,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:50.720Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-9c34be0069952a04d971",
+          "file": "probe-click.spec.ts",
+          "line": 101,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "probe-visual.spec.ts",
+      "file": "probe-visual.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "every procedure has its grid entry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 13,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:38.132Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-f25c8ad6a52aed696e6b",
+          "file": "probe-visual.spec.ts",
+          "line": 48,
+          "column": 1
+        },
+        {
+          "title": "Outside: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1803,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:38.150Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-a0200ed234676500e5ad",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Inside: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1536,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:39.961Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-f147c7d753da6c58b2cb",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Angle: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1682,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:41.507Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-ace232cae2c4b986f17d",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1539,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:43.198Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-8f002f6e4d671fc19790",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1651,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:44.746Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-f9527817ca202da3c5b3",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Surface: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1895,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:46.406Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-41617d4126c03868d58e",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1684,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:48.310Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-540927f528a4cd0dd9ba",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Toolsetter: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2266,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:50.008Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-fd806e9e739aab16b376",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "smoke.spec.ts",
+      "file": "smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "app shell mounts with no gateway connected",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1021,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:52.303Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4219922fea2e2bd3c691-8a40ab8c9399c57ecad3",
+          "file": "smoke.spec.ts",
+          "line": 9,
+          "column": 1
+        },
+        {
+          "title": "default-deny: machine controls are closed while disconnected",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 903,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:53.342Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4219922fea2e2bd3c691-cb7dace343b79a9b3558",
+          "file": "smoke.spec.ts",
+          "line": 17,
+          "column": 1
+        },
+        {
+          "title": "Arm control stays reachable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 788,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:54.251Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4219922fea2e2bd3c691-aa4b15d9f13a31f4d337",
+          "file": "smoke.spec.ts",
+          "line": 29,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "strip-fit.spec.ts",
+      "file": "strip-fit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — no overflow, even ends, Tool 24 px above its minimum, one width per section in every state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 6328,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:54.092Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "strip-fit.json",
+                      "contentType": "application/json",
+                      "body": "WwogewogICJzdGF0ZSI6ICJob21lZCIsCiAgImZpdCI6IHsKICAgInRvb2xXIjogMjczLjUsCiAgICJ0b29sTWluIjogMjI0LAogICAicm9vbSI6IDQ5LjUsCiAgICJpbnNldExlZnQiOiA4LAogICAiaW5zZXRSaWdodCI6IDgsCiAgICJjYXJkR2FwIjogMC41LAogICAid3JhcHMiOiBbXSwKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDAsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDI3My41MgogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAiaG9tZWQiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogInVuaG9tZWQiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZiIsCiAgImZpdCI6IHsKICAgInRvb2xXIjogMjczLjUsCiAgICJ0b29sTWluIjogMjI0LAogICAicm9vbSI6IDQ5LjUsCiAgICJpbnNldExlZnQiOiA4LAogICAiaW5zZXRSaWdodCI6IDgsCiAgICJjYXJkR2FwIjogMC41LAogICAid3JhcHMiOiBbXSwKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDAsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDI3My41MgogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAiZXN0b3AiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogImRpc2FybWVkIiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJydW5uaW5nIiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJwYXVzZWQiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogImhvbWVkIiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJqb2ludC1qb2ciLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogInNwaW5kbGUtcHJlc2VsZWN0IiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJiYW5uZXItbWVzc2FnZSIsCiAgImZpdCI6IHsKICAgInRvb2xXIjogMjczLjUsCiAgICJ0b29sTWluIjogMjI0LAogICAicm9vbSI6IDQ5LjUsCiAgICJpbnNldExlZnQiOiA4LAogICAiaW5zZXRSaWdodCI6IDgsCiAgICJjYXJkR2FwIjogMC41LAogICAid3JhcHMiOiBbXSwKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDAsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDI3My41MgogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAib2Zmc2V0IEc0MyIsCiAgImZpdCI6IHsKICAgInRvb2xXIjogMjczLjUsCiAgICJ0b29sTWluIjogMjI0LAogICAicm9vbSI6IDQ5LjUsCiAgICJpbnNldExlZnQiOiA4LAogICAiaW5zZXRSaWdodCI6IDgsCiAgICJjYXJkR2FwIjogMC41LAogICAid3JhcHMiOiBbXSwKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDAsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDI3My41MgogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfSwKIHsKICAic3RhdGUiOiAib2Zmc2V0IEc0My4xIiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJvZmZzZXQgRzQ5IiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJvZmZzZXQgb3RoZXIiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZnNldCBvdGhlciwgcnVubmluZyIsCiAgImZpdCI6IHsKICAgInRvb2xXIjogMjczLjUsCiAgICJ0b29sTWluIjogMjI0LAogICAicm9vbSI6IDQ5LjUsCiAgICJpbnNldExlZnQiOiA4LAogICAiaW5zZXRSaWdodCI6IDgsCiAgICJjYXJkR2FwIjogMC41LAogICAid3JhcHMiOiBbXSwKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDAsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDI3My41MgogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfQpd"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-e8323d530926fbf124f9",
+          "file": "strip-fit.spec.ts",
+          "line": 182,
+          "column": 5
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — inch keeps the millimetre widths",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 1866,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:00.439Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "strip-fit-inch.json",
+                      "contentType": "application/json",
+                      "body": "WwogewogICJzdGF0ZSI6ICJvZmZzZXQgRzQzIiwKICAiZml0IjogewogICAidG9vbFciOiAyNzMuNSwKICAgInRvb2xNaW4iOiAyMjQsCiAgICJyb29tIjogNDkuNSwKICAgImluc2V0TGVmdCI6IDgsCiAgICJpbnNldFJpZ2h0IjogOCwKICAgImNhcmRHYXAiOiAwLjUsCiAgICJ3cmFwcyI6IFtdLAogICAidG9vbFNjcm9sbCI6IDAsCiAgICJvdmVyIjogMCwKICAgInNwYXJlIjogMCwKICAgInNlY3Rpb25zIjogWwogICAgewogICAgICJuYW1lIjogInNhZmV0eVN0cmlwIiwKICAgICAid2lkdGgiOiAyODAKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAiam9nIiwKICAgICAid2lkdGgiOiA1MjMuNzIKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic2V0dXAiLAogICAgICJ3aWR0aCI6IDM2Mi45NwogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJvdmVycmlkZXMiLAogICAgICJ3aWR0aCI6IDE4NC44NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzcGluZGxlIiwKICAgICAid2lkdGgiOiAyMjguOTUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAidG9vbCIsCiAgICAgIndpZHRoIjogMjczLjUyCiAgICB9CiAgIF0sCiAgICJjbGlwcGVkIjogW10KICB9CiB9LAogewogICJzdGF0ZSI6ICJvZmZzZXQgRzQzLjEiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZnNldCBHNDkiLAogICJmaXQiOiB7CiAgICJ0b29sVyI6IDI3My41LAogICAidG9vbE1pbiI6IDIyNCwKICAgInJvb20iOiA0OS41LAogICAiaW5zZXRMZWZ0IjogOCwKICAgImluc2V0UmlnaHQiOiA4LAogICAiY2FyZEdhcCI6IDAuNSwKICAgIndyYXBzIjogW10sCiAgICJ0b29sU2Nyb2xsIjogMCwKICAgIm92ZXIiOiAwLAogICAic3BhcmUiOiAwLAogICAic2VjdGlvbnMiOiBbCiAgICB7CiAgICAgIm5hbWUiOiAic2FmZXR5U3RyaXAiLAogICAgICJ3aWR0aCI6IDI4MAogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJqb2ciLAogICAgICJ3aWR0aCI6IDUyMy43MgogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJzZXR1cCIsCiAgICAgIndpZHRoIjogMzYyLjk3CiAgICB9LAogICAgewogICAgICJuYW1lIjogIm92ZXJyaWRlcyIsCiAgICAgIndpZHRoIjogMTg0Ljg1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInNwaW5kbGUiLAogICAgICJ3aWR0aCI6IDIyOC45NQogICAgfSwKICAgIHsKICAgICAibmFtZSI6ICJ0b29sIiwKICAgICAid2lkdGgiOiAyNzMuNTIKICAgIH0KICAgXSwKICAgImNsaXBwZWQiOiBbXQogIH0KIH0sCiB7CiAgInN0YXRlIjogIm9mZnNldCBvdGhlciIsCiAgImZpdCI6IHsKICAgInRvb2xXIjogMjczLjUsCiAgICJ0b29sTWluIjogMjI0LAogICAicm9vbSI6IDQ5LjUsCiAgICJpbnNldExlZnQiOiA4LAogICAiaW5zZXRSaWdodCI6IDgsCiAgICJjYXJkR2FwIjogMC41LAogICAid3JhcHMiOiBbXSwKICAgInRvb2xTY3JvbGwiOiAwLAogICAib3ZlciI6IDAsCiAgICJzcGFyZSI6IDAsCiAgICJzZWN0aW9ucyI6IFsKICAgIHsKICAgICAibmFtZSI6ICJzYWZldHlTdHJpcCIsCiAgICAgIndpZHRoIjogMjgwCiAgICB9LAogICAgewogICAgICJuYW1lIjogImpvZyIsCiAgICAgIndpZHRoIjogNTIzLjcyCiAgICB9LAogICAgewogICAgICJuYW1lIjogInNldHVwIiwKICAgICAid2lkdGgiOiAzNjIuOTcKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAib3ZlcnJpZGVzIiwKICAgICAid2lkdGgiOiAxODQuODUKICAgIH0sCiAgICB7CiAgICAgIm5hbWUiOiAic3BpbmRsZSIsCiAgICAgIndpZHRoIjogMjI4Ljk1CiAgICB9LAogICAgewogICAgICJuYW1lIjogInRvb2wiLAogICAgICJ3aWR0aCI6IDI3My41MgogICAgfQogICBdLAogICAiY2xpcHBlZCI6IFtdCiAgfQogfQpd"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-769fb7889a8135e08cfa",
+          "file": "strip-fit.spec.ts",
+          "line": 223,
+          "column": 1
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — a checked choice moves no option",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2633,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:02.315Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-0407f3c70f0822d0f52e",
+          "file": "strip-fit.spec.ts",
+          "line": 249,
+          "column": 1
+        },
+        {
+          "title": "strip fit: 3axis-xyz @ touch-fullhd — the long error note over a loaded tool: the strip keeps its width, note, Retry and rows reachable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2404,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:04.959Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dc9a1a793d77f05bed04-4cc2fedee7a0dabc2448",
+          "file": "strip-fit.spec.ts",
+          "line": 383,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "tabs.spec.ts",
+      "file": "tabs.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2001,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:55.059Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-fcc5d94513b2c73d741b",
+          "file": "tabs.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "arrows move focus, Enter selects; every navigation key stays in the list — no jog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1808,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:57.075Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-a799e5c2f600557641c1",
+          "file": "tabs.spec.ts",
+          "line": 95,
+          "column": 1
+        },
+        {
+          "title": "a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 4277,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:46:58.890Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-6dd620a358e684ed494c",
+          "file": "tabs.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1512,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:03.182Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-6647fc734c3ee6c08e70",
+          "file": "tabs.spec.ts",
+          "line": 182,
+          "column": 1
+        },
+        {
+          "title": "a tab switch sends nothing — but a jog still running stops",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1764,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:04.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-d39f8267c6a9a2df59b7",
+          "file": "tabs.spec.ts",
+          "line": 212,
+          "column": 1
+        },
+        {
+          "title": "a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:06.479Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-40b711c11a3a09e8237f",
+          "file": "tabs.spec.ts",
+          "line": 229,
+          "column": 1
+        },
+        {
+          "title": "a hidden panel is not focusable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1296,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:08.538Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-5c1ebd0a3012bb33813c",
+          "file": "tabs.spec.ts",
+          "line": 266,
+          "column": 1
+        },
+        {
+          "title": "the Run-from-line spindle preset is one option group: Rev, Stop, Fwd",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1618,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:09.844Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-397b9cd4d9b96094552c",
+          "file": "tabs.spec.ts",
+          "line": 289,
+          "column": 1
+        },
+        {
+          "title": "narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1460,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:11.479Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58bda22211c26f1298af-7e8a80bd2fa000938fed",
+          "file": "tabs.spec.ts",
+          "line": 304,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "visual.spec.ts",
+      "file": "visual.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "3axis-xyz desktop: Jog and Setup reference images",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2550,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:07.389Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8324bb52c49185e48ff4-abcd8631563d4163e92c",
+          "file": "visual.spec.ts",
+          "line": 25,
+          "column": 5
+        },
+        {
+          "title": "5axis-xyzac desktop: Jog and Setup reference images",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2469,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:09.952Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8324bb52c49185e48ff4-d596fd5c213bfb3a5161",
+          "file": "visual.spec.ts",
+          "line": 25,
+          "column": 5
+        },
+        {
+          "title": "6axis-twp desktop: Jog and Setup reference images",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 2,
+                  "status": "passed",
+                  "duration": 2578,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T11:47:12.434Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8324bb52c49185e48ff4-64a721edb96d3699c059",
+          "file": "visual.spec.ts",
+          "line": 25,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-22T11:46:18.810Z",
+    "duration": 109143.49100000001,
+    "expected": 94,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

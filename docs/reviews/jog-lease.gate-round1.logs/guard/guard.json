@@ -1,0 +1,204 @@
+{
+  "config": {
+    "configFile": "/home/cnc/lcnc-suite-p1b/lcnc-webui/playwright.firefox.config.ts",
+    "rootDir": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "firefox-guard-8b1be8f3-cb2f-4f0d-b934-ef0e12968f62",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/cnc/lcnc-suite-p1b/docs/reviews/jog-lease.gate-round1.logs/guard/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "firefox-guard-8b1be8f3-cb2f-4f0d-b934-ef0e12968f62",
+          "actualWorkers": 1
+        },
+        "id": "firefox-core",
+        "name": "firefox-core",
+        "testDir": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/\\/firefox-unload\\.guard\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 3,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "firefox-unload.guard.ts",
+      "file": "firefox-unload.guard.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "held: the unload's second beacon never reaches the mock while an unrelated POST does",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fail",
+                  "description": "the page fixture must refuse this unload: its second beacon was never received",
+                  "location": {
+                    "file": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/firefox-unload.guard.ts",
+                    "line": 37,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "failed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 6049,
+                  "error": {
+                    "message": "Error: the unload's beacons not received while its context lives: 2 handed off, missing [b7c731ef-a0fb-44b6-966f-f2c9348f3a77.2], foreign [], twice [] (2 POST(s) recorded meanwhile — a count proves no beacon)",
+                    "stack": "Error: the unload's beacons not received while its context lives: 2 handed off, missing [b7c731ef-a0fb-44b6-966f-f2c9348f3a77.2], foreign [], twice [] (2 POST(s) recorded meanwhile — a count proves no beacon)\n    at unloadInContext (/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts:163:11)\n    at Object.page (/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts:187:7)",
+                    "location": {
+                      "file": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts",
+                      "column": 11,
+                      "line": 163
+                    },
+                    "snippet": "   at test.ts:163\n\n  161 |              missing: r.missing, foreign: r.foreign, twice: r.twice, posts });\n  162 |   if (!complete(r))\n> 163 |     throw new Error(`the unload's beacons not received while its context lives: ${marks.length} handed off, `\n      |           ^\n  164 |       + `missing [${r.missing.join(\", \")}], foreign [${r.foreign.join(\", \")}], twice [${r.twice.join(\", \")}] `\n  165 |       + `(${posts} POST(s) recorded meanwhile — a count proves no beacon)`);\n  166 |   await page.goto(\"about:blank\").catch(() => {});"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts",
+                        "column": 11,
+                        "line": 163
+                      },
+                      "message": "Error: the unload's beacons not received while its context lives: 2 handed off, missing [b7c731ef-a0fb-44b6-966f-f2c9348f3a77.2], foreign [], twice [] (2 POST(s) recorded meanwhile — a count proves no beacon)\n\n   at test.ts:163\n\n  161 |              missing: r.missing, foreign: r.foreign, twice: r.twice, posts });\n  162 |   if (!complete(r))\n> 163 |     throw new Error(`the unload's beacons not received while its context lives: ${marks.length} handed off, `\n      |           ^\n  164 |       + `missing [${r.missing.join(\", \")}], foreign [${r.foreign.join(\", \")}], twice [${r.twice.join(\", \")}] `\n  165 |       + `(${posts} POST(s) recorded meanwhile — a count proves no beacon)`);\n  166 |   await page.goto(\"about:blank\").catch(() => {});\n    at unloadInContext (/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts:163:11)\n    at Object.page (/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts:187:7)"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "unload guard: held http://localhost:4500/telemetry?e2e_beacon=b7c731ef-a0fb-44b6-966f-f2c9348f3a77.2&guard_seq=2\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:32:56.199Z",
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "description": "the page fixture must refuse this unload: its second beacon was never received",
+                      "location": {
+                        "file": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/firefox-unload.guard.ts",
+                        "line": 37,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/cnc/lcnc-suite-p1b/docs/reviews/jog-lease.gate-round1.logs/guard/test-results/firefox-unload.guard.ts-he-0ad11-hile-an-unrelated-POST-does-firefox-core/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/home/cnc/lcnc-suite-p1b/docs/reviews/jog-lease.gate-round1.logs/guard/test-results/firefox-unload.guard.ts-he-0ad11-hile-an-unrelated-POST-does-firefox-core/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/home/cnc/lcnc-suite-p1b/lcnc-webui/e2e/test.ts",
+                    "column": 11,
+                    "line": 163
+                  }
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "83d93949be398eaa3b07-a48873d32caeb00cbbbd",
+          "file": "firefox-unload.guard.ts",
+          "line": 36,
+          "column": 1
+        },
+        {
+          "title": "control: every beacon of the unload reaches the mock",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox-core",
+              "projectName": "firefox-core",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 453,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:33:03.628Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "83d93949be398eaa3b07-ddca7d149073601f29c5",
+          "file": "firefox-unload.guard.ts",
+          "line": 48,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-22T09:32:54.479Z",
+    "duration": 9802.919,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

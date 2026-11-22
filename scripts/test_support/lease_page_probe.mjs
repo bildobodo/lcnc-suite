@@ -34,9 +34,10 @@ try {
   // The main thread's own timer evidence (Codex R427 MT-I10 follow-up): a
   // 20 ms chain records every gap past 100 ms (its wall-clock start, its
   // length) — the lease's renewals run on this same thread, so a gap here
-  // is a gap in the renewals; several short tasks back to back hang it as
-  // surely as one long task (the run of 2026-11-22 at fe87961c: 721 ms
-  // without a task past 500 ms).
+  // is a gap in the renewals, whatever made it — a long task is only one
+  // cause (the run of 2026-11-22 at fe87961c expired a hold with no task
+  // past 500 ms reported; the page's STATUS cadence gap was 721 ms — the
+  // timers themselves were not recorded then).
   await page.evaluate(() => {
     const w = window;
     w.__gaps = [];
@@ -68,9 +69,11 @@ try {
     await b.hover();
     await page.mouse.down();
   };
-  // warm-up: the first motion of a page pays one-time costs (shaders,
-  // buffers — 580-650 ms stalls in the run at 63aa9451); one short hold and
-  // its release before anything is measured
+  // a short hold and its release before the measured ones: it moves hold A
+  // ~2.3 s later. It does NOT absorb the page's large stalls — those came
+  // before any press in both runs (63aa9451, 054827c5); the VM page shows
+  // 260-460 ms main-thread stalls during a held jog in either form, judged
+  // by the timer evidence below (Fable 2026-11-22)
   await hold("X+");
   await page.waitForTimeout(800);
   await page.mouse.up();

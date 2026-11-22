@@ -19,8 +19,13 @@ page's main thread sends (every 100 ms). The gateway:
   is still alive: a lease past its deadline is dead and stays dead;
 - checks the deadline at EVERY write the lease admits (the switch to MANUAL,
   each jog), in the write's own thread;
-- books every written axis with its owner (`(conn_key, id)`) and a write
-  generation; the expiry stops only the axes still booked under the lease.
+- books every written axis with its owner (`(conn_key, id)`), a write
+  generation and the controller Link of the write; the expiry stops only
+  the axes still booked under the lease, through that Link (Codex R427
+  MT-I09);
+- keeps an ENDED lease listed with its timer until the stop of the path that
+  ended it ran (Codex R427 MT-I08): an end stops new starts at once, its stop
+  stays owed — a refused or dropped end is stopped at the deadline.
 
 This module holds the decisions, pure and on `time.monotonic()` values the
 caller passes in; the gateway owns the timers, the writes and the replies.

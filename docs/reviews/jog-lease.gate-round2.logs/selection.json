@@ -1,0 +1,633 @@
+{
+  "base": "ad16dff33e0713a26de8d18c4cbb82503971fa93",
+  "head": "ee4546b44397424c31c9ea23dc9875aebc9d12d5",
+  "changed": [
+    {
+      "status": "M",
+      "path": "CLAUDE.md",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "M",
+      "path": "docs/architecture/frontend-modules.md",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "M",
+      "path": "docs/architecture/safety-and-permissions.md",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "M",
+      "path": "docs/decisions.md",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "M",
+      "path": "docs/inventory/funktionen.md",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.gate-round1.json",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.mutations.gamepad-spent.py",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.mutations.gamepad-spent.txt",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.mutations.gateway.py",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.mutations.gateway.txt",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.mutations.worker-renews.py",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.mutations.worker-renews.txt",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "A",
+      "path": "docs/reviews/jog-lease.native.json",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "M",
+      "path": "docs/testing.md",
+      "rules": [
+        "documentation, agent and CI configuration (CI proves itself on GitHub)"
+      ],
+      "decision": "no product tests: no product code"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/command_policy.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock",
+        "command admission: the motion buttons (the jog lease too)"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock; command admission: the motion buttons (the jog lease too)"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/features.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock",
+        "command admission: the motion buttons (the jog lease too)"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock; command admission: the motion buttons (the jog lease too)"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/gateway.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock",
+        "command admission: the motion buttons (the jog lease too)",
+        "the status loop and the safety chain (lcnc_trace: every process's console and crash hooks)"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock; command admission: the motion buttons (the jog lease too); the status loop and the safety chain (lcnc_trace: every process's console and crash hooks)"
+    },
+    {
+      "status": "A",
+      "path": "lcnc-gateway/jog_lease.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock",
+        "command admission: the motion buttons (the jog lease too)"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock; command admission: the motion buttons (the jog lease too)"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/test_button_gates_e.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/test_command_policy.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/test_feature_switches.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock"
+    },
+    {
+      "status": "A",
+      "path": "lcnc-gateway/test_jog_lease.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock"
+    },
+    {
+      "status": "A",
+      "path": "lcnc-gateway/test_jog_lease_gateway.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-gateway/test_payload_contract.py",
+      "rules": [
+        "the gateway: the browser suite runs against the mock"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/example-tool-library.spec.ts"
+      ],
+      "decision": "the rules: the gateway: the browser suite runs against the mock"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/input-session.spec.ts",
+      "decision": "the spec itself: input-session"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/jog-buttons.spec.ts",
+      "decision": "the spec itself: jog-buttons"
+    },
+    {
+      "status": "A",
+      "path": "lcnc-webui/e2e/jog-lease.spec.ts",
+      "decision": "the spec itself: jog-lease"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/joint-jog.spec.ts",
+      "decision": "the spec itself: joint-jog"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/keyboard-guards.spec.ts",
+      "decision": "the spec itself: keyboard-guards"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/messages.spec.ts",
+      "decision": "the spec itself: messages"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/mock-gateway.mjs",
+      "rules": [
+        "build, test configuration or the shared mock and fixtures"
+      ],
+      "reads": [
+        "lcnc-webui/e2e/mockFixture.ts"
+      ],
+      "decision": "the rules: build, test configuration or the shared mock and fixtures"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/sim-panel.viewer.spec.ts",
+      "decision": "the spec itself: sim-panel.viewer"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/tabs.spec.ts",
+      "decision": "the spec itself: tabs + the Firefox core"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/e2e/touchoff.spec.ts",
+      "decision": "the spec itself: touchoff"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/App.vue",
+      "rules": [
+        "central: every surface, every dialog or every connection depends on it",
+        "a component, or a module a component renders through: every rendered surface"
+      ],
+      "decision": "the rules: central: every surface, every dialog or every connection depends on it; a component, or a module a component renders through: every rendered surface"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/JogStrip.vue",
+      "rules": [
+        "a component, or a module a component renders through: every rendered surface",
+        "the strip's machine controls"
+      ],
+      "decision": "the rules: a component, or a module a component renders through: every rendered surface; the strip's machine controls"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/commandPath.test.ts",
+      "decision": "a unit file: runs itself"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/commandShapes.test.ts",
+      "decision": "a unit file: runs itself"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/jogGesture.ts",
+      "rules": [
+        "a component, or a module a component renders through: every rendered surface",
+        "the strip's machine controls"
+      ],
+      "decision": "the rules: a component, or a module a component renders through: every rendered surface; the strip's machine controls"
+    },
+    {
+      "status": "A",
+      "path": "lcnc-webui/src/jogLease.test.ts",
+      "decision": "a unit file: runs itself"
+    },
+    {
+      "status": "A",
+      "path": "lcnc-webui/src/jogLease.ts",
+      "rules": [
+        "central: every surface, every dialog or every connection depends on it",
+        "a component, or a module a component renders through: every rendered surface"
+      ],
+      "decision": "the rules: central: every surface, every dialog or every connection depends on it; a component, or a module a component renders through: every rendered surface"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/lcnc.ts",
+      "rules": [
+        "central: every surface, every dialog or every connection depends on it",
+        "a component, or a module a component renders through: every rendered surface"
+      ],
+      "decision": "the rules: central: every surface, every dialog or every connection depends on it; a component, or a module a component renders through: every rendered surface"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/lcncWs.exports.test.ts",
+      "decision": "a unit file: runs itself"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/lcncWs.ts",
+      "rules": [
+        "central: every surface, every dialog or every connection depends on it",
+        "a component, or a module a component renders through: every rendered surface"
+      ],
+      "decision": "the rules: central: every surface, every dialog or every connection depends on it; a component, or a module a component renders through: every rendered surface"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/useGamepad.test.ts",
+      "decision": "a unit file: runs itself"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/useGamepad.ts",
+      "rules": [
+        "a component, or a module a component renders through: every rendered surface",
+        "the settings tabs"
+      ],
+      "decision": "the rules: a component, or a module a component renders through: every rendered surface; the settings tabs"
+    },
+    {
+      "status": "M",
+      "path": "lcnc-webui/src/useKeyboardShortcuts.ts",
+      "rules": [
+        "central: every surface, every dialog or every connection depends on it",
+        "a component, or a module a component renders through: every rendered surface"
+      ],
+      "decision": "the rules: central: every surface, every dialog or every connection depends on it; a component, or a module a component renders through: every rendered surface"
+    },
+    {
+      "status": "M",
+      "path": "pyrightconfig.json",
+      "rules": [
+        "the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)"
+      ],
+      "decision": "the rules: the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)"
+    },
+    {
+      "status": "M",
+      "path": "scripts/inventory/atoms.web.json",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/inventory/functions.json",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/native_run.py",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/test_native_stage.py",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/test_select/replay.py",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/test_select/rules.py",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "A",
+      "path": "scripts/test_support/lease_page_probe.mjs",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/test_support/live_session.py",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    },
+    {
+      "status": "M",
+      "path": "scripts/test_support/native_cases.py",
+      "rules": [
+        "scripts and their tests ride the backend gate"
+      ],
+      "decision": "the rules: scripts and their tests ride the backend gate"
+    }
+  ],
+  "unmatched": [],
+  "absent_at_head": [],
+  "unit": {
+    "light": "every unit file but HEAVY_UNIT — every round",
+    "heavy": [],
+    "heavy_reasons": [],
+    "changed": [
+      "lcnc-webui/src/commandPath.test.ts",
+      "lcnc-webui/src/commandShapes.test.ts",
+      "lcnc-webui/src/jogLease.test.ts",
+      "lcnc-webui/src/lcncWs.exports.test.ts",
+      "lcnc-webui/src/useGamepad.test.ts"
+    ],
+    "related": [
+      "lcnc-webui/src/actionAdmission.test.ts",
+      "lcnc-webui/src/commandPath.test.ts",
+      "lcnc-webui/src/commandShapes.test.ts",
+      "lcnc-webui/src/jogGesture.test.ts",
+      "lcnc-webui/src/jogLease.test.ts",
+      "lcnc-webui/src/lcnc.test.ts",
+      "lcnc-webui/src/lcncWs.binding.test.ts",
+      "lcnc-webui/src/lcncWs.clock.test.ts",
+      "lcnc-webui/src/lcncWs.exports.test.ts",
+      "lcnc-webui/src/statusAge.test.ts",
+      "lcnc-webui/src/useGamepad.test.ts",
+      "lcnc-webui/src/viewer/checkContext.test.ts",
+      "lcnc-webui/src/viewer/checkWiring.test.ts",
+      "lcnc-webui/src/viewer/contactMeter.test.ts",
+      "lcnc-webui/src/viewer/contactView.test.ts",
+      "lcnc-webui/src/viewer/limitOriginPayloads.test.ts",
+      "lcnc-webui/src/viewer/limitPlaces.test.ts",
+      "lcnc-webui/src/viewer/probeStop.test.ts",
+      "lcnc-webui/src/viewer/scrubBarWords.test.ts",
+      "lcnc-webui/src/viewer/shownContacts.test.ts",
+      "lcnc-webui/src/viewer/simRows.test.ts",
+      "lcnc-webui/src/viewer/simWindow.test.ts",
+      "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+      "lcnc-webui/src/viewer/toolChangePayloads.test.ts",
+      "lcnc-webui/src/ws/bulkData.test.ts",
+      "lcnc-webui/src/ws/parseSeen.test.ts",
+      "lcnc-webui/src/ws/statusStore.test.ts"
+    ]
+  },
+  "browser": {
+    "run": "full",
+    "reasons": [
+      "lcnc-webui/e2e/mock-gateway.mjs: build, test configuration or the shared mock and fixtures",
+      "lcnc-webui/src/App.vue: central: every surface, every dialog or every connection depends on it",
+      "lcnc-webui/src/jogLease.ts: central: every surface, every dialog or every connection depends on it",
+      "lcnc-webui/src/lcnc.ts: central: every surface, every dialog or every connection depends on it",
+      "lcnc-webui/src/lcncWs.ts: central: every surface, every dialog or every connection depends on it",
+      "lcnc-webui/src/useKeyboardShortcuts.ts: central: every surface, every dialog or every connection depends on it"
+    ]
+  },
+  "backend": {
+    "run": true,
+    "reasons": [
+      "lcnc-gateway/command_policy.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/features.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/gateway.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/jog_lease.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/test_button_gates_e.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/test_command_policy.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/test_feature_switches.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/test_jog_lease.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/test_jog_lease_gateway.py: the gateway: the browser suite runs against the mock",
+      "lcnc-gateway/test_payload_contract.py: the gateway: the browser suite runs against the mock",
+      "pyrightconfig.json: the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)",
+      "scripts/inventory/atoms.web.json: scripts and their tests ride the backend gate",
+      "scripts/inventory/functions.json: scripts and their tests ride the backend gate",
+      "scripts/native_run.py: scripts and their tests ride the backend gate",
+      "scripts/test_native_stage.py: scripts and their tests ride the backend gate",
+      "scripts/test_select/replay.py: scripts and their tests ride the backend gate",
+      "scripts/test_select/rules.py: scripts and their tests ride the backend gate",
+      "scripts/test_support/lease_page_probe.mjs: scripts and their tests ride the backend gate",
+      "scripts/test_support/live_session.py: scripts and their tests ride the backend gate",
+      "scripts/test_support/native_cases.py: scripts and their tests ride the backend gate"
+    ]
+  },
+  "firefox": {
+    "needed": true,
+    "paths": [
+      "lcnc-webui/e2e/mock-gateway.mjs",
+      "lcnc-webui/e2e/tabs.spec.ts",
+      "lcnc-webui/src/App.vue",
+      "lcnc-webui/src/JogStrip.vue",
+      "lcnc-webui/src/jogGesture.ts",
+      "lcnc-webui/src/jogLease.ts",
+      "lcnc-webui/src/lcnc.ts",
+      "lcnc-webui/src/lcncWs.ts",
+      "lcnc-webui/src/useGamepad.ts",
+      "lcnc-webui/src/useKeyboardShortcuts.ts"
+    ],
+    "reasons": [
+      "lcnc-webui/e2e/mock-gateway.mjs: selects the Firefox core itself",
+      "lcnc-webui/e2e/tabs.spec.ts: selects the Firefox core itself",
+      "lcnc-webui/src/App.vue: selects the Firefox core itself",
+      "lcnc-webui/src/jogLease.ts: selects the Firefox core itself",
+      "lcnc-webui/src/lcnc.ts: selects the Firefox core itself",
+      "lcnc-webui/src/lcncWs.ts: selects the Firefox core itself",
+      "lcnc-webui/src/useKeyboardShortcuts.ts: selects the Firefox core itself",
+      "the full browser run holds the core: lcnc-webui/e2e/mock-gateway.mjs: build, test configuration or the shared mock and fixtures",
+      "the full browser run holds the core: lcnc-webui/src/App.vue: central: every surface, every dialog or every connection depends on it",
+      "the full browser run holds the core: lcnc-webui/src/jogLease.ts: central: every surface, every dialog or every connection depends on it",
+      "the full browser run holds the core: lcnc-webui/src/lcnc.ts: central: every surface, every dialog or every connection depends on it",
+      "the full browser run holds the core: lcnc-webui/src/lcncWs.ts: central: every surface, every dialog or every connection depends on it",
+      "the full browser run holds the core: lcnc-webui/src/useKeyboardShortcuts.ts: central: every surface, every dialog or every connection depends on it",
+      "lcnc-webui/e2e/mock-gateway.mjs → dialogs (a core spec)",
+      "lcnc-webui/src/App.vue → dialogs (a core spec)",
+      "lcnc-webui/src/JogStrip.vue → dialogs (a core spec)",
+      "lcnc-webui/src/jogGesture.ts → dialogs (a core spec)",
+      "lcnc-webui/src/jogLease.ts → dialogs (a core spec)",
+      "lcnc-webui/src/lcnc.ts → dialogs (a core spec)",
+      "lcnc-webui/src/lcncWs.ts → dialogs (a core spec)",
+      "lcnc-webui/src/useGamepad.ts → dialogs (a core spec)",
+      "lcnc-webui/src/useKeyboardShortcuts.ts → dialogs (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → hold-stall-mouse (a core spec)",
+      "lcnc-webui/src/JogStrip.vue → hold-stall-mouse (a core spec)",
+      "lcnc-webui/src/jogGesture.ts → hold-stall-mouse (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → layout (a core spec)",
+      "lcnc-webui/src/App.vue → layout (a core spec)",
+      "lcnc-webui/src/JogStrip.vue → layout (a core spec)",
+      "lcnc-webui/src/jogGesture.ts → layout (a core spec)",
+      "lcnc-webui/src/jogLease.ts → layout (a core spec)",
+      "lcnc-webui/src/lcnc.ts → layout (a core spec)",
+      "lcnc-webui/src/lcncWs.ts → layout (a core spec)",
+      "lcnc-webui/src/useGamepad.ts → layout (a core spec)",
+      "lcnc-webui/src/useKeyboardShortcuts.ts → layout (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → probe-click (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → probe-visual (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → smoke (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → strip-fit (a core spec)",
+      "lcnc-webui/src/App.vue → strip-fit (a core spec)",
+      "lcnc-webui/src/JogStrip.vue → strip-fit (a core spec)",
+      "lcnc-webui/src/jogGesture.ts → strip-fit (a core spec)",
+      "lcnc-webui/src/jogLease.ts → strip-fit (a core spec)",
+      "lcnc-webui/src/lcnc.ts → strip-fit (a core spec)",
+      "lcnc-webui/src/lcncWs.ts → strip-fit (a core spec)",
+      "lcnc-webui/src/useGamepad.ts → strip-fit (a core spec)",
+      "lcnc-webui/src/useKeyboardShortcuts.ts → strip-fit (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → tabs (a core spec)",
+      "lcnc-webui/e2e/tabs.spec.ts → tabs (a core spec)",
+      "lcnc-webui/src/useGamepad.ts → tabs (a core spec)",
+      "lcnc-webui/e2e/mock-gateway.mjs → visual (a core spec)",
+      "lcnc-webui/src/App.vue → visual (a core spec)",
+      "lcnc-webui/src/JogStrip.vue → visual (a core spec)",
+      "lcnc-webui/src/jogGesture.ts → visual (a core spec)",
+      "lcnc-webui/src/jogLease.ts → visual (a core spec)",
+      "lcnc-webui/src/lcnc.ts → visual (a core spec)",
+      "lcnc-webui/src/lcncWs.ts → visual (a core spec)",
+      "lcnc-webui/src/useGamepad.ts → visual (a core spec)",
+      "lcnc-webui/src/useKeyboardShortcuts.ts → visual (a core spec)"
+    ]
+  },
+  "live": {
+    "perf-matrix": [
+      "lcnc-gateway/gateway.py"
+    ],
+    "twp-buttons": [
+      "lcnc-gateway/command_policy.py",
+      "lcnc-gateway/features.py",
+      "lcnc-gateway/gateway.py",
+      "lcnc-gateway/jog_lease.py",
+      "lcnc-webui/src/JogStrip.vue",
+      "lcnc-webui/src/jogGesture.ts"
+    ]
+  }
+}

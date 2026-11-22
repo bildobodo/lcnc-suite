@@ -545,13 +545,17 @@ joint jog before homing in E.
   nothing ended it, and its controller Link still the published one
   (`JOG_LEASE_FOREIGN_LINK`). A multi-jog whose lease dies between its writes
   stops what it wrote under it at once and answers `expired`.
-- *Ownership* (Codex R425 MT425-01): `_active_jogs[axis]` is (joint flag,
-  CMD.jog index, owner, generation) — owner (conn_key, lease id), None for a
-  jog without a lease or a step. A lease's stop — its expiry
-  (`_expire_jog_lease`), its end (`jog_lease_end`), a change's stop half —
+- *Ownership* (Codex R425 MT425-01, R427 MT-I09): `_active_jogs[axis]` is
+  (joint flag, CMD.jog index, owner, generation, the controller Link the jog
+  was WRITTEN through) — owner (conn_key, lease id), None for a jog without a
+  lease or a step. A lease's stop — its expiry (`_expire_jog_lease`), its end
+  (`jog_lease_end`), a change's stop half, the partial-failure cleanup —
   goes through `_stop_owned_axes`: only an axis whose row still carries that
-  lease, read after `_cmd_lock` and checked again in the write's thread
-  (`_send_jog_stop(owner=…)`, `JOG_STOP_NOT_OWNED`); a named axis another
+  lease AND that Link, read after `_cmd_lock` and checked again in the
+  write's thread (`_send_jog_stop(owner=…)`, `JOG_STOP_NOT_OWNED`,
+  `JOG_STOP_LINK_CHANGED` — through a replacement Link, even of the same
+  instance, nothing is written, the booking stays and the stop is said to
+  have failed); a named axis another
   gesture took, or nobody owns, is traced `jog.lease_stop_not_owned` and left.
   The operator's own stops (`jog_stop`, `jog_stop_multi`, the disarm stop)
   stop an axis whoever wrote it, unchanged. A failed lease stop keeps the
@@ -576,7 +580,16 @@ joint jog before homing in E.
   of it still queued is refused at its write); abort / E-Stop end the
   sending client's leases at receipt (a change it queued keeps its stop half,
   starts nothing); a disarm (explicit, hb-stall, link loss) and the
-  disconnect end them (the disconnect drops them and their timers).
+  disconnect end them. ENDED IS NOT SETTLED (Codex R427 MT-I08): an end stops
+  new starts at once, but the lease stays listed WITH its timer (`ended_by`
+  names the path) until the stop of the path that ended it ran — the end
+  handler's own stop, an abort / E-Stop written, a client jog stop that left
+  no booking naming it (`_settle_lease`, `_settle_leases_ended_by`). An end
+  refused by a full queue, dropped with a closed connection or still waiting
+  settles nothing: at the deadline the timer stops what the lease still owns
+  (the page is told with the end's `reason`). A reported write failure
+  settles (no silent retry); the disconnect keeps the leases listed and drops
+  only the connection's id floor.
 - *The page*: a lease that ended from outside (expired, refused or
   unanswered start — `watchLeaseReply`, `REPLY_MS` 3 s —, the connection)
   leaves its gesture SPENT until its source's own end: the pointer until its
