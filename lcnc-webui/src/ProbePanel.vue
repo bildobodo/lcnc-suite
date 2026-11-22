@@ -935,31 +935,37 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <!-- Round calibration: buttons + diameter -->
       <div class="stack-tight">
-        <div class="sub">Round Hole</div>
+        <div class="sub">Round</div>
         <div class="row-sections">
           <div class="calBtnPair">
-            <MachineBtn type="probeCell" class="gridCell" title="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
-              <svg viewBox="0 0 80 80" class="gridIcon">
-                <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
-                <circle cx="5" cy="40" r="3" class="probeTip" />
-                <polygon points="40,18 35,27 45,27" class="arrowHead" />
-                <polygon points="40,62 35,53 45,53" class="arrowHead" />
-                <polygon points="18,40 27,35 27,45" class="arrowHead" />
-                <polygon points="62,40 53,35 53,45" class="arrowHead" />
-                <circle cx="40" cy="40" r="2.5" class="crosshair" />
-              </svg>
-            </MachineBtn>
-            <MachineBtn type="probeCell" class="gridCell" title="Round boss — outside start" @click="runCalProbe('probe_cal_round_boss')">
-              <svg viewBox="0 0 80 80" class="gridIcon">
-                <circle cx="40" cy="40" r="22" class="workpiece" />
-                <polygon points="40,18 35,9 45,9" class="arrowHead" />
-                <polygon points="40,62 35,71 45,71" class="arrowHead" />
-                <polygon points="18,40 9,35 9,45" class="arrowHead" />
-                <polygon points="62,40 71,35 71,45" class="arrowHead" />
-                <circle cx="40" cy="40" r="8" class="crosshair" />
-                <circle cx="40" cy="40" r="4" class="probeTip" />
-              </svg>
-            </MachineBtn>
+            <div class="stack-micro">
+              <MachineBtn type="probeCell" class="gridCell" title="Round hole — edge start" aria-label="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
+                <svg viewBox="0 0 80 80" class="gridIcon">
+                  <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
+                  <circle cx="5" cy="40" r="3" class="probeTip" />
+                  <polygon points="40,18 35,27 45,27" class="arrowHead" />
+                  <polygon points="40,62 35,53 45,53" class="arrowHead" />
+                  <polygon points="18,40 27,35 27,45" class="arrowHead" />
+                  <polygon points="62,40 53,35 53,45" class="arrowHead" />
+                  <circle cx="40" cy="40" r="2.5" class="crosshair" />
+                </svg>
+              </MachineBtn>
+              <span class="label-muted calCaption" aria-hidden="true">Hole<br />edge start</span>
+            </div>
+            <div class="stack-micro">
+              <MachineBtn type="probeCell" class="gridCell" title="Round boss — above centre" aria-label="Round boss — above centre" @click="runCalProbe('probe_cal_round_boss')">
+                <svg viewBox="0 0 80 80" class="gridIcon">
+                  <circle cx="40" cy="40" r="22" class="workpiece" />
+                  <polygon points="40,18 35,9 45,9" class="arrowHead" />
+                  <polygon points="40,62 35,71 45,71" class="arrowHead" />
+                  <polygon points="18,40 9,35 9,45" class="arrowHead" />
+                  <polygon points="62,40 71,35 71,45" class="arrowHead" />
+                  <circle cx="40" cy="40" r="8" class="crosshair" />
+                  <circle cx="40" cy="40" r="4" class="probeTip" />
+                </svg>
+              </MachineBtn>
+              <span class="label-muted calCaption" aria-hidden="true">Boss<br />above centre</span>
+            </div>
           </div>
           <div class="calParamStacked stack-tight">
             <FormField v-for="f in [CAL_ROUND_FIELD]" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
@@ -975,31 +981,37 @@ function fmtR(key: string): string {
 
       <!-- Rect calibration: buttons + x/y width -->
       <div class="stack-tight">
-        <div class="sub">Rectangular Pocket</div>
+        <div class="sub">Rectangular</div>
         <div class="row-sections">
           <div class="calBtnPair">
-            <MachineBtn type="probeCell" class="gridCell" title="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
-              <svg viewBox="0 0 80 80" class="gridIcon">
-                <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
-                <circle cx="5" cy="40" r="3" class="probeTip" />
-                <polygon points="40,15 35,24 45,24" class="arrowHead" />
-                <polygon points="40,65 35,56 45,56" class="arrowHead" />
-                <polygon points="15,40 24,35 24,45" class="arrowHead" />
-                <polygon points="65,40 56,35 56,45" class="arrowHead" />
-                <circle cx="40" cy="40" r="2.5" class="crosshair" />
-              </svg>
-            </MachineBtn>
-            <MachineBtn type="probeCell" class="gridCell" title="Rect boss — outside start" @click="runCalProbe('probe_cal_square_boss')">
-              <svg viewBox="0 0 80 80" class="gridIcon">
-                <rect x="15" y="15" width="50" height="50" class="workpiece" />
-                <polygon points="40,15 35,6 45,6" class="arrowHead" />
-                <polygon points="40,65 35,74 45,74" class="arrowHead" />
-                <polygon points="15,40 6,35 6,45" class="arrowHead" />
-                <polygon points="65,40 74,35 74,45" class="arrowHead" />
-                <circle cx="40" cy="40" r="8" class="crosshair" />
-                <circle cx="40" cy="40" r="4" class="probeTip" />
-              </svg>
-            </MachineBtn>
+            <div class="stack-micro">
+              <MachineBtn type="probeCell" class="gridCell" title="Rect pocket — edge start" aria-label="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
+                <svg viewBox="0 0 80 80" class="gridIcon">
+                  <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
+                  <circle cx="5" cy="40" r="3" class="probeTip" />
+                  <polygon points="40,15 35,24 45,24" class="arrowHead" />
+                  <polygon points="40,65 35,56 45,56" class="arrowHead" />
+                  <polygon points="15,40 24,35 24,45" class="arrowHead" />
+                  <polygon points="65,40 56,35 56,45" class="arrowHead" />
+                  <circle cx="40" cy="40" r="2.5" class="crosshair" />
+                </svg>
+              </MachineBtn>
+              <span class="label-muted calCaption" aria-hidden="true">Pocket<br />edge start</span>
+            </div>
+            <div class="stack-micro">
+              <MachineBtn type="probeCell" class="gridCell" title="Rect boss — above centre" aria-label="Rect boss — above centre" @click="runCalProbe('probe_cal_square_boss')">
+                <svg viewBox="0 0 80 80" class="gridIcon">
+                  <rect x="15" y="15" width="50" height="50" class="workpiece" />
+                  <polygon points="40,15 35,6 45,6" class="arrowHead" />
+                  <polygon points="40,65 35,74 45,74" class="arrowHead" />
+                  <polygon points="15,40 6,35 6,45" class="arrowHead" />
+                  <polygon points="65,40 74,35 74,45" class="arrowHead" />
+                  <circle cx="40" cy="40" r="8" class="crosshair" />
+                  <circle cx="40" cy="40" r="4" class="probeTip" />
+                </svg>
+              </MachineBtn>
+              <span class="label-muted calCaption" aria-hidden="true">Boss<br />above centre</span>
+            </div>
           </div>
           <div class="calParamStacked stack-tight">
             <FormField v-for="f in CAL_RECT_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
@@ -1350,6 +1362,13 @@ html.touch-device .gridSection { height: 368px; }
   gap: var(--gap-tight);
   width: 196px;
   flex-shrink: 0;
+}
+
+/* A calibration cell's caption names its start position (machine day F28,
+   P4-4): the global caption class, centred under its cell, two lines (the
+   piece, then where the routine starts). */
+.calCaption {
+  text-align: center;
 }
 
 .calParamStacked {

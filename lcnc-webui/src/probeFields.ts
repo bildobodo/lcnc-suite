@@ -80,10 +80,10 @@ export const PROBE_HINT_FIELDS: Partial<Record<"boss" | "angle" | "ridge", Probe
 };
 
 export const CAL_ROUND_FIELD: ProbeField = { key: "calDiameter", label: "Diameter", unit: "len", min: 0,
-  help: "Exact diameter of the calibration ring — use a gauge ring." };
+  help: "Exact diameter of the gauge: the ring for Hole, the pin for Boss." };
 export const CAL_RECT_FIELDS: ProbeField[] = [
-  { key: "xCalWidth", label: "X Width", unit: "len", min: 0, help: "Exact X width of the calibration block." },
-  { key: "yCalWidth", label: "Y Width", unit: "len", min: 0, help: "Exact Y width of the calibration block." },
+  { key: "xCalWidth", label: "X Width", unit: "len", min: 0, help: "Exact X width of the gauge: the pocket for Pocket, the block for Boss." },
+  { key: "yCalWidth", label: "Y Width", unit: "len", min: 0, help: "Exact Y width of the gauge: the pocket for Pocket, the block for Boss." },
 ];
 
 /** The surface-map scan area (work coordinates). */
