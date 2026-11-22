@@ -1591,7 +1591,7 @@ def _expiries(trace_events: list, t0: float, t1: float, to_mono) -> list:
     return out
 
 
-PAGE_LONGTASK_MS = 500   # telemetry.ts reports the page's long tasks past this
+PAGE_LONGTASK_MS = 500   # the page reports its long tasks past this (viewerPerf.ts since P3; browser.longtask)
 #: the widest main-thread timer gap a HEALTHY page may show while it holds:
 #: a renewal every 100 ms, 500 ms validity — a gap past the validity less
 #: one renewal period (and a margin for the transport) can end the lease by
