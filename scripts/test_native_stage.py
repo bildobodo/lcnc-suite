@@ -7963,3 +7963,155 @@ def test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet():
     assert waited >= 5.0 + nr.PB_QUIET_S, waited
     assert waited <= 5.0 + nr.PB_OWED_EVERY_S + nr.PB_QUIET_S + 0.2, waited
 
+
+# ── Codex R431: the native proof's premise, its observation, its losses ────
+def _r431_ops(last="confirmed"):
+    """Codex R431's three ops: two confirmed, the last ending as `last`."""
+    ev = [{"tag": "gcode.spawn_start", "reason": "tool_offset", "nice": 19}]
+    for i in range(3):
+        v = i * 4 + 3
+        ev += [{"tag": "toolsetter.basis", "version": v - 2, "origin": "assumed", "keys": [3014]},
+               {"tag": "toolsetter.basis", "version": v - 1, "origin": "applied", "keys": [3014]},
+               {"tag": "toolsetter.basis", "version": v, "origin": "assumed", "keys": _PB_KEYS},
+               {"tag": "gcode.reparse_toolsetter_held", "version": v, "why": "read_back"}]
+        outcome = "confirmed" if i < 2 else last
+        if outcome == "confirmed":
+            ev += [{"tag": "toolsetter.basis", "version": v + 1, "origin": "read", "keys": _PB_KEYS},
+                   {"tag": "toolsetter.read_back_outcome", "attempt_version": v, "outcome": "confirmed"},
+                   {"tag": "toolsetter.read_back", "version": v + 1, "state": "confirmed"}]
+        elif outcome in ("failed", "aborted"):
+            ev += [{"tag": "toolsetter.read_back_outcome", "attempt_version": v, "outcome": outcome}]
+        elif outcome in ("cap", "no_anchor"):
+            ev += [{"tag": "toolsetter.read_back_outcome", "attempt_version": v, "outcome": "not_admitted"},
+                   {"tag": "gcode.reparse_toolsetter_hold_ended", "version": v, "why": outcome}]
+    return ev
+
+
+@pytest.mark.parametrize("last", ["failed", "aborted", "cap", "no_anchor"])
+def test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass(last):
+    """MT-I17 A: the premise first — incomplete whether or not its one
+    contractual parse is already in the window."""
+    row = nc.eval_parse_basis("pb", {"framed": True, "events": _r431_ops(last)}, ops=3, quiet_s=4.5)
+    assert row["status"] == "incomplete" and "premise" in row["detail"], row
+    with_parse = _r431_ops(last) + [{"tag": "gcode.reparse_toolsetter"},
+                                    {"tag": "gcode.spawn_start", "reason": "toolsetter", "nice": 19}]
+    assert nc.eval_parse_basis("pb", {"framed": True, "events": with_parse}, ops=3)["status"] == "incomplete"
+
+
+def test_r431_three_confirmations_are_a_pass_and_another_revisions_end_settles_nothing():
+    assert nc.eval_parse_basis("pb", {"framed": True, "events": _r431_ops()}, ops=3, quiet_s=4.5)["status"] == "PASS"
+    ev = _r431_ops(None) + [{"tag": "toolsetter.read_back_outcome", "attempt_version": 10, "outcome": "confirmed"}]
+    assert nc.eval_parse_basis("pb", {"framed": True, "events": ev}, ops=3)["status"] == "incomplete"
+
+
+def _r431_frame(loss=None, pid=101, token="codex-r431"):
+    prefix = {"proc": "gateway", "pid": pid, "t_wall_ns": 100}
+    events = [dict(prefix, tag="client.diag", native_mark=token, edge="start")]
+    events += [dict(prefix, **e) for e in _r431_ops()]
+    if loss is not None:
+        events += [dict(prefix, **loss)]
+    events += [dict(prefix, tag="client.diag", native_mark=token, edge="end", t_wall_ns=200)]
+    raw = "".join(json.dumps(e) + "\n" for e in events).encode()
+    return nc.frame_window([("trace.ndjson", 42, raw)], token, pid)
+
+
+def test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran():
+    """MT-I18: this gateway's `trace.write_lost` overlapping the window — the
+    frame stays framed, both absence proofs become incomplete."""
+    lost = {"tag": "trace.write_lost", "log": "trace.ndjson", "count": 2, "t_wall_ns": 150, "since_ns": 101,
+            "why": {"lock_busy": 2}}
+    window = _r431_frame(lost)
+    assert window["framed"] and window["losses"] == [{"count": 2, "since_ns": 101, "t_wall_ns": 150,
+                                                       "why": {"lock_busy": 2}}]
+    assert nc.eval_parse_basis("pb", window, ops=3, quiet_s=4.5)["status"] == "incomplete"
+    assert nc.eval_parse_nice("pb.nice", window)["status"] == "incomplete"
+
+
+def test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it():
+    pid, token = 101, "w"
+    prefix = {"proc": "gateway", "pid": pid, "t_wall_ns": 100}
+    base = [dict(prefix, tag="client.diag", native_mark=token, edge="start")]
+    base += [dict(prefix, **e) for e in _r431_ops()]
+    base += [dict(prefix, tag="client.diag", native_mark=token, edge="end", t_wall_ns=200)]
+
+    def frame(extra):
+        raw = "".join(json.dumps(e) + "\n" for e in base + extra).encode()
+        return nc.frame_window([("trace.ndjson", 42, raw)], token, pid)
+    late = dict(prefix, tag="trace.write_lost", count=1, since_ns=190, t_wall_ns=300)
+    assert frame([late])["losses"], "lost before the end mark, said after it"
+    after = dict(prefix, tag="trace.write_lost", count=1, since_ns=250, t_wall_ns=300)
+    assert frame([after])["losses"] == [], "began after the window: excluded"
+    other = dict(prefix, tag="trace.write_lost", count=1, since_ns=150, t_wall_ns=160, pid=7, proc="hal_reader")
+    w = frame([other])
+    assert w["losses"] == [] and nc.eval_parse_basis("pb", w, ops=3)["status"] == "PASS", \
+        "another process's loss is no gateway record lost"
+
+
+class _R431Clock:
+    t = 0.0
+
+    def monotonic(self):
+        return self.t
+
+    def sleep(self, s):
+        self.t += s
+
+
+def _r431_wait(files_at, pid=101):
+    """The real reader, owed check and quiet helper on a simulated clock;
+    `files_at(t)` returns what _trace_files would at t."""
+    from types import SimpleNamespace
+    from unittest import mock
+    clock, calls = _R431Clock(), []
+
+    def files(_path):
+        calls.append(round(clock.t, 3))
+        return files_at(clock.t)
+    with mock.patch.object(nr, "time", clock), mock.patch.object(nr, "_trace_files", files):
+        waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+                              owed=lambda: nc.pb_owed(nr._gateway_events_since({"gateway_pid": pid,
+                                                                                 "run": Path("/unused")}, 0)))
+    return waited, calls
+
+
+def _r431_data(ev, pid=101):
+    return "".join(json.dumps(dict(e, pid=pid, proc="gateway", t_wall_ns=100)) + "\n" for e in ev).encode()
+
+
+def test_r431_a_transient_read_failure_does_not_end_the_owed_wait():
+    """MT-I17 B, Codex's case: a PermissionError at 0.5 s, the read-back
+    confirmed at 5 s — the wait ends only after it and 4 s of quiet."""
+    def files_at(t):
+        if 0.5 <= t < 1.0:
+            return [], ["trace.ndjson: PermissionError: transient read failure"]
+        return [("trace.ndjson", 42, _r431_data(_r431_ops("confirmed" if t >= 5.0 else None)))], []
+    waited, calls = _r431_wait(files_at)
+    assert waited >= 5.0 + nr.PB_QUIET_S, {"waited": waited, "reads_at": calls}
+
+
+def test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing():
+    """A file not read (the older generation) while the readable one seems
+    to show the end: unproven — the wait goes on to the real end + 4 s."""
+    def files_at(t):
+        if 0.5 <= t < 1.0:
+            return ([("trace.ndjson", 42, _r431_data(_r431_ops("confirmed")))],
+                    ["trace.ndjson.1: PermissionError: not read"])
+        return [("trace.ndjson", 42, _r431_data(_r431_ops("confirmed" if t >= 5.0 else None)))], []
+    waited, calls = _r431_wait(files_at)
+    assert waited >= 5.0 + nr.PB_QUIET_S, {"waited": waited, "reads_at": calls}
+
+
+def test_r431_an_empty_or_damaged_observation_settles_nothing():
+    def files_at(t):
+        if t < 1.0:
+            return [], []                                   # the first read: nothing there yet
+        if t < 2.0:                                         # seemingly ended, but a damaged line after it began
+            return [("trace.ndjson", 42, _r431_data(_r431_ops("confirmed")) + b"{\"tag\": \"half\n")], []
+        return [("trace.ndjson", 42, _r431_data(_r431_ops("confirmed" if t >= 5.0 else None)))], []
+    waited, _calls = _r431_wait(files_at)
+    assert waited >= 5.0 + nr.PB_QUIET_S, waited
+    sl = nc.TraceSlice([], [])
+    assert nc.pb_owed(sl) == "no booking of the op in the trace yet"
+    assert "not readable" in nc.pb_owed(nc.TraceSlice(_r431_ops(), ["x: 1 damaged line(s)"]))
+    assert nc.pb_owed(nc.TraceSlice(_r431_ops(), [])) is None, "a readable proven end settles"
+

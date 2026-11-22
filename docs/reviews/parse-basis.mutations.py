@@ -99,6 +99,50 @@ def _ts_readback_ended''')],
     "quiet_ignores_owed": ("../scripts/native_run.py", [('''        if owed_now or (c.status or {}).get("preview_refresh"):''',
                                                           '''        if (c.status or {}).get("preview_refresh"):''')],
         [NS + "test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet"]),
+    # Codex R431 MT-I17 A: an unconfirmed outcome counts only with its follow-up parse in the window
+    "unconfirmed_needs_its_parse": ("../scripts/test_support/native_cases.py", [('''    if unconfirmed:
+        return _row(case, "incomplete", f"a read-back did not confirm''', '''    if unconfirmed and (ts or measured["toolsetter_edges"] or measured["masked"]):
+        return _row(case, "incomplete", f"a read-back did not confirm''')],
+        [NS + "test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[failed]",
+         NS + "test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[aborted]",
+         NS + "test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[cap]",
+         NS + "test_r431_an_unconfirmed_last_attempt_is_no_zero_parse_pass[no_anchor]"]),
+    # MT-I17 B: a read error settles the owed attempt
+    "unreadable_settles": ("../scripts/test_support/native_cases.py", [('''        if events.problems:
+            return f"the trace is not readable: {events.problems[0]}"''', '''        if False:
+            return f"the trace is not readable: {events.problems[0]}"''')],
+        [NS + "test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing"]),
+    # MT-I17 B: an empty first observation settles the owed attempt
+    "empty_observation_settles": ("../scripts/test_support/native_cases.py", [('''        if not any(e.get("tag") == "toolsetter.basis" for e in events):
+            return "no booking of the op in the trace yet"''', '''        if False:
+            return "no booking of the op in the trace yet"''')],
+        [NS + "test_r431_an_empty_or_damaged_observation_settles_nothing"]),
+    # MT-I17 B: the reader drops its damaged lines and read errors again
+    "reader_drops_problems": ("../scripts/native_run.py", [('''    out, problems = [], list(errors)''', '''    out, problems = [], []'''),
+                                                         ('''        if damaged:
+            problems.append(f"{name}: {damaged} damaged line(s)")''', '''        pass''')],
+        [NS + "test_r431_a_read_error_beside_a_seemingly_ended_slice_settles_nothing",
+         NS + "test_r431_an_empty_or_damaged_observation_settles_nothing"]),
+    # Codex R431 MT-I18: frame_window drops the gateway's losses
+    "frame_drops_losses": ("../scripts/test_support/native_cases.py", [('''            if not (began_after or said_before):
+                losses.append''', '''            if False:
+                losses.append''')],
+        [NS + "test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran",
+         NS + "test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it"]),
+    # MT-I18: the basis judge ignores the losses
+    "basis_ignores_losses": ("../scripts/test_support/native_cases.py", [('''    losses = window.get("losses") or []
+    if losses:''', '''    losses = window.get("losses") or []
+    if False:''')],
+        [NS + "test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran"]),
+    # MT-I18: the nice judge ignores the losses
+    "nice_ignores_losses": ("../scripts/test_support/native_cases.py", [('''    if window.get("losses"):
+        # a lost record may be a parse without its priority''', '''    if False:
+        # a lost record may be a parse without its priority''')],
+        [NS + "test_r431_a_framed_gateway_loss_is_no_evidence_that_no_parse_ran"]),
+    # MT-I18: another process's loss counts as the gateway's
+    "foreign_loss_counts": ("../scripts/test_support/native_cases.py", [('''            if (r is None or r.get("tag") != "trace.write_lost" or r.get("proc") != MARK_PROC
+                    or r.get("pid") != pid):''', '''            if r is None or r.get("tag") != "trace.write_lost":''')],
+        [NS + "test_r431_a_loss_reported_after_the_window_counts_unless_it_began_after_it"]),
 }
 
 only = sys.argv[1:]

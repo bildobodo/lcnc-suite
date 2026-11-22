@@ -1808,25 +1808,38 @@ def _pb_program() -> str:
     return "\n".join(lines + ["M2"]) + "\n"
 
 
-def _gateway_events_since(ctx, t_ns: int) -> list:
-    """THIS run's gateway trace records stamped at or after wall `t_ns`."""
+def _gateway_events_since(ctx, t_ns: int) -> "nc.TraceSlice":
+    """THIS run's gateway trace records stamped at or after wall `t_ns`, as
+    an observation (nc.TraceSlice, Codex R431 MT-I17 B): a file not read and
+    a damaged line after the slice's first record are its problems — never
+    dropped, so an unreadable moment settles no owed read-back."""
     pid = ctx.get("gateway_pid") or ctx.setdefault("gateway_pid", _gateway_pid(ctx))
-    files, _errors = _trace_files(ctx["run"] / "logs")
-    out = []
-    for _name, _ino, data in files:
-        for line in data.splitlines():
+    files, errors = _trace_files(ctx["run"] / "logs")
+    out, problems = [], list(errors)
+    for name, _ino, data in files:
+        inside, damaged = False, 0
+        for line in data.split(b"\n")[:-1]:     # after the last newline: a line still being written
             try:
                 e = json.loads(line)
             except ValueError:
+                e = None
+            if not isinstance(e, dict):
+                damaged += inside
                 continue
-            if isinstance(e, dict) and e.get("pid") == pid and (e.get("t_wall_ns") or 0) >= t_ns:
-                out.append(e)
-    return sorted(out, key=lambda e: e.get("t_wall_ns") or 0)
+            if (e.get("t_wall_ns") or 0) >= t_ns:
+                inside = True
+                if e.get("pid") == pid:
+                    out.append(e)
+        if damaged:
+            problems.append(f"{name}: {damaged} damaged line(s)")
+    return nc.TraceSlice(sorted(out, key=lambda e: e.get("t_wall_ns") or 0), problems)
 
 
 def _pb_quiet(c, case: str, owed=None) -> float:
     """Wait until the last op owes nothing (`owed()` — its read-back or the
-    hold for it ended, Codex R430 MT-I17; checked every PB_OWED_EVERY_S) and
+    hold for it ended, PROVEN by a readable trace: an unreadable, damaged or
+    empty observation keeps it owed, Codex R430/R431 MT-I17; re-read every
+    PB_OWED_EVERY_S) and
     then no parse has run for PB_QUIET_S (the status carries
     `preview_refresh` while one runs): a parse the ended read-back causes
     falls inside. The seconds waited. Refused past PB_QUIET_MAX_S — a

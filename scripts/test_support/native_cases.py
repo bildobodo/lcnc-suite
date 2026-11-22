@@ -1189,10 +1189,16 @@ def frame_window(files, token: str, pid, errors=()) -> dict:
     (never "absent"): a read error, a missing, doubled or foreign mark, the
     marks in two files (a rotation — any writer's — within the window), a
     damaged line in the window. Returns
-    {"framed", "reason", "file", "events"}; events = the gateway's records
-    between the marks."""
+    {"framed", "reason", "file", "events", "losses"}; events = the gateway's
+    records between the marks; losses = THIS gateway's `trace.write_lost`
+    reports (P3: a record the writer could not write is dropped, counted and
+    reported) whose loss may overlap the window — from any file read, the
+    report inside the window or after it; one whose loss began after the end
+    mark is excluded, another process's is no evidence (Codex R431 MT-I18).
+    A framed window with losses is complete as a frame, NOT as evidence that
+    something is absent."""
     def out(reason, **kw):
-        return {"framed": False, "reason": reason, "file": None, "events": [], **kw}
+        return {"framed": False, "reason": reason, "file": None, "events": [], "losses": [], **kw}
     if errors:
         return out(f"a trace file not read: {errors[0]}")
     latest = {}
@@ -1229,7 +1235,19 @@ def frame_window(files, token: str, pid, errors=()) -> dict:
     if damaged:
         return out(f"{damaged} damaged line(s) in the window — never read as absent")
     events = [r for r in recs[s + 1:e] if r.get("proc") == MARK_PROC and r.get("pid") == pid]
-    return {"framed": True, "reason": None, "file": name, "events": events}
+    t0, t1 = recs[s].get("t_wall_ns"), recs[e].get("t_wall_ns")
+    losses = []
+    for _ino, (_n, rr) in parsed.items():
+        for r in rr:
+            if (r is None or r.get("tag") != "trace.write_lost" or r.get("proc") != MARK_PROC
+                    or r.get("pid") != pid):
+                continue
+            since, said = r.get("since_ns"), r.get("t_wall_ns")
+            began_after = isinstance(since, int) and isinstance(t1, int) and since > t1
+            said_before = isinstance(said, int) and isinstance(t0, int) and said < t0
+            if not (began_after or said_before):
+                losses.append({k: r.get(k) for k in ("count", "since_ns", "t_wall_ns", "why")})
+    return {"framed": True, "reason": None, "file": name, "events": events, "losses": losses}
 
 
 def _window_of(frame) -> dict:
@@ -1749,12 +1767,31 @@ def _spawns(events: list) -> list:
 PB_TERMINAL = ("confirmed", "failed", "aborted")
 
 
+class TraceSlice(list):
+    """The gateway's records read since an op began, with what made the read
+    unproven (Codex R431 MT-I17 B): a file not read, damaged lines after the
+    first record of the slice. A slice is an OBSERVATION — an empty one, or
+    one with problems, proves nothing ended."""
+
+    def __init__(self, events=(), problems=()):
+        super().__init__(events)
+        self.problems = list(problems)
+
+
 def pb_owed(events: list):
     """What the LAST probe op still owes (Codex R430 MT-I17), or None: when
     the last toolsetter booking among `events` left the basis assumed, its
     read-back must have ENDED — a terminal `toolsetter.read_back_outcome` for
     that revision, or the hold ended for it (`gcode.reparse_toolsetter_hold_
-    ended`: the bound, a failure). A later `read` booking settles it too."""
+    ended`: the bound, a failure). A later `read` booking settles it too.
+    A live observation (TraceSlice, Codex R431 MT-I17 B) is owed while it is
+    unreadable or damaged, or holds no booking of the op yet — only a PROVEN
+    end settles it."""
+    if isinstance(events, TraceSlice):
+        if events.problems:
+            return f"the trace is not readable: {events.problems[0]}"
+        if not any(e.get("tag") == "toolsetter.basis" for e in events):
+            return "no booking of the op in the trace yet"
     bookings = [e for e in events if e.get("tag") == "toolsetter.basis"]
     if not bookings or bookings[-1].get("origin") != "assumed":
         return None
@@ -1798,6 +1835,12 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
         "outcomes": [e.get("outcome") for e in ev if e.get("tag") == "toolsetter.read_back_outcome"],
         "quiet_s": quiet_s,
     }
+    losses = window.get("losses") or []
+    if losses:
+        # the gateway reported records it could not write in the window's
+        # time: an absence there proves nothing (Codex R431 MT-I18)
+        return _row(case, "incomplete", f"the gateway lost {sum(int(x.get('count') or 0) for x in losses)} "
+                    "trace record(s) overlapping the window", losses=losses, **measured)
     if len(bookings) < ops:
         return _row(case, "incomplete", f"{len(bookings)} bookings for {ops} probe ops — the basis was not exercised",
                     **measured)
@@ -1807,13 +1850,15 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
         # would still cause is not in it (Codex R430 MT-I17)
         return _row(case, "incomplete", f"{owed} in the window", **measured)
     ts = by_reason.get("toolsetter", 0)
+    # the inputs first (Codex R431 MT-I17 A): a read-back that did not
+    # confirm leaves the measure's premise (confirmed, unchanged values)
+    # unproven — incomplete whether its one contractual parse is in the
+    # window or not; only then are the avoided parses judged
     unconfirmed = [o for o in measured["outcomes"] if o in ("failed", "aborted")] + \
         [w for w in measured["hold_ended"] if w in ("cap", "no_anchor", "failed", "aborted")]
-    if unconfirmed and (ts or measured["toolsetter_edges"] or measured["masked"]):
-        # a read-back that did not confirm ends the hold with ONE parse — the
-        # contract's, not a fault; the measure's premise (confirmed values) failed
+    if unconfirmed:
         return _row(case, "incomplete", f"a read-back did not confirm ({', '.join(map(str, unconfirmed))}): "
-                    f"its toolsetter parse ({ts}) is the contract's", **measured)
+                    f"the measure's premise is not proven (toolsetter parses {ts})", **measured)
     if ts or measured["toolsetter_edges"] or measured["masked"]:
         return _row(case, "FAIL", f"{ts} toolsetter re-parses ({measured['toolsetter_edges']} edges, "
                     f"{measured['masked']} masked by another edge) for {ops} probe ops with unchanged values",
@@ -1827,6 +1872,10 @@ def eval_parse_nice(case: str, window: dict) -> dict:
     spawn that names no priority (before P2a): incomplete, never PASS."""
     if not window.get("framed"):
         return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    if window.get("losses"):
+        # a lost record may be a parse without its priority (Codex R431 MT-I18)
+        return _row(case, "incomplete", "the gateway lost trace records overlapping the window",
+                    losses=window["losses"])
     drift = [e for e in _spawns(window.get("events") or []) if str(e.get("reason")) not in LOAD_REASONS]
     if not drift:
         return _row(case, "incomplete", "no drift re-parse in the window")
