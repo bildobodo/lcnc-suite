@@ -1,0 +1,52 @@
+[WebServer] (node:1396047) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:1396102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1396102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/collisions.viewer.spec.ts:2118:1 › a tool change re-checks on the resident model — no bodies, no build, every instance that built reuses it (P2b-1) (8.5s)
+  ✓  2 [e2e] › e2e/collisions.viewer.spec.ts:2192:1 › a parse decided early holds the idle check past 3 s until its publication is adopted — no fallback (P2b-2 guards 1, 3) (8.6s)
+  ✓  3 [e2e] › e2e/collisions.viewer.spec.ts:2211:1 › no decision within 3 s: ONE named fallback, then the check (P2b-2 guard 2) (8.7s)
+  ✓  4 [e2e] › e2e/collisions.viewer.spec.ts:2225:1 › a named parse that ends without a publication ends the wait, named (P2b-2 guard 4) (5.9s)
+  ✓  5 [e2e] › e2e/collisions.viewer.spec.ts:2240:1 › a newer generation closes the wait, a late older one has no effect (P2b-2 guards 5, 6) (9.1s)
+  ✘  6 [e2e] › e2e/collisions.viewer.spec.ts:2266:1 › R446 a fresh pending decision after none waits its own three seconds (8.1s)
+
+
+  1) [e2e] › e2e/collisions.viewer.spec.ts:2266:1 › R446 a fresh pending decision after none waits its own three seconds 
+
+    Error: the new pending decision must wait from this round, not the old none
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      2286 |   const { writeFileSync } = await import('node:fs');
+      2287 |   writeFileSync('/tmp/r446/browser-same-gen.json', JSON.stringify({ oldWait, nextWait, tel }, null, 2));
+    > 2288 |   expect(nextWait?.waiting, 'the new pending decision must wait from this round, not the old none').toBe(true);
+           |                                                                                                     ^
+      2289 |   await ctl({ op: 'reset' });
+      2290 | });
+      2291 |
+        at /tmp/r446/tree/lcnc-webui/e2e/collisions.viewer.spec.ts:2288:101
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-R446-a-f-6b54b-waits-its-own-three-seconds-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-R446-a-f-6b54b-waits-its-own-three-seconds-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collisions.viewer-R446-a-f-6b54b-waits-its-own-three-seconds-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collisions.viewer-R446-a-f-6b54b-waits-its-own-three-seconds-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/collisions.viewer.spec.ts:2266:1 › R446 a fresh pending decision after none waits its own three seconds 
+  5 passed (51.9s)

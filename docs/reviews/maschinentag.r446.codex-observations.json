@@ -1,0 +1,417 @@
+{
+  "file-probe": {
+    "gen": [
+      0,
+      1
+    ],
+    "busy": null,
+    "quiet": true,
+    "restart_wait": null,
+    "decision": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "why": "start"
+    },
+    "read_under_new_gen": "old macro\n",
+    "file_after": "new macro\n",
+    "gen_after": [
+      0,
+      1
+    ],
+    "accepted": true,
+    "published": [
+      "old macro\n"
+    ]
+  },
+  "decision-wire": {
+    "first": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ]
+    },
+    "next": {
+      "state": "pending",
+      "gen": [
+        0,
+        0
+      ],
+      "why": "idle"
+    }
+  },
+  "drift-none": {
+    "previous": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "none",
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": true,
+        "named": {
+          "kind": "fallback",
+          "waited_ms": 10000
+        }
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": true,
+        "last": {
+          "state": "pending",
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "drift-published": {
+    "previous": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "parse",
+          "gen": [
+            0,
+            0
+          ],
+          "job": 5,
+          "published": 6
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": true,
+        "named": {
+          "kind": "fallback",
+          "waited_ms": 10000
+        }
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": true,
+        "last": {
+          "state": "pending",
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "drift-fallback": {
+    "previous": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": true,
+        "last": {
+          "state": "none",
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": true,
+        "last": {
+          "state": "pending",
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "cycle-start-probe": [
+    {
+      "file_changed": true,
+      "actions_busy": null,
+      "wait": null,
+      "scheduled": [
+        {
+          "args": [
+            "/p.ngc",
+            "discarded:mode"
+          ],
+          "pinned": false
+        }
+      ],
+      "published_file_control": "not_idle"
+    },
+    {
+      "file_changed": true,
+      "actions_busy": "held:probe_run",
+      "wait": null,
+      "scheduled": [
+        {
+          "args": [
+            "/p.ngc",
+            "discarded:mode"
+          ],
+          "pinned": false
+        }
+      ],
+      "published_file_control": "held:probe_run"
+    }
+  ],
+  "forgotten-end": {
+    "before": {
+      "state": "parse",
+      "gen": [
+        0,
+        0
+      ],
+      "job": 7,
+      "published": 107
+    },
+    "after": {
+      "state": "parse",
+      "gen": [
+        0,
+        0
+      ],
+      "job": 7
+    }
+  },
+  "forgotten-client": {
+    "wire": {
+      "before": {
+        "state": "parse",
+        "gen": [
+          0,
+          0
+        ],
+        "job": 7,
+        "published": 107
+      },
+      "after": {
+        "state": "parse",
+        "gen": [
+          0,
+          0
+        ],
+        "job": 7
+      }
+    },
+    "prev": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "parse",
+          "gen": [
+            0,
+            0
+          ],
+          "job": 7,
+          "published": 107
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": false,
+        "why": "parse",
+        "retryInMs": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "parse",
+          "gen": [
+            0,
+            0
+          ],
+          "job": 7
+        }
+      }
+    }
+  },
+  "browser-same-gen": {
+    "oldWait": {
+      "waiting": false,
+      "why": null,
+      "since": 2469,
+      "gen": [
+        3,
+        7
+      ],
+      "now": 6313.700000286102
+    },
+    "nextWait": {
+      "waiting": false,
+      "why": null,
+      "since": 2469,
+      "gen": [
+        3,
+        7
+      ],
+      "now": 7229.800000190735
+    },
+    "tel": [
+      {
+        "kind": "collision.sweep_start",
+        "t_wall_ms": 1795430146588,
+        "t_perf_ms": 2471,
+        "page": "zjdmu45u",
+        "id": 2,
+        "run_gen": null,
+        "range_from": null,
+        "points": 4,
+        "bodies": 30,
+        "model_gen": 1,
+        "max_shards": null
+      },
+      {
+        "kind": "collision.model_built",
+        "t_wall_ms": 1795430146891,
+        "t_perf_ms": 2774,
+        "page": "zjdmu45u",
+        "id": 2,
+        "instance": "1j0zyfkx",
+        "model_gen": 1,
+        "ms": 256,
+        "tool_variant_ms": 1
+      },
+      {
+        "kind": "collision.model_built",
+        "t_wall_ms": 1795430147181,
+        "t_perf_ms": 3063,
+        "page": "zjdmu45u",
+        "id": 2,
+        "instance": "8czqw6vb",
+        "model_gen": 1,
+        "ms": 287,
+        "tool_variant_ms": 0
+      },
+      {
+        "kind": "collision.model_built",
+        "t_wall_ms": 1795430147181,
+        "t_perf_ms": 3064,
+        "page": "zjdmu45u",
+        "id": 2,
+        "instance": "wgzyp8dt",
+        "model_gen": 1,
+        "ms": 373,
+        "tool_variant_ms": 1
+      },
+      {
+        "kind": "collision.model_built",
+        "t_wall_ms": 1795430147181,
+        "t_perf_ms": 3064,
+        "page": "zjdmu45u",
+        "id": 2,
+        "instance": "dgxug6gl",
+        "model_gen": 1,
+        "ms": 391,
+        "tool_variant_ms": 2
+      },
+      {
+        "kind": "collision.sweep_done",
+        "t_wall_ms": 1795430147909,
+        "t_perf_ms": 3791,
+        "page": "zjdmu45u",
+        "id": 2,
+        "run_gen": null,
+        "ms": 1321,
+        "bvh_ms": 390,
+        "sweep_ms": 941,
+        "model_builds": 4,
+        "model_gen": 1,
+        "shards": 4,
+        "tool_variant_ms": 2,
+        "samples": 1022,
+        "coarsened": false,
+        "uncertified": false,
+        "truncated": null,
+        "covered": 1,
+        "intervals": 2,
+        "pairs": 384,
+        "pairs_prescreened": 59,
+        "points": 4
+      }
+    ]
+  }
+}

@@ -4519,3 +4519,91 @@ Code: `feat/p2b-lifetime`, Basis development `244d93a3`, Kopf `cea83f9d`. Gebaut
 - **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
 
 **Erbeten:** `agreement` zu P2b `244d93a3..cea83f9d` oder `findings`, ausdrücklich auch zur Verhaltensänderung bei Cycle Start.
+
+---
+
+## Codex · P2b · Implementierungsreview R446 · 23. November 2026
+
+**Urteil: findings** zu `feat/p2b-lifetime 244d93a3..cea83f9d`. **P2b-1 (Modellwiederverwendung) ist im geprüften Umfang angenommen.** Für P2b-2/P2b-3 bleiben **MT-I25 bis MT-I28** offen. **Die beschriebene Cycle-Start-Ausnahme nehme ich nicht an:** Sie umgeht die vereinbarten Neustartbedingungen für dasselbe Programm. Dafür ist keine neue Operatorentscheidung nötig; der Programmstart selbst muss dadurch nicht gesperrt werden.
+
+Geprüft ist der Produktkopf `cea83f9d`, Dokumentstand `e12c4e99`, gegen den angenommenen Plan v4 aus R442. Eigene Läufe ausschließlich in `/tmp/r446/tree` aus `git archive`, mit einer eigenen Kopie der unveränderten Node-Abhängigkeiten, Fake-LinuxCNC bzw. eigenen Browser-Mocks und unter der gemeinsamen Heavy-Sperre. Kein Zugriff auf die Live-Sim. [Provenienz, Befehle und Prüfergebnisse](maschinentag.r446.codex-manifest.json).
+
+### MT-I25 · Datei-Schreiber buchen ihr Ende bereits vor der Schreibung; HTTP besitzt keinen Halt
+
+**Stellen an `cea83f9d`:** `gateway.py:3841` (`_file_input_began`), `calc_lifetime.py:286` (`wrote_file`), Aufrufe u. a. in `_persist_imported_tools` (`gateway.py:3407`) und `_atomic_stream_write` (`:10701`).
+
+`_file_input_began` erhöht richtig die Generation **vor** dem Dateieffekt. Es ruft aber zugleich `wrote_file` auf, das den Beobachter sofort als `done` bucht. Ohne `_current_action` setzt es nur `last_end` und legt überhaupt keine lebende Aktion an. Gerade die HTTP-Schreiber besitzen keinen WS-Queue-Halt. Die Kommentare „complete when its call returned“ stimmen deshalb nicht mit der Aufrufreihenfolge überein. Auch das Ende von HTTP-Werkzeugimport einschließlich Reload und Metadaten wird so nicht als zusammengehörige Aktion gehalten.
+
+**Eigene Gegenprobe:** Ein wirklicher `_atomic_stream_write` auf eine temporäre Makrodatei wartet in `os.replace`; der Dateiinhalt ist noch alt. Nach 2,1 s auf der kontrollierten Ledger-Uhr meldet der Gateway bereits `busy = null`, `quiet = true`, `_restart_wait = null`. Ein Parser, der jetzt beginnt, erhält die **neue** Generation `(0,1)`, liest aber noch die alte Makrodatei. Nach dem Ersetzen ist die Generation weiterhin `(0,1)` und `_publish_in_generation` nimmt dieses alte Ergebnis an. Die Probe stellt dafür den Eingangsleser und den Veröffentlichungsabschluss nach; sie startet keinen nativen Parser. Bei einem aufgerufenen Makro hilft der Fingerabdruck der unveränderten Hauptdatei nicht. Außerdem bleibt `drift_decision` in der Probe auf `none` der alten Generation `(0,0)`; dieser ungebuchte Dateiabschluss öffnet keine Entscheidung.
+
+**Korrektur:** Beginn und Abschluss trennen. Auch jeder HTTP-/interne Dateischreiber braucht einen Besitzer von vor der möglichen Wirkung bis zum tatsächlichen Abschluss bzw. benannten Fehler; beim Werkzeugimport einschließlich Reload/Metadaten. Die zwei Sekunden und die neue Drift-Entscheidung beginnen am wirklichen Ende. Der vorhandene Beginn-Haken muss vor der Wirkung bleiben. Den langsamen Commit und dessen Fehler-/Cancel-Ende durch die echten Eintrittswege prüfen, nicht nur durch einen vorab von der Probe angelegten WS-Halt.
+
+Belege: [Gateway-Gegenproben](maschinentag.r446.codex-probes.py), [Ergebnisse](maschinentag.r446.codex-backend-probes.txt), [Messwerte: `file-probe`](maschinentag.r446.codex-observations.json). Die Zusicherung „während des Commit nicht ruhig“ ist am Kopf rot.
+
+### MT-I26 · Eine neue Drift-Entscheidung derselben Generation erbt die alte Frist
+
+**Stellen:** `driftWait.ts:74–81`, `ThreeViewer.vue:4334`, `gateway.py:3931–3951`.
+
+`driftVerdict` eröffnet die Frist nur bei neuer Eingangs-/Programmgeneration oder neuer Verbindung. Nach `none`, übernommener Veröffentlichung oder Fallback bleibt der alte Wartezustand erhalten. Der Gateway öffnet dagegen an jeder neuen Leerlauf-Kante eine Entscheidung, **auch ohne neue Eingangsschreibung**. Beispielsweise muss ein weiterer AUTO-Lauf im bereits gewählten Modus die Generation nicht ändern.
+
+**Gegenfälle:** Auf eine abgeschlossene Runde folgt bei derselben Generation zehn Sekunden später `pending`. Statt drei Sekunden zu warten, geht die Prüfung sofort los und nennt als vermeintliche Wartezeit `10000 ms`. Nach einem früheren Fallback und anschließendem `none` startet sie sogar ohne neuen Fallback-Hinweis. Alle drei Verläufe sind am Kopf rot; die Gateway-Kontrolle bestätigt die Folge `none → pending` mit identischer Generation.
+
+Das tritt auch in der echten Seite auf: Die zusätzliche Chromium-Probe lässt erst `none` entscheiden, sendet später `pending` derselben Generation und löst über eine Werkzeugstatusänderung die nächste Prüfung aus. Nach deren Timer bleibt `waiting = false`; `since` ist unverändert **2469 ms**, obwohl die neue Auswertung erst bei etwa **7229,8 ms** beobachtet wird. Die fünf vorgelegten P2b-Browserwächter bestehen daneben unverändert.
+
+**Korrektur:** Jede Entscheidungsrunde benötigt eine eigene, auf dem Draht erkennbare Identität zusätzlich zu Generation und Verbindung. Frist und einmaliger Fallback gehören zu dieser Runde; wiederholte Frames derselben Runde setzen sie nicht zurück. Eine verspätete Entscheidung der vorigen Runde darf auch bei gleicher Generation nichts schließen. Die Rundengrenze darf nicht allein aus `pending` erraten werden: Der Client kann einen Zwischenstand verpassen.
+
+Belege: [Unit-Gegenproben](maschinentag.r446.codex-drift.test.ts), [finale Unit-Ergebnisse](maschinentag.r446.codex-frontend-probes.txt), [zusätzlicher Browserfall zum Anhängen an `collisions.viewer.spec.ts`](maschinentag.r446.codex-browser-probe.ts), [Browserlauf](maschinentag.r446.codex-browser.txt), [Zustände](maschinentag.r446.codex-observations.json).
+
+### MT-I27 · Der Abschluss der noch gesendeten Entscheidung fällt aus dem Ergebnisspeicher
+
+**Stellen:** `bulk_pipeline.py:509–521`, `gateway.py:3954–3967`, `driftWait.ts:85–89`.
+
+Der Gateway hält in `_drift_decision` nur die Jobnummer und ergänzt deren Abschluss bei jedem Status erneut aus `job_ends`. Dieser Speicher wirft nach 16 weiteren Abschlüssen den alten Eintrag weg. Die Entscheidung selbst bleibt aber bestehen, bis wieder eine Eingangsaktion oder Leerlauf-Kante sie ersetzt. Wiederholtes `reparse_preview` schreibt ausdrücklich keinen Eingang (`COMMAND_EFFECTS`), ebenso können Rotary-Jogs weitere Parses ohne solche Interpreter-Kante auslösen.
+
+**Eigene Gegenprobe:** Die aktuelle Entscheidung nennt Job 7 und `published:107`. Nach den Abschlüssen der Jobs 8 bis 23 wird weiterhin Job 7 gesendet, nun **ohne** `published` oder `why`. Der unveränderte Client bekommt exakt diese beiden Gateway-Statuswerte: aus `go:true` wird `go:false, why:"parse", retryInMs:null`. Der längst beendete Job hat keinen weiteren Timeout oder Abschluss mehr, der dieses Warten auflösen könnte. Das kann auch eine neu verbundene Seite treffen.
+
+**Korrektur:** Der terminale Zustand einer noch veröffentlichten Entscheidung muss ebenso lange erhalten bleiben wie diese Entscheidung. Beispielsweise ihren Abschluss in ihr selbst halten oder den referenzierten Eintrag vom Verdrängen ausnehmen. Der Speicher kann begrenzt bleiben; eine größere feste Zahl verschiebt den Fehler lediglich. Veröffentlichte und ohne Veröffentlichung beendete Jobs prüfen, jeweils über mehr als die Cache-Kapazität weiterer Jobs hinweg.
+
+Belege: dieselben [Gateway-Gegenproben](maschinentag.r446.codex-probes.py) und die an deren tatsächlichen Statuswerten angeschlossene [Client-Probe](maschinentag.r446.codex-drift.test.ts); [Messwerte `forgotten-end` / `forgotten-client`](maschinentag.r446.codex-observations.json). Beide Zusicherungen sind rot.
+
+### MT-I28 · Cycle Start: „noch nicht veröffentlicht“ wird als neue Datei behandelt und umgeht die Neustarthalte
+
+**Stellen:** `gateway.py:2020–2057`, `_restart_wait` (`:3971–3986`), `gateway_util.py:2263` (`preview_file_changed`), `bulk_pipeline.py:825ff` (ungepinnte Kontextbildung).
+
+Das Verwerfen des vor der AUTO-Umschaltung begonnenen Parse passt zum angenommenen Beginn-Vertrag. Der folgende Neustart ist aber **kein neuer Ladevorgang**: `file_changed` vergleicht mit dem zuletzt **veröffentlichten** Pfad/mtime und bleibt während des ersten, noch unveröffentlichten Ladevorgangs wahr. `_restart_wait` kehrt damit vor jeder Prüfung auf Aktionsbesitzer, Ruhefrist und Leerlauf zurück.
+
+**Eigene Gegenprobe am echten Poll-Zweig:** Das Programm liest, `current_vel = 1`, die erste Vorschau fehlt noch, `reparse_pending_reason = "discarded:mode"`. Es wird `/p.ngc` mit diesem Grund und **`pinned:false`** neu eingeplant. Dasselbe passiert mit einem zusätzlichen gehaltenen `probe_run`. Bei bereits veröffentlichter Datei verweigert derselbe Helfer korrekt mit `not_idle` bzw. `held:probe_run`. Das ist die benannte Cycle-Start-Abweichung und zugleich eine allgemeinere Lücke im Halt während des ersten Parse.
+
+Damit werden unter dem Lauf erneut aktuelle Eingänge gelesen, statt eine geprüfte Startbasis zu verwenden; mangels bereits veröffentlichter Vorschau greift auch die nice-Regel für eine reine Auffrischung nicht. Das lässt sich nicht nur als zusätzliche Bauzeit akzeptieren, während der Vertrag gleichzeitig „kein ungepinnter Neustart unter dem Lauf“ zusagt.
+
+**Korrekturvorschlag:** Tatsächliches Laden/neue Programmgeneration und Wiederholen desselben noch unveröffentlichten Auftrags unterscheiden. Nach diesem Verwerfen auf die vereinbarten Aktionsenden, Leerlauf/Stillstand und Ruhefrist warten. Cycle Start kann weiterhin die Maschine starten; die Vorschau wartet benannt. Falls stattdessen ein sofortiger Parse der verbindlichen Startbasis gewünscht ist, braucht dieser Weg eine entsprechende Bindung und eigene Belege. Die normale Datei-Kante mit Live-Eingängen erfüllt das nicht.
+
+Belege: [Poll-Gegenprobe](maschinentag.r446.codex-probes.py), [beide Verläufe `cycle-start-probe`](maschinentag.r446.codex-observations.json). Die Probe führt den aus `gateway.py` entnommenen bestehenden Preview-Poll-Zweig aus; weder NML noch ein Parseprozess laufen.
+
+### Annahmen, Beleggrenzen und Nachprüfung
+
+**P2b-1 angenommen:** Der Schlüssel enthält die modellbildenden Eingänge einschließlich Geometrieidentität, aber keine Werkzeugmaße. Der Worker bindet die Basisvariante je Lauf und setzt sie vor der Geometrienutzung wieder ein; das Entfernen aus dem begrenzten Cache zerstört keine von einem Lauf gehaltene Variante. Die gezielten vorhandenen Schlüssel-/Worker-/Variantenprüfungen und der Browserfall zur Wiederverwendung bestehen. Ich habe dort keinen weiteren Befund.
+
+Den Vorher-/Nachher-Beleg lese ich als Messung auf der VM: **6 → 2 Modellbauten**, nach dem Lauf/Wechsel etwa **32 → 11 s**. Die sieben verspäteten Hauptthread-Fenster sind nicht weniger geworden; daraus folgt keine Verbesserung dieser Latenzgröße. Die benannten Grenzen bleiben bestehen. Der Gate-2-Hash ist auf `4a84f968` nachvollziehbar; danach ändern sich nur Dokumentation, Belege und `.gitignore`.
+
+Die ausgelagerte Abschlussentscheidung, der Beginn im Schreibthread und die generationsgebundene Veröffentlichung sind als Ansatz angenommen. Die bisherige Prüfung von Start-Claims wird durch die neue Verwendung nicht ersetzt. Die Wahl der 900/300/30-s-Beobachtergrenzen und `max_shards` am Start ist als benannte Grenze vertretbar, nicht als Erfolgsnachweis nach Zeitablauf.
+
+**Wächter 8 bleibt in seiner Read-back-Hälfte offen.** Der vorgelegte `tool_measure`-Lauf belegt einen Parse nach dem beobachteten Aktionsende, aber `read_backs: []` belegt keinen vorgängigen Read-back. Bereits als `applied` bekannte Werte brauchen deswegen keinen künstlichen Read-back im Produkt. Für den zugesagten Wächter braucht es aber einen gezielten Lauf mit tatsächlich offener Bestätigung und einen Auswerter, der diese Voraussetzung nachweist; die vorhandene PASS-Detailzeile „after … the read-back“ ist für den vorgelegten Lauf zu weit. Der zusätzliche `parse-basis`-Lauf belegt seine drei Bestätigungen, aber keinen anschließenden Drift-Parse im Fenster. Die unveränderte nice-Regel dort ehrlich `incomplete` zu nennen, nehme ich an. Die später geschuldeten Live-Prüfungen bleiben wie benannt offen.
+
+Für die Korrekturen sollen die Wächter mindestens die betroffenen echten Eintrittswege und die Poll-Aufrufkette treffen. Eine alleinige Ledger-Probe kann den fehlenden HTTP-Besitzer oder die Datei-Kanten-Ausnahme nicht entdecken. Ein zusätzlicher dreifacher nativer Antastlauf ist dafür nicht zwingend; ein deterministischer Test mit eingereihtem zweitem Client, Beobachter und tatsächlicher Poll-Entscheidung ist der passende erste Nachweis.
+
+**Eigene Ergebnisse:**
+
+| Prüfung | Ergebnis |
+|---|---|
+| Vorhandene gezielte Backend-Tests zu Ledger, Gateway, Abschluss, Pipeline, Poll-Zweig und Toolsetter | **204 bestanden** |
+| Vorhandene Unit-Tests zu Drift-Warten, Modellschlüssel und Worker | **58 bestanden** |
+| Varianten-/Interleaving-/Initialisierungsfälle aus `collision.test.ts` | **11 bestanden**, 110 nicht ausgewählt |
+| Fünf neue P2b-Browserwächter, unverändert | **5/5 bestanden**, Chromium, kein Retry |
+| Eigene finale Gateway-Proben | **3 erwartete Fehler**, 1 positive Leerlauf-Kanten-Kontrolle |
+| Eigene finale Client-Proben | **4 erwartete Fehler** |
+| Eigene zusätzliche Browserprobe | **1 erwarteter Fehler** an der Wartezusicherung |
+
+[Backend-Lauf](maschinentag.r446.codex-backend.txt), [Variantenlauf](maschinentag.r446.codex-collision.txt), [Browserbericht](maschinentag.r446.codex-browser-report.json). Die Probe wurde einmal präzisiert: Der Fallback-Fall schließt seine erste Runde jetzt ausdrücklich mit `none`, bevor die nächste beginnt; die Cycle-Start-Probe enthält zusätzlich den Fall ohne weiteren Queue-Besitzer. Die finalen Proben und ihre Ergebnisse sind maßgeblich; die erste Unit-Ausgabe ist im Manifest benannt. Kein kompletter Gate- oder erneuter nativer Lauf durch Codex.
+
+**Abschluss:** Findings zu P2b-2/P2b-3, Teil-Agreement zu P2b-1; keine neue Operatorfrage. Alle eigenen Läufe sind beendet. Im Live-Baum nur dieser Anhang und neue `maschinentag.r446.codex-*`-Belege; die Heavy-Sperre ist freigegeben.

@@ -1,0 +1,68 @@
+
+ RUN  v4.1.8 /tmp/r446/tree/lcnc-webui
+
+ ❯ src/viewer/r446.codex.test.ts (3 tests | 3 failed) 5ms
+     × none does not spend the next idle edge's three seconds 3ms
+     × published does not spend the next idle edge's three seconds 1ms
+     × fallback does not spend the next idle edge's three seconds 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r446.codex.test.ts > R446 a new idle decision after a completed wait at the same inputs > none does not spend the next idle edge's three seconds
+ FAIL  src/viewer/r446.codex.test.ts > R446 a new idle decision after a completed wait at the same inputs > published does not spend the next idle edge's three seconds
+AssertionError: expected { go: true, named: { …(2) } } to deeply equal { go: false, why: 'decision', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "go": false,
+-   "retryInMs": 3000,
+-   "why": "decision",
++   "go": true,
++   "named": {
++     "kind": "fallback",
++     "waited_ms": 10000,
++   },
+  }
+
+ ❯ src/viewer/r446.codex.test.ts:12:26
+     10|     const next = driftVerdict(d('pending'), r.wait, 10000, 1, adopted);
+     11|     writeFileSync(`/tmp/r446/drift-${previous}.json`, JSON.stringify({…
+     12|     expect(next.verdict).toEqual({ go: false, why: 'decision', retryIn…
+       |                          ^
+     13|   });
+     14| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/viewer/r446.codex.test.ts > R446 a new idle decision after a completed wait at the same inputs > fallback does not spend the next idle edge's three seconds
+AssertionError: expected { go: true, named: null } to deeply equal { go: false, why: 'decision', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "go": false,
+-   "retryInMs": 3000,
+-   "why": "decision",
++   "go": true,
++   "named": null,
+  }
+
+ ❯ src/viewer/r446.codex.test.ts:12:26
+     10|     const next = driftVerdict(d('pending'), r.wait, 10000, 1, adopted);
+     11|     writeFileSync(`/tmp/r446/drift-${previous}.json`, JSON.stringify({…
+     12|     expect(next.verdict).toEqual({ go: false, why: 'decision', retryIn…
+       |                          ^
+     13|   });
+     14| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  3 failed | 58 passed (61)
+   Start at  11:32:06
+   Duration  831ms (transform 242ms, setup 0ms, import 319ms, tests 295ms, environment 0ms)
+

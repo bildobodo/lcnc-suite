@@ -1,0 +1,403 @@
+{
+  "review": "R446",
+  "date": "2026-11-23",
+  "base": "244d93a37ffb8af857366c8c0e84464478c08f05",
+  "head": "cea83f9de141afbaa608cf82c5d639c140b3f663",
+  "doc_head": "e12c4e997b7cc82557f4a1a0508a071f155abb92",
+  "workspace": "/tmp/r446/tree, git archive cea83f9d",
+  "dependencies": "independent cp -a from /tmp/r445/tree/lcnc-webui/node_modules; package-lock byte-identical",
+  "live": "No live connection, tests, build, checkout or product edit in /home/cnc/lcnc-suite; only this evidence and review append.",
+  "lock": "All runs through scripts/test_support/heavy_lock.py at its default shared path.",
+  "runs": {
+    "targeted": [
+      {
+        "name": "backend-existing",
+        "command": [
+          "/home/cnc/lcnc-suite-p2b/lcnc-gateway/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "test_calc_lifetime.py",
+          "test_calc_lifetime_gateway.py",
+          "test_calc_lifetime_wiring.py",
+          "test_controller_done.py",
+          "test_bulk_pipeline.py",
+          "test_preview_poll_chain.py",
+          "test_toolsetter_basis.py"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-gateway",
+        "exit": 0
+      },
+      {
+        "name": "backend-counter",
+        "command": [
+          "/home/cnc/lcnc-suite-p2b/lcnc-gateway/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "test_r446_codex.py"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-gateway",
+        "exit": 1
+      },
+      {
+        "name": "frontend-targeted",
+        "command": [
+          "npx",
+          "--no-install",
+          "vitest",
+          "run",
+          "src/viewer/driftWait.test.ts",
+          "src/viewer/collisionModelKey.test.ts",
+          "src/viewer/collisionWorker.test.ts",
+          "src/viewer/r446.codex.test.ts",
+          "--maxWorkers=1"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-webui",
+        "exit": 1
+      }
+    ],
+    "more": [
+      {
+        "name": "backend-more",
+        "command": [
+          "/home/cnc/lcnc-suite-p2b/lcnc-gateway/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "test_r446_codex.py"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-gateway",
+        "exit": 1
+      },
+      {
+        "name": "collision-variants",
+        "command": [
+          "npx",
+          "--no-install",
+          "vitest",
+          "run",
+          "src/viewer/collision.test.ts",
+          "--testNamePattern",
+          "base tool|initialization checkpoints|TWP-07",
+          "--maxWorkers=1"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-webui",
+        "exit": 0
+      }
+    ],
+    "browser": [
+      {
+        "name": "build",
+        "command": [
+          "npx",
+          "--no-install",
+          "vite",
+          "build"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "browser",
+        "command": [
+          "npx",
+          "--no-install",
+          "playwright",
+          "test",
+          "e2e/collisions.viewer.spec.ts",
+          "--grep",
+          "P2b-1|P2b-2|R446 a fresh",
+          "--workers=1",
+          "--retries=0",
+          "--reporter=list,json"
+        ],
+        "exit": 1
+      }
+    ],
+    "final-probes": [
+      {
+        "name": "backend-final-probes",
+        "command": [
+          "/home/cnc/lcnc-suite-p2b/lcnc-gateway/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "-p",
+          "no:cacheprovider",
+          "test_r446_codex.py",
+          "--junitxml=/tmp/r446/backend-final-probes.xml"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-gateway",
+        "exit": 1
+      },
+      {
+        "name": "frontend-final-probes",
+        "command": [
+          "npx",
+          "--no-install",
+          "vitest",
+          "run",
+          "src/viewer/r446.codex.test.ts",
+          "--maxWorkers=1"
+        ],
+        "cwd": "/tmp/r446/tree/lcnc-webui",
+        "exit": 1
+      }
+    ]
+  },
+  "results": {
+    "existing_backend_passed": 204,
+    "existing_frontend_passed": 58,
+    "collision_passed": 11,
+    "collision_deselected": 110,
+    "existing_browser_passed": 5,
+    "browser_counterexample_expected_failures": 1,
+    "final_gateway_counterexamples_expected_failures": 3,
+    "gateway_idle_edge_control_passed": 1,
+    "final_frontend_counterexamples_expected_failures": 4,
+    "full_gate_rerun": false
+  },
+  "probe_refinements": [
+    "The initial frontend run contains 58 passing existing tests and three failing own probes. The final fallback probe explicitly closes the first fallback round with none before starting the next pending; its original form omitted that observable transition. Use final probes for the finding.",
+    "The final Cycle Start probe covers both no held action and a queued second action; both schedules are recorded. The initial version covered only the second.",
+    "The final frontend probe also consumes the actual gateway status before/after eviction, demonstrating the wait without an end or retry."
+  ],
+  "unchanged_reviewed_files": [
+    {
+      "path": ".gitignore",
+      "sha256": "0ec6673f395702f654487cfad45d9d17f05e6306507b382cba5cde2a37ea19e2"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "1dcca68a60c08adc7cacfeb8036ae963c61f5c3a4b7ebf092fcf59cd7728ac0e"
+    },
+    {
+      "path": "lcnc-gateway/bulk_pipeline.py",
+      "sha256": "a6c7ec3ea2eeff813b8599bfa10875a5edd27aca8582bd204366ad226d48c0f2"
+    },
+    {
+      "path": "lcnc-gateway/calc_lifetime.py",
+      "sha256": "2a261c40cc9fbe0f65e1d8a471489806954bf9e61dd02f1a90d8df47bf150b57"
+    },
+    {
+      "path": "lcnc-gateway/command_policy.py",
+      "sha256": "ee672470aa3ee4dfb8ebe113713c4f72019eff5dd414dd625e9c970fcc9f8bbe"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "4832e84678277eaaeb219880d1f43869dc42ed8f582a5d18d000bf53b59d3ec6"
+    },
+    {
+      "path": "lcnc-gateway/gateway_util.py",
+      "sha256": "19f32782a86af6bec1c6172b1b4152bd582df1a98cbceba95b8e8350c8590825"
+    },
+    {
+      "path": "lcnc-gateway/test_bulk_pipeline.py",
+      "sha256": "ba819ec7107aa589c538238aa3b3b4c2b1725a5f401970fe5add54e7ea04bdf3"
+    },
+    {
+      "path": "lcnc-gateway/test_calc_lifetime.py",
+      "sha256": "3b62916c42475fe1307c4c12e3facf33b002a15261a9b2d295ffb61d36afd67e"
+    },
+    {
+      "path": "lcnc-gateway/test_calc_lifetime_gateway.py",
+      "sha256": "e4e9dd5bfbda108fc74d37fcb92fa7a70f02ae81a6ae6373b6f1a96a7cfc08cf"
+    },
+    {
+      "path": "lcnc-gateway/test_calc_lifetime_wiring.py",
+      "sha256": "0cae81eb639cce7cd8447e21e99de214c8f1cab00850cb40c34676bb7bb1cc81"
+    },
+    {
+      "path": "lcnc-gateway/test_console_guard.py",
+      "sha256": "d5a85c8826f7b0ac5bd690145dca225616ab1ea8d0fc4af3e9f5c211ee725e99"
+    },
+    {
+      "path": "lcnc-gateway/test_controller_done.py",
+      "sha256": "714f0adb508773c99c405336d1bb9ce48038e84dc5980f9502714ef6b4c25810"
+    },
+    {
+      "path": "lcnc-gateway/test_preview_poll_chain.py",
+      "sha256": "4947ca0b9d304eee69ef1c2f999d706025b2b0bb0cc81ca280e0b55dfcedf7c2"
+    },
+    {
+      "path": "lcnc-gateway/test_toolsetter_basis.py",
+      "sha256": "0c02bf87ba87650f3b4b1db4fa3967b900a3cd4d6944a40584103ea270a2a2b9"
+    },
+    {
+      "path": "lcnc-gateway/ws_fanout.py",
+      "sha256": "5c07f667f74ea2116c5a9b4c661512a47ed9efd39a3e517402878a14fbdcae71"
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "e75c4aab1320c02897ec8685b4384a2d59a7424301fe906ccc852f0abbe57004"
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.exports.test.ts",
+      "sha256": "44dbba0f8da66e28c440379121f7ca48d3b1f58b17c646409cd06a7425dd64de"
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.ts",
+      "sha256": "c5c7c45aa71f826b25591cdda419cb58a2740bd34d3bed8ce678015a735fa639"
+    },
+    {
+      "path": "lcnc-webui/src/shims.d.ts",
+      "sha256": "53964218ed2381c50e3d9b1afe642f86fbb4195c6fb8639855742271242f0d51"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkWiring.test.ts",
+      "sha256": "f517ed789bf29ef62449b3740a65206ec32aa2da3f1809a6390b6d1d10b48754"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.test.ts",
+      "sha256": "a7018d0971f7cdc01ce134007ba7eb547319b02acc0abf1bfba98e3e75859605"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "b6097788112e6be69aad6177e16fa90563cd4e96d277becad0234f7969de667b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionModelKey.test.ts",
+      "sha256": "93b0cf0020f9bb9d0357d08261a6a7501eceadc0705432d9904a99147fcae60b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionModelKey.ts",
+      "sha256": "d35356d21d204af08af8c1961b646543c805536362881dde5b20647612ef1e41"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWorker.test.ts",
+      "sha256": "4dcd65421ffe0c3f97092e5d9df1210e41fa0079a6100ad21d9b91a32c5ef093"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "sha256": "11fbdb64137886e464a6253bdb34494fd43872e0a6107f4ba2a46f4e3d4863b6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/driftWait.test.ts",
+      "sha256": "35cbc7ba996c3c7be646bc950e87f83b33d532949c322ad618a905e112cddb13"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/driftWait.ts",
+      "sha256": "07be88f40fe9a7689b15ab08893da98fe5c6ae9875e91004f3c8caffcc0f64cb"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepShards.ts",
+      "sha256": "875153817b30668b8dd71fa8747bc513dc3089592c643ae8f419d9e5cf41212a"
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.test.ts",
+      "sha256": "950a0688f76d0a236c94b9a250ebb77c2b2dd4a2e8f6074091e4757ec26f6604"
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.ts",
+      "sha256": "a9958afeff9e420b1e307f47b09cca158a3dd4362a0e9c6faf44edfb35aa5a28"
+    },
+    {
+      "path": "scripts/inventory/atoms.py.json",
+      "sha256": "2c562a47a1dfb26e616ce5fbbfc3d0748685e09f590551219287e41ceeb1dea9"
+    },
+    {
+      "path": "scripts/inventory/functions.json",
+      "sha256": "a3784bd2b6de334d9bb57c9720dcff2255bae97b94149caf640506ac27d72e7e"
+    },
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "a6aef04d5a6e4604567c5246be123f47a1a562d62493cc175a43224da2a0582f"
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "f381a3cc2c08e8e31ee2db02edbae145a5397835d2f33380d8b02cab4f17478f"
+    },
+    {
+      "path": "scripts/test_select/rules.py",
+      "sha256": "8de139388c8f541eef956fa76836e5a98792a7d85007c33e505f0af2162205d6"
+    },
+    {
+      "path": "scripts/test_support/build_count_probe.mjs",
+      "sha256": "37db7efc0c0ea4a42fc8e52283cfc438cbd0e953bffebe1d1898f9e3555b8881"
+    },
+    {
+      "path": "scripts/test_support/live_session.py",
+      "sha256": "1947247f7d3341b887d23bc8cc1737be3eb6f7755b61fbb58580e5ddae7a0e00"
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "1f595b2ee38b247572688f6798eadde4a154be1f381f3120694c5025736ee772"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-probes.py",
+      "sha256": "ad7afc9bbf50992cd4b2f495acb6ace60e4c2f9bfd794696f3b40533008b18e8"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-drift.test.ts",
+      "sha256": "de8e6682e07399f16e6cfd37ba81e16a992493d933a0f2482f7cc556825c5e0f"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-browser-probe.ts",
+      "sha256": "201394bfaea53cd04d03825ca1a2fb0e5035d92d2ff59af2c34879e963c0308b"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-backend.txt",
+      "sha256": "b11ba1f556bfed1dde827b48a11836afdc5659b5763c4cc29918e8f3507b5f60"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-backend-probes.txt",
+      "sha256": "6a1ee6783251e33d718cec77edc1b60f72264dc3f99cc1aff7281b56d88be862"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-frontend-initial.txt",
+      "sha256": "4c082915f6fe83a82307eb7de628f268b19f52b3437a25595f947454323d391a"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-frontend-probes.txt",
+      "sha256": "3331a927875ab49573e6d9f3162a97a8400b6453ad5c7044e3edece02273d881"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-collision.txt",
+      "sha256": "49c4a9e331f71497b30a592712ec541ff17ccdad839d64e1b30c9b4fa3089799"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-browser.txt",
+      "sha256": "7bc22c9205a02a1da71b52161e9b4d6c2e0a30d6d8efc65a4f9b7b80adec2bbf"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-browser-report.json",
+      "sha256": "9d8341550ab6bdbb3996e4ac6afa80f9db83ff57503663cedd2515d7a10d242e"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-build.txt",
+      "sha256": "c3f696cb227485982aabf60db65af16f77e61cc8f10432d252b5a84bb2533b92"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-run-targeted.py",
+      "sha256": "5dda28c2417fc915c798e513b8a6424d705d0e77b07118af838d08dcbba549bc"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-run-more.py",
+      "sha256": "472a06a46c9082cb46329b6446aba56b58a6d32e31eed2800cc6f9fafd289970"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-run-browser.py",
+      "sha256": "e6d4478513b23688c2dfe81c5391fd9fc6fee48f9eab3668ca3c94bd1fd2f405"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-run-final-probes.py",
+      "sha256": "c4bfb58e940ece014c2d1d18a64124e49dbaea661d2cdb7a88b36cfeb00d6a48"
+    },
+    {
+      "path": "docs/reviews/maschinentag.r446.codex-observations.json",
+      "sha256": "5a7422ac09255f70e0d68a22348e900464418a4efec67341a48295a416af8aae"
+    }
+  ],
+  "raw_browser_artifacts": "/tmp/r446/tree/lcnc-webui/test-results (trace, screenshot, error context; mock only)"
+}

@@ -1,0 +1,88 @@
+
+ RUN  v4.1.8 /tmp/r446/tree/lcnc-webui
+
+ ❯ src/viewer/r446.codex.test.ts (4 tests | 4 failed) 5ms
+     × none does not spend the next idle edge's three seconds 3ms
+     × published does not spend the next idle edge's three seconds 1ms
+     × fallback does not spend the next idle edge's three seconds 1ms
+   × R446 a terminal job forgotten by the gateway does not become an endless wait 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r446.codex.test.ts > R446 a new idle decision after a completed wait at the same inputs > none does not spend the next idle edge's three seconds
+ FAIL  src/viewer/r446.codex.test.ts > R446 a new idle decision after a completed wait at the same inputs > published does not spend the next idle edge's three seconds
+AssertionError: expected { go: true, named: { …(2) } } to deeply equal { go: false, why: 'decision', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "go": false,
+-   "retryInMs": 3000,
+-   "why": "decision",
++   "go": true,
++   "named": {
++     "kind": "fallback",
++     "waited_ms": 10000,
++   },
+  }
+
+ ❯ src/viewer/r446.codex.test.ts:15:26
+     13|     const next = driftVerdict(d('pending'), r.wait, 10000, 1, adopted);
+     14|     writeFileSync(`/tmp/r446/drift-${previous}.json`, JSON.stringify({…
+     15|     expect(next.verdict).toEqual({ go: false, why: 'decision', retryIn…
+       |                          ^
+     16|   });
+     17| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/viewer/r446.codex.test.ts > R446 a new idle decision after a completed wait at the same inputs > fallback does not spend the next idle edge's three seconds
+AssertionError: expected { go: true, named: null } to deeply equal { go: false, why: 'decision', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "go": false,
+-   "retryInMs": 3000,
+-   "why": "decision",
++   "go": true,
++   "named": null,
+  }
+
+ ❯ src/viewer/r446.codex.test.ts:15:26
+     13|     const next = driftVerdict(d('pending'), r.wait, 10000, 1, adopted);
+     14|     writeFileSync(`/tmp/r446/drift-${previous}.json`, JSON.stringify({…
+     15|     expect(next.verdict).toEqual({ go: false, why: 'decision', retryIn…
+       |                          ^
+     16|   });
+     17| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/viewer/r446.codex.test.ts > R446 a terminal job forgotten by the gateway does not become an endless wait
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r446.codex.test.ts:25:27
+     23|   const next = driftVerdict(wire.after, prev.wait, 10000, 1, adopted);
+     24|   writeFileSync('/tmp/r446/forgotten-client.json', JSON.stringify({ wi…
+     25|   expect(next.verdict.go).toBe(true);
+       |                           ^
+     26| });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  11:38:15
+   Duration  90ms (transform 23ms, setup 0ms, import 28ms, tests 5ms, environment 0ms)
+
