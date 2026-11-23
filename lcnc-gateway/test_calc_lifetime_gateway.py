@@ -414,7 +414,10 @@ class TheRestartWaits(_Base):
         return type("St", (), {"interp_state": interp, "current_vel": vel})
 
     def test_a_discarded_parse_restarts_only_at_idle(self):
-        with patch.object(gateway._bulk, "reparse_pending_reason", "discarded:mode"):
+        # the program's parse was spawned under this program generation: a
+        # schedule again is a restart (Codex R447 MT-I28 A — by identity)
+        with patch.object(gateway._bulk, "reparse_pending_reason", "discarded:mode"), \
+             patch.object(gateway._bulk, "spawned_program_gen", self.gen.snapshot()[0]):
             self.clock.t += 10      # no action, the debounce long past
             self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), False), "not_idle")
             self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE, 5.0), False), "not_idle")
@@ -422,6 +425,12 @@ class TheRestartWaits(_Base):
             # a first load whose parse was discarded unpublished stays
             # `file_changed` — repeating it is a restart, not a load (R446 MT-I28)
             self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True), "not_idle")
+            # whatever reason cancelled it — a rotary edge's too
+            with patch.object(gateway._bulk, "reparse_pending_reason", "rotary:A"):
+                self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING, 1.0), True), "not_idle")
+        # a new program generation whose parse was never spawned: a load, never waits
+        with patch.object(gateway._bulk, "spawned_program_gen", None):
+            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True))
 
     def test_no_parse_of_an_unloaded_program_starts_before_the_unload_settles(self):
         """Native p2b at 934ca971: between the unload's write and the status
@@ -495,12 +504,14 @@ class TheFirstLoadsRestart(_Base):
     with the last PUBLISHED file) — repeating that job is a restart: it waits
     for the actions, idle and the quiet window; a real load never waits."""
 
-    def run_edge(self, *, reason, interp, vel, hold=False, published=False):
+    def run_edge(self, *, reason, interp, vel, hold=False, published=False, spawned=True):
         from bulk_pipeline import BulkPipeline
         from gateway_util import preview_file_changed, preview_file_edge_action
         b = BulkPipeline(get_stat=lambda: None, get_machine_units=lambda: "mm", build_wcs_rotation_patches=lambda: {})
         b.reparse_pending, b.reparse_pending_reason = True, reason
         b.last_file, b.last_mtime = ("/p.ngc", 1.0) if published else (None, None)
+        # the first load's parse was spawned under this program generation (or not: a load)
+        b.spawned_program_gen = self.gen.snapshot()[0] if spawned else None
         scheduled = []
         b.schedule_refresh = lambda *a, **kw: scheduled.append((a[0], a[1], kw.get("pinned", False))) or True
         if hold:
@@ -530,7 +541,7 @@ class TheFirstLoadsRestart(_Base):
         self.assertEqual(scheduled, [("/p.ngc", "discarded:mode", False)])
 
     def test_a_real_load_never_waits(self):
-        scheduled, _ = self.run_edge(reason=None, interp=linuxcnc.INTERP_IDLE, vel=0.0, hold=True)
+        scheduled, _ = self.run_edge(reason=None, interp=linuxcnc.INTERP_IDLE, vel=0.0, hold=True, spawned=False)
         self.assertEqual([s[1] for s in scheduled], ["file"], "a load's own parse, even beside a held action")
 
     def test_a_load_clears_the_old_programs_discard(self):
@@ -647,3 +658,162 @@ class TheFileWritersOwnTheirEnd(_Base):
                 _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k"))
         self.assertEqual([(a.what, a.outcome) for a in self.all_ended()], [("tool_import", "unknown")])
         self.assertIsNone(gateway._actions.busy())
+
+
+class TheRunningFileWriterHoldsToItsEnd(_Base):
+    """Codex R447 MT-I25 A/B through the real `_atomic_stream_write` (his
+    cases): a controller abort and the observer's limit never release a file
+    writer that still runs; the publish, after_publish and a rollback are ONE
+    held commit; the actual end — the thread's — starts the quiet window."""
+
+    def writer(self, kind):
+        import os as _os
+        import tempfile
+        from types import SimpleNamespace
+        entered, release = threading.Event(), threading.Event()
+        real_replace, real_unlink = _os.replace, _os.unlink
+        seen = {}
+        folder = tempfile.mkdtemp()
+        old, dest = _os.path.join(folder, "old.ngc"), _os.path.join(folder, "new.ngc")
+        open(old, "w").write("old macro\n")
+        if kind != "rollback":
+            open(dest, "w").write("old macro\n")
+
+        def blocked_replace(src, dst):
+            if str(dst) == dest:
+                entered.set()
+                release.wait(10)
+            return real_replace(src, dst)
+
+        def unlink(path, *a, **kw):
+            if str(path) == old:
+                raise OSError(5, "simulated old-name unlink failure")
+            if str(path) == dest and kind == "rollback":
+                entered.set()
+                release.wait(10)
+            return real_unlink(path, *a, **kw)
+
+        async def chunks():
+            yield b"new macro\n"
+
+        async def scenario():
+            task = asyncio.create_task(gateway._atomic_stream_write(
+                chunks(), dest, 1024, replace=kind != "rollback", gate=lambda: None,
+                after_publish=(lambda: gateway._unlink_renamed(old)) if kind == "rollback" else None))
+            await asyncio.to_thread(entered.wait, 5)
+            if kind == "timeout":
+                self.poll(dt=301)
+            elif kind == "abort":
+                seen["abort"] = await gateway.handle_command({"cmd": "abort"}, False)
+            self.poll(dt=2.1)
+            seen.update(busy=self.ledger.busy(), quiet=gateway._actions_quiet(),
+                        wait=gateway._restart_wait(SimpleNamespace(interp_state=linuxcnc.INTERP_IDLE, current_vel=0), False),
+                        file=open(dest).read() if _os.path.exists(dest) else None)
+            self.clock.t += 1.0
+            seen["release_at"] = self.clock.t
+            release.set()
+            try:
+                await task
+            except gateway.HTTPException as e:
+                seen["error"] = e.detail
+        with patch.object(gateway, "_macro_folder_path", return_value=folder), \
+             patch.object(gateway.os, "replace", side_effect=blocked_replace), \
+             patch.object(gateway.os, "unlink", side_effect=unlink), \
+             patch.object(gateway._bulk, "unloading", False), \
+             patch.object(gateway._bulk, "reparse_pending_reason", None):
+            _run(scenario())
+        return seen
+
+    def check(self, seen):
+        self.assertTrue(str(seen["busy"]).startswith("observed:macro_file"), seen)
+        self.assertFalse(seen["quiet"], seen)
+        self.assertIsNotNone(seen["wait"], seen)
+        self.assertIsNone(self.ledger.busy(), "free at the thread's end")
+        self.assertEqual(self.ledger.last_end, seen["release_at"], "the quiet window from the ACTUAL end")
+
+    def test_a_controller_abort_never_ends_a_running_file_writer(self):
+        seen = self.writer("abort")
+        self.assertEqual(seen["abort"]["ok"], True)
+        self.check(seen)
+
+    def test_the_observer_limit_never_releases_a_running_file_writer(self):
+        seen = self.writer("timeout")
+        self.check(seen)
+
+    def test_publish_rename_and_rollback_are_one_held_commit(self):
+        seen = self.writer("rollback")
+        self.assertIn("Not renamed", str(seen.get("error")))
+        self.assertEqual(seen["file"], "new macro\n", "the probe stood inside the rollback")
+        self.check(seen)
+
+
+class TheRotaryCancelOfTheFirstLoad(_Base):
+    """Codex R447 MT-I28 A (his case) through the unchanged poll statements
+    from the file edge through the generation branch: the first load's parse,
+    the generation bumped by the switch to AUTO, A 0 -> 10 under the run — the
+    rotary branch cancels first with `rotary:A`; the restart still waits."""
+
+    def test_a_rotary_cancel_does_not_hide_the_restart(self):
+        import ast
+        import copy
+        from types import SimpleNamespace
+        from bulk_pipeline import BulkPipeline
+        from calc_lifetime import inflight_outdated
+        from gateway_util import (inflight_doomed_reason, preview_file_changed, preview_file_edge_action,
+                                  rotary_hold_settled, rotary_hold_update)
+        tree = ast.parse(open(gateway.__file__).read())
+        code = None
+        for node in ast.walk(tree):
+            body = getattr(node, "body", None)
+            if not isinstance(body, list):
+                continue
+            for i, s in enumerate(body):
+                if not isinstance(s, ast.Assign) or not ast.unparse(s).startswith("_fe = preview_file_edge_action("):
+                    continue
+                j = next(k for k in range(i, len(body)) if isinstance(body[k], ast.If)
+                         and ast.unparse(body[k].test) == "_fe is not None and st.active_file")
+                root = copy.deepcopy(body[j])
+                c = root
+                while c.orelse and isinstance(c.orelse[0], ast.If):
+                    if "inflight_outdated(" in ast.unparse(c.test):
+                        c.orelse = []
+                        break
+                    c = c.orelse[0]
+                code = compile(ast.fix_missing_locations(ast.Module(body=copy.deepcopy(body[i:j]) + [root], type_ignores=[])),
+                               "gateway.py:poll-chain", "exec")
+        self.assertIsNotNone(code)
+        b = BulkPipeline(get_stat=lambda: None, get_machine_units=lambda: "mm", build_wcs_rotation_patches=lambda: {})
+        b.refresh_running = True
+        b.inflight = {"file": "/p.ngc", "mtime": 1.0, "rotary_seed": {"A": 0, "B": 0, "C": 0}, "gen": self.gen.snapshot()}
+        b.spawned_program_gen = self.gen.snapshot()[0]      # the first load's parse runs
+        self.gen.began("mode")                               # the switch to AUTO
+        st = SimpleNamespace(active_file="/p.ngc", interp_state=linuxcnc.INTERP_READING, current_vel=1.0, rotary_abc=[10, 0, 0])
+        b.rotary_hold = rotary_hold_update(None, st.rotary_abc, 100)
+        calls = []
+
+        def cancel(why):
+            calls.append(("cancel", why))
+            b.refresh_running, b.inflight = False, None
+            return True
+        b.cancel_inflight = cancel
+        b.schedule_refresh = lambda *a, **kw: calls.append(("schedule", a[1], kw.get("pinned", False))) or True
+        self.clock.t += 10
+        ns = {"_bulk": b, "st": st, "_now": 100, "_cur_mtime": 1.0,
+              "file_changed": preview_file_changed(st.active_file, 1.0, b.last_file, b.last_mtime),
+              "preview_file_edge_action": preview_file_edge_action, "rotary_hold_settled": rotary_hold_settled,
+              "_restart_wait": gateway._restart_wait, "inflight_doomed_reason": inflight_doomed_reason,
+              "inflight_outdated": inflight_outdated, "_calc_gen": self.gen,
+              "_spawn_preview_task": lambda c: None, "_dd_decide": lambda *a: None,
+              "_trace": SimpleNamespace(emit=lambda *a, **k: None)}
+        with patch.object(gateway, "_bulk", b):
+            exec(code, ns)          # rotary and generation invalidation compete
+            ns["_now"] = 101.1
+            exec(code, ns)          # cancelled, the pose settled, the program still runs
+        self.assertEqual(calls[0][0], "cancel")
+        self.assertFalse(any(c[0] == "schedule" for c in calls), calls)
+        # at the run's end, still: it restarts
+        st.interp_state, st.current_vel = linuxcnc.INTERP_IDLE, 0.0
+        with patch.object(gateway, "_bulk", b):
+            ns["_now"] = 103.0
+            exec(code, ns)
+        self.assertEqual([c for c in calls if c[0] == "schedule"], [("schedule", "rotary:A", False)])

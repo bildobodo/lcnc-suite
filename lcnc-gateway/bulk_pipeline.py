@@ -181,6 +181,10 @@ class BulkPipeline:
         # (P2b-3): no parse of it starts — set at the unload's begin, cleared
         # once no program is active, at a load's begin, or when the unload fails
         self.unloading = False
+        # the program generation the last parse was spawned under: a later
+        # schedule of the same program generation is a RESTART, not a load
+        # (Codex R447 MT-I28 A — whatever reason cancelled it)
+        self.spawned_program_gen: Optional[int] = None
         # Last measured publish time per file path (ms) — the expected
         # duration the banner shows and the timeout scale.
         self.parse_ms_by_file: dict = {}
@@ -789,6 +793,8 @@ class BulkPipeline:
         # BEFORE its first input read — it publishes only while it is still
         # the current one, decided at the publication under the same lock
         _gen_at = self.generation.snapshot() if self.generation is not None else None
+        if _gen_at is not None:
+            self.spawned_program_gen = _gen_at[0]
         # how this job ended, for the drift decision (P2b-2)
         _gen_published: Dict[str, Any] = {}
         # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is

@@ -671,9 +671,12 @@ an unload, published inputs the controller no longer held. Now:
   effect from right before the file changes to their ACTUAL end
   (`_file_effect`: an observer of the running action, else of an action of
   its own — an HTTP writer has no queue hold; `done` when the writer
-  returned, `unknown` when it raised; Codex R446 MT-I25): tool table,
+  returned, `unknown` when it raised; Codex R446 MT-I25; a running writer
+  is ended neither by a controller abort nor by its 300 s limit — past it it
+  is named, `action.file_overdue`, and holds on, R447): tool table,
   parameter file, a program the published or running parse reads, every
-  macro publish/delete/rename; the HTTP tool import (table, reload,
+  macro publish/delete/rename — a publish, its after_publish and a rollback
+  are ONE held commit (R447); the HTTP tool import (table, reload,
   metadata) is ONE action `tool_import`. A load or unload is a new program
   generation (`_program_began`). A parse snapshots the generation before its
   first input read; its publication (and the verify path's basis) runs under
@@ -694,12 +697,14 @@ an unload, published inputs the controller no longer held. Now:
   target mode). The handler's return is no end (a CALL with wait=None answers
   ok long before the routine ends). The idle parse restarts only with no
   action held or observed and 2 s since the OBSERVED end (`_actions_quiet`,
-  `_restart_wait`); a discarded parse's restart also waits for idle — a first
-  load whose parse the switch to AUTO discarded unpublished included: it
-  stays `file_changed` (compared with the last PUBLISHED file), and repeating
-  it is a restart, not a load (R446 MT-I28; a real load's begin clears the
-  discard) — and while an unload settles no parse of the program starts
-  (`_bulk.unloading`).
+  `_restart_wait`), then for the interpreter idle and the machine still: a
+  RESTART is any schedule of a program generation whose parse was already
+  spawned (`spawned_program_gen`), whatever reason cancelled it — a first
+  load cancelled unpublished by the switch to AUTO or by a rotary edge stays
+  `file_changed` (compared with the last PUBLISHED file) and still waits
+  (R446/R447 MT-I28); only a real load — a new program generation not yet
+  spawned — never waits; while an unload settles no parse of the program
+  starts (`_bulk.unloading`).
 - *The decision (P2b-2).* The gateway names its first drift decision after an
   idle transition or an action's end (`drift_decision`: pending / none /
   parse {job, published | why}, each a ROUND with its own number — an idle

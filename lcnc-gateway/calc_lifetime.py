@@ -344,9 +344,15 @@ class ActionLedger:
             live = [o for a in self._actions.values() for o in a.observers if o.outcome is None]
         out = []
         for o in live:
-            if o.state in ("pending", "file"):
-                # a write not returned yet, a file writer still running: no
-                # controller proof ends it — its own end does, or its limit
+            if o.state == "file":
+                # a file writer still running (Codex R447 MT-I25 A): only its
+                # ACTUAL end ends it — never a limit (overdue_files names
+                # one past it), never a controller proof
+                out.append((o, None, (o.err_since, o.err_proof)))
+                continue
+            if o.state == "pending":
+                # a write not returned yet: no controller proof ends it — its
+                # limit names it unknown
                 out.append((o, "unknown" if t - o.t >= o.limit_s else None, (o.err_since, o.err_proof)))
                 continue
             if o.mode_target is not None and o.link_seq == owner_seq:
@@ -384,17 +390,32 @@ class ActionLedger:
                     self._settle(o.action)
 
     def end_all(self, outcome: str) -> int:
-        """Abort / E-Stop: every live observer ends `aborted` (task flushed
-        its queues — no proof follows). The number ended."""
+        """Abort / E-Stop: every live CONTROLLER observer ends `aborted`
+        (task flushed its queues — no proof follows). A file writer is no
+        controller work: it runs on to its own end (Codex R447 MT-I25 A).
+        The number ended."""
         n = 0
         with self._lock:
             for a in list(self._actions.values()):
                 for o in a.observers:
-                    if o.outcome is None:
+                    if o.outcome is None and o.state != "file":
                         o.outcome = outcome
                         n += 1
                 self._settle(a)
         return n
+
+    def overdue_files(self, now: Optional[float] = None) -> List[Observer]:
+        """File writers past their limit, each returned ONCE — to be named;
+        they stay live (their owner still writes) until their actual end."""
+        t = self._clock() if now is None else now
+        out = []
+        with self._lock:
+            for a in self._actions.values():
+                for o in a.observers:
+                    if o.state == "file" and o.outcome is None and t - o.t >= o.limit_s and not o.write_failed:
+                        o.write_failed = True   # (the flag reused: said once)
+                        out.append(o)
+        return out
 
     def _settle(self, a: Action) -> None:
         # under self._lock

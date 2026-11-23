@@ -3930,6 +3930,9 @@ def _observe_actions(polled_at: float, owner: "Link") -> None:
         if owner is not _link:
             return
         _actions.apply(decisions)
+    for o in _actions.overdue_files():
+        # named, never ended: the writer still runs (Codex R447 MT-I25 A)
+        _trace.emit("action.file_overdue", level="warn", what=o.what, limit_s=o.limit_s)
     _trace_ended_actions()
 
 
@@ -4018,25 +4021,28 @@ def _drift_decision_status() -> Optional[Dict[str, Any]]:
 
 def _restart_wait(st, file_changed: bool) -> Optional[str]:
     """Why a parse restart (reparse_pending) waits this tick — None: it may
-    start (P2b-3). A real LOAD (a new program generation; its begin cleared
-    any discard) never waits. Every restart waits for the input actions'
-    observed end and the debounce; a DISCARDED parse's restart also for the
-    interpreter idle and the machine still — a program start's switch to AUTO
-    begins a generation, and an unpinned parse never starts under the run.
-    `file_changed` alone is no load (Codex R446 MT-I28): it compares with the
-    last PUBLISHED path and stays true through a first load whose parse was
-    discarded unpublished — repeating that job is a restart, not a load (the
-    preview waits, named; Cycle Start is not blocked)."""
+    start (P2b-3). A real LOAD — a new program generation whose parse has not
+    been spawned yet — never waits. Every RESTART (a schedule of the same
+    program generation again, whatever reason cancelled it) waits for the
+    input actions' observed end and the debounce, then for the interpreter
+    idle and the machine still: it reads live inputs, and an unpinned parse
+    never starts under a run (a program start's switch to AUTO begins a
+    generation). `file_changed` alone is no load (Codex R446/R447 MT-I28): it
+    compares with the last PUBLISHED path and stays true through a first load
+    whose parse was cancelled unpublished — by a discard or a rotary edge
+    alike (the preview waits, named; Cycle Start is not blocked)."""
     if _bulk.unloading:
         return "unloading"
-    discarded = str(_bulk.reparse_pending_reason or "").startswith("discarded:")
-    if file_changed and not discarded:
+    # a real LOAD: a new program generation whose parse has not been spawned
+    # yet — bound to the program's identity, never to a reason's text
+    # (Codex R447 MT-I28 A: a rotary cancel of the first load's parse
+    # carried "rotary:A" and the restart ran under the program)
+    if file_changed and _bulk.spawned_program_gen != _calc_gen.snapshot()[0]:
         return None
     if not _actions_quiet():
         return _actions.busy() or "debounce"
-    if str(_bulk.reparse_pending_reason or "").startswith("discarded:") and not (
-            st.interp_state == linuxcnc.INTERP_IDLE and not st.current_vel):
-        return "not_idle"
+    if not (st.interp_state == linuxcnc.INTERP_IDLE and not st.current_vel):
+        return "not_idle"   # a restart reads live inputs: never under a run or a move
     return None
 
 
@@ -10751,7 +10757,9 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                     if refusal:
                         raise HTTPException(status_code=409, detail={"error": "refused", **(
                             refusal if isinstance(refusal, dict) else {"reason": refusal})})
-                with _file_publish_effect(dest_path):   # around the change, to its end (P2b-3, R446)
+                # the publish, after_publish and any rollback are ONE held
+                # commit to its last possible file effect (Codex R447 MT-I25 B)
+                with _file_publish_effect(dest_path):
                     if replace:
                         os.replace(tmp, dest_path)
                         tmp = None  # published — don't unlink in finally
@@ -10759,12 +10767,12 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                         _publish_no_replace(tmp, dest_path)
                     # linked — the temp name is unlinked in finally; the data is
                     # already durable under dest_path.
-                if after_publish is not None:
-                    try:
-                        after_publish()
-                    except OSError as e:
-                        _safe_unlink(dest_path)
-                        raise HTTPException(status_code=500, detail=f"Not renamed — {e.strerror or e}")
+                    if after_publish is not None:
+                        try:
+                            after_publish()
+                        except OSError as e:
+                            _safe_unlink(dest_path)
+                            raise HTTPException(status_code=500, detail=f"Not renamed — {e.strerror or e}")
             if gate is None:
                 await loop.run_in_executor(io_ex, _commit)
             else:

@@ -133,8 +133,8 @@ MUTS = {
         "    return inflight_gen is not None and tuple(inflight_gen) != tuple(now)", "    return False")],
         [py(CL + "TestInflightOutdated::test_a_running_parse_of_an_older_generation", "AssertionError")]),
     "a_discarded_restart_under_the_run": (GW + "gateway.py", [(
-        "    if str(_bulk.reparse_pending_reason or \"\").startswith(\"discarded:\") and not (",
-        "    if False and not (")],
+        "    if not (st.interp_state == linuxcnc.INTERP_IDLE and not st.current_vel):\n        return \"not_idle\"",
+        "    if False:\n        return \"not_idle\"")],
         [py(CG + "TheRestartWaits::test_a_discarded_parse_restarts_only_at_idle", "AssertionError")]),
     "a_superseded_hold_leaks": (GW + "gateway.py", [(
         "                        _release_action(_qa, \"superseded\")   # never run: only its hold ends",
@@ -194,11 +194,28 @@ MUTS = {
         "  if (d.round !== undefined && w.round !== null) return d.round - w.round;", "  if (false) return 0;")],
         [pw("e2e/collisions.viewer.spec.ts", "a fresh pending round after none", "the wait belongs to the new round")]),
     "a_first_load_restart_never_waits": (GW + "gateway.py", [(
-        "    if file_changed and not discarded:\n        return None", "    if file_changed:\n        return None")],
+        "    if file_changed and _bulk.spawned_program_gen != _calc_gen.snapshot()[0]:\n        return None",
+        "    if file_changed:\n        return None")],
         [py(CG + "TheFirstLoadsRestart::test_a_discarded_first_load_never_restarts_unpinned_under_the_run", "AssertionError")]),
     "the_read_back_judge_ignores_the_order": ("scripts/test_support/native_cases.py", [(
         "    early = [e for e in spawns if idx[id(e)] < t_rb]", "    early = []")],
         [py("../scripts/test_native_stage.py::test_the_read_back_half_needs_an_open_confirmation", "AssertionError")]),
+    # ---- Codex R447: MT-I25 A/B the running file writer, MT-I28 A the restart by identity
+    "an_abort_ends_file_work": (GW + "calc_lifetime.py", [(
+        "                    if o.outcome is None and o.state != \"file\":", "                    if o.outcome is None:")],
+        [py(CG + "TheRunningFileWriterHoldsToItsEnd::test_a_controller_abort_never_ends_a_running_file_writer", "AssertionError")]),
+    "the_limit_releases_a_file_writer": (GW + "calc_lifetime.py", [(
+        "                out.append((o, None, (o.err_since, o.err_proof)))\n                continue\n            if o.state == \"pending\":",
+        "                out.append((o, \"unknown\" if t - o.t >= o.limit_s else None, (o.err_since, o.err_proof)))\n                continue\n            if o.state == \"pending\":")],
+        [py(CG + "TheRunningFileWriterHoldsToItsEnd::test_the_observer_limit_never_releases_a_running_file_writer", "AssertionError")]),
+    "the_rollback_outside_the_commit": (GW + "gateway.py", [(
+        "                    if after_publish is not None:\n                        try:\n                            after_publish()\n                        except OSError as e:\n                            _safe_unlink(dest_path)\n                            raise HTTPException(status_code=500, detail=f\"Not renamed — {e.strerror or e}\")",
+        "                    pass\n                if after_publish is not None:\n                    try:\n                        after_publish()\n                    except OSError as e:\n                        _safe_unlink(dest_path)\n                        raise HTTPException(status_code=500, detail=f\"Not renamed — {e.strerror or e}\")")],
+        [py(CG + "TheRunningFileWriterHoldsToItsEnd::test_publish_rename_and_rollback_are_one_held_commit", "AssertionError")]),
+    "a_restart_by_reason_text": (GW + "gateway.py", [(
+        "    if file_changed and _bulk.spawned_program_gen != _calc_gen.snapshot()[0]:\n        return None",
+        "    if file_changed and not str(_bulk.reparse_pending_reason or \"\").startswith(\"discarded:\"):\n        return None")],
+        [py(CG + "TheRotaryCancelOfTheFirstLoad::test_a_rotary_cancel_does_not_hide_the_restart", "AssertionError")]),
     # ---- P2b-2 (plan v4 variant 1): the idle check waits for the drift decision
     "the_decision_wait_never_falls_back": (V + "driftWait.ts", [(
         "    if (waited >= fallbackMs) {", "    if (false) {")],
