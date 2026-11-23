@@ -253,6 +253,15 @@ class BulkPipeline:
         # live-basis read — None when it may begin, else why not
         # ("running" / "moving" / "unread"). None: no admission (a test's).
         self.admit_begin: Optional[Callable[[], Optional[str]]] = None
+        # The job scheduled and not yet begun (P2b-F1-3): {"job", "file",
+        # "reason", "program_id"} from schedule_refresh until its inflight
+        # snapshot exists — `preview_refresh` names it from the schedule on
+        # (`phase: starting`), no gap on the wire.
+        self.scheduled: Optional[dict] = None
+        # The last job that ended without a publication, with the identity
+        # it was spawned for: {"program_id", "job", "why"} — the wait
+        # record's `last_end`.
+        self.last_unpublished_end: Optional[dict] = None
         # Parse-time rotary seed of the published payload (W6), from the
         # worker's `__ABCSEED__` stderr line: {letter: degrees} the sync
         # initcode posed uncommanded rotaries at. The same idle drift edge
@@ -424,10 +433,14 @@ class BulkPipeline:
             # names it before the coroutine's first step)
             self.job_seq += 1
             self.last_scheduled_job = self.job_seq
+            self.scheduled = {"job": self.job_seq, "file": filepath, "reason": reason,
+                              "program_id": self.program_id_of(self.generation.snapshot())
+                              if self.generation is not None else None}
             task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned, run=run,
                                                     job=self.job_seq))
         except BaseException as e:
             self.refresh_running = False
+            self.scheduled = None
             _trace.emit("gcode.refresh_schedule_failed", level="warn",
                         file=filepath, reason=reason,
                         exc=type(e).__name__, msg=str(e))
@@ -439,6 +452,7 @@ class BulkPipeline:
             if t.cancelled() and self.refresh_running:
                 # Cancelled before its first step: no finally ran.
                 self.refresh_running = False
+                self.scheduled = None
                 self.gcode_parse_proc = None
         try:
             task.add_done_callback(_done)
@@ -547,7 +561,7 @@ class BulkPipeline:
     #: multiple of its idle time. Its duration never enters the history.
     _PINNED_TIMEOUT_FACTOR = 3.0
 
-    def _note_job_end(self, job: Optional[int], how: Dict[str, Any]) -> None:
+    def _note_job_end(self, job: Optional[int], how: Dict[str, Any], program_id: Optional[str] = None) -> None:
         """A parse job ended: published (its version) or not, and why — a
         cancel's reason, a discard, else `ended` (a failure, a timeout, a
         skip: the trace names it)."""
@@ -557,6 +571,7 @@ class BulkPipeline:
             end: Dict[str, Any] = {"published": how["version"]}
         else:
             end = {"why": how.get("why") or (f"cancelled:{self.cancel_reason}" if self.cancel_reason else "ended")}
+            self.last_unpublished_end = {"program_id": program_id, "job": job, "why": end["why"]}
         self.job_ends[job] = end
         while len(self.job_ends) > 16:
             self.job_ends.popitem(last=False)
@@ -802,11 +817,23 @@ class BulkPipeline:
         operator sees the wait instead of a silently stale preview. None
         when no parse runs (the key is then absent from the frame)."""
         inf = self.inflight
-        if inf is None or not self.refresh_running:
+        if not self.refresh_running:
             return None
+        if inf is None:
+            # scheduled, not begun yet (P2b-F1-3): named from the schedule on
+            sch = self.scheduled
+            if sch is None:
+                return None
+            return {"reason": sch.get("reason"), "file": os.path.basename(sch.get("file") or ""),
+                    "program_id": sch.get("program_id"), "phase": "starting",
+                    "first": sch.get("program_id") != self.published_program,
+                    "expected_ms": None, "started_ms": None, "job": sch.get("job"),
+                    "queued": bool(self.reparse_pending), "superseded": self.superseded_total}
+        _pid = self.program_id_of(inf.get("gen"))
         return {"reason": inf.get("reason"), "file": os.path.basename(inf.get("file") or ""),
-                # the identity this parse publishes for (P2b-F1-1)
-                "program_id": self.program_id_of(inf.get("gen")),
+                # the identity this parse publishes for (P2b-F1-1); `first`:
+                # no publication of it yet — a load's own preview (F1-3)
+                "program_id": _pid, "phase": "running", "first": _pid != self.published_program,
                 "expected_ms": inf.get("expected_ms"), "started_ms": inf.get("started_ms"),
                 # the parse job (the trace's `job`): the page names the parse
                 # it saw by it (Codex R185 — no ±50 ms match on started_ms)
@@ -1295,8 +1322,9 @@ class BulkPipeline:
             _trace.emit("gcode.preview_refresh_failed", level="warn", job=_job,
                         file=filepath, exc=type(e).__name__, msg=str(e))
         finally:
-            self._note_job_end(job, _gen_published)
+            self._note_job_end(job, _gen_published, self.program_id_of(_gen_at))
             self.refresh_running = False
+            self.scheduled = None
             self.gcode_parse_proc = None
             self.inflight = None
             if _verify_path:

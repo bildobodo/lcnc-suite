@@ -209,6 +209,7 @@ def build_status_envelope(
     preview_origin: Optional[dict] = None,
     run_basis: Optional[dict] = None,
     trip_basis: Optional[dict] = None,
+    preview_wait: Optional[dict] = None,
     drift_decision: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
@@ -271,6 +272,10 @@ def build_status_envelope(
     if run_basis is not None:
         # The run's basis, taken before its start was written (plan 1a).
         msg["run_basis"] = run_basis
+    if preview_wait is not None:
+        # The wait for the active program's own preview (P2b-F1-3): every
+        # reason that holds it, while it holds — every frame.
+        msg["preview_wait"] = preview_wait
     if drift_decision is not None:
         # The first drift decision after an idle transition or an input
         # action's end (P2b-2): pending / none / parse {job, its end} — what

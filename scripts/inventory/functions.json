@@ -270,7 +270,7 @@
              "control:SafetyStrip.vue|MachineBtn:activeCodes|*=1", "status:data.gcodes", "status:data.mcodes",
              "status:data.program_units", "listener:GcodePanel.vue:*=2"]},
   {"id": "F-PREVIEW", "area": "programm", "name": "Vorschau des Werkzeugwegs",
-   "atoms": ["cmd:reparse_preview", "http:GET /preview", "status:preview_*=4", "setting:viewer.previewMode",
+   "atoms": ["cmd:reparse_preview", "http:GET /preview", "status:preview_*=5", "setting:viewer.previewMode",
              "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPreviewModeChange*=2"]},
   {"id": "F-MDI", "area": "mdi", "name": "MDI-Befehl senden, Verlauf",
    "atoms": ["control:App.vue|MachineBtn:mdi|*=1", "control:App.vue|MachineInput:mdiText|*=1",

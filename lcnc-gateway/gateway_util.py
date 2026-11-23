@@ -17,7 +17,7 @@ import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 
 # File-upload allow-list. Lives here (not gateway.py) so validate_extension is
@@ -2320,6 +2320,34 @@ def preview_file_changed(active_file, mtime, last_file, last_mtime,
         if program_id != published_program:
             return True
     return bool(active_file) and (active_file != last_file or mtime != last_mtime)
+
+
+def preview_hold_reasons(*, unloading: bool, skip_quiet: bool, busy: List[str], quiet: bool,
+                         interp_idle: bool, current_vel, rotary_settled: bool) -> List[str]:
+    """EVERY reason that holds a parse of the active program this tick
+    (P2b-F1-3, Codex R449 MT449-03) — the record the page names; the
+    decision itself stays `_restart_wait`'s (its first reason, its order).
+    `running` (the interpreter not idle, paused too) and `moving` (idle, the
+    machine not still) are told apart; every open action (`held:` /
+    `observed:` / `overdue:`), else the quiet window (`debounce`) — skipped
+    only for an own load's first parse; the rotary pose's settle; an
+    unload under way. No deadline: a reason holds while its condition does.
+    Pure."""
+    out: List[str] = []
+    if unloading:
+        out.append("unloading")
+    if not skip_quiet:
+        if busy:
+            out.extend(busy)
+        elif not quiet:
+            out.append("debounce")
+    if not interp_idle:
+        out.append("running")
+    elif current_vel:
+        out.append("moving")
+    if not rotary_settled:
+        out.append("settle:rotary")
+    return out
 
 
 def preview_file_edge_action(file_changed, reparse_pending, refresh_running, inflight,

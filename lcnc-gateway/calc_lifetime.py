@@ -442,6 +442,25 @@ class ActionLedger:
                     return f"observed:{a.what}"
         return None
 
+    def busy_all(self, now: Optional[float] = None) -> List[str]:
+        """EVERY open action, all clients (P2b-F1-3, Codex R449 MT449-03):
+        `held:<what>` (queued or in its handler), `observed:<what>` (its
+        writes' observers live past the handler), and `overdue:<what>` for a
+        file writer past its limit that still holds. Order of admission,
+        each name once."""
+        t = self._clock() if now is None else now
+        out: List[str] = []
+        with self._lock:
+            for a in self._actions.values():
+                if a.held:
+                    out.append(f"held:{a.what}")
+                elif any(o.outcome is None for o in a.observers):
+                    out.append(f"observed:{a.what}")
+                for o in a.observers:
+                    if o.state == "file" and o.outcome is None and t - o.t >= o.limit_s:
+                        out.append(f"overdue:{o.what}")
+        return list(dict.fromkeys(out))
+
     def quiet_s(self, now: Optional[float] = None) -> Optional[float]:
         """Seconds since the last observed end of an action that wrote (None:
         an action is still open; inf: none ever ended)."""

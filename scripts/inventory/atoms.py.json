@@ -824,6 +824,10 @@
      "id": "status:preview_tool_basis"
     },
     {
+     "id": "status:preview_wait",
+     "unread": true
+    },
+    {
      "id": "status:probe_results"
     },
     {

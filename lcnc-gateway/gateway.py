@@ -114,7 +114,7 @@ from gateway_util import (
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
     evaluate_wcs_offset_drift, evaluate_limits_drift,
-    inflight_doomed_reason, pinned_parse_outlived, rotary_hold_update, rotary_hold_settled,
+    inflight_doomed_reason, pinned_parse_outlived, rotary_hold_update, rotary_hold_settled, preview_hold_reasons,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -2347,6 +2347,8 @@ async def _status_poller():
                 _bulk.cancel_inflight("unload")
                 _bulk.clear_preview()
                 _bulk.reparse_pending = False
+            # the wait for the active program's own preview, named (P2b-F1-3)
+            _preview_wait_tick(st, file_changed, _now)
 
             # A reserved TWP fixture (G59..G59.3) active on identity kins at
             # boot — the previous session shut down (or aborted) in Plane
@@ -4066,6 +4068,50 @@ def _restart_wait(st, file_changed: bool) -> Optional[str]:
     if not (st.interp_state == linuxcnc.INTERP_IDLE and not st.current_vel):
         return "not_idle"   # a parse reads live inputs: never under a run or a move
     return None
+
+
+# ---- The wait for a program's own preview (P2b-F1-3, Codex R449 MT449-03) ----
+# While the active program has no publication of its own and no parse of it
+# is scheduled or running, the status names EVERY reason that holds it, every
+# frame — recomputed each poll tick from the conditions themselves (no
+# deadline, no countdown); a new load replaces it (another identity), its
+# job's schedule ends it (`preview_refresh` names that job from then on), an
+# unload ends it. The record decides nothing; the page's guard ends only
+# with matching data.
+_preview_wait: Optional[Dict[str, Any]] = None
+
+
+def _preview_wait_tick(st, file_changed: bool, now: float) -> None:
+    global _preview_wait
+    pid = st.program_id
+    if not pid or not st.active_file or _bulk.published_program == pid:
+        _preview_wait = None
+        return
+    inf, sch = _bulk.inflight, _bulk.scheduled
+    if _bulk.refresh_running and ((inf is not None and _bulk.program_id_of(inf.get("gen")) == pid)
+                                  or (inf is None and sch is not None and sch.get("program_id") == pid)):
+        _preview_wait = None   # its parse is scheduled or running: preview_refresh names it
+        return
+    reasons = preview_hold_reasons(
+        unloading=_bulk.unloading, skip_quiet=bool(file_changed) and _own_load_unparsed(),
+        busy=_actions.busy_all(), quiet=_actions_quiet(),
+        interp_idle=st.interp_state == linuxcnc.INTERP_IDLE, current_vel=st.current_vel,
+        rotary_settled=rotary_hold_settled(_bulk.rotary_hold, st.rotary_abc, now))
+    prev = _preview_wait
+    end = _bulk.last_unpublished_end
+    _preview_wait = {
+        "program_id": pid, "file": os.path.basename(st.active_file), "reasons": reasons,
+        "since_ms": prev["since_ms"] if prev is not None and prev.get("program_id") == pid else int(time.time() * 1000),
+        **({"last_end": {"job": end["job"], "why": end["why"]}}
+           if end is not None and end.get("program_id") == pid else {}),
+    }
+
+
+def _preview_wait_status() -> Optional[Dict[str, Any]]:
+    """The status wire's `preview_wait` (P2b-F1-3): the record, in every
+    frame while it holds."""
+    w = _preview_wait
+    return dict(w) if w is not None else None
 
 
 def _active_program_id() -> Optional[str]:
@@ -12898,6 +12944,7 @@ async def ws_endpoint(ws: WebSocket):
                         preview_tool_basis=_bulk.tool_basis_status(),
                         preview_origin=_bulk.preview_origin_status(),
                         drift_decision=_drift_decision_status(),
+                        preview_wait=_preview_wait_status(),
                         run_basis=_run_basis_status(),
                         config_warning=(
                             {
