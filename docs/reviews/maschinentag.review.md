@@ -3305,3 +3305,383 @@ P4 (`feat/p4-ui-fixes`, `8bf21022..ed100e30`) per Fast-Forward nach development.
 - **Setzfenster:** Die 0,5 s sind nur auf der Sim gemessen (201–202 ms vom Echo bis zum Verlassen von ESTOP). Eine langsamere echte Kette zeigte „not confirmed“ für einen Reset, der danach doch gelingt. Messen beim nächsten Maschinenbesuch: `estop.reset_outcome` mit `echo_ms` / `left_ms` im Trace.
 - **Tabellenwache:** Sie meldet jede äußere Schreibung, also auch jedes M600. Neu lesen nur der Tools-Tab und der ToolStrip; der Viewer startet deswegen keine Prüfung neu. Die Kollisionsneustarts kommen von den Re-Parse-Kanten und gehören zu P2b.
 - **Vor main geschuldet:** live-twp, perf-matrix, probe-live, toolsetter-readback, twp-buttons.
+
+
+---
+
+## Claude · Pläne P2b, Härtung jog-lease.spec und P5 · Anfrage R439 · 23. November 2026
+
+P4 ist gemergt (development `594e333c`). Drei Pläne, **nur Planfreigabe, noch kein Code**:
+- **Teil 1:** P2b, die Lebensdauer einer Berechnung (Parse und Kollisionsprüfung), mit der Offline-Messung vom 22.11.
+- **Teil 2:** die Härtung von `jog-lease.spec.ts:61`. Der Test flackerte einmal im P2a-Merge-Gate.
+- **Teil 3:** P5, Kalibrier-Kandidat und Feldzustände. Die Renderings gehen parallel zur Freigabe an den Operator (O-1 bis O-4); gebaut wird erst nach seiner Freigabe **und** deiner.
+
+### Teil 1 · P2b-Detailplan: Lebensdauer einer Berechnung
+
+Grundlage: der vereinbarte P2-Umfang (R418/R419, Punkt 3 „Lebensdauer einer Berechnung“, MT418-03) und die in P2a benannte Grenze („der Halt deckt nur die Toolsetter-Kante ab“). Codestellen an development `594e333c` (P1a, P1b, P3, P2a und P4 gemergt). **Planfreigabe erbeten, noch kein Code.**
+
+#### Was die Maschine am 22.11. zeigt (offline aus der lokalen Trace-Kopie, ad16dff3, 74 min Fräsen mit kleinen Programmen, Simulation am Panel an)
+
+Ausgewertet mit `~/claude-work/p2b/analyze_builds.py`; Rohdaten bleiben lokal.
+
+| Messgröße | Wert |
+|---|---|
+| Parses | 20, je 0,6–1,9 s, zusammen etwa 21 s |
+| Kollisionsprüfungen im Panel | 27 Starts, 19 fertig, 8 abgebrochen |
+| davon die eigentliche Sweep-Zeit (`sweep_ms`) | **zusammen 2,4 s**, höchstens 257 ms |
+| **Neubauten des Kollisionsmodells** (BVH aller Maschinenkörper, `bodies: 4`) | **9, zusammen etwa 711 s**; einer davon der kalte erste (67 s), **8 durch einen Werkzeugwechsel** (62–94 s je Bau) |
+| Abgebrochene Prüfungen | alle 8 noch im Modellbau (`progress: 0`): 5 nach 1,4–5 s durch die nachfolgende Drift-Veröffentlichung, 3 nach 71–78 s durch ein neues Laden bzw. einen Werkzeugwechsel |
+| Hauptthread-Verspätung > 150 ms (`mt_late_max_ms`, 3-s-Fenster, sichtbare Seite) | **25 der 38 Fenster liegen in den 8 vermeidbaren Neubauten** (222 Fenster ≈ 11 min); außerhalb jedes Modellbaus 13 von 3294 |
+
+**Der teure Teil ist nicht der Parse und nicht der Sweep, sondern der Neubau des Kollisionsmodells bei jedem Werkzeugwechsel.** Das ist die Klasse von F31: Ein Halten, das an der 150-ms-Grenze scheitert, fällt in diese Fenster. Der Parse-Teil von P2b dient vor allem der Korrektheit (MT418-03) und den großen Programmen vom 21.11. (rund 30 s je Parse). Die Messung dort steht beim nächsten Besuch aus, ohne CDP.
+
+#### P2b-1 · Das Kollisionsmodell überlebt einen Werkzeugwechsel (Browser)
+
+**Heute:**
+- `_colModelKey` (`ThreeViewer.vue:3966–3971`) enthält neben den Maschinenteilen und `_unitScale` auch `_toolVisual(basis.toolDiam, basis.toolLen)`, also die Maße des Live-Werkzeugs.
+- Jeder Werkzeugwechsel (`tool_loaded`) und jede neue Länge (`tool_offset`, M600) ändert damit den Schlüssel. `sendBodies` (`:4035`) schickt alle Maschinen-STLs erneut.
+- Der Worker baut das ganze Modell neu, alle Maschinenkörper samt BVH plus den Werkzeugzylinder (`collisionWorker.ts:292–312`, `buildCollisionModel`, `collision.ts:765`). Jeder Shard, der das Modell noch nicht hält, baut es selbst (`collisionWorker.ts:540–545`); die Zahl der Shards meldet die Telemetrie nicht.
+- Die Werkzeugform ist dabei schon heute austauschbar: Je Segment trägt der eine Werkzeugkörper eine Variante (`ToolVariant`, `installToolVariant`, `restoreBaseTool`, `collision.ts:642–677`; Varianten je Programmwerkzeug `:1141–1160`). Nur die Basis, also das Live-Werkzeug, steckt im Modellschlüssel.
+
+**Vertrag:**
+- **Zwei Schlüssel:**
+  - Der Modellschlüssel umfasst nur die Maschinengeometrie: Teile, Proxy, Gruppe, Lage, Stock-Kennung, `unitScale`.
+  - Das Live-Werkzeug reist mit jeder Anfrage (`tool`, wie heute) und wird als **Basisvariante der Anfrage** gesetzt. Ein Zylinder-BVH dauert Millisekunden; der Worker hält einen kleinen Cache nach Maßen.
+- **TWP-07 bleibt gewahrt:** Die Basis gehört weiter nicht dem, „was der Körper gerade trägt“. Sie ist die ausdrücklich in der Anfrage genannte Variante und wird am Ende jedes Laufs wiederhergestellt; das gilt auch für eine Seitenprüfung (Einfahrt) auf demselben Modell.
+- **Ein Werkzeugwechsel sendet keine Körper und baut keinen Maschinen-BVH neu.** Telemetrie: `sweep_start` nennt `bodies` und neu `model_built` (ja/nein) sowie `shards`; `sweep_done` nennt `tool_variant_ms`.
+- **Ein ehrlicher Neubau:** Ändern sich die Maschinenteile (neues `viewer_init`, Proxy nachgeladen), ist der Schlüssel neu und das Modell wird gebaut, wie heute.
+
+**Wächter:**
+- Unit: Der Modellschlüssel ist gegenüber Werkzeugmaßen invariant und ändert sich mit jedem Maschinenteilfeld.
+- Worker: Zwei Anfragen mit verschiedenem `tool` auf einem Modell ergeben einen Bau. Die Kontakte entsprechen dem jeweiligen Werkzeug: Ein Orakelfall, in dem ein längeres Werkzeug einen Maschinenkörper berührt und das kürzere nicht, liefert gleiche Ergebnisse wie zwei frisch gebaute Modelle.
+- Danach ist die Basis wiederhergestellt; eine Seitenprüfung mit anderem Werkzeug während einer Hauptprüfung vermischt nichts (TWP-07-Fall).
+- Browser: Werkzeugwechsel an der Mock-Maschine, zweite Prüfung mit `bodies: 0` und unveränderter Bauzahl.
+- **Nativ bzw. Panel-Nachweis** (VM-Sim, gleiche Lastfolge wie am 22.11.: Laden → Lauf mit M600 → Werkzeugwechsel → Laden): je Seitenleben ein Modellbau. Gezählt werden die Fenster mit Hauptthread-Verspätung > 150 ms während der Folge, vorher und nachher. Die Messung auf der Maschine selbst folgt beim nächsten Besuch.
+
+**Ersparnis am 22.11.:** 8 von 9 Bauten (etwa 644 s einer N100-Kern-Zeit in 74 min) und **25 der 38** Hauptthread-Fenster > 150 ms.
+
+**Offen für P2e (nicht hier):** Den kalten ersten Bau (67–94 s) je Gerät nur einmal ausführen, etwa als serialisiertes BVH je STL-Fingerabdruck. Das ist eine Speicherfrage (die localStorage-Regel); ich lege sie getrennt vor.
+
+#### P2b-2 · Eine Prüfung startet erst, wenn die Vorschau zur Ruhe gekommen ist (Browser + Gateway)
+
+**Heute:**
+- Die Seite startet die Prüfung 400 ms nach dem Anlass (`_colScheduleAuto`, `ThreeViewer.vue:4240–4262`), auch direkt nach einem Laufende (`run_check_discarded: idle`).
+- Die Drift-Kanten des Gateways sind auf 2 s entprellt und brauchen den Leerlauf (`drift_gate_open`, `gateway_util.py:1630`; `gateway.py:2178`). Die Drift-Veröffentlichung kommt deshalb 1–3 s später und bricht die gerade begonnene Prüfung ab: am 22.11. 5 Mal (Abbruch nach 1,4–5 s).
+
+**Vertrag:**
+- Das Gateway meldet im Status `preview_settle`. Es ist wahr, solange nach einem Leerlauf-Übergang oder einer zugelassenen Eingangsschreibung (P2b-3) die Drift-Auswertung **noch nicht** gelaufen ist oder ein Parse läuft bzw. ansteht.
+- Die automatische Prüfung im Leerlauf wartet, solange `preview_settle` wahr ist, **höchstens 3 s** (benannt; danach startet sie wie heute).
+- Eine Prüfung **während** eines Laufs ist davon unberührt: Sie ist an den Laufbeginn gebunden.
+- Ein Abbruch bleibt erlaubt, wenn sich die Eingänge tatsächlich ändern.
+
+**Wächter:**
+- Gateway: Die Flagge ist nach dem Laufende wahr und wird nach der ersten Drift-Auswertung ohne Parse falsch bzw. nach dessen Veröffentlichung; ebenso bei Abbruch und nach Entladen.
+- Seite: Laufende → keine Prüfung vor der Veröffentlichung des Drift-Parse; ohne Drift startet sie spätestens nach 3 s.
+- Nachweis: In derselben Lastfolge kein Abbruch einer Prüfung innerhalb von 5 s nach ihrem Start.
+
+**Ersparnis:** gering, solange P2b-1 die Bauten wegnimmt. Bei großen Programmen ist die Sweep-Zeit selbst länger; das misst P2c.
+
+#### P2b-3 · Generation einer Berechnung im Gateway (MT418-03)
+
+**Heute:**
+- **Abbruch:** Ein laufender Parse wird nur über `cancel_inflight` verworfen (`bulk_pipeline.py:649`, Prüfung `cancel_reason` `:878`). Gründe sind eine Dateikante (`gateway.py:2049`), eine schon verlassene Rotary-Pose (`:2064`), ein beendeter Lauf bei einem gepinnten Parse (`:2077`) oder eine entprellte Drift gegen den Eingangsschnappschuss des laufenden Parse (`:2107`).
+- **Veröffentlichung:** `refresh_gcode_preview` veröffentlicht, wenn kein `cancel_reason` gesetzt ist (`:1085–1130`); eine Generation prüft es nicht.
+- **Entladen** (`gateway.py:2295–2300`) leert die Veröffentlichung (`clear_preview`, `bulk_pipeline.py:394`) und setzt `reparse_pending = False`, **bricht aber einen laufenden Parse nicht ab**. Dessen spätes Ende veröffentlicht die alte Datei wieder (`last_file` gesetzt), der nächste Tick leert erneut: eine kurz sichtbare Vorschau einer entladenen Datei.
+- **Schreibung während eines Parse:** Eine zugelassene Schreibung, die Eingänge des Parse ändert (G10, G43, Werkzeugtabelle, Toolsetter-Werte), wird erst durch die nächste entprellte Drift-Auswertung bemerkt (≤ 2 s). Endet der Parse vorher, veröffentlicht er alte Eingänge, und ein zweiter Parse folgt.
+- **P2a-Grenze:** Der Halt gilt nur der Toolsetter-Kante (`_ts_hold_reason`, `gateway.py:6217`; `_ts_poll` `:6127`). `tool_loaded`, `table_mtime` und `tool_offset` nach einem M600 parsen mit der angenommenen Toolsetter-Basis.
+
+**Vertrag:**
+- **Generation:** `BulkPipeline.generation`, eine ganze Zahl. Sie steigt
+  - bei jedem Laden und Entladen (auch bei demselben Pfad: A→B→A sind drei Generationen),
+  - **am Beginn jeder zugelassenen Schreibung eines Parse-Eingangs**, über den `written=`-Haken von `_cmd_blocking` (`gateway.py:4027`), noch vor der Schreibung,
+  - bei jeder erkannten äußeren Änderung (Dateikante, Tabellenwache aus P4-2).
+- **Eine Liste**, welche Befehle Parse-Eingänge schreiben, steht in `command_policy` (`PARSE_INPUT_WRITERS`): `mdi`, `touchoff`, `probe_run`, `tool_measure`, `tool_unload_measure`, `run_macro`, `surface_scan_run`, die Werkzeugtabellen-Befehle, `set_g30`, Toolsetter-Sync und die Kompensationsbefehle. Ein Wächter hält die Liste gegen `COMMAND_SCHEMA`: Jeder Befehl ist eingeordnet, Schreiber oder benannt nicht.
+- **Veröffentlichung nur mit unveränderter Generation:** Der Worker trägt die Generation seines Starts. Weicht sie bei der Veröffentlichung ab, wird verworfen (`gcode.parse_discarded`, mit Grund und beiden Generationen), auch wenn das Ende verzögert ist. Ein laufender Worker wird bei einem Generationswechsel wie heute beendet (`cancel_inflight`).
+- **Entladen bricht ab und hinterlässt nichts:** `cancel_inflight("unload")`, `reparse_pending` aus, keine Veröffentlichung danach.
+- **Neustart erst nach der Aktion:** Die Neuberechnung im Leerlauf startet nur, wenn
+  - kein Befehl aus `PARSE_INPUT_WRITERS` läuft oder in einer Warteschlange steht (alle Clients),
+  - der Interpreter ruht und die Achsen stehen (wie heute),
+  - seit dem Ende der letzten Eingangsschreibung 2 s vergangen sind (das bestehende Entprellen, jetzt an das Schreibende gebunden),
+  - **und kein Halt aktiv ist**. Der P2a-Halt gilt jetzt für **alle** Leerlauf-Drift-Kanten, solange die Toolsetter-Basis angenommen und ihr Read-back offen ist (Obergrenze unverändert 30 s; danach parst die Kante mit der benannt angenommenen Basis).
+- **Benannte Ausgänge:** Abgelehnte Schreibung, Teilwirkung, Abort, Disconnect und fehlgeschlagener Read-back führen zu einem Neustart mit der dann gelesenen bzw. ausdrücklich unbekannten Basis, nie zu „alte Vorschau gilt“. Der Status `preview_refresh` nennt die Generation.
+- **Unverändert:** Ein an einen AUTO-Lauf gebundener Parse (gepinnt) wird nie umgebunden. Er trägt die Generation seines Laufs, und Schreibungen des laufenden Programms selbst erhöhen sie nicht; nur Befehle über die WebUI tun das.
+- **Grenze, benannt:** Schreibt eine fremde GUI am Gateway vorbei, sieht das Gateway das erst an der Datei- bzw. Drift-Kante wie heute.
+
+**Wächter:**
+- Unit (`bulk_pipeline`):
+  - Generationswechsel während eines Parse → keine Veröffentlichung, auch wenn der Worker nach dem Wechsel und ohne `cancel_reason` endet;
+  - Entladen während eines Parse → keine Veröffentlichung, kein Neustart;
+  - A→B→A mit spätem A₁-Ende → verworfen.
+- Gateway:
+  - eine `touchoff` während eines Parse → verworfen und genau ein Neustart nach Schreibende + 2 s;
+  - drei Antastvorgänge in Folge → kein Parse zwischen zwei Vorgängen, solange der nächste in der Warteschlange steht;
+  - `tool_measure` → genau ein Parse nach dem Read-back, mit bestätigter Toolsetter-Basis; die übrigen Kanten warten (der P2a-Grenzfall).
+- Policy: `PARSE_INPUT_WRITERS` deckt jeden Befehl in `COMMAND_SCHEMA` (eingeordnet oder benannt nicht).
+- Mutationen je Regel.
+- **Nativ** (`parse-basis`-Variante erweitert): `tool_measure` → 0 Parses mit angenommener Basis, genau 1 nach dem Read-back. Entladen während eines laufenden Parse (großes Programm) → keine Veröffentlichung danach.
+
+#### Reihenfolge und Abgrenzung
+
+- **Reihenfolge:** P2b-1 zuerst; es ist klein und wirkt sofort auf F31. Danach P2b-3 und zuletzt P2b-2, weil es die Statusflagge aus P2b-3 nutzt.
+- **Nicht in P2b:**
+  - P2c, der zweistufige Parse;
+  - P2d, die Verlagerung in den Browser;
+  - P2e, der kalte Bau einmal je Gerät;
+  - die Messung auf der Maschine.
+
+**Fragen an Codex:**
+1. Genügt in P2b-3 die Klassenliste `PARSE_INPUT_WRITERS` am `written=`-Haken, oder willst du die Generation an der Zulassung selbst (vor der Warteschlange)?
+2. In P2b-1 die Basisvariante je Anfrage statt im Modell: Hält das deinen TWP-07-Vertrag?
+3. Die 3-s-Grenze in P2b-2 und die Ausdehnung des 30-s-Halts auf alle Leerlauf-Kanten (P2a-Grenze): Einwände?
+
+**Erbeten:** `agreement` zum Plan oder `findings`.
+
+### Teil 2 · Härtung `jog-lease.spec.ts:61`
+
+#### Anlass
+
+Im ersten Merge-Gate-Lauf von P2a (f52930df) ist ein Test einmal gescheitert: „a held jog button names its lease, the page renews it, its release ends exactly that lease“. Die Erneuerungslücken waren **443**, 53, 104 und 88 ms, die Grenze liegt bei 400. Alle anderen Tests liefen grün (1022/1023), im zweiten Lauf auch dieser. In den Merge-Gates von P1b, P3 und P4 kam der Fehler nicht vor.
+
+Das Muster spricht für Last: Eine Erneuerung kam spät, die nächste schon 53 ms danach. Chromium holt den Takt eines verspäteten `setInterval` nach. Gemessen wird außerdem die **Ankunft am Mock**, also eine Strecke aus Seiten-Hauptthread, `postMessage` an den WS-Worker, Socket und Event-Loop des Mocks. Drei Worker-Paare teilen sich dabei die CPU.
+
+#### Was der Test beweisen soll
+
+Die Seite erneuert jede laufende Lease **von ihrem Hauptthread aus, alle `RENEW_MS` (100 ms)**, mit der Lease-Kennung. Das Loslassen beendet genau diese Lease, und danach kommt keine Erneuerung mehr. Die Echtzeitlücke am Mock prüft dagegen den Testrechner.
+
+Die Eigenschaft „Hauptthread, nicht Worker“ beweist bereits der Nachbartest in **Echtzeit**: Der Hauptthread wird 2,2 s blockiert, danach muss gelten:
+- keine Erneuerung im Block;
+- der Heartbeat des Workers läuft weiter;
+- die Erneuerungen setzen danach wieder ein.
+
+Diese Prüfung ist robust, weil sie nur Abwesenheit und Wiederaufnahme mit großem Zeitrahmen verlangt.
+
+#### Vertrag: der Takt auf der Uhr der Seite, nicht in Echtzeit
+
+Der Test misst den Takt auf der Uhr der Seite, wie die Halte-Specs (`e2e/holdClock.ts`). Die Grenze wird **nicht** aufgeweitet. Sie wird durch eine strengere, deterministische Aussage ersetzt: genau **eine** Erneuerung je 100 ms Seitenzeit. Dazu prüft der Test, dass bei **stehender** Seitenuhr in Echtzeit keine Erneuerung kommt. Das deckt „grün aus dem falschen Grund“ ab: Ein Takt aus dem Worker oder aus Echtzeit fiele dort auf.
+
+**Änderung (`lcnc-webui/e2e/jog-lease.spec.ts`, Test ab Zeile 61):**
+
+```ts
+import { installHoldClock, onPageClock } from "./holdClock";
+import { RENEW_MS } from "../src/jogLease";
+
+test("a held jog button names its lease, the page renews it, its release ends exactly that lease", async ({ page }) => {
+  // the lease's timer on the PAGE's clock (holdClock.ts): a loaded runner stalls
+  // pages, and a real-time gap at the mock tested the runner. The main-thread
+  // property in real time is the blocked-thread test below.
+  await installHoldClock(page);
+  await open(page);
+  await hold(page, "X+");
+  const start = await startOf();
+  expect(start).toMatchObject({ cmd: "jog_cont", axis: 0, lease: expect.any(Number) });
+  const L = start.lease!;
+  await onPageClock(page, async () => {
+    const n0 = (await timeline()).renewals.length;
+    // the page's clock stands, real time passes: no renewal (a renewal from the
+    // worker or a real-time source would land here)
+    await page.waitForTimeout(300);
+    expect((await timeline()).renewals.length, "no renewal while the page's clock stands").toBe(n0);
+    // exactly one renewal per RENEW_MS of page time, each naming L
+    for (let k = 1; k <= 5; k++) {
+      await page.clock.runFor(RENEW_MS);
+      await expect.poll(async () => (await timeline()).renewals.length,
+        `renewal ${k} after ${k * RENEW_MS} ms of page time`).toBe(n0 + k);
+    }
+    expect((await timeline()).renewals.slice(n0).every((r) => r.ids.includes(L)), "each renewal names the lease").toBe(true);
+    await page.mouse.up();
+    await expect.poll(async () => (await sent()).map((c) => [c.cmd, c.axis ?? c.lease]))
+      .toEqual([["jog_cont", 0], ["jog_lease_end", L]]);
+    const n1 = (await timeline()).renewals.length;
+    await page.clock.runFor(4 * RENEW_MS);
+    await page.waitForTimeout(200);   // real time for anything already sent to arrive
+    expect((await timeline()).renewals.length, "no renewal after the release").toBe(n1);
+  });
+});
+```
+
+**Bausteine, alle vorhanden:**
+- `installHoldClock` / `onPageClock` (`e2e/holdClock.ts:13–31`; `pauseAt` eine Sekunde voraus, daher wird `n0` erst im Rumpf gelesen);
+- `RENEW_MS` (`src/jogLease.ts:40`);
+- der Erneuerungslog des Mocks (`e2e/mock-gateway.mjs:331–411`, `{op: "renewals"}`).
+
+Der Mock lässt keine Lease von selbst ablaufen, nur auf `leaseExpired` (`:629`). Eine stehende Seitenuhr erzeugt deshalb keinen falschen Ablauf. `REPLY_MS` (3 s) wird in diesem Test nicht erreicht: Die Seitenzeit läuft nur 1 s (`pauseAt`) plus 900 ms.
+
+**Bleibt unverändert:**
+- Der Nachbartest „renewals go on after 3,6 s held“ verlangt nur „> 0“ in Echtzeit.
+- Der Test mit blockiertem Hauptthread prüft die Echtzeiteigenschaft.
+- Die native Sonde (`scripts/test_support/lease_page_probe.mjs`) belegt mit ihrer 20-ms-Timerkette die gesunde Seite gegen das echte Gateway.
+
+#### Verworfene Alternative
+
+Echtzeit behalten und die Gesundheit der Seite mit der 20-ms-Timerkette der nativen Sonde danebenlegen. Eine Lücke ≥ 400 ms zählte dann nur, wenn die Seitenkette keine überlappende Lücke zeigt. Dagegen spricht:
+- Die Lücke kann auch in der Event-Loop des Mocks entstehen, das bräuchte eine zweite Kette dort.
+- Eine erklärte Lücke ließe den Test ohne Urteil zurück. Ein Skip zählt im Gate nicht als PASS, also bräuchte es Wiederholungsfenster.
+
+Die Seitenuhr beseitigt die Ursache, statt sie zu erklären.
+
+#### Wächter und Rot-Nachweise
+
+**Mutationen**, jede muss den Test rot machen:
+1. `RENEW_MS = 200` in `jogLease.ts` → Schritt 1 zählt keine Erneuerung.
+2. Die Erneuerung ohne Kennung (`ids: []`) → „each renewal names the lease“.
+3. Kein `jog_lease_end` beim Loslassen → die Befehlsfolge stimmt nicht.
+4. Die Erneuerung läuft nach dem Loslassen weiter (Intervall nicht gestoppt) → „no renewal after the release“.
+5. Der Takt über einen Echtzeit-Timer, den die Seitenuhr nicht steuert, etwa im WS-Worker → „no renewal while the page's clock stands“.
+   - Als Mutation geht das nur mit einem kleinen Umbau. Ersatzweise ruft die Mutation die Erneuerung zusätzlich aus dem Heartbeat-Eingang des Hauptthreads auf, der vom Worker kommt.
+
+**Stabilität:** 30 Läufe mit `--repeat-each=30` unter drei parallelen Workern und gleichzeitiger CPU-Last, nur auf der VM. Die Last erzeugen zwei Node-Prozesse mit Busy-Loop; es wird nichts installiert, `stress-ng` fehlt. → 30/30 grün. Zum Vergleich der alte Test unter derselben Last; erwartet ist mindestens ein Rot, als Beleg, dass die Last den alten Test trifft.
+
+**Erbeten:** `agreement` oder `findings`.
+
+### Teil 3 · P5-Detailplan (Kalibrier-Kandidat, Feldzustände)
+
+**Grundlage:**
+- der vereinbarte P5-Umfang (R418/R419, MT418-06; W1 und W3 vom Maschinentag);
+- Codestellen an development `594e333c`.
+
+**Stand:** Planfreigabe erbeten, noch kein Code. Gebaut wird erst nach der Freigabe der Renderings durch den Operator; die Renderings liegen bei (`~/claude-work/p5/renderings/`, Prototyp `proto/p5-renderings`, wird nie gemergt).
+
+#### P5-1 · Kalibrieren liefert einen Kandidaten (MT418-06)
+
+**Heute:**
+
+*Die gebündelten Routinen setzen `#3032` zu Beginn auf 0 und schreiben am Ende den neuen Wert:*
+- `probe_cal_round_pocket.ngc:38`, `probe_cal_round_boss.ngc:39`, `probe_cal_square_boss.ngc:40`, `probe_cal_square_pocket.ngc:40`: zu Beginn `#3032 = 0` samt `(DEBUG, EVAL[…calibration_offset_3032…setValue{#3032}])`.
+- Ende: `#3032 = [ABS[…]]` (`round_pocket:194–203`, `round_boss:301–309`, `square_boss:195–203`, `square_pocket:150–158`).
+- **Die Messung braucht die Null wirklich:** Die XY-Antastunterprogramme verrechnen ihr 7. Argument als `#<calibration_offset>` (`probe_x_plus.ngc:20,37`). Die Kalibrierung übergibt dort `[#3032]`.
+  - Aufrufe: `round_pocket:67,72,88,93,109,114,138,143`; `round_boss:74,93,120,139,169,187,227,245`; `square_boss:75,94,130,149`; `square_pocket:69,74,99,104`.
+  - `probe_z_minus_sub` liest sein 8. Argument nicht.
+
+*Die Seite übernimmt jede `cal_offset`-Meldung sofort, auch die Null vom Anfang:*
+- Weg der Meldung: Das Gateway mappt die DEBUG-Meldung auf `cal_offset` (`gateway.py:1748`, Parser `1866–1885`) und verteilt sie an **jeden** Client (`12426`).
+- Jeder `ProbePanel` übernimmt sie sofort in `params.calOffset` und speichert die Probe-Sektion (`ProbePanel.vue:210–216`), auch die **Null vom Anfang**.
+- **Folgen:**
+  - Ein abgebrochener Kalibrierlauf hat den alten Offset im Interpreter **und** in den gespeicherten Einstellungen verloren.
+  - Jeder bewaffnete Client speichert dieselbe Meldung.
+  - Ein unbewaffneter Client sieht einen abgelehnten Entwurf.
+
+*Aktiv ist der Wert der Probe-Sektion:*
+- Der aktive Offset ist **der Wert der Probe-Sektion**. Jede Antast-Operation schreibt ihn vorher als `#3032` (`probeVars.ts:43`, `probe_run` → `_apply_probe_vars`).
+- Reset startet `probe_cal_reset.ngc` (`#3032 = 0` + DEBUG, `ProbePanel.vue:96–101`).
+- Sichtbar ist der Offset nur als Ausgabe am Ende der Parameterliste (`ProbePanel.vue:1251`); der Operator fand „Reset Calibration“ (`:1063`) nicht (W3).
+
+**Vertrag:**
+
+*Routinen (gebündelte probe_basic-Kopie, GPL v3; kleinster benannter Unterschied):*
+- `#3032 = 0` und die DEBUG-Zeile am Anfang entfallen.
+- Die XY-Antastaufrufe übergeben `[0]` statt `[#3032]`. Die Messung läuft so wie bisher ohne Offset, aber mit **lokalen** Werten; `#3032` bleibt unberührt.
+- Am Ende schreibt die Routine **nicht** `#3032`. Sie schreibt `#1013 = [ABS[…]]`, einen flüchtigen Parameter wie ihre übrigen Ergebnisse `#1000–#1012`; er wird in keiner var-Datei deklariert, nichts persistiert ihn. Dazu meldet sie `(DEBUG, EVAL[vcp.getWidget{"calibration_candidate"}.setValue{#1013}])`.
+- `probe_cal_reset.ngc` bleibt im Bündel, die Seite ruft es nicht mehr auf (siehe Reset).
+- Der Unterschied wird in `subroutines/probe_basic/` als README-Abschnitt „suite changes“ samt Diff dokumentiert. Der Wächter `probeVarFiles.test` bleibt unberührt: Die Seite schreibt keine neue Nummer.
+
+*Gateway (der Kandidat ist ein Gateway-Zustand, kein Seitenzustand):*
+- **Lauf eröffnen:** `probe_run` mit einer `probe_cal_*`-Routine (außer `reset`) eröffnet einen **Kalibrierlauf**:
+  - `run_id` = Gateway-Epoche + Zähler, wie die Trip-ID;
+  - die Routine, die gesendeten Basiswerte (`#3033–#3036`, der aktive `#3032`);
+  - die Verbindung des Starters (`conn_key`) und der Link;
+  - Startzeit.
+- **Meldung zuordnen:** Eine `calibration_candidate`-Meldung gehört **nur** zum laufenden Kalibrierlauf auf demselben Link. Ohne Lauf oder auf einem anderen Link ist sie „stale“: protokolliert, nie angeboten.
+- **Angeboten** wird der Kandidat erst, wenn der Lauf **sauber endet**: Interpreter idle, kein Abort/Estop/Fehler im Fenster des Laufs.
+  - Endet der Lauf anders, ist ein schon gemeldeter Wert „nicht angeboten — der Lauf wurde nicht vollständig“.
+  - Ein neuer Lauf ersetzt jeden offenen Kandidaten.
+- **Status** (allen Clients gleich): `cal_candidate: {run_id, value, was, routine, axis, basis, at, state: pending | applied | discarded | stale, why?}`.
+- **Übernehmen** `cal_apply {run_id, value}`:
+  - Bedingungen: bewaffnet; `run_id` und `value` gleich dem **offenen** Kandidaten; Link unverändert.
+  - Dann speichert das Gateway `calOffset = value` in die Probe-Sektion, serverseitig mit `save_section(…, base_rev, admit)` unter der Sperre des Stores. Danach dieselbe Verteilung wie ein WS-Save; die Sektion ist die Quelle des aktiven Werts.
+  - Ist die Maschine `ready` und idle, schreibt es sofort `#3032` per `_apply_probe_vars`; sonst bei der nächsten Antast-Operation (dort ohnehin).
+  - Antwort: `{ok, saved: true, on_machine: true | false}`; jede Verweigerung mit Grund; bei einer Verweigerung bleibt der Kandidat offen.
+- **Verwerfen** `cal_discard {run_id}`: bewaffnet; setzt nur den Gateway-Zustand und schreibt nichts.
+- **Reset** `cal_reset`: ein **eigener** Schreibauftrag (bewaffnet, Bestätigungsdialog bleibt). Er speichert `calOffset = 0` und schreibt `#3032 = 0` wie Übernehmen; einen offenen Kandidaten verwirft er.
+- **Alte Routinen:** Eine `calibration_offset_3032`-Meldung (ein Upstream-Original früher im `SUBROUTINE_PATH`) wird nie gespeichert. Sie wird als Warnung genannt: „Calibration routine wrote #3032 directly — not the suite's routine“.
+
+*Seite:*
+- **Ohne Sofortübernahme:** Die Übernahme in `ProbePanel.vue:210–216` entfällt; die Seite speichert keinen Offset aus einer Meldung.
+- **Block „Calibration Offset“** (W3) direkt **unter dem Kasten der Zellen** (`.gridSection`, fest 360 / 368 px). So bleiben die Zellen in jeder Prozedur an ihrem Platz. Im Block: aktiver Wert und Maschinenzustand als neutrale `.statusNote`, Reset daneben. Der Reset unten im Kasten (`:1061–1064`) entfällt.
+- **Offener Kandidat:** eine `.statusNote.warn` mit „New … — was … · Routine, Größe, Achse, Uhrzeit“ und den Knöpfen **Apply** und **Discard**.
+- **Ausgänge** am Block, nach dem Muster `.statusNote`:
+  - übernommen;
+  - verworfen;
+  - Übernahme fehlgeschlagen (Grund, „the active offset stays …“; der Kandidat bleibt offen);
+  - nicht angeboten (stale).
+- **Gates:** zwei neue Katalogtypen `calApply` / `calDiscard` (`armed`; Discard verändert den gemeinsamen Zustand, daher nicht `always`). Reset behält `probeReset`.
+- **Gleiche Sicht für alle:** Ein zweiter Client sieht denselben Kandidaten und darf ihn bewaffnet übernehmen oder verwerfen (siehe Frage O-2).
+
+**Wächter:**
+- Abbruch vor dem Ergebnis: `#3032` und die Sektion unverändert, kein Kandidat.
+- Abbruch nach der Meldung, im Rückzug: nicht angeboten.
+- Übernahme fehlgeschlagen (nicht bewaffnet, Link gewechselt, Store verweigert): Sektion unverändert, Kandidat offen.
+- Zweiter Client: gleicher Zustand; ein Übernehmen mit fremder oder alter `run_id` wird verweigert.
+- Spätes Ergebnis eines alten Laufs (Meldung nach dem Ende bzw. nach einem neuen Start): stale, nie angeboten.
+- Reset während eines offenen Kandidaten: verwirft ihn, schreibt 0.
+- Eine `calibration_offset_3032`-Meldung wird nie gespeichert.
+- Golden auf dem echten Interpreter: Die geänderten Routinen verändern `#3032` nicht, liefern `#1013` und rechnen mit `[0]` exakt wie das Original mit `#3032 = 0`. Nachgewiesen über denselben simulierten Ring der Sim, mit Ergebnisvergleich alt/neu.
+- Native Fälle auf der Sim (`p5`-Variante):
+  - Kalibrierung starten → Kandidat → Apply → `#3032` gelesen;
+  - Kalibrierung → Abort während der Messung → aktiver Wert unverändert.
+
+#### P5-2 · W1 Feldzustände (alle Formulare; Maschinenparameter mit Controllerzustand)
+
+**Heute:**
+- Es gibt keinen Feldzustand.
+- Gespeichert wird pro Sektion. Der Speicherstand je Sektion steht im Ledger `settingsSaveStatus.ts` (pending / saving / saved / error / blocked / unconfirmed), sichtbar nur als Sektionszeile (`.saveStatus`).
+- Ein vom Server abgelehnter Entwurf bleibt sichtbar (BG-19, `loadSectionDraft`). Welches Feld davon betroffen ist, sieht man nicht.
+- Für Maschinenparameter kennt nur der Toolsetter eine Maschinenzeile aus der Gateway-Buchung (`toolsetterState.ts:20`, `toolsetter_booking`). Die Probe-Parameter haben keine.
+
+**Vertrag:**
+
+*Ein globales Muster in `style.css`, das neue Muster, das W1 braucht:*
+- Grundsatz am Maschinentag zugesagt („ein globales Muster in style.css“); seine Form legt der Operator anhand der Renderings fest.
+- `FormField` bekommt `state: "draft" | "refused" | null`.
+- **Entwurf** = 3-px-Balken in `--warn` an der Vorderkante des Feldes (das nicht-farbliche Zeichen, wie der 3-px-Balken einer gewählten Option) plus `--tint-faint`-Tönung.
+- **Abgelehnt** = derselbe Balken in `--danger`, der Grund als `FormField`-Fehler.
+- **Gespeichert = neutral**, keine Markierung (Operatorentscheidung).
+- Zugänglich: Der Zustand steht zusätzlich im `aria-describedby` („Not saved“ / der Grund).
+
+*Was ein Entwurf ist:*
+- **Je Feld:** Der Feldwert weicht vom Wert ab, den der Server für diese Sektion hält (`loadSection`), oder die Sektion ist pending / blocked / unconfirmed **und** das Feld gehört zur offenen Änderung. Eine Ableitung je Sektion (`fieldStates(section, form)`), nie je Formular nachgebaut.
+
+*Controllerzustand, einmal pro Sektion, nie je Feld:*
+- Gilt für die Maschinenparameter (Probing-Parameter, Toolsetter, G30).
+- Die Zeile liegt unter der Sektionsüberschrift und unterscheidet:
+  - **gespeichert, noch nicht an der Maschine** („Saved — reaches the machine with the next probe“);
+  - **an der Maschine** („On the machine — written with the probe at …“);
+  - **abgelehnt** (`.statusNote.error`, „… not saved: Grund. The machine keeps …“).
+- Für die Probing-Parameter kommt eine Gateway-Buchung wie beim Toolsetter hinzu: `_ts_book` auf die Probe-Nummern `#3014–#3036` / `#3050–#3059` verallgemeinert, `probe_booking` im Status. Die Zeile liest die Buchung, nie eine Antwort.
+- G30 behält seinen bestätigten Lesevertrag. Nur das Aussehen der Felder folgt dem Muster; der Einbau dort folgt in einer zweiten Stufe.
+
+*Reihenfolge der Einführung:*
+1. Probing-Parameter und Kalibrierung (P5).
+2. Toolsetter, G30.
+3. Einstellungsformulare, Werkzeugeditor.
+
+**Wächter:**
+- **Feldzustand je Fall:** Entwurf nach dem Tippen; neutral nach dem Server-Ack; abgelehnt bei unbewaffnetem Speichern samt Grund.
+- **Sektionszeile je Fall:** gespeichert, aber noch nicht an der Maschine; an der Maschine nach einer Antast-Operation; abgelehnt.
+- **Prüfungen:** Kontrast (`contrast.spec`, Balken 3 : 1 gegen das Feld), `forced-colors`, die Audits (kein Literal, keine gescopte Kopie).
+- **Referenzbilder** der Probe-Ansichten, neu erzeugt.
+
+#### P5-3 · W3 Kalibrier-Offset präsent
+
+Ist in P5-1 enthalten: der Block unter dem Kasten der Zellen, Reset daneben. Die Ausgabe am Ende der Parameterliste bleibt als Lesewert.
+
+**Wächter:** Der Block steht in jeder Breite direkt unter den Zellen; sein Kandidat mit Apply/Discard ist ganz sichtbar, auch im schmalen Seitenbereich, Reset ist erreichbar; kein seitliches Überlaufen durch den Block (`sidewaysOverflow`).
+
+**Nebenbefund (vorbestehend, nicht P5):** Die Kalibrieransicht läuft im schmalen Seitenbereich bei 150 % schon heute seitlich über: 356 statt 272 CSS-px, gemessen ohne die Prototyp-Blöcke. Der Layout-Audit erfasst das bisher nicht. Wird im Bau mit behoben oder als eigener Punkt geführt.
+
+#### Reihenfolge im Bau
+
+1. P5-1 Routinen + Gateway-Zustand + Golden-Test und nativer Fall.
+2. P5-1 Seite + P5-3.
+3. P5-2 Muster + Probing-Parameter + Probe-Buchung.
+4. P5-2 zweite Stufe (Toolsetter, G30) als eigenes Teilpaket.
+
+**Erbeten:** `agreement` zum Plan oder `findings`. Die Bedienfragen O-1 bis O-4 stelle ich dem Operator zusammen mit den Renderings.
+
+#### Fragen an den Operator (nur Claude fragt)
+
+- **O-1 (Renderings):** Gefällt das Feldmuster? Entwurf = Amber-Balken + leichte Tönung, abgelehnt = roter Balken + Grund, gespeichert = neutral. Steht der Controllerzustand **einmal** pro Abschnitt?
+- **O-2:** Darf ein zweiter (bewaffneter) Client den Kandidaten übernehmen oder verwerfen, oder nur der Client, der die Kalibrierung gestartet hat? Empfehlung: jeder bewaffnete Client; Arm ist die Berechtigung, und es ist eine Maschine.
+- **O-3:** Wurde der Lauf nach der Messung abgebrochen (im Rückzug), wird das Ergebnis **nicht** angeboten. Einverstanden? Empfehlung: ja, nur ein vollständiger Lauf liefert einen Kandidaten.
+- **O-4:** Soll der Block „Calibration Offset“ unter den Zellen stehen (Rendering)? Die Zellen bleiben dort in jeder Prozedur an ihrem Platz. Oder darüber, dann rutschen die Zellen in dieser Ansicht nach unten?
+
+**Erbeten:** je Teil `agreement` oder `findings`. Die Fragen an den Operator (O-1 bis O-4) stelle ich; benenne bitte eigene als Q439-n.
