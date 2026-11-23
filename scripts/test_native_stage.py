@@ -7983,7 +7983,7 @@ def test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet():
         def time_ns(self):
             return int(self.t * 1e9)
     clock = Clock()
-    c = SimpleNamespace(status={"preview_refresh": None})
+    c = SimpleNamespace(status={}, preview_refresh=None)
     with mock.patch.object(nr, "time", clock):
         free = nr._pb_quiet(c, "pb")
         assert free == nr.PB_QUIET_S
@@ -7991,6 +7991,19 @@ def test_the_quiet_wait_waits_for_the_owed_read_back_then_its_quiet():
         waited = nr._pb_quiet(c, "pb", owed=lambda: None if clock.t >= 5.0 else "the read-back has not ended")
     assert waited >= 5.0 + nr.PB_QUIET_S, waited
     assert waited <= 5.0 + nr.PB_OWED_EVERY_S + nr.PB_QUIET_S + 0.2, waited
+    # a parse in flight is the envelope's (live_session.preview_refresh, P2b):
+    # the wait sees it — before, it read `status`, where it never is
+    clock.t = 0.0
+
+    class Parsing:
+        status: dict = {}
+
+        @property
+        def preview_refresh(self):
+            return {"job": 3} if clock.t < 3.0 else None
+    with mock.patch.object(nr, "time", clock):
+        waited = nr._pb_quiet(Parsing(), "pb")
+    assert waited >= 3.0 + nr.PB_QUIET_S, waited
 
 
 # ── Codex R431: the native proof's premise, its observation, its losses ────
@@ -8100,7 +8113,7 @@ def _r431_wait(files_at, pid=101):
         calls.append(round(clock.t, 3))
         return files_at(clock.t)
     with mock.patch.object(nr, "time", clock), mock.patch.object(nr, "_trace_files", files):
-        waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+        waited = nr._pb_quiet(SimpleNamespace(status={}, preview_refresh=None), "pb",
                               owed=lambda: nc.pb_owed(nr._gateway_events_since({"gateway_pid": pid,
                                                                                  "run": Path("/unused")}, 0)))
     return waited, calls
@@ -8172,7 +8185,7 @@ def test_r432_a_gateway_loss_cannot_settle_the_live_owed_wait():
         return [("trace.ndjson", 42, _r432_data(ev))], []
     with mock.patch.object(nr, "time", clock), mock.patch.object(nr, "_trace_files", files):
         try:
-            waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+            waited = nr._pb_quiet(SimpleNamespace(status={}, preview_refresh=None), "pb",
                                   owed=lambda: nc.pb_owed(nr._gateway_events_since(
                                       {"gateway_pid": 101, "run": Path("/unused")}, 99)))
         except nr.Refused as e:
@@ -8189,7 +8202,7 @@ def test_r432_a_readable_confirmed_live_observation_releases_the_wait():
     raw = _r432_data([dict(t_wall_ns=100, **e) for e in _r431_ops()])
     with mock.patch.object(nr, "time", clock), \
             mock.patch.object(nr, "_trace_files", return_value=([("trace.ndjson", 42, raw)], [])):
-        waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+        waited = nr._pb_quiet(SimpleNamespace(status={}, preview_refresh=None), "pb",
                               owed=lambda: nc.pb_owed(nr._gateway_events_since(
                                   {"gateway_pid": 101, "run": Path("/unused")}, 99)))
     assert nr.PB_QUIET_S <= waited <= nr.PB_QUIET_S + .2
@@ -8325,7 +8338,7 @@ def test_r433_the_rotated_loss_does_not_release_the_live_wait():
         return _r433_observation(150, True)
     with mock.patch.object(nr, "time", clock), mock.patch.object(nr, "_trace_files", files):
         try:
-            waited = nr._pb_quiet(SimpleNamespace(status={"preview_refresh": None}), "pb",
+            waited = nr._pb_quiet(SimpleNamespace(status={}, preview_refresh=None), "pb",
                                   owed=lambda: nc.pb_owed(nr._gateway_events_since(
                                       {"gateway_pid": 101, "run": Path("/unused")}, 199)))
         except nr.Refused:
@@ -8472,3 +8485,62 @@ def test_the_harness_names_the_tool_edit_fields_of_the_gateway():
     gw = next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
               and any(getattr(t, "id", None) == "TOOL_EDIT_FIELDS" for t in n.targets))
     assert nr.TOOL_EDIT_FIELDS == gw
+
+
+# ── P2b (plan v4 "Nativ"): the lifetime of a calculation's evaluators ──────
+def _w(events, framed=True, losses=None):
+    return {"framed": framed, "reason": None if framed else "two files", "events": events,
+            **({"losses": losses} if losses else {})}
+
+
+def test_an_unload_during_a_parse_publishes_and_restarts_nothing():
+    sup = {"tag": "gcode.reparse_superseded", "job": 7, "reason": "unload"}
+    end = {"tag": "gcode.parse_cancelled", "job": 7}
+    ok = nc.eval_unload_during_parse("u", _w([{"tag": "gcode.spawn_start", "job": 7, "reason": "file"}, sup, end]), 7)
+    assert ok["status"] == "PASS", ok
+    # its late publication, a parse started after the unload: red
+    assert nc.eval_unload_during_parse("u", _w([sup, {"tag": "gcode.publish", "job": 7}, end]), 7)["status"] == "FAIL"
+    late = nc.eval_unload_during_parse("u", _w([sup, end, {"tag": "gcode.spawn_start", "job": 8, "reason": "discarded:x"}]), 7)
+    assert late["status"] == "FAIL" and late["spawned_after"] == [(8, "discarded:x")]
+    # a parse already ended before the unload proves nothing; no end; an unframed or lossy window
+    assert nc.eval_unload_during_parse("u", _w([end]), 7)["status"] == "incomplete"
+    assert nc.eval_unload_during_parse("u", _w([sup]), 7)["status"] == "incomplete"
+    assert nc.eval_unload_during_parse("u", _w([sup, end], framed=False), 7)["status"] == "incomplete"
+    assert nc.eval_unload_during_parse("u", _w([sup, end], losses=[1]), 7)["status"] == "incomplete"
+
+
+def test_tool_measure_parses_once_after_its_action_and_the_read_back():
+    act = {"tag": "action.ended", "what": "tool_measure", "outcome": "done"}
+    rb = {"tag": "toolsetter.read_back_outcome", "outcome": "confirmed"}
+    spawn = {"tag": "gcode.spawn_start", "job": 3, "reason": "table_mtime"}
+    assert nc.eval_measure_parses_once("m", _w([act, rb, spawn]))["status"] == "PASS"
+    # a parse while the action lived, before the read-back ended, two, none: red
+    assert nc.eval_measure_parses_once("m", _w([spawn, act, rb]))["status"] == "FAIL"
+    assert nc.eval_measure_parses_once("m", _w([act, spawn, rb]))["status"] == "FAIL"
+    assert nc.eval_measure_parses_once("m", _w([act, rb, spawn, {**spawn, "job": 4}]))["status"] == "FAIL"
+    assert nc.eval_measure_parses_once("m", _w([act, rb]))["status"] == "FAIL"
+    # a load parse is not counted; no action end in the window is no measure
+    load = {"tag": "gcode.spawn_start", "job": 2, "reason": "file"}
+    assert nc.eval_measure_parses_once("m", _w([load, act, rb, spawn]))["status"] == "PASS"
+    assert nc.eval_measure_parses_once("m", _w([rb, spawn]))["status"] == "incomplete"
+
+
+def test_the_build_count_by_the_taps_rule_and_the_pages_words():
+    tap = {"cores": 6, "reqs": [{"bodies": 4, "tris": 1_100_000, "maxShards": None},
+                                {"bodies": 0, "tris": None}, {"bodies": 4, "tris": 1_100_000, "maxShards": 2},
+                                {"bodies": 4, "tris": 1_100_000, "side": True}]}
+    # 6 cores: 4 shards, the model's triangles allow 3 → 3; maxShards 2 → 2; a side request 1
+    assert nc.tap_builds(tap) == {"requests": 4, "body_sends": 3, "builds": 6, "cores": 6}
+    start = {"tag": "browser.collision.sweep_start", "page": "p", "id": 1, "bodies": 4}
+    built = [{"tag": "browser.collision.model_built", "page": "p", "instance": i, "model_gen": 1, "ms": 70} for i in "ab"]
+    late = {"tag": "browser.viewer.perf", "page": "p", "mt_late_max_ms": 300}
+    row = nc.eval_build_count("b", _w([start, *built, late]), tap, {})
+    assert row["status"] == "PASS" and row["built"] == 2 and row["late_windows_150"] == 1
+    # one instance building one generation twice: red
+    assert nc.eval_build_count("b", _w([start, *built, built[0]]), tap, {})["status"] == "FAIL"
+    # the before tree has no words: measured
+    assert nc.eval_build_count("b", _w([start]), tap, {})["detail"] == "measured"
+    # two pages, no check, no window: incomplete
+    assert nc.eval_build_count("b", _w([start, {**start, "page": "q"}]), tap, {})["status"] == "incomplete"
+    assert nc.eval_build_count("b", _w([late]), tap, {})["status"] == "incomplete"
+    assert nc.eval_build_count("b", _w([start], framed=False), tap, {})["status"] == "incomplete"

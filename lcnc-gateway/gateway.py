@@ -145,7 +145,7 @@ from jog_lease import LeaseTable as _LeaseTable, JOG_LEASE_DEAD, JOG_LEASE_FOREI
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
-from calc_lifetime import ActionLedger, Action as _Action, Generation, input_write_class
+from calc_lifetime import ActionLedger, Action as _Action, Generation, input_write_class, inflight_outdated
 from tool_store import ToolLibraryStore
 from tool_import import initial_z_offset
 from tool_files import list_entries as list_tool_files, resolve_entry as resolve_tool_file, EXTENSIONS as TOOL_LIBRARY_EXTENSIONS
@@ -2024,14 +2024,14 @@ async def _status_poller():
             _fe = preview_file_edge_action(
                 file_changed, _bulk.reparse_pending, _bulk.refresh_running,
                 _bulk.inflight, st.active_file, _cur_mtime)
-            if _fe == "schedule" and not file_changed and not _actions_quiet():
-                # A restart (reparse_pending: a discarded or cancelled parse,
-                # an operator Reparse) waits for the input actions' observed
-                # end and the debounce (P2b-3); a new file never waits
+            _rw = _restart_wait(st, file_changed) if _fe == "schedule" else None
+            if _rw is not None:
+                # A restart (reparse_pending) waits for the input actions'
+                # observed end and the debounce, a discarded one for idle too
+                # (P2b-3); a new file never waits
                 if not _bulk.reparse_wait_noted:
                     _bulk.reparse_wait_noted = True
-                    _trace.emit("gcode.parse_waits_for_actions", why=_actions.busy() or "debounce",
-                                reason=_bulk.reparse_pending_reason)
+                    _trace.emit("gcode.parse_waits_for_actions", why=_rw, reason=_bulk.reparse_pending_reason)
                 _fe = None
             if _fe == "schedule" and not rotary_hold_settled(_bulk.rotary_hold, st.rotary_abc, _now):
                 # A parse spawned mid-jog seeds the moving pose and is doomed
@@ -2078,6 +2078,21 @@ async def _status_poller():
                 _bulk.reparse_pending = True
                 _bulk.reparse_pending_reason = _doom
                 _bulk.cancel_inflight(_doom)
+            elif (
+                # P2b-3: a running parse of an older generation — an input
+                # write began after its snapshot, or another program: its
+                # publication is banned already; its process ends too (its
+                # load on the machine is the point). Under the same program
+                # the restart is asked for; it waits for the actions' end
+                # and idle (_restart_wait).
+                _bulk.refresh_running
+                and _bulk.inflight is not None
+                and inflight_outdated(_bulk.inflight.get("gen"), _calc_gen.snapshot())
+            ):
+                if _calc_gen.snapshot()[0] == _bulk.inflight["gen"][0]:
+                    _bulk.reparse_pending = True
+                    _bulk.reparse_pending_reason = f"discarded:{_calc_gen.last_why() or 'input'}"
+                _bulk.cancel_inflight("generation")
             elif (
                 # A pinned (mid-run) parse whose run has ended (operator
                 # 2026-10-20): its preview is for no run any more, and the
@@ -3937,6 +3952,23 @@ def _drift_decision_status() -> Optional[Dict[str, Any]]:
     if d["state"] == "parse" and d.get("job") is not None:
         out.update(_bulk.job_ends.get(d["job"], {}))
     return out
+
+
+def _restart_wait(st, file_changed: bool) -> Optional[str]:
+    """Why a parse restart (reparse_pending) waits this tick — None: it may
+    start (P2b-3). A new file never waits. Every restart waits for the input
+    actions' observed end and the debounce; a DISCARDED parse's restart also
+    for the interpreter idle and the machine still — a program start's switch
+    to AUTO begins a generation, and an unpinned parse never starts under the
+    run (before P2b, reparse_pending was only ever set at idle)."""
+    if file_changed:
+        return None
+    if not _actions_quiet():
+        return _actions.busy() or "debounce"
+    if str(_bulk.reparse_pending_reason or "").startswith("discarded:") and not (
+            st.interp_state == linuxcnc.INTERP_IDLE and not st.current_vel):
+        return "not_idle"
+    return None
 
 
 def _release_action(action: Optional[_Action], how: str) -> None:

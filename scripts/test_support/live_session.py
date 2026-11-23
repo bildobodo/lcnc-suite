@@ -56,6 +56,11 @@ class SimulatorClient:
         self.rfl_status = None
         self.rfl_history: list = []       # (monotonic s, rfl_status) on each change
         self.preview_origin = None
+        # the envelope's parse in flight and the drift decision (P2b): the
+        # LAST frame's — absent in a frame is none (the gateway sends them
+        # with every frame while they exist)
+        self.preview_refresh = None
+        self.drift_decision = None
         self.probe_results: dict = {}
         # the gateway's toolsetter booking (P2): sent on a connection's first
         # frame and on each change — what the form's machine line projects
@@ -165,6 +170,8 @@ class SimulatorClient:
                         self.rfl_history.append((now, msg["rfl_status"]))
                     if "preview_origin" in msg:
                         self.preview_origin = msg["preview_origin"]
+                    self.preview_refresh = msg.get("preview_refresh")
+                    self.drift_decision = msg.get("drift_decision")
                     self.safety_trip = msg.get("safety_trip")
                     self.trip_history.append((now, self.safety_trip))
                     self.basis_history.append((now, msg.get("trip_basis"), self.safety_trip))

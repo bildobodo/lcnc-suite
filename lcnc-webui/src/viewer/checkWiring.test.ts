@@ -150,6 +150,7 @@ describe("the side sweep's contact on the entry track (Codex R136 VP-I93)", () =
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
     const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {}, _colEmitMarks = () => {};
     const _intervalRows = () => 1;
+    const _colReqModelGen = new Map();   // the join's model generation per request (P2b-1)
     let _colSideProgress = 0;
     const _sliceEnd = (t) => t.count ? t.cum[t.count - 1] : 0;
     const _colRunLog = [];

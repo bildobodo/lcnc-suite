@@ -1998,7 +1998,9 @@ def _pb_quiet(c, case: str, owed=None) -> float:
         now = time.monotonic()
         if owed and owed_now and now - owed_at >= PB_OWED_EVERY_S:
             owed_now, owed_at = owed(), now
-        if owed_now or (c.status or {}).get("preview_refresh"):
+        # the parse in flight is the envelope's (live_session.preview_refresh —
+        # it never was in `data`: before P2b this read saw no parse at all)
+        if owed_now or c.preview_refresh:
             quiet_since = None
         elif quiet_since is None:
             quiet_since = now
@@ -2129,7 +2131,7 @@ def _p2b_steps(ctx):
         c.request("load_file", path=str(path))
         job, end = None, time.monotonic() + 30.0
         while job is None and time.monotonic() < end:
-            pr = (c.status or {}).get("preview_refresh") or {}
+            pr = c.preview_refresh or {}
             if pr.get("file") == path.name and isinstance(pr.get("job"), int):
                 job = pr["job"]
             else:

@@ -90,6 +90,15 @@ class TestGeneration(unittest.TestCase):
                 self.assertEqual(seen, [])
 
 
+class TestInflightOutdated(unittest.TestCase):
+    def test_a_running_parse_of_an_older_generation(self):
+        from calc_lifetime import inflight_outdated
+        self.assertTrue(inflight_outdated((1, 4), (1, 5)))
+        self.assertTrue(inflight_outdated((1, 4), (2, 4)))
+        self.assertFalse(inflight_outdated((1, 4), (1, 4)))
+        self.assertFalse(inflight_outdated(None, (1, 4)), "no recorded generation: not judged")
+
+
 class TestInputWriteClass(unittest.TestCase):
     def test_by_effect(self):
         """Plan guards 16/17 (Rest B): a switch to MDI or AUTO is an input
@@ -99,6 +108,9 @@ class TestInputWriteClass(unittest.TestCase):
         self.assertEqual(input_write_class("mode", (MODE_AUTO,)), "mode")
         self.assertIsNone(input_write_class("mode", (MODE_MANUAL,)))
         self.assertEqual(input_write_class("mdi", ("G10 L2 P1 X0",)), "mdi")
+        for line in ("o<probe_z_minus_wco> call", "O<face> CALL [1]", "T1 M600", "T5 M6", "t2 m06 g43"):
+            self.assertEqual(input_write_class("mdi", (line,)), "routine", line)
+        self.assertEqual(input_write_class("mdi", ("G0 X1 (M60 recall)",)), "mdi", "no word boundary match")
         self.assertEqual(input_write_class("task_plan_synch", ()), "synch")
         self.assertEqual(input_write_class("load_tool_table", ()), "tool_table")
         for name in ("auto", "abort", "jog", "home", "spindle", "state", "feedrate", "unhome", "mist", "flood"):

@@ -76,6 +76,18 @@ os.nice() APPLIED (`gcode.worker_done` nice_applied, by job): EVERY drift start 
 answer — one without (a failed worker, a lost line), a job without an id, started or answered
 twice is incomplete, never filtered out; an applied priority other than 19 is a FAIL (Codex
 R435). `docs/reviews/parse-basis.reeval.py` re-judges a stored run with the current judges.
+The lifetime of a calculation (P2b, plan v4) has two runs: `native_run.py … --variant p2b` —
+an unload while the load's parse of an 80 000-line program runs (`p2b-unload-during-parse`:
+superseded for `unload`, nothing of that job published, no parse started after it) and
+`tool_measure` (the panel's job) with a program loaded that runs the routine
+(`p2b-tool-measure`: exactly ONE drift parse, after the job's `action.ended` and the read-back's
+terminal outcome); and `native_run.py … --variant p2b-builds` — a real page
+(`test_support/build_count_probe.mjs`, the simulation switched on for its device) through load →
+run with M600 → tool change → load: the model builds by the tap's rule (the same for the before
+and the after tree), the page's per-instance words where the tree has them (an instance that built
+one model generation twice FAILs), the main-thread windows late past 150 ms. Run it at the base
+and at the head for the before/after count. The parse waits read the envelope's `preview_refresh`
+(`live_session.preview_refresh` — before P2b `_pb_quiet` read it from `data`, where it never is).
 The machine day's P4 has a run of its own: `native_run.py … --variant p4` — the E-Stop Reset's
 observed outcome (`estop-reset`: resets with the chain closed, held open at `and2.0.in0`, closed
 again; the settle window against the measured transition) and a parse error's line on the real task

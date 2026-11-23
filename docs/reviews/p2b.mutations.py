@@ -128,6 +128,29 @@ MUTS = {
     "a_stopped_handler_is_done": (GW + "calc_lifetime.py", [(
         "    if handler not in (None, \"ok\"):\n        return \"partial\"", "    if handler not in (None, \"ok\", \"stopped\"):\n        return \"partial\"")],
         [py(CL + "TestActionOwnership::test_a_handler_that_stops_short_after_a_write_is_partial", "AssertionError")]),
+    # ---- P2b-3 after the advisor's check: the outdated parse, the restart, the holds, the routine class
+    "an_outdated_parse_runs_on": (GW + "calc_lifetime.py", [(
+        "    return inflight_gen is not None and tuple(inflight_gen) != tuple(now)", "    return False")],
+        [py(CL + "TestInflightOutdated::test_a_running_parse_of_an_older_generation", "AssertionError")]),
+    "a_discarded_restart_under_the_run": (GW + "gateway.py", [(
+        "    if str(_bulk.reparse_pending_reason or \"\").startswith(\"discarded:\") and not (",
+        "    if False and not (")],
+        [py(CG + "TheRestartWaits::test_a_discarded_parse_restarts_only_at_idle", "AssertionError")]),
+    "a_superseded_hold_leaks": (GW + "gateway.py", [(
+        "                        _release_action(_qa, \"superseded\")   # never run: only its hold ends",
+        "                        None   # never run: only its hold ends")],
+        [py(CW + "TestTheBeginIsAtEveryWriter::test_every_queue_hold_ends", "AssertionError")]),
+    "a_dropped_hold_leaks": (GW + "gateway.py", [(
+        "            _release_action(_da, \"dropped\")   # never run: only its hold ends",
+        "            None   # never run: only its hold ends")],
+        [py(CW + "TestTheBeginIsAtEveryWriter::test_every_queue_hold_ends", "AssertionError")]),
+    "the_handler_end_keeps_the_hold": (GW + "gateway.py", [(
+        "                    inflight.add_done_callback(lambda _t, _a=_wact: _release_action(_a, _handler_end(_t)))",
+        "                    None")],
+        [py(CW + "TestTheBeginIsAtEveryWriter::test_every_queue_hold_ends", "AssertionError")]),
+    "a_routine_is_an_mdi": (GW + "calc_lifetime.py", [(
+        "        return \"routine\" if _ROUTINE_LINE.search(text) else \"mdi\"", "        return \"mdi\"")],
+        [py(CL + "TestInputWriteClass::test_by_effect", "AssertionError")]),
     # ---- P2b-2 (plan v4 variant 1): the idle check waits for the drift decision
     "the_decision_wait_never_falls_back": (V + "driftWait.ts", [(
         "    if (waited >= fallbackMs) {", "    if (false) {")],

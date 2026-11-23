@@ -30,6 +30,7 @@ partial / aborted / link_lost / unknown reads the basis again or names it
 unknown (the caller's)."""
 from __future__ import annotations
 
+import re
 import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -41,6 +42,9 @@ OUTCOMES = ("aborted", "link_lost", "unknown", "partial", "error", "done", "refu
 #: `unknown` (named per class; a routine generously — a probing move may run
 #: for minutes)
 OBSERVER_LIMIT_S = {"routine": 900.0, "mdi": 300.0, "mode": 30.0, "synch": 30.0, "tool_table": 30.0}
+
+#: an MDI line that runs a routine: an O-word call, M600, M6
+_ROUTINE_LINE = re.compile(r"(?i)\bcall\b|\bm0*600\b|\bm0*6\b")
 
 # the controller's task modes (linuxcnc.MODE_*) — the caller passes its own
 MODE_MANUAL, MODE_AUTO, MODE_MDI = 1, 2, 3
@@ -58,7 +62,10 @@ def input_write_class(name: str, args: Tuple[Any, ...], modes: Optional[Dict[str
     its preceding switch to AUTO is classified as a mode switch."""
     m = modes or {}
     if name == "mdi":
-        return "mdi"
+        # a routine (an O-word CALL, the toolsetter's M600, a tool change):
+        # its proof may take minutes — the generous class (plan v4)
+        text = str(args[0]) if args else ""
+        return "routine" if _ROUTINE_LINE.search(text) else "mdi"
     if name == "mode":
         target = args[0] if args else None
         return "mode" if target in (m.get("MODE_MDI", MODE_MDI), m.get("MODE_AUTO", MODE_AUTO)) else None
@@ -103,6 +110,11 @@ class Generation:
             self._last_why = why
             return (self._program, self._inputs)
 
+    def last_why(self) -> Optional[str]:
+        """The last begin's or program change's reason."""
+        with self._lock:
+            return self._last_why
+
     def publish_if(self, snap: Tuple[int, int], apply: Callable[[], None]) -> Tuple[bool, Tuple[int, int], Optional[str]]:
         """Apply the publication when `snap` is still the current generation —
         checked and applied in ONE step under the lock. (applied, now, the
@@ -113,6 +125,13 @@ class Generation:
                 return False, now, self._last_why
             apply()
             return True, now, None
+
+
+def inflight_outdated(inflight_gen: Optional[Tuple[int, int]], now: Tuple[int, int]) -> bool:
+    """Is a RUNNING parse of an older generation (P2b-3)? Its publication is
+    banned already (publish_if); its process is ended too — its load on the
+    machine is the point (a parse without a recorded generation: no)."""
+    return inflight_gen is not None and tuple(inflight_gen) != tuple(now)
 
 
 class Observer:

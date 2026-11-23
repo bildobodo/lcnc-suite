@@ -802,6 +802,9 @@
      "id": "status:data.work_pos"
     },
     {
+     "id": "status:drift_decision"
+    },
+    {
      "id": "status:errors"
     },
     {

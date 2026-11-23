@@ -356,3 +356,44 @@ class TheDriftDecision(_Base):
         self.gen.began("mdi")
         gateway._dd_pending("action:mdi")
         self.assertEqual(gateway._drift_decision_status()["state"], "pending")
+
+
+class TheRestartWaits(_Base):
+    """P2b-3 (Fable's check of the build): a parse discarded by a program
+    start's switch to AUTO never restarts unpinned under the run; every
+    restart waits for the actions' observed end."""
+
+    def st(self, interp, vel=0.0):
+        return type("St", (), {"interp_state": interp, "current_vel": vel})
+
+    def test_a_discarded_parse_restarts_only_at_idle(self):
+        with patch.object(gateway._bulk, "reparse_pending_reason", "discarded:mode"):
+            self.clock.t += 10      # no action, the debounce long past
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), False), "not_idle")
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE, 5.0), False), "not_idle")
+            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), False))
+            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True), "a new file never waits")
+
+    def test_every_restart_waits_for_the_actions(self):
+        with patch.object(gateway._bulk, "reparse_pending_reason", "reparse"):
+            a = self.ledger.hold("probe_run")
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), False), "held:probe_run")
+            self.ledger.release(a, "refused")
+            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), False))
+
+    def test_the_start_discards_a_running_parse_and_the_poll_loop_ends_it(self):
+        """The switch to AUTO begins a generation: a running parse of the
+        older one is outdated — the poll loop's branch cancels it (static:
+        the branch, its helper and its cancel)."""
+        snap = self.gen.snapshot()
+        current().stat.task_mode = linuxcnc.MODE_MANUAL
+
+        async def start():
+            await gateway.set_mode(linuxcnc.MODE_AUTO)
+        self.in_action("cycle_start", start)
+        from calc_lifetime import inflight_outdated
+        self.assertTrue(inflight_outdated(snap, self.gen.snapshot()))
+        src = open(gateway.__file__).read()
+        i = src.find("and inflight_outdated(_bulk.inflight.get(\"gen\"), _calc_gen.snapshot())")
+        self.assertGreater(i, 0)
+        self.assertIn('_bulk.cancel_inflight("generation")', src[i:i + 600])

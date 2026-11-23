@@ -106,6 +106,18 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
             self.assertTrue(r == alias or w0 <= r < w0 + len(wrap) or SRC[r - 30:r].count("#"),
                             f"a parameter-file write outside the wrapper at offset {r}: {SRC[r - 60:r + 40]!r}")
 
+    def test_every_queue_hold_ends(self):
+        """A leaked hold stops every idle parse for good (Fable): the hold
+        is taken only after the queue-full refusal, and released on the
+        supersede by a stop, on the disconnect drop and when its handler task
+        ends — however it ends."""
+        i_full, i_hold = SRC.find('"error": f"Command queue full'), SRC.find("_actions.hold(str(_rcmd)")
+        self.assertTrue(0 < i_full < i_hold, "the hold after the queue-full refusal")
+        self.assertEqual(SRC.count("_actions.hold("), 1, "one place takes a queue hold")
+        for site in ('_release_action(_qa, "superseded")', '_release_action(_da, "dropped")',
+                     "inflight.add_done_callback(lambda _t, _a=_wact: _release_action(_a, _handler_end(_t)))"):
+            self.assertEqual(SRC.count(site), 1, site)
+
     def test_load_and_unload_begin_a_program_generation(self):
         self.assertIn('began=lambda: _calc_gen.new_program("load")', SRC)
         self.assertIn('began=lambda: _calc_gen.new_program("unload")', SRC)

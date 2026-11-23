@@ -17,6 +17,7 @@ from types import SimpleNamespace as NS
 from unittest.mock import patch
 
 import gateway_util
+from calc_lifetime import Generation, inflight_outdated
 from bulk_pipeline import BulkPipeline
 
 HERE = Path(__file__).resolve().parent
@@ -61,16 +62,20 @@ class TestPreviewPollChain(unittest.TestCase):
     def setUpClass(cls):
         cls.CODE = _chain()
 
-    def run_chain(self, *, pinned, idle, running, edge, twice=False):
+    def run_chain(self, *, pinned, idle, running, edge, twice=False, gen=None, gen_now=None):
         b = BulkPipeline(get_stat=lambda: None, get_machine_units=lambda: "mm",
                          build_wcs_rotation_patches=lambda: {})
         b.refresh_running = running
-        b.inflight = {"pinned": pinned, "t0": time.monotonic(), "file": "/test.ngc"}
+        b.inflight = {"pinned": pinned, "t0": time.monotonic(), "file": "/test.ngc", "gen": gen}
+        g = Generation()
+        for _ in range((gen_now or (0, 0))[1]):
+            g.began("mdi")
         b.gcode_parse_proc = _Worker()
         ns = {"_fe": edge, "_bulk": b,
               "st": NS(active_file="/test.ngc", rotary_abc=[0, 0, 0], interp_state=1 if idle else 3),
               "linuxcnc": NS(INTERP_IDLE=1), "inflight_doomed_reason": gateway_util.inflight_doomed_reason,
-              "pinned_parse_outlived": gateway_util.pinned_parse_outlived, "_trace": _Trace()}
+              "pinned_parse_outlived": gateway_util.pinned_parse_outlived, "_trace": _Trace(),
+              "inflight_outdated": inflight_outdated, "_calc_gen": g}
         with patch("threading.Timer"):
             exec(self.CODE, ns)
             if twice:
@@ -88,6 +93,16 @@ class TestPreviewPollChain(unittest.TestCase):
                    dict(pinned=True, idle=True, running=False)):
             b = self.run_chain(edge=None, **kw)
             self.assertEqual((b.cancel_reason, b.gcode_parse_proc.terminations), (None, 0), kw)
+
+    def test_a_parse_of_an_older_generation_ends(self):
+        """P2b-3: an input write began after the running parse's snapshot —
+        its process ends (its publication is banned already) and, under the
+        same program, the restart is asked for."""
+        b = self.run_chain(pinned=False, idle=True, running=True, edge=None, gen=(0, 0), gen_now=(0, 2))
+        self.assertEqual((b.cancel_reason, b.gcode_parse_proc.terminations), ("generation", 1))
+        self.assertEqual((b.reparse_pending, b.reparse_pending_reason), (True, "discarded:mdi"))
+        b = self.run_chain(pinned=False, idle=True, running=True, edge=None, gen=(0, 2), gen_now=(0, 2))
+        self.assertEqual(b.gcode_parse_proc.terminations, 0, "the current generation runs on")
 
     def test_the_file_edge_comes_first(self):
         b = self.run_chain(pinned=True, idle=True, running=True, edge="cancel:file")
