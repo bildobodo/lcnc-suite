@@ -53,6 +53,46 @@ test("this device switches its own simulation without arm; it acts once the gate
   await expect(sim).toBeChecked();   // the mock echoes: the gateway holds it
 });
 
+// P2b-F1-4 (Codex R449, point 4): the note "Not active until the gateway holds
+// it" follows the SERVER in the dialog left open — never reopened: it ends
+// when the gateway holds the switch (the switch itself unchanged), stays
+// while the save goes unanswered, and a refused save is never shown as held.
+test("the switch's note follows the gateway in the open dialog: pending, then held without reopening", async ({ page }) => {
+  await ready(page, { simulation: { enabled: false } });
+  await disarm();
+  await ctl({ op: "settingsEcho", on: false });
+  const settings = await openDevices(page);
+  const sim = settings.locator("[data-devices=this]").getByRole("checkbox");
+  const note = settings.getByText("Not active until the gateway holds it", { exact: true });
+  await sim.check({ force: true });
+  await expect(note).toBeVisible();
+  // the gateway holds it: its full blob reaches every client (the save's own reply aside)
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: true } } } });
+  await expect(note, "held: the note ends in the open dialog").toBeHidden();
+  await expect(sim).toBeChecked();
+});
+
+test("an unanswered save keeps the note; a refused save is never shown as held", async ({ page }) => {
+  await ready(page, { simulation: { enabled: false } });
+  await disarm();
+  await ctl({ op: "replies", replies: { save_settings: "silent" } });
+  const settings = await openDevices(page);
+  const sim = settings.locator("[data-devices=this]").getByRole("checkbox");
+  const note = settings.getByText("Not active until the gateway holds it", { exact: true });
+  await sim.check({ force: true });
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings").length).toBe(1);
+  // an unrelated server change: the switch is still not held
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: false } } } });
+  await expect(note, "not held: the note stays").toBeVisible();
+  // refused as stale, carrying the server's state: OFF — the form shows it, nothing claims a hold
+  await ctl({ op: "replies", replies: { save_settings: { ok: false, stale: true, error: "simulation changed elsewhere — reloaded",
+                                                         section: "simulation", data: { enabled: false }, rev: 9 } } });
+  await sim.uncheck({ force: true });
+  await sim.check({ force: true });
+  await expect(sim).not.toBeChecked();
+  await expect(note).toBeHidden();
+});
+
 test("another device: its simulation and its rename need arm; a connected one is never deleted", async ({ page }) => {
   await ready(page);
   await disarm();

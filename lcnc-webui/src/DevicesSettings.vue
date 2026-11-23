@@ -17,7 +17,7 @@ import DialogFrame from "./DialogFrame.vue";
 import Gate from "./Gate.vue";
 import {
   bindingGeneration, deviceInfo, devicesVersion, loadSimulationDefaults, loadSimulationDraft, saveSimulationDefaults,
-  settingsVersion,
+  serverSettingsReady, settingsVersion,
 } from "./defaults";
 import { deviceStorage, deviceTokenFresh } from "./deviceToken";
 import { fetchDevices, type DeviceRow } from "./lcncApi";
@@ -27,8 +27,15 @@ import { NO_VALUE } from "./format";
 // ── This device ──
 const name = ref(deviceInfo.value.name);
 const simOn = ref(loadSimulationDraft().enabled);
-/** Shown while this tab's switch is not what the server holds yet. */
-const simPending = computed(() => simOn.value !== loadSimulationDefaults().enabled);
+/** Shown while this tab's switch is not what the server holds yet. What the
+ *  server holds is no reactive value (defaults.ts `_confirmed`): read again
+ *  on every server change, like `simulationOn` — a "Saved" that leaves the
+ *  switch as it was must still end the note (P2b-F1-4, Codex R449). */
+const simPending = computed(() => {
+  void settingsVersion.value;
+  void serverSettingsReady.value;
+  return simOn.value !== loadSimulationDefaults().enabled;
+});
 watch([settingsVersion, () => deviceInfo.value.name], () => {
   simOn.value = loadSimulationDraft().enabled;
   name.value = deviceInfo.value.name;
