@@ -19,6 +19,14 @@ def vt(file, name, at):
     return ("vitest", [file, name, at])
 
 
+def py(node, at):
+    return ("pytest", [node, at])
+
+
+GW = "lcnc-gateway/"
+CD = "test_controller_done.py::"
+
+
 MUTS = {
     # ---- P2b-1: the collision model survives a tool change
     "the_model_base_not_the_runs": (V + "collision.ts", [(
@@ -42,6 +50,18 @@ MUTS = {
     "the_key_ignores_the_machine": (V + "collisionModelKey.ts", [(
         "  return JSON.stringify([machine, parts.map(", "  return JSON.stringify([null, parts.map(")],
         [vt("src/viewer/collisionModelKey.test.ts", "changes with every input", "kinematics")]),
+    # ---- P2b-3 (Rest A, Codex R441): ONE completion decision
+    "a_later_echo_ends_the_command": (GW + "gateway_util.py", [(
+        "    if seen and done and echo >= serial:\n        return \"done\", (since, proof_now)",
+        "    if seen and (done or echo > serial):\n        return \"done\", (since, proof_now)")],
+        [py(CD + "TestCodexR441Table::test_a_later_echo_still_reading_is_no_end", "AssertionError")]),
+    "one_poll_proves_the_own_error": (GW + "gateway_util.py", [(
+        "        if polled_at - since >= proof_window_s:\n            return \"error\", (since, proof_now)",
+        "        if polled_at - since >= 0:\n            return \"error\", (since, proof_now)")],
+        [py(CD + "TestCodexR441Table::test_the_own_error_needs_two_polls_apart", "nor two within the window")]),
+    "a_later_error_is_ours": (GW + "gateway_util.py", [(
+        "    if seen and err_quiet and echo == serial:", "    if seen and idle and state == rcs_error and echo >= serial:")],
+        [py(CD + "TestCodexR441Table::test_a_later_error_even_quiet_is_not_the_own", "AssertionError")]),
 }
 
 
@@ -57,6 +77,10 @@ def run_guard(kind, args):
                            capture_output=True, text=True, timeout=900)
         out = r.stdout + r.stderr
         return r.returncode != 0, out, args[2]
+    if kind == "pytest":
+        r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider",
+                            "-o", "addopts=", args[0]], cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=900)
+        return r.returncode != 0, r.stdout + r.stderr, args[1]
     raise SystemExit(f"unknown guard kind {kind}")
 
 

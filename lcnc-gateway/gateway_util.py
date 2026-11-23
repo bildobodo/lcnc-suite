@@ -6528,3 +6528,73 @@ def unhome_admission(rows, axis):
     if row.get("joint") is None:
         return None, row.get("reason") or NO_JOINT_FOR_AXIS
     return row["joint"], None
+
+
+# ---- The controller is through with a written command (P2b-3, Codex R441) ----
+# ONE decision for the start claims (gateway._release_start_claims) and the
+# action observers of P2b-3: what a fresh status of the Link proves about a
+# command written on it. Extracted unchanged from the start claims (Codex
+# R70 VP-I30, R360 / R361 VM-I09; test_macros_gateway.py holds it there).
+
+CONTROLLER_RCS_DONE = 1
+CONTROLLER_RCS_ERROR = 3
+CONTROLLER_INTERP_IDLE = 1
+CONTROLLER_EXEC_DONE = 2
+
+
+def controller_done(fields: dict, obs: dict, polled_at: float, owner_seq: int, proof_window_s: float,
+                    consts: Optional[dict] = None) -> Tuple[Optional[str], Tuple[Optional[float], Optional[tuple]]]:
+    """(outcome, mark) for ONE written command `obs` = {state, serial, sent_t,
+    link_seq, err_since, err_proof} against a status `fields` = {echo, state,
+    interp_state, queued, exec_state} read from the Link `owner_seq` by a poll
+    begun at `polled_at`. Pure.
+
+    - "done": a poll begun after the write on the SAME Link, echo ≥ serial,
+      RCS_DONE and the interpreter idle (task's DONE needs every queue empty).
+    - "error": the command's OWN error — echo == serial, RCS_ERROR, idle,
+      nothing queued, execution done — over an unbroken window of
+      `proof_window_s` (two polls; a queued line moves on within a cycle).
+      A LATER command's error is not this one's; a later echo alone proves
+      nothing.
+    - "relinked": written on an EARLIER Link — the controller quiet (idle,
+      done or error, nothing queued, execution done) over the window on THIS
+      Link, from a poll begun after the write.
+    - None: not proven (any field unread is no proof).
+    `mark` = the new (err_since, err_proof): the window's start and which
+    proof it belongs to, (None, None) to restart it."""
+    c = consts or {}
+    rcs_done = c.get("RCS_DONE", CONTROLLER_RCS_DONE)
+    rcs_error = c.get("RCS_ERROR", CONTROLLER_RCS_ERROR)
+    interp_idle = c.get("INTERP_IDLE", CONTROLLER_INTERP_IDLE)
+    exec_done_v = c.get("EXEC_DONE", CONTROLLER_EXEC_DONE)
+    echo = fields.get("echo")
+    state = fields.get("state")
+    idle = fields.get("interp_state") == interp_idle
+    queued = fields.get("queued")
+    exec_done = fields.get("exec_state") == exec_done_v
+    done = idle and state == rcs_done
+    err_quiet = idle and state == rcs_error and queued == 0 and exec_done
+    quiet = idle and state in (rcs_done, rcs_error) and queued == 0 and exec_done
+    sent_t, serial = obs.get("sent_t"), obs.get("serial")
+    since, proof_now = obs.get("err_since"), obs.get("err_proof")
+    if obs.get("state") == "sent" and obs.get("link_seq") is not None and obs.get("link_seq") != owner_seq:
+        proof = ("relinked", owner_seq)
+        if quiet and sent_t is not None and sent_t < polled_at:
+            if since is None or proof_now != proof:
+                return None, (polled_at, proof)
+            if polled_at - since >= proof_window_s:
+                return "relinked", (since, proof_now)
+            return None, (since, proof_now)
+        return None, (None, None)
+    seen = (obs.get("state") == "sent" and sent_t is not None and sent_t < polled_at
+            and serial is not None and echo is not None)
+    if seen and done and echo >= serial:
+        return "done", (since, proof_now)
+    proof = ("error", owner_seq)
+    if seen and err_quiet and echo == serial:
+        if since is None or proof_now != proof:
+            return None, (polled_at, proof)
+        if polled_at - since >= proof_window_s:
+            return "error", (since, proof_now)
+        return None, (since, proof_now)
+    return None, (None, None)

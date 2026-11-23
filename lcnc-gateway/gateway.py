@@ -105,6 +105,7 @@ from gateway_util import (
     PREVIEW_SCHEMA,
     evaluate_tlo_drift, evaluate_start_drift,
     TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
+    controller_done,
     toolsetter_inputs_equal,
     RemapEnv, resolve_subroutine_dirs,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_changed, preview_file_edge_action,
@@ -3797,53 +3798,24 @@ def _release_start_claims(polled_at: Optional[float] = None,
 
     def field(name: str) -> Any:
         return getattr(stat, name, None)
-    echo = field("echo_serial_number")
-    state = field("state")
-    idle = field("interp_state") == getattr(linuxcnc, "INTERP_IDLE", 1)
-    queued = field("queued_mdi_commands")
-    exec_done = field("exec_state") == getattr(linuxcnc, "EXEC_DONE", 2)
-    done = idle and state == getattr(linuxcnc, "RCS_DONE", 1)
-    err_quiet = (idle and state == getattr(linuxcnc, "RCS_ERROR", 3) and queued == 0 and exec_done)
-    quiet = (idle and state in (getattr(linuxcnc, "RCS_DONE", 1), getattr(linuxcnc, "RCS_ERROR", 3))
-             and queued == 0 and exec_done)
+    # ONE decision (gateway_util.controller_done, P2b-3): the claims here and
+    # the action observers share it — what this poll proves per command
+    fields = {"echo": field("echo_serial_number"), "state": field("state"), "interp_state": field("interp_state"),
+              "queued": field("queued_mdi_commands"), "exec_state": field("exec_state")}
+    consts = {n: getattr(linuxcnc, n, d) for n, d in (("RCS_DONE", 1), ("RCS_ERROR", 3), ("INTERP_IDLE", 1), ("EXEC_DONE", 2))}
     keep: List[_StartClaim] = []
     marks: List[Tuple[_StartClaim, Optional[float], Optional[Tuple[str, int]]]] = []
     released: List[Tuple[_StartClaim, str]] = []
     for c in _source_claims:
         if c.state == "unsent":
             continue
-        if c.state == "sent" and c.link_seq is not None and c.link_seq != owner.seq:
-            # Written on an earlier Link (package 2b): its serial is that
-            # channel's, the echo this Link's — no comparison across them.
-            # The controller proves it is through with EVERY earlier command
-            # by being quiet (idle, done or error, nothing queued, the exec
-            # done) for the error proof's full window, which starts only
-            # with a poll of THIS Link begun after the write (VM-I09).
-            proof = ("relinked", owner.seq)
-            if quiet and c.sent_t is not None and c.sent_t < polled_at:
-                if c.err_since is None or c.err_proof != proof:
-                    marks.append((c, polled_at, proof))
-                elif polled_at - c.err_since >= _CLAIM_ERROR_PROOF_S:
-                    released.append((c, "relinked"))
-                    continue
-            else:
-                marks.append((c, None, None))
-            keep.append(c)
+        obs = {"state": c.state, "serial": c.serial, "sent_t": c.sent_t, "link_seq": c.link_seq,
+               "err_since": c.err_since, "err_proof": c.err_proof}
+        how, (since, proof_mark) = controller_done(fields, obs, polled_at, owner.seq, _CLAIM_ERROR_PROOF_S, consts)
+        if how is not None:
+            released.append((c, how))
             continue
-        seen = (c.state == "sent" and c.sent_t is not None and c.sent_t < polled_at
-                and c.serial is not None and echo is not None)
-        if seen and done and c.serial is not None and echo is not None and echo >= c.serial:   # (seen ⟹ both)
-            released.append((c, "done"))
-            continue
-        proof = ("error", owner.seq)
-        if seen and err_quiet and echo == c.serial:
-            if c.err_since is None or c.err_proof != proof:
-                marks.append((c, polled_at, proof))
-            elif polled_at - c.err_since >= _CLAIM_ERROR_PROOF_S:
-                released.append((c, "error"))
-                continue
-        else:
-            marks.append((c, None, None))
+        marks.append((c, since, proof_mark))
         keep.append(c)
     with _link_lock:      # the outcome only while the polled Link is published
         if owner is not _link:
