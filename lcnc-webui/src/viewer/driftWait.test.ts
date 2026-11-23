@@ -46,6 +46,10 @@ describe("an idle check waits for the drift decision, then for its named parse (
     expect(late.wait).toEqual(r.wait);
     const other = driftVerdict(d({ gen: [2, 0] }), r.wait, 2700, 2, never);
     expect(other.wait?.since, "another connection: a new wait").toBe(2700);
+    // a named parse's wait: a late older status never makes it fall back
+    let pw = driftVerdict(d({ state: "parse", job: 5, gen: [5, 1] }), null, 0, 1, never);
+    pw = driftVerdict(d({ state: "none", gen: [5, 0] }), pw.wait, 4000, 1, never);
+    expect(pw.verdict, "judged as its own parse").toEqual({ go: false, why: "parse", retryInMs: null });
   });
 
   it("none goes at once; a gateway without decisions is said", () => {

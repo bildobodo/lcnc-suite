@@ -20,8 +20,9 @@ export interface DriftDecision {
   why?: string;
 }
 
-/** One open wait: its owner and since when it waits for a decision. */
-export interface DriftWait { gen: [number, number]; conn: number; since: number; fellBack: boolean }
+/** One open wait: its owner, since when it waits for a decision, and the
+ *  last decision of ITS generation (what a late older status is judged by). */
+export interface DriftWait { gen: [number, number]; conn: number; since: number; fellBack: boolean; last?: DriftDecision }
 
 export type DriftVerdict =
   | { go: true; named: null | { kind: "fallback"; waited_ms: number } | { kind: "parse_ended"; job: number | null; why: string }
@@ -65,10 +66,13 @@ export function driftVerdict(d: DriftDecision | null, wait: DriftWait | null, no
   }
   let w = wait && wait.conn === conn ? wait : null;
   if (w && cmpGen(d.gen, w.gen) < 0) {
-    // a late status of an older generation: no effect — the open wait stays
+    // a late status of an older generation: no effect — the open wait stays,
+    // judged by its own generation's last decision
+    if (w.last) return driftVerdict(w.last, w, now, conn, adopted, fallbackMs);
     return { verdict: { go: false, why: "decision", retryInMs: Math.max(0, w.since + fallbackMs - now) }, wait: w };
   }
   if (!w || cmpGen(d.gen, w.gen) > 0) w = { gen: [d.gen[0], d.gen[1]], conn, since: now, fellBack: false };
+  w = { ...w, last: d };
   if (d.state === "none") return { verdict: { go: true, named: null }, wait: w };
   if (d.state === "pending") {
     const waited = now - w.since;
