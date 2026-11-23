@@ -1,0 +1,124 @@
+{
+ "run": "20261123T120330-p2b",
+ "commit": "725d2fa599f3b1e25daef707cf4570ed077e6385",
+ "variant": "p2b",
+ "verdict": "incomplete",
+ "restore": "complete",
+ "rows": [
+  {
+   "case": "home-all",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    true,
+    true,
+    true
+   ],
+   "observed": [
+    true,
+    true,
+    true
+   ]
+  },
+  {
+   "case": "home-joint-0",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    true,
+    false,
+    false
+   ],
+   "observed": [
+    true,
+    false,
+    false
+   ]
+  },
+  {
+   "case": "home-joint-1",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    false,
+    true,
+    false
+   ],
+   "observed": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "case": "home-joint-2",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    false,
+    false,
+    true
+   ],
+   "observed": [
+    false,
+    false,
+    true
+   ]
+  },
+  {
+   "case": "p2b-unload-during-parse",
+   "status": "incomplete",
+   "detail": "the parse was not running at the unload (no supersede for it)",
+   "job": 1,
+   "superseded": 0,
+   "published": 0,
+   "ends": [
+    "gcode.parse_cancelled"
+   ]
+  },
+  {
+   "case": "p2b-tool-measure",
+   "status": "PASS",
+   "detail": "one parse, after the action's observed end (no read-back ran: nothing left assumed)",
+   "parses": [
+    [
+     4,
+     "table_mtime"
+    ]
+   ],
+   "action": [
+    "done"
+   ],
+   "read_backs": [],
+   "discarded": 0,
+   "quiet_s": 6.3
+  },
+  {
+   "case": "p2b-readback-parse",
+   "status": "PASS",
+   "detail": "the basis left open by the action, confirmed by its read-back, then exactly one parse",
+   "key": 3104,
+   "assumed": 1,
+   "action": [
+    "done"
+   ],
+   "read_backs": [
+    "confirmed"
+   ],
+   "parses": [
+    [
+     6,
+     "toolsetter"
+    ]
+   ]
+  }
+ ],
+ "p2b_readback": {
+  "key": 3104,
+  "old": 2.0,
+  "new": 3.0,
+  "quiet_s": 6.5
+ },
+ "p2b_readback_restored": 2.0,
+ "note": "p2b-unload-during-parse incomplete only because its judge knew the handler's cancel (`unload`) alone: here the poll loop's outdated-parse branch ended job 1 first (`generation`, 0.43 s after its spawn; the unload's begin made it outdated) - nothing published, no spawn until the next case's load. The judge now accepts both; the variant is re-run."
+}

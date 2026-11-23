@@ -8498,6 +8498,10 @@ def test_an_unload_during_a_parse_publishes_and_restarts_nothing():
     end = {"tag": "gcode.parse_cancelled", "job": 7}
     ok = nc.eval_unload_during_parse("u", _w([{"tag": "gcode.spawn_start", "job": 7, "reason": "file"}, sup, end]), 7)
     assert ok["status"] == "PASS", ok
+    # the poll loop's cancel of the outdated parse may come first (native p2b at 725d2fa5)
+    gen = {**sup, "reason": "generation"}
+    assert nc.eval_unload_during_parse("u", _w([gen, end]), 7)["status"] == "PASS"
+    assert nc.eval_unload_during_parse("u", _w([{**sup, "reason": "wcsoff:G54:x"}, end]), 7)["status"] == "incomplete"
     # its late publication, a parse started after the unload: red
     assert nc.eval_unload_during_parse("u", _w([sup, {"tag": "gcode.publish", "job": 7}, end]), 7)["status"] == "FAIL"
     late = nc.eval_unload_during_parse("u", _w([sup, end, {"tag": "gcode.spawn_start", "job": 8, "reason": "discarded:x"}]), 7)

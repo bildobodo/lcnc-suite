@@ -1908,16 +1908,18 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
 
 def eval_unload_during_parse(case: str, window: dict, job) -> dict:
     """P2b-3 guard 9 on the real task: the load's parse (`job`) still ran
-    when the unload was written — superseded for `unload` — and then nothing
-    of it was published, and no parse started after the unload. A parse that
-    had already ended before the unload proves nothing (incomplete)."""
+    when the unload was written — superseded for `unload` (the handler's own
+    cancel) or `generation` (the poll loop's: the unload's begin made it
+    outdated; whichever comes first ends it) — and then nothing of it was
+    published, and no parse started after the unload. A parse that had
+    already ended before the unload proves nothing (incomplete)."""
     if not window.get("framed"):
         return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
     if window.get("losses"):
         return _row(case, "incomplete", "the gateway lost trace records overlapping the window", losses=window["losses"])
     ev = window.get("events") or []
     sup = [i for i, e in enumerate(ev) if e.get("tag") == "gcode.reparse_superseded" and e.get("job") == job
-           and e.get("reason") == "unload"]
+           and e.get("reason") in ("unload", "generation")]
     pubs = [e for e in ev if e.get("tag") == "gcode.publish" and e.get("job") == job]
     ends = [e.get("tag") for e in ev if e.get("tag") in ("gcode.parse_cancelled", "gcode.parse_discarded")
             and e.get("job") == job]
