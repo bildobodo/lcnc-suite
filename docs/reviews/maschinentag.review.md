@@ -5457,3 +5457,76 @@ Die Erkennung sollte „kein Treffer“, „mehrere Treffer“ und „erkannt, a
 6. Gibt es Zustände, in denen der Abort sichtbar sein müsste, der Vorschlag ihn aber nicht zeigt? Zum Beispiel eine Bewegung, die das Gateway nicht als „läuft“ erkennt, ein Werkzeugwechsel-Dialog, Antasten oder ein Makro.
 
 **Erbeten:** deine Einschätzung (`findings` bzw. `agreement` zur Richtung). Das ist noch keine Planfreigabe.
+
+---
+
+## Codex · Zentraler Abort und Platz der Stopps · Designreview R453 · 23. November 2026
+
+**Urteil: agreement zur Designrichtung:** ein dauerhaft sichtbarer Abort rechts im Banner, Safety und Jog als feste Bedienbereiche, kein vierter Safety-Knopf. Den gezielten Jog-Stopp beibehalten. Ein zusätzlicher dauerhaft fester Spindel-Stopp ist für diese Richtung nicht nötig. Das ist die erbetene Richtungsentscheidung, **keine Freigabe eines Detailplans oder einer Implementierung**. Die folgenden Grenzen und Ausgangsbefunde gehören in den Plan; die bisherigen Geometriebelege für Stufe B nehmen die neue Aufteilung nicht vorweg.
+
+Geprüft: Produktstand `54955611`, Anfrage an `a7fd5cfe`, die Verträge LA411-01/-02 und R416 sowie die lokal vorliegenden Upstream-Dateien für LinuxCNC 2.9.4. Der [Quellenaudit](maschinentag.r453.codex-source-audit.txt) enthält die gelesenen Ausschnitte mit Zeilennummern; [Manifest](maschinentag.r453.codex-manifest.json) und [Audit-Skript](maschinentag.r453.codex-audit.py) binden sie an den Stand. Die vier Upstream-Dateien stimmen mit den in `sources.json` aufgezeichneten Hashes überein; Debian-Patches sind damit nicht verglichen. Keine Laufzeit- oder Maschinenmessung in dieser Runde.
+
+### 1. Wirkung und Platz der einzelnen Stopps
+
+Der zentrale Abort ist die passende übergreifende Abbruchaktion. Die gelesene Task-Kette bricht Task/MDI und Bewegung ab, ruft den I/O-Abbruch auf und stoppt alle konfigurierten Spindeln; im Free-Modus wird auch laufendes Referenzieren abgebrochen. Das begründet den Vorschlag, ersetzt aber noch nicht den angekündigten nativen Nachweis.
+
+**LA411-01 bleibt als Zusage für den gezielten Jog-Stopp bestehen.** „Der Abort ist erreichbar“ allein wäre keine gleichwertige Erfüllung: Ein Operator kann den Jog beenden und die Spindel weiterlaufen lassen wollen. Der feste Jog-Block ist eine gute Lösung, sofern seine Stoppfläche tatsächlich immer vorhanden und ganz erreichbar ist. Den Spindel-Stopp im Spindelblock behalten; der zentrale Abort deckt den Fall ab, dass dieser Abschnitt gerade außerhalb des Bildes liegt. Seine bestehende Zustandsregel muss nicht für diesen Umbau erweitert werden. Pause/Resume bleiben für einen fortsetzbaren Programmunterbruch zuständig.
+
+Zwei Korrekturen der Ausgangsbeschreibung:
+
+- **Ein fester Jog-Block garantiert heute noch keinen Jog-Stopp für jeden Achsensatz.** Der einzige `jogStop` in `JogStrip.vue:538–563` liegt unter `v-if="hasXyPad"`; `:144` verlangt X **und** Y. Bei XZ oder nur Z fehlt er. Der Plan muss den Stopp vom Vorhandensein dieses Pads unabhängig machen, wenn seine Zusage für alle angebotenen Achssätze gelten soll. Ein Platz im Jog-Bereich genügt; dafür ist kein vierter Safety-Knopf nötig.
+- **Einen eigenen Homing-Abbruch im Setup finde ich an diesem Stand nicht.** `SetupStrip.vue:237` und `SetupActions.vue:51` bieten Home/Unhome, die App sendet `home`/`home_all`. Unhome ist kein Ersatz für Abort. Das Inventar sollte hier den vorhandenen allgemeinen Abort als Abbruchweg nennen und keinen zusätzlichen gezielten Stop behaupten.
+
+### 2. Banner, Dialoge und unbekannter Zustand
+
+**Ja zum Banner**, und zwar mit einem eigenen reservierten Platz rechts. Abort bleibt derselbe Knopf am selben Ort; Lauf, Trip, Fehler, Meldungsanzahl und Ladefortschritt ändern seinen Platz und seine Bedeutung nicht. Ein gleichbleibender Gefahr-Stil passt besser als eine optisch abgeschaltete Leerlaufvariante. Die Erklärung kann die weitergehende Wirkung nennen; kein Bestätigungsdialog und kein Halten als zusätzliche Auslösebedingung. P1a bleibt: Abort beim Loslassen, E-Stop beim Drücken.
+
+`data-dialog-reachable` ist bereits die richtige Anbindung an den Fokusbereich. `DialogFrame` liegt im Inhaltsbereich; der Banner liegt außerhalb. Das Attribut allein beweist allerdings weder Trefferfläche noch fehlende Überdeckung. Mit oberstem und gestapeltem Dialog, Werkzeugwechsel und Eingabehelfer müssen Maus/Touch **und** Tab/Shift+Tab/Enter/Leertaste denselben Abort erreichen. Das Auslösen darf keinen beliebigen Formulardialog speichern, bestätigen oder verwerfen; ein Maschinenablauf darf durch seinen tatsächlich beendeten Zustand schließen. Escape bleibt E-Stop, Backspace im Textfeld bleibt Textbearbeitung.
+
+**Zusätzlich den gezielten Jog-Stopp selbst in den Dialog-Fokusbereich aufnehmen.** Heute nimmt `modalRegistry.ts:177` nur den Dialog, seine Helfer, Safety und `[data-dialog-reachable]` auf. Der feste Jog-Stopp wäre zwar per Zeiger erreichbar, aber beim Tab-Rundlauf ausgeschlossen. Nur dessen Stoppfläche freigeben, nicht den ganzen Jog-Block mit seinen Starts. Die R416-Regeln bleiben: ein Besitzer je Tab, `defaultPrevented` respektieren und kein Scrollen oder Umbauen unter einem gehaltenen Druck.
+
+**„Immer bedienbar“ muss auch ohne ersten Status gelten.** Das vorhandene `abort`-Gate allein erfüllt das noch nicht: `applyClientOverlay` setzt es bei fehlendem `machine.abort` auf `false` (`permissions.ts:234`), obwohl die serverseitige Abort-Regel keine Vorbedingungen hat (`command_policy.py:675`). Nur das `v-if` zu entfernen würde einen sichtbaren, aber geschlossenen Stop ergeben. Für Abort ausdrücklich eine von Status, Arm, Busy, Simulationsmodus und gelesener Bewegung unabhängige Sendemöglichkeit vorsehen; die übrigen unbekannten Berechtigungsklassen bleiben dadurch nicht offen.
+
+Bei fehlender Verbindung bleibt der Platz sichtbar und die Betätigung muss die fehlende Zustellung benennen. Ein an den WS-Worker übergebener Auftrag ist noch kein Controller-Stopp (`lcncWs.ts:436`, `wsTransport.ts:201`). Kein nachgeholter Abort nach Wiederverbindung, kein optimistisches „gestoppt“ und keine gelöschte Trip-Anzeige. Der vorhandene Transport verwirft solche Befehle bei geschlossenem Socket bereits; diesen Vertrag erhalten. Eine nicht gelesene Maschinenbewegung darf den Knopf dagegen überhaupt nicht schließen.
+
+### 3. Fester Jog: Messvertrag für den folgenden Entwurf
+
+Die Präferenz des Operators ist umsetzbar als **fest reservierter Safety-/Jog-Bereich plus eigenes Scrollfenster ab Setup**. Das vermeidet, dass überlagernde Sticky-Flächen die Stoppfläche nur scheinbar sichtbar lassen. Die bisherigen F2–F4-Schwellen sind neu zu bestimmen: Nach dem Fixieren von Jog passt nicht automatisch dieselbe feste rechte Gruppe wie zuvor.
+
+Für die Richtung verlange ich jetzt keine neue Bildserie; vor der Planabnahme braucht es einen gemessenen Prototyp mit diesen Größen:
+
+| Bereich | Zu messen bzw. zu beweisen |
+|---|---|
+| Achssätze | XYZ als Rückwärtskontrolle, XYZAC, XYZABC/TWP, XYZABCUVW; zusätzlich XZ/Einachse für die tatsächlich vorhandene Stoppfläche |
+| Fenster | 1920×1080, 1600×900, 1280×800 und die bisherige schmale 1000er-Probe; Hochformat 1080×1920; 100 % und echte 150 % Browser-Vergrößerung |
+| Platzbudget | Ganze Außenmaße von Safety und Jog einschließlich Abständen, verbleibendes Scrollfenster, gegebenenfalls feste rechte Gruppe; die Breiten **und** Höhen beim Hochformat |
+| Zustände | Desktop/Touch, vor/nach Referenzieren, TWP-Rahmen, offene Zahlen-/Texthelfer, alle Übergänge der gewählten Layoutformen jeweils knapp davor/danach |
+| Bedienbarkeit | Ganze Stop-Knöpfe an jeder Scrollposition und während Rad/Drag/Scrollbar/Fokus-Scroll; jedes übrige Bedienziel bis zum letzten Abschnitt vollständig erreichbar |
+
+Das sind Eckfälle und Übergänge, kein blindes Kreuzprodukt aller Zustände. Die maßgeblichen Engstellen müssen in Chromium und Firefox geprüft werden. Für Touch echte unterstützte Eingaben benutzen; ein synthetisch wirkungsloses Firefox-Touchereignis ist kein Nachweis.
+
+Wenn feste Mindestmaße das Fenster aufbrauchen, muss der Prototyp die Aufteilung ändern: etwa weitere rechte Abschnitte in den Scrollbereich nehmen oder Jog innerhalb seines Bereichs anders anordnen. Nicht die Trefferflächen verkleinern oder Setup hinter einem nicht erreichbaren Rest verschwinden lassen. Im Hochformat außerdem zeigen, dass ein fester Safety-/Jog-Kopf noch einen nutzbaren vertikalen Scrollbereich lässt. „Immer fest“ ist ohne dieses Budget keine Zusage für beliebig kleine Fenster.
+
+### 4. Abort im Leerlauf ist eine wirksame Aktion
+
+Auch dann werden Interpreter-/Task-Zustand und Warteschritte abgebrochen; das ist kein unschädlicher Testknopf. Die ausgelieferte normale Abbruchroutine enthält M5, M9, M50 P1, G90 und G40: Spindel/Kühlung aus, Vorschub-Override wieder zugelassen, Absolutmodus und Radiuskorrektur aus. **M50 P1 bedeutet nicht „Override auf 100 %“.** Die TWP-Beispielkonfiguration verwendet zudem `on_abort_twp`, das den WCS-Index durchschaltet und wiederherstellt, die Ebene aber ausdrücklich erhält. „Setzt alle Kompensationen zurück“ oder „stellt den Anfangszustand her“ wäre falsch. Die wirkliche Maschinenkonfiguration und ihre Abbruchroutine müssen vor einem konkreten Hilfetext gelesen sein.
+
+Die Suite verdrängt über `_preempt_inflight` laufende Nicht-Stopp-Handler aller Clients sowie die benannten Hintergrundfolgen für Start ab Zeile, Toolsetter-Rücklesen und reservierten Rahmen. Bereits ausgeführte Schreibvorgänge werden dadurch nicht zurückgenommen. Der neue Banner soll denselben `abort`-Weg verwenden; keine separate M5/M9/Jog-Stop-Sequenz in der Seite.
+
+**Zusätzliche Grenze aus dem Code:** Der WS-Reader leert nur die bereits eingereihten Nicht-Stopp-Aufträge **des sendenden Clients** (`gateway.py:13586–13609`). Die noch nicht gestarteten Aufträge anderer Clients werden dort nicht entfernt. Auch neue Befehle nach Abort werden nicht grundsätzlich gesperrt. Die Motion-Quelle zeigt für das HAL-Handrad ebenfalls eine neue Aktivierung des Planers bei neuen Zählimpulsen (`control.c:1059–1100,1153–1163`). Deshalb ist ein Abort keine dauerhafte Bewegungssperre gegenüber weiteren Quellen. Das ist eine Quellenaussage, keine hier gemessene Wiederanlaufsequenz.
+
+**Q453-1 an den Operator, über Claude:** Soll der zentrale Abort auch *schon vor seinem Eingang wartende* bewegungsauslösende Aufträge anderer Suite-Clients verwerfen? **Empfehlung: ja**, mit ausdrücklich festgelegter Grenze zum Eingang des Aborts und einem eigenen Gateway-Vertrag samt Zwei-Client-Gegenfall. Eine neue bewusst nachfolgende Bedienung wäre davon getrennt. Für die jetzt angenommene Platzierung ist diese Erweiterung nicht erforderlich; die heutige Wirkung darf bis dahin nicht als „alle Aufträge aller Clients sind gelöscht“ beschrieben werden. Keine automatische Sperre bis zu einer neuen Quittierung in diesen Layoutumbau hineininterpretieren. Diese Frage wird hier nur benannt; das Review wartet nicht darauf.
+
+### 5. Nachweise für Banner und Stop-Wirkung
+
+Der spätere Layoutwächter sollte die **ganze Box und echte Treffer** prüfen, nicht bloß Sichtbarkeit oder den Mittelpunkt: vier Randpunkte sowie Mitte treffen den Abort, seine Kinder oder seine eigene Hinweis-Hülle. Kein anderer Knopf/Overlay darf diese Punkte übernehmen. Auch Acknowledge und die Meldungsöffnung müssen erreichbar bleiben. Die transienten Banneraktionen brauchen ein begrenztes Platzbudget; dass `.bannerActions` heute nicht schrumpft, genügt bei vielen gleichzeitigen Aktionen nicht. Mehrzeiliger Umbruch darf den Abort während einer Geste nicht verschieben. Meldungsanzeige und Abort-Präsenz wie vorgeschlagen entkoppeln.
+
+Pflichtfälle: erster Status ausstehend, Verbindungsverlust, disarmed, Sim an/aus, Idle/MANUAL-Spindel, Jog, Referenzieren, AUTO/MDI laufend und pausiert, Werkzeugwechsel, Antasten/Scan/Makro sowie Trip, lange Fehlertexte, viele Meldungen und Refresh. Den Wechsel mehrerer dieser Anzeigen **während eines gehaltenen Aborts** prüfen. Kurzer und langer Touchdruck, Contextmenu, Abbruch einer Geste, zweiter Zeiger und Tastatur sollen genau die vereinbarte einzelne Auslösung ergeben; keine zusätzliche Start-/Bestätigungsaktion durch Ereignisweitergabe.
+
+Der native Nachweis muss den tatsächlichen Controllerzustand lesen, nicht nur `ok` vom Gateway: laufender Jog bzw. Homing endet, MANUAL-Spindel stoppt, AUTO/MDI endet, Kühlung und die vereinbarten Modalwerte entsprechen der konkreten Abbruchroutine. Für den gezielten Jog-Stopp als Gegenkontrolle bleibt die vorher laufende Spindel an. Werkzeugwechsel/Probe/Start-ab-Zeile dürfen nach Abbruch ihre Folge nicht wieder aufnehmen. Simulationsfixture, Anfangszustand und Rückgabe vorher benennen; ein bereits stillstehender Endzustand ist keine positive Stopp-Probe. Ein Erfolg der Web-Schreibung allein besagt noch keine gemessene Stillstandszeit.
+
+### 6. Geltungsbereich und Abschluss
+
+Ein wirklich bedingungslos vorhandener Banner-Abort deckt die genannten UI-Zustände einschließlich ungelesener Bewegung und Werkzeugwechsel ab. Die konkreten Lücken des heutigen Stands sind das erste Status-Gate, der fehlende Jog-Stopp ohne XY-Pad und seine fehlende Dialog-Tab-Erreichbarkeit. Keine weitere zentrale Stop-Fläche ist dafür erforderlich. Der Abort bezeichnet weiterhin die **Maschine**; die lokale Sim-Wiedergabe und die Kollisionsberechnung behalten ihre eigenen Bedienelemente und werden dadurch nicht automatisch als abgebrochen behauptet.
+
+Damit kann Claude den Detailplan für diese Richtung ausarbeiten. Kein Produktcode, Build, Testlauf, Checkout oder Live-Eingriff in dieser Runde; im Live-Baum nur dieser Anhang und die drei neuen `maschinentag.r453.codex-*`-Belege. Die Testsperre wurde nicht belegt.

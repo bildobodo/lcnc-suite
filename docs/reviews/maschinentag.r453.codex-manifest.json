@@ -1,0 +1,283 @@
+{
+  "review": "R453",
+  "kind": "source audit only",
+  "product": "54955611542734e96efea9f21d12a11ddef4bf01",
+  "document_head_at_audit": "a7fd5cfe16e55412bd102c11c808810cc3d087ac",
+  "no_build_test_or_live_connection": true,
+  "sources": [
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "957ec84ea88c616d05e3b93d18906930193edcfbde9aaa961cbe32d80bdf6b24",
+      "ranges": [
+        [
+          335,
+          335
+        ],
+        [
+          1745,
+          1775
+        ],
+        [
+          1793,
+          1819
+        ],
+        [
+          2279,
+          2317
+        ],
+        [
+          3167,
+          3209
+        ],
+        [
+          3231,
+          3234
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/permissions.ts",
+      "sha256": "6f28c3d110a114b9c4aa66b75cdb8b7ee01943e4745bfe97e9e5031fb48b9bdf",
+      "ranges": [
+        [
+          184,
+          240
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/machineControls.ts",
+      "sha256": "d8007d74719ffe6a70f578fc8672a07dd08b024f55f0ed55c1d015164b4d7a32",
+      "ranges": [
+        [
+          76,
+          94
+        ],
+        [
+          268,
+          274
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/modalRegistry.ts",
+      "sha256": "7001dfaaa7769264a6eb6ce9ec488b87c791c39aee4bbf6d4153eceb54750421",
+      "ranges": [
+        [
+          36,
+          50
+        ],
+        [
+          123,
+          131
+        ],
+        [
+          169,
+          200
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/DialogFrame.vue",
+      "sha256": "6a085b036aaa8db36e3c00d03f8bbc5d6d23896458324d29b3b91c0170638098",
+      "ranges": [
+        [
+          160,
+          185
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/JogStrip.vue",
+      "sha256": "e3803fdf973f7c5716eba6503931614a56e229910ce34c8cdef49c2c94745bdd",
+      "ranges": [
+        [
+          133,
+          144
+        ],
+        [
+          378,
+          387
+        ],
+        [
+          413,
+          431
+        ],
+        [
+          530,
+          563
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/SetupStrip.vue",
+      "sha256": "f8ecd6e739446fc49128b6cd5106d3a1c57eb98a0f57ceb8a9fc4a7930f03863",
+      "ranges": [
+        [
+          234,
+          241
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/SetupActions.vue",
+      "sha256": "c9fb1b092ae043d23b0753100992a75ab9dc72c2961e90bb3a7504c86d13b083",
+      "ranges": [
+        [
+          48,
+          59
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.ts",
+      "sha256": "c5c7c45aa71f826b25591cdda419cb58a2740bd34d3bed8ce678015a735fa639",
+      "ranges": [
+        [
+          436,
+          442
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.ts",
+      "sha256": "83ae9c3dda4a74947d2945c15eb3db2d6603714849336d8310efdf5aa1fa5c8d",
+      "ranges": [
+        [
+          195,
+          207
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-webui/src/wsWorker.ts",
+      "sha256": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+      "ranges": [
+        [
+          381,
+          400
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-gateway/command_policy.py",
+      "sha256": "ee672470aa3ee4dfb8ebe113713c4f72019eff5dd414dd625e9c970fcc9f8bbe",
+      "ranges": [
+        [
+          670,
+          680
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "571664e42662810e3a716eadbb2aa2f3b6d563419692ca55a2de62e29b47efbd",
+      "ranges": [
+        [
+          7064,
+          7071
+        ],
+        [
+          12381,
+          12418
+        ],
+        [
+          13584,
+          13632
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "subroutines/probe_basic/on_abort.ngc",
+      "sha256": "2f4403c27515a6c5e840f0b6bfdcd63af12e4ff54ce9cf8ac7fc57d0f3143586",
+      "ranges": [
+        [
+          1,
+          20
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "examples/sim_config/twp/remap_subs/on_abort_twp.ngc",
+      "sha256": "8f70a71268e4eb31facb59f181ac217457697c0b79102fe308a72beb9455c397",
+      "ranges": [
+        [
+          1,
+          60
+        ]
+      ],
+      "revision": "54955611"
+    },
+    {
+      "path": "/home/cnc/claude-work/bg/upstream-2.9.4/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+      "ranges": [
+        [
+          2108,
+          2121
+        ]
+      ],
+      "upstream": "v2.9.4; Debian downstream patches not compared",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc"
+    },
+    {
+      "path": "/home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc",
+      "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1",
+      "ranges": [
+        [
+          225,
+          263
+        ],
+        [
+          743,
+          750
+        ]
+      ],
+      "upstream": "v2.9.4; Debian downstream patches not compared",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctask.cc"
+    },
+    {
+      "path": "/home/cnc/claude-work/bg/upstream-2.9.4/motion-command.c",
+      "sha256": "5169c0fd2e7ea59cda233cf42e83facd56b578e95ec0771be49711f42ff6c15a",
+      "ranges": [
+        [
+          494,
+          533
+        ]
+      ],
+      "upstream": "v2.9.4; Debian downstream patches not compared",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c"
+    },
+    {
+      "path": "/home/cnc/claude-work/bg/upstream-2.9.4/control.c",
+      "sha256": "4c92fd34b9ae99a5adee2bf13b914afa6f4aab784ecc229aafad42c69fabc34e",
+      "ranges": [
+        [
+          1059,
+          1100
+        ],
+        [
+          1153,
+          1163
+        ]
+      ],
+      "upstream": "v2.9.4; Debian downstream patches not compared",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/control.c"
+    }
+  ],
+  "audit_sha256": "7db96bf5102bf96afb9b8313f53cce09ce44e520c52fbe168959f14db0beb0b7"
+}

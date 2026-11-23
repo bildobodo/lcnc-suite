@@ -1,0 +1,859 @@
+R453: source audit at product 54955611; no runtime claims.
+
+
+SOURCE lcnc-webui/src/App.vue
+SHA256 957ec84ea88c616d05e3b93d18906930193edcfbde9aaa961cbe32d80bdf6b24
+--- lines 335..335
+335: const bannerShowAbort = computed(() => isRunning.value || isPaused.value);
+--- lines 1745..1775
+1745:  * The latch NEVER applies to a stop command (isNeverDebounced): `abort` was
+1746:  * routed through here from the keyboard and gamepad and could be silently
+1747:  * discarded within another action's cooldown. Its permission gate still
+1748:  * applies; only the debounce is bypassed. Cooldown length is per-command
+1749:  * transport policy (cooldownFor), which is why a flag toggle no longer needs
+1750:  * to route around fire() to feel responsive.
+1751:  *
+1752:  * A drop is logged, not silent — the same honesty rule the backend follows.
+1753:  */
+1754: function fire(payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number): string | null {
+1755:   const cmd = String(payload?.cmd ?? "");
+1756:   const neverDebounced = isNeverDebounced(cmd);
+1757:   if (busy.value && !neverDebounced) {
+1758:     console.warn(`[fire] ${cmd} dropped: another command is settling`);
+1759:     return null;
+1760:   }
+1761:   if (gate && !permissions.value[gate]) {
+1762:     // Loud in the message center too (U-06): a control that looked live and
+1763:     // did nothing is the same silence as an unexplained dimmed one.
+1764:     const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
+1765:     console.warn(`[fire] ${cmd} dropped: gate '${gate}' is closed`);
+1766:     pushMessage(OPERATOR_ERROR, `${cmd} not sent — ${why}`);
+1767:     return null;
+1768:   }
+1769:   const hold = cooldownMs ?? cooldownFor(cmd);
+1770:   if (hold <= 0) return send(payload);   // no latch: nothing to release
+1771:   busy.value = true;
+1772:   try {
+1773:     return send(payload);
+1774:   } finally {
+1775:     window.setTimeout(() => (busy.value = false), hold);
+--- lines 1793..1819
+1793: // Homing is ZERO-tier on the backend (idle + !eoffset), not idle.
+1794: function homeAll() {
+1795:   fire({ cmd: "home_all" }, ACTION_GATES.homeAll);
+1796: }
+1797: 
+1798: function unhomeAll() {
+1799:   fire({ cmd: "unhome_all" }, 'zero');
+1800: }
+1801: 
+1802: // Joint letters outside their own soft-limit window (status
+1803: // joints_beyond_limit): motion refuses every world-mode move meanwhile, the
+1804: // gateway jogs in joint mode until they are back inside — the banner says so.
+1805: const jointsBeyondLimit = computed<string[]>(() => {
+1806:   const j = st.value.joints_beyond_limit;
+1807:   return Array.isArray(j) ? j.map(String) : [];
+1808: });
+1809: 
+1810: const homedJoints = computed<boolean[]>(() => {
+1811:   const hj = st.value.homed_joints;
+1812:   return Array.isArray(hj) ? hj.map(Boolean) : [];
+1813: });
+1814: 
+1815: // Per AXIS (package 3a F-HOME.S2b): the gateway names the joint from the
+1816: // declared mapping and refuses an unclear one or a home group.
+1817: function homeAxis(axis: number) {
+1818:   fire({ cmd: "home", axis }, 'zero');
+1819: }
+--- lines 2279..2317
+2279:     <div class="statusBanner" :class="{ 'banner-pulse': bannerFlashMode === 'pulse', 'banner-flash': bannerFlashMode === 'flash' }" :style="{ '--state-color': `var(${machineStateColor})` }">
+2280:       <div class="bannerContent" @click="openMessages">
+2281:         <Transition name="banner-fade" mode="out-in">
+2282:           <!-- Every banner carries its recovery path — an operator must
+2283:                never have to guess whether waiting, a UI action, or a
+2284:                suite restart is the way out (no auto-recovery implied). -->
+2285:           <span v-if="bannerLine" :key="bannerLine.key" :class="bannerLine.tier === 'error' ? 'bannerError text-danger' : 'bannerWarn text-warn'"
+2286:                 :title="bannerLine.detail">
+2287:             {{ bannerLine.text }}
+2288:           </span>
+2289:           <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
+2290:             <span>Re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} · {{ previewRefreshFile }}{{ previewRefresh.queued ? ' · queued' : '' }}</span>
+2291:             <div class="progressTrack" :title="previewRefreshTimes"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
+2292:           </span>
+2293:           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ 'bannerError text-danger': bannerMessageKind <= 2 }">
+2294:             {{ bannerMessage }}
+2295:           </span>
+2296:           <span v-else :key="machineState">
+2297:             {{ machineStateLabel }}
+2298:           </span>
+2299:         </Transition>
+2300:       </div>
+2301:       <!-- Abort is ALWAYS the last action: a stop must not move when a
+2302:            message count or a Refresh appears beside it (P2). -->
+2303:       <div class="bannerActions row-controls">
+2304:         <!-- data-dialog-reachable: in Tab reach from inside an open dialog
+2305:              (modalRegistry focus scope, UI-D01) — the trip acknowledgement
+2306:              and the running program's Abort, nothing else of the banner. -->
+2307:         <MachineBtn v-if="safetyTrip" type="bannerAck" data-dialog-reachable @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
+2308:         <MachineBtn v-if="bannerLine?.key === 'preview-error' && activeFile" type="bannerReload" @click="loadFile(activeFile)">Reload program</MachineBtn>
+2309:         <MachineBtn v-if="bannerLine?.key === 'program-unconfirmed' && programUnconfirmed" type="bannerReload" @click="loadFile(programUnconfirmed)">Load program</MachineBtn>
+2310:         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
+2311:         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="openMessages">
+2312:           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
+2313:         </MachineBtn>
+2314:         <MachineBtn v-if="needsRefresh" type="bannerAction" @click="reloadPage">Refresh</MachineBtn>
+2315:         <MachineBtn v-if="bannerShowAbort" type="bannerAbort" data-dialog-reachable @click="fire({ cmd: 'abort' }, 'abort')" />
+2316:       </div>
+2317:     </div>
+--- lines 3167..3209
+3167: .statusBanner {
+3168:   display: flex;
+3169:   align-items: center;
+3170:   justify-content: space-between;
+3171:   gap: var(--gap-section);
+3172:   padding: 4px 14px;
+3173:   min-height: 44px;
+3174:   color: var(--fg);
+3175:   font-size: var(--fs-xl);
+3176:   font-weight: var(--fw-bold);
+3177:   text-transform: uppercase;
+3178:   letter-spacing: var(--tracking-caps);
+3179:   flex-shrink: 0;
+3180:   border-radius: var(--radius-container);
+3181:   background: color-mix(in oklab, var(--state-color, var(--info)) var(--tint-fill), var(--panel));
+3182:   transition: background 0.4s ease;
+3183: }
+3184: 
+3185: .bannerContent {
+3186:   flex: 1;
+3187:   /* A flex item holding single-line text refuses to shrink below that text
+3188:      unless told to; without this a long banner set the content's minimum
+3189:      width and pushed the actions row (messages, Refresh, Home All, Abort)
+3190:      past the right edge (operator, 2026-09-12: "the messages button
+3191:      vanished briefly"). */
+3192:   min-width: 0;
+3193:   cursor: pointer;
+3194:   display: flex;
+3195:   align-items: center;
+3196: }
+3197: 
+3198: .bannerContent > span,
+3199: .bannerProgress > span:first-child {
+3200:   white-space: nowrap;
+3201:   overflow: hidden;
+3202:   text-overflow: ellipsis;
+3203: }
+3204: 
+3205: /* Re-parse banner: text + a progress track side by side (layout only —
+3206:    .progressTrack/.progressFill are the global program-progress styles).
+3207:    Track and fill are DIVs like GcodePanel's: as inline spans the fill
+3208:    ignored its width, so the track always read as an empty grey bar after
+3209:    the ellipsis (operator, 2026-09-12; the gateway always has an expected
+--- lines 3231..3234
+3231: 
+3232: .bannerActions {
+3233:   flex-shrink: 0;
+3234: }
+
+SOURCE lcnc-webui/src/permissions.ts
+SHA256 6f28c3d110a114b9c4aa66b75cdb8b7ee01943e4745bfe97e9e5031fb48b9bdf
+--- lines 184..240
+184: const SIM_GATES: ReadonlySet<keyof Permissions> = new Set([
+185:   "always", "armed", "setup", "sourceWrite", "toolTableWrite", "programLoad", "armEnable", "estopReset",
+186: ]);
+187: 
+188: /**
+189:  * The stops (button gates BG-08 / BG-18, Codex R202–R204): no client-local
+190:  * term closes them — not disarmed (arm authorizes NEW machine effects; E-Stop
+191:  * was always open to every client), not the busy latch of another command,
+192:  * not simulation mode. The backend judges the state (Pause: something runs;
+193:  * the spindle stop: machine on and idle); its decision passes through as is.
+194:  */
+195: const STOP_GATES: ReadonlySet<keyof Permissions> = new Set([
+196:   "abort", "pause", "spindleStop",
+197: ]);
+198: 
+199: /**
+200:  * Gates judged by the backend alone, like the stops: the stops, and ARMING
+201:  * (`armEnable`, button gates BG-11) — it is what a disarmed client does, so
+202:  * the client's own `armed` term can never be part of it; the backend closes
+203:  * it while a safety trip waits for its acknowledgement. Arming is the one
+204:  * class that stays OPEN until the backend says otherwise: the Arm button is
+205:  * reachable before the first status and against a gateway without the class
+206:  * (smoke.spec "Arm control stays reachable"), and the gateway's arm handler
+207:  * refuses arming over an unacknowledged trip itself.
+208:  */
+209: const BACKEND_ONLY_GATES: ReadonlySet<keyof Permissions> = new Set([
+210:   ...STOP_GATES, "armEnable",
+211: ]);
+212: 
+213: /** The backend's machine-state permission dict (computed with `armed=true`). */
+214: export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
+215: 
+216: /**
+217:  * Apply the client-local overlay to the backend-broadcast machine permissions.
+218:  * `always` is unconditional; a stop or arming (BACKEND_ONLY_GATES) is the
+219:  * backend's decision alone; every other gate requires `armed`; busy-subset gates also require
+220:  * `!busy`. Absent backend perms (before the first status)
+221:  * yield all-false except `always` — the safe default. A class the gateway
+222:  * does not ship is CLOSED, never read from another one (button gates
+223:  * BG-15: the old fallback opened Cycle Start, the machine-frame routines
+224:  * and → Zero on `ready` alone); its reason says to restart the gateway.
+225:  */
+226: export function applyClientOverlay(
+227:   machine: MachinePermissions | null | undefined,
+228:   armed: boolean,
+229:   busy: boolean,
+230:   sim: boolean = false,
+231: ): Permissions {
+232:   const out = {} as Permissions;
+233:   for (const g of GATE_NAMES) {
+234:     if (g === "always") { out[g] = true; continue; }
+235:     if (g === "armEnable") { out[g] = machine?.[g] !== false; continue; }
+236:     if (BACKEND_ONLY_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
+237:     out[g] = !!machine?.[g] && armed
+238:       && (BUSY_GATES.has(g) ? !busy : true)
+239:       && (sim ? SIM_GATES.has(g) : true);
+240:   }
+
+SOURCE lcnc-webui/src/machineControls.ts
+SHA256 d8007d74719ffe6a70f578fc8672a07dd08b024f55f0ed55c1d015164b4d7a32
+--- lines 76..94
+76:   // WEBUI_SPINDLE_BEFORE_HOMING (operator Q1, button gates D).
+77:   spindleFwd:      { gate: 'spindleManual', variant: 'default', size: 'md', hold: true },
+78:   spindleRev:      { gate: 'spindleManual', variant: 'default', size: 'md', hold: true },
+79:   // The spindle stop at idle: no arm, no homing (button gates BG-18).
+80:   spindleStop:     { gate: 'spindleStop', variant: 'danger',  size: 'md' },
+81:   spindleIncrease: { gate: 'spindleManual', variant: 'default', size: 'md' },
+82:   spindleDecrease: { gate: 'spindleManual', variant: 'default', size: 'md' },
+83: 
+84:   // Coolant (override gate: toggleable during program execution, like overrides)
+85:   flood:          { gate: 'override', variant: 'default', size: 'md' },
+86:   mist:           { gate: 'override', variant: 'default', size: 'md' },
+87: 
+88:   // Jog
+89:   jog:            { gate: 'jog',      variant: 'default', size: 'sm', mono: true },
+90:   // The jog pad's centre Stop: jog_stop for every axis — a stop, open to a
+91:   // disarmed client (button gates BG-08 / BG-01: a closed start never
+92:   // closes its stop; the gateway answers a stop it did not start as a no-op).
+93:   jogStop:        { gate: 'always',   variant: 'danger',  size: 'sm', mono: true },
+94: 
+--- lines 268..274
+268:   // Banner buttons are ONE family (design wave D1, UI-N25): the trip
+269:   // acknowledgement and the program reload are banner actions too.
+270:   bannerAck:      { gate: 'always',  variant: 'primary', size: 'md' },
+271:   bannerReload:   { gate: 'programLoad', variant: 'default', size: 'md' },
+272:   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
+273:   // Banner Home All: `home_all` is ZERO-tier on the backend (idle + !eoffset).
+274:   bannerHome:     { gate: 'zero',    variant: 'default', size: 'md', hold: true },
+
+SOURCE lcnc-webui/src/modalRegistry.ts
+SHA256 7001dfaaa7769264a6eb6ce9ec488b87c791c39aee4bbf6d4153eceb54750421
+--- lines 36..50
+36:     if (open && !counted) { openCount.value++; counted = true; }
+37:     else if (!open) release();
+38:   }, { immediate: true });
+39:   if (getCurrentInstance()) onUnmounted(() => { stop(); release(); });
+40: }
+41: 
+42: // ── Dialog stack + focus scope (design wave D2, UI-D01, UI-D06) ──
+43: // DialogFrame pushes itself here; only the TOPMOST dialog is an operating
+44: // position. Tab and Shift+Tab walk ONE ordered set while a dialog is open:
+45: // the topmost dialog, its own input helper (the keypad strip / keyboard of a
+46: // field inside it — same `data-input-area`), the safety strip (Arm, E-Stop,
+47: // Power) and the banner's Abort / Acknowledge (`data-dialog-reachable`).
+48: // Nothing else: not Home All, not the strips, not the panels behind the
+49: // scrim. No `inert` and no native <dialog>: both would make the safety strip
+50: // unreachable, and a modal <dialog> turns Escape (E-Stop) into a cancel. A
+--- lines 123..131
+123:  *  its own input helper, the safety strip, the banner's Abort / Acknowledge. */
+124: export function inDialogScope(el: Element | null): boolean {
+125:   const top = topDialog.value?.el();
+126:   if (!top || !el) return false;
+127:   if (top.contains(el) || el.closest(".safetyStrip, [data-dialog-reachable]")) return true;
+128:   const area = el.closest("[data-input-area]")?.getAttribute("data-input-area");
+129:   return !!area && !!top.querySelector(`[data-input-area="${CSS.escape(area)}"]`);
+130: }
+131: 
+--- lines 169..200
+169: 
+170: /** The focus scope of the topmost dialog, in Tab order; null without one. */
+171: export function focusScope(): HTMLElement[] | null {
+172:   const top = topDialog.value?.el();
+173:   if (!top) return null;
+174:   const areas = new Set([...top.querySelectorAll("[data-input-area]")].map(e => e.getAttribute("data-input-area")));
+175:   const helpers = [...document.querySelectorAll<HTMLElement>("[data-input-area]")]
+176:     .filter(el => !top.contains(el) && areas.has(el.getAttribute("data-input-area")));
+177:   const roots: Element[] = [top, ...helpers, ...document.querySelectorAll(".safetyStrip, [data-dialog-reachable]")];
+178:   const seen = new Set<HTMLElement>();
+179:   const list: HTMLElement[] = [];
+180:   for (const r of roots) {
+181:     const own = r !== top && r.matches(FOCUSABLE) && !(r as HTMLElement).matches(":disabled") ? [r as HTMLElement] : [];
+182:     for (const el of [...own, ...tabbable(r)]) if (!seen.has(el)) { seen.add(el); list.push(el); }
+183:   }
+184:   return list;
+185: }
+186: 
+187: function onTabKey(e: KeyboardEvent): void {
+188:   if (e.key !== "Tab" || stack.length === 0) return;   // the hot path: one compare
+189:   if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return;
+190:   const scope = focusScope();
+191:   if (!scope) return;
+192:   e.preventDefault();
+193:   const top = topDialog.value!.el()!;
+194:   if (!scope.length) { top.focus(); return; }
+195:   const active = document.activeElement;
+196:   const at = scope.findIndex(el => el === active || el.contains(active));
+197:   const next = at < 0 ? (e.shiftKey ? scope.length - 1 : 0)
+198:     : (at + (e.shiftKey ? -1 : 1) + scope.length) % scope.length;
+199:   scope[next]!.focus();
+200: }
+
+SOURCE lcnc-webui/src/DialogFrame.vue
+SHA256 6a085b036aaa8db36e3c00d03f8bbc5d6d23896458324d29b3b91c0170638098
+--- lines 160..185
+160: </script>
+161: 
+162: <template>
+163:   <Teleport to="#content-dialog-area" defer>
+164:     <div class="dialogOverlay" :class="{ safetyDialog: kind === 'flow' }" v-bind="$attrs" @click.self="requestClose('backdrop')">
+165:       <div :id="id" ref="box" class="dialog" :class="tierClass" role="dialog" :aria-labelledby="titleId" tabindex="-1">
+166:         <template v-if="size === 'confirm'">
+167:           <div :id="titleId" class="dialogTitle" :class="{ danger }"><slot name="title">{{ title }}</slot></div>
+168:           <slot />
+169:         </template>
+170:         <template v-else>
+171:           <div class="dialogHeader">
+172:             <span :id="titleId" class="dialogTitle" :class="{ danger }"><slot name="title">{{ title }}</slot></span>
+173:             <div class="row-tight">
+174:               <slot name="header" />
+175:               <MachineBtn v-if="closeLabel" type="close" class="dialogClose" :aria-label="closeLabel" :title="busy && busyLabel ? busyLabel : closeLabel" :disabled="busy"
+176:                           @click="requestClose('x')"><X :size="14" /></MachineBtn>
+177:             </div>
+178:           </div>
+179:           <slot />
+180:         </template>
+181:         <div v-if="$slots.actions" class="dialogActions"><slot name="actions" /></div>
+182:       </div>
+183:     </div>
+184:   </Teleport>
+185: </template>
+
+SOURCE lcnc-webui/src/JogStrip.vue
+SHA256 e3803fdf973f7c5716eba6503931614a56e229910ce34c8cdef49c2c94745bdd
+--- lines 133..144
+133: // X/Y/Z indices are resolved BY LETTER: the old code hardcoded X=0/Y=1 in
+134: // the pad and Z=2 in the Z column, which jogs the wrong joint on any
+135: // machine whose axes aren't XYZ-first (e.g. lathe ["X","Z"]).
+136: const { abc: abcAxes, uvw: uvwAxes, find: findAxis } = useAxes(computed(() => props.axes));
+137: // A reset names the value it returns to (design wave D6, N90).
+138: const linearResetName = computed(() =>
+139:   `Reset ${abcAxes.value.length > 0 ? "linear " : ""}jog speed to ${Math.round(props.defaultJogVel * 60)} ${props.linearUnit}/min`);
+140: const rotaryResetName = computed(() => `Reset rotary jog speed to ${Math.round(props.defaultAngularJogVel * 60)} °/min`);
+141: const xAxis = computed(() => findAxis("X"));
+142: const yAxis = computed(() => findAxis("Y"));
+143: const zAxis = computed(() => findAxis("Z"));
+144: const hasXyPad = computed(() => xAxis.value != null && yAxis.value != null);
+--- lines 378..387
+378: function stopAllJog() {
+379:   forceStopAllJogs();
+380:   // An explicit stop ends EVERY lease of this page (P1b): a key or a stick
+381:   // still held is spent until its own release — it cannot reopen as a change
+382:   endAllLeases();
+383:   // Belt-and-suspenders: stop all axes at backend level
+384:   for (let i = 0; i < props.axes.length; i++) {
+385:     send({ cmd: "jog_stop", axis: i });
+386:   }
+387: }
+--- lines 413..431
+413: // The centre Stop acts on its RELEASE like every click control (operator
+414: // decision P1a, machine day 2026-11-21 — only the E-Stop acts on the press;
+415: // Codex R420 MT-I06): a tap or a long press on the panel (releaseClick.ts
+416: // gives the click the browser withholds), Enter / Space as a native button
+417: // (Codex R213 BG-29: the keyboard stops like the pointer). A held key's
+418: // repeats do nothing. A direction button has no keyboard jog; the directions
+419: // own their presses.
+420: function onPadClick(btn: JogDef) {
+421:   if (btn.axis < 0) stopAllJog();
+422: }
+423: function onJogKey(btn: JogDef, e: KeyboardEvent) {
+424:   if (btn.axis >= 0 || (e.key !== "Enter" && e.key !== " ")) return;
+425:   if (e.repeat) e.preventDefault();
+426: }
+427: 
+428: function startJog(btn: JogDef, e: PointerEvent) {
+429:   // The centre Stop acts on its click (onPadClick), never the jog gate's
+430:   // (button gates BG-01 / BG-08 — a closed start never closes its stop).
+431:   if (btn.axis < 0) return;
+--- lines 530..563
+530: <template>
+531:   <div class="stripSection">
+532:     <!-- Before homing (package E) the head states the joint jog and its cap
+533:          in ITS OWN LINE: never a second one (it moved the buttons in the
+534:          narrow portrait strip) — cut with an ellipsis, the whole in the title. -->
+535:     <div class="sub row-tight jogHead">Jog<span v-if="jointOn" class="jogNote text-warn" :title="jointJogNote(jointJog)">· {{ jointJogNote(jointJog) }}</span><HelpIcon v-if="jointOn" label="Jogging before homing">{{ jointJogHelp(jointJog) }}</HelpIcon></div>
+536:     <div class="jogContent row-sections">
+537:       <div ref="jogBtnsRef" class="jogBtns row-sections">
+538:         <div v-if="hasXyPad" class="xyWrap" :style="xySize ? { width: xySize + 'px', height: xySize + 'px' } : undefined">
+539:           <div class="xyGrid">
+540:             <MachineBtn
+541:               v-for="btn in xyBtns"
+542:               :key="btn.label"
+543:               :type="btn.axis < 0 ? 'jogStop' : 'jog'"
+544:               :disabled="!!padRefusal(btn)"
+545:               :reason="padRefusal(btn)"
+546:               :aria-description="jointDescription(btn.axis, btn.axis2)"
+547:               :aria-label="btn.shortLabel ? undefined : jogName(btn)"
+548:               class="jogBtn"
+549:               :data-press-owned="btn.axis < 0 ? undefined : ''"
+550:               :variant="btn.axis < 0 ? 'danger' : jogVariant"
+551:               :active="activeJogKeys.has(btn.label)"
+552:               @pointerdown.prevent="startJog(btn, $event)"
+553:               @pointerup.prevent="stopJog(btn, $event)"
+554:               @pointercancel.prevent="stopJog(btn, $event)"
+555:               @pointerleave.prevent="stopJog(btn, $event)"
+556:               @pointermove="slideOffCheck"
+557:               @keydown="onJogKey(btn, $event)"
+558:               @click="onPadClick(btn)"
+559:               @contextmenu.prevent
+560:             ><span v-if="btn.axis2 == null && jointMark(btn.axis) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(btn.axis) }}</span><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
+561:           </div>
+562:         </div>
+563: 
+
+SOURCE lcnc-webui/src/SetupStrip.vue
+SHA256 f8ecd6e739446fc49128b6cd5106d3a1c57eb98a0f57ceb8a9fc4a7930f03863
+--- lines 234..241
+234:               <!-- Home / Unhome per AXIS: the state read at the axis' joint,
+235:                    the press sends the axis; closed with the gateway's reason
+236:                    where the joint is unclear or Home homes a group. -->
+237:               <MachineBtn :type="axisHomed(a.index) ? 'unhome' : 'home'"
+238:                           :aria-label="`${axisHomed(a.index) ? 'Unhome' : 'Home'} ${a.letter}`"
+239:                           :title="`Hold to ${axisHomed(a.index) ? 'unhome' : 'home'} ${a.letter}`"
+240:                           :disabled="axisHomeReason(a.index) !== null" :reason="axisHomeReason(a.index) ?? undefined"
+241:                           @click="axisHomed(a.index) ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><SetupIcon :kind="axisHomed(a.index) ? 'unhome' : 'home'" />{{ a.letter }}</MachineBtn>
+
+SOURCE lcnc-webui/src/SetupActions.vue
+SHA256 c9fb1b092ae043d23b0753100992a75ab9dc72c2961e90bb3a7504c86d13b083
+--- lines 48..59
+48:          read from -->
+49:     <MachineBtn :class="at('zero')" type="zero" @click="emit('zeroAll')" :title="linearOnly ? 'Zero the linear axes only' : undefined"><SetupIcon kind="zero" />{{ zeroAllLabel }}</MachineBtn>
+50:     <MachineBtn :class="at('home')" :type="isHomed ? 'unhome' : 'home'" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><SetupIcon :kind="isHomed ? 'unhome' : 'home'" /><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
+51:     <!-- Labels name the DESTINATION with a motion verb (review 2026-09-14
+52:          D-02): an arrow said nothing about moving, "Home" read as reference
+53:          homing. MCS/WCS = machine / work coordinate system, the WCS
+54:          selector's own term. -->
+55:     <MachineBtn :class="at('g30')" type="goTo" @click="emit('goToG30')" title="Hold to move to the G30 position">Go to G30</MachineBtn>
+56:     <MachineBtn :class="at('mcs')" type="goTo" @click="emit('goToHome')" title="Hold to move to machine zero">Go to MCS 0</MachineBtn>
+57:     <MachineBtn :class="at('wcs')" type="goZero" @click="emit('goToZero')" title="Hold to move to work zero">Go to WCS 0</MachineBtn>
+58:     <template v-if="span.capture">
+59:       <!-- Capture plane: the one-button manual definition — align the
+
+SOURCE lcnc-webui/src/lcncWs.ts
+SHA256 c5c7c45aa71f826b25591cdda419cb58a2740bd34d3bed8ce678015a735fa639
+--- lines 436..442
+436: export function send(obj: WsCommand): string | null {
+437:   // Classify here (main thread) where the structured command is visible.
+438:   // Mutating/motion commands must not be queued+replayed across a reconnect
+439:   // (issue #18); the worker drops them if the socket is closed.
+440:   const req_id = nextReqId();
+441:   const posted = sendCommand(JSON.stringify({ ...obj, req_id }), obj.cmd, !isQueueSafe(obj.cmd));
+442:   return posted ? req_id : null;
+
+SOURCE lcnc-webui/src/ws/wsTransport.ts
+SHA256 83ae9c3dda4a74947d2945c15eb3db2d6603714849336d8310efdf5aa1fa5c8d
+--- lines 195..207
+195: /**
+196:  * Post a structured command for the socket. Mutating/motion commands must not
+197:  * be queued+replayed across a reconnect (issue #18); the caller classifies
+198:  * (it sees the structured command) and the worker drops dropIfClosed sends
+199:  * when the socket is closed. No-op when no worker exists.
+200:  */
+201: export function sendCommand(payload: string, cmd: string, dropIfClosed: boolean): boolean {
+202:   if (wsWorker) {
+203:     wsWorker.postMessage({ type: "send", payload, cmd, dropIfClosed });
+204:     return true;
+205:   }
+206:   return false;
+207: }
+
+SOURCE lcnc-webui/src/wsWorker.ts
+SHA256 fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143
+--- lines 381..400
+381:     case "send":
+382:       if (ws && ws.readyState === WebSocket.OPEN) {
+383:         try {
+384:           ws.send(msg.payload);
+385:         } catch {
+386:           // Socket died between the OPEN check and the send — the command is
+387:           // lost. Surface it like dropped_command; onclose drives reconnect.
+388:           post({ type: "error", kind: "send_failed", msg: String(msg.cmd ?? "?") });
+389:         }
+390:       } else if (msg.dropIfClosed) {
+391:         // Mutating/motion command issued while the socket is closed — DROP it
+392:         // rather than replay a stale operator action into a fresh connection
+393:         // after reconnect (issue #18). Surface it so the operator knows.
+394:         post({ type: "error", kind: "dropped_command", msg: String(msg.cmd ?? "?") });
+395:       } else {
+396:         // Read-only/telemetry — safe to queue across a brief blip.
+397:         if (preOpenQueue.length >= QUEUE_MAX) {
+398:           preOpenQueue.shift();
+399:           post({ type: "error", kind: "send_queue_overflow", msg: String(QUEUE_MAX) });
+400:         }
+
+SOURCE lcnc-gateway/command_policy.py
+SHA256 ee672470aa3ee4dfb8ebe113713c4f72019eff5dd414dd625e9c970fcc9f8bbe
+--- lines 670..680
+670:     # sequence — AUTO or MDI; resuming it is new motion and needs arm.
+671:     "pause":    (_R_INTERP_KNOWN, _R_RUNNING, _R_NOT_PAUSED),
+672:     "resume":   _BASE + (_R_INTERP_KNOWN, _R_PAUSED),
+673:     # Step out of a pause continues; from idle it is a START (BG-09).
+674:     "step":     _BASE + (_R_INTERP_KNOWN, _R_STEP),
+675:     "abort":    (),
+676:     # The spindle stop at idle (BG-18): no arm, no homing; while a program
+677:     # or an MDI runs or pauses the program owns the spindle — Pause / Abort.
+678:     "spindleStop": (_R_NOT_ESTOP, _R_ENABLED, _R_INTERP_KNOWN, _R_SPINDLE_FREE),
+679:     # The manual tool-change confirmation (BG-17): it continues the real
+680:     # interpreter, so armed — and only for a FRESH pending request.
+
+SOURCE lcnc-gateway/gateway.py
+SHA256 571664e42662810e3a716eadbb2aa2f3b6d563419692ca55a2de62e29b47efbd
+--- lines 7064..7071
+7064:     if cmd == "abort":
+7065:         # A stop needs no arm (button gates BG-08): arm authorizes NEW
+7066:         # machine effects — E-Stop was already open to every client.
+7067:         await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None)
+7068:         _settle_leases_ended_by(("abort",))   # written: the jogs stop with it (MT-I08)
+7069:         _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
+7070:         _trace_ended_actions()
+7071:         return {"ok": True}
+--- lines 12381..12418
+12381: def _preempt_inflight(by: str, from_client: int) -> int:
+12382:     """abort/estop from ANY client cancels every client's in-flight non-stop
+12383:     handler (2026-09-05, docs/decisions.md). The cancel propagates into
+12384:     _cmd_blocking, which keeps _cmd_lock until the current wait slice
+12385:     returns — so the stop runs after the current NML call, not after a 30 s
+12386:     MDI wait. Stop-class commands and `arm` are never cancelled
+12387:     (_WS_NO_PREEMPT). The victim's worker replies "Preempted by <by>" and
+12388:     traces ws.command_preempted; this site traces the fan-out once."""
+12389:     victims = []
+12390:     now = time.monotonic()
+12391:     for cid, c in list(_clients.items()):
+12392:         t = c.cmd_inflight_task
+12393:         if t is None or t.done() or c.cmd_inflight in _WS_NO_PREEMPT:
+12394:             continue
+12395:         c.cmd_preempted_by = by
+12396:         t.cancel()
+12397:         victims.append({"client_id": cid, "cmd": c.cmd_inflight,
+12398:                         "ran_ms": round((now - c.cmd_inflight_since_mono) * 1000)})
+12399:     if victims:
+12400:         _trace.emit("ws.command_preempt", level="warn", by=by,
+12401:                     from_client=from_client, victims=victims)
+12402:     # The run-from-line sequence is a background task, not a handler — it
+12403:     # used to measure, retract and start on after an abort between steps.
+12404:     rfl = _rfl_task
+12405:     if rfl is not None and not rfl.done():
+12406:         rfl.cancel()
+12407:         _trace.emit("rfl.cancelled", level="warn", by=by, from_client=from_client)
+12408:     # ...and the toolsetter read-back (a synch under _cmd_lock)
+12409:     ts = _ts_readback_task
+12410:     if ts is not None and not ts.done():
+12411:         ts.cancel()
+12412:         _trace.emit("toolsetter.read_back_cancelled", level="warn", by=by)
+12413:     # ...and the reserved-fixture heal (MDI + G54 under _cmd_lock, package 2b)
+12414:     heal = _reserved_heal_task
+12415:     if heal is not None and not heal.done():
+12416:         heal.cancel()
+12417:         _trace.emit("twp.reserved_fixture_heal_cancelled", level="warn", by=by)
+12418:     return len(victims)
+--- lines 13584..13632
+13584:                 # class commands get 4× the headroom and are never rejected first.
+13585:                 _rcmd = msg.get("cmd")
+13586:                 if _rcmd in _WS_PREEMPT_CMDS:
+13587:                     # A stop supersedes the work this client sent before it: drop
+13588:                     # the queued non-stop commands (replied + traced, never
+13589:                     # silent), keep stops/arm in their FIFO order ahead of this
+13590:                     # one, and cancel every client's in-flight handler. All on
+13591:                     # the loop thread — the worker is either parked in get() or
+13592:                     # inside its sub-task, never touching the queue.
+13593:                     _kept, _sup = [], []
+13594:                     while True:
+13595:                         try:
+13596:                             _qitem = cmd_queue.get_nowait()
+13597:                         except asyncio.QueueEmpty:
+13598:                             break
+13599:                         (_kept if _qitem[0].get("cmd") in _WS_NO_PREEMPT else _sup).append(_qitem)
+13600:                     for _qitem in _kept:
+13601:                         cmd_queue.put_nowait(_qitem)
+13602:                     for _qm, _qt, _qa in _sup:
+13603:                         _release_action(_qa, "superseded")   # never run: only its hold ends
+13604:                         await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
+13605:                                                 "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
+13606:                     if _sup:
+13607:                         _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
+13608:                                     by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _, _ in _sup])
+13609:                     _preempt_inflight(by=_rcmd, from_client=client_id)
+13610:                     # ... and ends this client's jog leases (P1b): a change it
+13611:                     # queued before the stop keeps its stop half (a stop is
+13612:                     # never superseded) but starts nothing at its write
+13613:                     await _tell_leases_ended(ws, _end_client_leases(client.conn_key, why=_rcmd), _rcmd)
+13614:                 if _rcmd in _JOG_LEASE_FRAMES:
+13615:                     _receive_jog_lease(client.conn_key, msg)   # the deadline's anchor: receipt
+13616:                 _depth = cmd_queue.qsize()
+13617:                 _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
+13618:                 if _depth >= _cap:
+13619:                     _trace.emit("ws.command_queue_full", level="warn", client_id=client_id,
+13620:                                 cmd=_rcmd, depth=_depth, inflight_cmd=client.cmd_inflight,
+13621:                                 inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+13622:                                              if client.cmd_inflight else None))
+13623:                     await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
+13624:                                             "error": f"Command queue full ({_depth} pending) — command dropped",
+13625:                                             **_req_echo(msg)})
+13626:                     continue
+13627:                 _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
+13628:                 # an admitted input action holds a new idle parse from here
+13629:                 # to its handler's end (P2b-3 queue ownership)
+13630:                 _qact = (_actions.hold(str(_rcmd), str(client_id))
+13631:                          if command_effect(str(_rcmd)) == "input_action" else None)
+13632:                 cmd_queue.put_nowait((msg, time.monotonic(), _qact))
+
+SOURCE subroutines/probe_basic/on_abort.ngc
+SHA256 2f4403c27515a6c5e840f0b6bfdcd63af12e4ff54ce9cf8ac7fc57d0f3143586
+--- lines 1..12
+1: ; Origin: https://github.com/kcjengr/probe_basic
+2: ; License: GPL-3.0
+3: o<on_abort> sub
+4: 
+5: M5 (Spindle Stop)
+6: M9 (Coolant Off)
+7: M50 P1
+8: G90 (Absolute Positioning)
+9: G40 (Cancel Cutter Radius Compensation)
+10: 
+11: o<on_abort> endsub
+12: M2 (end program)
+
+SOURCE examples/sim_config/twp/remap_subs/on_abort_twp.ngc
+SHA256 8f70a71268e4eb31facb59f181ac217457697c0b79102fe308a72beb9455c397
+--- lines 1..49
+1: ; lcnc-suite abort handler for the TWP config.
+2: ;
+3: ; The suite's normal on_abort (subroutines/probe_basic/on_abort.ngc) does the
+4: ; safety tidy-up, and upstream's on_abort_no_twp_reset.ngc carries a
+5: ; workaround this machine cannot do without. Pointing ON_ABORT_COMMAND at
+6: ; either one alone loses the other half, so this does both.
+7: ;
+8: ; THE WORKAROUND (upstream, LinuxCNC issues #2745 / #2908): after some aborts
+9: ; stat.gcodes and parameter[5250] fall out of sync, so the interpreter's idea
+10: ; of the active work system stops matching the machine's. On a TWP config that
+11: ; is not cosmetic — G53.x puts the plane origin in G59..G59.3 and then
+12: ; switches to it, so a desynced index makes the next G53.x unable to find its
+13: ; plane. The symptom is "no TWP defined" with the machine left in limbo,
+14: ; cleared only by reloading the program. Cycling through at least three
+15: ; indexes and restoring the stored one resynchronises them.
+16: ;
+17: ; NOTE: remapped codes cannot run here — only plain and custom M-codes.
+18: ; This deliberately does NOT reset the TWP state (upstream's default): an
+19: ; operator who aborts mid-job usually wants the plane still defined. Use
+20: ; on_abort_with_twp_reset.ngc instead to clear it.
+21: 
+22: o<on_abort_twp> sub
+23: 
+24: (WEBUI_SUB=on_abort_twp) ;lcnc-suite: preview sub-span marker, silent in task
+25: 
+26: ; --- suite safety tidy-up (from probe_basic on_abort) ---
+27: M5   (Spindle Stop)
+28: M9   (Coolant Off)
+29: M50 P1
+30: G90  (Absolute Positioning)
+31: G40  (Cancel Cutter Radius Compensation)
+32: 
+33: ; --- WCS-index resync (from upstream on_abort_no_twp_reset) ---
+34: ; store the current offset index
+35: #1 = #5220
+36: ; we must switch through at least 3 indexes
+37: G59.3
+38: G59.2
+39: G59.1
+40: ; restore the index from above
+41: o101 if [#1 GT 6]
+42:  G[59+[#1-6]/10]
+43: o101 else
+44:  G[53+#1]
+45: o101 endif
+46: 
+47: (WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+48: o<on_abort_twp> endsub
+49: M2
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/emctaskmain.cc
+SHA256 1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e
+--- lines 2108..2121
+2108:     case EMC_TASK_ABORT_TYPE:
+2109: 	// abort everything
+2110: 	emcTaskAbort();
+2111: 	// KLUDGE call motion abort before state restore to make absolutely sure no
+2112: 	// stray restore commands make it down to motion
+2113: 	emcMotionAbort();
+2114: 	// Then call state restore to update the interpreter
+2115: 	emcTaskStateRestore();
+2116:         emcIoAbort(EMC_ABORT_TASK_ABORT);
+2117:     for (int s = 0; s < emcStatus->motion.traj.spindles; s++) emcSpindleAbort(s);
+2118: 	mdi_execute_abort();
+2119: 	emcAbortCleanup(EMC_ABORT_TASK_ABORT);
+2120: 	retval = 0;
+2121: 	break;
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/emctask.cc
+SHA256 178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1
+--- lines 225..263
+225: int emcTaskAbort()
+226: {
+227:     emcMotionAbort();
+228: 
+229:     // clear out the pending command
+230:     emcTaskCommand = 0;
+231:     interp_list.clear();
+232: 
+233:     // clear out the interpreter state
+234:     emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+235:     emcStatus->task.execState = EMC_TASK_EXEC_DONE;
+236:     emcStatus->task.task_paused = 0;
+237:     emcStatus->task.motionLine = 0;
+238:     emcStatus->task.readLine = 0;
+239:     emcStatus->task.command[0] = 0;
+240:     emcStatus->task.callLevel = 0;
+241: 
+242:     stepping = 0;
+243:     steppingWait = 0;
+244: 
+245:     // now queue up command to resynch interpreter
+246:     EMC_TASK_PLAN_SYNCH taskPlanSynchCmd;
+247:     emcTaskQueueCommand(&taskPlanSynchCmd);
+248: 
+249:     // without emcTaskPlanClose(), a new run command resumes at
+250:     // aborted line-- feature that may be considered later
+251:     {
+252: 	int was_open = taskplanopen;
+253: 	emcTaskPlanClose();
+254:         emcTaskPlanReset();  // Flush any unflushed segments
+255: 	if (emc_debug & EMC_DEBUG_INTERP && was_open) {
+256: 	    rcs_print("emcTaskPlanClose() called at %s:%d\n", __FILE__,
+257: 		      __LINE__);
+258: 	}
+259:     }
+260: 
+261:     return 0;
+262: }
+263: 
+--- lines 743..750
+743: int emcAbortCleanup(int reason, const char *message)
+744: {
+745:     int status = interp.on_abort(reason,message);
+746:     if (status > INTERP_MIN_ERROR)
+747: 	print_interp_error(status);
+748:     return status;
+749: }
+750: 
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/motion-command.c
+SHA256 5169c0fd2e7ea59cda233cf42e83facd56b578e95ec0771be49711f42ff6c15a
+--- lines 494..533
+494: 	    /* abort motion */
+495: 	    /* can happen at any time */
+496: 	    /* this command attempts to stop all machine motion. it looks at
+497: 	       the current mode and acts accordingly, if in teleop mode, it
+498: 	       sets the desired velocities to zero, if in coordinated mode,
+499: 	       it calls the traj planner abort function (don't know what that
+500: 	       does yet), and if in free mode, it disables the free mode traj
+501: 	       planners which stops joint motion */
+502: 	    rtapi_print_msg(RTAPI_MSG_DBG, "ABORT");
+503: 	    rtapi_print_msg(RTAPI_MSG_DBG, " %d", joint_num);
+504: 	    /* check for coord or free space motion active */
+505: 	    if (GET_MOTION_TELEOP_FLAG()) {
+506:                 axis_jog_abort_all(0);
+507: 	    } else if (GET_MOTION_COORD_FLAG()) {
+508: 		tpAbort(&emcmotInternal->coord_tp);
+509: 	    } else {
+510: 		for (joint_num = 0; joint_num < ALL_JOINTS; joint_num++) {
+511: 		    /* point to joint struct */
+512: 		    joint = &joints[joint_num];
+513: 		    /* tell joint planner to stop */
+514: 		    joint->free_tp.enable = 0;
+515: 		    /* stop homing if in progress */
+516: 		    if ( ! get_home_is_idle(joint_num)) {
+517: 			do_cancel_homing(joint_num);
+518: 		    }
+519: 		}
+520: 	    }
+521:             SET_MOTION_ERROR_FLAG(0);
+522: 	    /* clear joint errors (regardless of mode) */
+523: 	    for (joint_num = 0; joint_num < ALL_JOINTS; joint_num++) {
+524: 		/* point to joint struct */
+525: 		joint = &joints[joint_num];
+526: 		/* update status flags */
+527: 		SET_JOINT_ERROR_FLAG(joint, 0);
+528: 		SET_JOINT_FAULT_FLAG(joint, 0);
+529: 	    }
+530: 	    emcmotStatus->paused = 0;
+531: 	    break;
+532: 
+533: 	case EMCMOT_JOG_ABORT:
+
+SOURCE /home/cnc/claude-work/bg/upstream-2.9.4/control.c
+SHA256 4c92fd34b9ae99a5adee2bf13b914afa6f4aab784ecc229aafad42c69fabc34e
+--- lines 1059..1100
+1059: 	new_jjog_counts = *(joint_data->jjog_counts);
+1060: 	delta = new_jjog_counts - joint->old_jjog_counts;
+1061: 	/* save value for next time */
+1062: 	joint->old_jjog_counts = new_jjog_counts;
+1063: 	/* initialization complete */
+1064: 	if ( first_pass ) {
+1065: 	    continue;
+1066: 	}
+1067: 	/* did the wheel move? */
+1068: 	if ( delta == 0 ) {
+1069: 	    /* no, nothing to do */
+1070: 	    continue;
+1071: 	}
+1072:         if (GET_MOTION_TELEOP_FLAG()) {
+1073:             joint->free_tp.enable = 0;
+1074:             return;
+1075:         }
+1076: 	/* must be in free mode and enabled */
+1077: 	if (GET_MOTION_COORD_FLAG()) {
+1078: 	    continue;
+1079: 	}
+1080: 	if (!GET_MOTION_ENABLE_FLAG()) {
+1081: 	    continue;
+1082: 	}
+1083: 	/* the jogwheel input for this joint must be enabled */
+1084: 	if ( *(joint_data->jjog_enable) == 0 ) {
+1085: 	    continue;
+1086: 	}
+1087: 	/* must not be homing */
+1088: 	if (get_homing_is_active() ) {
+1089: 	    continue;
+1090: 	}
+1091: 	/* must not be doing a keyboard jog */
+1092: 	if (joint->kb_jjog_active) {
+1093: 	    continue;
+1094: 	}
+1095: 	if (emcmotStatus->net_feed_scale < 0.0001 ) {
+1096: 	    /* don't jog if feedhold is on or if feed override is zero */
+1097: 	    break;
+1098: 	}
+1099:         if (get_home_needs_unlock_first(joint_num) ) {
+1100:             reportError("Can't wheel jog locking joint_num=%d",joint_num);
+--- lines 1153..1163
+1153: 	}
+1154:         /* set target position and use full velocity and accel */
+1155:         joint->free_tp.pos_cmd = pos;
+1156:         joint->free_tp.max_vel = joint->vel_limit;
+1157:         joint->free_tp.max_acc = jaccel_limit;
+1158: 	/* lock out other jog sources */
+1159: 	joint->wheel_jjog_active = 1;
+1160:         /* and let it go */
+1161:         joint->free_tp.enable = 1;
+1162: 	SET_JOINT_ERROR_FLAG(joint, 0);
+1163: 	/* clear joint homed flag(s) if we don't have forward kins.
