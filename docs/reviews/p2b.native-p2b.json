@@ -1,6 +1,6 @@
 {
- "run": "20261123T103034-p2b",
- "commit": "fda61f19ed295a39f3445c08a74f405f730b92fe",
+ "run": "20261123T120724-p2b",
+ "commit": "93b38b245205868d2006ecb25fe1c449a89f1d60",
  "variant": "p2b",
  "verdict": "PASS",
  "restore": "complete",
@@ -80,7 +80,7 @@
   {
    "case": "p2b-tool-measure",
    "status": "PASS",
-   "detail": "one parse, after the action's observed end and the read-back",
+   "detail": "one parse, after the action's observed end (no read-back ran: nothing left assumed)",
    "parses": [
     [
      4,
@@ -92,7 +92,26 @@
    ],
    "read_backs": [],
    "discarded": 0,
-   "quiet_s": 6.4
+   "quiet_s": 6.3
+  },
+  {
+   "case": "p2b-readback-parse",
+   "status": "PASS",
+   "detail": "the basis left open by the action, confirmed by its read-back, then exactly one parse",
+   "key": 3104,
+   "assumed": 1,
+   "action": [
+    "done"
+   ],
+   "read_backs": [
+    "confirmed"
+   ],
+   "parses": [
+    [
+     6,
+     "toolsetter"
+    ]
+   ]
   }
  ],
  "p2b_unload_job": 1,
@@ -106,6 +125,13 @@
    "line": "T1 M600"
   },
   "errors": [],
-  "quiet_s": 6.4
- }
+  "quiet_s": 6.3
+ },
+ "p2b_readback": {
+  "key": 3104,
+  "old": 2.0,
+  "new": 3.0,
+  "quiet_s": 6.5
+ },
+ "p2b_readback_restored": 2.0
 }
