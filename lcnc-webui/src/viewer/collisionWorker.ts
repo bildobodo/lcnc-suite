@@ -44,7 +44,7 @@
 import { restoreBaseTool, geometryNote, bodyClasses, makeToolVariant,
   buildCollisionModel, sweepCollisionsIter, toolCylinderPositions,
   type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionOptions,
-  type ToolVariant,
+  type ToolVariant, type ModelUse,
   type CollisionResult, type CollisionTrack, type SnapshotHandle,
 } from "./collision";
 import { runSweepSlice, type SweepIter } from "./sweepPump";
@@ -197,6 +197,10 @@ function baseToolFor(tool: { diam: number; len: number }): ToolVariant {
 /** How often THIS worker instance built a model (the join's measure: one
  *  build per unchanged model generation and needed worker instance). */
 let _modelBuilds = 0;
+/** This worker instance's id for the join (P2b-1 plan v4: page, instance,
+ *  request) — random per instance, so a restarted worker or another shard is
+ *  never taken for this one. Not a secret: Math.random, no secure context. */
+const _instance = Math.random().toString(36).slice(2, 10);
 /** The MAIN sweep — the one that parks, continues and pauses. */
 let _run: Run | null = null;
 /** An ephemeral SIDE sweep (sim-entry segment); never parks. */
@@ -313,6 +317,7 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
   const { id, machine, tool, track, wcs, options, modelKey } = d;
   try {
     let model: CollisionModel;
+    const use: ModelUse = { instance: _instance, built: false, ms: 0, variantMs: 0 };
     if (d.bodies) {
       // Never the request's own array: the coordinator keeps it for its
       // shards, and a tool pushed into it rode along as a second tool body.
@@ -327,7 +332,10 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
         // used to be baked into these verts once per sweep.
         bodies.push({ id: "tool", group: machine.toolGroup, positions, tool: true });
       }
+      const t0 = performance.now();
       model = buildCollisionModel(machine, bodies);
+      use.built = true;
+      use.ms = Math.round(performance.now() - t0);
       _resident = { key: modelKey, model };
       _modelBuilds++;
     } else if (_resident && _resident.key === modelKey && (_resident.model.toolBodyIdx >= 0) === !!tool) {
@@ -343,9 +351,11 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
       // relative motion — nothing to check. Surface it honestly.
       // No moving pair: nothing to certify, so the guarantee holds vacuously
       // — unless a body was left out for having no facet with area (VP-I46).
+      self.postMessage({ id, model: use });
       const bodies = bodyClasses(model);
       const empty = d.contacts ? new ContactStore(id, d.contacts.generation).takeDelta(true) : null;
-      self.postMessage({ id, result: { staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null, ...(bodies ? { bodies } : {}) },
+      self.postMessage({ id, result: { staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null, ...(bodies ? { bodies } : {}),
+                                       modelBuilds: _modelBuilds },
                          ...(empty ? { contacts: [empty] } : {}) });
       return;
     }
@@ -381,7 +391,12 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
     // tables show what it finds, its result the rest.
     // The run's own base tool (P2b-1): the request's live tool, fixed for
     // this run — the resident model keeps no base for it
+    const tv0 = performance.now();
     const baseTool = tool && model.toolBodyIdx >= 0 ? baseToolFor(tool) : undefined;
+    use.variantMs = Math.round(performance.now() - tv0);
+    // this instance's word for the join — before the sweep: a check cancelled
+    // later still counts the build it caused
+    self.postMessage({ id, model: use });
     run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot,
                                                        ...(baseTool ? { baseTool } : {}),
                                                        ...(run.store ? { contacts: { store: run.store, origin: d.contacts!.origin } } : {}) });
@@ -629,6 +644,9 @@ function onShardMessage(k: number, m: any): void {
   // a shard's witness words go on as they come, whatever became of its run —
   // real work is evidence of its own (Codex R185); named by the shard
   if (m.witness) { self.postMessage({ id: m.id, witness: { ...m.witness, shard: k } }); return; }
+  // a shard's word for the join goes on as it comes — the build happened,
+  // whatever becomes of the run (P2b-1)
+  if (m.model) { self.postMessage({ id: m.id, model: m.model }); return; }
   if (_sideOnShard && m.id === _sideOnShard.req.id) {
     if (m.progress !== undefined) _sideOnShard.progress = m.progress;
     self.postMessage(m);

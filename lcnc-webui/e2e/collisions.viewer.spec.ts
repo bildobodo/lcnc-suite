@@ -2107,3 +2107,53 @@ for (const kind of ["a near miss alone", "an undecidable gap alone", "no row at 
     await ctl({ op: "reset" });
   });
 }
+
+// ---- P2b-1 (plan v4, Codex R439): the collision model survives a tool change ----
+// The machine day's 8 of 9 model builds followed a change of the tool's dims:
+// the page's model key carried them, so the STLs went again and every worker
+// instance rebuilt tree, pairs and every BVH. A tool change re-checks on the
+// resident model: the second check sends no bodies, the build count stands,
+// and every instance that built the model reuses it (bound by page, instance,
+// request and the model generation).
+test("a tool change re-checks on the resident model — no bodies, no build, every instance that built reuses it (P2b-1)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const tel: Array<Record<string, any>> = [];
+  await page.route("**/telemetry", async (route) => {
+    for (const line of (route.request().postData() ?? "").split("\n")) {
+      try {
+        const e = JSON.parse(line);
+        if (String(e.kind).startsWith("collision.")) tel.push(e);
+      } catch { /* not ours */ }
+    }
+    await route.fulfill({ status: 204, body: "" });
+  });
+  await prepare(page, context, { file: "/toolchange.ngc", version: 4301, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+  const of = (kind: string, id?: number) => tel.filter(e => e.kind === kind && (id === undefined || e.id === id));
+  // the first check: the bodies go, the model is built on every instance that
+  // sweeps — each instance's word said before its sweep, bound by page and
+  // model generation (a check cancelled meanwhile still counts its builds)
+  await expect.poll(() => of("collision.sweep_done").length, { timeout: 90_000 }).toBe(1);
+  const d1 = of("collision.sweep_done")[0]!;
+  const s1 = of("collision.sweep_start", d1.id)[0]!;
+  expect(of("collision.sweep_start")[0]!.bodies, "the first check sends the bodies").toBeGreaterThan(0);
+  await expect.poll(() => of("collision.model_built").length, { timeout: 10_000 }).toBe(d1.model_builds);
+  const built = of("collision.model_built");
+  expect(built.length, "one build per instance that swept").toBeGreaterThanOrEqual(d1.shards);
+  expect(new Set(built.map(e => e.instance)).size, "never two on one instance").toBe(built.length);
+  expect(built.every(e => e.model_gen === s1.model_gen && e.page === s1.page && e.ms > 0), "bound by generation and page").toBe(true);
+  // the tool changes: a new check, on the same model
+  await ctl({ op: "status_delta", data: { tool_number: 5, tool_diameter: 20, tool_length: 90 } });
+  await expect.poll(() => of("collision.sweep_done").length, { timeout: 90_000 }).toBe(2);
+  const d2 = of("collision.sweep_done").at(-1)!;
+  const s2 = of("collision.sweep_start", d2.id)[0]!;
+  expect(of("collision.sweep_start").filter(e => e.id > d1.id).map(e => e.bodies), "no bodies: the resident model")
+    .toEqual(of("collision.sweep_start").filter(e => e.id > d1.id).map(() => 0));
+  expect(s2.model_gen, "the same model generation").toBe(s1.model_gen);
+  expect(d2.model_builds, "no build since").toBe(d1.model_builds);
+  await expect.poll(() => of("collision.model_reused", s2.id).length, { timeout: 10_000 }).toBe(d2.shards);
+  expect(of("collision.model_built", s2.id), "nothing built for it").toEqual([]);
+  const reused = new Set(of("collision.model_reused", s2.id).map(e => e.instance));
+  for (const b of built) expect(reused.has(b.instance), `instance ${b.instance} reuses its model`).toBe(true);
+  await ctl({ op: "reset" });
+});

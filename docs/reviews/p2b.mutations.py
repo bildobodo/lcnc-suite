@@ -1,7 +1,8 @@
 """P2b red proofs (plan v4, Codex R439–R442): each mutation breaks ONE rule;
 its named guard must fail AT that rule. Run from the tree's root; every file
 is restored byte-identical. Unit guards run light; a browser guard (pw)
-rebuilds the page and runs its spec — under the heavy lock.
+rebuilds the page and runs its spec — under the heavy lock (the page is
+rebuilt from the restored tree afterwards).
 
   python3 -I docs/reviews/p2b.mutations.py [name …]
 """
@@ -21,6 +22,11 @@ def vt(file, name, at):
 
 def py(node, at):
     return ("pytest", [node, at])
+
+
+def pw(spec, grep, at):
+    """A browser guard: the page rebuilt with the mutation, its spec run."""
+    return ("pw", [spec, grep, at])
 
 
 GW = "lcnc-gateway/"
@@ -50,6 +56,10 @@ MUTS = {
     "the_key_ignores_the_machine": (V + "collisionModelKey.ts", [(
         "  return JSON.stringify([machine, parts.map(", "  return JSON.stringify([null, parts.map(")],
         [vt("src/viewer/collisionModelKey.test.ts", "changes with every input", "kinematics")]),
+    "the_page_key_carries_the_tool": (WEB + "src/ThreeViewer.vue", [(
+        "  return collisionModelKey(_pfMachine(init), parts, _unitScale);",
+        "  return collisionModelKey(_pfMachine(init), parts, _unitScale) + JSON.stringify(_toolVisual(_basis.toolDiam, _basis.toolLen));")],
+        [pw("e2e/collisions.viewer.spec.ts", "tool change re-checks on the resident model", "no bodies: the resident model")]),
     # ---- P2b-3 (Rest A, Codex R441): ONE completion decision
     "a_later_echo_ends_the_command": (GW + "gateway_util.py", [(
         "    if seen and done and echo >= serial:\n        return \"done\", (since, proof_now)",
@@ -68,7 +78,7 @@ MUTS = {
 def failures(text):
     lines = text.splitlines()
     return [" | ".join(x.strip() for x in lines[i:i + 3] if x.strip())[:300]
-            for i, ln in enumerate(lines) if "AssertionError" in ln or "FAIL" in ln]
+            for i, ln in enumerate(lines) if "AssertionError" in ln or "FAIL" in ln or "Error:" in ln]
 
 
 def run_guard(kind, args):
@@ -81,6 +91,13 @@ def run_guard(kind, args):
         r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider",
                             "-o", "addopts=", args[0]], cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=900)
         return r.returncode != 0, r.stdout + r.stderr, args[1]
+    if kind == "pw":
+        b = subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
+        if b.returncode != 0:
+            return False, b.stdout + b.stderr, args[2]
+        r = subprocess.run(["npx", "playwright", "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
+                           cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=1800)
+        return r.returncode != 0, r.stdout + r.stderr, args[2]
     raise SystemExit(f"unknown guard kind {kind}")
 
 
@@ -100,6 +117,9 @@ def main(names):
             results = [run_guard(k, a) for k, a in guards]
         finally:
             f.write_bytes(orig)
+            if any(k == "pw" for k, _a in guards):
+                # the page back to the tree's own build
+                subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, timeout=900, check=True)
         red = all(r for r, _o, _a in results)
         at_rule = red and all(at in o for _r, o, at in results)
         out[name] = {"red": red, "at_rule": at_rule}

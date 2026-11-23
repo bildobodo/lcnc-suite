@@ -442,7 +442,12 @@ input and NOT the live tool (P2b-1, 2026-11-23, `viewer/collisionModelKey.ts`):
 each run brings its own BASE tool variant (`CollisionOptions.baseTool`, made
 by the worker from the request's `tool`, a bounded cache of 8), installed at
 every pose and before the prescreen — a tool change rebuilt every machine BVH
-before (62–94 s on the operator's panel, machine day 2026-11-22); OrbitControls start/end pause and
+before (62–94 s on the operator's panel, machine day 2026-11-22). The join (plan v4): every worker
+instance (a random id per instance) says `{id, model: {instance, built, ms, variantMs}}` once it holds
+the model — before the sweep, so a cancelled check still counts its build — and the page traces it as
+`collision.model_built` / `collision.model_reused` with its `model_gen` (a new one per model key);
+`sweep_start` names `model_gen` and `max_shards`, `sweep_done` `shards` and `tool_variant_ms`
+(`collisions.viewer.spec`: a tool change re-checks with no bodies, every instance that built reuses it); OrbitControls start/end pause and
 resume a running sweep, because a busy worker is off the main thread but
 not off the machine (it starved the Mac's GPU 3–4 frames behind,
 2026-09-10). PARALLEL (2026-10-07, operator): a main request is split over

@@ -51,7 +51,7 @@ import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chain
 import { buildEntryTrack, displayLineForPoint, lineSpanCum, roomEndOf, sliceTrack } from "./viewer/scrubTrack";
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
-import type { CollisionBody, CollisionResult } from "./viewer/collision";
+import type { CollisionBody, CollisionResult, ModelUse } from "./viewer/collision";
 import { partCollides, startDependentOf } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import type { CollisionWitness, PauseWhy } from "./viewer/collisionWorker";
@@ -3093,6 +3093,30 @@ function _pfWcs(): PartFrameWcs {
 const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
+/** The page's collision model generation (P2b-1, the join): a new one for
+ *  every model key a request names that the last did not — every
+ *  model-building input, never the tool. */
+let _colModelGen = 0;
+let _colModelGenKey: string | null = null;
+function _colModelGenOf(key: string): number {
+  if (key !== _colModelGenKey) { _colModelGenKey = key; _colModelGen++; }
+  return _colModelGen;
+}
+/** The model generation each request in flight named (a result's join),
+ *  and the longest base tool variant its instances reported. */
+const _colReqModelGen = new Map<number, number>();
+const _colReqVariantMs = new Map<number, number>();
+/** A worker instance's word for request `id` (plan v4, the join: page,
+ *  instance, request, model generation) — `collision.model_built` where the
+ *  request built the model, `collision.model_reused` where the instance held
+ *  it; posted before the sweep, so a cancelled check counts its build too. */
+function _colNoteModel(id: number, u: ModelUse) {
+  emitTelemetry(u.built ? "collision.model_built" : "collision.model_reused",
+    { id, instance: u.instance, model_gen: _colReqModelGen.get(id) ?? null, ...(u.built ? { ms: u.ms } : {}),
+      tool_variant_ms: u.variantMs });
+  _colReqVariantMs.set(id, Math.max(_colReqVariantMs.get(id) ?? 0, u.variantMs));
+  if (_colReqVariantMs.size > 16) _colReqVariantMs.delete(_colReqVariantMs.keys().next().value as number);
+}
 // The contact tables of step 4 package 2: every request asks the sweep for
 // them; they land in two copies per request, the views are built from the
 // work copy in bounded steps and published with what the bar shows, the
@@ -3577,6 +3601,8 @@ function _colGetWorker(): Worker {
       const m = ev.data as ColMessage;
       // a run check's slices, whatever became of its request (Codex R185)
       if (m.witness) { _colNoteWitness(m.id, m.witness); return; }
+      // a worker instance's word for the join (P2b-1)
+      if (m.model) { _colNoteModel(m.id, m.model); return; }
       const mine = m.id === _colReqId || (!!_colSide && m.id === _colSide.id);
       // a superseded request's (its cancel went out), the bodies again, our
       // own cancel: at once — everything else of a request's path goes
@@ -3611,7 +3637,7 @@ function _colGetWorker(): Worker {
 }
 /** A message of the collision worker — `firstTouch` set here: it brings
  *  the request's first touch interval. */
-type ColMessage = { id: number; witness?: CollisionWitness; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
+type ColMessage = { id: number; witness?: CollisionWitness; model?: ModelUse; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
                     needBodies?: boolean; cancelled?: boolean; stopped?: boolean; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
                     heldCoverage?: { generation: number; covered: number[] } };
 
@@ -3705,6 +3731,8 @@ function _colOnMessage(m: ColMessage) {
         bvh_ms: Math.round(result.bvhMs), sweep_ms: Math.round(result.sweepMs),
         // P2b-1: the models built so far by the worker instance(s) of this sweep
         model_builds: result.modelBuilds ?? null,
+        model_gen: _colReqModelGen.get(m.id) ?? null, shards: result.shards ?? 1,
+        tool_variant_ms: _colReqVariantMs.get(m.id) ?? null,
         samples: result.samples, coarsened: result.coarsened,
         uncertified: result.uncertified != null,
         truncated: result.truncated?.reason ?? null,
@@ -3899,9 +3927,11 @@ function _colOnSideMessage(m: { id: number; progress?: number; firstTouch?: bool
   }
   collisionEntry.value = { id: side.id, track: side.entry, base: side.base, result, shift: side.shift, sliceEnd: _sliceEnd(side.slice) };
   emitTelemetry("collision.entry_done", {
+    id: side.id, model_gen: _colReqModelGen.get(side.id) ?? null,
     ms: Math.round(performance.now() - side.startedAt), intervals: _intervalRows(side.id),
     static: result.staticContacts.length, samples: result.samples,
   });
+
 }
 
 /** Re-apply the clash tint at the current scrub position after a result
@@ -4130,7 +4160,10 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
       ...(range ? { range } : {}),
     },
   };
-  return { msg, transfer, modelKey, bodies: bodies.length, copies };
+  const modelGen = _colModelGenOf(modelKey);
+  _colReqModelGen.set(id, modelGen);
+  if (_colReqModelGen.size > 16) _colReqModelGen.delete(_colReqModelGen.keys().next().value as number);
+  return { msg, transfer, modelKey, modelGen, bodies: bodies.length, copies };
 }
 
 /** A check DURING a run (plan „Prüfung im Lauf“ 3a/3b): the provisional
@@ -4176,7 +4209,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   _colRotaryAtStart = _rotaryNow();
   _colStartedAt = performance.now();
   emitTelemetry("collision.sweep_start", { id, run_gen: run?.gen ?? null, range_from: run?.range?.from ?? null,
-                                          points: track.count, bodies: req.bodies });
+                                          points: track.count, bodies: req.bodies,
+                                          // P2b-1, the join: the model generation and the shards allowed
+                                          model_gen: req.modelGen, max_shards: req.msg.maxShards ?? null });
   try {
     timeSpan("col_post", () => _colGetWorker().postMessage(req.msg, req.transfer));
     _colReqMeta = { ..._colReqMeta!, copies: req.copies, transferred: req.transfer.length,
@@ -4215,7 +4250,7 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
   _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now(), ...(run ? { run } : {}) };
   _colReleaseContacts();
   _colSideProgress = 0;
-  emitTelemetry("collision.entry_start", { bodies: req.bodies, shift });
+  emitTelemetry("collision.entry_start", { id, bodies: req.bodies, shift, model_gen: req.modelGen });
   try {
     timeSpan("col_post", () => _colGetWorker().postMessage(req.msg, req.transfer));
     _colModelSent = req.modelKey;

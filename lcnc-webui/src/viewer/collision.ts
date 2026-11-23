@@ -354,6 +354,14 @@ export interface CollisionOptions {
   contacts?: { store: ContactStore; origin?: number };
 }
 
+/** One worker instance's part in a request (P2b-1 plan v4, the join): its id
+ *  (random, per instance — a restarted worker is a new one), whether the
+ *  request built the model there (and the build's time) or found it
+ *  resident, and the run's base tool variant's time (0 from the cache).
+ *  Posted by the instance as `{ id, model }` once it holds the model —
+ *  before the sweep, so a check cancelled later still counts its build. */
+export interface ModelUse { instance: string; built: boolean; ms: number; variantMs: number }
+
 export interface CollisionResult {
   /** Pairs already inside the margin at the program's first pose (mechanical
    *  joints — or a program that starts in contact). Reported once, excluded

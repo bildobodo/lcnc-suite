@@ -910,14 +910,31 @@ describe("a tool change rebuilds no model (P2b-1, Codex R439)", () => {
     send({ ...req(41, { tool: true }), modelKey: "m" });
     await vi.runAllTimersAsync();
     expect(last(sent).result?.modelBuilds, "the first request builds").toBe(1);
+    // the join's per-instance word (plan v4): this instance built, for this
+    // request — said before the sweep's result
+    const words = (id: number) => sent.filter(m => m.id === id && m.model).map(m => m.model);
+    expect(words(41).map(u => u.built), "built here").toEqual([true]);
+    expect(words(41)[0].instance).toMatch(/^[0-9a-z]+$/);
+    expect(sent.findIndex(m => m.id === 41 && m.model)).toBeLessThan(sent.findIndex(m => m.id === 41 && m.result));
     send({ ...req(42, { tool: true, bodies: false }), modelKey: "m", tool: { diam: 3, len: 9 } });
     await vi.runAllTimersAsync();
     expect(last(sent).needBodies, "another tool: the resident model").toBeUndefined();
     expect(last(sent).result?.modelBuilds, "no second build").toBe(1);
+    expect(words(42).map(u => [u.instance, u.built, u.ms]), "reused on the same instance")
+      .toEqual([[words(41)[0].instance, false, 0]]);
     // a model with a tool body is no model for a request without a tool: its
     // structure differs — the bodies are asked for, an honest rebuild
     send({ ...req(43, { bodies: false }), modelKey: "m" });
     await vi.runAllTimersAsync();
     expect(last(sent).needBodies).toBe(true);
+  });
+  it("a shard's word for the join goes on to the owner as it comes, a cancelled run's too", async () => {
+    const { sent, workers, send } = await setup(4);   // two shards
+    send(req(44));
+    const word = (k: number) => ({ instance: `s${k}`, built: true, ms: 70 + k, variantMs: 1 });
+    workers[0]!.emit({ id: 44, model: word(0) });
+    send({ cancel: 44 });
+    workers[1]!.emit({ id: 44, model: word(1) });
+    expect(sent.filter(m => m.model).map(m => [m.id, m.model.instance, m.model.ms])).toEqual([[44, "s0", 70], [44, "s1", 71]]);
   });
 });
