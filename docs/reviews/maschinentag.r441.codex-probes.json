@@ -1,0 +1,188 @@
+{
+  "round": "R441",
+  "base": "594e333c",
+  "gateway_sha256": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+  "limits": [
+    "No product plan implementation exists or was executed.",
+    "No gateway import, LinuxCNC connection, browser or native interpreter.",
+    "Plan predicates/reservations are models, not product tests.",
+    "The write exception is injected; no claim that native mdi raised after delivery."
+  ],
+  "completion_source_and_plan_predicate": [
+    {
+      "case": "later_echo_executing",
+      "status": {
+        "echo_serial_number": 8,
+        "state": 2,
+        "interp_state": 2,
+        "queued_mdi_commands": 0,
+        "exec_state": 5
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": true
+    },
+    {
+      "case": "later_error_idle_but_queued",
+      "status": {
+        "echo_serial_number": 8,
+        "state": 3,
+        "interp_state": 1,
+        "queued_mdi_commands": 1,
+        "exec_state": 2
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": true
+    },
+    {
+      "case": "own_error_idle_but_queued",
+      "status": {
+        "echo_serial_number": 7,
+        "state": 3,
+        "interp_state": 1,
+        "queued_mdi_commands": 1,
+        "exec_state": 2
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": true
+    },
+    {
+      "case": "own_error_not_execution_done",
+      "status": {
+        "echo_serial_number": 7,
+        "state": 3,
+        "interp_state": 1,
+        "queued_mdi_commands": 0,
+        "exec_state": 5
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": true
+    },
+    {
+      "case": "own_error_quiet_first_poll",
+      "status": {
+        "echo_serial_number": 7,
+        "state": 3,
+        "interp_state": 1,
+        "queued_mdi_commands": 0,
+        "exec_state": 2
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": true,
+      "source_claim_released_after_second_quiet_poll_30ms_later": true
+    },
+    {
+      "case": "positive_completion_same_echo",
+      "status": {
+        "echo_serial_number": 7,
+        "state": 1,
+        "interp_state": 1,
+        "queued_mdi_commands": 0,
+        "exec_state": 2
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": false
+    },
+    {
+      "case": "positive_completion_later_echo",
+      "status": {
+        "echo_serial_number": 8,
+        "state": 1,
+        "interp_state": 1,
+        "queued_mdi_commands": 0,
+        "exec_state": 2
+      },
+      "v3_plan_ends": true,
+      "existing_source_claim_kept": false
+    }
+  ],
+  "original_writer_with_boundary_fault": [
+    {
+      "case": "admission_refused",
+      "entered_command": false,
+      "simulated_effect": false,
+      "written_hook": false,
+      "rc": null,
+      "exception": "WriteRefused",
+      "scope": "boundary fault injection; not a measured LinuxCNC failure"
+    },
+    {
+      "case": "raises_after_simulated_effect",
+      "entered_command": true,
+      "simulated_effect": true,
+      "written_hook": false,
+      "rc": null,
+      "exception": "RuntimeError",
+      "scope": "boundary fault injection; not a measured LinuxCNC failure"
+    },
+    {
+      "case": "returned_wait_timeout",
+      "entered_command": true,
+      "simulated_effect": true,
+      "written_hook": true,
+      "rc": -1,
+      "exception": null,
+      "scope": "boundary fault injection; not a measured LinuxCNC failure"
+    },
+    {
+      "case": "taken",
+      "entered_command": true,
+      "simulated_effect": true,
+      "written_hook": true,
+      "rc": 1,
+      "exception": null,
+      "scope": "boundary fault injection; not a measured LinuxCNC failure"
+    }
+  ],
+  "counter_namespace_model": {
+    "scope": "actual log-path resolver + model reservations; no files deleted or created",
+    "reservations": [
+      {
+        "namespace": "/tmp/r441/model/logs-A",
+        "token": 1
+      },
+      {
+        "namespace": "/tmp/r441/model/logs-B",
+        "token": 1
+      },
+      {
+        "namespace": "/tmp/r441/model/logs-A",
+        "token": 2
+      }
+    ],
+    "both_state_files_retained": {
+      "/tmp/r441/model/logs-A/cal_run_counter.json": 3,
+      "/tmp/r441/model/logs-B/cal_run_counter.json": 2
+    },
+    "same_controller_instance_assumed": true,
+    "reused_token": 1
+  },
+  "existing_conservative_assignment_reader": [
+    {
+      "line": "#3014=99",
+      "existing_toolsetter_reader": [
+        3014
+      ],
+      "scope": "existing conservative reader, not the planned probe booking"
+    },
+    {
+      "line": "#[3000+15]=30",
+      "existing_toolsetter_reader": null,
+      "scope": "existing conservative reader, not the planned probe booking"
+    },
+    {
+      "line": "##1=30",
+      "existing_toolsetter_reader": null,
+      "scope": "existing conservative reader, not the planned probe booking"
+    },
+    {
+      "line": "#<p>=3015",
+      "existing_toolsetter_reader": [],
+      "scope": "existing conservative reader, not the planned probe booking"
+    },
+    {
+      "line": "G0 X1",
+      "existing_toolsetter_reader": [],
+      "scope": "existing conservative reader, not the planned probe booking"
+    }
+  ]
+}

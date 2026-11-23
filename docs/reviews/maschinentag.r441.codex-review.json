@@ -1,0 +1,89 @@
+{
+  "round": "R441",
+  "date": "2026-11-23",
+  "doc_head": "048cd8969d0e48e400953774c7c3aaf376b46861",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "parts": {
+    "P2b": "findings: MT439-01 rest A completion; rest B closed, P2b-1 and P2b-2 remain accepted",
+    "P5": "findings: MT439-05 counter namespace, MT439-07 write-attempt evidence, MT439-08 machine-booking invalidation; field change identity and MT440-01 closed"
+  },
+  "documents": {
+    "maschinentag.r441.p2b-plan-v3.md": "9e865b962c94d2d56794977e12e582db66e6b3f8c6cbba37237429b18b95f344",
+    "maschinentag.r441.p5-plan-v3.md": "8aae8cc9f0a0abed25549194eb7b4a3306709e4e462b734557397923a777c6fa"
+  },
+  "source_hashes": {
+    "lcnc-gateway/gateway.py": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+    "lcnc-gateway/gateway_util.py": "f64af2807c71cc1aad855d3e2d8c8e99b7992fa8afae2865480ced5e91a2c818",
+    "lcnc-gateway/lcnc_paths.py": "30da9ab5ced96d93b8166e7d960401fbcb22a7da818768baac04eb175f2a45ec",
+    "lcnc-gateway/test_macros_gateway.py": "b59eb07f1e89e65712eb6f0ec3f1fc71a942364acc9e2a2a0c830e58cbd80813",
+    "CLAUDE.md": "f9444dae26c6e613364a64766ba069310da07f0410c1ec275f9bf044ce02aad9"
+  },
+  "local_upstream_sources": [
+    {
+      "path": "/home/cnc/claude-work/bg/upstream-2.9.4/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+      "read_lines": [
+        3540,
+        3564
+      ],
+      "scope": "Previously available local upstream source; no installed-controller execution in R441"
+    },
+    {
+      "path": "/home/cnc/claude-work/p3/upstream/emcmodule.cc",
+      "sha256": "ca6b677f75ec2cd999bec81e422220d2a2430c24d1d96e290b56c91cc5b3a413",
+      "read_lines": [
+        212,
+        254
+      ],
+      "scope": "Previously available local upstream source; no installed-controller execution in R441"
+    }
+  ],
+  "review_before_sha256": "996018dc1a45981a803661f6ec53defd00adf412f9c75c974f276d4f7c376ab3",
+  "append_sha256": "0ca28a615fb25b8f898be36ca7cc25ec78314e57e5c62b4ae6011891ad353314",
+  "evidence": {
+    "maschinentag.r441.codex-probe.py": "3e89c32e7ac2edd35a8f1eb72c5dbc50dc90d73ab0f5bbaf961306ce8ea18493",
+    "maschinentag.r441.codex-probes.json": "c237e5a103be55e70c0c339698b38e9c6a6ee3cae19d8b30dd0e3597a4ffdd47"
+  },
+  "findings": [
+    {
+      "id": "MT439-01 rest A",
+      "topic": "Later echo and own error+idle are not sufficient completion evidence; reuse existing start-claim decision"
+    },
+    {
+      "id": "MT439-05 rest",
+      "topic": "Changing the supported log directory reuses a counter without losing any state file"
+    },
+    {
+      "id": "MT439-07 rest",
+      "topic": "An absent post-return written hook is not evidence of no attempted effect"
+    },
+    {
+      "id": "MT439-08 booking rest",
+      "topic": "Unresolved assignment targets and found-but-unanalysed subroutines require unknown booking"
+    }
+  ],
+  "checks": {
+    "command": "python3 -I -B /tmp/r441/probe.py /tmp/r439/base",
+    "lock": "Official scripts/test_support/heavy_lock.py, codex-r441-plan-probes; single run completed and lock released",
+    "exit_code": 0,
+    "source_cases": {
+      "completion": 7,
+      "command_boundary": 4,
+      "assignment_reader": 5
+    },
+    "model_cases": [
+      "Literal v3 completion predicate vs existing release function",
+      "Counter reservations over the actual log-path resolver: A/B/A = 1/1/2"
+    ],
+    "assertions": "All passed; these demonstrate plan counterexamples, not a product gate",
+    "limits": [
+      "No implementation of R441 plans executed",
+      "No full product gate",
+      "No browser, native interpreter, LinuxCNC connection or visual acceptance",
+      "No product changes",
+      "Write failure is injected, not an observed native mdi failure",
+      "No subagents"
+    ],
+    "operator_questions": []
+  }
+}

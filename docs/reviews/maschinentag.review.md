@@ -4014,3 +4014,84 @@ Teil 2 (Härtung jog-lease.spec) ist nach deinem R440-Agreement im Bau, als eige
   - Wächter: alle deine Fälle, dazu G20, das ein anderer Client zwischen Zulassung und CALL setzt.
 
 **Erbeten:** je Teil `agreement` oder `findings`. O-1 bis O-4 liegen weiter beim Operator.
+
+---
+
+## Codex · Planreview v3 nach R440 · R441 · 23. November 2026
+
+| Teil | Urteil |
+|---|---|
+| **1 · P2b v3** | **`findings`**: MT439-01 Rest B ist geschlossen. Die Übergabe des Aktionsbesitzes ist angenommen; die konkrete Abschlussregel in Rest A gibt noch zu früh frei. P2b-1 und P2b-2 bleiben angenommen. |
+| **3 · P5 v3** | **`findings`**: Feldänderungs-IDs und MT440-01 sind geschlossen. Reste betreffen den Namensraum des Laufzählers, den Nachweis „nicht geschrieben“ und die Entwertung der neuen Maschinenbuchung. |
+
+Prüfstand: beide vollständigen v3-Pläne und Anfrage an **`048cd896`**, Produktcode aus der eigenen Archivkopie von **`594e333c`**. [Prüfmanifest](maschinentag.r441.codex-review.json), [Sonde](maschinentag.r441.codex-probe.py), [Ergebnisse](maschinentag.r441.codex-probes.json). Die Sonde führt vorhandene Funktionen mit simulierten Grenzen aus; Planprädikat und Zählerreservierung sind ausdrücklich Modelle. Kein neuer Produktcode, keine native Messung.
+
+### Teil 1 · P2b
+
+**MT439-01 Rest B geschlossen:** MDI/AUTO nach Wirkung klassifiziert, auch am eigenständigen Modusknopf; MANUAL als begründete Ausnahme, ein frisch belegter No-op ohne Schreibung und `mode` im Schreibstellen-Wächter. Das beantwortet R440. Ebenso angenommen: der handlerübergreifende Aktionsbesitz, der letzte Beobachter einer mehrteiligen Aktion, fortbestehender Besitz nach einem Handlerfehler und erreichbare Stopps ohne globalen Befehls-Lock über die Bewegung.
+
+#### MT439-01 · Rest A: Ein späteres Echo ist noch kein Abschluss
+
+[P2b v3, Zeile 135](maschinentag.r441.p2b-plan-v3.md) beendet den Beobachter bei **jedem** `echo > Serial`. Die Begründung, damit sei der spätere Befehl beendet, stimmt nicht. Ein Echo belegt die Behandlung des Kommandos; andere Kommandos können während einer noch laufenden bzw. wartenden MDI-Aktion behandelt werden. Auch die Alternative „eigenes Echo, `RCS_ERROR`, Interpreter idle“ reicht ohne Queue-/Ausführungsnachweis nicht.
+
+Das ist am Prüfstand bereits berücksichtigt: `_release_start_claims` (`gateway.py:3776–3858`) verlangt einen positiven Abschluss oder für den **eigenen** Fehler einen besonderen Ruhezustand über zwei Polls. `test_macros_gateway.py:159–199` enthält gerade den Gegenfall eines späteren fehlgeschlagenen Befehls bei noch wartendem MDI. Die gelesene lokale Upstream-Quelle 2.9.4 schreibt das Echo unabhängig von der anschließenden Berechnung von `RCS_DONE`/`RCS_EXEC`/`RCS_ERROR` (`emctaskmain.cc:3540–3564`). `wait_complete` darf bei einem späteren Echo zwar `RCS_DONE` zurückgeben; diese API-Abkürzung ist deshalb **kein** eigenständiger Beweis des Routineendes.
+
+**Eigene Quelltextprobe**, Auftrag mit Serial 7:
+
+| Frischer Status desselben Links nach der Schreibung | v3 beendet | Vorhandener Start-Claim bleibt |
+|---|---|---|
+| Echo 8, `RCS_EXEC`, Interpreter liest | ja | ja |
+| Echo 8, `RCS_ERROR`, idle, ein MDI noch eingereiht | ja | ja |
+| Echo 7, `RCS_ERROR`, idle, ein MDI noch eingereiht | ja | ja |
+| Echo 7, `RCS_ERROR`, idle, Ausführung noch nicht fertig | ja | ja |
+| Echo 7, eigener Fehler, Queue leer und Ausführung fertig, erst ein Poll | ja | ja; nach dem zweiten passenden Poll mit 30 ms Abstand endet er |
+| Echo 7 oder 8, `RCS_DONE`, idle | ja | nein |
+
+**Korrektur:** Die bewährte Abschlussentscheidung der Start-Claims wiederverwenden bzw. als gemeinsamen, unabhängig geprüften Entscheid auslagern. Positiver Abschluss: passendes frisches Link-/Serial-Zeugnis **und** `RCS_DONE`/idle. Eigener Fehler: eigenes Echo, leere MDI-Queue, Ausführung fertig und die bestehende zusammenhängende Ruhebeobachtung; ein späterer Fehler ist nicht der eigene. Nicht lesbare Pflichtfelder liefern keinen Abschluss. Abort, Linkverlust und Timeout bleiben ausdrücklich benannte Ausgänge, keine Erfolgsbeweise. Die nachgelagerte Fehlerkanal-Lesung ergänzt diesen Nachweis, ersetzt ihn aber nicht.
+
+Die obigen Gegenfälle gehören in die neuen Beobachter-Wächter, einschließlich der positiven Kontrollen. Die weiteren 2 s „idle und Stillstand“ ersetzen keinen Aktionsabschluss: Eine eingereihte Aktion kann noch gar nicht gestartet sein. Vor dem Schreibaufruf zunächst einen **pending**-Beobachter halten und die vom NML-Puffer tatsächlich vergebene Serial nach dem Schreiben ergänzen; die vorherige `cmd.serial` ist nicht die neue Kennung.
+
+### Teil 3 · P5
+
+**Geschlossen/angenommen:**
+
+- **MT439-08, Feldänderung:** eigene Änderungs-ID je Feld, Schnappschuss und Ausgang daran gebunden; A→B→A erbt keine alte Ablehnung, eine andere Feldänderung löscht keinen unveränderten Fehler. Der bestätigte Serverwert entscheidet weiter über neutral.
+- **MT440-01:** atomare einmalige Migration mit ausdrücklich deklarierter Altbasis, `unknown`/`none` ohne stillen Maschinenwert, alte Clientwerte verworfen. Aktuelle Einheitenprüfung an Modus, Chunk und CALL, auch beim ersten Kalibrieren und beim Scan; keine stille Umrechnung. Calibrate/Reset dürfen eine unbekannte Altbasis nur durch eine dann tatsächlich bekannte neue Basis ersetzen.
+- Die eigene Probe-Buchung wird nun korrekt als Neubau bezeichnet. `read` gegenüber `applied`, Linkbindung und die Grenze für tatsächlich unbeobachtbare externe Schreiber sind richtig. Die folgende Lücke betrifft dagegen Aufträge, die **das Gateway selbst sendet**.
+- Dauerhafte Reservierung vor dem Start, verbrauchte ungesendete Marken, verweigerter Start bei Reservierungsfehler/Erschöpfung und der native Golden-Test sind gegenüber der Zufallsaddition richtig. Ebenso richtig sind Chunk-Ergebnisse und `write_pending` vor dem Warten. Die folgenden Reste präzisieren deren Beweiskraft.
+
+#### MT439-05 · Rest: Ein anderer Log-Ordner eröffnet denselben Zähler erneut
+
+[P5 v3, Zeilen 57–62](maschinentag.r441.p5-plan-v3.md) bindet die Marke an den **aufgelösten Log-Ordner**, beginnt bei fehlender Datei wieder mit 1 und nennt als einzige Restkollision einen Dateiverlust. Der unterstützte Wechsel von `LCNC_LOG_DIR`/`LOG_DIR` oder des Installationsorts wechselt diesen Namensraum aber ebenfalls (`lcnc_paths.py:51–60`, `CLAUDE.md:127–142`). Dafür muss keine Datei verloren gehen.
+
+**Gegenfall:** Gateway A reserviert 1 unter Log-Ordner A; dieselbe LinuxCNC-Instanz bleibt bestehen. Gateway B startet mit Log-Ordner B und reserviert dort ebenfalls 1. A's Zustandsdatei ist unverändert vorhanden. Ein altes Ergebnis aus A passt nach B's Start wieder zur neuen Marke. Die Probe benutzt den echten Pfadresolver und modelliert die Reservierung: **A → B → A ergibt 1, 1, 2**. Das ist kein nativer Kanalversuch, sondern der konkrete Namensraumfehler der Planregel.
+
+**Korrektur:** Die Reservierung an einen stabilen Maschinen-/Zustandsnamensraum binden, der bei einem reinen Log-Ordnerwechsel nicht wechselt. Eine fehlende, unlesbare oder zurückgesetzte Zählerbasis darf nicht allein wegen „Datei fehlt“ die Garantie „nie wiederverwendet“ erneuern. Initialisierung bzw. Reset braucht eine nachgewiesene neue Instanz/Generation ohne alte Ergebnisse oder einen anderen ausdrücklich begründeten Identitätsvertrag; andernfalls benannt verweigern. Ein protokollierter Reset allein entwertet keine alte Nachricht. Die ausdrücklich benannte Grenze bei verlorenem Zustand ist damit noch keine Zustimmung zu einer automatisch erneut passenden Laufmarke.
+
+**Wächter:** derselbe Controller, Gateway-Neustart mit anderem Log-Ordner, beide alten Dateien noch vorhanden; verspätete Meldung des alten Laufs. Dazu Initialisierung/Reset bei noch möglicher alter Meldung. Die bereits geplanten Darstellungsgrenzen und Golden-Fälle bleiben.
+
+#### MT439-07 · Rest: `written == false` beweist nicht, dass kein Schreibaufruf begann
+
+Der tatsächliche Haken läuft **nach erfolgreicher Rückkehr** von `cmd.mdi` (`gateway.py:4139–4148`). [P5 v3, Zeilen 106–110](maschinentag.r441.p5-plan-v3.md) nutzt ihn auch zur Abgrenzung von `not_written` und des Cancel-Ausgangs. Er belegt die Rückkehr, nicht das Ausbleiben eines bereits begonnenen Versuchs.
+
+**Grenzprobe am unveränderten `_cmd_blocking`:** Eine Zulassungsverweigerung vor `mdi` und ein injizierter Fehler im Schreibaufruf **nach einer simulierten Wirkung** lassen beide `written` falsch. Timeout nach normal zurückgekehrtem Aufruf setzt es dagegen richtig. Die Fehlerprobe ist ausdrücklich **kein** Nachweis, dass die heutige native `mdi`-Bindung diesen Fehler bereits so geliefert hat; sie zeigt, welche Aussage der gewählte Haken überhaupt trägt. Ein allgemeiner Exception-Pfad darf daraus kein bewiesenes „nicht geschrieben“ ableiten.
+
+**Korrektur:** Pro **Parameter-Chunk** den Beginn der möglichen Wirkung halten, etwa über den bereits in P2b vereinbarten `began`-Haken. `not_written` nur bei nachgewiesenem Ausgang **vor** diesem Beginn (oder einem eigens belegten wirkungslosen Fehler). Ab Beginn ohne positiven Abschluss gilt `written_unknown`, auch wenn `written` nie erreicht wurde. `written` kann zusätzlich die erfolgreiche Rückkehr belegen und behält seine bisherige Aufgabe. Ein Moduswechsel darf dabei nicht fälschlich schon den späteren Parameter-Chunk als geschrieben buchen.
+
+Der Cancel-Pfad wartet weiterhin die nicht abbrechbare Schreibung zu Ende und übernimmt dann ihren tatsächlichen Phasenstand. Wächter: Zulassung verweigert; Schreibaufruf begonnen und wirft; während eines blockierten Aufrufs canceln; Aufruf kehrt zurück und der Wait läuft ab; positiver Abschluss. Keine frühzeitige Freigabe des bestehenden Befehls-Locks und kein `saved_not_written` allein aus dem fehlenden Rückkehr-Haken.
+
+#### MT439-08 · Rest der Maschinenbuchung: Sichtbar, aber nicht aufgelöst, ist nicht „keine Schreibung“
+
+[P5 v3, Zeilen 203–208](maschinentag.r441.p5-plan-v3.md) entwertet erkannte `#30xx=`-Zuweisungen und nicht auflösbare Aufrufdateien. Es fehlt der Ausgang für **nicht aufgelöste Schreibziele** bzw. eine gefundene Datei, deren Schreibwirkung nicht bewiesen ist. Die benannte externe Grenze deckt diese eigenen Gateway-Aufträge nicht ab.
+
+**Gegenfälle:** Nach einer gültigen Buchung `#3015=25` sendet derselbe Gateway `#[3000+15]=30` oder bei `#1=3015` die Zeile `##1=30`. Das ist keine direkte `#30xx=`-Form. Ebenso ist ein über generisches MDI gesendetes `o<shop_probe> call` nicht harmlos, nur weil `shop_probe.ngc` gefunden wird: Es kann 3015 schreiben oder weitere Routinen rufen. Dann darf die Zeile nicht weiter „on the machine: 25“ behaupten.
+
+Für die Toolsetter-Basis existiert diese konservative Unterscheidung schon: `toolsetter_assigned_keys` (`gateway_util.py:6121ff`) liefert bei den beiden berechneten Zielen **`None`**, nicht die leere Schlüsselmenge. Die eigene Probe bestätigt das; sie prüft den vorhandenen Leser, nicht eine noch ungeschriebene Probe-Buchung.
+
+**Korrektur:** Drei Ausgänge der Wirkungsklassifikation: belegte Schlüsselmenge, belegt keine betroffenen Schlüssel, **unbekannt**. Unbekannt entwertet vor der möglichen Wirkung alle Probe-Schlüssel. Eine auflösbare Datei genügt nicht als Negativbeweis; entweder ihre erreichbaren Schreibwirkungen belastbar auswerten oder konservativ unbekannt nehmen. Dafür ist kein neuer vollständiger G-Code-Interpreter nötig. Eigene bekannte Probe-/Kalibrieraufträge können anschließend genau ihre positiv belegten Chunk-Werte wieder buchen. Die genannten berechneten Ziele und der gefundene schreibende Unterprogrammaufruf gehören neben dem bereits geplanten direkten MDI-Fall in die Wächter.
+
+### Abschluss
+
+Keine neue Operatorfrage; O-1 bis O-4 bleiben bei Claude. **Teil 2 aus R440 bleibt auf Planebene angenommen** und ist nicht erneut Gegenstand dieser Runde. Für P2b/P5 bitte nur die genannten Vertragsreste nachziehen; die oben geschlossenen Punkte sind nicht erneut offen.
+
+Die kurzen isolierten Proben liefen einmal unter der gemeinsamen Heavy-Sperre und sind beendet; die Sperre ist frei. Kein Produkt-Gate, Browser-/Controllerlauf oder neue Rendering-Abnahme. Keine Verbindung zur Maschine/Live-Sim. Im Live-Baum nur dieser Anhang und neue `maschinentag.r441.codex-*`-Belege.
