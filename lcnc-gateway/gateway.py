@@ -2061,7 +2061,7 @@ async def _status_poller():
                     if _bulk.schedule_refresh(
                             st.active_file,
                             _bulk.reparse_pending_reason or ("file" if file_changed else "reparse"),
-                            _spawn_preview_task):
+                            _spawn_preview_task, program_id=st.program_id):
                         _dd_decide("parse", _bulk.last_scheduled_job)
                 else:
                     # The running parse is for another file/mtime, or the
@@ -2166,7 +2166,7 @@ async def _status_poller():
                 _bulk.schema_reparse_attempted = (_bulk.last_file, _bulk.last_mtime)
                 _trace.emit("gcode.schema_stale_reparse", level="warn",
                             published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
-                _bulk.schedule_refresh(st.active_file, "schema", _spawn_preview_task)
+                _bulk.schedule_refresh(st.active_file, "schema", _spawn_preview_task, program_id=st.program_id)
             elif st.active_file and _pub_active and midrun_table_gate_open(   # (the file, and its own publication — P2b-F1-1)
                 # Mid-run tool-table edge (operator 2026-09-29): the program
                 # measured a tool (T13 M600 → G10 L1) and goes on cutting —
@@ -2200,7 +2200,7 @@ async def _status_poller():
                                 tool=st.tool_number)
                     _bulk.schedule_refresh(st.active_file, "midrun:" + _mdrift,
                                            _spawn_preview_task, pinned=True,
-                                           run=_run_for_pin(st.active_file))
+                                           run=_run_for_pin(st.active_file), program_id=st.program_id)
                 elif _mact == "stale" and _mdrift and _mwhy:
                     # No faithful re-parse before idle: the viewer keeps the
                     # path muted and says why (MR-I04).
@@ -6577,17 +6577,20 @@ def _drift_edge(st, active_file: str, drift: str, ts_reason: Optional[str]) -> s
     # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type", "tlo:…") is
     # the reason the trace and the operator's banner carry — not the bare
     # "drift" it used to be.
-    return "scheduled" if _schedule_drift_refresh(active_file, drift, ts_reason) else "busy"
+    return "scheduled" if _schedule_drift_refresh(active_file, drift, ts_reason,
+                                                  program_id=getattr(st, "program_id", None)) else "busy"
 
 
-def _schedule_drift_refresh(active_file: str, drift: str, ts_reason: Optional[str]) -> bool:
+def _schedule_drift_refresh(active_file: str, drift: str, ts_reason: Optional[str],
+                            program_id: Optional[str] = None) -> bool:
     """Schedule the idle drift re-parse for `drift`. A toolsetter reason
     books its attempt (once per revision and program); when ANOTHER edge
     takes the parse while the toolsetter input differs too, that parse
     reads the current toolsetter input as well — the reason is said
     (`gcode.reparse_toolsetter_masked`, never hidden behind the other edge)
-    and its attempt booked (P2a, Codex R428)."""
-    if not _bulk.schedule_refresh(active_file, drift, _spawn_preview_task):
+    and its attempt booked (P2a, Codex R428). `program_id`: the status's
+    identity of `active_file` — the job is bound to it (Codex R452 MT-I29)."""
+    if not _bulk.schedule_refresh(active_file, drift, _spawn_preview_task, program_id=program_id):
         return False
     if drift == "toolsetter":
         _ts_reparse_asked()

@@ -162,6 +162,140 @@ class ThePublicationNamesItsLoad(unittest.TestCase):
             self.assertIsNone(b.preview_served)
 
 
+class TheJobIsBoundAtItsSchedule(unittest.TestCase):
+    """Codex R452 MT-I29: a job's path, number and program generation are
+    bound at its SCHEDULE and carried unchanged to its end. Another load
+    before the job's first step, during its source hash or during its
+    worker never lends it its identity: before the begin it is discarded
+    (no worker, no restart asked, the new load's first parse not booked as
+    spawned), at the publication the generation check holds. The real
+    schedule_refresh with asyncio.create_task, as the gateway spawns it."""
+
+    def _run(self, tmp, change=None, *, a_text="(A)\nG0 X1\nM2\n"):
+        import bulk_pipeline as bp
+        a = os.path.join(tmp, "A.ngc")
+        Path(a).write_text(a_text)
+        b = _pipeline(tmp, admit=lambda: None)
+        b.generation.new_program("load A")                 # E.1
+        active = {"id": "E.1"}
+        b.get_active_program = lambda: active["id"]
+        calls = []
+        worker = _worker(calls)
+
+        def load_b():
+            # a load's write thread: a new program generation, B the load
+            b.generation.new_program("load B")
+            active["id"] = "E.2"
+
+        def worker_with_load(ctx, timeout):
+            if change == "worker":
+                load_b()
+            return worker(ctx, timeout)
+        b._run_gcode_worker_blocking = worker_with_load
+        real_source, hashed = bp.program_source, []
+
+        def source(path):
+            hashed.append(path)
+            if change == "hash" and len(hashed) == 1:
+                load_b()
+            return real_source(path)
+
+        async def scenario():
+            tasks = []
+
+            def spawn(coro):
+                task = asyncio.create_task(coro)
+                tasks.append(task)
+                return task
+            self.assertTrue(b.schedule_refresh(a, "file", spawn, program_id="E.1"))
+            sched = dict(b.scheduled)
+            if change == "before_begin":
+                load_b()
+            await tasks[0]
+            return sched
+        with patch.object(bp, "program_source", source):
+            sched = asyncio.run(scenario())
+        return b, a, calls, sched, active
+
+    def test_no_change_publishes_the_scheduled_load(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b, a, calls, sched, _active = self._run(tmp)
+            self.assertEqual(sched["program_id"], "E.1")
+            self.assertEqual(len(calls), 1)
+            self.assertEqual((b.last_file, b.published_program), (a, "E.1"))
+            self.assertTrue(b.published_is_active())
+            self.assertEqual(b.job_ends[sched["job"]], {"published": b.preview_version})
+            self.assertEqual(b.spawned_program_gen, 1)
+
+    def test_a_load_before_the_first_step_discards_the_job(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b, a, calls, sched, _active = self._run(tmp, "before_begin")
+            self.assertFalse(b.last_file == a and b.published_program == "E.2",
+                             "the new load's identity is never taken")
+            self.assertEqual(calls, [], "no worker for a job whose load is gone")
+            self.assertIsNone(b.published_program, "nothing published")
+            self.assertEqual(b.job_ends[sched["job"]], {"why": "discarded"})
+            self.assertEqual(b.last_unpublished_end["program_id"], "E.1", "the job ends as its own load's")
+            self.assertNotEqual(b.spawned_program_gen, 2, "the new load's first parse is not booked as spawned")
+            self.assertFalse(b.reparse_pending, "another program: no restart asked")
+            self.assertFalse(b.refresh_running)
+            self.assertIsNone(b.scheduled)
+            # the new load's own job follows and publishes B as B
+            bpath = os.path.join(tmp, "B.ngc")
+            Path(bpath).write_text("(B)\nG0 X2\nM2\n")
+
+            async def b_job():
+                tasks = []
+                self.assertTrue(b.schedule_refresh(bpath, "file", lambda c: tasks.append(asyncio.create_task(c))
+                                                   or tasks[-1], program_id="E.2"))
+                await tasks[0]
+            asyncio.run(b_job())
+            self.assertEqual((b.last_file, b.published_program), (bpath, "E.2"))
+            self.assertTrue(b.published_is_active())
+
+    def test_a_load_during_the_hash_discards_the_job_before_its_worker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b, a, calls, sched, _active = self._run(tmp, "hash")
+            self.assertEqual(calls, [], "no worker for a job whose load is gone")
+            self.assertIsNone(b.published_program, "nothing published")
+            self.assertEqual(b.job_ends[sched["job"]], {"why": "discarded"})
+            self.assertEqual(b.last_unpublished_end["program_id"], "E.1")
+            self.assertEqual(b.spawned_program_gen, 1, "it began under its own load")
+            self.assertFalse(b.reparse_pending, "another program: no restart asked")
+
+    def test_a_load_during_the_worker_publishes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b, a, calls, sched, _active = self._run(tmp, "worker")
+            self.assertEqual(len(calls), 1)
+            self.assertIsNone(b.published_program, "the generation check at the publication")
+            self.assertIsNone(b.last_file)
+            self.assertEqual(b.job_ends[sched["job"]], {"why": "discarded"})
+            self.assertFalse(b.reparse_pending)
+
+    def test_the_schedule_binds_the_path_to_its_status_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X1\nM2\n")
+            b = _pipeline(tmp, admit=lambda: None)
+            b.generation.new_program("load A")             # the status names A as E.1 ...
+            b.generation.new_program("load B")             # ... and B's write began since
+            coros = []
+            self.assertFalse(b.schedule_refresh(a, "file", coros.append, program_id="E.1"),
+                             "A's path under B's generation: not scheduled")
+            self.assertEqual(coros, [])
+            self.assertFalse(b.refresh_running)
+            self.assertIsNone(b.scheduled)
+            self.assertTrue(b.schedule_refresh(a, "file", coros.append, program_id="E.2"))
+            self.assertEqual(b.scheduled["program_id"], "E.2")
+            coros[0].close()
+
+    def test_the_gateway_schedules_with_the_status_identity(self):
+        src = inspect.getsource(gateway)
+        self.assertEqual(src.count("_spawn_preview_task, program_id=st.program_id"), 2)
+        self.assertIn("run=_run_for_pin(st.active_file), program_id=st.program_id)", src)
+        self.assertIn('program_id=getattr(st, "program_id", None)', inspect.getsource(gateway._drift_edge))
+
+
 class TheBeginAdmission(unittest.TestCase):
     """Codex R450 MT450-01: an unpinned job checks a CURRENT controller read
     after its async steps and before its first live-basis read — a job whose

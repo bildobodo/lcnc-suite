@@ -412,7 +412,7 @@ class BulkPipeline:
         return self.preview_bytes is not None or self.preview_bytes_gz is not None
 
     def schedule_refresh(self, filepath: str, reason: str, spawn, pinned: bool = False,
-                         run: Optional[dict] = None) -> bool:
+                         run: Optional[dict] = None, program_id: Optional[str] = None) -> bool:
         """Single-flight scheduler — the ONE place refresh_running goes True.
 
         `spawn(coro) -> asyncio.Task` is supplied by the gateway (its
@@ -422,8 +422,23 @@ class BulkPipeline:
         callback — the coroutine's own `finally` never executes in that case.
         Previously four inline `flag = True; create_task(...)` sites could
         latch the flag forever and silently kill every preview edge.
+
+        The job is BOUND at its schedule (Codex R452 MT-I29): its path, its
+        number and the program generation read here travel unchanged to its
+        end — a later load never lends the job its identity. `program_id`:
+        the identity the caller's status names for `filepath` (the path and
+        its load from ONE status snapshot); when the generation names
+        another load already (a load's write thread began between the
+        status and here), nothing is scheduled — that load's own edge
+        follows. None (a test's call): the generation read here binds.
         Returns True when a refresh was scheduled."""
         if self.refresh_running:
+            return False
+        _sched_gen = self.generation.snapshot() if self.generation is not None else None
+        _bound = self.program_id_of(_sched_gen)
+        if program_id is not None and _sched_gen is not None and _bound != program_id:
+            _trace.emit("gcode.refresh_schedule_stale", file=os.path.basename(filepath), reason=reason,
+                        program_id=program_id, now=_bound)
             return False
         self.refresh_running = True
         self.reparse_pending = False
@@ -434,10 +449,10 @@ class BulkPipeline:
             self.job_seq += 1
             self.last_scheduled_job = self.job_seq
             self.scheduled = {"job": self.job_seq, "file": filepath, "reason": reason,
-                              "program_id": self.program_id_of(self.generation.snapshot())
-                              if self.generation is not None else None}
+                              "program_id": _bound}
             task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned, run=run,
-                                                    job=self.job_seq))
+                                                    job=self.job_seq,
+                                                    program_gen=_sched_gen[0] if _sched_gen is not None else None))
         except BaseException as e:
             self.refresh_running = False
             self.scheduled = None
@@ -829,7 +844,7 @@ class BulkPipeline:
                     "first": sch.get("program_id") != self.published_program,
                     "expected_ms": None, "started_ms": None, "job": sch.get("job"),
                     "queued": bool(self.reparse_pending), "superseded": self.superseded_total}
-        _pid = self.program_id_of(inf.get("gen"))
+        _pid = inf.get("program_id")
         return {"reason": inf.get("reason"), "file": os.path.basename(inf.get("file") or ""),
                 # the identity this parse publishes for (P2b-F1-1); `first`:
                 # no publication of it yet — a load's own preview (F1-3)
@@ -841,9 +856,25 @@ class BulkPipeline:
                 "queued": bool(self.reparse_pending),
                 "superseded": self.superseded_total}
 
+    def _program_moved(self, program_gen: Optional[int], job: Optional[int], filepath: str, what: str,
+                       now: Optional[tuple] = None) -> bool:
+        """Has another load (or an unload) begun since the job's schedule
+        (Codex R452 MT-I29)? `now`: the generation read at the step (else
+        read here). Then the job is discarded before it begins — named
+        (`gcode.parse_discarded`, `why: program`), no restart asked: the new
+        program's own edge parses it."""
+        if self.generation is None or program_gen is None:
+            return False
+        cur: tuple = now if now is not None else self.generation.snapshot()
+        if cur[0] == program_gen:
+            return False
+        _trace.emit("gcode.parse_discarded", job=job, file=os.path.basename(filepath), what=what,
+                    why="program", program_gen=program_gen, gen_now=list(cur))
+        return True
+
     async def refresh_gcode_preview(self, filepath: str, reason: str = "file",
                                     pinned: bool = False, run: Optional[dict] = None,
-                                    job: Optional[int] = None):
+                                    job: Optional[int] = None, program_gen: Optional[int] = None):
         """Parse filepath in an isolated subprocess and publish the result.
 
         Called from the poller on file change. Single-flight via
@@ -851,6 +882,12 @@ class BulkPipeline:
         coroutine clears it on exit. The subprocess has its own Python
         interpreter and its own GIL, so the heartbeat loop keeps ticking
         through the parse even for multi-second programs.
+
+        `program_gen`: the program generation the job was SCHEDULED under
+        (Codex R452 MT-I29) — the identity it parses and publishes for, from
+        its schedule to its end; another program generation at its first
+        step or after the source hash discards it before it begins. None (a
+        direct call, a test's): the generation at the first step binds.
         """
         t_start = time.monotonic()
         _verify_path: Optional[str] = None
@@ -859,23 +896,40 @@ class BulkPipeline:
         # BEFORE its first input read — it publishes only while it is still
         # the current one, decided at the publication under the same lock
         _gen_at = self.generation.snapshot() if self.generation is not None else None
-        if _gen_at is not None:
-            self.spawned_program_gen = _gen_at[0]
+        # the job's program generation and identity: bound at its schedule
+        # (MT-I29), carried unchanged — never re-read from a later load
+        if program_gen is None and _gen_at is not None:
+            program_gen = _gen_at[0]
+        _job_pid = f"{self.epoch}.{program_gen}" if program_gen is not None else None
         # how this job ended, for the drift decision (P2b-2)
         _gen_published: Dict[str, Any] = {}
-        # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is
-        # running, we record the pre-parse mtime, so the poller's next tick still
-        # sees a mismatch and re-parses the newest content rather than missing it.
         try:
-            _mtime_at_parse: Optional[float] = os.path.getmtime(filepath)
-        except OSError:
-            _mtime_at_parse = None
-        # The text this parse reads, fingerprinted BEFORE the worker and
-        # checked after it: the publication names exactly the text it was
-        # parsed from, or none (Codex R17 XZ-07). Off the loop — a 44 MB
-        # program hashes in ~0.2 s, the GIL released.
-        _source_at_parse = await asyncio.to_thread(program_source, filepath)
-        try:
+            # Another load began between the schedule and this first step:
+            # the job is that load's no more — discarded, its identity not
+            # taken, the new load's first parse not booked as spawned.
+            if self._program_moved(program_gen, job, filepath, "before_begin", now=_gen_at):
+                _gen_published["why"] = "discarded"
+                return
+            if _gen_at is not None:
+                self.spawned_program_gen = _gen_at[0]
+            # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is
+            # running, we record the pre-parse mtime, so the poller's next tick still
+            # sees a mismatch and re-parses the newest content rather than missing it.
+            try:
+                _mtime_at_parse: Optional[float] = os.path.getmtime(filepath)
+            except OSError:
+                _mtime_at_parse = None
+            # The text this parse reads, fingerprinted BEFORE the worker and
+            # checked after it: the publication names exactly the text it was
+            # parsed from, or none (Codex R17 XZ-07). Off the loop — a 44 MB
+            # program hashes in ~0.2 s, the GIL released.
+            _source_at_parse = await asyncio.to_thread(program_source, filepath)
+            # ... and the load again after that await (MT-I29): a load
+            # during the hash discards the job before its admission and its
+            # worker (no refusal, no restart asked — another program)
+            if self._program_moved(program_gen, job, filepath, "after_hash"):
+                _gen_published["why"] = "discarded"
+                return
             # The begin admission (P2b-F1-1 V5a, Codex R450 MT450-01): after
             # every async step before it (the source hash) and BEFORE the
             # first read of the live basis, on a CURRENT controller read —
@@ -996,7 +1050,7 @@ class BulkPipeline:
                                   "wcs_off": _seed_wcs, "rotary_seed": _seed_rot,
                                   "tlo_seed": _tlo_seed}) or "")[:12]
             self.inflight = {
-                "job": _job, "basis": _basis, "gen": _gen_at, "program_id": self.program_id_of(_gen_at),
+                "job": _job, "basis": _basis, "gen": _gen_at, "program_id": _job_pid,
                 "file": filepath, "mtime": _mtime_at_parse, "reason": reason,
                 "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
                 "expected_ms": expected_ms,
@@ -1280,7 +1334,9 @@ class BulkPipeline:
                             self.tool_basis_rev != fr["tool_basis_rev"]):
                         _binding["lost"] = (fr["run_id"], cur.get("run_id"))
                         _binding["for_run"] = fr = None
-                self.published_program = self.program_id_of(_gen_at)
+                # the identity bound at the schedule (MT-I29) — publish_if
+                # holds the program generation to it in this same step
+                self.published_program = _job_pid
                 self.published_origin = {
                     "version": self.preview_version + 1, "file": filepath,
                     "program_id": self.published_program,
@@ -1322,7 +1378,7 @@ class BulkPipeline:
             _trace.emit("gcode.preview_refresh_failed", level="warn", job=_job,
                         file=filepath, exc=type(e).__name__, msg=str(e))
         finally:
-            self._note_job_end(job, _gen_published, self.program_id_of(_gen_at))
+            self._note_job_end(job, _gen_published, _job_pid)
             self.refresh_running = False
             self.scheduled = None
             self.gcode_parse_proc = None

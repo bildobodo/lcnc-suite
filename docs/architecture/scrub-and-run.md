@@ -744,6 +744,19 @@ PW_BIG_C.NGC with A2's). Now:
   A connect never schedules a parse (a reconnect during a run started an
   unpinned one under it); it announces only the active program's own
   publication.
+- *A job is bound at its schedule (R452 MT-I29).* `schedule_refresh` binds
+  the path, the job number and the program generation together — the caller
+  passes the status's identity of the path (`program_id=st.program_id`), and
+  a generation that names another load already schedules nothing
+  (`gcode.refresh_schedule_stale`) — and the job carries that identity
+  unchanged to its end (`inflight`, `published_program`, its job end). A load
+  between the schedule and the job's first step, or during its source hash,
+  discards it before its admission and its worker (`gcode.parse_discarded`
+  `why: program`, end `discarded`): it never takes the new load's identity,
+  asks no restart and does not book the new load's first parse as spawned;
+  a load during the worker is the publication's generation check. Before,
+  the job re-read the generation at its first step and published file A as
+  load B (Codex's probe: `published_program = E.2` for A.ngc).
 - *Never a live basis under a run (R450 MT450-01).* The own load's exception
   in `_restart_wait` skips the actions' quiet window only — never `running` or
   `moving`. Every unpinned job checks a FRESH controller read at its begin,
