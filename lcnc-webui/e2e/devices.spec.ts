@@ -66,9 +66,12 @@ test("the switch's note follows the gateway in the open dialog: pending, then he
   const note = settings.getByText("Not active until the gateway holds it", { exact: true });
   await sim.check({ force: true });
   await expect(note).toBeVisible();
+  // the same component instance throughout — never a re-mount that would read anew
+  await settings.locator("[data-devices=this]").evaluate(el => { (el as HTMLElement).dataset.p2bf = "same"; });
   // the gateway holds it: its full blob reaches every client (the save's own reply aside)
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: true } } } });
   await expect(note, "held: the note ends in the open dialog").toBeHidden();
+  await expect(settings.locator("[data-devices=this][data-p2bf=same]"), "not re-mounted").toHaveCount(1);
   await expect(sim).toBeChecked();
 });
 

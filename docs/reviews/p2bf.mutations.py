@@ -1,0 +1,222 @@
+"""P2b-F1 red proofs (plan v3, Codex R449-R451): each mutation breaks ONE
+rule; its named guard must fail AT that rule. Run from the tree's root; every
+file is restored byte-identical. Unit guards run light; a browser guard (pw)
+rebuilds the page and runs its spec - under the heavy lock (the page is
+rebuilt from the restored tree afterwards).
+
+  python3 -I docs/reviews/p2bf.mutations.py [name ...]
+"""
+import json
+import pathlib
+import subprocess
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+WEB = "lcnc-webui/"
+S = WEB + "src/"
+GW = "lcnc-gateway/"
+
+
+def vt(file, name, at):
+    return ("vitest", [file, name, at])
+
+
+def py(node, at):
+    return ("pytest", [node, at])
+
+
+def pw(spec, grep, at):
+    """A browser guard: the page rebuilt with the mutation, its spec run."""
+    return ("pw", [spec, grep, at])
+
+
+PI = "test_program_identity.py::"
+PW = "test_preview_wait.py::"
+CG = "test_calc_lifetime_gateway.py::"
+Q = '"'
+
+MUTS = {
+    # ---- F1-1: the program identity on the gateway
+    "the_start_check_by_path": (GW + "bulk_pipeline.py", [(
+        "        if (not filepath or self.last_file != filepath or not self.preview_available()\n"
+        "                or not self.published_is_active()):\n",
+        "        if (not filepath or self.last_file != filepath or not self.preview_available()):\n")],
+        [py(PI + "ThePublicationNamesItsLoad::test_stamped_with_the_spawn_generation_and_foreign_after_a_reload",
+            "no publication of this program")]),
+    "a_reload_of_the_same_path_no_edge": (GW + "gateway_util.py", [(
+        "        if program_id != published_program:\n            return True\n", "")],
+        [py(PI + "TheIdentityEdge::test_the_edge_is_the_identity_then_the_path_and_mtime", "the same path reloaded")]),
+    "a_null_identity_is_an_edge": (GW + "gateway_util.py", [(
+        "        if not active_file or not program_id:\n            return False\n",
+        "        if not active_file:\n            return False\n")],
+        [py(PI + "TheIdentityEdge::test_the_edge_is_the_identity_then_the_path_and_mtime", "no program proven")]),
+    "the_connect_schedules_again": (GW + "gateway.py", [(
+        "                else:\n                    _gcode_path = " + Q + "awaiting-poller-edge" + Q,
+        "                elif _bulk.schedule_refresh(initial_file, " + Q + "connect" + Q + ", _spawn_preview_task):\n"
+        "                    _gcode_path = " + Q + "refresh-scheduled" + Q + "\n"
+        "                else:\n                    _gcode_path = " + Q + "awaiting-poller-edge" + Q)],
+        [py(PI + "TheConnectNeverSchedules::test_the_websocket_endpoint_plans_no_parse", "the one scheduler")]),
+    "the_own_load_skips_the_run": (GW + "gateway.py", [(
+        "    if not (file_changed and _own_load_unparsed()) and not _actions_quiet():",
+        "    if file_changed and _own_load_unparsed():\n        return None\n    if not _actions_quiet():")],
+        [py(CG + "TheFirstLoadsRestart::test_a_real_load_never_parses_under_a_run_or_a_move", "no unpinned parse")]),
+    "a_restored_program_counts_as_own": (GW + "gateway.py", [(
+        "    return (prog.loaded_own and prog.loaded_gen is not None",
+        "    return (prog.loaded_gen is not None")],
+        [py(PI + "TheRestoredProgramIsARestart::test_a_restored_program_under_a_run_waits", "restored: no own load")]),
+    "no_begin_admission": (GW + "bulk_pipeline.py", [(
+        "            if not pinned and self.admit_begin is not None:",
+        "            if False and not pinned and self.admit_begin is not None:")],
+        [py(PI + "TheBeginAdmission::test_a_begin_under_a_run_reads_no_basis", "no worker")]),
+    "the_admission_after_the_basis": (GW + "bulk_pipeline.py", [(
+        "            if not pinned and self.admit_begin is not None:",
+        "            stat = self._get_stat()\n            if not pinned and self.admit_begin is not None:")],
+        [py(PI + "TheBeginAdmission::test_a_begin_under_a_run_reads_no_basis", "no live-basis read")]),
+    "a_failed_poll_admits": (GW + "gateway.py", [(
+        "        _trace.emit_exc(" + Q + "gcode.begin_poll_failed" + Q + ", e)\n        return " + Q + "unread" + Q,
+        "        _trace.emit_exc(" + Q + "gcode.begin_poll_failed" + Q + ", e)\n        return None")],
+        [py(PI + "TheBeginAdmission::test_the_gateway_admission_reads_the_controller_now", "a failed poll is no read")]),
+    "the_route_serves_another_pair": (GW + "gateway.py", [(
+        "    if (v is not None and v != version) or (p is not None and p != (program or " + Q + Q + ")):",
+        "    if False:")],
+        [py(PI + "ThePreviewRouteServesOneTuple::test_the_asked_pair_or_409", "AssertionError")]),
+    "auto_run_without_its_load": (GW + "gateway.py", [(
+        "                or not isinstance(program_id, str) or program_id != _active_program_id()\n"
+        "                or program_id != _bulk.published_program):",
+        "                ):")],
+        [py("test_command_dispatch.py::TestHandlerExecution::test_auto_run_is_bound_to_the_program_it_was_confirmed_on",
+            "AssertionError")]),
+    # ---- F1-3: the wait, named
+    "only_the_first_action": (GW + "gateway_util.py", [(
+        "            out.extend(busy)", "            out.append(busy[0])")],
+        [py(PW + "EveryReasonIsNamed::test_combined_and_the_own_load", "AssertionError")]),
+    "moving_is_running": (GW + "gateway_util.py", [(
+        "        out.append(" + Q + "moving" + Q + ")", "        out.append(" + Q + "running" + Q + ")")],
+        [py(PW + "EveryReasonIsNamed::test_each_reason_alone", "moving, not running")]),
+    "an_overdue_writer_unnamed": (GW + "calc_lifetime.py", [(
+        "                        out.append(f" + Q + "overdue:{o.what}" + Q + ")", "                        pass")],
+        [py(PW + "EveryOpenActionIsNamed::test_an_open_action_after_its_handler_and_an_overdue_writer",
+            "past its limit it still holds")]),
+    "the_refresh_gap_again": (GW + "bulk_pipeline.py", [(
+        "        if inf is None:\n            # scheduled, not begun yet",
+        "        if inf is None:\n            return None\n            # scheduled, not begun yet")],
+        [py(PW + "TheRefreshIsNamedFromItsSchedule::test_starting_then_running_and_a_refused_begin_named",
+            "named from the schedule on")]),
+    "a_foreign_schedule_ends_the_wait": (GW + "gateway.py", [(
+        "or (inf is None and sch is not None and sch.get(" + Q + "program_id" + Q + ") == pid)):",
+        "or (inf is None and sch is not None)):")],
+        [py(PW + "TheRecordLivesWithItsProgram::test_a_new_load_replaces_it_its_schedule_and_its_publication_end_it",
+            "AssertionError")]),
+    "the_last_end_of_any_program": (GW + "gateway.py", [(
+        "if end is not None and end.get(" + Q + "program_id" + Q + ") == pid else {}),", "if end is not None else {}),")],
+        [py(PW + "TheRecordLivesWithItsProgram::test_a_job_ended_unpublished_is_named_for_its_program_only",
+            "AssertionError")]),
+    # ---- F1-2: the page's identity gate
+    "the_gate_open": (S + "ws/bulkData.ts", [(
+        "  const next = g && _matches(g.programId, activeProgramId.value) ? g : null;",
+        "  const next = g;")],
+        [vt("src/ws/bulkData.test.ts", "another program's payload is held", "A2's path is not C's")]),
+    "null_matches_null": (S + "ws/bulkData.ts", [(
+        "const _matches = (id: string | null | undefined, active: string | null) => !!id && !!active && id === active;",
+        "const _matches = (id: string | null | undefined, active: string | null) => (id ?? null) === active;")],
+        [vt("src/ws/bulkData.test.ts", "another program's payload is held", "AssertionError")]),
+    "text_without_its_proof": (S + "ws/bulkData.ts", [(
+        "      if (programId && originSource && source && source === originSource) {",
+        "      if (programId) {")],
+        [vt("src/ws/bulkData.test.ts", "text without its proof", "AssertionError")]),
+    "hidden_is_a_load_in_flight": (S + "ws/bulkData.ts", [(
+        "  gcodeRevision.value = ann ? ann.rev : " + Q + Q + ";",
+        "  gcodeRevision.value = ann ? ann.rev : " + Q + "hidden" + Q + ";")],
+        [vt("src/ws/bulkData.test.ts", "another program's payload is held", "no start lock")]),
+    "a_late_text_of_the_old_load": (S + "ws/bulkData.ts", [(
+        "    .then(({ text, source }) => {\n      if (_textAnn.value !== ann) return;\n",
+        "    .then(({ text, source }) => {\n")],
+        [vt("src/ws/bulkData.test.ts", "late answers of another load", "the old load's late text")]),
+    "the_lines_bound_by_identity_only": (S + "ws/bulkData.ts", [(
+        "  return !!g && gcodeContent.value != null && g.publishedVersion === _shownTextVersion.value;",
+        "  return !!g && gcodeContent.value != null;")],
+        [vt("src/ws/bulkData.test.ts", "the lines are bound only", "no marks")]),
+    "a_409_leaves_loading": (S + "ws/bulkData.ts", [(
+        "    previewDecoding.value = false;\n    if (m.superseded) {",
+        "    if (m.superseded) {")],
+        [vt("src/ws/bulkData.test.ts", "a 409 ends the load as superseded", "never a lasting loading state")]),
+    "the_run_check_without_its_load": (S + "viewer/checkBasis.ts", [(
+        "  if (o.programId == null || o.programId !== r.programId || (i.shownProgramId ?? null) !== o.programId) {",
+        "  if (false) {")],
+        [vt("src/viewer/checkBasis.test.ts", "every other case waits for idle", "another load")]),
+    "after_the_run_at_idle": (S + "previewWait.ts", [(
+        "  if (reasons.includes(" + Q + "running" + Q + ") && i.running && !i.runVerified) {",
+        "  if (reasons.includes(" + Q + "running" + Q + ")) {")],
+        [vt("src/previewWait.test.ts", "a run started before its preview", "AssertionError")]),
+    "the_note_ends_with_the_payload": (S + "previewWait.ts", [(
+        "  if (i.textState === " + Q + "loading" + Q + ") panel = " + Q + "Program text loading" + Q + ";",
+        "  if (i.textState === " + Q + "loading" + Q + " && !i.previewShown) panel = " + Q + "Program text loading" + Q + ";")],
+        [vt("src/previewWait.test.ts", "per kind of data", "AssertionError")]),
+    "the_conflict_by_path": (S + "GcodePanel.vue", [(
+        "  if (active == null || active === sessionProgramId.value) return false;",
+        "  if (active == null || active === sessionProgramId.value || active !== null) return false;")],
+        [pw("e2e/program-identity.spec.ts", "the editor's session is its load", "data-edit-conflict")]),
+    # ---- F1-4: the simulation switch's note
+    "the_note_unreactive": (S + "DevicesSettings.vue", [(
+        "  void settingsVersion.value;\n", "")],
+        [pw("e2e/devices.spec.ts", "the switch's note follows the gateway", "held: the note ends in the open dialog")]),
+}
+
+
+def failures(text):
+    lines = text.splitlines()
+    return [" | ".join(x.strip() for x in lines[i:i + 3] if x.strip())[:300]
+            for i, ln in enumerate(lines) if "AssertionError" in ln or "FAIL" in ln or "Error:" in ln]
+
+
+def run_guard(kind, args):
+    if kind == "vitest":
+        r = subprocess.run(["npx", "vitest", "run", args[0], "-t", args[1]], cwd=ROOT / "lcnc-webui",
+                           capture_output=True, text=True, timeout=900)
+        out = r.stdout + r.stderr
+        return r.returncode != 0, out, args[2]
+    if kind == "pytest":
+        r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider",
+                            "-o", "addopts=", args[0]], cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=900)
+        return r.returncode != 0, r.stdout + r.stderr, args[1]
+    if kind == "pw":
+        b = subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
+        if b.returncode != 0:
+            return False, b.stdout + b.stderr, args[2]
+        r = subprocess.run(["npx", "playwright", "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
+                           cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=1800)
+        return r.returncode != 0, r.stdout + r.stderr, args[2]
+    raise SystemExit(f"unknown guard kind {kind}")
+
+
+def main(names):
+    out = {}
+    for name in names or list(MUTS):
+        path, reps, guards = MUTS[name]
+        f = ROOT / path
+        orig = f.read_bytes()
+        text = orig.decode()
+        try:
+            for old, new in reps:
+                if text.count(old) != 1:
+                    raise SystemExit(f"{name}: anchor not unique in {path}: {old[:70]!r}")
+                text = text.replace(old, new)
+            f.write_text(text)
+            results = [run_guard(k, a) for k, a in guards]
+        finally:
+            f.write_bytes(orig)
+            if any(k == "pw" for k, _a in guards):
+                # the page back to the tree's own build
+                subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, timeout=900, check=True)
+        red = all(r for r, _o, _a in results)
+        at_rule = red and all(at in o for _r, o, at in results)
+        out[name] = {"red": red, "at_rule": at_rule}
+        print(json.dumps({"mutation": name, "red": red, "at_rule": at_rule,
+                          "failures": [failures(o)[:3] for _r, o, _a in results]}), flush=True)
+    print(json.dumps({"total": len(out), "red": sum(v["red"] for v in out.values()),
+                      "red_at_rule": sum(v["at_rule"] for v in out.values())}))
+    return 0 if all(v["at_rule"] for v in out.values()) else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
