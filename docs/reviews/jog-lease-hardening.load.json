@@ -1,0 +1,381 @@
+{
+ "what": "jog-lease.spec hardening stability record (Codex R439/R440): the test 30x under 3 workers and two Node busy loops, then the OLD real-time test (594e333c) the same way; every run, no retry, no selection",
+ "commit": "280f06be",
+ "summary": {
+  "new": {
+   "runs": 30,
+   "passed": 30,
+   "failed": 0,
+   "each": [
+    {
+     "status": "passed",
+     "ms": 6586,
+     "worker": 0,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6727,
+     "worker": 1,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7655,
+     "worker": 2,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6662,
+     "worker": 3,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6577,
+     "worker": 4,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7711,
+     "worker": 5,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6968,
+     "worker": 6,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6860,
+     "worker": 7,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6405,
+     "worker": 8,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7453,
+     "worker": 9,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6246,
+     "worker": 10,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6538,
+     "worker": 11,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6185,
+     "worker": 12,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6548,
+     "worker": 13,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6412,
+     "worker": 14,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7341,
+     "worker": 15,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7631,
+     "worker": 16,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7606,
+     "worker": 17,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6426,
+     "worker": 18,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6172,
+     "worker": 19,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6566,
+     "worker": 20,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7480,
+     "worker": 21,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6190,
+     "worker": 22,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6600,
+     "worker": 23,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6349,
+     "worker": 24,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7591,
+     "worker": 25,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6499,
+     "worker": 26,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 7431,
+     "worker": 27,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6302,
+     "worker": 28,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 6062,
+     "worker": 29,
+     "error": null
+    }
+   ]
+  },
+  "old": {
+   "runs": 30,
+   "passed": 30,
+   "failed": 0,
+   "each": [
+    {
+     "status": "passed",
+     "ms": 4470,
+     "worker": 0,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4306,
+     "worker": 1,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4263,
+     "worker": 2,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4483,
+     "worker": 3,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4327,
+     "worker": 4,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4183,
+     "worker": 5,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4562,
+     "worker": 6,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4310,
+     "worker": 7,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4280,
+     "worker": 8,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4584,
+     "worker": 9,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 3987,
+     "worker": 10,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4408,
+     "worker": 11,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4507,
+     "worker": 12,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4778,
+     "worker": 13,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4432,
+     "worker": 14,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4504,
+     "worker": 15,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4411,
+     "worker": 16,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4614,
+     "worker": 17,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4528,
+     "worker": 18,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4691,
+     "worker": 19,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4954,
+     "worker": 20,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4706,
+     "worker": 21,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4647,
+     "worker": 22,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4660,
+     "worker": 23,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4464,
+     "worker": 24,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4260,
+     "worker": 25,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 5050,
+     "worker": 26,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4595,
+     "worker": 27,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4121,
+     "worker": 28,
+     "error": null
+    },
+    {
+     "status": "passed",
+     "ms": 4583,
+     "worker": 29,
+     "error": null
+    }
+   ]
+  }
+ },
+ "note": "workerIndex is Playwright's per-worker-process index (a fresh process per test file run); --workers=3 ran three at a time. Old test 0/30 failures under this load is the honest outcome (Codex R440: no run until red)."
+}
