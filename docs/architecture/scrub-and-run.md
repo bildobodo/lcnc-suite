@@ -667,10 +667,14 @@ an unload, published inputs the controller no longer held. Now:
   before the effect (`_cmd_blocking`, decided by the write's EFFECT:
   `input_write_class` — every MDI line, a switch to MDI/AUTO (task synchs the
   parameters), the synch, the table reload; never MANUAL, never a no-op
-  switch; a program start is the AUTO exception). The file writers begin right
-  before the file changes (tool table, parameter file via
-  `_var_file_write_began`, a program the published or running parse reads,
-  every macro publish/delete/rename). A load or unload is a new program
+  switch; a program start is the AUTO exception). The file writers own their
+  effect from right before the file changes to their ACTUAL end
+  (`_file_effect`: an observer of the running action, else of an action of
+  its own — an HTTP writer has no queue hold; `done` when the writer
+  returned, `unknown` when it raised; Codex R446 MT-I25): tool table,
+  parameter file, a program the published or running parse reads, every
+  macro publish/delete/rename; the HTTP tool import (table, reload,
+  metadata) is ONE action `tool_import`. A load or unload is a new program
   generation (`_program_began`). A parse snapshots the generation before its
   first input read; its publication (and the verify path's basis) runs under
   the same lock in one step — check, fields, `preview_version` last, no await,
@@ -690,18 +694,26 @@ an unload, published inputs the controller no longer held. Now:
   target mode). The handler's return is no end (a CALL with wait=None answers
   ok long before the routine ends). The idle parse restarts only with no
   action held or observed and 2 s since the OBSERVED end (`_actions_quiet`,
-  `_restart_wait`); a discarded parse's restart also waits for idle, and while
-  an unload settles no parse of the program starts (`_bulk.unloading`).
+  `_restart_wait`); a discarded parse's restart also waits for idle — a first
+  load whose parse the switch to AUTO discarded unpublished included: it
+  stays `file_changed` (compared with the last PUBLISHED file), and repeating
+  it is a restart, not a load (R446 MT-I28; a real load's begin clears the
+  discard) — and while an unload settles no parse of the program starts
+  (`_bulk.unloading`).
 - *The decision (P2b-2).* The gateway names its first drift decision after an
   idle transition or an action's end (`drift_decision`: pending / none /
-  parse {job, published | why}); the page's idle check waits for it at most
-  3 s (one named fallback) and for a named parse until its publication is
-  adopted (`viewer/driftWait.ts`). Every idle edge waits for the one open
+  parse {job, published | why}, each a ROUND with its own number — an idle
+  edge opens one without any input write, R446 MT-I26); the decision keeps
+  its named job's end itself (the bounded job store may drop it, MT-I27).
+  The page's idle check waits for its round at most 3 s (one named
+  fallback per round) and for a named parse until its publication is
+  adopted (`viewer/driftWait.ts`); repeated frames of a round change
+  nothing, an older round's late decision closes nothing. Every idle edge waits for the one open
   toolsetter confirmation (30 s from its anchor, `_drift_edge`).
 - Limits named: a load parse still running at Cycle Start is cancelled by the
-  switch's begin and restarted at once by the file edge (a new file never
-  waits) under the run at normal priority — before P2b the same parse ran on
-  and published under the run; measured decision times: an action's end →
+  switch's begin; the preview then waits, named, for the run's end, idle and
+  the quiet window (before P2b the same parse ran on and published under the
+  run); measured decision times: an action's end →
   decision 2.0 s, a probe op → its WCS edge 4.05 s (the read-back's own end in
   between opens a newer decision, so the page's wait runs from there).
 
