@@ -964,14 +964,23 @@ const editConflict = computed(() => {
   if (active == null || active === sessionProgramId.value) return false;
   return _activeLoad() !== conflictAckFile.value;
 });
-watch(() => props.activeProgramId, (active) => {
-  // the session's own reload, now shown by the status: its load is the session's
-  if (active != null && active === sessionOwnReload.value && _session) {
-    _session.programId = active;
-    sessionProgramId.value = active;
-    sessionOwnReload.value = _session.ownReload = null;
-  }
-});
+/** The session's own reload becomes the session's load once the status
+ *  shows exactly the load its reply named (R451). Checked on a change of
+ *  EITHER identity — the status's and the reply's — so a status that came
+ *  first is adopted when the reply arrives (Codex R452 MT-I30); only by the
+ *  concrete session that asked, still open (its own `ownReload`, never the
+ *  panel's last reply), only for that load — a foreign load shown since
+ *  stays a conflict. */
+function _adoptOwnReload(): void {
+  const s = _session;
+  const active = props.activeProgramId ?? null;
+  if (!s || s.ownReload == null || active == null || active !== s.ownReload) return;
+  s.programId = active;
+  sessionProgramId.value = active;
+  s.ownReload = null;
+  sessionOwnReload.value = null;
+}
+watch([() => props.activeProgramId, sessionOwnReload], _adoptOwnReload);
 function keepEditing() { conflictAckFile.value = _activeLoad(); }
 watch(() => [props.activeFile, props.activeProgramId], () => { if (!editing.value) conflictAckFile.value = null; });
 
@@ -1066,7 +1075,12 @@ async function saveEdit() {
       // conflict shows, the newer edits stay
       if (props.reloadOwn) {
         const pid = await props.reloadOwn(path);
-        if (_session === session && pid) { session.ownReload = pid; sessionOwnReload.value = pid; }
+        if (_session === session && pid) {
+          session.ownReload = pid;
+          sessionOwnReload.value = pid;
+          // the status may show that load already: adopted now (MT-I30)
+          _adoptOwnReload();
+        }
       } else {
         emit("loadFile", path);
       }

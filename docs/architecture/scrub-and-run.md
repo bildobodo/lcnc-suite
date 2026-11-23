@@ -789,7 +789,12 @@ PW_BIG_C.NGC with A2's). Now:
   start lock; a failed or unproven text ends `loading`. Edit, Run from line
   (`auto_run.program_id`) and the editor's conflict and save completion bind
   to the identity (the own reload's reply names its load; the status decides
-  what shows). A reconnect keeps the view only with unchanged identity,
+  what shows). The session takes its own reload's load once the status shows
+  exactly the load the reply named, checked on a change of EITHER identity —
+  reply first or status first (R452 MT-I30: a status that came first was
+  never adopted and "Program changed …" stood over the own reload); only the
+  concrete session that asked, still open, takes it — a foreign load shown
+  meanwhile stays a conflict, a session opened after the reply takes nothing. A reconnect keeps the view only with unchanged identity,
   version and decode basis (R450 MT450-03).
 - *The wait, named (`preview_wait`, every frame).* While the active program
   has no publication of its own and no parse of it is scheduled or running:

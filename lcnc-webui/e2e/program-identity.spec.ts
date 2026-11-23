@@ -225,3 +225,104 @@ test("the editor's session is its load: another load of the same path is a confl
   await expect(page.locator("[data-edit-conflict]")).toBeVisible();
   await expect(editor, "the buffer stays").toContainText("(A2)");
 });
+
+// Codex R452 MT-I30: the session's own reload is the session's load in
+// EITHER order of its reply and the status that shows it; only the session
+// that asked takes it, only for the load its reply named.
+/** A session on `l1` saves; the operator types on while the save is in
+ *  flight; the session's own reload goes out, its reply held. */
+async function saveWhileTyping(page: Page, l1: Load, version: number) {
+  await ctl({ op: "status_delta", armed: true, data: {} });
+  await ctl({ op: "replyFor", cmd: "load_file", reply: "silent" });
+  await show(l1, version);
+  await expect(code(page)).toContainText("(A2)");
+  await page.locator(".panelHead").getByRole("button", { name: /^More/ }).first().click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const editor = page.locator(".cm-content");
+  await expect(editor).toContainText("(A2)");
+  await editor.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type("(save1)");
+  let release!: () => void;
+  let arrived!: () => void;
+  const gotSave = new Promise<void>(r => { arrived = r; });
+  const saveGate = new Promise<void>(r => { release = r; });
+  await page.route("**/save?*", async route => {
+    arrived();
+    await saveGate;
+    await route.fulfill({ json: { ok: true, path: l1.file, size: 1 } });
+  });
+  await ctl({ op: "clearCmds" });
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await gotSave;
+  await editor.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type("(newer draft)");
+  release();
+  let req: { req_id?: string } | undefined;
+  await expect.poll(async () => {
+    const r = await ctl({ op: "lastCmds" }) as { cmds?: { cmd: string; req_id?: string }[] };
+    req = r.cmds?.find(c => c.cmd === "load_file");
+    return !!req?.req_id;
+  }).toBe(true);
+  const reply = (load: Load) => ctl({ op: "raw", frame: { type: "reply", cmd: "load_file", req_id: req!.req_id,
+                                                           ok: true, path: l1.file, program_id: load.id } });
+  return { editor, reply };
+}
+const conflict = (page: Page) => page.locator("[data-edit-conflict]");
+
+for (const order of ["reply-first", "status-first"] as const) {
+  test(`the session's own reload is its load, ${order}`, async ({ page }) => {
+    await ready(page);
+    const l1 = newLoad("/a2.ngc", A2);
+    const { editor, reply } = await saveWhileTyping(page, l1, 810);
+    const l2 = newLoad("/a2.ngc", A2);      // the reload's load
+    if (order === "reply-first") {
+      await reply(l2);
+      await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+      await ctl({ op: "status_delta", data: loadStatus(l2) });
+    } else {
+      await ctl({ op: "status_delta", data: loadStatus(l2) });
+      await expect(conflict(page), "before its reply the load is not yet known as the session's").toBeVisible();
+      await reply(l2);
+      await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+      // another delivered status of the SAME identity changes nothing
+      await ctl({ op: "status_delta", data: loadStatus(l2) });
+    }
+    await expect(editor, "the newer draft stays").toContainText("(newer draft)");
+    await expect(conflict(page), "the own reload is not a foreign program change").toHaveCount(0);
+  });
+}
+
+test("a foreign load shown before the own reload's reply stays a conflict", async ({ page }) => {
+  await ready(page);
+  const l1 = newLoad("/a2.ngc", A2);
+  const { editor, reply } = await saveWhileTyping(page, l1, 820);
+  const l2 = newLoad("/a2.ngc", A2);        // the reload's load ...
+  const l3 = newLoad("/a2.ngc", A2);        // ... and another client's load after it
+  await ctl({ op: "status_delta", data: loadStatus(l3) });
+  await expect(conflict(page)).toBeVisible();
+  await reply(l2);
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+  await ctl({ op: "status_delta", data: loadStatus(l3) });
+  await expect(conflict(page), "a foreign load is never the session's by an old reply").toBeVisible();
+  await expect(editor, "the buffer stays").toContainText("(newer draft)");
+});
+
+test("a session opened after the own reload's reply does not take that load", async ({ page }) => {
+  await ready(page);
+  const l1 = newLoad("/a2.ngc", A2);
+  const { reply } = await saveWhileTyping(page, l1, 830);
+  const l2 = newLoad("/a2.ngc", A2);
+  await reply(l2);                          // the reply first: the old session's
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+  await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(page.locator(".cm-content")).toHaveCount(0);
+  // a new session on the text on screen (still l1's)
+  await page.locator(".panelHead").getByRole("button", { name: /^More/ }).first().click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.locator(".cm-content")).toContainText("(A2)");
+  await ctl({ op: "status_delta", data: loadStatus(l2) });
+  await expect(conflict(page), "a new session never takes an old session's reply").toBeVisible();
+});
