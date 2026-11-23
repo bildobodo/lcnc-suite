@@ -38,7 +38,7 @@ export interface CalCandidate {
 }
 
 export type CalNote =
-  | { kind: "pending"; text: string; run: number; value: number }
+  | { kind: "pending"; text: string; lead: string; detail: string; run: number; value: number }
   | { kind: "applied" | "stale"; text: string };
 
 export interface CalOffsetView {
@@ -99,8 +99,10 @@ export function calOffsetView(active: ProbeCalibration | null, formValue: number
   if (candidate?.state === "pending") {
     const basis = [ROUTINE_NAMES[candidate.routine] ?? candidate.routine, sizeText(candidate.size, u)]
       .filter(Boolean).join(" ");
-    note = { kind: "pending", run: candidate.run, value: candidate.value,
-      text: `Candidate ${fmtQty(candidate.value, u)} · ${basis}, ${AXIS_NAMES[candidate.axis] ?? NO_VALUE}` };
+    // two parts: the line breaks between them, never after a dangling "·"
+    const lead = `Candidate ${fmtQty(candidate.value, u)}`;
+    const detail = `${basis}, ${AXIS_NAMES[candidate.axis] ?? NO_VALUE}`;
+    note = { kind: "pending", run: candidate.run, value: candidate.value, lead, detail, text: `${lead} · ${detail}` };
     if (refusal && refusal.run === candidate.run) refused = `Not applied — ${refusal.why}`;
   } else if (candidate?.state === "applied") {
     // the Active line already holds the new value; the note says where it

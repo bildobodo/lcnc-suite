@@ -33,6 +33,7 @@ describe("calOffsetView (P5, W3)", () => {
   it("a pending candidate: its value, routine, size and axis — the old value stays in the Active line only", () => {
     const v = calOffsetView(active, 0, cand(), "mm");
     expect(v.note).toEqual({ kind: "pending", run: 12, value: 0.0712,
+      lead: "Candidate 0.0712 mm", detail: "Round hole Ø 20 mm, Avg XY",
       text: "Candidate 0.0712 mm · Round hole Ø 20 mm, Avg XY" });
     expect(v.note!.text).not.toContain("0.0677");
     expect(v.refusal).toBeNull();

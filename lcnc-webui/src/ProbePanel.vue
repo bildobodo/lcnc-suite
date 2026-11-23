@@ -976,9 +976,11 @@ function fmtR(key: string): string {
     <!-- ═══ CALIBRATE VIEW ═══ -->
     <template v-else-if="probeView === 'cal'">
       <div class="gridSection calSection stack-controls">
+      <!-- The two cell rows and their sizes in ONE grid: the sizes share one
+           label / "?" / field / unit column across both rows (subgrid),
+           each set centred on its row of cells. -->
+      <div class="calGrid">
       <!-- Round calibration: buttons + diameter -->
-      <div class="stack-tight">
-        <div class="row-sections">
           <div class="calBtnPair">
             <div class="stack-micro">
               <MachineBtn type="probeCell" class="gridCell" title="Round hole — edge start" aria-label="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
@@ -1009,7 +1011,7 @@ function fmtR(key: string): string {
               <span class="label-muted calCaption" aria-hidden="true">Round boss<br />above centre</span>
             </div>
           </div>
-          <div class="calParamStacked stack-tight">
+          <div class="calParamStacked">
             <FormField v-for="f in [CAL_ROUND_FIELD]" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
               <template #default="{ input }">
                 <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
@@ -1018,12 +1020,8 @@ function fmtR(key: string): string {
               <template #help>{{ f.help }}</template>
             </FormField>
           </div>
-        </div>
-      </div>
 
       <!-- Rect calibration: buttons + x/y width -->
-      <div class="stack-tight">
-        <div class="row-sections">
           <div class="calBtnPair">
             <div class="stack-micro">
               <MachineBtn type="probeCell" class="gridCell" title="Rect pocket — edge start" aria-label="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
@@ -1054,7 +1052,7 @@ function fmtR(key: string): string {
               <span class="label-muted calCaption" aria-hidden="true">Rect boss<br />above centre</span>
             </div>
           </div>
-          <div class="calParamStacked stack-tight">
+          <div class="calParamStacked">
             <FormField v-for="f in CAL_RECT_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
               <template #default="{ input }">
                 <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
@@ -1063,7 +1061,6 @@ function fmtR(key: string): string {
               <template #help>{{ f.help }}</template>
             </FormField>
           </div>
-        </div>
       </div>
 
       <!-- Calibrate On, and directly under it the calibration offset (W3,
@@ -1079,12 +1076,12 @@ function fmtR(key: string): string {
           </div>
         </div>
         <div class="statusNote" data-cal="active">
-          <span>Calibration offset <strong class="mono">{{ calView.value }}</strong><template v-if="calView.machine">
-            · <span class="text-muted">{{ calView.machine }}</span></template></span>
+          <span>Calibration offset <strong class="mono">{{ calView.value }}</strong><template v-if="calView.machine"><span
+            class="calDot" aria-hidden="true"> · </span><span class="calPart text-muted">{{ calView.machine }}</span></template></span>
           <MachineBtn type="probeReset" aria-label="Reset Calibration" @click="resetCal">Reset</MachineBtn>
         </div>
         <div v-if="calView.note?.kind === 'pending'" class="statusNote warn" role="status" data-cal="candidate">
-          <span>{{ calView.note.text }}</span>
+          <span>{{ calView.note.lead }}<span class="calDot" aria-hidden="true"> · </span><span class="calPart">{{ calView.note.detail }}</span></span>
           <div class="row-tight">
             <MachineBtn type="calApply" @click="calDecide('cal_apply')">Apply</MachineBtn>
             <MachineBtn type="calDiscard" @click="calDecide('cal_discard')">Discard</MachineBtn>
@@ -1451,16 +1448,45 @@ html.touch-device .gridSection { height: 368px; }
   container-type: inline-size;
 }
 html.touch-device .gridSection.calSection { height: auto; min-height: 368px; }
-.calParamStacked {
-  align-self: flex-start;
-  height: var(--cal-cell);
-  justify-content: center;
+/* The cells in the first column; the sizes of BOTH rows share the next four
+   (label, "?", field, unit) through a subgrid, so Diameter and X / Y Width
+   stand in one column whatever their labels' widths. */
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(5, max-content);
+  column-gap: var(--gap-section);
+  row-gap: var(--gap-controls);
+  align-items: start;
 }
+.calGrid > .calBtnPair { grid-column: 1; }
+.calParamStacked {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  column-gap: var(--gap-tight);
+  row-gap: var(--gap-tight);
+  height: var(--cal-cell);
+  align-content: center;
+}
+.calParamStacked > .formField.inline {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+}
+.calParamStacked .inputField { margin-inline: 0; }
 @container (max-width: 380px) {
-  .calSection .row-sections { flex-direction: column; }
-  .calParamStacked { height: auto; }
+  .calGrid { grid-template-columns: max-content; }
+  .calParamStacked {
+    grid-column: 1;
+    grid-template-columns: repeat(4, max-content);
+    height: auto;
+  }
   /* "Calibrate On" over its choices, not broken into two lines beside them */
   .calSection .row-controls { flex-direction: column; align-items: flex-start; }
+  /* A two-part line breaks between its parts, never after a dangling "·" */
+  .calDot { display: none; }
+  .calPart { display: block; }
 }
 
 
