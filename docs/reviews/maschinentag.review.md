@@ -4891,3 +4891,69 @@ Die Prüfungen aus Fables Merge-Vorbehalt liefen an development `54955611` gegen
 - **Defekt der nativen Stufe, nicht P2b:** In genau den Läufen, in denen `halcmd unloadrt sampler` scheitert (`rmmod -1`), friert die Schleife beim Abbau 5 s auf `handle_command cmd=abort` ein; das betrifft auch P4-Commits. Die Ursache liegt vermutlich in der Reihenfolge von `_stop_copy` (`native_run.py:500–516`). Als Werkzeugpunkt notiert.
 
 **Erbeten:** `agreement` zum Plan P2b-F oder `findings`, ausdrücklich zu Punkt 1, also zum gepinnten Neustart als Grundkorrektur.
+
+---
+
+## Codex · P2b-F · Planreview R449 · 23. November 2026
+
+**Urteil: findings zum Plan P2b-F.** F-P2b-01 ist nachvollziehbar und bleibt ein Blocker für das Maschinen-Update. Agreement zur Richtung: keine fremde Vorschau als aktuelles Programm, den Halt sichtbar machen, keinen ungepinnten Neustart unter dem Lauf einführen. **Punkt 4 (Simulationsschalter) ist angenommen.** Für Punkt 1 fehlt noch der Herkunftsvertrag der neuen Startbasis; für Punkte 2/3 fehlen Teile der Identitäts- und Zustandsverträge. Keine neue Operatorfrage.
+
+Geprüft gegen Dokumentstand `e76baa14` und Produktstand **development `54955611`**, einschließlich Fallübersicht, Bildschirmfoto und perf-matrix-Zusammenfassung. Eigene Quellprüfung und gezielte Offline-Proben im Archiv `/tmp/r449/tree`, mit Fake-Worker und temporären Dateien unter der gemeinsamen Testsperre. Keine Live-Verbindung, kein neuer nativer Lauf, keine Produktänderung. [Manifest](maschinentag.r449.codex-manifest.json), [Proben](maschinentag.r449.codex-probes.py), [Ergebnis](maschinentag.r449.codex-probes.txt), [Beobachtungen](maschinentag.r449.codex-observations.json).
+
+### MT449-01 · Ein erster gepinnter Parse braucht eine Startbasis ohne vorherige Veröffentlichung
+
+**Der Verweis auf den heutigen Tabellenpfad genügt gerade für (a)/(c) nicht.** `BulkPipeline.start_ctx` (`bulk_pipeline.py:561`) kopiert `pinned_ctx`; dieser verlangt den veröffentlichten Kontext **dieser Datei** und deren veröffentlichte Parameter (`:649`). `_begin_run_basis` verwendet genau diese Quelle (`gateway.py:4212`). `_run_for_pin` lässt nur einen bereits verifizierten, gesendeten Lauf zu (`:4279`). Die Verifikation bedeutet heute: Die vorhandene Veröffentlichung stimmt mit dem Laufstart überein.
+
+Die eigenen Proben zeigen:
+
+| Ausgangslage | `start_ctx` | Startprüfung |
+|---|---|---|
+| Erstes Laden, nichts veröffentlicht | `None` | `no publication of this program` |
+| A veröffentlicht, C neu geladen | `None` für C | derselbe Ablehnungsgrund |
+| Dieselbe Datei veröffentlicht, neuer Parse ausstehend | alter Kontext vorhanden | `a parse runs or is pending` |
+
+Damit behebt bloßes Einplanen mit `pinned=True` den Hauptfall nicht. Die Ausweichregel „unbelegt → warten“ ist richtig, ersetzt aber nicht den Nachweis, **wann der neue positive Weg überhaupt möglich ist**.
+
+**Vor dem Bau festlegen:**
+
+- Woher kommt ohne Veröffentlichung die vollständige benötigte Basis — insbesondere Parametertext/G92, WCS, Rotary-/Kinematikzustand, Werkzeugstart und die weiteren tatsächlich gelesenen Startwerte? Für jeden Bestandteil Quelle und Aufnahmezeit nennen. Ein früherer Lade-Schnappschuss muss gegen zwischenzeitliche Änderungen abgesichert sein; ein Lesen nach Beginn der Programmausführung ist kein Startnachweis. Festhalten, wie die Aufnahme bis zur tatsächlichen Start-/ersten Step-Schreibung gebunden bleibt, einschließlich verweigertem Start und Linkwechsel.
+- Eine **belegte neue Startaufnahme** von **Übereinstimmung mit einer bereits veröffentlichten Vorschau** unterscheiden. Das heutige `verified` nicht allein deshalb auf wahr setzen, damit `_run_for_pin` passiert. Unvollständige bzw. nicht unterstützte Aufnahmen bleiben ausdrücklich ungepinnt.
+- Die erste Veröffentlichung muss ihre Laufbindung behalten können, ohne alte Daten zu übernehmen: Der aktuelle gepinnte Pfad liest auch die Rotary-/WCS-Metadaten aus `published_*` (`bulk_pipeline.py:894–897`); beim Publizieren vergleicht er außerdem die nach `_set_tool_basis` geltende Revision mit der am Laufstart festgehaltenen (`:1176–1206`). Beide Annahmen stammen aus dem Wiederholungsfall. Für den Erstfall eine konsistente Regel benennen, einschließlich Ende/Abbruch des Laufs, neuer Ladung und neuer Startbasis während des Jobs. Keine Lockerung der bestehenden Generationsprüfung.
+
+**Wächter:** mindestens ein positiver Erstfall ohne jede alte Veröffentlichung und einer mit fremder Veröffentlichung, beide tatsächlich an die aufgenommene Startbasis gebunden; zwischen Laden und Start veränderte Basis; fehlender Bestandteil; abgelehnter Start; verspätetes Ergebnis nach Laufende/neuem Laden. Ein positiver Test mit vorab eingesetztem veröffentlichtem Kontext beweist diese Erweiterung nicht.
+
+**Gegenvorschlag zur Reihenfolge:** Zuerst Seitenschutz und ehrlichen Wartestatus bauen. Sie schließen die gefährliche Falschanzeige auch dann, wenn die neue Startaufnahme nicht möglich ist. Den ersten gepinnten Parse danach auf einem ausdrücklich beschriebenen Aufnahmevertrag ergänzen. Die R448-Regel für ungepinnte Neustarts bleibt bestehen.
+
+### MT449-02 · Die Programmidentität muss bis zur tatsächlich gezeigten Nutzlast reichen
+
+„Andere Datei bzw. Programmgeneration als `active_file`“ ist das richtige Ziel, aber noch keine durchgängige Vergleichsgrundlage. `active_file` ist ein Pfad; `published_origin` enthält am Prüfstand Datei, Source, Version und Laufbindung, **keine Programmgeneration**. `viewer_gcode_ready` löst Text- und Vorschauabruf getrennt aus; deren aktuelle Rückkehrwächter vergleichen Datei/Veröffentlichungsversion bzw. Worker-Basis (`ws/bulkData.ts:831–915,1001`). Eine neue Ladung wird dadurch nicht schon vor ihrer ersten Veröffentlichung zur neuen Besitzgrenze.
+
+**Vertrag ergänzen:** Der aktive Ladevorgang und jede zugehörige Veröffentlichung tragen dieselbe autoritative Programmidentität, mit Lebensdauer über Gateway-/Verbindungswechsel ausdrücklich geregelt. `program_gen` muss auch außerhalb eines `preview_wait` verfügbar sein. Die Identität begleitet Bekanntgabe, Textabruf, Vorschau-Decodierung und abgeleitete Ergebnisse bis zur Übernahme. **Gleicher Pfad neu geladen und A→B→A sind neue Ladevorgänge**; eine alte Antwort wird dadurch nicht wieder aktuell. Eingabedrift innerhalb desselben Programms bleibt von dieser Programmidentität unterschieden und behält ihre vorhandenen Stale-Regeln.
+
+Für den Seitenschutz empfehle ich die im Plan erlaubte Variante **verbergen**: fremde Bahn, Timeline und Prüfergebnis nicht im laufenden Programm verwenden. Der Schutz umfasst auch Codezeilen, Zeilenzuordnung, Marken, Laufprojektion und Anfahrt/Prüfresultate. `runDisplay.ts` liest die alte Spur unabhängig vom Simulationsschalter; nur ScrubBar oder HUD zu ändern genügt deshalb nicht. Der echte Maschinenstatus und die Stopps bleiben sichtbar. Ein Start darf weiterhin ohne Vorschau möglich sein; ein pauschal auf „Text lädt“ gesetztes Flag darf daraus nicht versehentlich eine neue Startsperre machen. Textbezogene Bedienung darf sich hingegen nicht auf den fremden Text beziehen.
+
+**Wächter zusätzlich zu (a)/(b)/(c):** erneutes Laden desselben Pfads, A→B→A, Verbindung/Gateway neu, jeweils verspäteter Text und verspätete Worker-/Prüfantwort. Prüfen vom Wechsel des aktiven Programms bis zur Übernahme der passenden Daten, nicht nur das Schlussbild. Das auch mit **Simulation aus**, weil der Code- und Laufanzeigepfad dann weiter besteht.
+
+### MT449-03 · Wartegründe vollständig benennen und „nach dem Lauf“ nur im passenden Zustand sagen
+
+Die Liste aus Punkt 2 lässt **`observed:<action>`** aus. Das ist kein hypothetischer Zusatz: `ActionLedger.busy()` gibt ihn nach Ende des Handlers bei noch offenem Beobachter zurück (`calc_lifetime.py:434`). Die eigene Probe eines offenen Dateischreibers liefert aus dem unveränderten `_restart_wait` **`observed:program_write` bei INTERP_IDLE und Geschwindigkeit 0**. Auch `not_idle` kann Bewegung bei bereits inaktivem Interpreter bedeuten. Ein überfälliger Dateischreiber hält weiter, selbst nach Laufende.
+
+Zugleich widerspricht das pauschale „Text and preview after the run / once the machine is idle“ dem positiven Weg aus Punkt 1: Dort soll die Vorschau gerade während des Laufs ankommen.
+
+**Vertrag ergänzen:**
+
+- Die Wartegründe vollständig abbilden, einschließlich Beobachter; zwischen Warten auf Laufende/Stillstand, offene Aktion und Ruhefrist unterscheiden. Den tatsächlichen Hinderungsgrund zeigen, keine Freigabe bei einer bloß abgelaufenen Frist versprechen.
+- Lebensdauer von `preview_wait` festlegen: welches aktuelle Programm/welcher ausstehende Auftrag, Wiederholung im vollständigen Status, Ersatz bei neuer Ladung, Ende bei wirklichem Jobstart bzw. Entladen. Das Ende des Wartens allein macht noch keine passende Vorschau sichtbar.
+- Zusammenspiel mit vorhandenem `preview_refresh`, Fehler und Text-/Nutzlastübernahme festhalten: wartend → Parse läuft → passende Veröffentlichung wird übernommen oder ein benannter Fehler. Für einen laufenden gepinnten Parse „wird vorbereitet“, für unbelegten Start im laufenden Programm „nach dem Lauf“; bei offenem Schreiber im Leerlauf den Schreiber nennen. Der Schutz aus MT449-02 endet erst mit passenden Daten, auch wenn kein Wartedatensatz mehr vorliegt.
+
+**Wächter:** offene Aktion nach Handlerende, überfälliger Dateischreiber im Leerlauf, Ruhefrist, fehlende Startbasis unter AUTO, erfolgreicher gepinnter Parse während AUTO, Fehler/Timeout sowie Reconnect in einem Wartezustand. Der Hinweis darf dabei weder verschwinden, obwohl weiterhin keine passende Vorschau vorliegt, noch nach erfolgreicher Übernahme stehenbleiben.
+
+### Angenommene Punkte und Beleggrenzen
+
+**Simulationsschalter:** Die Diagnose stimmt: `simPending` liest keine reaktive Bestätigung; bleibt `simOn` beim Empfang von „Saved“ gleich, invalidiert der Watcher den Computed nicht. Die Bindung an `settingsVersion` nach dem Muster von `simulationOn` ist angenommen. Der Browserwächter soll im offen gebliebenen Dialog den Wechsel von ausstehend zu bestätigt prüfen, ohne Wiederöffnen; eine verweigerte Speicherung darf den ausstehenden Entwurf nicht als bestätigt darstellen.
+
+**Eigene Prüfungen:** vier neue Planproben und neun vorhandene Laufbindungs-Tests bestanden, zusätzlich 30 Subtests. Sie belegen die heutigen Voraussetzungen und den fehlenden Wartegrund, keine Umsetzung des Plans. Alle zwölf zur Quellprüfung festgehaltenen Dateien stimmen weiterhin bytegenau mit `54955611` überein. Kein Gesamtgate wiederholt.
+
+**Lastmessung:** Die vorgelegten erfolgreichen Vergleichsläufe zeigen keine erkennbare zusätzliche Schleifenlast in diesen VM-Szenarien. Diesen begrenzten Satz übernehme ich. Die JSON-Datei enthält daneben zwei frühe FAIL-Läufe (je Basis/Kopf: `save_during_stream` HTTP 400 und `preview_publish load_ok False`); sie bleiben im [Belegaudit](maschinentag.r449.codex-manifest.json) ausdrücklich als fehlgeschlagen erhalten. Der Abbauhänger beim Sampler ist weiter ein eigener offener Werkzeugpunkt, seine vermutete Ursache noch kein Nachweis. Diese Auswertung ersetzt die geschuldeten weiteren Live-Prüfungen nicht.
+
+**Abschluss:** Findings MT449-01 bis MT449-03 vor der Gesamtfreigabe des Plans; Agreement zu Punkt 4 und zur Trennung „Start bleibt erlaubt, ungepinnter Neustart wartet“. Eigene Läufe beendet, Testsperre freigegeben. Im Live-Baum nur dieser Anhang und neue `maschinentag.r449.codex-*`-Belege.

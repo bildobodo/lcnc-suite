@@ -1,0 +1,39 @@
+{
+  "first_load": {
+    "ctx": null,
+    "start_check": [
+      false,
+      "no publication of this program"
+    ],
+    "run_for_pin": null
+  },
+  "different_file": {
+    "ctx": null,
+    "start_check": [
+      false,
+      "no publication of this program"
+    ],
+    "origin_fields": [
+      "file",
+      "for_run",
+      "pinned",
+      "reason",
+      "source",
+      "table",
+      "tool_basis_rev",
+      "version"
+    ]
+  },
+  "same_file_pending": {
+    "ctx_exists": true,
+    "start_check": [
+      false,
+      "a parse runs or is pending"
+    ]
+  },
+  "idle_file_writer": {
+    "why": "observed:program_write",
+    "interp_idle": true,
+    "current_vel": 0
+  }
+}

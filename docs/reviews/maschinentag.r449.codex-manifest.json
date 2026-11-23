@@ -1,0 +1,142 @@
+{
+  "review": "R449",
+  "document_commit": "e76baa148c534dd44298de3ddf857cda6373850d",
+  "document_before_sha256": "446c8d039457f2139a03ccf4145fd4f2199bff24cd082247ad0ce392ae2597f1",
+  "product_commit": "54955611542734e96efea9f21d12a11ddef4bf01",
+  "workspace": "/tmp/r449/tree",
+  "source_files": {
+    "lcnc-gateway/bulk_pipeline.py": {
+      "sha256": "39045a2ff27a5bf101e1a4332b4a8ba6bd8087838d13b69d9a8d08ac0128f978",
+      "matches_product_commit": true
+    },
+    "lcnc-gateway/gateway.py": {
+      "sha256": "571664e42662810e3a716eadbb2aa2f3b6d563419692ca55a2de62e29b47efbd",
+      "matches_product_commit": true
+    },
+    "lcnc-gateway/calc_lifetime.py": {
+      "sha256": "d6d7bd867843f54ba5a8c7a0b5ade30769a269ccc162b8c79e31f34c018fcbf3",
+      "matches_product_commit": true
+    },
+    "lcnc-gateway/status_runtime.py": {
+      "sha256": "728b62135f0ef7699122ca80d20ff6ee52da36f996e3b0f194bed6d093e0f5cc",
+      "matches_product_commit": true
+    },
+    "lcnc-gateway/test_bulk_pipeline.py": {
+      "sha256": "ba819ec7107aa589c538238aa3b3b4c2b1725a5f401970fe5add54e7ea04bdf3",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/ws/bulkData.ts": {
+      "sha256": "8cbe60cd310edaf303d48272b2ac5675d12fbf1739258226d9ae32b618de1369",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/ws/statusStore.ts": {
+      "sha256": "a9958afeff9e420b1e307f47b09cca158a3dd4362a0e9c6faf44edfb35aa5a28",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/viewer/runDisplay.ts": {
+      "sha256": "3e6e1e94c9201877dc280031012c71e58fd834233e09505bfa2ed2135ca4df5b",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/App.vue": {
+      "sha256": "957ec84ea88c616d05e3b93d18906930193edcfbde9aaa961cbe32d80bdf6b24",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/actionAdmission.ts": {
+      "sha256": "0e6d28e91caf5ef0f59c2cd126a42fa752c998af8eaf6af8d91b4ed448a9e733",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/DevicesSettings.vue": {
+      "sha256": "4e0134cefe475f0323c88eb65400d67f439fdeecb1a7313adcc3ddadbd732534",
+      "matches_product_commit": true
+    },
+    "lcnc-webui/src/defaults.ts": {
+      "sha256": "3edb5c9eff2cf2ac3400317583b2fde80575f5bbff8de2bb4dd596e64a52a167",
+      "matches_product_commit": true
+    }
+  },
+  "provided_evidence": {
+    "docs/reviews/maschinentag.p2bcheck.check1.json": {
+      "sha256": "7938f974810ea19d09a818bde6d0860da37205dcc78a9b4a0652fcae866cffb7"
+    },
+    "docs/reviews/maschinentag.p2bcheck.perf.json": {
+      "sha256": "5c71040e68d6265ef0c8381aac5ae5ec6f339a942f5e8456f34632910094f63b"
+    },
+    "docs/reviews/maschinentag.p2bcheck.stale-preview-c.png": {
+      "sha256": "812b62d481c323bc528d28751c1342d1adc4ee420665eaa468a71ba496dc442f"
+    }
+  },
+  "own_checks": {
+    "command": "python3 -I /tmp/r449/tree/scripts/test_support/heavy_lock.py --who codex-r449-plan-probes --wait 50 -- /home/cnc/lcnc-suite-p2b/lcnc-gateway/.venv/bin/python -B -m pytest -p no:cacheprovider -o addopts= -q test_r449_codex.py test_bulk_pipeline.py::TestRunBinding",
+    "cwd": "/tmp/r449/tree/lcnc-gateway",
+    "result": "13 passed, 30 subtests passed in 0.18s",
+    "new_probes": 4,
+    "existing_tests": 9,
+    "native_connections": 0,
+    "details": "Fake worker fixture from existing TestRunBinding; two unchanged gateway helpers extracted via Python AST, no gateway import; no product mutation."
+  },
+  "perf_rows": [
+    {
+      "run": "20261123T152841-perf-base1",
+      "commit": "244d93a3",
+      "matrix_rc": 1,
+      "matrix_verdict_line": "RESULT: FAIL — (scenario) save_during_stream: status 400 | (scenario) preview_publish: load_ok False",
+      "restore": "complete",
+      "idle_cpu_pct": 0.56,
+      "hb_edge_falling": 0
+    },
+    {
+      "run": "20261123T153255-perf-head1",
+      "commit": "54955611",
+      "matrix_rc": 1,
+      "matrix_verdict_line": "RESULT: FAIL — (scenario) save_during_stream: status 400 | (scenario) preview_publish: load_ok False",
+      "restore": "complete",
+      "idle_cpu_pct": 0.52,
+      "hb_edge_falling": 0
+    },
+    {
+      "run": "20261123T153710-perf-base2",
+      "commit": "244d93a3",
+      "matrix_rc": 0,
+      "matrix_verdict_line": "RESULT: PASS (run a0cb79027b6a)",
+      "restore": "complete",
+      "idle_cpu_pct": 0.49,
+      "hb_edge_falling": 0
+    },
+    {
+      "run": "20261123T154145-perf-head2",
+      "commit": "54955611",
+      "matrix_rc": 0,
+      "matrix_verdict_line": "RESULT: PASS (run 6ee8dcf8f2a1)",
+      "restore": "complete",
+      "idle_cpu_pct": 0.51,
+      "hb_edge_falling": 0
+    },
+    {
+      "run": "20261123T155031-perf-base3",
+      "commit": "244d93a3",
+      "matrix_rc": 0,
+      "matrix_verdict_line": "RESULT: PASS (run 507205205ca1)",
+      "restore": "complete",
+      "idle_cpu_pct": 0.51,
+      "hb_edge_falling": 0
+    },
+    {
+      "run": "20261123T155606-perf-head3",
+      "commit": "54955611",
+      "matrix_rc": 0,
+      "matrix_verdict_line": "RESULT: PASS (run 2d75682e3815)",
+      "restore": "complete",
+      "idle_cpu_pct": 0.51,
+      "hb_edge_falling": 0
+    },
+    {
+      "run": "20261123T160141-perf-base4",
+      "commit": "244d93a3",
+      "matrix_rc": 0,
+      "matrix_verdict_line": "RESULT: PASS (run a90be9603fd2)",
+      "restore": "complete",
+      "idle_cpu_pct": 0.51,
+      "hb_edge_falling": 0
+    }
+  ]
+}
