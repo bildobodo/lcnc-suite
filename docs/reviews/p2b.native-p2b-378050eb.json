@@ -1,0 +1,249 @@
+{
+ "p2b": {
+  "run": "20261123T135817-p2b",
+  "commit": "378050eb4d3210663ee247ca397ec27e4619a98b",
+  "variant": "p2b",
+  "verdict": "PASS",
+  "restore": "complete",
+  "restore_post": "complete",
+  "rows": [
+   {
+    "case": "home-all",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     true,
+     true
+    ],
+    "observed": [
+     true,
+     true,
+     true
+    ]
+   },
+   {
+    "case": "home-joint-0",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     false,
+     false
+    ],
+    "observed": [
+     true,
+     false,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-1",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     true,
+     false
+    ],
+    "observed": [
+     false,
+     true,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-2",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     false,
+     true
+    ],
+    "observed": [
+     false,
+     false,
+     true
+    ]
+   },
+   {
+    "case": "p2b-unload-during-parse",
+    "status": "PASS",
+    "detail": "superseded by the unload, ended unpublished, nothing restarted",
+    "job": 1,
+    "superseded": 1,
+    "published": 0,
+    "ends": [
+     "gcode.parse_cancelled"
+    ],
+    "spawned_after": []
+   },
+   {
+    "case": "p2b-tool-measure",
+    "status": "PASS",
+    "detail": "one parse, after the action's observed end (no read-back ran: nothing left assumed)",
+    "parses": [
+     [
+      4,
+      "table_mtime"
+     ]
+    ],
+    "action": [
+     "done"
+    ],
+    "read_backs": [],
+    "discarded": 0,
+    "quiet_s": 6.4
+   },
+   {
+    "case": "p2b-readback-parse",
+    "status": "PASS",
+    "detail": "the basis left open by the action, confirmed by its read-back, then exactly one parse",
+    "key": 3104,
+    "assumed": 1,
+    "action": [
+     "done"
+    ],
+    "read_backs": [
+     "confirmed"
+    ],
+    "parses": [
+     [
+      6,
+      "toolsetter"
+     ]
+    ]
+   }
+  ],
+  "p2b_unload_job": 1,
+  "p2b_tool_measure": {
+   "reply": {
+    "type": "reply",
+    "cmd": "tool_measure",
+    "ok": true,
+    "persisted": true,
+    "mdi_set": true,
+    "line": "T1 M600"
+   },
+   "errors": [],
+   "quiet_s": 6.4
+  },
+  "p2b_readback": {
+   "key": 3104,
+   "old": 2.0,
+   "new": 3.0,
+   "quiet_s": 6.5
+  },
+  "p2b_readback_restored": 2.0
+ },
+ "parse_basis": {
+  "run": "20261123T140116-parse-basis",
+  "commit": "378050eb4d3210663ee247ca397ec27e4619a98b",
+  "variant": "parse-basis",
+  "verdict": "incomplete",
+  "restore": "complete",
+  "restore_post": "complete",
+  "rows": [
+   {
+    "case": "home-all",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     true,
+     true
+    ],
+    "observed": [
+     true,
+     true,
+     true
+    ]
+   },
+   {
+    "case": "home-joint-0",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     false,
+     false
+    ],
+    "observed": [
+     true,
+     false,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-1",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     true,
+     false
+    ],
+    "observed": [
+     false,
+     true,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-2",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     false,
+     true
+    ],
+    "observed": [
+     false,
+     false,
+     true
+    ]
+   },
+   {
+    "case": "parse-basis",
+    "status": "PASS",
+    "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+    "ops": 3,
+    "parses_by_reason": {},
+    "toolsetter_edges": 0,
+    "masked": 0,
+    "held": 3,
+    "hold_ended": [],
+    "verified_same": 0,
+    "bookings": [
+     "assumed:1",
+     "applied:1",
+     "assumed:24",
+     "read:24",
+     "assumed:1",
+     "applied:1",
+     "assumed:24",
+     "read:24",
+     "assumed:1",
+     "applied:1",
+     "assumed:24",
+     "read:24"
+    ],
+    "read_backs": 3,
+    "outcomes": [
+     "confirmed",
+     "confirmed",
+     "confirmed"
+    ],
+    "quiet_s": 6.6
+   },
+   {
+    "case": "parse-basis.nice",
+    "status": "incomplete",
+    "detail": "no drift re-parse in the window"
+   }
+  ],
+  "note": "parse-basis.nice not exercised (no drift parse in the three-op window), as at fda61f19; its P2a row PASS"
+ }
+}
