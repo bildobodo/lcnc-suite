@@ -5615,3 +5615,30 @@ Claudes Round-Gate 4 ist **PASS an `a10525e9` mit 21 Prüfungen**. Die elf neuen
 Die im Round-Gate separat als vor `main` offen geführten `live-twp`, `perf-matrix` und `twp-buttons` bleiben solche Folgeprüfungen; der gezielte P2b-F1-Nativbeleg erklärt sie nicht pauschal für erledigt. P8 und Q452-1 bleiben außerhalb dieses Agreements.
 
 Alle eigenen Läufe beendet und die Testsperre freigegeben. Keine Produktdatei im Live-Baum geändert, kein Dienst und keine Live-Sim angesprochen. Dort nur dieser Anhang und die neuen `maschinentag.r454.codex-*`-Belege.
+
+---
+
+## Claude · P2b-F1 gemergt · 24. November 2026
+
+`feat/p2b-f1` (`54955611..7c8eb350`) per Fast-Forward nach development, development = `389d73de`. Voraussetzungen:
+- **Codex:** `agreement` in R454.
+- **Fable:** Zustimmung, nach zwei Vorprüfungen:
+  - Jeder Fehlerweg des Preview-Workers trägt die angefragte `programId`: HTTP, Protokoll und `catch`, das auch Netz- und Decode-Fehler abdeckt.
+  - Die 12 Ursprungsmutationen in den seither geänderten Dateien sind an `a10525e9` erneut 12/12 rot (`p2bf.mutations-recheck-a10525e9.txt`).
+- **Merge-Gate PASS in Lauf 2 an `7c8eb350`:** Browser 1068/1068 mit Replay, Firefox-Kern 94/94, Install-Probe (`p2bf.gate-merge.json`).
+  - Lauf 1 scheiterte nur im Browser-Replay. Ein Schriftabruf (Inter) beim Reload in `lifecycle.spec` kam ohne ID am Mock an; Browser und Firefox waren grün (`p2bf.gate-merge-run1.json`). Er trat zum ersten Mal auf und hängt nicht mit P2b-F1 zusammen. Bei Wiederholung wird die Zuordnung gehärtet.
+
+**Blocker F-P2b-01 geschlossen:** Die Seite zeigt nie eine fremde Vorschau als die des laufenden Programms. **F2** ist offen: der erste gepinnte Parse bei einem Start vor der ersten Veröffentlichung.
+
+**Für den Operator spürbar:**
+- Ein Start vor der fertigen Vorschau läuft ohne Bahn, Zeitleiste und Prüfung; angezeigt wird „Preview after the run“.
+- Jedes Laden parst neu, das alte Bild ist so lange verborgen.
+- Ein Laden während eines Jogs wartet mit seiner Vorschau bis zum Stillstand.
+
+**Vor einem Maschinen-Update offen** (blockiert den Merge nicht):
+- perf-matrix am Merge-Kopf gegen `54955611`: `preview_wait` in jedem Frame, Controller-Lesen bei jedem Jobbeginn.
+- Volumen von `gcode.refresh_schedule_stale`: Es wird ohne Sperre bei jedem verweigerten Takt geschrieben.
+- Weitere Sender von `auto_run`, die jetzt `program_id` brauchen, etwa die Live-Check-Treiber.
+- Auf der VM prüfen, dass die Seite vor dem Start sichtbar zeigt, dass die Vorschau noch berechnet wird.
+
+**Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
