@@ -794,8 +794,9 @@ PW_BIG_C.NGC with A2's). Now:
   reply first or status first (R452 MT-I30: a status that came first was
   never adopted and "Program changed …" stood over the own reload); only the
   concrete session that asked, still open, takes it — a foreign load shown
-  meanwhile stays a conflict, a session opened after the reply takes nothing. A reconnect keeps the view only with unchanged identity,
-  version and decode basis (R450 MT450-03).
+  meanwhile stays a conflict, a session opened after the reply takes nothing.
+  A reconnect keeps the view only with unchanged identity, version and decode
+  basis (R450 MT450-03).
 - *The wait, named (`preview_wait`, every frame).* While the active program
   has no publication of its own and no parse of it is scheduled or running:
   EVERY reason (`running` / `moving`, every `held:` / `observed:` / `overdue:`

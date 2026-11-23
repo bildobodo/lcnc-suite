@@ -1,4 +1,4 @@
-"""P2b-F1 red proofs (plan v3, Codex R449-R451): each mutation breaks ONE
+"""P2b-F1 red proofs (plan v3, Codex R449-R451; R452 MT-I29..MT-I31): each mutation breaks ONE
 rule; its named guard must fail AT that rule. Run from the tree's root; every
 file is restored byte-identical. Unit guards run light; a browser guard (pw)
 rebuilds the page and runs its spec - under the heavy lock (the page is
@@ -156,6 +156,63 @@ MUTS = {
         "  if (active == null || active === sessionProgramId.value) return false;",
         "  if (active == null || active === sessionProgramId.value || active !== null) return false;")],
         [pw("e2e/program-identity.spec.ts", "the editor's session is its load", "data-edit-conflict")]),
+    # ---- Codex R452: MT-I29 the job bound at its schedule
+    "the_job_rereads_its_load": (GW + "bulk_pipeline.py", [(
+        "        if program_gen is None and _gen_at is not None:\n            program_gen = _gen_at[0]\n",
+        "        if _gen_at is not None:\n            program_gen = _gen_at[0]\n")],
+        [py(PI + "TheJobIsBoundAtItsSchedule::test_a_load_before_the_first_step_discards_the_job",
+            "the new load's identity is never taken")]),
+    "no_load_check_after_the_hash": (GW + "bulk_pipeline.py", [(
+        "            if self._program_moved(program_gen, job, filepath, " + Q + "after_hash" + Q + "):\n"
+        "                _gen_published[" + Q + "why" + Q + "] = " + Q + "discarded" + Q + "\n"
+        "                return\n", "")],
+        [py(PI + "TheJobIsBoundAtItsSchedule::test_a_load_during_the_hash_discards_the_job_before_its_worker",
+            "no worker for a job whose load is gone")]),
+    "the_discard_books_the_new_load": (GW + "bulk_pipeline.py", [(
+        "        try:\n            # Another load began between the schedule and this first step:",
+        "        try:\n            if _gen_at is not None:\n                self.spawned_program_gen = _gen_at[0]\n"
+        "            # Another load began between the schedule and this first step:")],
+        [py(PI + "TheJobIsBoundAtItsSchedule::test_a_load_before_the_first_step_discards_the_job",
+            "the new load's first parse is not booked as spawned")]),
+    "the_schedule_without_its_status_identity": (GW + "bulk_pipeline.py", [(
+        "        if program_id is not None and _sched_gen is not None and _bound != program_id:",
+        "        if False:")],
+        [py(PI + "TheJobIsBoundAtItsSchedule::test_the_schedule_binds_the_path_to_its_status_identity",
+            "not scheduled")]),
+    # ---- Codex R452: MT-I31 a preview load error is its own load's
+    "the_preview_error_unbound": (S + "ws/bulkData.ts", [(
+        "  const own = job && _matches(job.programId, activeProgramId.value) ? job.text : null;",
+        "  const own = job ? job.text : null;")],
+        [vt("src/ws/bulkData.test.ts", "a preview load failure is its own load", "an old load's late failure is not the active program's")]),
+    "the_error_tagged_by_the_active_load": (S + "ws/bulkData.ts", [(
+        "      _previewErr.value = { programId: m.programId ?? null, text:",
+        "      _previewErr.value = { programId: activeProgramId.value, text:")],
+        [vt("src/ws/bulkData.test.ts", "a preview load failure is its own load", "an old load's late failure is not the active program's")]),
+    "the_worker_failure_bound_to_a_load": (S + "ws/bulkData.ts", [(
+        "    _previewWorkerErr.value = `preview worker error: ${ev.message}`;",
+        "    _previewErr.value = { programId: _previewLastProgram, text: `preview worker error: ${ev.message}` };")],
+        [vt("src/ws/bulkData.test.ts", "a preview load failure is its own load", "the worker's own failure under any load")]),
+    # ---- Codex R452: MT-I30 the own reload in either order
+    "the_adoption_on_the_status_only": (S + "GcodePanel.vue", [(
+        "watch([() => props.activeProgramId, sessionOwnReload], _adoptOwnReload);",
+        "watch(() => props.activeProgramId, _adoptOwnReload);"), (
+        "          // the status may show that load already: adopted now (MT-I30)\n          _adoptOwnReload();\n", "")],
+        [pw("e2e/program-identity.spec.ts", "own reload is its load, status-first",
+            "the own reload is not a foreign program change")]),
+    "an_old_reply_takes_any_load": (S + "GcodePanel.vue", [(
+        "  if (!s || s.ownReload == null || active == null || active !== s.ownReload) return;",
+        "  if (!s || s.ownReload == null || active == null) return;")],
+        [pw("e2e/program-identity.spec.ts", "a foreign load shown before the own reload",
+            "a foreign load is never the session's by an old reply")]),
+    "the_reply_is_the_panels": (S + "GcodePanel.vue", [(
+        "  if (!s || s.ownReload == null || active == null || active !== s.ownReload) return;",
+        "  if (!s || sessionOwnReload.value == null || active == null || active !== sessionOwnReload.value) return;"), (
+        "  sessionProgramId.value = session.programId;\n  sessionOwnReload.value = null;\n",
+        "  sessionProgramId.value = session.programId;\n"), (
+        "  sessionProgramId.value = null;\n  sessionOwnReload.value = null;\n",
+        "  sessionProgramId.value = null;\n")],
+        [pw("e2e/program-identity.spec.ts", "a session opened after the own reload",
+            "a new session never takes an old session's reply")]),
     # ---- F1-4: the simulation switch's note
     "the_note_unreactive": (S + "DevicesSettings.vue", [(
         "  void settingsVersion.value;\n", "")],
