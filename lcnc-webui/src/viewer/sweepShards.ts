@@ -49,6 +49,7 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     pairCount: first.pairCount,
     pairsPrescreened: results.reduce((s, r) => s + r.pairsPrescreened, 0),
     bvhMs: Math.max(...results.map(r => r.bvhMs)),
+    ...(results.some(r => r.modelBuilds !== undefined) ? { modelBuilds: results.reduce((s, r) => s + (r.modelBuilds ?? 0), 0) } : {}),
     sweepMs: Math.max(...results.map(r => r.sweepMs)),
     truncated,
     ...(from < Infinity ? { incompleteFrom: from } : {}),

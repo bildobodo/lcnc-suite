@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
-  buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
+  buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, makeToolVariant, type SnapshotHandle,
   type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionResult, type CollisionOptions, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
@@ -1722,6 +1722,54 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
       if (e.onset < t.cum[i]! && (Number.isNaN(e.end) ? Infinity : e.end) > t.cum[i - 1]!) tgot.add(`${i + 1}/${e.pair}`);
     expect(tref.size).toBeGreaterThan(0);
     expect([...tgot].sort(), "the tables").toEqual([...tref].sort());
+  });
+});
+
+describe("a run's own base tool on a resident model (P2b-1, Codex R439)", () => {
+  // The TWP-06/07 fixture: a head on X approaches a fixed vise (cube 2 at z
+  // 0..2) from X 20 to X 5; a Ø20 tool touches it, a Ø2 one never does. The
+  // resident model is built ONCE (here with the thin tool); every run brings
+  // its own base — a tool change rebuilds no machine BVH.
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const built = (diam: number) => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(diam, 2), tool: true },
+  ]);
+  const approach = () => {
+    const pts = Array.from({ length: 40 }, (_, i) => [20 - 15 * i / 39, 0, 0]);
+    return track(pts, undefined, undefined, pts.map(() => 1));
+  };
+  const fresh = (diam: number) => tsig(sweepT(built(diam), approach(), WCS0, { margin: 0.1 })[1]);
+  it("sweeps with the run's tool, whatever tool the model was built with", () => {
+    expect(fresh(20).length, "the fat tool touches").toBeGreaterThan(0);
+    expect(fresh(2), "the thin one never").toEqual([]);
+    const m = built(2);
+    for (const d of [20, 2, 20, 2]) {
+      expect(tsig(sweepT(m, approach(), WCS0, { margin: 0.1, baseTool: makeToolVariant(d, 2) })[1]), `Ø${d} on the resident model`)
+        .toEqual(fresh(d));
+    }
+  });
+  it("two runs interleaved at every checkpoint keep their own tools, in both orders", () => {
+    for (const order of [[20, 2], [2, 20]] as const) {
+      const m = built(2);
+      let clock = 0;
+      const stores = order.map(() => new ContactStore(1, 0));
+      const its = order.map((d, k) => sweepCollisionsIter(m, approach(), WCS0, {
+        margin: 0.1, baseTool: makeToolVariant(d, 2), contacts: { store: stores[k]! }, yieldMs: 0, clock: () => ++clock }));
+      const done = [false, false];
+      let steps = 0;
+      while (!(done[0] && done[1]) && steps++ < 200_000) {
+        for (let k = 0; k < 2; k++) if (!done[k]) done[k] = !!its[k]!.next().done;
+      }
+      expect(steps, "both interleaved over many checkpoints").toBeGreaterThan(4);
+      for (let k = 0; k < 2; k++) {
+        expect(tsig(tablesOf(m, approach(), stores[k]!)), `Ø${order[k]} interleaved, order ${order.join("→")}`).toEqual(fresh(order[k]!));
+      }
+    }
   });
 });
 

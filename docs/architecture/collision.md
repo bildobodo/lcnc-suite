@@ -437,7 +437,12 @@ dims from live status); the worker drives the iterator in 40 ms slices
 (`viewer/sweepPump.ts`) and reads `{cancel}` / `{pause}` / `{resume}`
 between them — no terminate, the BVH model stays RESIDENT under a
 `modelKey` (STL copies are re-sent only when it changes; a worker that
-lacks the model answers `needBodies`); OrbitControls start/end pause and
+lacks the model answers `needBodies`). The key carries every model-building
+input and NOT the live tool (P2b-1, 2026-11-23, `viewer/collisionModelKey.ts`):
+each run brings its own BASE tool variant (`CollisionOptions.baseTool`, made
+by the worker from the request's `tool`, a bounded cache of 8), installed at
+every pose and before the prescreen — a tool change rebuilt every machine BVH
+before (62–94 s on the operator's panel, machine day 2026-11-22); OrbitControls start/end pause and
 resume a running sweep, because a busy worker is off the main thread but
 not off the machine (it starved the Mac's GPU 3–4 frames behind,
 2026-09-10). PARALLEL (2026-10-07, operator): a main request is split over

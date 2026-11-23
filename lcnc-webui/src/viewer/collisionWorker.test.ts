@@ -903,3 +903,21 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     expect([fin.incompleteFrom, fin.truncated]).toEqual([4, { covered: 0.2, reason: "budget" }]);
   });
 });
+
+describe("a tool change rebuilds no model (P2b-1, Codex R439)", () => {
+  it("one build on this core across two tools; a request of the other structure asks for the bodies", async () => {
+    const { sent, send } = await setup(2);   // one core: the local path
+    send({ ...req(41, { tool: true }), modelKey: "m" });
+    await vi.runAllTimersAsync();
+    expect(last(sent).result?.modelBuilds, "the first request builds").toBe(1);
+    send({ ...req(42, { tool: true, bodies: false }), modelKey: "m", tool: { diam: 3, len: 9 } });
+    await vi.runAllTimersAsync();
+    expect(last(sent).needBodies, "another tool: the resident model").toBeUndefined();
+    expect(last(sent).result?.modelBuilds, "no second build").toBe(1);
+    // a model with a tool body is no model for a request without a tool: its
+    // structure differs — the bodies are asked for, an honest rebuild
+    send({ ...req(43, { bodies: false }), modelKey: "m" });
+    await vi.runAllTimersAsync();
+    expect(last(sent).needBodies).toBe(true);
+  });
+});

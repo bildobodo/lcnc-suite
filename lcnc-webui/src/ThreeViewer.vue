@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { collisionModelKey } from "./viewer/collisionModelKey";
 import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw, watch, type Ref, nextTick } from "vue";
 
 import * as THREE from "three";
@@ -3702,6 +3703,8 @@ function _colOnMessage(m: ColMessage) {
         id: m.id, run_gen: _colReqRunGen,
         ms: Math.round(performance.now() - _colStartedAt),
         bvh_ms: Math.round(result.bvhMs), sweep_ms: Math.round(result.sweepMs),
+        // P2b-1: the models built so far by the worker instance(s) of this sweep
+        model_builds: result.modelBuilds ?? null,
         samples: result.samples, coarsened: result.coarsened,
         uncertified: result.uncertified != null,
         truncated: result.truncated?.reason ?? null,
@@ -3963,11 +3966,15 @@ function _colOnVisibility() {
 // Identity of the collision model the worker keeps resident: the loaded
 // parts (id, file, group, placement, stock flag), the unit scale and the
 // tool body dims. Bodies are re-sent only when it changes.
-function _colModelKey(init: ViewerInit, basis: CheckBasis): string {
+/** The collision model's key — every model-building input, never the live
+ *  tool's dims (P2b-1, viewer/collisionModelKey.ts). */
+function _colModelKey(init: ViewerInit, _basis: CheckBasis): string {
   const parts = (init.parts ?? [])
     .filter(p => partCollides(p) && !!getCachedGeometry(p.id))
-    .map(p => [p.id, p.file, p.collision ?? null, p.group ?? "root", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);
-  return JSON.stringify([parts, _unitScale, _toolVisual(basis.toolDiam, basis.toolLen)]);
+    .map(p => ({ id: p.id, file: p.file, collision: p.collision ?? null, group: p.group ?? "root", translate: p.translate ?? null,
+                 rotate: (p as any).rotate ?? null, stock: !!p.stock, mesh: getCachedGeometry(p.id)?.uuid ?? null,
+                 proxy: p.collision ? (getCollisionGeometry(p.id)?.uuid ?? null) : null }));
+  return collisionModelKey(_pfMachine(init), parts, _unitScale);
 }
 
 // ---- The check basis (plan „Prüfung im Lauf“ 1c, Codex R112–R115) ----

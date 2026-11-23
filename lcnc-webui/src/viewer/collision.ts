@@ -263,6 +263,12 @@ export interface CollisionOptions {
   /** The loaded tool number — what a segment before the first M6 row
    *  (or a payload without the channel) runs with. */
   liveTool?: number | null;
+  /** The RUN's base tool body (P2b-1, Codex R439): the live tool's variant,
+   *  fixed for this run from its initialization on — the model keeps no
+   *  shared base for it (a resident model outlives tool changes). Set by the
+   *  worker for its own run, never sent over the wire; absent = the model's
+   *  build-time body (tests, a model built with its tool). */
+  baseTool?: ToolVariant;
   /** Lines that set an offset or a stored position FROM the position after
    *  an unseen tool change (payload `stale_offset_lines`, Codex R95 VP-I53):
    *  every move from there on is unchecked to the end — the note says why. */
@@ -384,6 +390,11 @@ export interface CollisionResult {
    *  them. */
   pairsPrescreened: number;
   bvhMs: number;
+  /** How many models the worker instance(s) that ran this sweep have built so
+   *  far (P2b-1, the join: one build per unchanged model generation and
+   *  needed worker instance) — a shard pool sums its shards. Set by the
+   *  worker; absent from a direct call. */
+  modelBuilds?: number;
   sweepMs: number;
   /** Set when the sweep stopped before the end of the track — the wall-clock
    *  budget (`time`), the hard sample backstop (`samples`) or a driver park
@@ -648,6 +659,23 @@ interface PathDof {
 export interface ToolVariant {
   geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number; extent: number; comps: Float32Array;
   insideReps: Float32Array; insideClosed: boolean;
+}
+
+/** A cylinder tool VARIANT of `diam` × `len` (machine units, tip at the
+ *  origin, +Z): its geometry, BVH, sphere and inside representatives — the
+ *  per-program-tool variants and a run's base (P2b-1) are made here, ONE way. */
+export function makeToolVariant(diam: number, len: number): ToolVariant {
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(toolCylinderPositions(diam, len), 3));
+  const bvh = new MeshBVH(geom);
+  (geom as any).boundsTree = bvh;
+  geom.computeBoundingSphere();
+  geom.computeBoundingBox();
+  const vpos = geom.getAttribute("position").array as Float32Array;
+  const vclo = meshClosure(vpos);
+  return { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius,
+           extent: geom.boundingBox!.getSize(new THREE.Vector3()).length(),
+           comps: componentBoxes(vpos), insideReps: vclo.repVerts, insideClosed: vclo.closed };
 }
 
 function toolVariantOf(b: BuiltBody): ToolVariant {
@@ -1147,24 +1175,17 @@ export function* sweepCollisionsIter(
   // (pushing K tool bodies would mint K× pairs and misattribute hits).
   // The BASE is the model's own (TWP-07), never "what the body wears now".
   const toolVariants = new Map<number, ToolVariant>();
-  const baseVariant: ToolVariant | null = model.baseTool;
+  // The RUN's base (P2b-1): the request's live tool, never what the shared
+  // body wears now nor a base another run set — the model's build-time body
+  // only for a caller that gives none (tests, a model built with its tool).
+  const baseVariant: ToolVariant | null = toolBodyIdx >= 0 ? (opts.baseTool ?? model.baseTool) : null;
   if (toolBodyIdx >= 0 && baseVariant && opts.toolDims && opts.tloEvents?.length) {
     for (const ev of opts.tloEvents) {
       const tn = ev.tool;
       if (tn == null || toolVariants.has(tn)) continue;
       const dims = opts.toolDims[tn];
       if (!dims) continue;
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute("position", new THREE.BufferAttribute(toolCylinderPositions(dims.diam, dims.len), 3));
-      const bvh = new MeshBVH(geom);
-      (geom as any).boundsTree = bvh;
-      geom.computeBoundingSphere();
-      geom.computeBoundingBox();
-      const vpos = geom.getAttribute("position").array as Float32Array;
-      const vclo = meshClosure(vpos);
-      toolVariants.set(tn, { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius,
-                             extent: geom.boundingBox!.getSize(new THREE.Vector3()).length(),
-                             comps: componentBoxes(vpos), insideReps: vclo.repVerts, insideClosed: vclo.closed });
+      toolVariants.set(tn, makeToolVariant(dims.diam, dims.len));
     }
   }
   const applyTool = (tn: number | null) => {
@@ -1561,8 +1582,15 @@ export function* sweepCollisionsIter(
   const unreachable = new Uint8Array(pairs.length);
   let pairsPrescreened = 0;
   const rsA = { c: new THREE.Vector3(), r: 0 }, rsB = { c: new THREE.Vector3(), r: 0 };
+  // The run's base on the tool body before its first geometry use, and again
+  // after every yield: another run (a side sweep) may have used the shared
+  // body meanwhile (P2b-1, Codex R439 — the base holds from initialization)
+  applyTool(null);
   for (let pi = 0; pi < pairs.length && !abortedEarly; pi++) {
-    if ((pi & 255) === 255 && (yield 0) === true) { abortedEarly = true; break; }
+    if ((pi & 255) === 255) {
+      if ((yield 0) === true) { abortedEarly = true; break; }
+      applyTool(null);
+    }
     if (opts.pairMask && !opts.pairMask[pi]) { unreachable[pi] = 1; continue; }   // another shard's
     const [ai, bi] = pairs[pi]!;
     reachSphere(ai, pairLca[pi]!, rsA);

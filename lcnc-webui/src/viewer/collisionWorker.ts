@@ -41,9 +41,10 @@
 // the owner omits `bodies` when it knows the worker holds the model; a
 // worker that does not (recreated after a failure) answers `needBodies`
 // instead of guessing.
-import { restoreBaseTool, geometryNote, bodyClasses,
+import { restoreBaseTool, geometryNote, bodyClasses, makeToolVariant,
   buildCollisionModel, sweepCollisionsIter, toolCylinderPositions,
   type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionOptions,
+  type ToolVariant,
   type CollisionResult, type CollisionTrack, type SnapshotHandle,
 } from "./collision";
 import { runSweepSlice, type SweepIter } from "./sweepPump";
@@ -176,6 +177,26 @@ interface Run {
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
+/** The base tool variants of this worker's runs (P2b-1, Codex R439): keyed
+ *  by the live tool's dims (machine units), at most TOOL_VARIANTS_MAX — the
+ *  oldest dropped first. A dropped entry stays alive for every run that
+ *  holds it (each run keeps its own reference in its options; a variant is
+ *  plain geometry here — no GPU buffer, nothing disposed), so leaving the
+ *  cache never frees what a live run uses. */
+const TOOL_VARIANTS_MAX = 8;
+const _toolVariants = new Map<string, ToolVariant>();
+function baseToolFor(tool: { diam: number; len: number }): ToolVariant {
+  const key = `${tool.diam}|${tool.len}`;
+  let v = _toolVariants.get(key);
+  if (v) { _toolVariants.delete(key); _toolVariants.set(key, v); return v; }   // most recent last
+  v = makeToolVariant(tool.diam, tool.len);
+  _toolVariants.set(key, v);
+  while (_toolVariants.size > TOOL_VARIANTS_MAX) _toolVariants.delete(_toolVariants.keys().next().value!);
+  return v;
+}
+/** How often THIS worker instance built a model (the join's measure: one
+ *  build per unchanged model generation and needed worker instance). */
+let _modelBuilds = 0;
 /** The MAIN sweep — the one that parks, continues and pauses. */
 let _run: Run | null = null;
 /** An ephemeral SIDE sweep (sim-entry segment); never parks. */
@@ -308,7 +329,10 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
       }
       model = buildCollisionModel(machine, bodies);
       _resident = { key: modelKey, model };
-    } else if (_resident && _resident.key === modelKey) {
+      _modelBuilds++;
+    } else if (_resident && _resident.key === modelKey && (_resident.model.toolBodyIdx >= 0) === !!tool) {
+      // (the tool body's presence is the model's STRUCTURE — a request with
+      // the other one asks for the bodies: an honest rebuild, P2b-1)
       model = _resident.model;
     } else {
       self.postMessage({ id, needBodies: true });
@@ -355,7 +379,11 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
     // A side run (the entry move, the start-dependent beginning — the whole
     // program on a dependent one) posts no partials (Codex R136 VP-I93): its
     // tables show what it finds, its result the rest.
+    // The run's own base tool (P2b-1): the request's live tool, fixed for
+    // this run — the resident model keeps no base for it
+    const baseTool = tool && model.toolBodyIdx >= 0 ? baseToolFor(tool) : undefined;
     run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot,
+                                                       ...(baseTool ? { baseTool } : {}),
                                                        ...(run.store ? { contacts: { store: run.store, origin: d.contacts!.origin } } : {}) });
     if (side) _side = run; else _run = run;
     // Park: the generator stays suspended at its current checkpoint; the
@@ -423,11 +451,12 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
       if (run.store) {
         // the last delta rides with the result — after the owner acknowledged
         // the one before it (one unacknowledged per path)
-        if (sendContacts(run, { result: slice.result })) _contactRuns.delete(id);
-        else run.final = { result: slice.result };
+        const result = { ...slice.result, modelBuilds: _modelBuilds };
+        if (sendContacts(run, { result })) _contactRuns.delete(id);
+        else run.final = { result };
         return;
       }
-      self.postMessage({ id, result: slice.result });
+      self.postMessage({ id, result: { ...slice.result, modelBuilds: _modelBuilds } });
     };
     run.pump = pump;
     pump();
