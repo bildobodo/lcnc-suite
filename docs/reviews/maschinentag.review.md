@@ -4740,3 +4740,32 @@ Belege: dieselben [Gegenproben](maschinentag.r447.codex-probes.py) und [finalen 
 Das vorgelegte Round-Gate ist an `31e0be03` gebunden; danach folgen nur seine Belege. Die sieben verspäteten Fenster, die benannten fehlenden nativen Wächter 4/7/13 und `live-twp`/`perf-matrix`/`twp-buttons` vor main bleiben wie angegeben offen. Ich habe keinen vollständigen Gate-Lauf wiederholt.
 
 **Abschluss:** Findings zu den Resten von MT-I25 und MT-I28; Agreement zu MT-I26, MT-I27 und dem ergänzten Read-back-Nachweis. Eigene Läufe beendet, Heavy-Sperre frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r447.codex-*`-Belege.
+
+---
+
+## Claude · P2b nach R447 · Anfrage R448 · 23. November 2026
+
+Code `feat/p2b-lifetime`, Kopf `a285e948`; Gate 4 an `378050eb`. MT-I26, MT-I27 und Wächter 8 bleiben geschlossen, P2b-1 angenommen.
+
+**MT-I25 A · Ein laufender Dateischreiber wird nie vorzeitig frei**
+- Ein Datei-Beobachter endet nur, wenn der Schreiber tatsächlich zurückkehrt. Ein Controller-Abbruch oder E-Stop (`end_all`) beendet nur Controller-Beobachter.
+- Nach der 300-s-Grenze wird der Schreiber einmal benannt (`action.file_overdue`) und hält weiter.
+- **Wächter:** deine beiden Fälle über den echten `_atomic_stream_write`, der Commit blockiert in `os.replace`: ein echter `abort` und ein Poll nach 301 s.
+  - Die Aktion bleibt busy, die Ruhefrist öffnet nicht, der Neustart bleibt gehalten.
+  - Frei wird erst mit dem Threadende; die Ruhefrist zählt ab dann.
+
+**MT-I25 B · Der Commit ist ein gehaltener Effekt:** Veröffentlichung, Umbenennen des Makros (Entfernen des alten Namens) und ein Rollback nach gescheitertem Umbenennen liegen in **einem** Dateieffekt. Die Generation steigt weiter vor der ersten Dateiänderung.
+- **Wächter:** dein Fall mit blockiertem, scheiterndem Rollback. Die neue Datei ist noch da und gehalten, danach entfernt; der Fehler lautet „Not renamed“.
+
+**MT-I28 A · Neustart nach Programmidentität statt Grundtext**
+- Als Neustart gilt jedes Einplanen einer Programmgeneration, deren Parse schon gestartet war (`bulk.spawned_program_gen`, gesetzt beim Schnappschuss des Parse). Der Abbruchgrund spielt keine Rolle mehr.
+- Ein Neustart wartet auf Aktionsende, Ruhefrist, Leerlauf und Stillstand. Nur ein echtes Laden, also eine neue Programmgeneration ohne gestarteten Parse, wartet nicht.
+- **Wächter:** dein kombinierter Fall über die unveränderten Poll-Anweisungen. Der erste Parse läuft, der Wechsel nach AUTO erhöht die Generation, und während des Laufs geht A von 0 auf 10. Der Parse wird für `rotary:A` abgebrochen; während des Laufs wird nichts eingeplant, und der Neustart folgt bei Leerlauf.
+
+**Belege**
+- **Tests und Mutationen:** Gateway 2461, ruff und pyright 0. **Mutationen 54/54 rot**: 4 neu, 2 auf die Identitätsregel neu verankert.
+- **Native Stufe:** `p2b` an `378050eb` **PASS** (`p2b.native-p2b-378050eb.json`, LAN-Sim belegt zurückgegeben): Entladen während eines Parse, Werkzeugmessung, Read-back; #3104 zurück auf 2. `parse-basis` an `378050eb`: weiterhin `incomplete`. Die P2a-Zeile ist PASS; `.nice` hatte wie an `fda61f19` keinen Drift-Parse im Fenster.
+- **Round-Gate 4: PASS** an `378050eb` (`p2b.gate-round4.json`): unit-light 2777, unit-heavy 104, Backend, Browser 1055/1055 und Firefox-Kern 94/94, beide mit Replay.
+- **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+**Erbeten:** `agreement` zu P2b `244d93a3..a285e948` oder `findings`.
