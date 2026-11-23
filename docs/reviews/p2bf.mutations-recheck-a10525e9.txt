@@ -1,0 +1,14 @@
+Re-run at a10525e9 (Fable's merge check): the 12 original mutations whose files changed after their run at 250e6ef2 (bulk_pipeline.py, ws/bulkData.ts, GcodePanel.vue)
+{"mutation": "the_start_check_by_path", "red": true, "at_rule": true}
+{"mutation": "no_begin_admission", "red": true, "at_rule": true}
+{"mutation": "the_admission_after_the_basis", "red": true, "at_rule": true}
+{"mutation": "the_refresh_gap_again", "red": true, "at_rule": true}
+{"mutation": "the_gate_open", "red": true, "at_rule": true}
+{"mutation": "null_matches_null", "red": true, "at_rule": true}
+{"mutation": "text_without_its_proof", "red": true, "at_rule": true}
+{"mutation": "hidden_is_a_load_in_flight", "red": true, "at_rule": true}
+{"mutation": "a_late_text_of_the_old_load", "red": true, "at_rule": true}
+{"mutation": "the_lines_bound_by_identity_only", "red": true, "at_rule": true}
+{"mutation": "a_409_leaves_loading", "red": true, "at_rule": true}
+{"mutation": "the_conflict_by_path", "red": true, "at_rule": true}
+{"total": 12, "red": 12, "red_at_rule": 12}
