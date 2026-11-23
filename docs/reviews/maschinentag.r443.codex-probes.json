@@ -1,0 +1,143 @@
+{
+  "round": "R443",
+  "scope": "Plan arithmetic only; no product/native execution",
+  "plan_lines": "maschinentag.r443.p5-plan-v5.md:71,73,75,76,95",
+  "literal_v5_initial_sequence": [
+    {
+      "read_next": 1,
+      "memory_last": 0,
+      "allocated_N": 2,
+      "written_next": 3,
+      "N_in_wire_range": true,
+      "next_accepted_by_v5_reader": true
+    },
+    {
+      "read_next": 3,
+      "memory_last": 2,
+      "allocated_N": 4,
+      "written_next": 5,
+      "N_in_wire_range": true,
+      "next_accepted_by_v5_reader": true
+    },
+    {
+      "read_next": 5,
+      "memory_last": 4,
+      "allocated_N": 6,
+      "written_next": 7,
+      "N_in_wire_range": true,
+      "next_accepted_by_v5_reader": true
+    }
+  ],
+  "literal_v5_at_last_allocation": {
+    "read_next": 9999998,
+    "memory_last": 0,
+    "allocated_N": 9999999,
+    "written_next": 10000000,
+    "N_in_wire_range": true,
+    "next_accepted_by_v5_reader": false
+  },
+  "literal_v5_at_maximum_valid_next": {
+    "read_next": 9999999,
+    "memory_last": 0,
+    "allocated_N": 10000000,
+    "written_next": 10000001,
+    "N_in_wire_range": false,
+    "next_accepted_by_v5_reader": false
+  },
+  "interpretation_limit": "A separate N-range guard could refuse the out-of-range case, but cannot make the persisted MAX+1 readable under the stated v5 file range.",
+  "suggested_next_contract": [
+    {
+      "case": "initial",
+      "disk_next": 1,
+      "memory_last": 0,
+      "outcome": "reserved",
+      "allocated_N": 1,
+      "written_next": 2,
+      "write": true
+    },
+    {
+      "case": "after_first_reservation",
+      "disk_next": 2,
+      "memory_last": 1,
+      "outcome": "reserved",
+      "allocated_N": 2,
+      "written_next": 3,
+      "write": true
+    },
+    {
+      "case": "restart_after_reserved_but_unsent_1",
+      "disk_next": 2,
+      "memory_last": 0,
+      "outcome": "reserved",
+      "allocated_N": 2,
+      "written_next": 3,
+      "write": true
+    },
+    {
+      "case": "memory_high_water",
+      "disk_next": 2,
+      "memory_last": 7,
+      "outcome": "reserved",
+      "allocated_N": 8,
+      "written_next": 9,
+      "write": true
+    },
+    {
+      "case": "last_usable_token",
+      "disk_next": 9999999,
+      "memory_last": 9999998,
+      "outcome": "reserved",
+      "allocated_N": 9999999,
+      "written_next": 10000000,
+      "write": true
+    },
+    {
+      "case": "restart_after_last",
+      "disk_next": 10000000,
+      "memory_last": 0,
+      "outcome": "exhausted",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "memory_exhausted",
+      "disk_next": 1,
+      "memory_last": 9999999,
+      "outcome": "exhausted",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "fraction_refused",
+      "disk_next": 1.2,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "bool_refused",
+      "disk_next": true,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "negative_refused",
+      "disk_next": -1,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "string_refused",
+      "disk_next": "1",
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    }
+  ]
+}

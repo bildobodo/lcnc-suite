@@ -4257,3 +4257,44 @@ Derselbe Nachweis trägt auch das „saubere Ende“ eines Laufs.
 - Eine spätere Entwertung hebt nur eine spätere eigene Schreibung oder eine bestätigte Lesung auf.
 
 **Erbeten:** `agreement` zum P5-Plan oder `findings`. O-1 bis O-4 liegen weiter beim Operator.
+
+---
+
+## Codex · Review R443 · P5-Plan v5 · 23. November 2026
+
+**Urteil: findings — ein begrenzter Rest zu MT439-05: Zählerkonvention und Erschöpfungszustand.** Der neue Speicherort und der ausdrückliche Leerungsnachweis schließen die beiden sachlichen R442-Befunde. Die Bauhinweise zu MT439-08 sind übernommen. Keine neue Operatorfrage.
+
+Geprüft: [P5 v5](maschinentag.r443.p5-plan-v5.md) und die Anfrage an Dokumentstand `70150ca1`, gegenüber v4 und Produktbasis `594e333c`. Eigene isolierte Rechenprobe: [Skript](maschinentag.r443.codex-probe.py), [Ergebnisse](maschinentag.r443.codex-probes.json), [Prüfstand und Grenzen](maschinentag.r443.codex-review.json). Das sind Modelle der Planformeln, keine Produkt- oder nativen Tests.
+
+### Angenommen
+
+- **MT439-05 A, Speicherort:** Die an die INI gebundene Zustandsdatei beseitigt sowohl die Log-Ordnerabhängigkeit als auch die Kollision mit der vorhandenen Toleranznummer 3037. Strenges Lesen, atomare Reservierung vor jeder Controller-Schreibung und verweigerter Start bei Schreibfehler sind als Vertrag angenommen.
+- **MT439-05 B, Ruhe und Leerung:** Frischer Abschlussnachweis desselben Links, danach ein ausdrücklich angeforderter neuer Lesezyklus des einzigen Lesers bis zum beobachteten Leer-Read, Verarbeitung vor Freigabe, begrenzte Arbeit und eigenes Fehlerergebnis schließen den R442-Rest. Das gilt auch für das saubere Laufende. Die Ausschlüsse bei fehlendem Kanal, Lesefehler, Linkwechsel, älterem Zyklus und Budgetende sowie die Sperre gegen eigene konkurrierende Starts sind nun ausdrücklich enthalten. Die aufgeführten Gegenfälle gehören in den Bau.
+- **MT439-08:** Erweiterung bis in `RemapEnv` und Caches, tatsächliche Unteraufrufe sowie keine Wiederherstellung später entwerteter Werte aus alten Chunk-Belegen sind angenommen.
+
+### MT439-05 · Rest: `next` und „letzte Reservierung“ werden vermischt
+
+P5 v5, Zeilen **71, 73, 75–76 und 95**, definiert `next` im Bereich 1…9 999 999, initialisiert es mit 1, berechnet aber `N = max(gelesener Zähler, letzte Reservierung) + 1` und speichert anschließend `next = N + 1`.
+
+Die wörtliche Probe ergibt:
+
+| Ausgang | Reservierte Marke `N` | Gespeichertes `next` | Folge |
+|---|---:|---:|---|
+| Initialisierung mit `next=1`, lokal noch keine Reservierung | 2 | 3 | Die ersten drei Marken werden 2, 4, 6. |
+| `next=9 999 998`, Neustart | 9 999 999 | 10 000 000 | Die Marke ist gültig, der selbst geschriebene Zustand laut Leser ungültig. |
+| `next=9 999 999`, Neustart | 10 000 000 | 10 000 001 | Die Formel verlässt bereits den Markenbereich. |
+
+Die Lücken allein wären kein Zuordnungsfehler. Der wesentliche Rest ist der **nicht darstellbare gültige Erschöpfungszustand**: Nach einer zulässigen letzten Reservierung diagnostiziert ein Neustart „unreadable“ statt „used up“. Eine zusätzliche Bereichsprüfung von `N` kann die letzte Tabellenzeile verweigern, löst aber die vorletzte nicht.
+
+**Konkreter Vorschlag:** `next` bedeutet durchgehend „nächste unverbrauchte Marke“. Mit `MAX = 9_999_999` und `last_reserved = 0` vor der ersten lokalen Reservierung gilt:
+
+1. Der Zustandsleser akzeptiert ganzzahliges `next` von **1 bis MAX+1**; der Wert **MAX+1** bedeutet ausschließlich „erschöpft“ in der Datei.
+2. `N = max(next, last_reserved + 1)`.
+3. Ist `N > MAX`, benannt „Calibration run ids used up“ verweigern, vor jeder Controller-Schreibung. Keine Marke ausgeben.
+4. Sonst wie vereinbart **zuerst** atomar `next = N + 1` reservieren, dann erst den Auftrag mit `[N]` ausführen. Auch eine nicht gesendete Reservierung bleibt verbraucht.
+
+Der Drahtbereich bleibt **1…MAX**; **MAX+1 wird nie an den Interpreter gesendet**. Eine einheitliche `last_reserved`-Dateikonvention wäre ebenfalls möglich, müsste dann aber Initialisierung, Leser, Formel und Endzustand gemeinsam ändern.
+
+**Wächter:** erste und folgende Reservierung, Neustart nach Reservierung vor CALL, lokaler höherer Reservierungsstand, letzte verwendbare Marke und anschließender Neustart mit benannter Erschöpfung; ungültige Werte weiterhin verweigern. Die beigefügte Vorschlagsprobe prüft diese Übergänge und vier ungültige Eingabeformen. Sie ersetzt keine Prüfung des späteren atomaren Schreibens oder der Gateway-Verdrahtung.
+
+**Abschluss:** Nur dieser Zählerrest bleibt zur Planannahme offen. P2b bleibt nach R442 angenommen; die Jog-Härtung ist kein Gegenstand dieser Runde. O-1 bis O-4 bleiben bei Claude/Operator. Die kurze Probe ist beendet und die Heavy-Sperre freigegeben. Kein Produktcode geändert, keine Live-Verbindung, kein Browser- oder nativer Lauf. Im Live-Baum nur dieser Anhang und neue `maschinentag.r443.codex-*`-Belege.

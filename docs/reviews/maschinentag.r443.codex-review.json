@@ -1,0 +1,45 @@
+{
+  "round": "R443",
+  "date": "2026-11-23",
+  "doc_head": "70150ca10ed11dc68b0379bc85668cd2d297ec32",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "parts": {
+    "P5": "findings: only MT439-05 counter convention and persisted exhaustion state; storage, drain proof and MT439-08 construction notes accepted"
+  },
+  "documents": {
+    "maschinentag.r443.p5-plan-v5.md": "2830d99aab89788144e7753b1d3579c45bcf8253a090fbb5b18242820028d3a7"
+  },
+  "source_hashes": {
+    "lcnc-gateway/gateway.py": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+    "lcnc-gateway/gateway_util.py": "f64af2807c71cc1aad855d3e2d8c8e99b7992fa8afae2865480ced5e91a2c818",
+    "lcnc-gateway/status_runtime.py": "728b62135f0ef7699122ca80d20ff6ee52da36f996e3b0f194bed6d093e0f5cc",
+    "subroutines/probe_basic/tool_setter_param_update.ngc": "a13c26e73fe793ff0bc51771fb9df19068c1bfaad89a015cbb8a11d7be028458"
+  },
+  "review_before_sha256": "2c2578240f2f491079f5ae0167fc1858fdd73de3c0c63e0f543d7314ddd93cca",
+  "append_sha256": "7a4b7a32841dd308961d167c29fbbd19ff68ed50df1aa4a20ac73f2d544cdaa0",
+  "evidence": {
+    "maschinentag.r443.codex-probe.py": "38ce0201f676ee408515b685beb36ed88dcde9cd27bf75f6ff6b85ba29772735",
+    "maschinentag.r443.codex-probes.json": "c927cd67e516c19670ce1f980f160401e57504f24bfdab79a89be58227ff7f59"
+  },
+  "findings": [
+    {
+      "id": "MT439-05 rest",
+      "topic": "next versus last-reserved convention; last valid token writes a state the stated reader rejects"
+    }
+  ],
+  "checks": {
+    "command": "python3 -I -B /tmp/r443/probe.py",
+    "lock": "Official scripts/test_support/heavy_lock.py, codex-r443-plan-probes; completed and released",
+    "exit_code": 0,
+    "literal_v5_cases": 5,
+    "proposed_contract_cases": 11,
+    "assertions": "All passed; counterexamples to plan arithmetic, not a product gate",
+    "limits": [
+      "No implementation of R443 exists or was exercised",
+      "Pure arithmetic models, no product function imports",
+      "No native interpreter, LinuxCNC connection, browser or rendering acceptance",
+      "No product edits or subagents"
+    ],
+    "operator_questions": []
+  }
+}
