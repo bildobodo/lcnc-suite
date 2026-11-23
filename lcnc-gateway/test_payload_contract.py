@@ -52,7 +52,7 @@ VALID = {
     "set_optional_stop": {"value": True},
     "set_block_delete": {"value": True},
     "set_mode": {"mode": 1},
-    "auto_run": {"line": 0, "file": "/p.ngc", "version": 3, "source": "a" * 64},
+    "auto_run": {"line": 0, "file": "/p.ngc", "version": 3, "source": "a" * 64, "program_id": "e.1"},
     "mdi": {"text": "G0 X1"},
     "run_macro": {"name": "m", "revision": "0" * 64},
     "set_wcs": {"target": "G54", "x": 1.0},
@@ -706,7 +706,7 @@ class TestTheMdiLine(_Dispatch):
         for msg in ({"cmd": "set_wcs", "target": "G54", "x": 1e300},
                     {"cmd": "touchoff", "axes": {"X": 1e300}},
                     {"cmd": "mdi", "text": "G0 X1", "vars": {"3014": 1e300}},
-                    {"cmd": "auto_run", "line": 5, "file": "/p.ngc", "version": 1, "source": "a" * 64,
+                    {"cmd": "auto_run", "line": 5, "file": "/p.ngc", "version": 1, "source": "a" * 64, "program_id": "e.1",
                      "entry_x": 1e300, "entry_y": 0.0}):
             with self.subTest(cmd=msg["cmd"]):
                 self.cmd.calls.clear()

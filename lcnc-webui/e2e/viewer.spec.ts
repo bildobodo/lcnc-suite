@@ -3,6 +3,7 @@ import { ctl, MOCK } from "./ctl";
 import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { encode } from "@msgpack/msgpack";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 // Viewer GPU-resource leak probe (A2). window.__viewerLeakProbe reports live
 // THREE.WebGLRenderer.info counts. A program's feed/rapid/highlight geometry is
@@ -461,8 +462,8 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   const payload = encode({ file: "/palette.ngc", feed, feed_lines, feed_outside: new Uint8Array(outside),
     rapid: [[0, 0, 20], [0, 0, 1]], rapid_outside: new Uint8Array(2) });
   // /preview? only — a bare /preview/ pattern also catches previewWorker-*.js.
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(payload) }));
-  await page.route("**/gcode?*", r => r.fulfill({ contentType: "text/plain", body: Array.from({ length: 40 }, (_, i) => `G1 X${i}`).join("\n") }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: Buffer.from(payload) }));
+  await routeText(page, Array.from({ length: 40 }, (_, i) => `G1 X${i}`).join("\n"));
   await page.goto(MOCK);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
   const OLD = { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" };
@@ -474,7 +475,7 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   // No stored viewer section: Automatic.
   await send("settings_init", "light");
   await ctl({ op: "status_delta", data: { active_file: "/palette.ngc" } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 901, file: "/palette.ngc" } });
+  await publishFile("/palette.ngc", 901);
   await expect.poll(async () => (await drawn()).drawn.limit ?? "no overlay").not.toBe("no overlay");
   const light = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision"), rapid: await token("--viewer-rapid") };
   let p = await drawn();

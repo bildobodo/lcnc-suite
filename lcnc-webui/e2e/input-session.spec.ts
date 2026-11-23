@@ -2,6 +2,7 @@ import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore, tapMore } from "./more";
 import { measureLayout, assertLayout, measureFrame, frameChanges } from "./layout-audit";
+import { publishFile, routeText } from "./programFixture";
 
 // WP8 / UI-15 — ONE input helper for every target (MDI line, editor, search
 // and description fields, number fields), owned by one target at a time,
@@ -542,9 +543,9 @@ test("field contract: every text field is a technical field — no autofill, aut
 });
 
 test("editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session", async ({ page }) => {
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nM2\n" }));
+  await routeText(page, "G0 X0\nM2\n");
   await open(page);
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 7, file: "/A.ngc" } });
+  await publishFile("/A.ngc", 7);
   await expect(page.locator(".codeLine").first()).toBeVisible();
   await clickMore(page.locator(".ctrlRow"), "Edit");
   const tk = page.locator(".tkStrip");
@@ -831,9 +832,9 @@ test.describe("portrait, touch", () => {
     // clipped by its overflow: hidden (a viewport rectangle alone passes).
     // Portrait edit mode now folds the file ops, the run controls and the
     // progress row while nothing runs; the readout is judged by HIT-TEST.
-    await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nG1 X10 F100\nM2\n" }));
+    await routeText(page, "G0 X0\nG1 X10 F100\nM2\n");
     await open(page, { width: 900, height: 1200 });
-    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 7, file: "/A.ngc" } });
+    await publishFile("/A.ngc", 7);
     await expect(page.locator(".codeLine").first()).toBeVisible();
     // Touch sizing is set by the first touch — before the first Edit tap.
     await page.getByRole("tab", { name: "Program", exact: true }).tap();

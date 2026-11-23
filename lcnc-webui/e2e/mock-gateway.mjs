@@ -191,7 +191,12 @@ const server = createServer(async (req, res) => {
   }
   if (path === "/preview") {
     res.e2eServed = "handler";
-    res.writeHead(200, { "content-type": "application/octet-stream" });
+    // the gateway's answer names its pair (P2b-F1-1 V4): the mock serves the
+    // asked one — its publication's identity was fixed when the spec's load
+    // announced it (programFixture.ts)
+    const q = new URL(req.url, "http://mock").searchParams;
+    res.writeHead(200, { "content-type": "application/octet-stream",
+                         "x-preview-version": q.get("v") ?? "", "x-preview-program": q.get("p") ?? "" });
     res.end(Buffer.from(PREVIEW));
     return;
   }
@@ -585,9 +590,16 @@ ctlWss.on("connection", (ws) => {
       broadcast(initFrame());
     } else if (m.op === "loadGcode") {
       // viewer_gcode_ready → frontend fetches GET /preview?v=N → applyGcode
-      // builds fresh feed/rapid/highlight geometry.
+      // builds fresh feed/rapid/highlight geometry. A LOAD of /leak.ngc
+      // (P2b-F1): its identity fixed here, the status names it, the
+      // announcement carries it and its text's source (`source`, or none).
       _gcodeVer++;
-      broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc" });
+      const programId = typeof m.programId === "string" ? m.programId : `mock.leak.${_gcodeVer}`;
+      Object.assign(state.data, { active_file: "/leak.ngc", program_id: programId });
+      broadcast(withEnvelope({ type: "status_delta", armed: state.armed,
+                               data: { active_file: "/leak.ngc", program_id: programId } }));
+      broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc", program_id: programId,
+                  origin: { source: typeof m.source === "string" ? m.source : null } });
     } else if (m.op === "raw") {
       let frame = m.frame;
       if (frame?.type === "settings_init" || frame?.type === "settings_changed") {

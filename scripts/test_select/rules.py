@@ -163,7 +163,7 @@ VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
-           "sim-panel.viewer", "strip-actions")
+           "sim-panel.viewer", "strip-actions", "program-identity")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read", "tool-preview", "tool-edit")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
@@ -229,7 +229,8 @@ RULES: tuple[Rule, ...] = (
              "dragScroll.ts", "clientDiag.ts", "wakeLock.ts", "StatsDonut.vue"),
          "central: every surface, every dialog or every connection depends on it",
          browser=FULL, firefox=True),
-    Rule(src("macroFiles.ts", "runBasis.ts", "viewerPerf.ts", "stallWindow.ts", "viewer/eventIndex.ts", "viewer/driftWait.ts",
+    Rule(src("macroFiles.ts", "runBasis.ts", "previewWait.ts", "viewerPerf.ts", "stallWindow.ts", "viewer/eventIndex.ts",
+             "viewer/driftWait.ts",
              "viewer/kinematics.ts", "viewer/kins.ts", "viewer/partFrame.ts",
              "viewer/tloEvents.ts", "viewer/wcsEpochs.ts"),
          "the connection's status and bulk path (lcncWs, ws/statusStore, ws/bulkData) "
@@ -241,7 +242,7 @@ RULES: tuple[Rule, ...] = (
           W + "playwright.select.config.ts", W + "playwright.gate.config.ts", W + "e2e/mock-gateway.mjs",
           W + "e2e/ctl.ts", W + "e2e/layout-fixtures.ts", W + "e2e/layout-audit.ts",
           W + "e2e/test.ts", W + "e2e/mockFixture.ts", W + "e2e/mockSlot.mjs", W + "e2e/mockSlot.d.mts",
-          W + "e2e/unloadReceipts.ts"),
+          W + "e2e/unloadReceipts.ts", W + "e2e/programFixture.ts"),
          "build, test configuration or the shared mock and fixtures",
          browser=FULL, firefox=True),
     Rule((W + "playwright.firefox.config.ts", W + "e2e/firefox.json", W + "e2e/firefox-core.json",

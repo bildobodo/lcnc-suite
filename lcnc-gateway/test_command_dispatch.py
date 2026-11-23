@@ -613,7 +613,7 @@ class TestHandlerExecution(unittest.TestCase):
                 self.assertTrue(r["ok"], r)
                 self.assertTrue(gateway._skip_flag_unknown, "the next start clears it first")
 
-    def _auto_run(self, published=None, published_version=7, pending_load=None, **over):
+    def _auto_run(self, published=None, published_version=7, pending_load=None, published_program="active", **over):
         """auto_run as the dialog sends it: the path, the published version
         and the fingerprint of the text it showed — by default the text on
         disk, published as that version (`published` overrides).
@@ -626,7 +626,10 @@ class TestHandlerExecution(unittest.TestCase):
         if pending_load:
             program.request_load(pending_load, _time.monotonic())
         source = gateway.program_source(self.prog)
-        msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "source": source}
+        # the load the dialog showed (P2b-F1-2): the active identity, published as it
+        active = gateway._active_program_id() or f"{gateway._TRIP_EPOCH}.0"
+        msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "source": source,
+               "program_id": active}
         msg.update(over)
         spawned = []
 
@@ -638,7 +641,9 @@ class TestHandlerExecution(unittest.TestCase):
                 unittest.mock.patch.object(gateway, "_rfl_sequence", _fake_sequence), \
                 unittest.mock.patch.object(gateway._bulk, "reparse_pending", False), \
                 unittest.mock.patch.object(gateway._bulk, "reparse_pending_reason", None), \
-                unittest.mock.patch.object(gateway._bulk, "refresh_running", False):
+                unittest.mock.patch.object(gateway._bulk, "refresh_running", False), \
+                unittest.mock.patch.object(gateway._bulk, "published_program",
+                                           active if published_program == "active" else published_program):
             r = self._send(msg)
             self.reparse_requested = (gateway._bulk.reparse_pending, gateway._bulk.reparse_pending_reason)
         return r, spawned
@@ -1015,6 +1020,11 @@ class TestHandlerExecution(unittest.TestCase):
         for over, why in (({"file": self.prog + ".b"}, "another program"),
                           ({"version": 8}, "another text revision"),
                           ({"source": "0" * 64}, "another text"),
+                          # the same path, another LOAD (P2b-F1-2): the dialog's
+                          # load is not the active one, or the publication is an older load's
+                          ({"program_id": "0000.99"}, "another load"),
+                          ({"published_program": "0000.98"}, "an older load's publication"),
+                          ({"program_id": None}, "no identity"),
                           ({"file": None}, "no identity"),
                           ({"version": None}, "no identity"),
                           ({"source": None}, "no identity")):
@@ -1394,7 +1404,7 @@ class TestHandlerExecution(unittest.TestCase):
         async def scenario():
             r = await gateway.handle_command(
                 {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "safe_z": True,
-                 "source": gateway.program_source(self.prog)}, True)
+                 "source": gateway.program_source(self.prog), "program_id": gateway._active_program_id()}, True)
             gateway._preempt_inflight(by="abort", from_client=2)   # no await in between
             for _ in range(20):
                 await asyncio.sleep(0)
@@ -1405,7 +1415,8 @@ class TestHandlerExecution(unittest.TestCase):
                 load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True, self.key)
             return r, load
         with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
-                unittest.mock.patch.object(gateway._bulk, "published_source", gateway.program_source(self.prog)):
+                unittest.mock.patch.object(gateway._bulk, "published_source", gateway.program_source(self.prog)), \
+                unittest.mock.patch.object(gateway._bulk, "published_program", gateway._active_program_id()):
             r, load = _run(scenario())
         self.assertTrue(r["ok"], r)
         self.assertEqual((gateway._rfl_status or {}).get("phase"), "aborted", "the end is reported")

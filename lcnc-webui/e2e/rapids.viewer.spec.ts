@@ -4,6 +4,7 @@ import { withLimitRuns } from "./limitRuns";
 import { ctl } from "./ctl";
 import { simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, settleLayout, VIEWPORTS } from "./layout-fixtures";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 // The Rapids layer and a finding on a hidden rapid (fixed viewer palette P3,
 // Codex R29 VP29-04 / R30): the layer hides the rapid LINES, never the limit
@@ -20,12 +21,11 @@ const PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/rapids.ngc", preview_
 
 test("hidden rapids keep their limit finding; a jump to it shows them for the finding and says so", async ({ page, context }) => {
   test.setTimeout(90_000);
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: 16 }, (_, i) => i === 0 ? "(rapids)" : `G1 X${i} F100`).join("\n") }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW }));
+  await routeText(context, Array.from({ length: 16 }, (_, i) => i === 0 ? "(rapids)" : `G1 X${i} F100`).join("\n"));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/rapids.ngc" } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 970, file: "/rapids.ngc" } });
+  await publishFile("/rapids.ngc", 970);
   await simShow(page, "limit");
   const next = simStepBtn(page, "Next limit violation");
   await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });
@@ -81,13 +81,12 @@ test("hidden rapids keep their limit finding; a jump to it shows them for the fi
 for (const form of ["hud-off", "folded"] as const) {
   test(`a finding's view on hidden rapids is told — ${form}`, async ({ page, context }) => {
     test.setTimeout(90_000);
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-      body: Array.from({ length: 16 }, (_, i) => i === 0 ? "(rapids)" : `G1 X${i} F100`).join("\n") }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW }));
+    await routeText(context, Array.from({ length: 16 }, (_, i) => i === 0 ? "(rapids)" : `G1 X${i} F100`).join("\n"));
     await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === (form === "folded" ? "touch-portrait" : "desktop"))!);
     await ctl({ op: "status_delta", data: { active_file: "/rapids.ngc", is_enabled: false, enabled: false,
       ...(form === "folded" ? { eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } : {}) } });
-    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: form === "folded" ? 972 : 971, file: "/rapids.ngc" } });
+    await publishFile("/rapids.ngc", form === "folded" ? 972 : 971);
     await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
     if (form === "folded") await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
     await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false, ...(form === "hud-off" ? { hud: false } : {}) } } } } });
@@ -125,12 +124,11 @@ const SECTION = Buffer.from(encode(withLimitRuns({ file: "/section.ngc", preview
 
 test("a finding shows its own move of a hidden layer — not the layer", async ({ page, context }) => {
   test.setTimeout(90_000);
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: SECTION }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: 16 }, (_, i) => i === 0 ? "(section)" : `G1 X${i} F100`).join("\n") }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: SECTION }));
+  await routeText(context, Array.from({ length: 16 }, (_, i) => i === 0 ? "(section)" : `G1 X${i} F100`).join("\n"));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/section.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 973, file: "/section.ngc" } });
+  await publishFile("/section.ngc", 973);
   await simShow(page, "limit");
   const next = simStepBtn(page, "Next limit violation");
   await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });

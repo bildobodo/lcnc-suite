@@ -2,6 +2,7 @@ import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
 import { Folder, serve } from "./macroFolder";
+import { publishFile, routeText } from "./programFixture";
 
 // WP0 / UI-03 — global keyboard shortcuts behind dialogs and fields.
 //
@@ -233,7 +234,7 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   // guard fell with the session, and the next Space was Cycle Start (6/6).
   // The X hands focus back through the guarded return now, and the MDI
   // line sends on keydown, so the Enter that activated the X never sends.
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nM2\n" }));
+  await routeText(page, "G0 X0\nM2\n");
   await openReady(page);
   await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const mdi = page.locator(".mdiInput");
@@ -276,7 +277,7 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   await expect(overlay).toHaveCount(0);
   // The editor: its X hands focus to the CodeMirror content.
   await page.getByRole("tab", { name: "Program", exact: true }).click();
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1, file: "/A.ngc" } });
+  await publishFile("/A.ngc", 1);
   await expect(page.locator(".codeLine").first()).toBeVisible();
   await clickMore(page.locator(".ctrlRow"), "Edit");
   const content = page.locator(".cm-content");
@@ -628,9 +629,9 @@ test("documented remainder: Tab leaves the dialog (no focus trap in this wave)",
 });
 
 test("editor open: Space never starts the program", async ({ page }) => {
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nG1 X10 F100\nM2\n" }));
+  await routeText(page, "G0 X0\nG1 X10 F100\nM2\n");
   await openReady(page);
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1, file: "/A.ngc" } });
+  await publishFile("/A.ngc", 1);
   await expect(page.locator(".codeLine").first()).toBeVisible();
   await clickMore(page.locator(".ctrlRow"), "Edit");
   await expect(page.locator(".cm-content")).toBeVisible();

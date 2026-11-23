@@ -15,6 +15,7 @@ import { test, expect, type Page, type Route } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
 import { GATE_NAMES, type Permissions } from "../src/permissions";
+import { fulfillText, sourceOf } from "./programFixture";
 
 function perms(over: Partial<Permissions> = {}): Permissions {
   const p = Object.fromEntries(GATE_NAMES.map((k) => [k, true])) as Permissions;
@@ -176,7 +177,8 @@ test("Start by the shortcut waits for the program text like the button (one admi
   await page.route("**/gcode?*", (route) => { held = route; });
   await open(page);
   await machine(page, { active_file: "/leak.ngc" }, {});
-  await ctl({ op: "loadGcode" });   // viewer_gcode_ready → the text is fetched (held here)
+  const TEXT_B = "(B)\nG0 X0\nM2\n";
+  await ctl({ op: "loadGcode", source: sourceOf(TEXT_B) });   // a load + viewer_gcode_ready → the text is fetched (held here)
   await expect.poll(() => held !== null, "the program text is being fetched").toBe(true);
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   const start = page.locator('[data-control="start"]').first();
@@ -188,7 +190,7 @@ test("Start by the shortcut waits for the program text like the button (one admi
   await page.waitForTimeout(300);
   expect(await sentCmds(), "Space while loading starts nothing").not.toContain("cycle_start");
   // the text arrives: the button and the shortcut start (positive control)
-  await held!.fulfill({ contentType: "text/plain", body: "(B)\nG0 X0\nM2\n" });
+  await fulfillText(held!, { contentType: "text/plain", body: TEXT_B });
   await expect(start).toBeEnabled();
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   await expect.poll(async () => { await page.keyboard.press(" "); return sentCmds(); }).toContain("cycle_start");

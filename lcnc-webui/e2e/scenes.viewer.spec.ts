@@ -6,6 +6,7 @@ import { ctl, MOCK } from "./ctl";
 import { framesDrawn, topViewStands } from "./viewerSettle";
 import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
 import { writeFileSync } from "node:fs";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 // Design wave D8 (UI-K08, review round 6 UI-DI14): the viewer palette on a
 // machine model, a DENSE and a THIN path, a selected line, limit overflow
@@ -72,7 +73,7 @@ test("a half-mixed pixel reads as half the limit, not as the backplot", () => {
 
 async function loadProgram(page: Page, kind: "dense" | "thin", version: number) {
   await ctl({ op: "status_delta", data: { active_file: `/${kind}.ngc` } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: `/${kind}.ngc` } });
+  await publishFile(`/${kind}.ngc`, version);
   await expect(page.locator(".codeLine").nth(3)).toBeVisible();
 }
 
@@ -82,9 +83,8 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
   const programs = { dense: payload("dense"), thin: payload("thin") };
   let current: "dense" | "thin" = "dense";
   // /preview? only — a bare /preview/ pattern also catches previewWorker-*.js.
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: programs[current].body }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: programs[current].lines + 1 }, (_, i) => i === 0 ? `(${current})` : `G1 X${i} Y${i}`).join("\n") }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: programs[current].body }));
+  await routeText(context, Array.from({ length: programs[current].lines + 1 }, (_, i) => i === 0 ? `(${current})` : `G1 X${i} Y${i}`).join("\n"));
   const stl = (g: THREE.BufferGeometry) => Buffer.from(new STLExporter().parse(new THREE.Mesh(g), { binary: true }).buffer);
   await page.route("**/machine/base.stl", r => r.fulfill({ contentType: "application/octet-stream", body: stl(new THREE.BoxGeometry(500, 500, 60)) }));
   await page.route("**/machine/head.stl", r => r.fulfill({ contentType: "application/octet-stream",
@@ -230,9 +230,8 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
   for (const dpr of [1, 2]) {
     const context = await browser.newContext({ viewport: { width: 1200, height: 800 }, deviceScaleFactor: dpr });
     const page = await context.newPage();
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: program.body }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-      body: Array.from({ length: program.lines + 1 }, (_, i) => i === 0 ? "(ladder)" : `G1 X${i} Y${i}`).join("\n") }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: program.body }));
+    await routeText(context, Array.from({ length: program.lines + 1 }, (_, i) => i === 0 ? "(ladder)" : `G1 X${i} Y${i}`).join("\n"));
     const stl = (g: THREE.BufferGeometry) => Buffer.from(new STLExporter().parse(new THREE.Mesh(g), { binary: true }).buffer);
     await context.route("**/machine/base.stl", r => r.fulfill({ contentType: "application/octet-stream", body: stl(new THREE.BoxGeometry(500, 500, 60)) }));
     await context.route("**/machine/head.stl", r => r.fulfill({ contentType: "application/octet-stream",
@@ -259,7 +258,7 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
     } });
     await modelBuilt(page, ["base", "head"]);   // before the backplot's moves: they must reach the new scene
     await ctl({ op: "status_delta", data: { active_file: "/ladder.ngc" } });
-    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: version++, file: "/ladder.ngc" } });
+    await publishFile("/ladder.ngc", version++);
     await expect(page.locator(".codeLine").nth(3)).toBeVisible();
     // The backplot: the tool driven along Y at X 0, between the two lines.
     for (let i = 0; i <= 20; i++) {
@@ -757,9 +756,8 @@ test("the toolpath box's end marks stand off the background and the model in fou
   const program = { lines: corners.length + 3, body: Buffer.from(encode({ file: "/dense.ngc", preview_schema: 11, feed: corners,
     feed_lines: corners.map((_, i) => 3 + i), feed_outside: new Uint8Array(corners.map(c => (c[0]! > 200 ? 1 : 0))),
     rapid: [[0, 0, 60], [-150, -150, 60], [-150, -150, 5]], rapid_outside: new Uint8Array(3) })) };
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: program.body }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: program.lines + 1 }, (_, i) => i === 0 ? "(dense)" : `G1 X${i} Y${i}`).join("\n") }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: program.body }));
+  await routeText(context, Array.from({ length: program.lines + 1 }, (_, i) => i === 0 ? "(dense)" : `G1 X${i} Y${i}`).join("\n"));
   const stl = (g: THREE.BufferGeometry) => Buffer.from(new STLExporter().parse(new THREE.Mesh(g), { binary: true }).buffer);
   await page.route("**/machine/base.stl", r => r.fulfill({ contentType: "application/octet-stream", body: stl(new THREE.BoxGeometry(500, 500, 60)) }));
   await page.route("**/machine/head.stl", r => r.fulfill({ contentType: "application/octet-stream",
@@ -1082,15 +1080,15 @@ test("CSS-px objects keep their size in every drawn frame of a view animation (C
   const pts = [[-150, -150, -10], [150, -150, -10], [150, 150, 100], [-150, 150, 100]];
   const body = Buffer.from(encode({ file: "/tween.ngc", preview_schema: 11, feed: pts, feed_lines: [1, 2, 3, 4],
     feed_outside: new Uint8Array(4), rapid: [], rapid_outside: new Uint8Array(0) }));
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X-150 Y-150 Z-10\nG1 X150\nG1 Y150 Z100\nG1 X-150\nM2\n" }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body }));
+  await routeText(context, "G1 X-150 Y-150 Z-10\nG1 X150\nG1 Y150 Z100\nG1 X-150\nM2\n");
   await page.goto(MOCK);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: {
     toolsetter: { touchX: 100, touchY: 0, touchZ: -50, fastFeed: 2000, slowFeed: 200, traverseFeed: 6000, maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180 },
     viewer: { projection: "perspective", layers: { bounds: true, toolpathBounds: true, machine: false, hud: false, groundGrid: false, toolsetter: true } } } } });
   await ctl({ op: "status_delta", data: { active_file: "/tween.ngc" } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", file: "/tween.ngc", version: 671 } });
+  await publishFile("/tween.ngc", 671);
   await expect(page.locator(".codeLine").nth(2)).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getBoxTicks!()?.length)).toBe(24);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getToolsetter!()?.visible)).toBe(true);

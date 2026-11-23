@@ -12,6 +12,7 @@ import { encode } from "@msgpack/msgpack";
 import { withLimitRuns } from "./limitRuns";
 import { ctl, publishToolTable } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
+import { fulfillPreview, routeText, servedText, sourceOf } from "./programFixture";
 
 const G = [9, 800, -1, 170, 400, 210, 900, 940, 540, 490, 980, 640, -1, 970, 911, 80, -1];
 const M = [9, -1, 5, -1, 9, -1, 48, -1, 53, 0];
@@ -162,11 +163,11 @@ test("the Simulation tab's list filter and the bar's speed while the simulation 
     feed_lines: feed.map((_, i) => i + 3), feed_seq: feed.map((_, i) => i + 3),
     feed_tcum: new Uint8Array(new Float32Array(feed.map((_, i) => i * 10)).buffer),
     violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }], violations_total: 1 })));
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "(sim)\nG0 X0\nG1 X10 F100\nM2\n" }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview }));
+  await routeText(context, "(sim)\nG0 X0\nG1 X10 F100\nM2\n");
   await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
   await ctl({ op: "status_delta", data: { active_file: "/leak.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "loadGcode" });
+  await ctl({ op: "loadGcode", source: sourceOf(servedText() ?? "") });
   await expect(page.locator(".scrubBar")).toBeVisible();
   await page.getByRole("tab", { name: "Sim", exact: true }).click();
   await page.locator('.scrubBar select[name="scrubSpeed"]').selectOption("10");

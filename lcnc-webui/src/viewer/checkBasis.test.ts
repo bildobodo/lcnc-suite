@@ -16,7 +16,7 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
     const rb = parseRunBasis(WIRE.run_basis)!;
     expect(rb).toEqual({
       runId: 3, state: "sent", file: WIRE.run_basis.file, source: WIRE.run_basis.source, version: 12,
-      ctxDigest: WIRE.run_basis.ctx_digest, toolBasisRev: 4, verified: true, why: null,
+      programId: "a1b2c3d4.7", ctxDigest: WIRE.run_basis.ctx_digest, toolBasisRev: 4, verified: true, why: null,
       start: {
         g5xIndex: 1, g5xOffset: [10, 20, -30, 0, 0, 0, 0, 0, 0], g92Offset: [0, 0, 1.5, 0, 0, 0, 0, 0, 0],
         rotationXy: 0, wcsTable: WIRE.run_basis.start.wcs_table,
@@ -34,7 +34,7 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
 
   it("reads every field of the gateway's preview_origin", () => {
     expect(parsePreviewOrigin(WIRE.preview_origin)).toEqual({
-      version: 13, file: WIRE.preview_origin.file, source: WIRE.preview_origin.source,
+      version: 13, file: WIRE.preview_origin.file, programId: "a1b2c3d4.7", source: WIRE.preview_origin.source,
       reason: "midrun:table_mtime", pinned: true,
       forRun: { runId: 3, ctxDigest: WIRE.preview_origin.for_run.ctx_digest, toolBasisRev: 4 },
       table: { mtime: 1760000000.5, rows: "a1b2c3d4e5f60718" },
@@ -144,7 +144,8 @@ describe("the check basis (plan 1c)", () => {
 describe("admitting a check during the run (plan „Prüfung im Lauf“ 3a)", () => {
   const ok = (): RunCheckInputs => ({
     origin: parsePreviewOrigin(WIRE.preview_origin), run: parseRunBasis(WIRE.run_basis),
-    shownVersion: WIRE.preview_origin.version, shownFile: WIRE.run_basis.file, running: true,
+    shownVersion: WIRE.preview_origin.version, shownFile: WIRE.run_basis.file, shownProgramId: "a1b2c3d4.7",
+    running: true,
   });
   it("the pinned parse made for this run, on screen, while it runs", () => {
     expect(admitRunCheck(ok())).toEqual({ ok: true });
@@ -162,6 +163,12 @@ describe("admitting a check during the run (plan „Prüfung im Lauf“ 3a)", ()
       ["nothing decoded yet", { ...o, shownVersion: null }],
       ["another file", { ...o, origin: { ...o.origin!, file: "/other.ngc" } }],
       ["another file on screen", { ...o, shownFile: "/other.ngc" }],
+      // the same path loaded again: another program (P2b-F1-1) — on screen, in the origin, in the run
+      ["another load on screen", { ...o, shownProgramId: "a1b2c3d4.8" }],
+      ["another load published", { ...o, origin: { ...o.origin!, programId: "a1b2c3d4.8" } }],
+      ["the run of another load", { ...o, run: { ...o.run!, programId: "a1b2c3d4.6" } }],
+      ["no identity at all — null never matches",
+       { ...o, shownProgramId: null, origin: { ...o.origin!, programId: null }, run: { ...o.run!, programId: null } }],
       // the same file and another text (R113)
       ["another text", { ...o, origin: { ...o.origin!, source: "0".repeat(64) } }],
       ["no text fingerprint", { ...o, origin: { ...o.origin!, source: null } }],

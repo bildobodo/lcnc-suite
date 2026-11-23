@@ -2,6 +2,7 @@ import { test, expect, type Page, type Route } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore, moreItem } from "./more";
 import { thickScrollbars } from "./layout-audit";
+import { fulfillText, publishFile } from "./programFixture";
 
 // WP0 / UI-01 — the editor buffer belongs to the file it was opened on.
 // An external program change (browse from another tab, an upload landing,
@@ -21,7 +22,7 @@ const TEXT: Record<string, string> = {
 async function routeProgramText(page: Page) {
   await page.route("**/gcode?*", route => {
     const path = new URL(route.request().url()).searchParams.get("path") ?? "";
-    return route.fulfill({ contentType: "text/plain", body: TEXT[path] ?? `(unknown ${path})\n` });
+    return fulfillText(route, { contentType: "text/plain", body: TEXT[path] ?? `(unknown ${path})\n` });
   });
 }
 
@@ -29,7 +30,7 @@ let version = 100;
 async function loadProgram(page: Page, path: string) {
   version++;
   await ctl({ op: "status_delta", data: { active_file: path } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: path } });
+  await publishFile(path, version, TEXT[path] ?? `(unknown ${path})\n`);
   await expect(page.locator(".fileName")).toHaveText(path.slice(1));
 }
 

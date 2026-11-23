@@ -1436,6 +1436,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
                  "file": Text(max_len=PATH_MAX, required=True),
                  "version": Num(lo=0, hi=SAFE_INT_MAX, integer=True, required=True),
                  "source": Text(max_len=64, required=True),   # the confirmed text's sha256 (R17 XZ-07)
+                 "program_id": Text(max_len=64, required=True),   # the confirmed text's LOAD (P2b-F1-2)
                  "probe_vars": VarNumbers(),   # the pre-measurement's toolsetter values (R16)
                  "pre_tool": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
                  "spindle_dir": Choice(frozenset({"forward", "reverse"})),

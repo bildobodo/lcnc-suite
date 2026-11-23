@@ -691,8 +691,7 @@
      "id": "status:data.program_elapsed_ms"
     },
     {
-     "id": "status:data.program_id",
-     "unread": true
+     "id": "status:data.program_id"
     },
     {
      "id": "status:data.program_unconfirmed"
@@ -824,8 +823,7 @@
      "id": "status:preview_tool_basis"
     },
     {
-     "id": "status:preview_wait",
-     "unread": true
+     "id": "status:preview_wait"
     },
     {
      "id": "status:probe_results"

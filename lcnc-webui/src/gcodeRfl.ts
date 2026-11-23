@@ -183,8 +183,9 @@ export interface RflRunOptions {
    *  version of the displayed text and that text's fingerprint (GET /gcode's
    *  X-Program-Source). The gateway refuses an auto_run whose program is no
    *  longer the loaded one at that version, or whose text changed on disk
-   *  (Codex R16/R17 XZ-07). */
-  program: { file: string; version: number; source: string };
+   *  (Codex R16/R17 XZ-07) — and the LOAD it belongs to (P2b-F1-1: a reload
+   *  of the same path is another program). */
+  program: { file: string; version: number; source: string; programId: string };
 }
 
 /** bulkData's revision "<file>#<version>" → its parts; null for none. */

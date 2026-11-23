@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
+import { publishFile, routeText } from "./programFixture";
 
 // Design wave D3 (UI-K17, K12, plan WP-D3 / WP-DR) — the ONE tab
 // navigation (TabNav.vue):
@@ -289,9 +290,9 @@ test("a hidden panel is not focusable", async ({ page }) => {
 test("the Run-from-line spindle preset is one option group: Rev, Stop, Fwd", async ({ page }) => {
   await ready(page);
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { ...KEYBOARD, machine: { runFromLine: true } } } });
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "(A)\nG0 X0\nG1 X10 F100\nM2\n" }));
+  await routeText(page, "(A)\nG0 X0\nG1 X10 F100\nM2\n");
   await ctl({ op: "status_delta", data: { active_file: "/A.ngc" } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 901, file: "/A.ngc" } });
+  await publishFile("/A.ngc", 901);
   await expect(page.locator(".codeLine").first()).toContainText("(A)");
   await page.locator(".codeLine").nth(2).click();
   await page.getByRole("button", { name: /^Start L\d+$/ }).click();

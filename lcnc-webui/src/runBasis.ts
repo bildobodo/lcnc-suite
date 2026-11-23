@@ -42,6 +42,8 @@ export interface RunBasis {
   file: string | null;
   source: string | null;
   version: number | null;
+  /** The program identity at the start's capture (P2b-F1-1); null: none proven. */
+  programId: string | null;
   ctxDigest: string | null;
   toolBasisRev: number;
   start: RunStart | null;
@@ -59,6 +61,8 @@ export interface ForRun {
 export interface PreviewOrigin {
   version: number;
   file: string;
+  /** The program identity the payload was parsed for (P2b-F1-1). */
+  programId: string | null;
   source: string | null;
   reason: string;
   pinned: boolean;
@@ -104,6 +108,7 @@ export function parseRunBasis(raw: unknown): RunBasis | null {
   if (runId == null || (state !== "sending" && state !== "sent" && state !== "unsent")) return null;
   return {
     runId, state, file: str(r.file), source: str(r.source), version: num(r.version),
+    programId: str(r.program_id) || null,
     ctxDigest: str(r.ctx_digest), toolBasisRev: num(r.tool_basis_rev) ?? -1,
     start: readStart(r.start), verified: r.verified === true, why: str(r.why),
   };
@@ -127,7 +132,8 @@ export function parsePreviewOrigin(raw: unknown): PreviewOrigin | null {
   if (version == null || file == null || rev == null || revNow == null) return null;
   const t = o.table && typeof o.table === "object" ? (o.table as Record<string, unknown>) : null;
   return {
-    version, file, source: str(o.source), reason: str(o.reason) ?? "", pinned: o.pinned === true,
+    version, file, programId: str(o.program_id) || null, source: str(o.source), reason: str(o.reason) ?? "",
+    pinned: o.pinned === true,
     forRun: readForRun(o.for_run),
     table: t ? { mtime: num(t.mtime), rows: str(t.rows) ?? "" } : null,
     toolBasisRev: rev, toolBasisRevNow: revNow,

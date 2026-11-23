@@ -2,6 +2,7 @@ import { test, expect } from "./test";
 import { encode } from "@msgpack/msgpack";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 // Part B (Codex R39, rasterisation cases): a 2 CSS px path segment that runs
 // from BEHIND the camera through the near plane into the view. A screen-space
@@ -19,12 +20,12 @@ const OFF = { machine: false, bounds: false, toolpathBounds: false, groundGrid: 
 
 test("a path segment through the near plane: trimmed to a strip, never culled, never a screen-wide triangle", async ({ page, context }) => {
   test.setTimeout(60_000);
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X-20000\nG1 X20000\n" }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW }));
+  await routeText(context, "G1 X-20000\nG1 X20000\n");
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { projection: "perspective", layers: OFF } } } });
   await ctl({ op: "status_delta", data: { active_file: "/near.ngc" } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1201, file: "/near.ngc" } });
+  await publishFile("/near.ngc", 1201);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPathBox?.() ?? null), { timeout: 20_000 }).not.toBeNull();
   const box = (await page.evaluate(() => window.__viewerDiag!.getPathBox!()))!;
   const [y, z] = [box.min[1]!, box.min[2]!];

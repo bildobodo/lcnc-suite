@@ -10,6 +10,7 @@ import { GLIDE } from '../src/codeGlide';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, sidewaysOverflow, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
   STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, refControls, SETUP_AXIS_ROWS } from './layout-fixtures';
+import { fulfillPreview, publishFile, routeText, servedText, sourceOf } from "./programFixture";
 
 test.afterEach(async () => { await ctl({ op: 'reset' }); });
 
@@ -436,10 +437,10 @@ async function hitInView(loc: import('@playwright/test').Locator) {
 // a real program fits.
 const LONG_PROGRAM = Array.from({ length: 1300 }, (_, i) => i === 0 ? 'G21 G90 (line 1)' : `G1 X${i} F100 (line ${i + 1})`).join('\n') + '\nM2\n';
 test('touch-portrait 150 %: the Program head is two rows — Start L1234 · Step · Pause, then Abort … More; the symbols keep their names, nothing sideways', async ({ page }) => {
-  await page.route('**/gcode?*', r => r.fulfill({ contentType: 'text/plain', body: LONG_PROGRAM }));
+  await routeText(page, LONG_PROGRAM);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === 'touch-portrait')!);
   await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { machine: { runFromLine: true } } } });
-  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 9, file: '/layout-example.ngc' } });
+  await publishFile('/layout-example.ngc', 9);
   await expect(page.locator('.codeLine').first()).toContainText('line 1');
   const side = page.locator('.sidePane');
   const row = side.locator('.ctrlRow');
@@ -503,9 +504,9 @@ test('touch-portrait 150 %: the Program head is two rows — Start L1234 · Step
 for (const zoom of [1.5, 1]) {
   test(`touch-portrait ${zoom * 100} %: Program keeps code lines, Abort and More (its panel reaches every item); the tool table keeps a readable identity and a whole row`, async ({ page }) => {
     const narrow = zoom !== 1;
-    await page.route('**/gcode?*', r => r.fulfill({ contentType: 'text/plain', body: NARROW_PROGRAM }));
+    await routeText(page, NARROW_PROGRAM);
     await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === 'touch-portrait')!);
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5, file: '/layout-example.ngc' } });
+    await publishFile('/layout-example.ngc', 5);
     if (narrow) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
     await expect(page.locator('.codeLine').first()).toContainText('(narrow)');
     await settleLayout(page);
@@ -1058,15 +1059,15 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
   test(`${profile.name}: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still`, async ({ page, context }) => {
     test.setTimeout(240_000);
     // /preview? only — a bare /preview/ also catches previewWorker-*.js.
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: TIMELINE_PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(timeline)\nG0 X0\nG1 X10 F100\nM2\n' }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: TIMELINE_PREVIEW }));
+    await routeText(context, '(timeline)\nG0 X0\nG1 X10 F100\nM2\n');
     for (const { vp, zoom } of HUD_CASES) for (const scale of ['md', 'xl'] as const) {
       await openLayout(page, profile, vp);
       await ctl({ op: 'raw', frame: { type: 'settings_changed', settings: { viewer: { hud: { scale, showMachine: true } } } } });
       // Every warning line the status alone can raise, a program with a
       // timeline, then a preview re-parse.
       await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
-      await ctl({ op: 'loadGcode' });
+      await ctl({ op: 'loadGcode', source: sourceOf(servedText() ?? '') });
       await expect(page.locator('.scrubBar')).toBeVisible();
       await ctl({ op: 'quiet', on: true });
       await ctl({ op: 'raw', frame: { type: 'status_delta', armed: true, data: {}, preview_refresh:
@@ -1214,8 +1215,8 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
   test(`${profile.name}: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer`, async ({ page, context }) => {
     test.setTimeout(900_000);
     let variant: 'none' | 'limit' | 'both' = 'none', version = 0;
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: variant === 'none' ? TIMELINE_PREVIEW : LIMIT_PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(limits)\nG0 X0\nG1 X10 F100\nM2\n' }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: variant === 'none' ? TIMELINE_PREVIEW : LIMIT_PREVIEW }));
+    await routeText(context, '(limits)\nG0 X0\nG1 X10 F100\nM2\n');
     const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
     for (const v of ['none', 'limit', 'both'] as const) for (const zoom of [1, 1.5]) {
       variant = v;
@@ -1223,7 +1224,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
       // A version of its own per load: the mock's counter restarts with every
       // reset and the client keeps a published revision's preview.
-      await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 700 + version++, file: '/leak.ngc' } });
+      await publishFile('/leak.ngc', 700 + version++);
       await expect(page.locator('.scrubBar')).toBeVisible();
       if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
       const where = (state: string) => `portrait ${zoom * 100} % ${v} ${state}`;
@@ -1363,8 +1364,8 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
   test(`${profile.name}: with the HUD layer off the banner and the bottom column still follow the viewer`, async ({ page, context }) => {
     test.setTimeout(300_000);
     let version = 0;
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: LIMIT_PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(limits)\nG0 X0\nG1 X10 F100\nM2\n' }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: LIMIT_PREVIEW }));
+    await routeText(context, '(limits)\nG0 X0\nG1 X10 F100\nM2\n');
     const desktop = VIEWPORTS.find(v => v.name === 'desktop')!;
     const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
     const hud = (on: boolean) => ctl({ op: 'raw', frame: { type: 'settings_init', settings: { viewer: { layers: { hud: on } } } } });
@@ -1379,7 +1380,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     };
     const load = async () => {
       await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
-      await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 800 + version++, file: '/leak.ngc' } });
+      await publishFile('/leak.ngc', 800 + version++);
       await expect(page.locator('.scrubBar')).toBeVisible();
       await expect.poll(() => page.locator('.simPanel .checkVerdict').count(), { timeout: 15_000 }).toBe(1);
       await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }, { line: 22, rapid: true }]) ?? false)).toBe(true);
@@ -1529,17 +1530,16 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
     feed_outside: new Uint8Array(feed.map(p => (p[0]! > 100 ? 1 : 0))),
     violations: [{ line: 20, axis: 'X', value: 120, limit: 100, kind: 'max' }, { line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }],
     violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] })));
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-    // a tool change alone on line 8, one on line 32 with its limit and collision,
-    // a parameter named for M600 on line 16, a compact T7M600 on line 18,
-    // T+9 M600 on line 22, TABS[-7] M601 on line 26
-    body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : i === 7 ? 'T3 M6'
-      : i === 15 ? '#<m600_count> = 0' : i === 17 ? 'T7M600' : i === 21 ? 'T+9 M600' : i === 25 ? 'TABS[-7] M601'
-      : `${i === 31 ? 'T5 M6 ' : ''}G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body }));
+  // a tool change alone on line 8, one on line 32 with its limit and collision,
+  // a parameter named for M600 on line 16, a compact T7M600 on line 18,
+  // T+9 M600 on line 22, TABS[-7] M601 on line 26
+  await routeText(context, Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : i === 7 ? 'T3 M6'
+    : i === 15 ? '#<m600_count> = 0' : i === 17 ? 'T7M600' : i === 21 ? 'T+9 M600' : i === 25 ? 'TABS[-7] M601'
+    : `${i === 31 ? 'T5 M6 ' : ''}G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n'));
   await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
-  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 990, file: '/marks.ngc' } });
+  await publishFile('/marks.ngc', 990);
   await expect.poll(() => page.locator('.simPanel .checkVerdict').count(), { timeout: 15_000 }).toBe(1);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }, { line: 32 }]) ?? false)).toBe(true);
   const line = (n: number) => page.locator('.codeViewer:visible .codeLine').filter({ has: page.locator('.lineNumber', { hasText: new RegExp(`^${n}$`) }) });
@@ -1590,8 +1590,8 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
 test('the tilted work plane names its state at the object — whatever the HUD shows', async ({ page, context }) => {
   test.setTimeout(300_000);
   let version = 0;
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: LIMIT_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(limits)\nG0 X0\nG1 X10 F100\nM2\n' }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: LIMIT_PREVIEW }));
+  await routeText(context, '(limits)\nG0 X0\nG1 X10 F100\nM2\n');
   const profile = PROFILES[2];
   const G54_ZERO = ['G54', 'G55', 'G56', 'G57', 'G58', 'G59', 'G59.1', 'G59.2', 'G59.3']
     .map(name => ({ name, x: 0, y: 0, z: 0, a: 0, b: 0, c: 0, r: 0 }));
@@ -1632,7 +1632,7 @@ test('the tilted work plane names its state at the object — whatever the HUD s
   for (const hud of ['visible', 'folded', 'off'] as const) {
     await openLayout(page, profile, VIEWPORTS.find(v => v.name === (hud === 'folded' ? 'touch-portrait' : 'desktop'))!);
     await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12, ...base, ...STATES[0]!.data } });
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 1100 + version++, file: '/leak.ngc' } });
+    await publishFile('/leak.ngc', 1100 + version++);
     await expect(page.locator('.scrubBar')).toBeVisible();
     if (hud === 'folded') await page.evaluate(() => { document.documentElement.style.zoom = '1.5'; });
     if (hud === 'off') await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { viewer: { layers: { hud: false } } } } });
@@ -2116,13 +2116,12 @@ const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 1
   feed_outside: new Uint8Array(GLIDE_LINES), rapid: [], violations: [], violations_total: 0 }));
 test('the running line steps: the code moves under a centred highlight and rests between steps; the highlight never leaves the view', async ({ page, context }) => {
   test.setTimeout(120_000);
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-    body: Array.from({ length: GLIDE_LINES }, (_, i) => `G1 X${i % 2 ? 10 : 0} Y${i * 0.5} F100`).join('\n') }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+  await routeText(context, Array.from({ length: GLIDE_LINES }, (_, i) => `G1 X${i % 2 ? 10 : 0} Y${i * 0.5} F100`).join('\n'));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
-  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+  await publishFile('/glide.ngc', 5101);
   const SEL = '.codeViewer:not(.mdiHistoryList)';
   const viewer = page.locator(SEL);
   await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
@@ -2226,12 +2225,12 @@ for (const size of [{ name: 'the file', lines: GLIDE_LINES, at: 60 }, { name: 'a
   test(`the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: ${size.name}`, async ({ page, context }) => {
     test.setTimeout(180_000);
     const text = glideText(size.lines);
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: text }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+    await routeText(context, text);
     await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+    await publishFile('/glide.ngc', 5101);
     const SEL = '.codeViewer:not(.mdiHistoryList)';
     const viewer = page.locator(SEL);
     await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 60_000 });
@@ -2321,12 +2320,12 @@ for (const size of [{ name: 'the file', lines: GLIDE_LINES, at: 60 }, { name: 'a
 for (const pace of [3, 8]) {
   test(`the code rests on a line between steps: the standing highlight covers a whole row, never an old one — ${pace} lines a packet`, async ({ page, context }) => {
     test.setTimeout(120_000);
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: glideText(GLIDE_LINES) }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+    await routeText(context, glideText(GLIDE_LINES));
     await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+    await publishFile('/glide.ngc', 5101);
     const SEL = '.codeViewer:not(.mdiHistoryList)';
     const viewer = page.locator(SEL);
     await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
@@ -2402,12 +2401,12 @@ for (const pace of [3, 8]) {
 // follow snaps: the new row is the highlight at once, in the middle.
 test('a follow with no highlight in view snaps: after a stop, after a scroll away', async ({ page, context }) => {
   test.setTimeout(120_000);
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: glideText(GLIDE_LINES) }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+  await routeText(context, glideText(GLIDE_LINES));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
-  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+  await publishFile('/glide.ngc', 5101);
   const SEL = '.codeViewer:not(.mdiHistoryList)';
   const viewer = page.locator(SEL);
   await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
@@ -2488,15 +2487,14 @@ test('in an expanded subroutine the highlight stands still too, and the main pro
     feed_cline: new Uint8Array(Uint16Array.from(f.map((_, i) => inSub(i) ? 20 : 0)).buffer), sub_names: ['flowsub'],
     feed_tcum: new Uint8Array(Float32Array.from(f.map((_, i) => i)).buffer), feed_outside: new Uint8Array(N),
     rapid: [], violations: [], violations_total: 0 }));
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: preview }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-    body: Array.from({ length: 200 }, (_, i) => i === 19 ? 'o<flowsub> call' : `G1 X${i} F100`).join('\n') }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: preview }));
+  await routeText(context, Array.from({ length: 200 }, (_, i) => i === 19 ? 'o<flowsub> call' : `G1 X${i} F100`).join('\n'));
   await context.route(/\/subfile\?/, r => r.fulfill({ contentType: 'text/plain',
     body: Array.from({ length: 100 }, (_, i) => i === 0 ? 'o<flowsub> sub' : i === 99 ? 'o<flowsub> endsub' : `G1 Y${i} F100`).join('\n') }));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await ctl({ op: 'status_delta', data: { active_file: '/sub-main.ngc', is_enabled: false, enabled: false } });
-  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5102, file: '/sub-main.ngc' } });
+  await publishFile('/sub-main.ngc', 5102);
   const SEL = '.codeViewer:not(.mdiHistoryList)';
   const viewer = page.locator(SEL);
   await expect(page.locator('.scrubBar')).toBeVisible({ timeout: 30_000 });
@@ -2564,11 +2562,10 @@ test('in an expanded subroutine the highlight stands still too, and the main pro
 for (const vp of ['desktop', 'touch-landscape']) {
   test(`the code view lays its rows out at the height it draws them: ${vp}`, async ({ page, context }) => {
     const N = 300;
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-      body: Array.from({ length: N }, (_, i) => `G1 X${i} F100`).join('\n') }));
+    await routeText(context, Array.from({ length: N }, (_, i) => `G1 X${i} F100`).join('\n'));
     await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
     await ctl({ op: 'status_delta', data: { active_file: '/rows.ngc' } });
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5120, file: '/rows.ngc' } });
+    await publishFile('/rows.ngc', 5120);
     const viewer = page.locator('.codeViewer:not(.mdiHistoryList)');
     await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
     const m = await viewer.evaluate(el => {
@@ -2588,13 +2585,13 @@ for (const callLine of [0, 2]) {
       feed_lineok: new Uint8Array([1, 1, 0, 0, 1]), feed_sub: new Uint8Array([255, 255, 0, 0, 255]), sub_names: ['originprobe'],
       feed_cline: new Uint8Array(Uint16Array.from([0, 0, callLine, callLine, 0]).buffer), feed_outside: new Uint8Array(5),
       rapid: [], violations: [], violations_total: 0 }));
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: preview }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: 'G1 X10 F100\no<originprobe> call\nG1 X40\nM2' }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream', body: preview }));
+    await routeText(context, 'G1 X10 F100\no<originprobe> call\nG1 X40\nM2');
     await context.route(/\/subfile\?/, r => r.fulfill({ status: 404, body: 'source not available' }));
     await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
     await ctl({ op: 'status_delta', data: { active_file: file, joint_pos: [0, 0, 0], actual_position: [0, 0, 0],
       g5x_offset: Array(9).fill(0), g92_offset: Array(9).fill(0), tool_offset: Array(9).fill(0), rotation_xy: 0 } });
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5110 + callLine, file } });
+    await publishFile(file, 5110 + callLine);
     const SEL = '.codeViewer:not(.mdiHistoryList)';
     await expect(page.locator(SEL + ' .codeLine').first()).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('.scrubBar')).toBeVisible();
@@ -2621,10 +2618,10 @@ for (const callLine of [0, 2]) {
 // under it moved. The object line keeps one height in both states.
 test('the program name and the rows under it keep their place with and without a program', async ({ page, context }) => {
   const file = '/nc/place.ngc';
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream',
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: 'application/octet-stream',
     body: Buffer.from(encode({ file, preview_schema: 11, feed: [[0, 0, 0], [10, 0, 0]], feed_lines: [1, 2], rapid: [],
       stats: { lines: 2, feed_moves: 1, rapid_moves: 0 } })) }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: 'G1 X10 F100\n' }));
+  await routeText(context, 'G1 X10 F100\n');
   for (const vp of ['desktop', 'touch-landscape']) {
     await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
     await page.getByRole('tab', { name: 'Program', exact: true }).click();
@@ -2636,7 +2633,7 @@ test('the program name and the rows under it keep their place with and without a
     await settleLayout(page);
     const [n0, r0] = [(await name.boundingBox())!, (await next.boundingBox())!];
     await ctl({ op: 'status_delta', data: { active_file: file } });
-    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 9101, file } });
+    await publishFile(file, 9101);
     await expect(page.locator('.panelObject').getByRole('button', { name: 'Stats', exact: true })).toBeVisible();
     await expect(name).toHaveText('place.ngc');
     await settleLayout(page);

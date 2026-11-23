@@ -7666,13 +7666,18 @@ async def _cmds_program_run(cmd: str, msg: Dict[str, Any], armed: bool,
         confirmed = msg.get("file")
         version = msg.get("version")
         source = msg.get("source")
+        program_id = msg.get("program_id")
         # A load or unload under way (R18 XZ-08): the interpreter may
         # already have another program open.
         if (not isinstance(confirmed, str) or version is None or not isinstance(source, str)
                 or _status_runtime.program.change_pending
                 or canonical_path(confirmed) != canonical_path(_status_runtime.program.loaded)
                 or finite_int(version) != _bulk.preview_version
-                or source != _bulk.published_source):
+                or source != _bulk.published_source
+                # the same LOAD the dialog showed (P2b-F1-2): a reload of the
+                # same path is another program, its old publication too
+                or not isinstance(program_id, str) or program_id != _active_program_id()
+                or program_id != _bulk.published_program):
             return {"ok": False, "error": "Program changed — confirm Run from line again"}
         # The text on disk NOW must still be the confirmed one (Codex R17
         # XZ-07): the version moves only after a re-parse, so a file

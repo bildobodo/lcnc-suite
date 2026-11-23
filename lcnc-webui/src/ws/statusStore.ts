@@ -149,6 +149,32 @@ export const runBasis = ref<RunBasis | null>(null);
 // frame carried none (a gateway without decisions).
 export const driftDecision = ref<DriftDecision | null>(null);
 let _driftDecisionKey = "";
+// The wait for the active program's own preview (P2b-F1-3, Codex R449
+// MT449-03): every reason that holds its parse, while it holds — the gateway
+// rides it on every frame. Null: no such wait (a publication of it exists,
+// its parse is scheduled or running, or no program is proven).
+export interface PreviewWait {
+  programId: string;
+  file: string;
+  reasons: string[];
+  sinceMs: number | null;
+  lastEnd: { job: number; why: string } | null;
+}
+export const previewWait = ref<PreviewWait | null>(null);
+let _previewWaitKey = "";
+/** `preview_wait` from the envelope; null when absent or malformed. Pure. */
+export function parsePreviewWait(raw: unknown): PreviewWait | null {
+  if (!raw || typeof raw !== "object") return null;
+  const w = raw as Record<string, unknown>;
+  if (typeof w.program_id !== "string" || !w.program_id || !Array.isArray(w.reasons)) return null;
+  const e = w.last_end && typeof w.last_end === "object" ? (w.last_end as Record<string, unknown>) : null;
+  return {
+    programId: w.program_id, file: typeof w.file === "string" ? w.file : "",
+    reasons: w.reasons.filter((r): r is string => typeof r === "string"),
+    sinceMs: typeof w.since_ms === "number" ? w.since_ms : null,
+    lastEnd: e && typeof e.job === "number" && typeof e.why === "string" ? { job: e.job, why: e.why } : null,
+  };
+}
 let _previewOriginKey = "";
 let _runBasisKey = "";
 let _frameHadRefresh = false;
@@ -172,6 +198,12 @@ export function endPreviewBasisPending(): void {
 export interface PreviewRefresh {
   reason: string;
   file: string;
+  /** The program identity this parse publishes for (P2b-F1-1), null when
+   *  not named; `first`: no publication of it yet — a load's own preview;
+   *  `phase`: "starting" from its schedule, "running" once begun (F1-3). */
+  programId: string | null;
+  first: boolean;
+  phase: string;
   expected_ms: number | null;
   started_ms: number | null;
   queued: boolean;
@@ -571,15 +603,20 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   _noteParseSeen(_frameHadRefresh ? prWire : null, rx);
   const pr = _frameHadRefresh ? prWire : (previewBasisPending.value
     ? { reason: "tool_offset", file: previewToolBasis.value?.file ?? previewRefresh.value?.file ?? "",
-        expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0 }
+        expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0,
+        program_id: previewRefresh.value?.programId ?? null, first: false, phase: "running" }
     : null);
   if (pr && typeof pr === "object") {
     const cur = previewRefresh.value;
     const sameParse = !!cur && cur.started_ms === (pr.started_ms ?? null) && cur.file === String(pr.file ?? "");
+    const prId = typeof pr.program_id === "string" && pr.program_id ? pr.program_id : null;
+    const prPhase = typeof pr.phase === "string" ? pr.phase : "running";
     if (!sameParse || cur!.reason !== String(pr.reason ?? "") || cur!.queued !== !!pr.queued
-        || cur!.superseded !== Number(pr.superseded ?? 0)) {
+        || cur!.superseded !== Number(pr.superseded ?? 0) || cur!.programId !== prId
+        || cur!.first !== (pr.first === true) || cur!.phase !== prPhase) {
       previewRefresh.value = {
         reason: String(pr.reason ?? ""), file: String(pr.file ?? ""),
+        programId: prId, first: pr.first === true, phase: prPhase,
         expected_ms: typeof pr.expected_ms === "number" ? pr.expected_ms : null,
         started_ms: typeof pr.started_ms === "number" ? pr.started_ms : null,
         queued: !!pr.queued, superseded: Number(pr.superseded ?? 0),
@@ -602,6 +639,11 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   if (ddKey !== _driftDecisionKey) {
     _driftDecisionKey = ddKey;
     driftDecision.value = parseDriftDecision(msg.drift_decision);
+  }
+  const pwKey = msg.preview_wait ? JSON.stringify(msg.preview_wait) : "";
+  if (pwKey !== _previewWaitKey) {
+    _previewWaitKey = pwKey;
+    previewWait.value = parsePreviewWait(msg.preview_wait);
   }
   const rbKey = msg.run_basis ? JSON.stringify(msg.run_basis) : "";
   if (rbKey !== _runBasisKey) {

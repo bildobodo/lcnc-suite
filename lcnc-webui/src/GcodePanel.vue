@@ -15,8 +15,8 @@ import { scanToolchangesBefore, scanEntryPositionBefore, revisionParts, type Rfl
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
-import { limitMarks } from "./limitMarks";
-import { toolMarks } from "./toolMarks";
+import { limitMarks, NO_LIMIT_MARKS } from "./limitMarks";
+import { toolMarks, NO_TOOL_MARKS } from "./toolMarks";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
 import { glideAt, planGlide, stepDelay, type Glide } from "./codeGlide";
@@ -64,6 +64,19 @@ const props = defineProps<{
   // The fingerprint of the displayed text (X-Program-Source) — Run from line
   // is bound to it (Codex R17 XZ-07).
   programTextSource: string;
+  /** The identity of the text on screen (P2b-F1-2); null: none. Run from
+   *  line and the editor's session bind to it. */
+  programId?: string | null;
+  /** The ACTIVE program's identity (status `program_id`); null: none proven. */
+  activeProgramId?: string | null;
+  /** The text on screen and the payload on screen are ONE publication: the
+   *  line mapping, the marks and the run line need both (MT450-02). */
+  linesBound?: boolean;
+  /** Why the active program's text is not on screen (previewWait.ts), null: it is. */
+  textNote?: string | null;
+  /** The editor's own reload after a save: sent as a request, answered with
+   *  its load's identity (null: refused or unanswered). */
+  reloadOwn?: (path: string) => Promise<string | null>;
   gcodeStats: GcodeStats | null;
   violationsTotal: number;
   currentLine: number | null;
@@ -370,7 +383,9 @@ const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
 }) : null;
 onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).
-watch(() => props.activeFile, (now, before) => { if (now !== before) setScroll(0); }, { flush: "post" });
+watch(() => [props.activeFile, props.activeProgramId], (now, before) => {
+  if (now[0] !== before[0] || now[1] !== before[1]) setScroll(0);   // another load too (P2b-F1-2)
+}, { flush: "post" });
 
 /** Set the scroll position AND the rendered window's input in one step: the
  *  value the element took, and the asked one the rows are placed from while
@@ -428,8 +443,9 @@ const bandY = ref(0);
 /** The rows a follow is made in: the program and the sub expansion (the
  *  same object while the call stands — a new sub line keeps it). */
 interface FollowRows { file: string | null; exp: SubExpansion | null }
-const _rowsNow = (): FollowRows => ({ file: props.activeFile, exp: expansion.value });
-const _rowsStill = (r: FollowRows | null) => !!r && r.file === props.activeFile && r.exp === expansion.value;
+const _rowsKey = () => `${props.activeProgramId ?? ""}|${props.activeFile ?? ""}`;   // the LOAD (P2b-F1-2)
+const _rowsNow = (): FollowRows => ({ file: _rowsKey(), exp: expansion.value });
+const _rowsStill = (r: FollowRows | null) => !!r && r.file === _rowsKey() && r.exp === expansion.value;
 /** The row the code last followed (its own highlight shows at rest) and the
  *  rows it is one of; the rows the running glide was planned in. A follow
  *  in other rows starts no band from the last one, a glide planned in other
@@ -574,10 +590,11 @@ watch(subActiveLine, (ln) => {
 // The lines the placed limit rows show (limitMarks, published by the bar):
 // a record marks the line its own move shows, never its raw number — a record
 // with no place or no line marks none (Codex R178, the rest of VP-I130).
-const violationsByLine = computed(() => limitMarks.value);
+// (only while the text and the payload are ONE publication — MT450-02)
+const violationsByLine = computed(() => props.linesBound === false ? NO_LIMIT_MARKS : limitMarks.value);
 // The timeline's tool-change lines (toolMarks, published by the bar): line →
 // the tool it loads.
-const toolsByLine = computed(() => toolMarks.value);
+const toolsByLine = computed(() => props.linesBound === false ? NO_TOOL_MARKS : toolMarks.value);
 
 // one mark per line, asked only for the lines rendered — each once per
 // query (a new query is a new result shown)
@@ -784,7 +801,8 @@ const rflBlocked = computed(() => {
 // revision of the same path cancels a running hold at its arrival, and
 // the landing of its text cancels one begun while it loaded. (Every
 // re-parse bumps the revision, a drift re-parse after a touch-off too.)
-const programHoldKey = computed(() => `${props.activeFile ?? ""}|${props.programRevision}|${props.programTextRevision}`);
+const programHoldKey = computed(() =>
+  `${props.activeProgramId ?? ""}|${props.activeFile ?? ""}|${props.programRevision}|${props.programTextRevision}`);
 // The displayed text lags the published revision while its fetch runs:
 // Start, Step and the Run-from-line action wait — a confirmation is given
 // on the text the operator sees, and the entry position Run from line
@@ -805,6 +823,7 @@ function dropSelection() {
   showRunDialog.value = false;
 }
 watch(() => props.activeFile, dropSelection);
+watch(() => props.activeProgramId, dropSelection);   // another load of the same path too (P2b-F1-2)
 watch(() => props.gcodeContent, (now, before) => { if (now !== before) dropSelection(); });
 
 // The run-from-line dialog is a form: it shows — and starts with — this
@@ -865,8 +884,9 @@ function confirmRunFromLine() {
   // longer the loaded one at this version, or its text changed on disk
   // (Codex R16/R17 XZ-07).
   const parts = revisionParts(props.programTextRevision);
-  if (!selectedLine.value || rflBlocked.value || programLoading.value || !parts) return;
-  const program = { ...parts, source: props.programTextSource };
+  const programId = props.programId;
+  if (!selectedLine.value || rflBlocked.value || programLoading.value || !parts || !programId) return;
+  const program = { ...parts, source: props.programTextSource, programId };
   const mach = loadMachineDraft();
   if (mach.rflSafeZ !== dialogSafeZ.value) {
     saveMachineDefaults({ ...mach, rflSafeZ: dialogSafeZ.value });
@@ -919,7 +939,9 @@ const editorDoc = ref("");
 // HTTP call, so a program switch mid-edit saved buffer A into file B.
 // A session is {id, path, original}; every async continuation (CodeMirror
 // import, save reply) checks that ITS session is still the current one.
-interface EditSession { id: number; path: string; original: string }
+interface EditSession { id: number; path: string; original: string;
+                        /** the LOAD its text came from (P2b-F1-2); an own reload's answer moves it */
+                        programId: string | null; ownReload: string | null }
 let _session: EditSession | null = null;
 let _sessionSeq = 0;
 const sessionPath = ref<string | null>(null);
@@ -927,12 +949,31 @@ const sessionName = computed(() => sessionPath.value?.split("/").pop() ?? "");
 // External program change while editing: the buffer stays, a banner names
 // the conflict. "Keep editing" acknowledges THIS loaded file; a further
 // change raises it again.
+// The conflict is another LOAD than the session's (P2b-F1-2, Codex R451): a
+// reload of the same path is not the editor's load session. Unknown (no
+// program proven yet) raises nothing new; the session's own reload — its
+// request's answer names the load — is no conflict once the status shows it.
 const conflictAckFile = ref<string | null>(null);
-const editConflict = computed(() =>
-  editing.value && sessionPath.value != null && props.activeFile !== sessionPath.value
-  && props.activeFile !== conflictAckFile.value);
-function keepEditing() { conflictAckFile.value = props.activeFile; }
-watch(() => props.activeFile, () => { if (!editing.value) conflictAckFile.value = null; });
+const sessionProgramId = ref<string | null>(null);
+const sessionOwnReload = ref<string | null>(null);
+const _activeLoad = () => `${props.activeProgramId ?? ""}|${props.activeFile ?? ""}`;
+const editConflict = computed(() => {
+  if (!editing.value || sessionPath.value == null) return false;
+  if (props.activeFile !== sessionPath.value) return _activeLoad() !== conflictAckFile.value;
+  const active = props.activeProgramId ?? null;
+  if (active == null || active === sessionProgramId.value) return false;
+  return _activeLoad() !== conflictAckFile.value;
+});
+watch(() => props.activeProgramId, (active) => {
+  // the session's own reload, now shown by the status: its load is the session's
+  if (active != null && active === sessionOwnReload.value && _session) {
+    _session.programId = active;
+    sessionProgramId.value = active;
+    sessionOwnReload.value = _session.ownReload = null;
+  }
+});
+function keepEditing() { conflictAckFile.value = _activeLoad(); }
+watch(() => [props.activeFile, props.activeProgramId], () => { if (!editing.value) conflictAckFile.value = null; });
 
 // App swaps the bottom strip for the G-code keypad while the editor is open.
 watch(editing, (v) => emit("editingChange", v));
@@ -945,9 +986,14 @@ function _isDirty(): boolean {
 function enterEdit() {
   if (!props.gcodeContent || !props.activeFile || editing.value) return;
   saveError.value = null;
-  const session: EditSession = { id: ++_sessionSeq, path: props.activeFile, original: props.gcodeContent };
+  // the text on screen is the active load's own (the identity gate); the
+  // session keeps that load
+  const session: EditSession = { id: ++_sessionSeq, path: props.activeFile, original: props.gcodeContent,
+                                 programId: props.programId ?? null, ownReload: null };
   _session = session;
   sessionPath.value = session.path;
+  sessionProgramId.value = session.programId;
+  sessionOwnReload.value = null;
   conflictAckFile.value = null;
   // CodeEditor mounts with this text (bound to the SESSION, not to
   // props.activeFile: an external program change leaves session A valid —
@@ -966,6 +1012,8 @@ function _endSession() {
   saveError.value = null;
   _session = null;
   sessionPath.value = null;
+  sessionProgramId.value = null;
+  sessionOwnReload.value = null;
   conflictAckFile.value = null;
   showDiscardConfirm.value = false;
 }
@@ -999,9 +1047,10 @@ async function saveEdit() {
       return;
     }
     session.original = text;
-    if (props.activeFile !== path) {
-      // External program change while saving: the editor stays on A, the
-      // banner keeps naming the conflict, and B is NOT reloaded from A.
+    if (props.activeFile !== path || (props.activeProgramId != null && props.activeProgramId !== session.programId)) {
+      // External program change while saving — another file, or another
+      // LOAD of this path (P2b-F1-2): the editor stays on its session, the
+      // banner keeps naming the conflict, and nothing is reloaded from it.
       pushMessage(OPERATOR_DISPLAY, `Saved ${name} — the loaded program is ${props.activeFile?.split("/").pop() ?? "another file"}`);
       return;
     }
@@ -1012,7 +1061,15 @@ async function saveEdit() {
       // editor as unsaved — the reply never destroys them. The loaded
       // program is refreshed from the saved file as after any save.
       pushMessage(OPERATOR_DISPLAY, `Saved ${name} — newer edits are still unsaved`);
-      emit("loadFile", path);
+      // the session's OWN reload: its answer names the load, which the
+      // session takes once the status shows it (R451) — no answer: the
+      // conflict shows, the newer edits stay
+      if (props.reloadOwn) {
+        const pid = await props.reloadOwn(path);
+        if (_session === session && pid) { session.ownReload = pid; sessionOwnReload.value = pid; }
+      } else {
+        emit("loadFile", path);
+      }
       return;
     }
     _endSession();
@@ -1071,7 +1128,8 @@ async function saveEdit() {
             <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
             <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
           </div>
-          <MachineBtn type="sourceOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
+          <MachineBtn type="sourceOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing || !gcodeContent"
+            :reason="activeFile && !editing && !gcodeContent ? 'Program text not loaded yet — wait' : undefined">
             Edit
           </MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
@@ -1249,8 +1307,9 @@ async function saveEdit() {
           <polyline points="17 8 12 3 7 8"/>
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        <div class="emptyText">No program loaded</div>
-        <div class="emptyHint">Drag &amp; drop a file here, or use Upload / Browse above</div>
+        <!-- a loaded program whose own text is not on screen says why (P2b-F1-2) -->
+        <div class="emptyText" data-text-note>{{ activeFile && textNote ? textNote : "No program loaded" }}</div>
+        <div v-if="!activeFile" class="emptyHint">Drag &amp; drop a file here, or use Upload / Browse above</div>
       </div>
     </div>
 

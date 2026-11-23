@@ -16,7 +16,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, driftDecision, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewWaitView, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, driftDecision, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { driftVerdict, type DriftWait } from "./viewer/driftWait";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, simulationOn, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { useProgramMarks, useRunDisplay } from "./viewer/runDisplay";
@@ -4370,7 +4370,7 @@ function _startRunCheck(): boolean {
   const g = viewerGcode.value, track = g?.scrubTrack, rb = runBasis.value;
   if (!g || !track || !rb || collisionRun.value) return false;
   const adm = admitRunCheck({ origin: previewOrigin.value, shownVersion: g.publishedVersion ?? null,
-    shownFile: g.file ?? null, run: rb, running: _runInProgress(status.value?.data) });
+    shownFile: g.file ?? null, shownProgramId: g.programId ?? null, run: rb, running: _runInProgress(status.value?.data) });
   if (!adm.ok) {
     emitTelemetry("collision.run_check_refused", { why: adm.why, version: g.publishedVersion ?? null, run: rb.runId });
     return false;
@@ -4559,9 +4559,11 @@ watch(previewBasisPending, (pending) => {
 watch(viewerGcode, (g, old) => {
   if (collisionRun.value && g?.publishedVersion !== collisionRun.value.version) collisionRun.value = null;
   const prev = collisionResult.value;
-  collisionPrevious.value = prev && g && old && g.file === old.file && _runInProgress(status.value?.data)
-    ? _colPreviousOf(prev, old.publishedVersion ?? null)
-    : (g && old && g.file === old.file ? collisionPrevious.value : null);
+  // one LOAD (P2b-F1-2): the same identity, never the path — null never matches
+  const sameLoad = !!g && !!old && !!g.programId && g.programId === old.programId && g.file === old.file;
+  collisionPrevious.value = prev && sameLoad && _runInProgress(status.value?.data)
+    ? _colPreviousOf(prev, old!.publishedVersion ?? null)
+    : (sameLoad ? collisionPrevious.value : null);
   cancelCollisionCheck();
   collisionResult.value = null;
   collisionTrack.value = null;
@@ -5658,7 +5660,7 @@ const notesOpen = ref(false);
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
   showWcsStaleLine.value, !previewRefresh.value && previewTloStale.value,
-  previewTableStale.value, toolpathOverflow.value,
+  previewTableStale.value, toolpathOverflow.value, previewWaitView.value.hud,
   failedParts.value.length].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
 /** The mode line: the chip, the fixture, the plane's word — each said once.
@@ -6153,10 +6155,13 @@ defineExpose({
           <!-- The line names the state only; the reason sits in its "?"
                (operator 2026-10-01: "Preview re-parsing" is enough — the
                reason only took width). -->
-          <div class="hudWarn">Preview re-parsing<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limits, collision check and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
+          <div class="hudWarn">{{ previewRefresh.first ? "Preview loading" : "Preview re-parsing" }}<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limits, collision check and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
         <div v-else-if="showWcsStaleLine" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
+        <!-- The active program's own preview is not on screen (P2b-F1-2/3):
+             why, from the one state decider — never another program's path. -->
+        <div v-if="previewWaitView.hud" class="hudWarn" data-preview-wait>{{ previewWaitView.hud }}<HelpIcon label="Preview">{{ previewWaitView.help }}</HelpIcon></div>
         <!-- While the re-parse runs, its line with the bar says it (operator
              2026-09-30: no extra line under the bar for the tool measured). -->
         <div v-if="previewTloStale && !previewRefresh" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parse follows<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — the preview re-parses with it, during a run too.</HelpIcon></div>

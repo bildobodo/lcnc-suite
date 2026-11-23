@@ -7,6 +7,7 @@ import { test, expect, type Page } from "./test";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
 import { sidewaysOverflow } from "./layout-audit";
+import { publishFile, routeText } from "./programFixture";
 
 // The XYZAC sim's codes, read from LinuxCNC 2026-10-03 at idle
 const GCODES = [9, 800, -1, 170, 400, 210, 900, 940, 540, 490, 980, 640, -1, 970, 911, 80, -1];
@@ -16,11 +17,11 @@ const ACTIVE_KNOWN = ["G17", "G21", "G40", "G49", "G54", "G64", "G80", "G90", "G
 const PROGRAM = "G21 G90\nG01 X10 F100\nG10 L2 P1 X0\nG8 X1\nG64 P0.01\nM2\n";
 
 async function setup(page: Page, vp = "desktop", zoom = 1) {
-  await page.route("**/gcode?*", r => r.fulfill({ contentType: "text/plain", body: PROGRAM }));
+  await routeText(page, PROGRAM);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
   if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
   await ctl({ op: "status_delta", data: { gcodes: GCODES, mcodes: MCODES } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5, file: "/layout-example.ngc" } });
+  await publishFile("/layout-example.ngc", 5);
   await expect(page.locator(".codeLine").first()).toContainText("G21");
   await settleLayout(page);
 }

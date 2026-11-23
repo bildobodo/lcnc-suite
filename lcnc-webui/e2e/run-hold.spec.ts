@@ -2,6 +2,7 @@ import { test, expect, type Page, type Locator } from "./test";
 import { holdMouse, installHoldClock, onPageClock } from "./holdClock";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev } from "./macroFolder";
+import { fulfillText, publishFile, routeText, sourceOf } from "./programFixture";
 
 // Design wave D6 (operator decision 2026-09-25, UI-D02 / N95): starting
 // motion is a HOLD, like every other motion button —
@@ -49,7 +50,9 @@ async function sent(): Promise<{ cmd?: string; text?: string; line?: number }[]>
 const count = async (cmd: string) => (await sent()).filter(c => c.cmd === cmd).length;
 
 // The fingerprint GET /gcode names for the text it serves (Codex R17 XZ-07).
-const SOURCE_A = "a".repeat(64), SOURCE_M = "m".repeat(64);
+const WITH_M600 = "(program M)\nT5 M600\nG90 G54 G0 X10 Y20\nG1 X11 F100\nG1 X12\nM2\n";
+// the fingerprints the gateway names (programFixture: the bytes' sha256)
+const SOURCE_A = sourceOf(PROGRAM), SOURCE_M = sourceOf(WITH_M600);
 
 async function ready(page: Page, settings: Record<string, unknown> = {}, folder?: Folder) {
   // every hold here runs on the page's clock (holdClock.ts, hold after a stall)
@@ -57,13 +60,12 @@ async function ready(page: Page, settings: Record<string, unknown> = {}, folder?
   await ctl({ op: "reset" });
   await page.setViewportSize({ width: 1600, height: 1000 });
   if (folder) await serve(page, folder);
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: PROGRAM,
-    headers: { "X-Program-Source": SOURCE_A } }));
+  await routeText(page, PROGRAM);
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "status_delta", data: { active_file: "/A.ngc", homed: [1, 1, 1], permissions: PERMS_ALL } });
   await ctl({ op: "raw", frame: { type: "settings_init", settings } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 700, file: "/A.ngc" } });
+  await publishFile("/A.ngc", 700, PROGRAM);
   await expect(page.locator(".codeLine").first()).toContainText("(program A)");
   await ctl({ op: "clearCmds" });
 }
@@ -132,13 +134,11 @@ test("Run from line: Start only opens the dialog on a tap; the dialog's action i
 });
 
 test("Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)", async ({ page }) => {
-  const WITH_M600 = "(program M)\nT5 M600\nG90 G54 G0 X10 Y20\nG1 X11 F100\nG1 X12\nM2\n";
   await ready(page, { machine: { runFromLine: true, rflSpindleDir: "off" },
     toolsetter: { touchX: 0, touchY: 0, touchZ: -300, fastFeed: 200, slowFeed: 20, traverseFeed: 500,
                   maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180 } });
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: WITH_M600,
-    headers: { "X-Program-Source": SOURCE_M } }));
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 701, file: "/A.ngc" } });
+  await routeText(page, WITH_M600);
+  await publishFile("/A.ngc", 701, WITH_M600);
   await expect(page.locator(".codeLine").first()).toContainText("(program M)");
   await ctl({ op: "clearCmds" });
   await page.locator(".codeLine").nth(4).click();
@@ -151,7 +151,7 @@ test("Run from line with a pre-measurement is ONE auto_run carrying the toolsett
   expect(run.probe_vars).toMatchObject({ "3102": -300, "3004": 200 });
   // Another program arriving now changes nothing that was sent.
   await ctl({ op: "status_delta", data: { active_file: "/B.ngc" } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 702, file: "/B.ngc" } });
+  await publishFile("/B.ngc", 702);
   await page.waitForTimeout(400);
   expect((await sent()).map(c => c.cmd)).toEqual(["auto_run"]);
 });
@@ -170,7 +170,7 @@ async function serveRevisions(page: Page, late: Record<string, number>) {
   await page.route("**/gcode?*", async route => {
     const v = new URL(route.request().url()).searchParams.get("v") ?? "";
     if (late[v] !== undefined) await new Promise(r => setTimeout(r, late[v]));
-    await route.fulfill({ contentType: "text/plain", body: Number(v) > 700 ? programV(v) : PROGRAM });
+    await fulfillText(route, { contentType: "text/plain", body: Number(v) > 700 ? programV(v) : PROGRAM });
   });
 }
 /** Hold `target`; `during` runs 100 ms in; true when the hold was cancelled. */
@@ -190,7 +190,7 @@ async function holdWhile(page: Page, target: Locator, during: () => Promise<void
   });
 }
 const republish = (version: number) =>
-  ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: "/A.ngc" } });
+  publishFile("/A.ngc", version, version > 700 ? programV(String(version)) : PROGRAM);
 
 test("a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading", async ({ page }) => {
   await ready(page);

@@ -26,10 +26,11 @@ export type TypeExportSurface = {
 };
 
 const REF_EXPORTS = [
-  "armed", "configWarning", "connected", "driftDecision", "gcodeContent", "gcodeRevision", "gcodeTextRevision", "gcodeTextSource",
+  "activeProgramId", "armed", "configWarning", "connected", "driftDecision", "gcodeContent", "gcodeLinesBound", "gcodeProgramId",
+  "gcodeRevision", "gcodeTextRevision", "gcodeTextSource", "gcodeTextState",
   "halInitialized", "halParams", "halPins", "halSignals",
   "lastReply", "latency", "lcncError", "messages", "networkLatency",
-  "previewBasisPending", "previewDecodeFailure", "previewDecoding", "previewLoadError", "previewOrigin", "previewParseError", "previewRefresh", "previewRefreshElapsedMs", "previewRefreshPct", "previewRefusal", "previewTableStale", "readerStale", "runBasis", "safetyChainIncomplete",
+  "previewBasisPending", "previewDecodeFailure", "previewDecoding", "previewLoadError", "previewOrigin", "previewParseError", "previewRefresh", "previewRefreshElapsedMs", "previewRefreshPct", "previewRefusal", "previewTableStale", "previewWait", "previewWaitView", "readerStale", "runBasis", "safetyChainIncomplete",
   "safetyTrip", "serverShuttingDown",
   "status", "timingStats", "toolTableVersion", "unreadCount",
   "viewerGcode", "viewerInit",

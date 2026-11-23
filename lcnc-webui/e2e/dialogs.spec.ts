@@ -4,6 +4,7 @@ import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
 import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
+import { publishFile, routeText } from "./programFixture";
 
 // Design wave D2 (UI-K11, K16(3), UI-D01, UI-D06; plan Anhang B) — the
 // dialog contract, scanned per dialog from ONE table (Anhang B is the only
@@ -184,7 +185,7 @@ async function fakeGamepad(page: Page) {
 
 async function ready(page: Page, settings: Record<string, unknown> = {}) {
   await ctl({ op: "reset" });
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: PROGRAM }));
+  await routeText(page, PROGRAM);
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "quiet", on: true });
@@ -197,7 +198,7 @@ async function ready(page: Page, settings: Record<string, unknown> = {}) {
 let gcodeVersion = 500;
 async function loadProgram(page: Page) {
   gcodeVersion++;
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: gcodeVersion, file: "/A.ngc" } });
+  await publishFile("/A.ngc", gcodeVersion);
   await expect(page.locator(".codeLine").first()).toContainText("(program A)");
 }
 

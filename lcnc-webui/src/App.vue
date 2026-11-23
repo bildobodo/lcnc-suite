@@ -9,7 +9,7 @@ import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
 import { showBtnHint } from "./btnHint";
-import { connectWs, connected, status, send, request, awaitReply, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, tripReasonLabel, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
+import { connectWs, connected, status, send, request, awaitReply, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, gcodeProgramId, gcodeLinesBound, activeProgramId, previewWaitView, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, tripReasonLabel, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -324,6 +324,9 @@ const machineStateLabel = computed(() => {
     const parts = [label];
     if (name) parts.push(name);
     if (programElapsed.value != null) parts.push(elapsedDisplay.value);
+    // the run's own preview is not on screen: said here too (P2b-F1-3, C4 —
+    // the one state decider, also with the simulation off)
+    if (previewWaitView.value.banner) parts.push(previewWaitView.value.banner);
     return parts.join('  ·  ');
   }
   if (state === 'toolchange' && toolChangeTool.value != null) {
@@ -1847,6 +1850,7 @@ function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
     file: opts.program.file,
     version: opts.program.version,
     source: opts.program.source,
+    program_id: opts.program.programId,
     spindle_dir: opts.spindleDir !== "off" ? opts.spindleDir : undefined,
     spindle_speed: opts.spindleDir !== "off" ? opts.spindleSpeed : undefined,
     // RFL × M600 guard: measure this tool via MDI first (gateway bg sequence),
@@ -1919,6 +1923,22 @@ function spindleDecrease() {
 
 function loadFile(path: string) {
   fire({ cmd: "load_file", path }, 'programLoad');
+}
+
+/** The editor's own reload after a save (P2b-F1-2, R451): a request whose
+ *  answer names its load's identity — null when refused or unanswered. What
+ *  shows is still the observed status. */
+async function reloadOwn(path: string): Promise<string | null> {
+  // the fire() path (gate re-check + busy latch), with its reply
+  if (busy.value || !permissions.value.programLoad) return null;
+  const load: Extract<WsCommand, { cmd: "load_file" }> = { cmd: "load_file", path };
+  busy.value = true;
+  try {
+    const r = await request(load);
+    return r && r.ok !== false && typeof r.program_id === "string" ? r.program_id : null;
+  } finally {
+    window.setTimeout(() => (busy.value = false), cooldownFor(load.cmd));
+  }
 }
 
 function unloadFile() {
@@ -2363,14 +2383,19 @@ watch(viewerGcode, (newGcode) => {
               :programRevision="gcodeRevision"
               :programTextRevision="gcodeTextRevision"
               :programTextSource="gcodeTextSource"
+              :programId="gcodeProgramId"
+              :activeProgramId="activeProgramId"
+              :linesBound="gcodeLinesBound"
+              :textNote="previewWaitView.panel"
+              :reloadOwn="reloadOwn"
               :gcodeStats="gcodeStats"
               :violationsTotal="gcodeViolationsTotal"
-              :currentLine="currentLine"
-              :subName="runSubName"
-              :subView="subExecState"
+              :currentLine="gcodeLinesBound ? currentLine : null"
+              :subName="gcodeLinesBound ? runSubName : null"
+              :subView="gcodeLinesBound ? subExecState : null"
               :linesUntrustedReason="linesUntrustedReason"
-              :scrubLine="linesUntrusted ? null : scrubLine"
-              :collisionLines="collisionLines"
+              :scrubLine="linesUntrusted || !gcodeLinesBound ? null : scrubLine"
+              :collisionLines="gcodeLinesBound ? collisionLines : null"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"
               :optionalStop="optionalStopOn"

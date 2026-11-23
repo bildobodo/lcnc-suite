@@ -2613,6 +2613,7 @@
       "line",
       "pre_tool",
       "probe_vars",
+      "program_id",
       "safe_z",
       "source",
       "spindle_dir",

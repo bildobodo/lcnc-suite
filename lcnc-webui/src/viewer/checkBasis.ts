@@ -127,9 +127,10 @@ export function checkState(i: CheckStateInputs): CheckState {
 export interface RunCheckInputs {
   /** The status's preview_origin: where the published payload comes from. */
   origin: PreviewOrigin | null;
-  /** The payload ON SCREEN: its published version and file. */
+  /** The payload ON SCREEN: its published version, file and program identity. */
   shownVersion: number | null;
   shownFile: string | null;
+  shownProgramId?: string | null;
   /** The run in progress (run_basis) — and whether the frame shows it running. */
   run: RunBasis | null;
   running: boolean;
@@ -148,6 +149,11 @@ export function admitRunCheck(i: RunCheckInputs): { ok: true } | { ok: false; wh
   if (!o || !o.pinned) return { ok: false, why: "not a parse made during the run" };
   if (i.shownVersion == null || o.version !== i.shownVersion) return { ok: false, why: "another version on screen" };
   if (o.file !== r.file || i.shownFile !== r.file) return { ok: false, why: "another program" };
+  // the same LOAD (P2b-F1-1): one identity for the origin, the run and the
+  // payload on screen — a reload of the same path is another program; null never matches
+  if (o.programId == null || o.programId !== r.programId || (i.shownProgramId ?? null) !== o.programId) {
+    return { ok: false, why: "another program" };
+  }
   if (o.source == null || o.source !== r.source) return { ok: false, why: "another program text" };
   const f = o.forRun;
   if (!f || f.runId !== r.runId || f.ctxDigest !== r.ctxDigest || f.toolBasisRev !== r.toolBasisRev) {

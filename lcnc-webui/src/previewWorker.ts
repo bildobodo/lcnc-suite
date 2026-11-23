@@ -16,7 +16,7 @@ import { buildLineIndex, lineIndexTransferables } from "./viewer/lineIndex";
 /** `basis`: the verified tool basis to normalise to (VP-I20), null = the
  *  payload's own start; `basisKey` echoes back so the main thread drops a
  *  reply for a basis it no longer wants. */
-interface Req { version: number; url: string; basis?: number[] | null; basisKey?: string }
+interface Req { version: number; programId?: string | null; url: string; basis?: number[] | null; basisKey?: string }
 
 // The raw payload of the last fetched URL: a new tool basis for the SAME
 // version re-decodes it — every basis derived from the original data, never
@@ -31,6 +31,7 @@ let _currentAbort: AbortController | null = null;
 
 self.onmessage = async (e: MessageEvent<Req>) => {
   const { version, url, basis, basisKey } = e.data;
+  const programId = e.data.programId ?? null;
   if (_currentAbort) _currentAbort.abort();
   const ac = new AbortController();
   _currentAbort = ac;
@@ -40,8 +41,22 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       buf = _lastBuf;
     } else {
       const resp = await fetch(url, { signal: ac.signal });
+      if (resp.status === 409) {
+        // the gateway holds another pair now (P2b-F1-1 V4, Codex R450 C2):
+        // this load ends as superseded — the newer announcement follows
+        self.postMessage({ version, programId, basisKey, superseded: true });
+        return;
+      }
       if (!resp.ok) {
-        self.postMessage({ version, basisKey, error: `HTTP ${resp.status}` });
+        self.postMessage({ version, programId, basisKey, error: `HTTP ${resp.status}` });
+        return;
+      }
+      // the answer names its pair; checked BEFORE the bytes enter the cache —
+      // a missing or other name is a protocol error, never a silent payload
+      const hv = resp.headers.get("X-Preview-Version"), hp = resp.headers.get("X-Preview-Program");
+      if (hv !== String(version) || hp === null || hp !== (programId ?? "")) {
+        self.postMessage({ version, programId, basisKey,
+                           error: `protocol: preview named ${hv ?? "no version"} / ${hp ?? "no program"}, asked ${version} / ${programId ?? ""}` });
         return;
       }
       buf = await resp.arrayBuffer();
@@ -179,12 +194,12 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, basisKey, gcode: { ...rest, toolBasis, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedOutside, rapidOutside, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
+      { version, programId, basisKey, gcode: { ...rest, toolBasis, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedOutside, rapidOutside, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {
     if ((err as Error)?.name === "AbortError") return;  // expected on supersede — silent
-    self.postMessage({ version, basisKey, error: String((err as Error)?.message ?? err) });
+    self.postMessage({ version, programId, basisKey, error: String((err as Error)?.message ?? err) });
   }
 };
 

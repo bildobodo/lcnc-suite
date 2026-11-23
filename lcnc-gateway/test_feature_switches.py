@@ -259,7 +259,7 @@ class TestEachSwitch(_Store, unittest.TestCase):
 
     def test_toolsetter_off_refuses_run_from_lines_pre_measurement(self):
         self.switch("toolsetter")
-        r = self._send({"cmd": "auto_run", "line": 4, "file": "/x.ngc", "version": 1, "source": "0" * 64,
+        r = self._send({"cmd": "auto_run", "line": 4, "file": "/x.ngc", "version": 1, "source": "0" * 64, "program_id": "e.1",
                         "pre_tool": 5, "probe_vars": {"3102": -179}})
         self.assertEqual(r["error"], "Toolsetter is off — Settings › Features")
 

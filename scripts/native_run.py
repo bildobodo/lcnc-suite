@@ -3083,7 +3083,7 @@ def rfl_cases():
             outcome = None
             try:
                 c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"],
-                          source=origin["source"], spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
+                          source=origin["source"], program_id=origin.get("program_id"), spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
                           probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
                           entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
             except ls.Refused as e:

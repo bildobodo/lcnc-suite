@@ -106,6 +106,7 @@ const VARIABLE_SENDS: Record<string, { path: "raw" | "fired" | "relay" | "transp
   "App.vue|send(payload)": { path: "transport", cmds: [] },                      // inside fire()
   "lcncWs.ts|send(obj)": { path: "transport", cmds: [] },                        // inside request()
   "App.vue|request(job, 15000)": { path: "fired", cmds: ["probe_run", "surface_scan_run", "tool_measure", "tool_unload_measure"] }, // fireJob: gate + busy latch
+  "App.vue|request(load)": { path: "fired", cmds: ["load_file"] },             // reloadOwn: gate + busy latch, its answer names the load (P2b-F1-2)
   "App.vue|fire(c, 'ready')": { path: "fired", cmds: ["mdi"] },                 // useMdiHistory's send
   "App.vue|send(viaGamepad(cmd))": { path: "relay", cmds: [] },                  // the pad's raw sends (useGamepad.ts)
   "App.vue|fire(viaGamepad(cmd), gate)": { path: "relay", cmds: [] },            // the pad's fired sends (useGamepad.ts)

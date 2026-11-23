@@ -15,6 +15,7 @@ import { ctl, MOCK } from "./ctl";
 import { moreItem } from "./more";
 import { BUTTON_TYPES, INPUT_DEFS } from "../src/machineControls";
 import { GATE_NAMES, type Permissions } from "../src/permissions";
+import { routeText } from "./programFixture";
 
 /** Gates open to a disarmed client (controlScan.ts LIVE_GATES). */
 const LIVE = new Set(["always", "abort", "pause", "spindleStop"]);
@@ -80,7 +81,7 @@ async function disarmedIn(page: Page, state: "idle" | "running" | "unhomed" | "e
 
 async function open(page: Page) {
   await ctl({ op: "reset" });
-  await page.route("**/gcode?*", (route) => route.fulfill({ contentType: "text/plain", body: "(program A)\nG0 X0\nM2\n" }));
+  await routeText(page, "(program A)\nG0 X0\nM2\n");
   await page.goto(MOCK);
   // connected and the first status in (the strip's DRO fields): only then
   // does a settings_init reach the page (dialogs.spec's ready())

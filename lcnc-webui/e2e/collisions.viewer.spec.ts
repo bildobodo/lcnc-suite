@@ -6,6 +6,7 @@ import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 import { FROM_WIRE_INIT, oneContact, wireDelta } from "./contactsDelta";
 import { ContactStore, GAP_UNDECIDABLE, NONE } from "../src/viewer/contactStore";
+import { fulfillPreview, loadOf, publishFile, routeText } from "./programFixture";
 
 // COLLISION jumps on the real 5-axis model (examples/sim_config/machine-
 // 5axis-xyzac, the XYZAC config's own machine.json and STLs): the sweep runs
@@ -22,9 +23,8 @@ async function prepare(page: Page, context: BrowserContext, o: {
   const preview = Buffer.from(encode({ file: o.file, preview_schema: 11, feed: o.feed,
     feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
     violations: [], violations_total: 0, ...o.extra }));
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview }));
+  await routeText(context, Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n"));
   await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
     body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -35,7 +35,7 @@ async function prepare(page: Page, context: BrowserContext, o: {
     g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     rotation_xy: 0, is_enabled: false, enabled: false } });
   if (o.before) await o.before();
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: o.version, file: o.file } });
+  await publishFile(o.file, o.version);
   // The findings live in the side pane's Simulation tab, its list on the collisions.
   await simShow(page, "clash");
 }
@@ -468,7 +468,7 @@ test("a sweep held off by a run starts once the machine is idle, without another
   const run = { interp_state: 2, task_mode: 2, motion_line: 6, joint_pos: [0, 0, -200, 0, 0], actual_position: [0, 0, -200, 0, 0] };
   await ctl({ op: "status_delta", data: run });
   // the mid-run publication: the old findings go, nothing sweeps while it runs
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4002, file } });
+  await publishFile(file, 4002);
   await expect(clashRows(page)).toHaveCount(0);
   await page.waitForTimeout(800);   // past the 400 ms auto timer, still running
   await expect(clashRows(page)).toHaveCount(0);
@@ -488,7 +488,7 @@ const Z9 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 /** The envelope's run_basis as the gateway sends it once the start was
  *  written (scripts/test_fixtures/run_check_wire.json). */
 const runEnv = (file: string, over: Record<string, unknown> = {}) => ({ run_basis: {
-  run_id: 7, state: "sent", file, source: "s", version: 4101, ctx_digest: "d", tool_basis_rev: 1,
+  run_id: 7, state: "sent", file, source: "s", version: 4101, program_id: loadOf(file).id, ctx_digest: "d", tool_basis_rev: 1,
   start: { g5x_index: 1, g5x_offset: Z9, g92_offset: Z9, rotation_xy: 0, wcs_table: null, tool_number: 0,
            tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: Z9 },
   verified: true, why: null, ...over } });
@@ -573,7 +573,7 @@ test("a preview published in the run names the earlier verdict only, until it is
   // the run is on screen before the publication (status frames are folded per
   // animation frame; a real mid-run parse publishes seconds into the run)
   await expect(simLine(page)).toHaveText(/L6|off path/);
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4122, file } });
+  await publishFile(file, 4122);
   await expect(clashRows(page), "no rows of the earlier preview").toHaveCount(0);
   const summary = page.locator(".simSummary .sumItem").first();
   await expect(summary).toHaveAttribute("aria-label", `Earlier preview: ${found} collision${found === 1 ? "" : "s"}`);
@@ -657,7 +657,7 @@ test("the check basis card says what the check read when it began — a later st
 // ---- Plan „Prüfung im Lauf“ 3 (Codex R112–R115): the check during a run ----
 /** The envelope's preview_origin for `version` (ordinary unless `forRun`). */
 const originEnv = (file: string, version: number, over: Record<string, unknown> = {}) => ({ preview_origin: {
-  version, file, source: "s", reason: "file", pinned: false, for_run: null, table: { mtime: 5, rows: "r" },
+  version, file, program_id: loadOf(file).id, source: "s", reason: "file", pinned: false, for_run: null, table: { mtime: 5, rows: "r" },
   tool_basis_rev: 1, tool_basis_rev_now: 1, ...over } });
 const pinnedFor = (runId: number) => ({ pinned: true, reason: "midrun:table_mtime",
   for_run: { run_id: runId, ctx_digest: "d", tool_basis_rev: 1 } });
@@ -674,7 +674,7 @@ async function publishInRun(page: Page, file: string, version: number, over: Rec
   await ctl({ op: "status_delta", envelope: originEnv(file, version, over), data: {} });
   const cadence = setInterval(() => { void ctl(at).catch(() => {}); }, 33);
   try {
-    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+    await publishFile(file, version);
     await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getShownVersion?.() ?? null), { timeout: 10_000 }).toBe(version);
   } finally {
     clearInterval(cadence);
@@ -1161,14 +1161,13 @@ test("on a machine with no other viewer note the tool-table mark brings the card
   // without the mark and hid that the mark alone never rendered it.
   const file = "/tablestale-xyz.ngc";
   const feed = [[0, 0, 5], [0, 0, -1], [40, 0, -1], [40, 30, -1]];
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream",
     body: Buffer.from(encode({ file, preview_schema: 11, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
       feed_outside: new Uint8Array(feed.length), rapid: [], violations: [], violations_total: 0 })) }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await routeText(context, Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n"));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: file } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4301, file } });
+  await publishFile(file, 4301);
   const feedColour = () => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null);
   await expect.poll(feedColour, { timeout: 30_000 }).toBeTruthy();
   const fresh = await feedColour();
@@ -1202,7 +1201,7 @@ test("on a machine with no other viewer note the tool-table mark brings the card
 test("a return to the basis on screen while a decode is out drops its late reply (Codex R59 VP-I23)", async ({ page, context }) => {
   test.setTimeout(60_000);
   const file = "/basis.ngc";
-  const heldKey = `${file}#4502:0,0,20`;
+  const heldKey = `${loadOf(file).id}|${file}#4502:0,0,20`;   // the decode wish names its load (P2b-F1-2)
   await page.addInitScript((key: string) => {
     const w = window as any;
     const NativeWorker = window.Worker;
@@ -1221,18 +1220,17 @@ test("a return to the basis on screen while a decode is out drops its late reply
   let previews = 0;
   await context.route(/\/preview(\?|$)/, r => {
     previews += 1;
-    return r.fulfill({ contentType: "application/octet-stream",
+    return fulfillPreview(r, { contentType: "application/octet-stream",
       body: Buffer.from(encode({ file, preview_schema: 11, rapid: [[0, 0, -10], [20, 0, -10]], rapid_seq: [1, 2],
         rapid_lines: [1, 2], feed: [[20, 0, -30], [40, 0, -40]], feed_seq: [3, 4], feed_lines: [4, 5],
         feed_outside: new Uint8Array(2), rapid_outside: new Uint8Array(2),
         violations: [], violations_total: 0, tlo_events: [[2, 0, 0, 0, -1]],
         start_known: true, tlo_start: [0, 0, 10] })) });
   });
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: "G53 G0 Z0\nG0 X20\nG49\nG1 Z-30 F100\nG1 X40 Z-40\n" }));
+  await routeText(context, "G53 G0 Z0\nG0 X20\nG49\nG1 Z-30 F100\nG1 X40 Z-40\n");
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: file, tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4502, file } });
+  await publishFile(file, 4502);
   const topZ = () => page.evaluate(() => window.__viewerDiag?.getPathBox?.()?.max[2] ?? null);
   const feedColour = () => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null);
   await expect.poll(topZ, { timeout: 30_000 }).toBeCloseTo(-10, 4);
@@ -1274,15 +1272,15 @@ test("a return to the basis on screen while a decode is out drops its late reply
 test("the older-offsets line: at once during a run, in standstill only if no re-parse follows (live look 2026-10-01)", async ({ page, context }) => {
   test.setTimeout(60_000);
   const file = "/offsets.ngc";
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream",
     body: Buffer.from(encode({ file, preview_schema: 11, feed: [[0, 0, 0], [10, 0, 0]], feed_lines: [1, 2], feed_seq: [1, 2],
       feed_outside: new Uint8Array(2), rapid: [], violations: [], violations_total: 0,
       wcs_basis: { g5x: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotation: 0 }, wcs_basis_index: 1, wcs_used: [1] })) }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X10 F100\n" }));
+  await routeText(context, "G1 X10 F100\n");
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: file, g5x_index: 1, g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotation_xy: 0, interp_state: 1 } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 9201, file } });
+  await publishFile(file, 9201);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPathBox?.() ?? null), { timeout: 20_000 }).not.toBeNull();
   const line = page.locator(".hudNotes .hudWarn", { hasText: "older offsets" });
   // standstill: a touch-off moves G54 — the gateway's re-parse follows within its debounce
@@ -1312,17 +1310,16 @@ test("a changed tool offset is checked, and a verified basis re-tips the prefix 
   let previews = 0;
   await context.route(/\/preview(\?|$)/, r => {
     previews += 1;
-    return r.fulfill({ contentType: "application/octet-stream",
+    return fulfillPreview(r, { contentType: "application/octet-stream",
       body: Buffer.from(encode({ file, preview_schema: 11, rapid, rapid_seq: [1, 2], rapid_lines: [1, 2],
         feed, feed_seq: [3, 4], feed_lines: [4, 5], feed_outside: new Uint8Array(2), rapid_outside: new Uint8Array(2),
         violations: [], violations_total: 0, tlo_events: [[2, 0, 0, 0, -1]],
         start_known: true, tlo_start: [0, 0, 10] })) });
   });
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: "G53 G0 Z0\nG0 X20\nG49\nG1 Z-30 F100\nG1 X40 Z-40\n" }));
+  await routeText(context, "G53 G0 Z0\nG0 X20\nG49\nG1 Z-30 F100\nG1 X40 Z-40\n");
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: file, tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4501, file } });
+  await publishFile(file, 4501);
   const topZ = () => page.evaluate(() => window.__viewerDiag?.getPathBox?.()?.max[2] ?? null);
   await expect.poll(topZ, { timeout: 30_000 }).not.toBeNull();
   const before = (await topZ())!;
@@ -1362,15 +1359,14 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
   test.setTimeout(60_000);
   const file = "/measured.ngc";
   const feed = [[0, 0, 5], [0, 0, -1], [40, 0, -1], [40, 30, -1]];
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream",
     body: Buffer.from(encode({ file, preview_schema: 11, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
       feed_outside: new Uint8Array(feed.length), rapid: [], violations: [], violations_total: 0,
       parse_tlos: [[13, 0, 0, 65.064, 8]] })) }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
-    body: Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await routeText(context, Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n"));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: file, tool_number: 13, tool_length: 65.064 } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4401, file } });
+  await publishFile(file, 4401);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null),
     { timeout: 30_000 }).toBeTruthy();
   const lines = page.locator(".hudNotes .hudWarn");
@@ -1432,7 +1428,7 @@ async function sideRunReady(page: Page, context: BrowserContext) {
     data: { interp_state: 2, task_mode: 2, motion_line: 7, joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
   // the parse made for the run: a native payload with a start-dependent beginning
   const native = decode(readFileSync(new URL("../../scripts/test_fixtures/start_dep_payloads/e_single.msgpack", import.meta.url))) as any;
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode({ ...native, file })) }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: Buffer.from(encode({ ...native, file })) }));
   await publishInRun(page, file, 7138, pinnedFor(9));
   await expect.poll(() => page.evaluate(() => (window as any).__sideTap.side !== null), { timeout: 30_000 }).toBe(true);
   await expect.poll(() => runLog(page), { timeout: 60_000 }).toContain("done");
@@ -1574,7 +1570,7 @@ test("a boundary contact before the first table: the basis card reads its displa
     feed_outside: new Uint8Array(4), rapid: [], violations: [], violations_total: 0,
     feed_lineok: new Uint8Array([1, 1, 0, 0]), feed_sub: new Uint8Array([255, 255, 0, 0]), sub_names: ["touch"],
     feed_cline: new Uint8Array(Uint16Array.from([0, 0, 0, 0]).buffer) };
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
   await publishInRun(page, file, 31732, pinnedFor(9));
   await expect.poll(() => page.evaluate(() => (window as any).__r173.main?.id ?? null)).not.toBeNull();
   const m = await page.evaluate(() => { const m = (window as any).__r173.main; return { id: m.id as number, at: m.track.cum[m.options.range.from] as number, range: m.options.range }; });
@@ -1639,7 +1635,7 @@ async function sideRunHeld(page: Page, context: BrowserContext, file = "/side-he
   await ctl({ op: "status_delta", envelope: { ...runEnv(file, { run_id: 9, start }), ...originEnv(file, 7137) },
     data: { interp_state: 2, task_mode: 2, motion_line: 7, joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
   const native = decode(readFileSync(new URL("../../scripts/test_fixtures/start_dep_payloads/e_single.msgpack", import.meta.url))) as any;
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode({ ...native, file })) }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: Buffer.from(encode({ ...native, file })) }));
   // from the run's publication on, the main request's messages are held
   await page.evaluate(() => { (window as any).__sideTap.hold = true; });
   await publishInRun(page, file, 7138, pinnedFor(9));
@@ -2201,7 +2197,7 @@ test("a parse decided early holds the idle check past 3 s until its publication 
   await decision({ state: "parse", job: 9, published: 4402 });
   await expect.poll(() => driftWaitOf(page).then(w => w?.why), { timeout: 10_000 }).toBe("adoption");
   expect(of("collision.sweep_start"), "published is not adopted").toEqual([]);
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4402, file: "/dd-parse.ngc" } });
+  await publishFile("/dd-parse.ngc", 4402);
   await expect.poll(() => of("collision.sweep_start").length, { timeout: 60_000 }).toBe(1);
   await expect.poll(() => of("collision.check_waits").map(e => e.why), { timeout: 10_000 }).toEqual(["parse", "adoption"]);
   expect(of("collision.check_fallback"), "decided early: no fallback").toEqual([]);

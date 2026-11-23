@@ -10,6 +10,7 @@ import { encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 const MODEL = new URL("../../examples/sim_config/machine-5axis-xyzac/", import.meta.url);
 const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"));
@@ -27,8 +28,8 @@ async function prepare(page: Page, context: BrowserContext, file: string, versio
   const preview = Buffer.from(encode({ file, preview_schema: 11, feed: FEED, feed_lines: LINES,
     feed_seq: LINES.map((_, i) => i + 1), feed_outside: new Uint8Array(FEED.length), rapid: [],
     violations: [], violations_total: 0 }));
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview }));
+  await routeText(context, TEXT);
   await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
     body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!, () =>
@@ -39,7 +40,7 @@ async function prepare(page: Page, context: BrowserContext, file: string, versio
   await ctl({ op: "status_delta", data: { active_file: file, joint_pos: [-100, 0, 0, 0, 0], actual_position: [-100, 0, 0, 0, 0],
     g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     rotation_xy: 0, is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+  await publishFile(file, version);
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   // the program's marks and path are in: the signal that a check would be under way by now
   await expect(page.locator(".codeLine.toolChange .lineNumber")).toHaveText(["3"]);
@@ -57,7 +58,7 @@ test("a device without the simulation: no check, no timeline, no Sim tab — the
   await expect(page.locator(".codeLine.collision")).toHaveCount(0);
   // a new parse and an offset change start nothing
   await ctl({ op: "status_delta", data: { g92_offset: [0, 0, 1, 0, 0, 0, 0, 0, 0] } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 7102, file: "/off.ngc" } });
+  await publishFile("/off.ngc", 7102);
   await expect(page.locator(".codeLine.toolChange .lineNumber")).toHaveText(["3"]);
   expect(await work(page)).toEqual(IDLE_WORK);
   // the run: its line in the code panel, from the program's track — no timeline needed

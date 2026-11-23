@@ -722,6 +722,66 @@ an unload, published inputs the controller no longer held. Now:
   decision 2.0 s, a probe op → its WCS edge 4.05 s (the read-back's own end in
   between opens a newer decision, so the page's wait runs from there).
 
+**The program identity (P2b-F1, plan v3, Codex R449–R451)**: the machine-day check
+found a run started before its program's first preview showing the PREVIOUS
+program's path, code and timeline under the new name (case c: RUNNING ·
+PW_BIG_C.NGC with A2's). Now:
+- *The identity.* `program_id = "<epoch>.<gen>"`: the gateway process's epoch
+  (never stored) and the program generation THIS load began under
+  (`LoadedProgram.note_load_gen` in the write thread, adopted with the load).
+  A reload of the same path and A→B→A are new loads; a restored record takes
+  the generation at its first sight and is no own load. The status carries it
+  beside `active_file` — null while no program is proven (the load window, a
+  refused load, an unconfirmed file). Every publication names the identity it
+  was SPAWNED under (`published_program`, `preview_origin`, `preview_refresh`,
+  the announcements, `run_basis`); "the same program" is that identity at
+  every site that compared paths (run_start_check, pinned_ctx,
+  refreshes_published, the mid-run table edge, the drift and schema edges,
+  `_run_for_pin`, the toolsetter edges, Run from line's `auto_run`).
+- *Every load parses.* The load edge is the identity (`preview_file_changed`):
+  each load gets its own parse (a reload of the 40 MB program re-parses it —
+  ~18.6 s on the VM, accepted, R450 C1); no edge while no program is proven.
+  A connect never schedules a parse (a reconnect during a run started an
+  unpinned one under it); it announces only the active program's own
+  publication.
+- *Never a live basis under a run (R450 MT450-01).* The own load's exception
+  in `_restart_wait` skips the actions' quiet window only — never `running` or
+  `moving`. Every unpinned job checks a FRESH controller read at its begin,
+  after the source hash and before its first live-basis read: idle and
+  standing, else it ends unpublished (`refused:running` / `moving` /
+  `unread`, no worker) and the restart waits, named. A parse begun before the
+  start (case b) keeps its rules; F2 (a first PINNED parse at such a start)
+  is deferred with its own capture contract.
+- *`/preview` serves ONE tuple* (version, identity, gz, raw), read once; a
+  request for another (`v`, `p`) pair is 409 `superseded`, `no-store`; the
+  worker checks `X-Preview-Version` / `X-Preview-Program` before its cache —
+  a missing or other name is a named protocol error; a 409 ends the load job.
+- *The page's gate (`ws/bulkData.ts`).* What arrived is HELD with its
+  binding; `viewerGcode` / `gcodeContent` are exposed only while they belong
+  to the status's identity — so the path, the timeline, the check, the
+  marks, the code lines, the line mapping and the run projection
+  (`runDisplay.ts`, simulation off too) show nothing of another program.
+  Per kind of data (R450 MT450-02): the text needs its identity AND its proof
+  (`X-Program-Source` = the announcement's `origin.source`), else it is
+  named ("differs" / "failed") and gives no line mapping or text-bound
+  control; the line marks need text and payload of ONE publication
+  (`gcodeLinesBound`). Hidden is no load in flight: both revisions equal, no
+  start lock; a failed or unproven text ends `loading`. Edit, Run from line
+  (`auto_run.program_id`) and the editor's conflict and save completion bind
+  to the identity (the own reload's reply names its load; the status decides
+  what shows). A reconnect keeps the view only with unchanged identity,
+  version and decode basis (R450 MT450-03).
+- *The wait, named (`preview_wait`, every frame).* While the active program
+  has no publication of its own and no parse of it is scheduled or running:
+  EVERY reason (`running` / `moving`, every `held:` / `observed:` / `overdue:`
+  action, `debounce`, `settle:rotary`, `unloading`) and the last unpublished
+  job's end; no deadline; replaced by a new load, ended by its job's schedule
+  (`preview_refresh` names that job from the schedule on: `phase` starting /
+  running, `first`). It decides nothing. `previewWait.ts` is the ONE state
+  decider for the HUD line, the code panel, the Sim tab and the run banner's
+  "PREVIEW AFTER THE RUN" (only while running from an unverified start; an
+  open writer named; no promise from a deadline).
+
 **Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
 edge above used to be gated on "no parse running", so an edge raised
 DURING a parse (a touch-off while the rotary-drift parse from → Zero

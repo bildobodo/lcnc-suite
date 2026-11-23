@@ -29,8 +29,9 @@ const {
   fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, previewDecoding,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
-  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal, previewParseError,
+  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal, previewParseError, gcodeTextState,
 } = await import("./bulkData");
+const { status } = await import("./statusStore");
 
 type FetchCall = { url: string; signal: AbortSignal };
 
@@ -246,14 +247,25 @@ describe("surface/comp-grid channels", () => {
 });
 
 describe("preview worker channel", () => {
+  // The active program's identity (status data program_id) and its
+  // publications: the gate shows only what is this program's (P2b-F1-2).
+  const PID = "E.1", SRC = "s1";
+  const setActive = (id: string | null) => {
+    status.value = { ...(status.value ?? {}), data: { ...((status.value as any)?.data ?? {}), program_id: id } } as any;
+  };
+  const ready = (version: number, file: string | null, src: string | null = SRC, id: string | null = PID) =>
+    handleViewerGcodeReady({ version, file, program_id: id, origin: { source: src } });
+  const text = (body: string, src: string = SRC) =>
+    Promise.resolve(new Response(body, { status: 200, headers: { "X-Program-Source": src } }));
+  beforeEach(() => setActive(PID));
   it("viewer_gcode_ready posts to the worker once per version and fetches gcode text", async () => {
-    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
-    handleViewerGcodeReady({ version: 5, file: "/nc/part.ngc" });
+    fetchImpl = () => Promise.resolve(text("G0 X0"));
+    ready(5, "/nc/part.ngc");
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     expect(String(w.url)).toContain("previewWorker");
-    expect(w.posted).toEqual([{ version: 5, url: "/preview?v=5", basis: null, basisKey: "/nc/part.ngc#5:start" }]);
+    expect(w.posted).toEqual([{ version: 5, programId: PID, url: "/preview?v=5&p=E.1", basis: null, basisKey: "E.1|/nc/part.ngc#5:start" }]);
 
-    handleViewerGcodeReady({ version: 5, file: "/nc/part.ngc" });  // dedupe both channels
+    ready(5, "/nc/part.ngc");  // dedupe both channels
     expect(w.posted).toHaveLength(1);
 
     await flush();
@@ -262,27 +274,27 @@ describe("preview worker channel", () => {
   });
 
   it("a payload being decoded is said from the post to its reply — a superseded reply keeps it (plan „Prüfung im Lauf“ 4)", async () => {
-    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
-    handleViewerGcodeReady({ version: 70, file: "/nc/d.ngc" });
+    fetchImpl = () => Promise.resolve(text("G0 X0"));
+    ready(70, "/nc/d.ngc");
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     expect(previewDecoding.value).toBe(true);
-    handleViewerGcodeReady({ version: 71, file: "/nc/d.ngc" });
+    ready(71, "/nc/d.ngc");
     // the reply for 70 is superseded: 71 is still being decoded
-    w.onmessage?.({ data: { version: 70, basisKey: "/nc/d.ngc#70:start", gcode: { file: "/nc/d.ngc" } } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 70, basisKey: "E.1|/nc/d.ngc#70:start", gcode: { file: "/nc/d.ngc" } } } as any);
     expect(previewDecoding.value).toBe(true);
-    w.onmessage?.({ data: { version: 71, basisKey: "/nc/d.ngc#71:start", gcode: { file: "/nc/d.ngc" } } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 71, basisKey: "E.1|/nc/d.ngc#71:start", gcode: { file: "/nc/d.ngc" } } } as any);
     expect(previewDecoding.value).toBe(false);
     // a failed decode ends it too
-    handleViewerGcodeReady({ version: 72, file: "/nc/d.ngc" });
+    ready(72, "/nc/d.ngc");
     expect(previewDecoding.value).toBe(true);
-    w.onmessage?.({ data: { version: 72, basisKey: "/nc/d.ngc#72:start", error: "bad bytes" } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 72, basisKey: "E.1|/nc/d.ngc#72:start", error: "bad bytes" } } as any);
     expect(previewDecoding.value).toBe(false);
   });
 
   it("THIS decode's failure is said with its file and version — never another channel's (VP188-02 E2, R191 rest B)", async () => {
     const { previewDecodeFailure } = await import("./bulkData");
-    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
-    handleViewerGcodeReady({ version: 80, file: "/nc/e.ngc" });
+    fetchImpl = () => Promise.resolve(text("G0 X0"));
+    ready(80, "/nc/e.ngc");
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     const before = previewDecodeFailure.value;
     // a surface-points failure is the mixed previewLoadError, never this
@@ -292,14 +304,14 @@ describe("preview worker channel", () => {
     expect(fetchCalls.some(c => c.url.startsWith("/surface_points"))).toBe(true);   // it failed (503)
     expect(previewDecodeFailure.value).toBe(before);
     // a superseded version's error reply is dropped like its success
-    handleViewerGcodeReady({ version: 81, file: "/nc/e.ngc" });
-    w.onmessage?.({ data: { version: 80, basisKey: "/nc/e.ngc#80:start", error: "old" } } as any);
+    ready(81, "/nc/e.ngc");
+    w.onmessage?.({ data: { programId: PID, version: 80, basisKey: "E.1|/nc/e.ngc#80:start", error: "old" } } as any);
     expect(previewDecodeFailure.value).toBe(before);
-    w.onmessage?.({ data: { version: 81, basisKey: "/nc/e.ngc#81:start", error: "bad bytes" } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 81, basisKey: "E.1|/nc/e.ngc#81:start", error: "bad bytes" } } as any);
     expect(previewDecodeFailure.value).toMatchObject({ file: "/nc/e.ngc", version: 81 });
     const n81 = previewDecodeFailure.value!.n;
     // the worker's own error while a version is out names that version
-    handleViewerGcodeReady({ version: 82, file: "/nc/e.ngc" });
+    ready(82, "/nc/e.ngc");
     w.onerror?.({ message: "worker died" });
     expect(previewDecodeFailure.value).toMatchObject({ file: "/nc/e.ngc", version: 82 });
     expect(previewDecodeFailure.value!.n).toBeGreaterThan(n81);
@@ -308,12 +320,12 @@ describe("preview worker channel", () => {
   it("a verified tool basis re-decodes the payload on screen — this file AND version only (VP-I20, R58 VP-I24)", async () => {
     const { previewToolBasis, previewBasisPending } = await import("./statusStore");
     const { nextTick } = await import("vue");
-    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
-    handleViewerGcodeReady({ version: 60, file: "/nc/part.ngc" });
+    fetchImpl = () => Promise.resolve(text("G0 X0"));
+    ready(60, "/nc/part.ngc");
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     const n0 = w.posted.length;
-    expect(w.posted[n0 - 1]).toEqual({ version: 60, url: "/preview?v=60", basis: null, basisKey: "/nc/part.ngc#60:start" });
-    w.onmessage?.({ data: { version: 60, basisKey: "/nc/part.ngc#60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0512] } } } as any);
+    expect(w.posted[n0 - 1]).toEqual({ version: 60, programId: PID, url: "/preview?v=60&p=E.1", basis: null, basisKey: "E.1|/nc/part.ngc#60:start" });
+    w.onmessage?.({ data: { programId: PID, version: 60, basisKey: "E.1|/nc/part.ngc#60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0512] } } } as any);
     // another file with the same version number, the right file with
     // another version: nothing re-decoded, nothing pending
     for (const b of [{ file: "/nc/other.ngc", version: 60, xyz: [0, 0, 30] },
@@ -328,21 +340,21 @@ describe("preview worker channel", () => {
     previewToolBasis.value = { file: "/nc/part.ngc", version: 60, xyz: [0, 0, 65.0562] };
     previewBasisPending.value = true;
     await nextTick();
-    expect(w.posted.slice(n0)).toEqual([{ version: 60, url: "/preview?v=60", basis: [0, 0, 65.0562],
-                                          basisKey: "/nc/part.ngc#60:0,0,65.0562" }]);
+    expect(w.posted.slice(n0)).toEqual([{ version: 60, programId: PID, url: "/preview?v=60&p=E.1", basis: [0, 0, 65.0562],
+                                          basisKey: "E.1|/nc/part.ngc#60:0,0,65.0562" }]);
     expect(gcodeRevision.value).toBe("/nc/part.ngc#60");
     expect(previewBasisPending.value).toBe(true);
     // R58 VP-I23: an older reply and a worker error keep it pending …
-    w.onmessage?.({ data: { version: 60, basisKey: "/nc/part.ngc#60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 1] } } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 60, basisKey: "E.1|/nc/part.ngc#60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 1] } } } as any);
     expect(viewerGcode.value?.toolBasis).toEqual([0, 0, 65.0512]);
     expect(previewBasisPending.value).toBe(true);
-    w.onmessage?.({ data: { version: 60, basisKey: "/nc/part.ngc#60:0,0,65.0562", error: "boom" } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 60, basisKey: "E.1|/nc/part.ngc#60:0,0,65.0562", error: "boom" } } as any);
     expect(previewBasisPending.value, "a failed decode leaves the old basis on screen").toBe(true);
     // … a retry (the next ready for this version) that lands ends it
-    handleViewerGcodeReady({ version: 60, file: "/nc/part.ngc" });
-    const key = "/nc/part.ngc#60:0,0,65.0562";
+    ready(60, "/nc/part.ngc");
+    const key = "E.1|/nc/part.ngc#60:0,0,65.0562";
     expect(w.posted[w.posted.length - 1]).toMatchObject({ basisKey: key });
-    w.onmessage?.({ data: { version: 60, basisKey: key, gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0562] } } } as any);
+    w.onmessage?.({ data: { programId: PID, version: 60, basisKey: key, gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0562] } } } as any);
     expect(viewerGcode.value?.toolBasis).toEqual([0, 0, 65.0562]);
     expect(previewBasisPending.value).toBe(false);
     // the same basis again: nothing to do, nothing pending
@@ -361,11 +373,11 @@ describe("preview worker channel", () => {
     it(`a return to the basis on screen drops the late reply of the other — A = ${name} (Codex R59 VP-I23)`, async () => {
       const { previewToolBasis, previewBasisPending } = await import("./statusStore");
       const { nextTick } = await import("vue");
-      fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
+      fetchImpl = () => Promise.resolve(text("G0 X0"));
       const file = "/nc/return.ngc", version = a ? 81 : 80;
-      const keyOf = (xyz: readonly number[] | null) => `${file}#${version}:${xyz ? xyz.join(",") : "start"}`;
+      const keyOf = (xyz: readonly number[] | null) => `${PID}|${file}#${version}:${xyz ? xyz.join(",") : "start"}`;
       const reply = (xyz: readonly number[] | null) =>
-        w.onmessage?.({ data: { version, basisKey: keyOf(xyz), gcode: { file, toolBasis: xyz ?? [0, 0, 10] } } } as any);
+        w.onmessage?.({ data: { programId: PID, version, basisKey: keyOf(xyz), gcode: { file, toolBasis: xyz ?? [0, 0, 10] } } } as any);
       const want = async (xyz: readonly number[] | null) => {
         previewToolBasis.value = xyz ? { file, version, xyz: [...xyz] } : null;
         previewBasisPending.value = true;      // statusStore sets it on any change
@@ -373,7 +385,7 @@ describe("preview worker channel", () => {
       };
       previewToolBasis.value = null;
       await nextTick();
-      handleViewerGcodeReady({ version, file });
+      ready(version, file);
       const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
       reply(null);
       if (a) { await want(a); reply(a); }
@@ -391,7 +403,7 @@ describe("preview worker channel", () => {
       await want(a);                            // the next unchanged status
       expect(viewerGcode.value?.toolBasis).toEqual(a ?? [0, 0, 10]);
       await want(b);                            // B wanted again: decoded again
-      expect(w.posted.slice(n)).toEqual([{ version, url: `/preview?v=${version}`, basis: b, basisKey: keyOf(b) }]);
+      expect(w.posted.slice(n)).toEqual([{ version, programId: PID, url: `/preview?v=${version}&p=${PID}`, basis: b, basisKey: keyOf(b) }]);
       reply(b);
       expect(viewerGcode.value?.toolBasis).toEqual(b);
       expect(previewBasisPending.value).toBe(false);
@@ -402,17 +414,17 @@ describe("preview worker channel", () => {
   it("the published revision moves on ARRIVAL; the text revision follows when the text lands (UI-DI05)", async () => {
     let release!: (r: Response) => void;
     fetchImpl = () => new Promise<Response>(r => { release = r; });
-    handleViewerGcodeReady({ version: 40, file: "/nc/part.ngc" });
+    ready(40, "/nc/part.ngc");
     // A hold bound to the revision is cancelled now — the text is still out.
     expect(gcodeRevision.value).toBe("/nc/part.ngc#40");
     expect(gcodeTextRevision.value).not.toBe("/nc/part.ngc#40");
-    release(new Response("G0 X20", { status: 200 }));
+    release(new Response("G0 X20", { status: 200, headers: { "X-Program-Source": SRC } }));
     await flush();
     expect(gcodeContent.value).toBe("G0 X20");
     expect(gcodeTextRevision.value).toBe("/nc/part.ngc#40");
     // A failed fetch settles too (no text, but no longer loading).
     fetchImpl = () => httpError(503);
-    handleViewerGcodeReady({ version: 41, file: "/nc/part.ngc" });
+    ready(41, "/nc/part.ngc");
     expect(gcodeRevision.value).toBe("/nc/part.ngc#41");
     await flush();
     expect(gcodeContent.value).toBeNull();
@@ -420,21 +432,21 @@ describe("preview worker channel", () => {
   });
 
   it("the displayed text carries the fingerprint GET /gcode named for it (Codex R17 XZ-07)", async () => {
-    fetchImpl = () => Promise.resolve(new Response("G0 X30", { status: 200, headers: { "X-Program-Source": "ab12" } }));
-    handleViewerGcodeReady({ version: 50, file: "/nc/part.ngc" });
+    fetchImpl = () => text("G0 X30", "ab12");
+    ready(50, "/nc/part.ngc", "ab12");
     await flush();
     expect([gcodeContent.value, gcodeTextSource.value, gcodeTextRevision.value]).toEqual(["G0 X30", "ab12", "/nc/part.ngc#50"]);
     // No text, no fingerprint: a failed fetch, a response without one, no program.
     fetchImpl = () => httpError(503);
-    handleViewerGcodeReady({ version: 51, file: "/nc/part.ngc" });
+    ready(51, "/nc/part.ngc", "ab12");
     await flush();
     expect(gcodeTextSource.value).toBe("");
     fetchImpl = () => Promise.resolve(new Response("G0 X31", { status: 200 }));
-    handleViewerGcodeReady({ version: 52, file: "/nc/part.ngc" });
+    ready(52, "/nc/part.ngc", "ab12");
     await flush();
     expect(gcodeTextSource.value).toBe("");
-    fetchImpl = () => Promise.resolve(new Response("G0 X30", { status: 200, headers: { "X-Program-Source": "ab12" } }));
-    handleViewerGcodeReady({ version: 53, file: "/nc/part.ngc" });
+    fetchImpl = () => text("G0 X30", "ab12");
+    ready(53, "/nc/part.ngc", "ab12");
     await flush();
     handleViewerGcodeReady({ version: 54, file: null });
     expect(gcodeTextSource.value).toBe("");
@@ -442,20 +454,191 @@ describe("preview worker channel", () => {
 
   it("stale worker reply is dropped; current version applies with markRaw", () => {
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
-    handleViewerGcodeReady({ version: 6, file: null });
-    w.onmessage!({ data: { version: 5, gcode: { file: "old" } } });   // stale
+    ready(6, "/nc/stale.ngc");
+    w.onmessage!({ data: { programId: PID, version: 5, gcode: { file: "old" } } });   // stale
     expect(viewerGcode.value?.file).not.toBe("old");
-    w.onmessage!({ data: { version: 6, gcode: { file: "new" } } });
+    w.onmessage!({ data: { programId: PID, version: 6, gcode: { file: "new" } } });
     expect(viewerGcode.value?.file).toBe("new");
   });
 
   it("worker error sets the preview channel error and allows retry of the version", () => {
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
-    handleViewerGcodeReady({ version: 7, file: null });
-    w.onmessage!({ data: { version: 7, error: "decode blew up" } });
+    ready(7, "/nc/w.ngc");
+    w.onmessage!({ data: { programId: PID, version: 7, error: "decode blew up" } });
     expect(previewLoadError.value).toContain("decode blew up");
-    handleViewerGcodeReady({ version: 7, file: null });  // sentinel was reset
+    ready(7, "/nc/w.ngc");  // sentinel was reset
     expect(w.posted.filter((p: any) => p.version === 7)).toHaveLength(2);
+  });
+});
+
+// P2b-F1-2 (Codex R449 MT449-02, R450 MT450-02/03, R451): the identity gate.
+// Nothing of another program is shown — null never matches; the text needs
+// its identity AND the proof that its bytes are its publication's text.
+describe("the program identity gate (P2b-F1-2)", () => {
+  const setActive = (id: string | null) => {
+    status.value = { ...(status.value ?? {}), data: { ...((status.value as any)?.data ?? {}), program_id: id } } as any;
+  };
+  const ready = (version: number, file: string, id: string | null, src: string | null) =>
+    handleViewerGcodeReady({ version, file, program_id: id, origin: { source: src } });
+  const text = (body: string, src: string | null) =>
+    Promise.resolve(new Response(body, { status: 200, headers: src ? { "X-Program-Source": src } : {} }));
+  const worker = () => FakeWorker.instances[FakeWorker.instances.length - 1]!;
+  const land = (id: string | null, version: number, file: string) =>
+    worker().onmessage?.({ data: { programId: id, version, basisKey: `${id ?? ""}|${file}#${version}:start`, gcode: { file } } } as any);
+
+  it("another program's payload is held, never shown; its own shows; null never matches", async () => {
+    const { nextTick } = await import("vue");
+    fetchImpl = () => text("(A2)\n", "a2");
+    setActive("G.1");
+    ready(900, "/a2.ngc", "G.1", "a2");
+    land("G.1", 900, "/a2.ngc");
+    await flush();
+    expect(viewerGcode.value?.file).toBe("/a2.ngc");
+    expect(gcodeContent.value).toBe("(A2)\n");
+    // C is loaded (case c): the status names it before any publication of it
+    setActive("G.2");
+    await nextTick();
+    expect(viewerGcode.value, "A2's path is not C's").toBeNull();
+    expect(gcodeContent.value, "A2's text is not C's").toBeNull();
+    expect([gcodeRevision.value, gcodeTextRevision.value], "hidden is no load in flight: no start lock").toEqual(["", ""]);
+    // no program proven: nothing, also against a payload without identity
+    setActive(null);
+    ready(901, "/x.ngc", null, null);
+    land(null, 901, "/x.ngc");
+    await nextTick();
+    expect(viewerGcode.value).toBeNull();
+    // C's own publication arrives: shown
+    setActive("G.2");
+    fetchImpl = () => text("(C)\n", "c1");
+    ready(902, "/c.ngc", "G.2", "c1");
+    land("G.2", 902, "/c.ngc");
+    await flush();
+    expect(viewerGcode.value?.file).toBe("/c.ngc");
+    expect(gcodeContent.value).toBe("(C)\n");
+  });
+
+  it("a publication announced before the status names its load waits for the status", async () => {
+    const { nextTick } = await import("vue");
+    setActive("H.1");
+    fetchImpl = () => text("(B)\n", "b1");
+    ready(910, "/b.ngc", "H.2", "b1");      // the next load's publication, ahead of its status
+    land("H.2", 910, "/b.ngc");
+    await flush();
+    expect(viewerGcode.value).toBeNull();
+    expect(gcodeContent.value).toBeNull();
+    setActive("H.2");
+    await nextTick();
+    expect(viewerGcode.value?.file).toBe("/b.ngc");
+    expect(gcodeContent.value).toBe("(B)\n");
+  });
+
+  it("text without its proof is never its publication's — named, no lasting lock", async () => {
+    setActive("T.1");
+    // the file changed between the announcement and GET /gcode: another fingerprint
+    fetchImpl = () => text("(edited)\n", "other");
+    ready(920, "/t.ngc", "T.1", "t1");
+    await flush();
+    expect(gcodeContent.value).toBeNull();
+    expect(gcodeTextState.value).toBe("differs");
+    expect(gcodeRevision.value).toBe(gcodeTextRevision.value);
+    // no proof at all: neither side names one
+    fetchImpl = () => text("(x)\n", null);
+    ready(921, "/t.ngc", "T.1", null);
+    await flush();
+    expect([gcodeContent.value, gcodeTextState.value]).toEqual([null, "differs"]);
+    // a failed fetch: named, the revisions equal again
+    fetchImpl = () => httpError(503);
+    ready(922, "/t.ngc", "T.1", "t1");
+    await flush();
+    expect([gcodeContent.value, gcodeTextState.value]).toEqual([null, "failed"]);
+    expect(gcodeRevision.value).toBe(gcodeTextRevision.value);
+    // in flight: the ACTIVE program's own text keeps them apart, and only then
+    let release!: (r: Response) => void;
+    fetchImpl = () => new Promise<Response>(r => { release = r; });
+    ready(923, "/t.ngc", "T.1", "t1");
+    expect(gcodeTextState.value).toBe("loading");
+    expect(gcodeRevision.value).not.toBe(gcodeTextRevision.value);
+    release(new Response("(t)\n", { status: 200, headers: { "X-Program-Source": "t1" } }));
+    await flush();
+    expect([gcodeContent.value, gcodeTextState.value]).toEqual(["(t)\n", "ok"]);
+    expect(gcodeRevision.value).toBe(gcodeTextRevision.value);
+  });
+
+  it("late answers of another load are dropped at their arrival", async () => {
+    setActive("L.1");
+    let releaseOld!: (r: Response) => void;
+    fetchImpl = () => new Promise<Response>(r => { releaseOld = r; });
+    ready(930, "/l.ngc", "L.1", "l1");
+    // the same path loaded again before the text landed: L.2
+    setActive("L.2");
+    fetchImpl = () => text("(L2)\n", "l2");
+    ready(931, "/l.ngc", "L.2", "l2");
+    await flush();
+    releaseOld(new Response("(L1)\n", { status: 200, headers: { "X-Program-Source": "l1" } }));
+    await flush();
+    expect(gcodeContent.value, "the old load's late text").toBe("(L2)\n");
+    // a late decode of the old load
+    land("L.1", 930, "/l.ngc");
+    expect(viewerGcode.value?.file ?? null).not.toBe("/l.ngc#old");
+    land("L.2", 931, "/l.ngc");
+    expect(viewerGcode.value?.programId).toBe("L.2");
+    land("L.1", 931, "/l.ngc");          // the right version, another load: dropped
+    expect(viewerGcode.value?.programId).toBe("L.2");
+  });
+
+  it("the lines are bound only while the text and the payload are ONE publication", async () => {
+    const { gcodeLinesBound } = await import("./bulkData");
+    setActive("M.1");
+    fetchImpl = () => text("(m)\n", "m1");
+    ready(940, "/m.ngc", "M.1", "m1");
+    land("M.1", 940, "/m.ngc");
+    await flush();
+    expect(gcodeLinesBound.value).toBe(true);
+    let release!: (r: Response) => void;
+    fetchImpl = () => new Promise<Response>(r => { release = r; });
+    ready(941, "/m.ngc", "M.1", "m1");      // a re-parse of the same load: its text loads
+    land("M.1", 941, "/m.ngc");
+    expect(gcodeContent.value, "the same load's text stays while its successor loads").toBe("(m)\n");
+    expect(gcodeLinesBound.value, "940's lines under 941's payload: no marks").toBe(false);
+    release(new Response("(m)\n", { status: 200, headers: { "X-Program-Source": "m1" } }));
+    await flush();
+    expect(gcodeLinesBound.value).toBe(true);
+  });
+
+  it("an unchanged reconnect fetches nothing; a new version or another load does", async () => {
+    const { nextTick } = await import("vue");
+    setActive("R.1");
+    fetchImpl = () => text("(r)\n", "r1");
+    ready(950, "/r.ngc", "R.1", "r1");
+    land("R.1", 950, "/r.ngc");
+    await flush();
+    const posted = worker().posted.length, texts = fetchCalls.filter(c => c.url.startsWith("/gcode")).length;
+    resetBulkVersionsOnClose();
+    ready(950, "/r.ngc", "R.1", "r1");      // the new connection's re-ping
+    await flush();
+    expect(worker().posted.length).toBe(posted);
+    expect(fetchCalls.filter(c => c.url.startsWith("/gcode")).length).toBe(texts);
+    expect(viewerGcode.value?.programId).toBe("R.1");
+    ready(951, "/r.ngc", "R.1", "r1");      // a new publication of the same load meanwhile
+    expect(worker().posted.length).toBe(posted + 1);
+    setActive("R.2");                        // a second client reloaded the same path meanwhile
+    await nextTick();
+    expect(viewerGcode.value).toBeNull();
+  });
+
+  it("a 409 ends the load as superseded; a payload that names another pair is a protocol error", async () => {
+    const { previewDecoding } = await import("./bulkData");
+    setActive("S.1");
+    fetchImpl = () => text("(s)\n", "s1");
+    ready(960, "/s.ngc", "S.1", "s1");
+    expect(previewDecoding.value).toBe(true);
+    worker().onmessage?.({ data: { programId: "S.1", version: 960, basisKey: "S.1|/s.ngc#960:start", superseded: true } } as any);
+    expect(previewDecoding.value, "never a lasting loading state").toBe(false);
+    expect(previewLoadError.value ?? "").not.toContain("superseded");
+    ready(961, "/s.ngc", "S.1", "s1");
+    worker().onmessage?.({ data: { programId: "S.1", version: 961, basisKey: "S.1|/s.ngc#961:start",
+                                   error: "protocol: preview named 962 / S.1, asked 961 / S.1" } } as any);
+    expect(previewLoadError.value).toContain("protocol");
   });
 });
 

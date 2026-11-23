@@ -3,6 +3,7 @@ import { encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { fulfillPreview, loadOf, publishFile, routeText } from "./programFixture";
 
 // VP188-02 E2 (plan basiswechsel-last Fassung 4, Codex R193/R194): while the
 // gateway re-parses the loaded program, an offset change does not re-bake
@@ -19,7 +20,7 @@ const FEED = [[-50, 0, -100], [50, 0, -100], [50, 20, -100]];
 const z9 = (z = 0) => [0, 0, z, 0, 0, 0, 0, 0, 0];
 // the envelope's run_basis as the gateway sends it once the start was
 // written (scripts/test_fixtures/run_check_wire.json; collisions.viewer.spec)
-const RUN = { run_basis: { run_id: 7, state: "sent", file: FILE, source: "s", version: 100, ctx_digest: "d",
+const RUN = { run_basis: { run_id: 7, state: "sent", file: FILE, source: "s", version: 100, program_id: loadOf(FILE).id, ctx_digest: "d",
   tool_basis_rev: 1, verified: true, why: null,
   start: { g5x_index: 1, g5x_offset: z9(), g92_offset: z9(), rotation_xy: 0, wcs_table: null, tool_number: 0,
            tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: z9() } } };
@@ -44,10 +45,10 @@ async function prepare(page: Page, context: BrowserContext, o: {
   await context.route(/\/preview(\?|$)/, r => {
     const v = Number(new URL(r.request().url()).searchParams.get("v"));
     if (o.stall?.includes(v)) return;           // never answered: that version stays out
-    if (o.bad?.includes(v)) return r.fulfill({ contentType: "application/octet-stream", body: Buffer.from([0xc1, 0xc1]) });
-    return r.fulfill({ contentType: "application/octet-stream", body });
+    if (o.bad?.includes(v)) return fulfillPreview(r, { contentType: "application/octet-stream", body: Buffer.from([0xc1, 0xc1]) });
+    return fulfillPreview(r, { contentType: "application/octet-stream", body });
   });
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X-50\nG1 X50\nG1 Y20\n" }));
+  await routeText(context, "G1 X-50\nG1 X50\nG1 Y20\n");
   await context.route(/\/surface_points(\?|$)/, r => r.fulfill({ status: 503, body: "" }));
   await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
     body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
@@ -85,7 +86,7 @@ async function setZ(page: Page, z: number) {
 }
 const parse = (job: number | null) => ctl({ op: "status_delta", data: {}, envelope: { preview_refresh: job == null ? null
   : { reason: "wcsoff:G54:z", file: "hold.ngc", expected_ms: 9000, started_ms: 1, job, queued: false, superseded: 0 } } });
-const publish = (version: number) => ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: FILE } });
+const publish = (version: number) => publishFile(FILE, version);
 /** The drawn path is the wanted one: baked, applied, not muted. */
 async function waitDrawn(page: Page) {
   await expect.poll(async () => {

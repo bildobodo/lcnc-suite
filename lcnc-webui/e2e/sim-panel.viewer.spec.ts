@@ -13,6 +13,7 @@ import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { FIRST_ROWS } from "../src/viewer/simListRange";
 import { withLimitRuns } from "./limitRuns";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 const FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
 FEED[17]![0] = 110;   // line 20 out of the X window
@@ -28,11 +29,11 @@ const PREVIEW = Buffer.from(encode(PREVIEW_FIELDS));
 const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
 
 async function prepare(page: Page, context: BrowserContext, vp = "desktop", preview = PREVIEW, setHits = true) {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview }));
+  await routeText(context, TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
   await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5100, file: "/sim.ngc" } });
+  await publishFile("/sim.ngc", 5100);
   await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
   // The sweep's verdict, then two collisions on the swept track (L12 feed, L26 rapid).
   await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
@@ -423,7 +424,7 @@ test("between the portions: the keys reach a row not yet rendered, a filter chan
   await simShow(page, "clash");
   await watchFill(page, `window.__fillProgram = true; return 1;`);
   await hits(page, 1000, 9000);
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await publishFile("/sim.ngc", 5101);
   await expect.poll(() => rowKeys(page).then(k => k.filter(x => /^C0\|9\d{3}\|0$/.test(x!)).length), { timeout: 15_000 }).toBe(0);
 });
 
@@ -629,11 +630,11 @@ test("a limit row stands at its own move and reads its origin's line, never a ra
 const LIM_FIXTURE = (name: string) => readFileSync(new URL(`../../scripts/test_fixtures/limit_origin_payloads/${name}.msgpack`, import.meta.url));
 const LIM_TEXT = "G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\nG1 X30\nG1 X40\nM2\n";
 async function limitPayload(page: Page, context: BrowserContext, body: Buffer, text: string, version: number) {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: text }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body }));
+  await routeText(context, text);
   await openLayout(page, PROFILES[0]!, VIEWPORTS[0]!);
   await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: "/sim.ngc" } });
+  await publishFile("/sim.ngc", version);
   await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
   await openSimTab(page);
   await simShow(page, "limit");
@@ -833,11 +834,11 @@ test("a result change under the focus keeps it in the panel; no arrow jogs", asy
 // returned "No moving pairs" before it read that note — no marker, no "not
 // certified" in the name, and the help began "nothing to check".
 test("a part left out of the check stays marked, with or without moving pairs", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW }));
+  await routeText(context, TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await publishFile("/sim.ngc", 5101);
   await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
   await openSimTab(page);
   const item = page.locator(".simPanel .simSummary .sumItem").first();
@@ -871,11 +872,11 @@ test("a part left out of the check stays marked, with or without moving pairs", 
 // machine's position, has no coverage to show — the bar's number has no
 // words beside it, the tab's bar has its verdict.
 test("the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW }));
+  await routeText(context, TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await publishFile("/sim.ngc", 5101);
   await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
   await openSimTab(page);
   const item = page.locator(".simPanel .simSummary .sumItem").first();
@@ -971,11 +972,11 @@ const RAPID_PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/simrapid.ngc", 
 const RAPID_TEXT = Array.from({ length: 16 }, (_, i) => i === 0 ? "(simrapid)" : i === 4 ? "T3 M6" : `G1 X${i} F100`).join("\n");
 
 test("a tool change shown after a finding on a hidden rapid ends the rapids' reveal", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: RAPID_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: RAPID_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: RAPID_PREVIEW }));
+  await routeText(context, RAPID_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/simrapid.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5200, file: "/simrapid.ngc" } });
+  await publishFile("/simrapid.ngc", 5200);
   await simShow(page, "all");
   await expect(page.locator('.simPanel tr[data-sim-row="T5"]')).toBeVisible({ timeout: 15_000 });
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false } } } } });
@@ -1011,11 +1012,11 @@ const LONG_PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/long.ngc", previ
 const LONG_TEXT = Array.from({ length: 64 }, (_, i) => i === 0 ? "(long)" : `G1 X${i} F100`).join("\n");
 
 test("the list follows the position: the marked row stays in the middle of its view", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await routeText(context, LONG_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5300, file: "/long.ngc" } });
+  await publishFile("/long.ngc", 5300);
   await simShow(page, "all");
   await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   const view = () => page.evaluate(() => {
@@ -1053,13 +1054,13 @@ test("the list follows the position: the marked row stays in the middle of its v
 // a row waits for its step, else the marked row — is wholly in view at every
 // sample.
 test("playback at ×100 with normal motion: the marked row's highlight never leaves the list's view", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await routeText(context, LONG_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 800 });
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5400, file: "/long.ngc" } });
+  await publishFile("/long.ngc", 5400);
   await simShow(page, "limit");
   await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   await settleLayout(page);
@@ -1093,13 +1094,13 @@ test("playback at ×100 with normal motion: the marked row's highlight never lea
 // list scrolled away by hand, the next marked row's band began off screen
 // and glided in; such a follow snaps — the row in the middle at once.
 for (const inFrame of [false, true]) test(`the list scrolled away: the next marked row snaps to the middle, its highlight in view at once${inFrame ? " — the scrub inside an animation frame (Codex R279 FI-I16)" : ""}`, async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await routeText(context, LONG_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 800 });
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5402, file: "/long.ngc" } });
+  await publishFile("/long.ngc", 5402);
   await simShow(page, "limit");
   await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   await settleLayout(page);
@@ -1166,13 +1167,13 @@ for (const inFrame of [false, true]) test(`the list scrolled away: the next mark
 // the further row snaps at once. Both changes run in one animation frame
 // after the sampler's, as the scrub's play would.
 test("a follow already planned, the held band scrolled away, a further row in the same frame: it snaps, its highlight in view", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await routeText(context, LONG_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 800 });
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5402, file: "/long.ngc" } });
+  await publishFile("/long.ngc", 5402);
   await simShow(page, "limit");
   await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   await settleLayout(page);
@@ -1235,13 +1236,13 @@ test("a follow already planned, the held band scrolled away, a further row in th
 // the wait; the frames are sampled after the paint, from the first that
 // shows the new row.
 test("a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await routeText(context, LONG_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 800 });
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5403, file: "/long.ngc" } });
+  await publishFile("/long.ngc", 5403);
   await simShow(page, "limit");
   await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   await settleLayout(page);
@@ -1306,13 +1307,13 @@ test("a row waiting for its step, the list scrolled away: the next row snaps, it
 // (2026-11-01, the Einrasten): a list that glided on with every new row left
 // the bar over halves of two.
 test("playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps", async ({ page, context }) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
-  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await routeText(context, LONG_TEXT);
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 800 });
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5401, file: "/long.ngc" } });
+  await publishFile("/long.ngc", 5401);
   await simShow(page, "limit");
   await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   await settleLayout(page);
@@ -1382,7 +1383,7 @@ test("the summary line is always there: a re-check moves nothing under it", asyn
   await page.waitForTimeout(300);
   // A new version of the program clears the check's result; the check starts
   // again once the payload is decoded: no verdict for a while, then back.
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await publishFile("/sim.ngc", 5101);
   await expect.poll(() => page.evaluate(() => (window as unknown as { __sumFrames: { verdict: boolean }[] }).__sumFrames.some(f => !f.verdict)),
     { message: "the re-check cleared the verdict for a while", timeout: 15_000 }).toBe(true);
   await expect(page.locator(".simPanel .checkVerdict")).toHaveCount(1, { timeout: 30_000 });
@@ -1562,8 +1563,8 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
 // preview arrives until the check has begun.
 for (const vp of ["desktop", "touch-portrait"] as const) {
   test(`${vp}: the check basis trigger and its "?" keep their place with and without the check's bar (dev CI 44098232396)`, async ({ page, context }) => {
-    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
-    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+    await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW }));
+    await routeText(context, TEXT);
     await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
     await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
     await openSimTab(page);
@@ -1589,7 +1590,7 @@ for (const vp of ["desktop", "touch-portrait"] as const) {
       const tick = () => { read(); requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
     });
-    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5100, file: "/sim.ngc" } });
+    await publishFile("/sim.ngc", 5100);
     await expect(page.locator('.simPanel .checkRow [role="progressbar"]'), "the check begins").toBeVisible({ timeout: 30_000 });
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     const seen = await page.evaluate(() => (window as unknown as { __checkRow: { state: string; trigger: number; help: number }[] }).__checkRow);
@@ -1844,9 +1845,9 @@ test("a program near an hour with an entry move: one time form in the bar, the S
 // one arrived while the last one's entry move still stood (A), and a distance
 // axis is millimetres, never seconds (B).
 const publish = async (page: Page, context: BrowserContext, preview: Buffer, file: string, version: number, max: string) => {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview }));
   await ctl({ op: "status_delta", data: { active_file: file } });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+  await publishFile(file, version);
   await expect.poll(() => page.locator(".scrubBar .sliderInput").getAttribute("max"), { message: `${file} v${version} on the bar` }).toBe(max);
   await settleLayout(page);
 };

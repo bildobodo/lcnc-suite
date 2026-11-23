@@ -54,7 +54,7 @@ export const serverShuttingDown = ref(false);
 export {
   status, lcncError, safetyTrip, tripReasonLabel, readerStale, safetyChainIncomplete, configWarning,
   previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type PreviewRefresh,
-  previewTableStale, previewBasisPending, previewOrigin, runBasis, driftDecision, statusReceiptOf,
+  previewTableStale, previewBasisPending, previewOrigin, runBasis, driftDecision, previewWait, statusReceiptOf,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
   pushMessage,
@@ -67,6 +67,7 @@ export {
   viewerInit, viewerGcode, toolTableVersion, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, previewLoadError, previewParseError,
   previewDecoding, previewDecodeFailure,
   previewRefusal,
+  gcodeProgramId, gcodeLinesBound, gcodeTextState, activeProgramId, previewWaitView,
   type ViewerPart, type KinematicsList, type ViewerInit, type ViewerGcode,
 } from "./ws/bulkData";
 // Browser → server telemetry batcher (A1.3). Its four lifecycle/error

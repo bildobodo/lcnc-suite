@@ -11,8 +11,9 @@
 // the apply sinks for surface/grid (those write the status ref, which stays
 // in lcncWs until the statusStore extraction) — reassigned scalars stay
 // private to this module by design (A1 rule).
-import { computed, markRaw, ref, watch } from "vue";
-import { previewToolBasis, endPreviewBasisPending } from "./statusStore";
+import { computed, markRaw, ref, shallowRef, watch } from "vue";
+import { previewToolBasis, endPreviewBasisPending, status, previewRefresh, previewWait, runBasis } from "./statusStore";
+import { previewWaitWords, type PreviewWaitWords } from "../previewWait";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import type { LineIndex } from "../viewer/lineIndex";
 import type { Vec3 } from "../defaults";
@@ -349,6 +350,9 @@ export interface ViewerGcode {
    *  stamped on arrival (plan „Prüfung im Lauf“ 3a: a run check admits only
    *  the displayed version). Absent on the empty-state path. */
   publishedVersion?: number;
+  /** The program identity this payload was parsed for — the answer's
+   *  `X-Preview-Program`, stamped on arrival (P2b-F1-1). */
+  programId?: string | null;
   file?: string | null;
   // Wire-format generation stamp (P1) — gateway_util.PREVIEW_SCHEMA at parse
   // time. The gateway cache keys payloads on file+mtime only, so a gateway
@@ -746,7 +750,99 @@ export const previewRefusal = computed<{ line: number | null; sub: string | null
   return { line, sub, message: r.message, text: `${r.message} (${where})` };
 });
 
+// ── The program identity gate (P2b-F1-2, Codex R449 MT449-02, R450, R451) ──
+// What arrived is HELD with its binding; what the page shows (viewerGcode,
+// gcodeContent, gcodeTextSource and the two revisions) is exposed only while
+// it belongs to the ACTIVE program — the identity in the status DATA
+// (`program_id`, the same snapshot as `active_file`). Null never matches,
+// not even null. Every reader of these refs sees "nothing" for a foreign
+// program: the path, the timeline, the check, the marks, the code lines, the
+// run projection — none of them checks for itself. Per kind of data
+// (MT450-02): the payload by its answer's identity; the text by the identity
+// of the announcement that fetched it AND the proof that its bytes are that
+// publication's text (`X-Program-Source` = the announcement's source).
+
+/** The active program's identity (status data `program_id`), null: none proven. */
+export const activeProgramId = computed<string | null>(() => {
+  const p = (status.value as { data?: Record<string, unknown> } | null)?.data?.program_id;
+  return typeof p === "string" && p ? p : null;
+});
+/** The decoded payload as it arrived, with its identity. */
+const _heldGcode = shallowRef<ViewerGcode | null>(null);
+/** The latest announcement's text: its binding and its state. */
+interface TextAnnouncement {
+  programId: string | null; version: number; file: string; rev: string;
+  originSource: string | null; state: "loading" | "ok" | "failed" | "differs";
+}
+const _textAnn = shallowRef<TextAnnouncement | null>(null);
+/** The last text PROVEN to be its publication's: shown while its identity is active. */
+const _shownText = shallowRef<{ programId: string; version: number; rev: string; text: string; source: string } | null>(null);
+/** The text's identity on screen (Run from line and the editor bind to it). */
+export const gcodeProgramId = ref<string | null>(null);
+/** The version of the text on screen (-1: none). */
+const _shownTextVersion = ref(-1);
+/** The active program's own text: none announced, loading, on screen, failed,
+ *  or without the proof that it is its publication's text. */
+export const gcodeTextState = ref<TextAnnouncement["state"] | "none">("none");
+
+const _matches = (id: string | null | undefined, active: string | null) => !!id && !!active && id === active;
+
+function _exposeGcode(): void {
+  const g = _heldGcode.value;
+  const next = g && _matches(g.programId, activeProgramId.value) ? g : null;
+  if (viewerGcode.value !== next) viewerGcode.value = next;
+}
+
+function _exposeText(): void {
+  const active = activeProgramId.value;
+  const ann = _textAnn.value && _matches(_textAnn.value.programId, active) ? _textAnn.value : null;
+  const shown = _shownText.value && _matches(_shownText.value.programId, active) ? _shownText.value : null;
+  const text = shown ? shown.text : null;
+  if (gcodeContent.value !== text) gcodeContent.value = text;
+  gcodeTextSource.value = shown ? shown.source : "";
+  gcodeProgramId.value = shown ? shown.programId : null;
+  _shownTextVersion.value = shown ? shown.version : -1;
+  // The revisions: equal while nothing of the active program is in flight —
+  // hidden is NO load in flight (no new start lock); a fetch of the active
+  // program's own announced text keeps them apart until it lands, fails or
+  // lacks its proof (never a lasting lock).
+  gcodeRevision.value = ann ? ann.rev : "";
+  gcodeTextRevision.value = ann
+    ? (ann.state === "loading" ? (shown ? shown.rev : "") : ann.rev)
+    : "";
+  gcodeTextState.value = !active ? "none" : ann ? ann.state : "none";
+}
+
+watch(activeProgramId, () => { _exposeGcode(); _exposeText(); });
+
+/** The text lines and the payload on screen are ONE publication (MT450-02):
+ *  the code panel's line mapping, marks and run line need both. */
+export const gcodeLinesBound = computed(() => {
+  const g = viewerGcode.value;
+  return !!g && gcodeContent.value != null && g.publishedVersion === _shownTextVersion.value;
+});
+
+/** The words for what of the active program is not on screen (ONE decider,
+ *  previewWait.ts): the HUD, the code panel, the Sim tab, the run banner. */
+export const previewWaitView = computed<PreviewWaitWords>(() => {
+  const d = (status.value as { data?: Record<string, unknown> } | null)?.data ?? {};
+  const interp = d.interp_state;
+  const pr = previewRefresh.value;
+  const w = previewWait.value;
+  return previewWaitWords({
+    activeFile: typeof d.active_file === "string" && d.active_file ? d.active_file : null,
+    activeId: activeProgramId.value,
+    previewShown: viewerGcode.value != null,
+    refresh: pr ? { programId: pr.programId, first: pr.first } : null,
+    wait: w ? { programId: w.programId, reasons: w.reasons, lastEnd: w.lastEnd } : null,
+    running: typeof interp === "number" && interp !== 1,
+    runVerified: runBasis.value?.verified === true,
+    textState: gcodeTextState.value,
+  });
+});
+
 let _gcodeContentFile: string | null = null;
+let _gcodeContentProgram: string | null = null;
 // Preview version of the currently-fetched text. An in-place edit (web Save or
 // external edit) keeps the path constant but bumps the version, so we must
 // refetch on a version change too — otherwise the text panel shows stale code
@@ -828,25 +924,37 @@ export function resetBulkVersionsOnClose(): void {
   _compGridLastVersion = -1;
 }
 
-function _applyGcodeFile(nextFile: string | null, version = -1) {
-  // Refetch when the path OR the preview version changed. Same-path edits keep
-  // the path but bump the version (see _gcodeContentVersion).
-  if (nextFile === _gcodeContentFile && version === _gcodeContentVersion) return;
+function _applyGcodeFile(nextFile: string | null, version = -1, programId: string | null = null,
+                         originSource: string | null = null) {
+  // Refetch when the path, the preview version or the program identity
+  // changed. Same-path edits keep the path but bump the version (see
+  // _gcodeContentVersion); a reload of the same path is another identity.
+  if (nextFile === _gcodeContentFile && version === _gcodeContentVersion && programId === _gcodeContentProgram) return;
   _gcodeContentFile = nextFile;
   _gcodeContentVersion = version;
-  const rev = nextFile ? `${nextFile}#${version}` : "";
-  gcodeRevision.value = rev;
+  _gcodeContentProgram = programId;
   if (_gcodeFetchAbort) { _gcodeFetchAbort.abort(); _gcodeFetchAbort = null; }
   if (!nextFile) {
-    gcodeContent.value = null;
-    gcodeTextSource.value = "";
-    gcodeTextRevision.value = rev;
+    _textAnn.value = null;
+    _shownText.value = null;
+    _exposeText();
     return;
   }
+  const rev = `${nextFile}#${version}`;
+  const ann: TextAnnouncement = { programId, version, file: nextFile, rev, originSource, state: "loading" };
+  _textAnn.value = ann;
+  // an older text of ANOTHER identity is never shown again; one of this
+  // identity stays while its successor loads (the revisions say "loading")
+  if (_shownText.value && _shownText.value.programId !== programId) _shownText.value = null;
+  _exposeText();
   const ac = new AbortController();
   _gcodeFetchAbort = ac;
   const target = nextFile;
   const ver = version;
+  const settle = (state: TextAnnouncement["state"]) => {
+    if (_textAnn.value !== ann) return;   // a later announcement owns the text now
+    _textAnn.value = { ...ann, state };
+  };
   // `v` is a cache-buster: FileResponse sets an mtime ETag but no immutable
   // header, so a same-path refetch could otherwise be served from cache. The
   // gateway ignores the unknown query param.
@@ -855,19 +963,25 @@ function _applyGcodeFile(nextFile: string | null, version = -1) {
       ? r.text().then(text => ({ text, source: r.headers.get("X-Program-Source") ?? "" }))
       : Promise.reject(new Error(`HTTP ${r.status}`)))
     .then(({ text, source }) => {
-      if (_gcodeContentFile === target && _gcodeContentVersion === ver) {
-        gcodeContent.value = text;
-        gcodeTextSource.value = source;
-        gcodeTextRevision.value = rev;
+      if (_textAnn.value !== ann) return;
+      // THIS publication's text only with the proof (MT450-02): the bytes
+      // served are the ones the publication was parsed from
+      if (programId && originSource && source && source === originSource) {
+        _shownText.value = { programId, version: ver, rev, text, source };
+        settle("ok");
+      } else {
+        _shownText.value = null;
+        settle("differs");
       }
+      _exposeText();
     })
     .catch(err => {
       if (err?.name !== "AbortError") {
         console.error("GET /gcode failed", err);
-        if (_gcodeContentFile === target && _gcodeContentVersion === ver) {
-          gcodeContent.value = null;
-          gcodeTextSource.value = "";
-          gcodeTextRevision.value = rev;
+        if (_textAnn.value === ann) {
+          _shownText.value = null;
+          settle("failed");
+          _exposeText();
         }
       }
     });
@@ -885,11 +999,18 @@ function _ensurePreviewWorker(): Worker {
   if (_previewWorker) return _previewWorker;
   _previewWorker = new Worker(new URL("../previewWorker.ts", import.meta.url), { type: "module" });
   _previewWorker.onmessage = (ev: MessageEvent) => {
-    const m = ev.data as { version: number; basisKey?: string; gcode?: ViewerGcode; error?: string };
-    if (m.version !== _previewLastVersion) return;  // stale — newer load in flight
+    const m = ev.data as { version: number; programId?: string | null; basisKey?: string; gcode?: ViewerGcode;
+                           error?: string; superseded?: boolean };
+    if (m.version !== _previewLastVersion || (m.programId ?? null) !== _previewLastProgram) return;  // stale — newer load in flight
     if (m.basisKey !== undefined && m.basisKey !== _previewWantKey) return;  // another basis wanted now (R59)
     // (a worker error keeps a pending basis change pending — VP-I23)
     previewDecoding.value = false;
+    if (m.superseded) {
+      // the gateway published another pair meanwhile (409): this load job
+      // ends — its successor's announcement brings the next (C2); no error
+      if (_previewLastVersion === m.version) _previewLastVersion = -1;
+      return;
+    }
     if (m.error) {
       console.error("preview load failed", m.error);
       _previewErr.value = `/preview failed: ${m.error}`;
@@ -901,8 +1022,12 @@ function _ensurePreviewWorker(): Worker {
     // letting Vue deep-proxy them would wrap the typed arrays in a Proxy, which
     // breaks/slows THREE.BufferAttribute's GPU upload. Consumers only react to
     // the ref reassignment, not deep mutation, so raw is correct here.
-    if (m.gcode) m.gcode.publishedVersion = m.version;
-    viewerGcode.value = m.gcode ? markRaw(m.gcode) : null;
+    if (m.gcode) {
+      m.gcode.publishedVersion = m.version;
+      m.gcode.programId = m.programId ?? null;
+    }
+    _heldGcode.value = m.gcode ? markRaw(m.gcode) : null;
+    _exposeGcode();
     _previewErr.value = null;
     if (m.basisKey !== undefined) {
       _previewAppliedKey = m.basisKey;
@@ -926,6 +1051,7 @@ function _ensurePreviewWorker(): Worker {
 // payload's own `tlo_start`). A change re-decodes the same bytes in the
 // worker; replies for another basis are dropped.
 let _previewLastFile: string | null = null;
+let _previewLastProgram: string | null = null;
 // The decode WANTED now — requested and outstanding, or already on screen
 // (Codex R59 VP-I23: a return to the basis on screen must invalidate the
 // reply still outstanding for another one, so the reply check reads the
@@ -942,20 +1068,24 @@ function _basisFor(version: number, file: string | null): number[] | null {
 }
 
 function _keyOf(version: number, file: string | null, basis: number[] | null): string {
-  return `${file ?? ""}#${version}:${basis ? basis.join(",") : "start"}`;
+  return `${_previewLastProgram ?? ""}|${file ?? ""}#${version}:${basis ? basis.join(",") : "start"}`;
 }
 
 function _postPreview(version: number, file: string | null, basis: number[] | null) {
   _previewWantKey = _keyOf(version, file, basis);
   previewDecoding.value = true;
-  _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,
-                                       basisKey: _previewWantKey });
+  const programId = _previewLastProgram;
+  // the URL names the pair (F1-1 V4): the browser's immutable cache and the
+  // worker's own cache key by identity; another pair answers 409
+  const url = `/preview?v=${version}&p=${encodeURIComponent(programId ?? "")}`;
+  _ensurePreviewWorker().postMessage({ version, programId, url, basis, basisKey: _previewWantKey });
 }
 
-function _fetchPreview(version: number, file: string | null) {
-  if (version === _previewLastVersion) return;
+function _fetchPreview(version: number, file: string | null, programId: string | null) {
+  if (version === _previewLastVersion && programId === _previewLastProgram) return;
   _previewLastVersion = version;
   _previewLastFile = file;
+  _previewLastProgram = programId;
   _postPreview(version, file, _basisFor(version, file));
 }
 
@@ -989,6 +1119,8 @@ export function handleViewerInit(msg: { data?: ViewerInit | null }): void {
  * viewer_gcode_ready.
  */
 export function handleViewerGcode(msg: { data?: ViewerGcode | null }): void {
+  _heldGcode.value = msg.data ?? null;
+  // the empty state (an unload) has no identity: shown as nothing
   viewerGcode.value = msg.data ?? null;
   _applyGcodeFile(msg.data?.file ?? null);
 }
@@ -998,11 +1130,14 @@ export function handleViewerGcode(msg: { data?: ViewerGcode | null }): void {
  * msgpack bytes via HTTP so multi-MB polylines don't ride the single-threaded
  * WS writer and stall the heartbeat loop. `version` is a cache-buster.
  */
-export function handleViewerGcodeReady(msg: { version?: number; file?: string | null }): void {
+export function handleViewerGcodeReady(msg: { version?: number; file?: string | null; program_id?: string | null;
+                                              origin?: { source?: unknown } | null }): void {
   const version: number = msg.version ?? 0;
   const file: string | null = msg.file ?? null;
-  _fetchPreview(version, file);
-  _applyGcodeFile(file, version);
+  const programId = typeof msg.program_id === "string" && msg.program_id ? msg.program_id : null;
+  const originSource = typeof msg.origin?.source === "string" && msg.origin.source ? msg.origin.source : null;
+  _fetchPreview(version, file, programId);
+  _applyGcodeFile(file, version, programId, originSource);
 }
 
 /** surface_points_ready: fetch + decode, then hand the data to the sink. */

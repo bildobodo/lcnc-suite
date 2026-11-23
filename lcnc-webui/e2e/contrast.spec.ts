@@ -4,6 +4,7 @@ import { clickMore } from "./more";
 import { openSimTab } from "./simTab";
 import { withLimitRuns } from "./limitRuns";
 import { encode } from "@msgpack/msgpack";
+import { fulfillPreview, publishFile, routeText } from "./programFixture";
 
 // Design wave D8 (UI-K08 / K09, UI-D07): every text the operator reads
 // meets 4.5 : 1 against what is RENDERED behind it — in the four themes,
@@ -167,7 +168,7 @@ async function ready(page: Page, pass: string) {
   await page.setViewportSize({ width: 1600, height: 1000 });
   // No pulse or fade mid-measure; auto-dark = the system asks for dark.
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: pass === "auto-dark" ? "dark" : "light" });
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: PROGRAM }));
+  await routeText(page, PROGRAM);
   await page.route(url => url.pathname === "/files", route => route.fulfill({ json: FILES }));
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
@@ -181,7 +182,7 @@ async function ready(page: Page, pass: string) {
   } else {
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
   }
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 800, file: "/S.ngc" } });
+  await publishFile("/S.ngc", 800);
   await expect(page.locator(".codeLine").first()).toContainText("(syntax sample)");
 }
 
@@ -511,7 +512,7 @@ const NONTEXT_PREVIEW = Buffer.from(encode({ file: "/S.ngc", preview_schema: 11,
 for (const pass of PASSES) {
   test(`${pass}: controls and floating cards keep 3 : 1 where they meet what is next to them`, async ({ page }) => {
     test.setTimeout(180_000);
-    await page.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: NONTEXT_PREVIEW }));
+    await page.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: NONTEXT_PREVIEW }));
     await ready(page, pass);
     await expect(page.locator(".scrubBar")).toBeVisible();
     const scene = async () => [await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()), LIT_TABLE];
@@ -562,7 +563,7 @@ const SIM_PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/S.ngc", preview_s
 
 for (const pass of PASSES) {
   test(`${pass}: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it`, async ({ page }) => {
-    await page.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: SIM_PREVIEW }));
+    await page.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: SIM_PREVIEW }));
     await ready(page, pass);
     await expect(page.locator(".scrubBar")).toBeVisible();
     await ctl({ op: "status_delta", data: { is_enabled: false, enabled: false } });
