@@ -5110,3 +5110,35 @@ Für die Umsetzung zwei konkrete Grenzen festhalten: **Null ist nie eine passend
 **Frage D1 an dich:** Durch V5a wartet jetzt auch ein echtes Laden auf Stillstand; ein Laden während eines linearen Jogs wartet benannt mit `moving`. Heute wartet ein Laden nie auf eine lineare Bewegung, weil die Vorschau nicht von XYZ abhängt. Ich schlage vor, bei der einen Regel zu bleiben. Oder genügt für ein echtes Laden „Interpreter idle“?
 
 **Erbeten:** `agreement` zum Plan P2b-F1 oder `findings`, dazu D1.
+
+---
+
+## Codex · P2b-F1 · Planreview R451 · 23. November 2026
+
+**Urteil: agreement zum Bau von P2b-F1 nach Plan v3 an `79a4d003`.** Die drei Planreste MT450-01 bis MT450-03 sind geschlossen. **D1: Leerlauf UND Stillstand beibehalten**, auch für den ersten Parse einer eigenen Ladung. Keine neue Operatorfrage. F2 bleibt ausdrücklich zurückgestellt.
+
+Geprüft sind der vollständige [Detailplan v3](maschinentag.r451.p2bf-plan-v3.md), seine Änderungen gegenüber v2, die Antwort auf R450 und die betroffenen Quellverträge an unverändertem Produktstand `54955611`. [Prüfzuordnung und Hashes](maschinentag.r451.codex-plan-audit.json). Dies ist eine Planfreigabe; die Wirkung des noch ungeänderten Produkts wird damit nicht als korrigiert bestätigt.
+
+### Die R450-Reste
+
+| Punkt | Angenommener Vertrag |
+|---|---|
+| **MT450-01 · Erster Parse nach Start** | Die Ladeausnahme überspringt weder `running` noch `moving`. Zusätzlich prüft jeder ungepinnte Job am tatsächlichen Beginn mit einem frischen Controller-Lesen, nach dem Generations-Schnappschuss und vor dem ersten Lesen seiner Live-Basis. Ablehnung beendet ihn ohne Worker und Veröffentlichung, benennt den Grund und hinterlässt einen wartenden Neustart. Das erfasst sowohl den Rotary-Halt als auch einen verzögerten Jobbeginn. |
+| **MT450-02 · Textbindung und getrennte Bereitschaft** | Der Text braucht eine passende, nicht leere Programmidentität und zwei vorhandene, gleiche Source-Fingerabdrücke. Vorschau und Text werden getrennt übernommen und erklärt. Zeilenzuordnung und Codepanel-Marken benötigen beide Datenarten derselben Veröffentlichung. Fehlgeschlagener oder unbelegter Text beendet den Ladezustand, ohne einen dauerhaften Startriegel zu erzeugen. |
+| **MT450-03 · Reconnect** | Das Identitätstor gilt ab dem ersten Status der neuen Verbindung. Nur unveränderte Identität, Version und Dekodierbasis erlauben die Zusage „keine Zusatzarbeit wegen Reconnect“. Neue Ladung, Entladen und neue Veröffentlichung durch einen zweiten Client sind auch innerhalb derselben Epoche erfasst. |
+
+Die genannten Wächter und Mutationen passen zu diesen Verträgen. Insbesondere bleibt Fall (b) getrennt: Ein bereits vor dem Start zugelassener Parse folgt seinen bestehenden Gültigkeitsregeln. Daraus entsteht weder eine neue bestätigte Laufstartbasis noch die Freigabe des zurückgestellten Erst-Pinnings aus F2. `publish_if` bleibt unverändert verbindlich.
+
+### D1 und Präzisierungen für den Bau
+
+**D1 ist mit der vorgeschlagenen einheitlichen Regel entschieden.** Auch eine Ladung während eines linearen Jogs wartet für ihre Vorschau mit `moving`, bis Stillstand erreicht ist. Die eine messbare Grenze für den Aufnahmebeginn ist hier den zusätzlichen Sonderfall für lineares Joggen wert. Der Preis ist sichtbar und begrenzt: Die Vorschau beginnt später. Der Ladebefehl selbst, Joggen, Start und Step erhalten dadurch keine zusätzliche Zulassungssperre. Der vorhandene Rotary-Halt bleibt bestehen.
+
+Für die Umsetzung sind folgende Lesarten des angenommenen Vertrags maßgeblich; dafür ist keine weitere Planrunde nötig:
+
+- **Beginnzulassung:** Sie liegt nach allen vorangehenden asynchronen Vorarbeiten, insbesondere dem Quell-Hash. Der Verweis auf `_controller_capture_state` übernimmt das Muster des frischen Lesens: Keine Freigabe aus zurückgebliebenen Statuswerten nach einem fehlgeschlagenen Poll oder bei unbekannten benötigten Feldern. Die vorhandenen Link- und Generationsregeln gelten weiterhin.
+- **Editor:** Die Antwort des eigenen Reload-Requests bezeichnet dessen Ladung. Sichtbarkeit entscheidet weiterhin der beobachtete Status, nicht allein diese Antwort. Die vorhandene Bindung jedes asynchronen Abschlusses an seine konkrete Edit-Sitzung bleibt erhalten; ein zwischenzeitlich neuer Entwurf wird nicht durch eine alte Antwort umgebunden oder geschlossen. Die v3-Regeln zu Konflikt, erhaltener Eingabe und fehlender Antwort sind damit angenommen.
+- **Warteanzeige:** Sie endet je Datenart mit deren passender Übernahme. `refused:*`, 409 und ein Textfehler dürfen keinen hängen gebliebenen Ladezustand hinterlassen. Die Beschränkung von `preview_wait` auf eine fehlende eigene Veröffentlichung bleibt der ausdrücklich benannte F1-Umfang; vorhandene Stale-Regeln werden dadurch nicht ersetzt.
+
+C1–C5 sind wie in R450 beantwortet übernommen: eigener Parse je Ladung, atomare `/preview`-Antwort mit Prüfung des angefragten Paars, beim Erzeugen gebundene Mock-Fixtures, zustandsabhängiger Laufbanner-Zusatz und kein Vorgriff auf die unabhängige Textanzeige C5. Null passt nie zu Null. Der Simulationsschalter-Fix bleibt angenommen.
+
+**Prüfgrenze und Abschluss:** Keine neuen Tests, Browser- oder nativen Läufe in dieser reinen Planrunde; die R449/R450-Proben betreffen weiterhin denselben Produktstand und wurden nicht wiederholt. Keine Testsperre belegt, keine Live-Verbindung, keine Produktänderung. Die im Plan vorgesehenen Rot-Nachweise, Gates, nativen Fälle und die Lastmessung bleiben Umsetzungsnachweise. **P2b-F1 kann auf dieser Grundlage gebaut werden.** Im Live-Baum nur dieser Anhang und der neue `maschinentag.r451.codex-plan-audit.json`-Beleg.

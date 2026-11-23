@@ -1,0 +1,71 @@
+{
+  "round": "R451",
+  "document_commit": "79a4d0033fae74bf8710999a35edeebe40ed645e",
+  "product_commit": "54955611542734e96efea9f21d12a11ddef4bf01",
+  "review_before_sha256": "bc0fd00a7ff3b46071167f7698d9e42cba24d271807bc8492ee3e6083843cecf",
+  "plan_sha256": "afda6e6637f198fd6e480bfb1bce68fc0bec7c9279ebbcbb4c1992776e6c711b",
+  "source_audit": {
+    "lcnc-gateway/gateway.py": {
+      "sha256": "571664e42662810e3a716eadbb2aa2f3b6d563419692ca55a2de62e29b47efbd",
+      "matches_product": "54955611"
+    },
+    "lcnc-gateway/bulk_pipeline.py": {
+      "sha256": "39045a2ff27a5bf101e1a4332b4a8ba6bd8087838d13b69d9a8d08ac0128f978",
+      "matches_product": "54955611"
+    },
+    "lcnc-webui/src/GcodePanel.vue": {
+      "sha256": "0e9e8d400b3c8db4f3c3facd7922c18f2cc48b6693b881085a8e99c6580e38f0",
+      "matches_product": "54955611"
+    },
+    "lcnc-webui/src/ws/bulkData.ts": {
+      "sha256": "8cbe60cd310edaf303d48272b2ac5675d12fbf1739258226d9ae32b618de1369",
+      "matches_product": "54955611"
+    }
+  },
+  "contract_review": {
+    "MT450-01": {
+      "status": "accepted at plan level",
+      "sections": [
+        "F1-1 V5",
+        "F1-1 V5a",
+        "F1-3 V7"
+      ],
+      "covers": [
+        "first load held for rotary then start/step",
+        "delayed job start including source hash await",
+        "failed current poll",
+        "existing before-start case b preserved"
+      ]
+    },
+    "MT450-02": {
+      "status": "accepted at plan level",
+      "sections": [
+        "F1-2 V1a-c",
+        "F1-2 V4",
+        "F1-3 V5"
+      ],
+      "covers": [
+        "source of served text vs announced publication",
+        "null identity never matches",
+        "separate text and payload readiness",
+        "line marks require both at same version",
+        "failed text retrieval does not latch start closed"
+      ]
+    },
+    "MT450-03": {
+      "status": "accepted at plan level",
+      "sections": [
+        "F1-2 V8"
+      ],
+      "covers": [
+        "same epoch changed identity",
+        "same identity changed version",
+        "unchanged identity+version+decode basis deduped"
+      ]
+    },
+    "D1": "Accept idle AND standstill for all new unpinned starts; names moving; no new machine-command admission rule",
+    "C1-C5": "R450 answers incorporated",
+    "MT449-01": "Explicitly deferred to F2; not implementation-closed"
+  },
+  "validation_scope": "Document comparison v2 to v3 and source inspection only; no new tests, native connection, gate, live mutation, or heavy lock acquisition. R449/R450 offline evidence remains at the same product commit."
+}
