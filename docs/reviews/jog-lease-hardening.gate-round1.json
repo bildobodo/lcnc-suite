@@ -1,0 +1,165 @@
+{
+  "kind": "round",
+  "note": "jog-lease.spec hardening (Codex R439/R440 agreement): the page-clock test; mutations 5/5 at rule; load new 30/30, old 30/30",
+  "base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "head": "6b44c323a744d54dec8636acebfaf4b47799500a",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "jog-lease"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": false,
+      "reasons": [
+        "no path under a backend rule: a UI-only round"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "jog-lease.spec.ts",
+      "ms": 27197
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/session-31.scope",
+    "cpu_s": 613598,
+    "memory_peak_mb": 17870
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-jlh/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-jlh/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 5
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 15
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-jlh/docs/reviews/jog-lease-hardening.gate-round1.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-jlh/scripts/test_select/vitest_options_reporter.mjs",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 52,
+      "files": 175,
+      "tests": 2761,
+      "passed": 2761,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2761
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 1
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 29,
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-42808baa-738c-422b-b595-3feda6e6234d",
+      "mocks": 1
+    },
+    {
+      "name": "browser-replay",
+      "status": "PASS",
+      "report": "replay.json",
+      "frames": 139,
+      "attempts": 9,
+      "http": {
+        "served": 118,
+        "fallback": 14,
+        "closing": 8
+      },
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+        "coverage against the inventory (step 5c)"
+      ]
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "backend",
+      "reason": "no path under a backend rule: a UI-only round"
+    },
+    {
+      "check": "firefox-core",
+      "reason": "no path selects the Firefox core"
+    },
+    {
+      "check": "coverage",
+      "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+    }
+  ],
+  "pending": []
+}
