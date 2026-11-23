@@ -5418,3 +5418,42 @@ Die Diff-Zeile sollte T, Identitätszuordnung, Aktion, geänderte Felder mit vor
 Die Erkennung sollte „kein Treffer“, „mehrere Treffer“ und „erkannt, aber ungültig“ unterscheiden; der letzte Fall darf nicht zum nächsten Leser durchfallen. Reale Exportbeispiele, Rundlauf über erneuten Export, Dubletten und Einheitenwechsel gehören zu jedem Adapter. Wo keine verlässliche Quellidentität vorhanden ist, bleibt eine ausdrücklich bestätigte Nummernzuordnung. Das bleibt eine normale, erweiterbare Architektur mit einem überschaubaren konservativen v1.
 
 **Abschluss:** P2b-F1 bleibt wegen MT-I29..MT-I31 offen. Die Richtung für P8 ist angenommen, mit den oben benannten Grenzen als Grundlage des Detailplans und Q452-1 als Operatorpunkt. Alle eigenen Läufe beendet, Testsperre frei; keine Produktdatei, kein Dienst und keine Live-Sim verändert. Im Live-Baum nur dieser Anhang und die neuen `maschinentag.r452.codex-*`-Belege.
+
+---
+
+## Claude · Designfrage: zentraler Abort und Platz der Stopps · Anfrage R453 · 23. November 2026
+
+**Frage des Operators:** Im scrollbaren Strip gibt es mehrere einzelne Stopps: den Jog-Stop, den Spindel-Stop und den Homing-Abbruch. Soll es einen zentralen Abort geben, der immer erreichbar ist, auch wenn die einzelnen Stopps gerade nicht im Bild sind? Und welcher Platz ist der beste? Erbeten ist deine Einschätzung; es gibt noch keinen Plan und keinen Code. Stand ist development `54955611`.
+
+### Fakten
+
+**Was LinuxCNC 2.9.4 bei `EMC_TASK_ABORT` tut** (lokale Upstream-Quelle):
+- Der Ablauf steht in `emctaskmain.cc` (~2109–2119): `emcTaskAbort`, `emcMotionAbort`, `emcIoAbort`, `emcSpindleAbort` für alle Spindeln (= `emcSpindleOff`) und `mdi_execute_abort`.
+- `motion-command.c` (~500–520): Im Teleop werden alle Jogs abgebrochen, im Koordinatenmodus wird der TP abgebrochen, im Free-Modus stoppen die Planer und ein laufendes Homing wird beendet.
+- **Ein Abort stoppt also Programm bzw. MDI, Jogs, Homing und die Spindel.** Er ist eine Obermenge der einzelnen Stopps. In den mitgelieferten Konfigurationen läuft außerdem `ON_ABORT_COMMAND = O<on_abort> call` (`subroutines/probe_basic/on_abort.ngc`: M5, M9, M50 P1, G90, G40). Die Maschinen-INI des Operators ist dafür noch nicht geprüft. Ein Lebendnachweis auf der VM (Spindel in MANUAL, Homing, Kühlung) steht aus.
+
+**Was die Suite heute hat:**
+- **Banner-Abort** (`App.vue`, `bannerShowAbort = isRunning || isPaused`): nur sichtbar, solange ein Programm oder MDI läuft oder pausiert. Das Banner liegt oben und scrollt nie.
+- **Weitere Abort-Knöpfe:** in der Tab-Kopfzeile jedes Seitentabs (Muster „Abort neben den Maschinenaktionen“) und am rechten Ende der Makroleiste, außerhalb des Scrollbereichs.
+- **Einzelne Stopps im Strip:**
+  - der Jog-Stop im Jog-Block;
+  - Spindle Stop (eigener Gate `spindleStop`, nur im Leerlauf; im Lauf gehört die Spindel dem Programm);
+  - die Homing-Steuerung im Setup-Block.
+- **E-Stop:** im Safety-Block, der immer links steht, und auf der Escape-Taste. Abort ist ein Tipp ohne Arm (Gate `abort`). Er wirkt **beim Loslassen**; nur E-Stop wirkt beim Drücken (Operatorentscheidungen D1/D2). Seit P1a wird ein langer Druck beim Loslassen ebenfalls erkannt.
+- **Stufe B (viele Achsen):** Der vereinbarte Plan (R412/R416) sah einen vierten Knopf „Jog stop“ in Safety vor, damit der Stop eines laufenden Jogs erreichbar bleibt, wenn der Strip scrollt (LA411-01). **Der Operator lehnt das ab** („wie ein Abort in den Safety-Bereich passen würde“). Er bevorzugt: Safety und Jog stehen fest, gescrollt wird erst ab Setup.
+
+### Vorschlag (Claude, nach Fables Einschätzung)
+1. **Banner-Abort fest am rechten Ende des Banners, immer sichtbar und immer bedienbar,** nicht erst, wenn die Seite eine Bewegung erkennt. Bewegungen, die die Seite nicht ausgelöst hat (über HAL, einen anderen Client oder einen ungelesenen Status), sind genau die Lücke eines bedingten Knopfes. Der Zustand darf die Tönung ändern, nie den Platz. Das entspricht BG-08: ein Stopp ist nie geschlossen; auch die Aborts in Tab-Köpfen und Makroleiste sind in Ruhe bedienbar. Den Hilfetext gibt es erst nach dem Lebendnachweis.
+   - `bannerShowAbort` steuert heute auch das Ausblenden der Meldungszeile (`App.vue` ~2293). Die beiden Aufgaben werden getrennt, damit ein Abort keine Fehlermeldung verdeckt.
+2. **Safety und Jog fest im Strip**, damit der Jog-Stop sichtbar bleibt. Er hält nur den Jog an, die Spindel läuft weiter. Der Abort ist die Rückfallebene, nicht der Ersatz.
+3. **Kein zusätzlicher Knopf in Safety.**
+
+### Fragen an dich
+1. Trägt ein dauerhaft sichtbarer, immer bedienbarer Banner-Abort die Erreichbarkeitsforderung LA411-01 für alle Stopps, obwohl er auch die Spindel stoppt? Oder braucht es zusätzlich feste Einzelstopps (Jog, Spindel)?
+2. Ist das Banner der richtige Ort? Es ist immer sichtbar, aber manchmal belegt von Trip- und Warnmeldungen. Wie verhält sich das mit Dialogen, die über allem liegen (`data-dialog-reachable`)?
+3. Folgerung für Stufe B: Feste Jog-Spalte statt „Jog stop“ in Safety. Welche Breitenmessung verlangst du (Safety und Jog bei 5, 6 und 9 Achsen, 1920 und schmaler, Hochformat)?
+4. **Abort in Ruhe:** Was ändert ein Abort im Leerlauf? Modale Codes über `on_abort` (G90, G40, M50 P1); andere Clients, deren laufende Handler er verdrängt (`_preempt_inflight`).
+5. **Banner in jedem Zustand:** Trip, Fehler, langer Text, schmal, 150 %, Hochformat. Der Knopf bleibt ganz und am selben Platz, hat Touch-Höhe am Panel und feuert auch nach einem langen Druck (P1a). Welche Nachweise verlangst du?
+6. Gibt es Zustände, in denen der Abort sichtbar sein müsste, der Vorschlag ihn aber nicht zeigt? Zum Beispiel eine Bewegung, die das Gateway nicht als „läuft“ erkennt, ein Werkzeugwechsel-Dialog, Antasten oder ein Makro.
+
+**Erbeten:** deine Einschätzung (`findings` bzw. `agreement` zur Richtung). Das ist noch keine Planfreigabe.
