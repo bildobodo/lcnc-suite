@@ -80,7 +80,9 @@ class _Base(unittest.TestCase):
         self.clock = Clock()
         self.gen = Generation()
         self.ledger = ActionLedger(self.clock)
-        for name, value in (("_calc_gen", self.gen), ("_actions", self.ledger)):
+        for name, value in (("_calc_gen", self.gen), ("_actions", self.ledger),
+                            ("_drift_decision", {"state": "none", "gen": [0, 0], "why": "start"}),
+                            ("_dd_prev_idle", None)):
             p = patch.object(gateway, name, value)
             p.start()
             self.addCleanup(p.stop)
@@ -287,3 +289,70 @@ class TheUnload(_Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheDriftDecision(_Base):
+    """P2b-2 (plan v4 variant 1): the first drift decision after an idle
+    transition or an input action's end — pending / none / parse {job} and
+    the job's end — per generation."""
+
+    def setUp(self):
+        super().setUp()
+        for name, value in (("job_ends", __import__("collections").OrderedDict()), ("refresh_running", False),
+                            ("inflight", None)):
+            p = patch.object(gateway._bulk, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_an_action_end_opens_a_decision_of_its_generation(self):
+        async def handler():
+            await self.mdi(wait=None)
+        self.in_action("touchoff", handler)
+        self.poll(echo_serial_number=1)
+        d = gateway._drift_decision_status()
+        self.assertEqual((d["state"], d["gen"]), ("pending", list(self.gen.snapshot())))
+
+    def test_a_refused_action_opens_no_decision(self):
+        before = gateway._drift_decision_status()
+
+        async def handler():
+            with self.assertRaises(gateway._WriteRefused):
+                await self.mdi(wait=None, admit=lambda: "busy")
+        self.in_action("touchoff", handler)
+        self.assertEqual(gateway._drift_decision_status(), before, "nothing written: no decision opened")
+
+    def test_the_idle_transition_opens_one_and_the_evaluation_closes_it(self):
+        gateway._dd_idle_edge(True)
+        self.assertNotEqual(gateway._drift_decision_status()["state"], "pending", "idle from the start opens none")
+        gateway._dd_idle_edge(False)
+        gateway._dd_idle_edge(True)
+        self.assertEqual(gateway._drift_decision_status()["state"], "pending")
+        gateway._dd_decide("none")
+        self.assertEqual(gateway._drift_decision_status()["state"], "none")
+        gateway._dd_decide("parse", 5)
+        self.assertEqual(gateway._drift_decision_status()["state"], "none", "a decision stands until the next pending")
+
+    def test_a_named_parse_carries_its_end(self):
+        gateway._dd_pending("idle")
+        gateway._dd_decide("parse", 7)
+        self.assertNotIn("published", gateway._drift_decision_status())
+        gateway._bulk._note_job_end(7, {"version": 12})
+        self.assertEqual(gateway._drift_decision_status()["published"], 12)
+        gateway._dd_pending("idle")
+        gateway._dd_decide("parse", 8)
+        gateway._bulk._note_job_end(8, {"why": "discarded"})
+        self.assertEqual(gateway._drift_decision_status()["why"], "discarded")
+
+    def test_a_parse_of_this_generation_already_running_is_the_decision(self):
+        gateway._dd_pending("idle")
+        gateway._bulk.refresh_running = True
+        gateway._bulk.inflight = {"job": 4, "gen": tuple(self.gen.snapshot())}
+        d = gateway._drift_decision_status()
+        self.assertEqual((d["state"], d["job"]), ("parse", 4))
+
+    def test_a_running_parse_of_an_older_generation_is_not(self):
+        gateway._bulk.refresh_running = True
+        gateway._bulk.inflight = {"job": 4, "gen": tuple(self.gen.snapshot())}
+        self.gen.began("mdi")
+        gateway._dd_pending("action:mdi")
+        self.assertEqual(gateway._drift_decision_status()["state"], "pending")

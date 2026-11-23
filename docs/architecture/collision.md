@@ -447,7 +447,7 @@ instance (a random id per instance) says `{id, model: {instance, built, ms, vari
 the model — before the sweep, so a cancelled check still counts its build — and the page traces it as
 `collision.model_built` / `collision.model_reused` with its `model_gen` (a new one per model key);
 `sweep_start` names `model_gen` and `max_shards`, `sweep_done` `shards` and `tool_variant_ms`
-(`collisions.viewer.spec`: a tool change re-checks with no bodies, every instance that built reuses it); OrbitControls start/end pause and
+(`collisions.viewer.spec`: a tool change re-checks with no bodies, every instance that built reuses it). An IDLE automatic check waits for the gateway's drift decision (P2b-2, `viewer/driftWait.ts`): at most 3 s for a decision (one named fallback, `collision.check_fallback`), a named parse until its publication is adopted; the wait belongs to (program generation, input generation, connection); OrbitControls start/end pause and
 resume a running sweep, because a busy worker is off the main thread but
 not off the machine (it starved the Mac's GPU 3–4 frames behind,
 2026-09-10). PARALLEL (2026-10-07, operator): a main request is split over

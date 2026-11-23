@@ -229,7 +229,7 @@ RULES: tuple[Rule, ...] = (
              "dragScroll.ts", "clientDiag.ts", "wakeLock.ts", "StatsDonut.vue"),
          "central: every surface, every dialog or every connection depends on it",
          browser=FULL, firefox=True),
-    Rule(src("macroFiles.ts", "runBasis.ts", "viewerPerf.ts", "stallWindow.ts", "viewer/eventIndex.ts",
+    Rule(src("macroFiles.ts", "runBasis.ts", "viewerPerf.ts", "stallWindow.ts", "viewer/eventIndex.ts", "viewer/driftWait.ts",
              "viewer/kinematics.ts", "viewer/kins.ts", "viewer/partFrame.ts",
              "viewer/tloEvents.ts", "viewer/wcsEpochs.ts"),
          "the connection's status and bulk path (lcncWs, ws/statusStore, ws/bulkData) "

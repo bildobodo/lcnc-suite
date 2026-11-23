@@ -1993,6 +1993,8 @@ async def _status_poller():
                     )
                 _bulk.last_comp_hal_ver = st.comp_grid_version
 
+            # the idle transition opens a drift decision (P2b-2)
+            _dd_idle_edge(st.interp_state == linuxcnc.INTERP_IDLE)
             # Gcode preview: parse once (in subprocess) on file change, share
             # to all clients via version counter. Single-flight via
             # _bulk.refresh_running so rapid-fire loads don't stack
@@ -2045,10 +2047,11 @@ async def _status_poller():
             if _fe is not None and st.active_file:
                 if _fe == "schedule":
                     _bulk.reparse_wait_noted = False
-                    _bulk.schedule_refresh(
-                        st.active_file,
-                        _bulk.reparse_pending_reason or ("file" if file_changed else "reparse"),
-                        _spawn_preview_task)
+                    if _bulk.schedule_refresh(
+                            st.active_file,
+                            _bulk.reparse_pending_reason or ("file" if file_changed else "reparse"),
+                            _spawn_preview_task):
+                        _dd_decide("parse", _bulk.last_scheduled_job)
                 else:
                     # The running parse is for another file/mtime, or the
                     # operator asked for a fresh one: its result is stale
@@ -2196,6 +2199,7 @@ async def _status_poller():
             ):
                 _bulk.tlo_check_ts = time.monotonic()
                 _drift = None
+                _dd_unsettled = False   # an edge still settling decides nothing yet (P2b-2)
                 _tlo_meta = _bulk.published_tlo
                 if _tlo_meta is not None:
                     _tt_cur, _rows = _tool_table_now(_tlo_meta)
@@ -2229,6 +2233,7 @@ async def _status_poller():
                             _bulk.rotary_check_prev, st.rotary_abc)
                     )
                     _bulk.rotary_check_prev = st.rotary_abc
+                    _dd_unsettled = bool(_rdrift and not _rsettled)
                     if _rdrift and _rsettled:
                         _trace.emit("gcode.reparse_rotary_drift",
                                     reason=_rdrift,
@@ -2271,6 +2276,7 @@ async def _status_poller():
                             _wsettled = (_wflat is not None
                                          and _wflat == _bulk.wcsoff_check_prev)
                             _bulk.wcsoff_check_prev = _wflat
+                            _dd_unsettled = bool(_wdrift and not _wsettled)
                             if _wdrift and _wsettled:
                                 _trace.emit("gcode.reparse_wcsoff_drift",
                                             reason=_wdrift)
@@ -2300,7 +2306,10 @@ async def _status_poller():
                     _drift = _ts_reason
                     _trace.emit("gcode.reparse_toolsetter", version=_ts_basis_version)
                 if _drift:
-                    _drift_edge(st, st.active_file, _drift, _ts_reason)
+                    if _drift_edge(st, st.active_file, _drift, _ts_reason) == "scheduled":
+                        _dd_decide("parse", _bulk.last_scheduled_job)
+                elif not _dd_unsettled and _ts_hold_reason(st) is None:
+                    _dd_decide("none")   # a complete evaluation: no edge (P2b-2)
             elif not st.active_file and (_bulk.last_file is not None
                                          or _bulk.preview_available()):
                 # Unload: one contract (clear_preview — it was dead code
@@ -3876,6 +3885,60 @@ def _actions_quiet() -> bool:
     return q is not None and q >= ACTION_QUIET_S
 
 
+# ---- The drift decision (P2b-2, plan v4 — variant 1, MT439-02) ----
+# An idle check waits for the gateway's FIRST drift decision after an idle
+# transition or an input action's end — `pending` until the next complete
+# evaluation of the drift edges says `none`, or a parse is scheduled
+# (`parse {job}`; its end — published version or why not — rides along) —
+# per (program generation, input generation). The page waits at most 3 s
+# for a decision (its named one-time fallback), a named parse under the
+# parse's own bound and its adoption.
+# (from the start: none — no idle transition or action of this process yet;
+# the field rides every frame, so a page never has to guess)
+_drift_decision: Optional[Dict[str, Any]] = {"state": "none", "gen": [0, 0], "why": "start"}
+_dd_prev_idle: Optional[bool] = None
+
+
+def _dd_pending(why: str) -> None:
+    global _drift_decision
+    _drift_decision = {"state": "pending", "gen": list(_calc_gen.snapshot()), "why": why}
+
+
+def _dd_decide(state: str, job: Optional[int] = None) -> None:
+    """The pending decision ends: `none` or `parse` (with its job). A
+    decision already made stays until the next pending."""
+    global _drift_decision
+    if _drift_decision is None or _drift_decision["state"] != "pending":
+        return
+    _drift_decision = {"state": state, "gen": _drift_decision["gen"], **({"job": job} if job is not None else {})}
+    _trace.emit("gcode.drift_decision", state=state, job=job, gen=_drift_decision["gen"])
+
+
+def _dd_idle_edge(idle: bool) -> None:
+    """The interpreter's idle transition opens a decision."""
+    global _dd_prev_idle
+    if idle and _dd_prev_idle is False:
+        _dd_pending("idle")
+    _dd_prev_idle = idle
+
+
+def _drift_decision_status() -> Optional[Dict[str, Any]]:
+    """The wire's `drift_decision`: the decision, and for a named parse
+    its end once it ended — {"published": version} or {"why": …}."""
+    d = _drift_decision
+    if d is None:
+        return None
+    if d["state"] == "pending" and _bulk.refresh_running and _bulk.inflight is not None \
+            and _bulk.inflight.get("gen") == tuple(d["gen"]):
+        # a parse of exactly this generation already runs: it is the decision
+        _dd_decide("parse", _bulk.inflight.get("job"))
+        d = _drift_decision or d
+    out = dict(d)
+    if d["state"] == "parse" and d.get("job") is not None:
+        out.update(_bulk.job_ends.get(d["job"], {}))
+    return out
+
+
 def _release_action(action: Optional[_Action], how: str) -> None:
     """An input action's queue ownership ends (P2b-3): its handler ended —
     `ok` / `error` / `cancelled` — or its queued job was dropped (superseded
@@ -3894,6 +3957,8 @@ def _handler_end(task: "asyncio.Task[Any]") -> str:
 
 def _trace_ended_actions() -> None:
     for a in _actions.take_ended():
+        if a.outcome != "refused_before_write":
+            _dd_pending(f"action:{a.what}")   # its end opens a drift decision (P2b-2)
         _trace.emit("action.ended", what=a.what, outcome=a.outcome, handler=a.handler,
                     writes=sum(1 for o in a.observers if o.state != "refused"),
                     held_ms=round(((a.end_t or a.t) - a.t) * 1000))
@@ -12632,6 +12697,7 @@ async def ws_endpoint(ws: WebSocket):
                         preview_table_stale=_bulk.table_stale,
                         preview_tool_basis=_bulk.tool_basis_status(),
                         preview_origin=_bulk.preview_origin_status(),
+                        drift_decision=_drift_decision_status(),
                         run_basis=_run_basis_status(),
                         config_warning=(
                             {

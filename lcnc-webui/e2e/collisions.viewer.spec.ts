@@ -2157,3 +2157,99 @@ test("a tool change re-checks on the resident model — no bodies, no build, eve
   for (const b of built) expect(reused.has(b.instance), `instance ${b.instance} reuses its model`).toBe(true);
   await ctl({ op: "reset" });
 });
+
+// ---- P2b-2 (plan v4 variant 1, Codex R439 MT439-02): the idle check waits for the drift decision ----
+// The gateway's first drift decision after an idle transition or an input
+// action's end, per (program generation, input generation): pending, none,
+// or a named parse. The check waits for the decision at most 3 s (ONE named
+// fallback), for a named parse until its publication is adopted.
+async function colTelemetry(page: Page) {
+  const tel: Array<Record<string, any>> = [];
+  await page.route("**/telemetry", async (route) => {
+    for (const line of (route.request().postData() ?? "").split("\n")) {
+      try {
+        const e = JSON.parse(line);
+        if (String(e.kind).startsWith("collision.")) tel.push(e);
+      } catch { /* not ours */ }
+    }
+    await route.fulfill({ status: 204, body: "" });
+  });
+  return tel;
+}
+const decision = (over: Record<string, unknown>) =>
+  ctl({ op: "status_delta", envelope: { drift_decision: { state: "pending", gen: [3, 7], ...over } }, data: {} });
+const driftWaitOf = (page: Page) => page.evaluate(() => window.__viewerDiag!.getDriftWait!());
+/** The open wait has run past the 3 s fallback by the PAGE's clock. */
+const pastFallback = (page: Page) => expect.poll(async () => {
+  const w = await driftWaitOf(page);
+  return w.waiting && w.since !== null && w.now - w.since > 3500;
+}, { timeout: 15_000, message: "the idle check still waits past the 3 s fallback" }).toBe(true);
+const DD_FEED = { lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0], feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] };
+
+test("a parse decided early holds the idle check past 3 s until its publication is adopted — no fallback (P2b-2 guards 1, 3)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const tel = await colTelemetry(page);
+  const of = (kind: string) => tel.filter(e => e.kind === kind);
+  await prepare(page, context, { file: "/dd-parse.ngc", version: 4401, ...DD_FEED, before: () => decision({ state: "parse", job: 9 }) });
+  await pastFallback(page);
+  expect(of("collision.sweep_start"), "no check before the named parse published").toEqual([]);
+  // published as a version the page does not show yet: it waits for the adoption
+  await decision({ state: "parse", job: 9, published: 4402 });
+  await expect.poll(() => driftWaitOf(page).then(w => w.why), { timeout: 10_000 }).toBe("adoption");
+  expect(of("collision.sweep_start"), "published is not adopted").toEqual([]);
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4402, file: "/dd-parse.ngc" } });
+  await expect.poll(() => of("collision.sweep_start").length, { timeout: 60_000 }).toBe(1);
+  await expect.poll(() => of("collision.check_waits").map(e => e.why), { timeout: 10_000 }).toEqual(["parse", "adoption"]);
+  expect(of("collision.check_fallback"), "decided early: no fallback").toEqual([]);
+  await ctl({ op: "reset" });
+});
+
+test("no decision within 3 s: ONE named fallback, then the check (P2b-2 guard 2)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const tel = await colTelemetry(page);
+  const of = (kind: string) => tel.filter(e => e.kind === kind);
+  await prepare(page, context, { file: "/dd-pending.ngc", version: 4411, ...DD_FEED, before: () => decision({}) });
+  await expect.poll(() => of("collision.sweep_start").length, { timeout: 60_000 }).toBe(1);
+  await expect.poll(() => of("collision.check_fallback").length, { timeout: 10_000 }).toBe(1);
+  const fb = of("collision.check_fallback")[0]!;
+  expect(fb.waited_ms).toBeGreaterThanOrEqual(3000);
+  expect(fb.gen).toEqual([3, 7]);
+  await ctl({ op: "reset" });
+});
+
+test("a named parse that ends without a publication ends the wait, named (P2b-2 guard 4)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const tel = await colTelemetry(page);
+  const of = (kind: string) => tel.filter(e => e.kind === kind);
+  await prepare(page, context, { file: "/dd-failed.ngc", version: 4421, ...DD_FEED, before: () => decision({ state: "parse", job: 11 }) });
+  await expect.poll(() => driftWaitOf(page).then(w => w.waiting), { timeout: 15_000 }).toBe(true);
+  expect(of("collision.sweep_start")).toEqual([]);
+  await decision({ state: "parse", job: 11, why: "cancelled:superseded" });
+  await expect.poll(() => of("collision.sweep_start").length, { timeout: 60_000 }).toBe(1);
+  await expect.poll(() => of("collision.check_parse_ended").map(e => [e.job, e.why]), { timeout: 10_000 })
+    .toEqual([[11, "cancelled:superseded"]]);
+  await ctl({ op: "reset" });
+});
+
+test("a newer generation closes the wait, a late older one has no effect (P2b-2 guards 5, 6)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const tel = await colTelemetry(page);
+  const of = (kind: string) => tel.filter(e => e.kind === kind);
+  await prepare(page, context, { file: "/dd-owner.ngc", version: 4431, ...DD_FEED, before: () => decision({}) });
+  await expect.poll(() => driftWaitOf(page).then(w => w.gen), { timeout: 15_000 }).toEqual([3, 7]);
+  // a late status of an OLDER generation: neither a start nor a new wait
+  await decision({ state: "none", gen: [3, 6] });
+  await page.waitForFunction(() => window.__viewerDiag!.getDriftWait!().gen?.[1] === 7);
+  expect(of("collision.sweep_start"), "an older none starts nothing").toEqual([]);
+  // a reload — a new program generation: the old wait is closed, a new one opens
+  const before = (await driftWaitOf(page)).since!;
+  await decision({ gen: [4, 0] });
+  await expect.poll(() => driftWaitOf(page).then(w => w.gen), { timeout: 10_000 }).toEqual([4, 0]);
+  expect((await driftWaitOf(page)).since!).toBeGreaterThan(before);
+  await expect.poll(() => of("collision.check_fallback").map(e => e.gen), { timeout: 30_000 }).toEqual([[4, 0]]);
+  await expect.poll(() => of("collision.sweep_start").length, { timeout: 30_000 }).toBeGreaterThanOrEqual(1);
+  // ONE check, and only after the new generation's fallback: the older none started none
+  expect(of("collision.sweep_start")).toHaveLength(1);
+  expect(of("collision.sweep_start")[0]!.t_wall_ms).toBeGreaterThanOrEqual(of("collision.check_fallback")[0]!.t_wall_ms);
+  await ctl({ op: "reset" });
+});

@@ -16,7 +16,8 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, driftDecision, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { driftVerdict, type DriftWait } from "./viewer/driftWait";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, simulationOn, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { useProgramMarks, useRunDisplay } from "./viewer/runDisplay";
 import { simShown } from "./simShown";
@@ -2397,6 +2398,8 @@ async function buildFromInit(init: ViewerInit) {
         getCollisionRequestMeta: () => (_colReqMeta ? { ..._colReqMeta } : null),
         getCollisionStopped: () => (collisionStopped.value ? { ...collisionStopped.value } : null),
         getCollisionHoldLog: () => _colHoldLog.slice(),
+        getDriftWait: () => ({ waiting: _colDriftWaiting, why: _colDriftWhy, since: _colDriftWait?.since ?? null,
+                               gen: _colDriftWait?.gen ?? null, now: performance.now() }),
         // Main checks started, and whether one runs, waits parked, or has a
         // result (VP188-02 E1: the check waits at the re-parse hold).
         getCollisionActivity: () => ({ starts: _colStarts, busy: collisionBusy.value,
@@ -4300,10 +4303,64 @@ function _colScheduleAuto() {
     }
     _colHeldByRun = false;
     if (!viewerGcode.value?.scrubTrack) return;
+    // P2b-2: the gateway's drift decision first, then its named parse and
+    // the page's adoption of it — never a check the next publication cancels
+    if (!_colDriftReady()) return;
     if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
     runCollisionCheck();
   }, 400);
 }
+// ---- P2b-2: the idle check waits for the drift decision (plan v4 variant 1) ----
+// Two waits (viewer/driftWait.ts): the decision at most 3 s — then ONE named
+// fallback (collision.check_fallback) —, a named parse under its own bound
+// and the page's adoption (decoded, no basis hold). The wait belongs to
+// (program generation, input generation, connection).
+let _colDriftWait: DriftWait | null = null;
+let _colDriftTimer: ReturnType<typeof setTimeout> | undefined;
+let _colDriftWaiting = false;
+/** What the open wait waits for (decision / parse / adoption), null when none. */
+let _colDriftWhy: string | null = null;
+let _colDriftSaid = "";
+let _colNoDecisionSaid = false;
+let _colConnSeq = 0;
+watch(connected, c => { if (c) _colConnSeq++; else _colDriftWait = null; });
+function _colAdopted(version: number): boolean {
+  const g = viewerGcode.value;
+  return !!g && (g.publishedVersion ?? -1) >= version && !previewBasisPending.value && !previewDecoding.value;
+}
+function _colDriftReady(): boolean {
+  clearTimeout(_colDriftTimer);
+  const { verdict, wait } = driftVerdict(driftDecision.value, _colDriftWait, performance.now(), _colConnSeq, _colAdopted);
+  _colDriftWait = wait;
+  const gen = wait?.gen ?? null;
+  if (verdict.go) {
+    _colDriftWaiting = false;
+    _colDriftWhy = null;
+    const n = verdict.named;
+    if (n?.kind === "no_decision") {
+      if (!_colNoDecisionSaid) { _colNoDecisionSaid = true; emitTelemetry("collision.check_no_decision", {}); }
+    } else if (n) {
+      const key = `${n.kind}:${gen}`;
+      // (the event's own `kind` is its name: never a field's)
+      const { kind, ...fields } = n;
+      if (key !== _colDriftSaid) { _colDriftSaid = key; emitTelemetry(`collision.check_${kind}`, { ...fields, gen }); }
+    }
+    return true;
+  }
+  _colDriftWaiting = true;
+  _colDriftWhy = verdict.why;
+  const key = `${verdict.why}:${gen}`;
+  if (key !== _colDriftSaid) {
+    _colDriftSaid = key;
+    emitTelemetry("collision.check_waits", { why: verdict.why, gen, job: driftDecision.value?.job ?? null });
+  }
+  if (verdict.retryInMs != null) _colDriftTimer = setTimeout(_colScheduleAuto, verdict.retryInMs + 1);
+  return false;
+}
+// a new decision, a publication adopted: a waiting check looks again
+watch(driftDecision, () => { if (_colDriftWaiting) _colScheduleAuto(); });
+watch(() => [viewerGcode.value?.publishedVersion, previewBasisPending.value, previewDecoding.value],
+      () => { if (_colDriftWaiting) _colScheduleAuto(); });
 /** Start the check during the run when the displayed payload is admitted
  *  (plan 3a): the provisional range from the run's point — read once, here —
  *  then the full check; without an attached position the full one at once. */
@@ -4394,6 +4451,8 @@ function _discardRunCheck(why: string) {
 function _simulationOff() {
   clearTimeout(_colAutoTimer);
   _colAutoPending = false;
+  clearTimeout(_colDriftTimer);
+  _colDriftWaiting = false;
   clearTimeout(_colSettleTimer);
   clearTimeout(_contactsTimer);
   _contactsTimer = undefined;
@@ -5440,6 +5499,7 @@ onUnmounted(() => {
   clearTimeout(_pfWcsTimer);
   clearTimeout(_colAutoTimer);
   _colAutoPending = false;
+  clearTimeout(_colDriftTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
   _reachWorker?.terminate();

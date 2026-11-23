@@ -15,6 +15,7 @@
 import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR, OPERATOR_TEXT } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
+import { parseDriftDecision, type DriftDecision } from "../viewer/driftWait";
 import { emitTelemetry } from "./telemetry";
 
 export interface LcncMessage {
@@ -143,6 +144,11 @@ export const previewOrigin = ref<PreviewOrigin | null>(null);
 // written; rides every frame until the next start — a client connecting
 // mid-run has it too.
 export const runBasis = ref<RunBasis | null>(null);
+// The gateway's first drift decision after an idle transition or an input
+// action's end (P2b-2): what an idle collision check waits for. Null: the
+// frame carried none (a gateway without decisions).
+export const driftDecision = ref<DriftDecision | null>(null);
+let _driftDecisionKey = "";
 let _previewOriginKey = "";
 let _runBasisKey = "";
 let _frameHadRefresh = false;
@@ -591,6 +597,11 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   if (poKey !== _previewOriginKey) {
     _previewOriginKey = poKey;
     previewOrigin.value = parsePreviewOrigin(msg.preview_origin);
+  }
+  const ddKey = msg.drift_decision ? JSON.stringify(msg.drift_decision) : "";
+  if (ddKey !== _driftDecisionKey) {
+    _driftDecisionKey = ddKey;
+    driftDecision.value = parseDriftDecision(msg.drift_decision);
   }
   const rbKey = msg.run_basis ? JSON.stringify(msg.run_basis) : "";
   if (rbKey !== _runBasisKey) {

@@ -209,6 +209,7 @@ def build_status_envelope(
     preview_origin: Optional[dict] = None,
     run_basis: Optional[dict] = None,
     trip_basis: Optional[dict] = None,
+    drift_decision: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -270,6 +271,11 @@ def build_status_envelope(
     if run_basis is not None:
         # The run's basis, taken before its start was written (plan 1a).
         msg["run_basis"] = run_basis
+    if drift_decision is not None:
+        # The first drift decision after an idle transition or an input
+        # action's end (P2b-2): pending / none / parse {job, its end} — what
+        # an idle collision check waits for.
+        msg["drift_decision"] = drift_decision
     return msg
 
 

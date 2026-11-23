@@ -24,6 +24,7 @@ injected: STAT accessor, machine-units resolver, WCS rotation patch builder.
 This module never imports gateway.
 """
 import asyncio
+import collections
 import copy
 import gzip
 import hashlib
@@ -168,6 +169,11 @@ class BulkPipeline:
         # proves ONE parse at a time and the last basis winning by id, not by
         # timing (Codex R181 VP181-01).
         self.job_seq = 0
+        # each scheduled parse job's end (P2b-2: the page waits for a NAMED
+        # job): {"published": version} or {"why": cancelled / discarded /
+        # failed …} — the last few
+        self.job_ends: "collections.OrderedDict[int, dict]" = collections.OrderedDict()
+        self.last_scheduled_job: Optional[int] = None
         # Last measured publish time per file path (ms) — the expected
         # duration the banner shows and the timeout scale.
         self.parse_ms_by_file: dict = {}
@@ -371,7 +377,12 @@ class BulkPipeline:
         self.reparse_pending = False
         self.reparse_pending_reason = None
         try:
-            task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned, run=run))
+            # the job's number at its scheduling (P2b-2: the drift decision
+            # names it before the coroutine's first step)
+            self.job_seq += 1
+            self.last_scheduled_job = self.job_seq
+            task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned, run=run,
+                                                    job=self.job_seq))
         except BaseException as e:
             self.refresh_running = False
             _trace.emit("gcode.refresh_schedule_failed", level="warn",
@@ -490,6 +501,20 @@ class BulkPipeline:
     #: ... and gets a longer leash: niced under a busy run it may take a
     #: multiple of its idle time. Its duration never enters the history.
     _PINNED_TIMEOUT_FACTOR = 3.0
+
+    def _note_job_end(self, job: Optional[int], how: Dict[str, Any]) -> None:
+        """A parse job ended: published (its version) or not, and why — a
+        cancel's reason, a discard, else `ended` (a failure, a timeout, a
+        skip: the trace names it)."""
+        if job is None:
+            return
+        if "version" in how:
+            end: Dict[str, Any] = {"published": how["version"]}
+        else:
+            end = {"why": how.get("why") or (f"cancelled:{self.cancel_reason}" if self.cancel_reason else "ended")}
+        self.job_ends[job] = end
+        while len(self.job_ends) > 16:
+            self.job_ends.popitem(last=False)
 
     def _publish_in_generation(self, gen_at: Optional[tuple], apply: Callable[[], None],
                                job: Optional[int], filepath: str, what: str) -> bool:
@@ -738,7 +763,8 @@ class BulkPipeline:
                 "superseded": self.superseded_total}
 
     async def refresh_gcode_preview(self, filepath: str, reason: str = "file",
-                                    pinned: bool = False, run: Optional[dict] = None):
+                                    pinned: bool = False, run: Optional[dict] = None,
+                                    job: Optional[int] = None):
         """Parse filepath in an isolated subprocess and publish the result.
 
         Called from the poller on file change. Single-flight via
@@ -754,6 +780,8 @@ class BulkPipeline:
         # BEFORE its first input read — it publishes only while it is still
         # the current one, decided at the publication under the same lock
         _gen_at = self.generation.snapshot() if self.generation is not None else None
+        # how this job ended, for the drift decision (P2b-2)
+        _gen_published: Dict[str, Any] = {}
         # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is
         # running, we record the pre-parse mtime, so the poller's next tick still
         # sees a mismatch and re-parses the newest content rather than missing it.
@@ -857,8 +885,10 @@ class BulkPipeline:
                                                getattr(stat, "actual_position", None))
                 _seed_wcs = self._get_wcs_off_flat()
             self.cancel_reason = None
-            self.job_seq += 1
-            _job = self.job_seq
+            if job is None:      # a direct call (a test): numbered here
+                self.job_seq += 1
+                job = self.job_seq
+            _job = job
             _tlo_seed = None if pinned else self.live_start(stat)
             # the start basis: the context the worker parses from (a verify's
             # temp file name is no input of its own) with the input snapshot
@@ -868,7 +898,7 @@ class BulkPipeline:
                                   "wcs_off": _seed_wcs, "rotary_seed": _seed_rot,
                                   "tlo_seed": _tlo_seed}) or "")[:12]
             self.inflight = {
-                "job": _job, "basis": _basis,
+                "job": _job, "basis": _basis, "gen": _gen_at,
                 "file": filepath, "mtime": _mtime_at_parse, "reason": reason,
                 "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
                 "expected_ms": expected_ms,
@@ -1071,7 +1101,9 @@ class BulkPipeline:
                 if self.basis_of(worker_tlo) is not None:
                     if not self._publish_in_generation(_gen_at, lambda: self._set_tool_basis(self.basis_of(worker_tlo)),
                                                        _job, filepath, "verify_same"):
+                        _gen_published["why"] = "discarded"
                         return
+                    _gen_published["why"] = "verified_same"   # nothing new to adopt
                     _trace.emit("gcode.reparse_verified_same", job=_job, file=os.path.basename(filepath),
                                 basis=self.tool_basis, version=self.preview_version,
                                 total_ms=round((time.monotonic() - t_start) * 1000, 1))
@@ -1164,7 +1196,9 @@ class BulkPipeline:
                 self.last_mtime = _mtime_at_parse
                 self.preview_version += 1
             if not self._publish_in_generation(_gen_at, _apply, _job, filepath, "publish"):
+                _gen_published["why"] = "discarded"
                 return
+            _gen_published["version"] = self.preview_version
             for_run = _binding["for_run"]
             if _binding["lost"] is not None:
                 _trace.emit("gcode.run_binding_lost", level="warn", file=filepath,
@@ -1185,6 +1219,7 @@ class BulkPipeline:
             _trace.emit("gcode.preview_refresh_failed", level="warn", job=_job,
                         file=filepath, exc=type(e).__name__, msg=str(e))
         finally:
+            self._note_job_end(job, _gen_published)
             self.refresh_running = False
             self.gcode_parse_proc = None
             self.inflight = None

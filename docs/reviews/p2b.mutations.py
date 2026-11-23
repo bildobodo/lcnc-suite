@@ -102,14 +102,15 @@ MUTS = {
         "        _settle_leases_ended_by((\"abort\",))   # written: the jogs stop with it (MT-I08)\n        None")],
         [py(CG + "TheObserverOwnsTheAction::test_abort_after_the_return_is_aborted", "AssertionError")]),
     "a_relinked_command_is_done": (GW + "calc_lifetime.py", [(
-        "            elif how == \"relinked\":\n                how = \"link_lost\"", "            elif how == \"relinked\":\n                how = \"done\"")],
+        "            if how == \"relinked\":\n                how = \"link_lost\"", "            if how == \"relinked\":\n                how = \"done\"")],
         [py(CG + "TheObserverOwnsTheAction::test_a_lost_link_is_named", "AssertionError")]),
     "a_handler_error_drops_the_observer": (GW + "calc_lifetime.py", [(
         "            action.held = False\n            if action.handler is None:\n                action.handler = handler",
         "            action.held = False\n            if handler == \"error\":\n                action.observers.clear()\n            if action.handler is None:\n                action.handler = handler")],
         [py(CG + "TheObserverOwnsTheAction::test_a_handler_error_after_its_write_keeps_the_observer", "AssertionError")]),
     "the_mode_target_unchecked": (GW + "calc_lifetime.py", [(
-        "                how = \"done\" if tm == o.mode_target else (\"unknown\" if tm is not None else None)", "                how = \"done\"")],
+        "                how = ((\"done\" if tm == o.mode_target else \"unknown\") if seen and tm is not None else None)",
+        "                how = (\"done\" if seen else None)")],
         [py(CL + "TestActionOwnership::test_a_mode_switch_needs_its_target", "AssertionError")]),
     "the_tool_file_begins_after": (GW + "gateway.py", [(
         "    _file_input_began(\"tool_table_file\")   # right before the file is replaced (P2b-3)\n    write_tool_table(tbl_path, tools)",
@@ -127,6 +128,26 @@ MUTS = {
     "a_stopped_handler_is_done": (GW + "calc_lifetime.py", [(
         "    if handler not in (None, \"ok\"):\n        return \"partial\"", "    if handler not in (None, \"ok\", \"stopped\"):\n        return \"partial\"")],
         [py(CL + "TestActionOwnership::test_a_handler_that_stops_short_after_a_write_is_partial", "AssertionError")]),
+    # ---- P2b-2 (plan v4 variant 1): the idle check waits for the drift decision
+    "the_decision_wait_never_falls_back": (V + "driftWait.ts", [(
+        "    if (waited >= fallbackMs) {", "    if (false) {")],
+        [vt("src/viewer/driftWait.test.ts", "no decision within 3 s", "AssertionError")]),
+    "a_named_parse_falls_back_too": (V + "driftWait.ts", [(
+        "  if (d.published === undefined) return { verdict: { go: false, why: \"parse\", retryInMs: null }, wait: w };",
+        "  if (d.published === undefined) return { verdict: { go: now - w.since < fallbackMs ? false : true, named: null, why: \"parse\", retryInMs: null } as never, wait: w };")],
+        [vt("src/viewer/driftWait.test.ts", "a parse decided early", "a parse decided early")]),
+    "published_is_adopted": (V + "driftWait.ts", [(
+        "  return adopted(d.published)", "  return true")],
+        [vt("src/viewer/driftWait.test.ts", "a parse decided early", "published, not adopted")]),
+    "an_older_status_counts": (V + "driftWait.ts", [(
+        "  if (w && cmpGen(d.gen, w.gen) < 0) {", "  if (false) {")],
+        [vt("src/viewer/driftWait.test.ts", "a newer generation", "an older generation")]),
+    "an_action_end_opens_no_decision": (GW + "gateway.py", [(
+        "            _dd_pending(f\"action:{a.what}\")", "            pass")],
+        [py(CG + "TheDriftDecision::test_an_action_end_opens_a_decision_of_its_generation", "AssertionError")]),
+    "the_page_ignores_the_decision": (WEB + "src/ThreeViewer.vue", [(
+        "    if (!_colDriftReady()) return;", "    void _colDriftReady;")],
+        [pw("e2e/collisions.viewer.spec.ts", "a parse decided early holds the idle check", "the idle check still waits past the 3 s fallback")]),
 }
 
 
