@@ -1,0 +1,146 @@
+{
+  "review": "R454",
+  "base": "54955611",
+  "reviewed_head": "874403543b00df40bad61c45d978d80ef0b58453",
+  "code_head": "a10525e9d7a1bb8293a98112ad35ba45e3c53570",
+  "document_head": "7942de52",
+  "isolated_tree": "/tmp/r454/tree",
+  "method": "git archive 87440354; independent node_modules copy from previous isolated /tmp/r452/tree; no product edits",
+  "shared_lock": "heavy_lock.py --who codex-r454-focused --wait 50",
+  "results": {
+    "backend": "148 passed, 33 subtests passed",
+    "frontend": "61 passed",
+    "build": "PASS",
+    "browser": {
+      "startTime": "2026-11-23T21:57:37.088Z",
+      "duration": 37751.892,
+      "expected": 13,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "browser_run": "codex-r454-focused",
+    "replay": "PASS, 93 frames, 0 findings"
+  },
+  "prior_probes": [
+    {
+      "source": "maschinentag.r452.codex-backend-probe.py",
+      "sha256_original": "af8044dd293432d530c44ae9e06b1f0ac24253529cc7fcb753e1d295deed1f3d",
+      "run_path": "/tmp/r454/tree/lcnc-gateway/test_codex_r452.py",
+      "sha256_run": "579fee451b78d86a5c0176a9a302e490ad5af647531d6945e3d3e4bfacb0aa1e",
+      "adaptation": "Only output path /tmp/r452/schedule-observation.json -> /tmp/r454/schedule-observation.json"
+    },
+    {
+      "source": "maschinentag.r452.codex-bulk.test.ts",
+      "sha256_original": "00896448fa128997a942bbdec72bf4d2aa2c0216add9ecae405a2b4a35898710",
+      "run_path": "/tmp/r454/tree/lcnc-webui/src/ws/codexR452.test.ts",
+      "sha256_run": "00896448fa128997a942bbdec72bf4d2aa2c0216add9ecae405a2b4a35898710",
+      "adaptation": "Unchanged"
+    },
+    {
+      "source": "maschinentag.r452.codex-worker.test.ts",
+      "sha256_original": "41fccd51d719f43acaaa2c4a4011215bbdbbb04314c63dedc357a176de99c68f",
+      "run_path": "/tmp/r454/tree/lcnc-webui/src/previewWorker.codexR452.test.ts",
+      "sha256_run": "41fccd51d719f43acaaa2c4a4011215bbdbbb04314c63dedc357a176de99c68f",
+      "adaptation": "Unchanged"
+    },
+    {
+      "source": "maschinentag.r452.codex-editor.spec.ts",
+      "sha256_original": "61821afa9e027178393d88e65911439a312c69d8c0707063adcd3afcd7e9955f",
+      "run_path": "/tmp/r454/tree/lcnc-webui/e2e/codex-r452.spec.ts",
+      "sha256_run": "61821afa9e027178393d88e65911439a312c69d8c0707063adcd3afcd7e9955f",
+      "adaptation": "Unchanged"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "maschinentag.r454.codex-backend.txt",
+      "sha256": "4ab73a7c4c278f6217c36d54f8e03f8a57f572e745825927321629802fa04b48",
+      "bytes": 615
+    },
+    {
+      "path": "maschinentag.r454.codex-frontend.txt",
+      "sha256": "e7dc30f11cc7783569e00da0d8f9616154a67aea747d0e69e3ed8df8bab31515",
+      "bytes": 211
+    },
+    {
+      "path": "maschinentag.r454.codex-build.txt",
+      "sha256": "88ada9a607d0dc5e91d4951199b2c643fe291994a8c31dc311430cfb2599a2be",
+      "bytes": 2384
+    },
+    {
+      "path": "maschinentag.r454.codex-browser.json",
+      "sha256": "60e5c829eafc33f379b88f7b1d4234264bbb46b28f85f13857d39ea27313f0ca",
+      "bytes": 16501
+    },
+    {
+      "path": "maschinentag.r454.codex-browser-console.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "maschinentag.r454.codex-replay.json",
+      "sha256": "5ff768937a8afff0e39d78cba15bdbf440cb1076d6d52475c553bbaf32a84453",
+      "bytes": 35547
+    },
+    {
+      "path": "maschinentag.r454.codex-schedule-observation.json",
+      "sha256": "d908e5123507cd336af13173d00a6aa4a0e99f6599dd9280fc4f09f6b4c1cfc2",
+      "bytes": 294
+    },
+    {
+      "path": "maschinentag.r454.codex-run-focused.sh",
+      "sha256": "812c3a3cf8009fab4b3f6daa48f3224bdc0dbdbc63116c0232779f3059af2b06",
+      "bytes": 1037
+    },
+    {
+      "path": "maschinentag.r454.codex-selection.json",
+      "sha256": "a4d23d4ec3968f724a18e6229ccbc058e7f64c4fb86c157c2b04ce39614f1e1c",
+      "bytes": 35
+    }
+  ],
+  "external_evidence_read": {
+    "round_gate_head": "a10525e9d7a1bb8293a98112ad35ba45e3c53570",
+    "round_gate_verdict": "PASS",
+    "round_gate_pending": [
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py",
+          "lcnc-gateway/calc_lifetime.py",
+          "lcnc-webui/src/previewWorker.ts"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py",
+          "lcnc-gateway/status_runtime.py",
+          "lcnc-gateway/ws_fanout.py"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/command_policy.py",
+          "lcnc-gateway/gateway.py"
+        ]
+      }
+    ],
+    "native_run": "20261123T225134-p2bf-r452",
+    "native_commit": "a10525e9d7a1bb8293a98112ad35ba45e3c53570",
+    "restore": [
+      "complete",
+      "complete"
+    ],
+    "native_not_rerun": true
+  },
+  "limits": [
+    "No complete gate rerun",
+    "No live connection or controller operations",
+    "No merge or checkout"
+  ]
+}

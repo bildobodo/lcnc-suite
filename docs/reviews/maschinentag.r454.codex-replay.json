@@ -1,0 +1,1329 @@
+{
+  "verdict": "PASS",
+  "run": "codex-r454-focused",
+  "logs": 1,
+  "connections": {
+    "infra": 14,
+    "test": 15
+  },
+  "http": {
+    "with origin": 286,
+    "ready probe (no cookie by construction)": 2
+  },
+  "frames": 93,
+  "frames_by_class": {
+    "test": 93
+  },
+  "commands": {
+    "get_tool_table": 29,
+    "heartbeat": 26,
+    "hello": 15,
+    "load_file": 8,
+    "tab_visibility": 15
+  },
+  "attempts": 13,
+  "per_attempt": {
+    "codex-r452.spec.ts \u203a R452 own reload adoption reply-first [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "load_file": 1,
+      "tab_visibility": 1
+    },
+    "codex-r452.spec.ts \u203a R452 own reload adoption status-first [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "load_file": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a a foreign load shown before the own reload's reply stays a conflict [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "load_file": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a a new program at idle: A2's path and code never show under C; Start stays open, Edit closed [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a a reconnect: unchanged, the view stays; another load meanwhile hides it from the first status [retry 0]": {
+      "get_tool_table": 5,
+      "heartbeat": 1,
+      "hello": 3,
+      "tab_visibility": 3
+    },
+    "program-identity.spec.ts \u203a a run started before its preview: after the run \u2014 HUD, code panel and banner (simulation off) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a a run started before its preview: after the run \u2014 HUD, code panel and banner (simulation on) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a a session opened after the own reload's reply does not take that load [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "load_file": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a late answers of the old load \u2014 text and decode \u2014 never show under the new one [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a the editor's session is its load: another load of the same path is a conflict, the buffer kept [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 1,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a the same path loaded again and A\u2192B\u2192A are new loads: an old publication never shows again [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a the session's own reload is its load, reply-first [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "load_file": 2,
+      "tab_visibility": 1
+    },
+    "program-identity.spec.ts \u203a the session's own reload is its load, status-first [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "load_file": 2,
+      "tab_visibility": 1
+    }
+  },
+  "attempt_list": [
+    {
+      "name": "codex-r452.spec.ts \u203a R452 own reload adoption reply-first [retry 0]",
+      "test": "111d250286a9eb537675-beca2317f0d5d17e625f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "codex-r452.spec.ts \u203a R452 own reload adoption status-first [retry 0]",
+      "test": "111d250286a9eb537675-6bbe3f34426e3135b143",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a a foreign load shown before the own reload's reply stays a conflict [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-91068cf48c82db36425c",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a a new program at idle: A2's path and code never show under C; Start stays open, Edit closed [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-2667e850842caa09398e",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a a reconnect: unchanged, the view stays; another load meanwhile hides it from the first status [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-4ab80abd8e940662ff29",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 12,
+      "observed": "page loaded at its mock, 12 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a a run started before its preview: after the run \u2014 HUD, code panel and banner (simulation off) [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-b5eaa4db0470a2aff3fc",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a a run started before its preview: after the run \u2014 HUD, code panel and banner (simulation on) [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-6f7ad11ccff7939a2994",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a a session opened after the own reload's reply does not take that load [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-ff6c2c0a5828122f9501",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 8,
+      "observed": "page loaded at its mock, 8 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a late answers of the old load \u2014 text and decode \u2014 never show under the new one [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-4b6ab9352066b40f7f35",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a the editor's session is its load: another load of the same path is a conflict, the buffer kept [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-176afccca8240067ab5b",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 5,
+      "observed": "page loaded at its mock, 5 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a the same path loaded again and A\u2192B\u2192A are new loads: an old publication never shows again [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-ccc02f1759ad8aa872a4",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a the session's own reload is its load, reply-first [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-d9f6b225562caf98ca5a",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 8,
+      "observed": "page loaded at its mock, 8 frame(s)"
+    },
+    {
+      "name": "program-identity.spec.ts \u203a the session's own reload is its load, status-first [retry 0]",
+      "test": "6f53c0e3ae0aa2491038-52edd8e16c22d92245b4",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "2a72b6d6-d66f-4d38-b08c-d146f2b8bd92",
+      "status": "passed",
+      "page": true,
+      "frames": 8,
+      "observed": "page loaded at its mock, 8 frame(s)"
+    }
+  ],
+  "no_cookie": [],
+  "per_attempt_expected": {},
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+    "coverage against the inventory (step 5c)"
+  ],
+  "http_paths": {
+    "requests": 315,
+    "contexts": 13,
+    "classes": {
+      "replaced": 26,
+      "served": 261,
+      "fallback": 27,
+      "closing": 1
+    },
+    "routes": {
+      "GET /": {
+        "served": 13
+      },
+      "GET /g30": {
+        "fallback": 15
+      },
+      "GET /gcode": {
+        "replaced": 18
+      },
+      "GET /macros": {
+        "served": 15
+      },
+      "GET /preview": {
+        "served": 18
+      },
+      "GET /ready": {
+        "fallback": 2
+      },
+      "GET /settings": {
+        "served": 13
+      },
+      "POST /telemetry": {
+        "closing": 1,
+        "fallback": 10
+      },
+      "PUT /save": {
+        "replaced": 8
+      }
+    },
+    "fallback_paths": {
+      "GET /g30": 15,
+      "POST /telemetry": 10,
+      "GET /ready": 2
+    },
+    "idless_covered_by_synthetic_hops": 0,
+    "ws_handshakes_joined": 0,
+    "per_attempt": {
+      "codex-r452.spec.ts \u203a R452 own reload adoption reply-first [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "codex-r452.spec.ts \u203a R452 own reload adoption status-first [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "program-identity.spec.ts \u203a a foreign load shown before the own reload's reply stays a conflict [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "program-identity.spec.ts \u203a a new program at idle: A2's path and code never show under C; Start stays open, Edit closed [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 13
+        }
+      ],
+      "program-identity.spec.ts \u203a a reconnect: unchanged, the view stays; another load meanwhile hides it from the first status [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 3
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /ready",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 13
+        }
+      ],
+      "program-identity.spec.ts \u203a a run started before its preview: after the run \u2014 HUD, code panel and banner (simulation off) [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 13
+        }
+      ],
+      "program-identity.spec.ts \u203a a run started before its preview: after the run \u2014 HUD, code panel and banner (simulation on) [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 13
+        }
+      ],
+      "program-identity.spec.ts \u203a a session opened after the own reload's reply does not take that load [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "program-identity.spec.ts \u203a late answers of the old load \u2014 text and decode \u2014 never show under the new one [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 11
+        }
+      ],
+      "program-identity.spec.ts \u203a the editor's session is its load: another load of the same path is a conflict, the buffer kept [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "program-identity.spec.ts \u203a the same path loaded again and A\u2192B\u2192A are new loads: an old publication never shows again [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 3
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 3
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "closing",
+          "transport": "none",
+          "status": null,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 13
+        }
+      ],
+      "program-identity.spec.ts \u203a the session's own reload is its load, reply-first [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "program-identity.spec.ts \u203a the session's own reload is its load, status-first [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ]
+    },
+    "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+    "findings": []
+  }
+}

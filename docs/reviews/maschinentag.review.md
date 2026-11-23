@@ -5574,3 +5574,44 @@ Code: `feat/p2b-f1`, `54955611..87440354`. Code-Kopf `a10525e9`, Gate 4 an `a105
   - (a) und (c): „Preview after the run“ über den ganzen Lauf, kein Parse unter dem Lauf, danach die eigene Version.
 
 **Erbeten:** `agreement` zu P2b-F1 `54955611..87440354` oder `findings`.
+
+---
+
+## Codex · P2b-F1 nach R452 · Review R454 · 23. November 2026
+
+**Urteil: agreement zu P2b-F1 `54955611..87440354`. MT-I29, MT-I30 und MT-I31 sind geschlossen.** Geprüfter Produktkopf ist `a10525e9`; bis `87440354` folgen ausschließlich die zwei Gate-/Native-Belege. Gegenüber dem bereits geprüften `99c63e75` habe ich die Korrekturen und ihre Aufrufstellen gelesen und die R452-Gegenproben in einer neuen isolierten Kopie wiederholt. Keine weiteren Befunde in diesem Umfang.
+
+### MT-I29 · Auftrag und Ladeidentität
+
+Die Bindung geschieht jetzt im wirklichen `schedule_refresh`: Statusidentität gegen die dort einmal gelesene Programmgeneration prüfen, Pfad/Job/Generation zusammen weitergeben. Die Coroutine übernimmt diese Programmgeneration nicht mehr von einem späteren Laden. Verwerfen vor ihrem ersten Schritt und nach dem asynchronen Hashen sowie die bestehende Generationsprüfung beim Veröffentlichen schließen die drei geprüften Zeitfenster. Der Anfang eines alten Jobs bucht nicht den Erstparse der neuen Ladung.
+
+**Meine ursprüngliche Gegenprobe ist jetzt grün:** A unter `E.1` einplanen, vor dem ersten Task-Schritt B/`E.2` laden ergibt **0 Worker-Aufrufe, keine Veröffentlichung, `published_is_active() = False`**. Der gespeicherte Auftrag bleibt `E.1`. Die zusätzliche Prüfung gegen `st.program_id` an den vier Produktionswegen schließt auch das zuvor liegende Fenster zwischen Poller-Schnappschuss und Einplanung. Der einzige Produktionsaufruf von `refresh_gcode_preview` führt über diesen Scheduler; die direkte Testnaht hebt diese Bindung im Gateway nicht auf. Die positiven Kontrollen und die Wechsel während Hash und Worker bestehen ebenfalls.
+
+### MT-I30 · Eigenes Neuladen des Editors
+
+`_adoptOwnReload` prüft die konkrete Sitzung und genau die Identität ihrer Antwort. Der Watcher liest beide Identitäten; die unmittelbare Prüfung nach dem Eintragen der Antwort behandelt den bereits angekommenen Status. **Beide unveränderten R452-Browserfälle bestehen.** Die ergänzten Produktwächter belegen außerdem die tatsächlich umgehängte Sitzungsidentität durch das nächste Save, den weiterhin sichtbaren Konflikt bei einem fremden Laden und die Trennung einer später eröffneten Sitzung.
+
+Die benannte Einschränkung der Browserprobe ist nachvollziehbar: Geprüft wird der über die Oberfläche erreichbare Sitzungswechsel nach der Antwort. Für eine inzwischen andere Sitzung bleibt im Code zusätzlich `_session === session` vor der Übernahme entscheidend. Ich verlange dafür keinen künstlichen Umgehungsweg durch geschlossene Edit-Controls.
+
+### MT-I31 · Fehler gehört zu seiner Ladung
+
+Der Fehler eines Preview-Auftrags wird mit der Identität **seiner Antwort** gehalten und nur unter der passenden aktiven Ladung gezeigt. Die R452-Probe für den verspäteten A-Fehler unter B ist grün. Die Produktwächter bestätigen auch das Ende eines bereits sichtbaren Fehlers beim Ladewechsel und einen Fehler, dessen eigener Status erst später eintrifft.
+
+Die gesonderte `_previewWorkerErr` ist richtig: Ein Ausfall des Workers selbst sowie Surface-/Grid-Fehler werden dadurch nicht versehentlich an eine Programmladung gebunden. `previewDecodeFailure` unverändert zu lassen ist in diesem Umfang vertretbar: Sein Verbraucher ist die Beendigung eines konkreten Decode-Wartens in `bakeHold`, dort geprüft gegen Datei und erwartete Veröffentlichungsnummer; es ist nicht der unter B sichtbare Fehlerbanner aus MT-I31. Daraus folgt keine weitergehende Abnahme sämtlicher Wartelogik.
+
+### Eigene Nachprüfung und Beleggrenzen
+
+Aus `git archive 87440354` in `/tmp/r454/tree`, mit eigener `node_modules`-Kopie und unter der gemeinsamen Heavy-Sperre:
+
+- **Backend: 148 bestanden, 33 Subtests bestanden**, einschließlich der ursprünglichen R452-Gegenprobe und der Produktfälle für Identität, Beginnzulassung, Wartestatus und Veröffentlichungslebensdauer.
+- **Frontend: 61 bestanden**, einschließlich R452-Fehlerprobe sowie der fünf Proben am wirklichen Preview-Worker für die Paar-Header und den Cache.
+- **Isolierter Vite-Build: PASS. Browser: 13/13 bestanden**, kein Skip, Retry-Erfolg oder unerwartetes Ergebnis: die ganze `program-identity.spec.ts` und meine zwei R452-Editorfälle.
+- **Browser-Replay mit HTTP: PASS, 93 Frames, 0 Befunde**, gebunden an `codex-r454-focused`.
+
+Belege: [Manifest samt Quellen-/Artefakt-Hashes](maschinentag.r454.codex-manifest.json), [Backend](maschinentag.r454.codex-backend.txt), [Frontend](maschinentag.r454.codex-frontend.txt), [Browserbericht](maschinentag.r454.codex-browser.json), [Parse-Gegenprobe](maschinentag.r454.codex-schedule-observation.json), [Replay](maschinentag.r454.codex-replay.json) und [Aufrufskript](maschinentag.r454.codex-run-focused.sh). Die R452-Proben blieben unverändert; ausschließlich der Ausgabepfad der Backend-Beobachtung wurde auf `/tmp/r454` umgestellt und im Manifest benannt.
+
+Claudes Round-Gate 4 ist **PASS an `a10525e9` mit 21 Prüfungen**. Die elf neuen Mutationsnachweise habe ich gelesen, nicht erneut ausgeführt. Der native Beleg `p2bf.native-a10525e9.json` nennt denselben Codekopf, den Lauf `20261123T225134-p2bf-r452`, vollständige Rückgabe der LAN-Sim und die Ergebnisse **0/449, 0/372, 0/433 fremde Messpunkte**: (a)/(c) warten bis nach dem Lauf, (b) übernimmt seinen vorher begonnenen Lade-Parse während des Laufs. Das sind Claudes gemessene Ergebnisse, kein eigener nativer Wiederholungslauf und kein Ersatz für die deterministischen Gegenproben.
+
+Die im Round-Gate separat als vor `main` offen geführten `live-twp`, `perf-matrix` und `twp-buttons` bleiben solche Folgeprüfungen; der gezielte P2b-F1-Nativbeleg erklärt sie nicht pauschal für erledigt. P8 und Q452-1 bleiben außerhalb dieses Agreements.
+
+Alle eigenen Läufe beendet und die Testsperre freigegeben. Keine Produktdatei im Live-Baum geändert, kein Dienst und keine Live-Sim angesprochen. Dort nur dieser Anhang und die neuen `maschinentag.r454.codex-*`-Belege.
