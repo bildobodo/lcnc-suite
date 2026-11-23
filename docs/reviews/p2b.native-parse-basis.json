@@ -1,0 +1,144 @@
+{
+ "run": "20261123T103240-parse-basis",
+ "commit": "fda61f19ed295a39f3445c08a74f405f730b92fe",
+ "variant": "parse-basis",
+ "verdict": "incomplete",
+ "restore": "complete",
+ "rows": [
+  {
+   "case": "home-all",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    true,
+    true,
+    true
+   ],
+   "observed": [
+    true,
+    true,
+    true
+   ]
+  },
+  {
+   "case": "home-joint-0",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    true,
+    false,
+    false
+   ],
+   "observed": [
+    true,
+    false,
+    false
+   ]
+  },
+  {
+   "case": "home-joint-1",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    false,
+    true,
+    false
+   ],
+   "observed": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "case": "home-joint-2",
+   "status": "PASS",
+   "detail": "as expected",
+   "expected": [
+    false,
+    false,
+    true
+   ],
+   "observed": [
+    false,
+    false,
+    true
+   ]
+  },
+  {
+   "case": "parse-basis",
+   "status": "PASS",
+   "detail": "no toolsetter re-parse for 3 probe ops with unchanged values",
+   "ops": 3,
+   "parses_by_reason": {},
+   "toolsetter_edges": 0,
+   "masked": 0,
+   "held": 3,
+   "hold_ended": [],
+   "verified_same": 0,
+   "bookings": [
+    "assumed:1",
+    "applied:1",
+    "assumed:24",
+    "read:24",
+    "assumed:1",
+    "applied:1",
+    "assumed:24",
+    "read:24",
+    "assumed:1",
+    "applied:1",
+    "assumed:24",
+    "read:24"
+   ],
+   "read_backs": 3,
+   "outcomes": [
+    "confirmed",
+    "confirmed",
+    "confirmed"
+   ],
+   "quiet_s": 6.6
+  },
+  {
+   "case": "parse-basis.nice",
+   "status": "incomplete",
+   "detail": "no drift re-parse in the window"
+  }
+ ],
+ "parse_basis_job": {
+  "routine": "probe_z_minus_wco",
+  "vars": {
+   "3014": 99,
+   "3015": 50,
+   "3016": 200,
+   "3017": 1000,
+   "3018": 10,
+   "3019": 2,
+   "3020": 10,
+   "3021": 2,
+   "3022": 0,
+   "3023": 5,
+   "3024": 0.5,
+   "3025": 0,
+   "3026": 0,
+   "3027": 0,
+   "3028": 0,
+   "3029": 0,
+   "3030": 0,
+   "3031": 0,
+   "3032": 0,
+   "3033": 0,
+   "3034": 0,
+   "3035": 0
+  }
+ },
+ "parse_basis_warm_quiet_s": 8.4,
+ "parse_basis_file": "native_parse_basis.ngc",
+ "note": "parse-basis.nice is incomplete: no drift re-parse fell inside the three-op window (the warm-up's WCS parse, job 2 wcsoff:G54:z, ran before it; the three ops with unchanged values parsed nothing) - nothing to judge, so the variant's verdict is incomplete, not FAIL",
+ "decision_timing_s": {
+  "probe_run end -> its read-back's end": 2.04,
+  "read-back end -> WCS edge decided (parse job 2)": 2.01,
+  "probe_run end -> WCS edge decided": 4.05,
+  "why the page waits no fallback here": "the read-back's own action end (a synch, an input write) opens a NEWER decision 2.04 s after the probe's end; the page's wait follows the newer generation (its 3 s run from there) and the decision came 2.01 s into it",
+  "the extended hold": "gcode.reparse_edge_held {why: tool_offset} at 72.02 s: an idle edge held by the open read-back (P2b-2's 30 s hold for every edge)"
+ }
+}
