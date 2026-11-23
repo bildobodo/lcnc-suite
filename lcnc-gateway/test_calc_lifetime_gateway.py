@@ -269,6 +269,17 @@ class TheFileWritersBegin(_Base):
         self.assertNotEqual(seen[0], snap, "the generation moved BEFORE the file")
         self.assertFalse(gateway._bulk._publish_in_generation(snap, lambda: None, 1, "/p.ngc", "publish"))
 
+    def test_a_load_is_a_new_program_and_an_action_that_wrote(self):
+        """The native run named a load `refused_before_write`: its begin is a
+        program change, and the action wrote (its end opens the decision)."""
+        snap = self.gen.snapshot()
+
+        async def handler():
+            gateway._program_began("load")
+        a = self.in_action("load_file", handler)
+        self.assertEqual(self.gen.snapshot()[0], snap[0] + 1)
+        self.assertEqual(a.outcome, "done")
+
     def test_the_parameter_file_begins(self):
         snap = self.gen.snapshot()
         with patch.object(gateway, "_write_var_file_updates", lambda *_a: None):

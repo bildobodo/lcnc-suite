@@ -119,8 +119,11 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
             self.assertEqual(SRC.count(site), 1, site)
 
     def test_load_and_unload_begin_a_program_generation(self):
-        self.assertIn('began=lambda: _calc_gen.new_program("load")', SRC)
-        self.assertIn('began=lambda: _calc_gen.new_program("unload")', SRC)
+        self.assertIn('began=lambda: _program_began("load")', SRC)
+        self.assertIn('began=lambda: _program_began("unload")', SRC)
+        (_n, s), = [(n, s) for n, s in functions() if n.name == "_program_began"]
+        self.assertIn("_calc_gen.new_program(why)", s)
+        self.assertIn("_actions.wrote_file(", s)
         self.assertIn('_bulk.cancel_inflight("unload")', SRC)
 
 

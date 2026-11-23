@@ -3824,6 +3824,14 @@ def _file_publish_began(dest_path: str) -> None:
         _file_input_began("program_file")
 
 
+def _program_began(why: str) -> None:
+    """A load's or an unload's begin (P2b-3), in its write thread right
+    before the write: a new program generation, and the action counts as one
+    that wrote (its end opens a drift decision and the debounce)."""
+    _calc_gen.new_program(why)
+    _actions.wrote_file(_current_action.get(), why)
+
+
 def _file_input_began(why: str) -> None:
     """A FILE writer's begin (P2b-3): in the write's thread, right before
     the parse input file is replaced — the tool table, the parameter file,
@@ -7972,7 +7980,7 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
             # every load is a new program generation (A→B→A and the same
             # path again too), begun right before the open (P2b-3)
             rc = await _cmd_blocking(link(), op(linuxcnc.command.program_open, abs_path), wait=5,
-                                     began=lambda: _calc_gen.new_program("load"))
+                                     began=lambda: _program_began("load"))
         finally:
             _status_runtime.end_program_change()
         if rc == getattr(linuxcnc, "RCS_ERROR", 3):
@@ -7998,7 +8006,7 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
             # write; a parse still running is cancelled and nothing restarts
             # it (P2b-3) — its late end publishes nothing
             rc_abort = await _cmd_blocking(link(), op(linuxcnc.command.abort),
-                                           began=lambda: _calc_gen.new_program("unload"))
+                                           began=lambda: _program_began("unload"))
             _bulk.cancel_inflight("unload")
             _bulk.reparse_pending = False
             rc_reset = await _cmd_blocking(link(), op(linuxcnc.command.reset_interpreter))
