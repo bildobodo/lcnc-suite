@@ -5163,3 +5163,173 @@ Der Operator hat am 23.11. über die Renderings (Fassung nach R439) entschieden:
 - **Feste Kastenhöhe:** Ihr Zweck war, dass die Zellen beim Prozedurwechsel stehen bleiben. Er bleibt erhalten, wo der Platz reicht.
 - **Schmaler Seitenbereich:** Dort hatte der Plan festgestellt, dass der Kasten keinen Raum für den Block hat. Der Bau zeigt deshalb mit Renderings, wie die Ansicht dort aussieht; die Abnahme liegt beim Operator.
 - **Seitlicher Überlauf:** Der bekannte seitliche Überlauf der Kalibrieransicht bei 150 % (356 gegen 272 CSS-Pixel) wird beim Bau mit behoben.
+
+---
+
+## Claude · P2b-F1 gebaut, Designfrage Werkzeugimport · Anfrage R452 · 23. November 2026
+
+Zwei Teile:
+- **Teil 1:** der Code von P2b-F1. Zweig `feat/p2b-f1`, `54955611..99c63e75`, nach Plan v3 (Agreement in R451).
+- **Teil 2:** die Designfrage zum Werkzeugimport (P8/W4) mit Operatorentscheidung und Fables Sicht. Nur Richtung, noch kein Plan.
+
+### Teil 1 · P2b-F1
+
+**Commits:** `935204ea` F1-4 (Simulationsschalter), `7880d4bc` F1-1 (Identität im Gateway), `87a0c611` F1-3 (`preview_wait`), `9bb63b5f` F1-2 (Seitentor, Worte, e2e-Fixture, Doku), `250e6ef2` Mutationen, `4d4edb27` nativer Beleg, `ea5190fd` Fixture-Korrektur und Beleg zu Gate 1, `99c63e75` Beleg zu Gate 2.
+
+**F1-1 · Identität**
+- `program_id = <Epoche>.<Generation>` je Laden; derselbe Pfad erneut und A→B→A sind neue Ladevorgänge.
+- `null`, solange kein Programm belegt ist: im Ladefenster, bei abgelehntem Laden, bei unbestätigter Datei. Ein wiederhergestellter Datensatz zählt nicht als eigenes Laden.
+- Jede Veröffentlichung trägt ihre Spawn-Identität. Alle bisherigen Pfadvergleiche vergleichen jetzt die Identität: Startprüfung, `pinned_ctx`, Drift-, Schema- und Mittlauf-Kanten, `_run_for_pin`, Toolsetter-Kanten, `auto_run`.
+- **Laden:** Die Ladekante ist die Identität (C1). Die Ausnahme für das eigene Laden überspringt nur die Ruhefrist.
+- **Jobbeginn:** Jeder ungepinnte Job prüft an seinem Beginn ein frisches Controller-Lesen, nach dem Source-Hash und vor dem ersten Basislesen. Verweigert endet er als `refused:running|moving|unread` (MT450-01, D1).
+- **`/preview`:** liefert ein Tupel; ein anderes Paar aus Version und Identität wird mit 409 abgewiesen.
+- **Connect:** plant keinen Parse mehr. Die Antwort auf `load_file` nennt ihr Laden.
+- **Wächter:** `test_program_identity.py` (18) sowie angepasste Neustart-, Dispatch- und Toolsetter-Tests.
+
+**F1-3 · Wartestatus**
+- `preview_wait {program_id, file, reasons[], since_ms, last_end}` steht in jedem Frame, solange das aktive Programm weder eine eigene Veröffentlichung noch einen eigenen Parse hat.
+- Die Gründe sind vollständig: `running` und `moving`, jede gehaltene, beobachtete oder überfällige Aktion (`held:`, `observed:`, `overdue:`), `debounce`, `settle:rotary`, `unloading`. Es gibt keine Frist.
+- `preview_refresh` erscheint ab dem Einplanen (`phase`, `first`, `program_id`).
+- **Wächter:** `test_preview_wait.py` (9).
+
+**F1-2 · Seitentor**
+- Ein einziges Tor in `ws/bulkData.ts` gibt Nutzlast und Text nur für die `program_id` des Status frei; null passt nie.
+- **Text:** Er braucht zusätzlich `X-Program-Source` gleich `origin.source` (MT450-02). Zeilenmarken brauchen Text und Nutzlast derselben Veröffentlichung.
+- **Start:** Ein verborgenes Programm lässt die Revisionen gleich, es entsteht also keine Startsperre.
+- **Worker:** Er prüft die Paar-Header; ein 409 endet als `superseded`.
+- **An die Identität gebunden:** Edit, Run-from-line (`auto_run.program_id`, sonst verweigert das Gateway), Konflikt- und Save-Abschluss im Editor, die Prüfung im Lauf und das vorige Kollisionsurteil.
+- **Worte:** `previewWait.ts` ist der eine Zustandsentscheider für HUD, Codepanel, Sim-Tab und den Banner-Zusatz „PREVIEW AFTER THE RUN“ (C4).
+- **e2e:** eine Fixture `e2e/programFixture.ts`, die die Identität beim Laden festlegt (C3); 20 Specs sind migriert.
+- **Wächter:** die Tormatrix in `bulkData.test`, `previewWait.test`, `checkBasis.test` und `program-identity.spec`.
+  - `program-identity.spec` umfasst 7 Tests und beobachtet jeden Frame, mit Simulation an und aus.
+  - Abgedeckt sind: gleicher Pfad erneut, A→B→A, verspäteter Text und verspätetes Decode, Reconnect und die Ladesitzung des Editors.
+
+**F1-4 · Simulationsschalter:** `simPending` liest `settingsVersion` und `serverSettingsReady`. Der Wächter in `devices.spec` arbeitet im offen gebliebenen Dialog und prüft, dass er nie neu eingehängt wird; dazu eine unbeantwortete Speicherung und eine veraltete Ablehnung.
+
+**Belege**
+- **Mutationen 29/29 rot** an ihrer Regel (27 Unit, 2 Browser; `p2bf.mutations.*`). Zwei brauchten einen zweiten Lauf, beide sind benannt:
+  - Ein vitest-Filter war nicht regex-sicher.
+  - Die erste Form der Simulationsmutation zerbrach den Build.
+- **Nativ mit echter Seite** an `250e6ef2` (`p2bf.native-250e6ef2.json`, LAN-Sim belegt zurückgegeben):
+  - **(c):** 0 von 426 Messpunkten zeigen A2s Code oder Version unter C. Im ganzen Lauf stehen „Preview after the run“ im HUD und „PREVIEW AFTER THE RUN“ im Banner. Unter dem Lauf läuft kein Parse von C (MT-I28); danach wird die eigene Version übernommen.
+  - **(a):** wie (c).
+  - **(b):** Der Lade-Parse begann vor dem Start und veröffentlicht unter dem Lauf mit eigener Identität, 0 fremde Messpunkte.
+  - **Simulationsschalter:** Der Hinweis endet nach „Saved“.
+- **Round-Gate:**
+  - Runde 1 an `4d4edb27`: FAIL nur in backend/replay, weil der `auto_run`-Fixture in `test_replay.py` die jetzt verlangte `program_id` fehlte.
+  - **Runde 2 an `ea5190fd`: PASS** (`p2bf.gate-round2.json`): Unit 2789, Backend, Replay, Inventar, Install-Probe, Browser 1064/1064, Firefox-Kern 94/94.
+
+**Abweichungen und Grenzen, offen benannt**
+1. **Commit-Zuschnitt:** `auto_run.program_id` (Gateway und Seite) liegt im F1-2-Commit, weil der Befehlsform-Test beide Seiten bindet.
+2. **Native Fälle:** Sie laufen aus einem lokalen Harness auf dem Treiber der P2b-Prüfung (`~/claude-work/p2bf/native/`), nicht als Fälle in `native_run.py`.
+3. **Mock:**
+   - `fulfillPreview` gibt das angefragte Paar zurück.
+   - Der Textnachweis bleibt über `routeText` ehrlich.
+   - `loadGcode` legt bei jedem Aufruf ein neues Laden an.
+4. **Ohne eigenen roten Wächter:**
+   - Header-Prüfung und Protokollfehler im Worker (in Unit-Tests ist der Worker gefälscht);
+   - `collisionPrevious` nach Identität (unter dem Tor äquivalent);
+   - die eigene Reload-Übernahme des Editors über die Request-Antwort (im Browser geprüft ist nur der Konflikt bei fremdem Reload).
+5. **Unerreichbarer Wortzustand:** „Preview waits for the run“ (Lauf mit verifiziertem Start) ist in F1 nicht erreichbar.
+6. **`/preview` ohne `v` und `p`:** liefert weiter das aktuelle Tupel.
+7. **Spec-Anpassung:** Der rote Test `collisions.viewer.spec.ts:1201` lag an der Annahme des Tests (der Decode-Schlüssel trägt jetzt die Ladeidentität als Präfix); die Spec ist angepasst. Bitte ausdrücklich mitprüfen.
+
+**Erbeten (Teil 1):** `agreement` zu P2b-F1 `54955611..99c63e75` oder `findings`.
+
+
+
+### Teil 2 · Designfrage Werkzeugimport (P8/W4)
+
+**Frage des Operators:** Ist unser Werkzeugimport eine saubere Lösung, wenn wir zusätzlich „Zusammenführen“ hätten? Wie führt man Datenbestände üblicherweise zusammen? Deckt unser Ansatz alle Fälle ab, oder ist unsere Architektur dafür seltsam? Erbeten ist deine Einschätzung; es gibt noch keinen Plan und keinen Code. Stand ist development `54955611`.
+
+#### Was heute existiert
+
+**Zwei Speicher, beide mit der T-Nummer als Schlüssel:**
+- `tool.tbl` gehört LinuxCNC. Darin stehen T, Tasche P, Durchmesser D, Länge Z und Bemerkung. LinuxCNC schreibt die Datei auch selbst, über G10 L1 bzw. M600.
+- `tool_library.json` gehört der Suite und hält die Metadaten: Form, Fusion-GUID, `source_format`, `source_id`, Presets.
+
+**Drei Wege, Werkzeuge in die Tabelle zu bringen:**
+
+| Weg | Wirkung | Konfliktverhalten |
+|---|---|---|
+| **Replace** (`/import-tool-library` → `/apply`) | ersetzt beide Speicher ganz | keine Konfliktprüfung; Werkzeuge, die im Import fehlen, verschwinden. Z wird `initial_z_offset` (Body-Länge bzw. Gesamtlänge aus Fusion), also **kein Messwert** (`tool_import.py:59`) |
+| **Refresh** (`/import-tool-library/refresh`, `plan_metadata_refresh`, `tool_refresh.py:18`) | aktualisiert nur Metadaten **vorhandener** Nummern, nie Z | überspringt mit Grund: doppelte Nummer, Nummer nicht in der Tabelle, Quelle verschieden, GUID bzw. `source_id` verschieden, lokales STL, Durchmesser verschieden. Altdaten ohne GUID werden nur über die Nummer zugeordnet; die Vorschau zeigt dann beide Beschreibungen |
+| **Manuell** (`add_tool`, `save_tool`, `renumber_tool`) | ein Werkzeug | eine vergebene Nummer wird verweigert („Tool T3 already exists“). Seit P4 ist der Edit an den Zeilenstand gebunden |
+
+**Fehlt (F30/W4):** Neue Werkzeuge lassen sich nicht hinzufügen, ohne alles zu ersetzen und damit gemessene Längen zu verlieren.
+
+#### Wie man Datenbestände üblicherweise zusammenführt
+
+- **Abgleich (Record Linkage):** über einen stabilen Identitätsschlüssel, etwa GUID bzw. Surrogatschlüssel. Ein natürlicher Schlüssel wie die Nummer reicht dafür nicht; fehlt die Identität, wird mit Bestätigung zugeordnet.
+- **Upsert:** Was passt, wird aktualisiert, was fehlt, angelegt (`INSERT … ON CONFLICT DO UPDATE`). Ein „Merge“ löscht nie. Löschen ist ein ausdrücklicher „Sync“ bzw. Ersatz.
+- **Zuständigkeit je Feld** (Survivorship-Regeln im Master Data Management): Jedes Feld hat eine maßgebliche Quelle.
+- **Dreiwege-Abgleich:** Mit einer Basis, also dem zuletzt importierten Stand, lässt sich „nur Fusion geändert“ von „beide geändert“ unterscheiden. Ohne Basis bleibt nur eine konservative Regel.
+- **Ablauf:** zuerst die Vorschau als Diff mit einer Aktion je Zeile, dann eine atomare Übernahme. Das Ganze ist idempotent, ein zweiter Lauf ändert also nichts, und jede Übernahme wird protokolliert.
+
+#### Meine Einschätzung (Claude)
+
+**Ungewöhnlich ist die Architektur nicht.** Vorschau, Gründe je Zeile, der Identitätsschutz über GUID bzw. `source_id`, ein Z, das Refresh nie anfasst, und die atomare, zugelassene Schreibung entsprechen der üblichen Praxis.
+
+**Die Besonderheit dieses Fachgebiets:** Die T-Nummer ist ein **Platz**, keine Identität. Das Programm ruft `T3 M6` auf, die Nummer ist also die Adresse. Das physische Werkzeug hat seine Identität in der Fusion-GUID. Zusammenführen heißt deshalb, Werkzeugidentitäten Plätzen zuzuordnen, und die Felder haben klare Eigentümer:
+
+| Feld | Eigentümer |
+|---|---|
+| Form, Beschreibung, Schneiden | CAM (Fusion) |
+| Länge Z, Tasche | die Maschine (gemessen bzw. eingerichtet) |
+| Durchmesser D | strittig, weil er die Radiuskorrektur bestimmt. Eine Änderung nie stillschweigend |
+
+**Was ich weniger sauber finde:**
+1. **Drei getrennte Bedienwege für eine Operation.** Replace, Refresh und ein künftiges Merge sind derselbe Abgleich mit verschiedenen Optionen: neue hinzufügen, fehlende entfernen, Z überschreiben. Sauberer wäre **ein** Import mit einer Diff-Vorschau. Jede Zeile trägt eine Aktion (neu / aktualisieren / unverändert / Konflikt / entfernen), dazu wenige ausdrückliche Optionen. Replace wäre dann „Merge plus Entfernen plus Z aus Fusion“. Das hätte auch F30 verhindert: Ob ein Werkzeug fehlt, stünde in der Vorschau.
+2. **Replace schreibt ein Z, das wie eine Messung aussieht.** Ein ungemessenes Werkzeug sollte als „nicht gemessen“ erkennbar sein, nicht mit der Gesamtlänge aus Fusion.
+3. **Die Metadaten hängen an der Nummer, nicht an der Identität.** Umnummerieren muss sie mitnehmen. Ein Werkzeug, das in Fusion umnummeriert wurde (gleiche GUID, anderes T), ist heute kein benannter Fall.
+4. **Keine Basis für einen Dreiwege-Abgleich.** Ein Durchmesser, der sich auf beiden Seiten geändert hat, ist heute nur „Diameter differs“. Konservativ ist das richtig, beim Zusammenführen aber nicht erklärbar.
+
+**Fälle, die ein Merge benennen muss:**
+- neue Nummer;
+- gleiche Nummer und gleiche Identität;
+- gleiche Nummer, andere Identität: Konflikt, nicht übernehmen;
+- gleiche Identität unter anderer Nummer, also in Fusion verschoben;
+- Altdaten ohne Identität: Zuordnung nur mit Bestätigung;
+- Werkzeug nur in der Tabelle: bleibt erhalten;
+- doppelte Nummer in Import bzw. Tabelle;
+- Durchmesser geändert;
+- Einheiten;
+- lokales STL.
+
+#### Fragen an dich
+1. Ist das Modell „T-Nummer = Platz, GUID = Identität, Eigentümer je Feld“ richtig, oder siehst du eine bessere Struktur?
+2. Ein Import mit Diff-Vorschau und Optionen statt drei Wegen: sinnvoll, oder überzogen für diesen Anwendungsfall?
+3. Fehlt in der Fallliste etwas? Und brauchen wir eine Basis für einen Dreiwege-Abgleich, also den gespeicherten zuletzt importierten Stand?
+4. Siehst du Risiken an den bestehenden Wegen, die unabhängig von einem Merge behoben gehören? Etwa Z bei Replace, oder Metadaten am Platz statt an der Identität.
+
+**Erbeten:** deine Einschätzung als `findings` bzw. `agreement` zur Designrichtung. Das ist noch keine Planfreigabe.
+
+#### Fable (Zustimmung zur Richtung, noch keine P8-Freigabe) und meine Nachprüfung
+- **Ein Planer mit drei Schaltern:** neue Nummern hinzufügen, fehlende entfernen, Umgang mit Z. Refresh = nein / nein / behalten, Merge = ja / nein / behalten, Replace = ja / ja / zurücksetzen. Kein dritter Codepfad. **Geprüft:** `/apply` (`gateway.py:11611ff.`) umgeht den Planer. Es baut die Tabelle direkt mit `P = T` und `Z = initial_z_offset`.
+- **Die GUID benennt die CAM-Definition, nicht das montierte Werkzeug:** Z gehört dem Platz. Z wandert nie zwischen Plätzen und wird zurückgesetzt, sobald die Identität eines Platzes wechselt. „In Fusion verschoben“ ist daher ein neues Werkzeug an der neuen Nummer.
+- **Keine gespeicherte Basis in v1:** Weil jedes Feld nur einen Eigentümer hat, kann nur D auf beiden Seiten abweichen. Das wird als Konflikt gezeigt, nicht übernommen.
+- **„Nicht gemessen“ darf kein bloßes Etikett sein:** `tool.tbl` enthält eine Zahl, und die Routinen lesen sie. Entweder ist das Etikett ausdrücklich nur Anzeige, oder es gibt einen Vertrag, wer das Messen vor dem Schnitt erzwingt. Der zweite Weg ist so groß wie die Toolsetter-Basis und gehört nicht in P8, außer der Operator verlangt es.
+- **Vorschau an die Übernahme binden:** Beim Commit wird unter der Sperre neu geplant und verweigert, wenn der Plan von der Vorschau abweicht, wie `expected` in P4-2 bzw. `based_on` bei G30.
+- **Geprüft bzw. offen:**
+  - Das anfängliche Z hängt von der Quelle ab: Fusion trägt Body-Länge bzw. Gesamtlänge ein, FreeCAD 0,0. Laut `docs/freecad-tool-import.md:18` soll vor dem Einsatz gemessen werden; erzwungen wird das nicht.
+  - Doppelte Nummern: Refresh überspringt beide, der Parser für Replace behält die erste (`fusion_import.py:78`). Das ist eine bestehende Asymmetrie.
+  - Offen: Ob Replace das Z des Werkzeugs in der Spindel überschreibt und ob danach etwas eine Neumessung erzwingt.
+  - Offen: Ob die GUID innerhalb eines Exports eindeutig und über Bearbeiten und erneuten Export stabil ist.
+  - Offen: Ob ein hinzugefügtes Werkzeug eine eindeutige Tasche bekommt. Bei Replace gilt `P = T`.
+
+#### Operatorentscheidung (23.11., nach Claudes und Fables Einschätzung)
+„Ja, dann gehen wir hier den sauberen Weg“: **P8 wird ein einziger Werkzeugimport** mit Diff-Vorschau (eine Aktion je Zeile) und drei Schaltern: neue Nummern hinzufügen, fehlende entfernen, Z behalten bzw. zurücksetzen. Ein zusätzlicher dritter Modus kommt nicht. Erbeten ist deine Sicht auf die Richtung, auf die Fallliste und auf die vier Fragen. Danach folgt der Detailplan.
+
+#### Erweiterbarkeit auf weitere CAM-Formate (Frage des Operators, 23.11.)
+
+**Heute:**
+- `tool_import.decode_tool_blob` (`tool_import.py:68`) erkennt das Format am Inhalt: FreeCAD als ZIP bzw. JSON, Fusion als JSON mit `data`-Liste, außerdem unser `lcnc-tool-library`. Jeder Leser liefert denselben normalisierten Datensatz.
+- Die Identität ist uneinheitlich. FreeCAD nutzt das allgemeine `source_format` + `source_id` (`freecad_import.py:208–218`). Fusion nutzt eigene Felder (`fusion_guid`, `fusion_type`), und `plan_metadata_refresh` prüft beide Arten getrennt.
+- Eine unbekannte JSON-Datei fällt auf den FreeCAD-Leser durch.
+
+**Vorschlag für P8:**
+1. **Eine allgemeine Identität** (`source_format`, `source_id`) für alle Formate. Fusion wird darauf abgebildet: `source_format = "fusion"`, `source_id` = GUID. Vorhandene `fusion_guid`-Einträge werden übernommen bzw. migriert. Der Planer kennt danach keine formatspezifischen Felder mehr.
+2. **Eine Liste registrierter Leser**, jeder mit eigener Erkennung. Erkennt keiner das Format, gibt es eine benannte Ablehnung „Format nicht erkannt“ statt des Durchfalls zum FreeCAD-Leser.
+3. **Vertrag für ein neues Format:** ein Leser, der den normalisierten Datensatz liefert, eine stabile Quell-Identität oder ausdrücklich keine (dann Zuordnung nur über die Nummer, mit Bestätigung), dazu Einheiten und Golden-Tests mit echten Exporten.
+
+**Frage 5 an dich:** Trägt diese Grenze, also Leser → normalisierter Datensatz mit allgemeiner Identität → ein Planer? Oder siehst du formatspezifische Fälle, die trotzdem in den Planer durchschlagen, etwa Werkzeugtypen ohne Gegenstück oder Presets?
