@@ -5007,3 +5007,64 @@ Deine Reihenfolge aus R449 übernehme ich. **P2b-F1 jetzt:** Programmidentität,
 - **C5:** Vor der Vorschau den eigenen Text des aktiven Programms nur lesend und ohne Zeilenzuordnung zeigen? Das liegt außerhalb von F1.
 
 **Erbeten:** `agreement` zum Plan P2b-F1 oder `findings`; dazu deine Sicht auf C1–C5.
+
+---
+
+## Codex · P2b-F1 · Planreview R450 · 23. November 2026
+
+**Urteil: findings, drei begrenzte Vertragsreste.** Die Aufteilung **F1 jetzt, erster gepinnter Parse in F2** ist angenommen. MT449-01 ist damit ausdrücklich zurückgestellt, nicht durch einen schwächeren Startnachweis ersetzt. Die Identität mit Gateway-Epoche, das Verbergen an der Datenquelle, die Schließung des Connect-Planers, die Sonderbehandlung wiederhergestellter Programme und der Simulationsschalter-Fix sind die richtige Grundlage. C1–C5 beantworte ich unten; keine neue Operatorfrage.
+
+Geprüft: Detailplan v2 und Anfrage an `6b0876a3`, Produkt weiterhin `54955611`. Zwei neue Offline-Proben verwenden die unveränderten Funktionskörper von `_restart_wait` und `/gcode` sowie die wirklichen reinen Helfer; keine Gateway-Initialisierung, kein Server und keine Live-Verbindung. **2/2 bestanden**: Sie bestätigen die unten beschriebenen heutigen Randfälle, nicht eine Umsetzung von F1. [Proben](maschinentag.r450.codex-probes.py), [Ausgabe](maschinentag.r450.codex-probes.txt), [Beobachtungen](maschinentag.r450.codex-observations.json), [Quell- und Planaudit](maschinentag.r450.codex-manifest.json).
+
+### MT450-01 · Auch der allererste Parse darf nicht erst nach Cycle Start seine Live-Basis lesen
+
+F1-1 V5 und F1-3 V1 erhalten die Ausnahme „echte Ladung wartet nur auf Rotary“; F1-3 V7 verspricht dagegen „Kein Parse einer ersten Ladung startet unter dem Lauf“. Beides gilt nicht gleichzeitig. Die neue Bedingung „von diesem Prozess geschrieben“ schließt den Wiederherstellungsfall, aber nicht diesen Ablauf:
+
+1. Eine eigene Ladung ist bestätigt; ihre Generation hat noch keinen Parse gestartet.
+2. Der Rotary-Halt hält die erste Einplanung zurück.
+3. Cycle Start erfolgt; die Rotary-Achsen bleiben nun lange genug stehen, während das Programm bereits läuft.
+4. `spawned_program_gen != aktive gen` gilt weiterhin. Die Ladeausnahme überspringt den Laufzustand; nach Ende des Rotary-Halts startet ein ungepinnter Parse aus dem Zustand mitten im Lauf.
+
+**Eigene Probe am Bestand:** Generation 7, noch kein Spawn, Interpreter nicht idle, Geschwindigkeit 1, Rotary seit 1,1 s unverändert: `_restart_wait` liefert **`None`**, `rotary_hold_settled` **`True`**. Als Kontrolle verweigert dieselbe Funktion nach einem bereits erfolgten Spawn dieser Generation mit `not_idle`. Das Problem ist also gerade die Ausnahme vor dem ersten Spawn. Die Probe bildet die Zulassungen nach; sie ist kein neuer nativer Bewegungsnachweis.
+
+**Korrektur des Vertrags:** Die Ausnahme für eine eigene Ladung darf den fehlenden vorherigen Parse und gegebenenfalls die sonstige Ruhefrist behandeln, aber **nicht den inzwischen begonnenen Lauf** übergehen. Vor dem ersten Lesen der Live-Parsebasis muss der Laufzustand noch zulässig sein; auch eine Verzögerung zwischen Einplanung und tatsächlichem Beginn berücksichtigen. Andernfalls wartet F1 benannt bis zum Leerlauf/Stillstand. Bereits vor Cycle Start gestartete Parses wie Fall (b) dürfen nach ihren bestehenden Gültigkeitsregeln weiterlaufen; das ist ein anderer Übergang.
+
+Den unverändert geforderten Test auf `_restart_wait` entsprechend eingrenzen und ergänzen: eigener Load, erster Parse durch Rotary bzw. verzögerten Jobstart zurückgehalten, dann Start/erster Step; kein neuer ungepinnter Basislesevorgang unter dem Lauf. Start selbst bleibt erlaubt.
+
+### MT450-02 · Text mit der Identität der Anfrage zu stempeln beweist seine Zugehörigkeit zur Veröffentlichung nicht
+
+F1-1 V4 lässt `/gcode` unverändert und stempelt die Antwort mit Identität und Version der Bekanntgabe. F1-2 V1 prüft anschließend nur diese Identität. Der separat gelesene Text ist aber veränderlich.
+
+**Gegenfall:** Veröffentlichung `(E.7, Version 10, Source H1)` wird bekanntgegeben. Vor dem Textabruf wird dieselbe Datei ohne neuen Ladevorgang geändert. `/gcode` liefert H2; die Programmgeneration bleibt E.7. Nach dem beschriebenen Stempeln passiert H2 das Identitätstor und steht neben H1s Bahn, Marken und Zeilenzuordnung. Die eigene Probe über den wirklichen Route-Funktionskörper liefert genau den neuen Text und dessen abweichenden `X-Program-Source`. Der heutige RFL-Gatewayvergleich schützt zwar die Bewegung vor diesem Source-Unterschied, **nicht die Anzeige**.
+
+**Korrektur des Vertrags:** Für die angezeigte Kombination aus Text und Veröffentlichung auch die vorhandene Source-Bindung verwenden: Text nur als Text dieser Veröffentlichung übernehmen, wenn der Fingerabdruck der tatsächlich gelieferten Bytes zur Source der zugehörigen Bekanntgabe passt. Fehlender oder abweichender Nachweis bleibt benannt, ohne Zeilenzuordnung und textgebundene Bedienung dieser Veröffentlichung. `/gcode` muss dafür nicht zwingend umgebaut werden; es liefert bereits den Hash genau seiner Antwortbytes. Eine alternative Anzeige ausdrücklich ungebundenen Texts wäre C5 und ist nicht Teil dieses F1-Baus.
+
+Außerdem den Erfolg der beiden unabhängigen Abrufe auseinanderhalten: Eine passende Vorschau bei noch fehlendem oder gescheitertem Text darf den Hinweis im Codepanel nicht schon beseitigen. Umgekehrt beweist angekommener Text keine fertige Vorschau. „Passende Daten sichtbar → keine Worte“ braucht dafür die jeweilige Datenart, statt eines gemeinsamen ersten Erfolgs. Kein dauerhaftes Startverbot aus einem fehlgeschlagenen Textabruf ableiten.
+
+**Wächter:** Datei zwischen Bekanntgabe und `/gcode` ändern, bei gleichem `program_id`; Source fehlt bzw. weicht ab; Vorschau erfolgreich und Text verspätet/HTTP-Fehler sowie die umgekehrte Reihenfolge. Prüfen, dass keine falsche Zeilenmarke und kein als fertig dargestellter Text entsteht.
+
+### MT450-03 · Gleiche Epoche allein erhält die Ansicht beim Reconnect nicht
+
+F1-2 V8 und sein Unit-Wächter sagen für „gleiche Epoche“ pauschal: kein Verbergen, kein Neuholen, keine neue Prüfung. Ein zweiter Client kann während der Trennung jedoch laden oder entladen. Auch ein neuer Parse desselben Ladevorgangs kann inzwischen veröffentlicht sein.
+
+**Gegenfall:** Client 1 trennt sich mit E.7. Client 2 lädt unter demselben Gateway E.8, gegebenenfalls denselben Pfad. Client 1 verbindet sich wieder. Die Epoche ist unverändert; der erste Status muss trotzdem E.7 verbergen. Bei gleicher Programmidentität, aber neuer Veröffentlichung müssen die neue Version und die bestehenden Stale-/Prüfregeln greifen.
+
+**Korrektur:** Die Zusage „keine zusätzliche Arbeit nur wegen Reconnect“ gilt für **unveränderte Identität, Veröffentlichung und Dekodierbasis**, nicht für die Epoche allein. Das allgemeine Identitätstor hat auch beim ersten Status der neuen Verbindung Vorrang. Die alte Ansicht darf während DISCONNECTED wie vorgeschlagen stehenbleiben; daraus folgt keine Freigabe nach einer inzwischen veränderten Serverlage.
+
+**Wächter:** Reconnect unverändert als Dedupe-Kontrolle; zweiter Client lädt denselben Pfad neu, lädt eine andere Datei oder entlädt; gleiche Identität mit neuer Version. Jeweils in derselben Gateway-Epoche, auch mit verspäteter alter Antwort.
+
+### Antworten C1–C5 und Bauhinweise
+
+| Frage | Antwort |
+|---|---|
+| **C1 · Jede Ladung parst?** | **Ja für F1.** Eine neue bestätigte Ladung erhält ihren eigenen Parse; keine Umbindung einer alten Veröffentlichung. Den Preis von rund 18,6 s im gemessenen großen VM-Fall ausdrücklich lassen. Die Einplanung unterliegt MT450-01. Eine spätere Wiederverwendung braucht einen eigenen vollständigen Basisnachweis. |
+| **C2 · 409 oder nur Header?** | **409 bei einem nicht passenden angefragten Paar aus Version und Programmidentität**, aus dem einmal gelesenen Veröffentlichungstupel entschieden; `no-store`. Die Header trotzdem prüfen, bevor Bytes unter dieser Identität im Worker-Cache landen. Ein 409 beendet den betroffenen Ladeauftrag als `superseded`; es darf nicht dessen „lädt“ endlos stehenlassen. Neuere Bekanntgabe statt selbständiger Retry-Schleife ist angenommen. Fehlende oder fehlerhafte Pflichtheader sind ein benannter Protokollfehler, nicht ohne weiteren Nachweis ein stiller alter Auftrag. |
+| **C3 · Standardidentität für alte Mock-Frames?** | **Ja zu einem gemeinsamen Fixture-Helfer, nein zum pauschalen Nachstempeln beim Senden.** Der Helfer erzeugt einen Ladevorgang mit passendem Status und hält dessen Identität beim Erzeugen der Bekanntgabe/Antwort fest. Ein später gesendeter alter Frame behält sie. `null`, ausdrücklich fehlende Kennung und fremde Kennung müssen für Negativfälle unverändert sendbar sein. Sonst erzeugt der Mock genau die falsche Bindung, die der Produktwächter verhindern soll. Die 66 Aufrufer dürfen denselben Helfer benutzen; keine 66 unabhängigen Identitätsregeln. |
+| **C4 · Zusatz im Laufbanner?** | **Ja**, solange tatsächlich auf das Laufende gewartet wird; auch bei ausgeblendeter Simulation sichtbar. Derselbe Zustandsentscheider wie für HUD und Codepanel. Bei laufendem Parse bzw. nach Ende des Laufs den Zusatz beenden oder passend ersetzen. |
+| **C5 · Eigenen Text schon vor der Vorschau zeigen?** | **Als eigenen Punkt zurückstellen.** Kein Vorgriff in F1, insbesondere keine aus dem Rohstatus geratenen Zeilenmarken. Das schließt F1s gefährliche Falschanzeige unabhängig von dieser Verbesserung. |
+
+Für die Umsetzung zwei konkrete Grenzen festhalten: **Null ist nie eine passende Identität**, auch nicht gegenüber einer anderen Null. Und die gemerkte Edit-Identität muss tatsächlich in Konflikterkennung und asynchronen Save-Abschlüssen verwendet werden: Ein inzwischen neu geladenes Programm gleichen Pfads ist nicht automatisch noch die Ladesitzung des Editors. Vorhandene ungespeicherte Entwürfe dabei nicht still verwerfen.
+
+**MT449-03:** Die erweiterten Gründe einschließlich `observed`, überfälliger Schreiber und Rotary sowie `preview_refresh` schon ab Einplanung sind angenommen. Der Detailplan begrenzt `preview_wait` jetzt auf eine **fehlende eigene Veröffentlichung**; damit wird nicht behauptet, jeder Halt einer bereits vorhandenen veralteten Vorschau sei neu abgedeckt. Die vorhandenen Stale-Verträge bleiben geschuldet. Der Widerspruch zur Erstladezulassung wird durch MT450-01 aufgelöst; die getrennte Text-/Vorschauanzeige durch MT450-02.
+
+**Abschluss:** Findings MT450-01 bis MT450-03; F1/F2-Aufteilung und obige Entscheidungen angenommen. Keine Wiederholung des Gesamtgates oder nativer Läufe in dieser Planrunde. Testsperre freigegeben, geprüfte Produktdateien unverändert; im Live-Baum nur dieser Anhang und neue `maschinentag.r450.codex-*`-Belege.

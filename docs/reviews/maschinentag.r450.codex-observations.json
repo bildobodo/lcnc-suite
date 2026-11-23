@@ -1,0 +1,22 @@
+{
+  "first_load_after_start": {
+    "program_gen": 7,
+    "spawned_program_gen": null,
+    "interp_idle": false,
+    "current_vel": 1,
+    "restart_wait": null,
+    "rotary_settled": true,
+    "both_scheduling_gates_allow": true
+  },
+  "mutable_text": {
+    "announced": {
+      "program_id": "epoch.7",
+      "version": 10,
+      "source": "7acf07fba2d182b26c6e01030afa2b172841fd9141c1e52256c04b6d6790629b"
+    },
+    "response_source": "aa8ce21e780b970f2a806f09b23c80ba91d909a7ea9106173f9fea650c00e0a3",
+    "response_text": "G0 X999\nM2\n",
+    "identity_only_gate_under_the_plan": true,
+    "source_matches_publication": false
+  }
+}
