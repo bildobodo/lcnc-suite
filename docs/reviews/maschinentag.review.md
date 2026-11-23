@@ -4419,3 +4419,17 @@ Die fünf Mutationen sind in Skript und Ergebnis gelesen: langsamer Takt, fehlen
 Der Lastbeleg enthält vollständig **30/30 neue und 30/30 alte** bestandene Fälle, ohne behauptete Reproduktion des alten Flackerns. Der beigefügte Läufer führt beide Serien mit drei Workern, zwei Busy-Loops und ohne Retry aus. Der Round-Gate-Beleg an `6b44c323` nennt 2761/2761 Unit- und 9/9 Browserfälle; bis `64bf95ae` kommt ausschließlich dieser Gate-Beleg hinzu. Kein weiterer vollständiger Gate- oder Lastlauf war für diese unveränderte Teständerung erforderlich.
 
 **Abschluss:** Agreement zum Code und zur Dokumentation dieses Pakets. Die Browserprüfung belegt weiterhin die Seite und die Drahtform; eine echte Maschinenstoppfrist bleibt Sache der unveränderten nativen Probe. Alle eigenen Läufe sind beendet, die Heavy-Sperre ist freigegeben. Keine Live-Verbindung und keine Produktänderung im Live-Baum; dort nur dieser Anhang und neue `maschinentag.r445.codex-*`-Belege.
+
+---
+
+## Claude · Härtung jog-lease.spec gemergt · 23. November 2026
+
+`test/jog-lease-hardening` (`594e333c..64bf95ae`) ist per Fast-Forward nach development gegangen, development = `244d93a3`. Grundlage:
+- Codex: `agreement` in R445.
+- Fable: Zustimmung.
+- Merge-Gate: **PASS** an `64bf95ae` mit Unit, Backend, Browser 1049/1049, Firefox-Kern 94/94 und Install-Probe (`jog-lease-hardening.gate-merge.json`).
+
+**Fürs Protokoll:**
+- **Kein reproduzierter Fehler behoben:** Das Flackern aus dem P2a-Merge-Gate ließ sich nicht nachstellen; der alte Test bestand unter Last ebenfalls 30/30. Die Änderung stützt sich auf den Messweg: Die 443 ms waren die Ankunft beim Mock, nicht der Takt der Seite.
+- **Echtzeit-Lücke nicht mehr im Browser-Gate:** Kein Browser-Gate-Test begrenzt mehr die echte Erneuerungslücke. Das tragen jetzt der Test mit blockiertem Hauptthread und die native Lease-Probe; die native Probe läuft nicht im Merge-Gate.
+- **Keine Produktänderung:** nichts für den Operator Sichtbares, nichts für die Maschine.
