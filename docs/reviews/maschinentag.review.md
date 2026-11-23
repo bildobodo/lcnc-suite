@@ -5142,3 +5142,24 @@ Für die Umsetzung sind folgende Lesarten des angenommenen Vertrags maßgeblich;
 C1–C5 sind wie in R450 beantwortet übernommen: eigener Parse je Ladung, atomare `/preview`-Antwort mit Prüfung des angefragten Paars, beim Erzeugen gebundene Mock-Fixtures, zustandsabhängiger Laufbanner-Zusatz und kein Vorgriff auf die unabhängige Textanzeige C5. Null passt nie zu Null. Der Simulationsschalter-Fix bleibt angenommen.
 
 **Prüfgrenze und Abschluss:** Keine neuen Tests, Browser- oder nativen Läufe in dieser reinen Planrunde; die R449/R450-Proben betreffen weiterhin denselben Produktstand und wurden nicht wiederholt. Keine Testsperre belegt, keine Live-Verbindung, keine Produktänderung. Die im Plan vorgesehenen Rot-Nachweise, Gates, nativen Fälle und die Lastmessung bleiben Umsetzungsnachweise. **P2b-F1 kann auf dieser Grundlage gebaut werden.** Im Live-Baum nur dieser Anhang und der neue `maschinentag.r451.codex-plan-audit.json`-Beleg.
+
+---
+
+## Claude · Operatorentscheidungen zu P5 und Q433-1 · 23. November 2026
+
+Der Operator hat am 23.11. über die Renderings (Fassung nach R439) entschieden:
+- **O-1:** Das Feldmuster bleibt wie gezeigt: amberfarbener Balken mit leichter Tönung für einen Entwurf, roter Balken mit Grund für eine Ablehnung, gespeichert neutral, Maschinenzustand einmal je Abschnitt.
+- **O-2:** Jeder bewaffnete Client darf den Kandidaten übernehmen oder verwerfen.
+- **O-3:** Ein Lauf, der im Rückzug abgebrochen wird, liefert keinen Kandidaten.
+- **O-4, gegenüber dem Plan geändert:** Der Block „Calibration Offset“ steht **im Kasten mit den Kalibrierzellen**, direkt unter „Calibrate on“, ohne großen Abstand. Er steht nicht unter dem Kasten.
+- **Neu, zum Layout der Kalibrieransicht:**
+  - Das Durchmesserfeld steht **vertikal mittig zur Reihe der Round-Zellen**.
+  - Die Felder X Width und Y Width stehen als Gruppe **vertikal mittig zur Reihe der Rect-Zellen**.
+  - Wortlaut des Operators: „es schaut sonst ein wenig zusammengewürfelt aus“.
+- **Q433-1:** Die Empfehlung gilt: Boss verlangt eine Größe, Pocket darf mit 0 starten und zeigt dann den ruhenden Hinweis. Damit ist P4-5 kein vorläufiger Stand mehr.
+- **Offen, nicht Teil von P5:** ob der amberfarbene Balken später auch an den Feldern von Toolsetter und G30 erscheint.
+
+**Folge für P5 v6:**
+- **Feste Kastenhöhe:** Ihr Zweck war, dass die Zellen beim Prozedurwechsel stehen bleiben. Er bleibt erhalten, wo der Platz reicht.
+- **Schmaler Seitenbereich:** Dort hatte der Plan festgestellt, dass der Kasten keinen Raum für den Block hat. Der Bau zeigt deshalb mit Renderings, wie die Ansicht dort aussieht; die Abnahme liegt beim Operator.
+- **Seitlicher Überlauf:** Der bekannte seitliche Überlauf der Kalibrieransicht bei 150 % (356 gegen 272 CSS-Pixel) wird beim Bau mit behoben.
