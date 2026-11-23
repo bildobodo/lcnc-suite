@@ -1,0 +1,62 @@
+{
+  "round": "R442",
+  "date": "2026-11-23",
+  "doc_head": "b63522e875437511bceea46fc0ae2a758dcbec3d",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "parts": {
+    "P2b": "agreement on plan v4; MT439-01 rest A closed",
+    "P5": "findings: MT439-05 A (3037 already assigned) and B (positive drain/settlement evidence missing); MT439-07 and MT439-08 classification closed"
+  },
+  "documents": {
+    "maschinentag.r442.p2b-plan-v4.md": "814d9daf5b47780611557520109645dfc32f21922e1837faf500e65809a12c36",
+    "maschinentag.r442.p5-plan-v4.md": "e6aa0944fc45753dadfb3002725c5e2b6d62446953911682a531aeab1e339cd0"
+  },
+  "source_hashes": {
+    "lcnc-gateway/gateway.py": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+    "lcnc-gateway/gateway_util.py": "f64af2807c71cc1aad855d3e2d8c8e99b7992fa8afae2865480ced5e91a2c818",
+    "lcnc-gateway/status_runtime.py": "728b62135f0ef7699122ca80d20ff6ee52da36f996e3b0f194bed6d093e0f5cc",
+    "lcnc-gateway/test_macros_gateway.py": "b59eb07f1e89e65712eb6f0ec3f1fc71a942364acc9e2a2a0c830e58cbd80813",
+    "lcnc-gateway/test_status_runtime.py": "576bc209ca68cf3e3702d434cbcb566edfb2fa8c8efa66b20e35fee457e46bde",
+    "subroutines/probe_basic/tool_setter_param_update.ngc": "a13c26e73fe793ff0bc51771fb9df19068c1bfaad89a015cbb8a11d7be028458",
+    "subroutines/probe_basic/touch_probe_param_update.ngc": "1ff3297537c5a298f7b0964d1101946fa7a79bc840d127fcaac021dcb7fcb547",
+    "subroutines/probe_basic/surface_scan_param_update.ngc": "7fb268006c96e9b28b055be247be8ae560b4a68c22f4aacb8d52671164401e18",
+    "scripts/install_examples.py": "7f0a92acce826c61854309df6ad66fdcbce3058d4b88ea56306211fea31281a6"
+  },
+  "review_before_sha256": "baea41588a25b7ef9ae05f4e88af7d578e9f365ed0fbcfcaedb129a3a1f6c09d",
+  "append_sha256": "8a731be2c52e3001ae85afe62de53d15cd5feb4baafdeb1ca43f39ae74a06fc1",
+  "evidence": {
+    "maschinentag.r442.codex-probe.py": "93893aba6bfa786c92f0d5f002cd72337cd924a0aba1f8ad8326a4d4599187ea",
+    "maschinentag.r442.codex-probes.json": "d1158ffe245eeeb97a9712685ea558934f6cc0cd39c1829dfceca28468faa5ca"
+  },
+  "findings": [
+    {
+      "id": "MT439-05 rest A",
+      "topic": "Counter parameter 3037 conflicts with bundled tool_setter_param_update breakage tolerance"
+    },
+    {
+      "id": "MT439-05 rest B",
+      "topic": "Status generation does not prove complete successful error-channel drain after controller settlement on the bound Link"
+    }
+  ],
+  "checks": {
+    "command": "python3 -I -B /tmp/r442/probe.py /tmp/r439/base",
+    "lock": "Official scripts/test_support/heavy_lock.py, codex-r442-plan-probes; single run completed and lock released",
+    "exit_code": 0,
+    "error_reader_cases": 6,
+    "models": [
+      "One status publication after a capped/failed/absent ERR read",
+      "An older in-flight cycle can fulfil _status_cycles(1)",
+      "Existing parameter 3037 tolerance 0.2 gives 1.2 under the literal reservation formula"
+    ],
+    "assertions": "All assertions passed; counterexamples to the plan, not a product gate",
+    "limits": [
+      "No R442 plan implementation exists or was executed",
+      "No product gate",
+      "No gateway/status_runtime imports",
+      "No native interpreter, LinuxCNC connection, browser or rendering acceptance",
+      "Publication sequence is modelled; read/wait helpers are original source",
+      "No product edits or subagents"
+    ],
+    "operator_questions": []
+  }
+}

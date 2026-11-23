@@ -1,0 +1,99 @@
+{
+  "round": "R442",
+  "product_base": "594e333c",
+  "hashes": {
+    "lcnc-gateway/gateway.py": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+    "lcnc-gateway/status_runtime.py": "728b62135f0ef7699122ca80d20ff6ee52da36f996e3b0f194bed6d093e0f5cc",
+    "subroutines/probe_basic/tool_setter_param_update.ngc": "a13c26e73fe793ff0bc51771fb9df19068c1bfaad89a015cbb8a11d7be028458"
+  },
+  "error_reader_and_cycle_cases": [
+    {
+      "case": "empty_control",
+      "messages_returned": 0,
+      "poll_calls": 1,
+      "empty_observed": true,
+      "messages_remaining": 0,
+      "warns": 0,
+      "status_cycles_returned": true
+    },
+    {
+      "case": "three_messages_control",
+      "messages_returned": 3,
+      "poll_calls": 4,
+      "empty_observed": true,
+      "messages_remaining": 0,
+      "warns": 0,
+      "status_cycles_returned": true
+    },
+    {
+      "case": "fifty_messages_no_empty_witness",
+      "messages_returned": 50,
+      "poll_calls": 50,
+      "empty_observed": false,
+      "messages_remaining": 0,
+      "warns": 0,
+      "status_cycles_returned": true
+    },
+    {
+      "case": "stale_message_behind_fifty",
+      "messages_returned": 50,
+      "poll_calls": 50,
+      "empty_observed": false,
+      "messages_remaining": 1,
+      "warns": 0,
+      "status_cycles_returned": true,
+      "next_read_after_modelled_new_start": [
+        [
+          13,
+          "LCNC_CAL_CANDIDATE run=1 value=0.20 axis=0"
+        ]
+      ]
+    },
+    {
+      "case": "error_channel_read_failed",
+      "messages_returned": 0,
+      "poll_calls": 1,
+      "empty_observed": false,
+      "messages_remaining": 0,
+      "warns": 1,
+      "status_cycles_returned": true
+    },
+    {
+      "case": "error_channel_absent",
+      "messages_returned": 0,
+      "poll_calls": 0,
+      "empty_observed": false,
+      "messages_remaining": 0,
+      "warns": 0,
+      "status_cycles_returned": true
+    }
+  ],
+  "inflight_cycle_model": {
+    "poll_began": 10.0,
+    "idle_seen": 11.0,
+    "status_cycles_returned": true,
+    "scope": "counter-publication model; actual waiter has no poll-begin input"
+  },
+  "parameter_3037_conflict": {
+    "scope": "static source evidence and arithmetic model, not native execution",
+    "existing_owner": "tool_setter_param_update, breakage_tolerance, argument #11",
+    "assignment_lines": [
+      {
+        "line": 15,
+        "text": "#<breakage_tolerance_3037> = #11"
+      },
+      {
+        "line": 39,
+        "text": "#3037 = #<breakage_tolerance_3037>"
+      }
+    ],
+    "example_existing_value": 0.2,
+    "literal_plan_next_after_gateway_restart": 1.2,
+    "literal_plan_next_is_integer": false
+  },
+  "limits": [
+    "No product plan implementation executed",
+    "No live/native/browser connection",
+    "Publication timing and counter arithmetic are models, not a native run"
+  ]
+}

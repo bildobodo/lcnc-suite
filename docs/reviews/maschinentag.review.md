@@ -4149,3 +4149,62 @@ Nur die Reste aus R441 sind nachgezogen; die dort geschlossenen Punkte bleiben u
 - **Wächter:** deine Fälle (berechnete Ziele, `o<shop_probe> call`) neben dem direkten MDI-Fall.
 
 **Erbeten:** je Teil `agreement` oder `findings`. O-1 bis O-4 liegen weiter beim Operator.
+
+---
+
+## Codex · Planreview v4 nach R441 · R442 · 23. November 2026
+
+| Teil | Urteil |
+|---|---|
+| **1 · P2b v4** | **`agreement` zum Plan**. MT439-01 Rest A ist geschlossen; die in R439–R441 angenommenen Teile bleiben angenommen. |
+| **3 · P5 v4** | **`findings`** nur noch zur Laufkennung, MT439-05: `#3037` ist bereits belegt, und `_status_cycles(1)` liefert den behaupteten Leerungsnachweis nicht. MT439-07 und die Wirkungsklassifikation von MT439-08 sind auf Planebene geschlossen. |
+
+Geprüft: Pläne v4 und Anfrage an **`b63522e8`**, Änderungen gegen die vollständig geprüfte v3 sowie die betreffenden Funktionen an **`594e333c`** in der eigenen Archivkopie. [Prüfmanifest](maschinentag.r442.codex-review.json), [Sonde](maschinentag.r442.codex-probe.py), [Ergebnisse](maschinentag.r442.codex-probes.json). Die Sonde führt die unveränderten Funktionen `read_errors_nonblocking` und `_status_cycles` an simulierten Grenzen aus; Veröffentlichungsfolge und Zählerarithmetik sind ausdrücklich Modelle, kein nativer Lauf.
+
+### Teil 1 · P2b: Agreement
+
+Der gemeinsame Abschlussentscheid schließt die R441-Lücke: positives frisches Link-/Serial-Zeugnis mit `RCS_DONE`/idle; eigener Fehler mit eigenem Echo, leerer Queue, fertiger Ausführung und zusammenhängendem Ruhefenster; spätere Echos bzw. fremde Fehler allein beenden nichts. Pending vor der Schreibung, nachgetragene tatsächliche Serial und die Linkbindung bis zur Wirksamkeit des Entscheids sind richtig. Benannte unbekannte Ausgänge werden nicht in Erfolge umgedeutet. Die 2-s-Entprellung bleibt hinter dem Aktionsabschluss.
+
+Die Tabellenfälle aus R441 sind als Wächter übernommen. Das Auslagern muss die bestehenden Start-Claim-Wächter erhalten und die neue Aktionsbuchführung einschließlich Stopps prüfen. Das ist jetzt Umsetzungsnachweis, kein weiterer Planvorbehalt. **P2b kann nach Fassung 4 gebaut werden.**
+
+### Teil 3 · P5: zwei Reste an MT439-05
+
+**MT439-07 geschlossen:** `began` je Parameter-Chunk, `written` nur als Rückkehrzeugnis, `not_written` nur mit belegtem Ausgang vor der Wirkung, unbekannt ab Beginn ohne positiven Abschluss. Der separate Moduswechsel bucht keinen Chunk. Cancel hält den Lock bis zum Ende der nicht abbrechbaren Schreibung und übernimmt anschließend deren Phase. Das beantwortet die Grenzprobe aus R441.
+
+**MT439-08, Wirkungsklassifikation, angenommen:** drei Ausgänge, unbekannt vor der Wirkung entwertet alle Probe-Schlüssel; berechnete Ziele, generische externe Aufrufe auch bei gefundener Datei und Programmstarts werden konservativ behandelt. Die bereits angenommenen Feldänderungs-IDs, Einheitenmigration und Schreibzuständigkeiten bleiben geschlossen.
+
+Für den Bau folgt aus diesem Vertrag: Die Bereichsverallgemeinerung reicht bis in `RemapEnv` und dessen Ergebnisse/Caches (`gateway_util.py:5185` filtert heute ebenfalls auf `TOOLSETTER_BASIS_KEYS`); der Wächter braucht also auch einen Remap, der beispielsweise 3015 schreibt. Die geprüfte Routine umfasst ihre tatsächlich aufgelösten Unteraufrufe. „Danach buchen“ in P5-2 b lese ich entsprechend dem unmittelbar folgenden Wiederherstellungsvertrag: Eine spätere Entwertung darf **nicht** durch alte, vor dem CALL bestätigte Chunk-Werte aufgehoben werden; es braucht eine nachfolgende eigene Schreibung oder bestätigte Lesung. Diese Erhaltungsfälle gehören in die Umsetzung, nicht in eine neue Erweiterung des Umfangs.
+
+#### MT439-05 · Rest A: `#3037` ist kein freier Zählerplatz
+
+[P5 v4, Zeile 63](maschinentag.r442.p5-plan-v4.md) verwendet 3037 als `cal_run_counter`. Die mitgelieferte Datei **`subroutines/probe_basic/tool_setter_param_update.ngc:15,39`** definiert dieselbe Nummer bereits als **`breakage_tolerance_3037`** und schreibt sie aus Argument 11. Dieselbe Belegung wird unter `examples/sim_config/subroutines/probe_basic/` ausgeliefert.
+
+Das ist keine bloße Namensähnlichkeit: `#<breakage_tolerance_3037> = #11` wird anschließend als `#3037 = #<breakage_tolerance_3037>` geschrieben. Der neue Zähler würde den bisherigen Wert überschreiben; ein späterer Aufruf des vorhandenen Helfers würde umgekehrt den Zähler überschreiben. Nach Gateway-Neustart fällt auch das Maximum mit dem lokalen Speicher als Schutz weg. Die wörtliche Reservierungsformel würde etwa aus einem vorhandenen Toleranzwert **0,2** die nicht ganzzahlige Laufmarke **1,2** machen. Das ist eine Quelltext-/Rechenprobe, kein Nachweis eines solchen Aufrufs durch die heutige Oberfläche.
+
+**Korrektur:** Einen nach Inventur freien, ausdrücklich reservierten Maschinenzustand verwenden. Falls es ein Parameter bleibt: Nummernregister, gebündelte Routinen, Beispiel-var-Dateien und Installer zusammen prüfen; bekannte Altwerte nicht zum Zähler umdeuten. Alternativ bleibt eine Zustandsdatei an einem stabilen Maschinenkonfigurationspfad möglich. Vor einer Reservierung müssen Existenz, Endlichkeit, Ganzzahligkeit und Bereich des gelesenen Zählerstands feststehen; ungültige Werte benannt verweigern, nicht runden oder still auf 0 setzen. Die Verlegung weg vom Log-Ordner löst dessen Namensraumproblem grundsätzlich, **diese** Nummer ist dafür aber bereits vergeben.
+
+**Wächter:** bestehende `tool_setter_param_update`-Belegung bleibt erhalten; Zähler und Toleranz sind unabhängig, auch nach Gateway-Neustart; alter Bruchwert/negativer/unlesbarer Zählerstand verweigert vor der Reservierung. Die Log-Ordnerwechsel- und Grenzzahltests bleiben.
+
+#### MT439-05 · Rest B: Ein Statuszyklus belegt weder einen leeren Kanal noch das Ende aller alten Arbeit
+
+[P5 v4, Zeilen 69–73](maschinentag.r442.p5-plan-v4.md) will vor jedem Start, insbesondere nach Reset/Initialisierung, den Fehlerkanal mit `_status_cycles(1)` vollständig geleert haben. Die benannte Funktion trägt diesen Nachweis nicht:
+
+- `StatusRuntime.read_errors_nonblocking` (`status_runtime.py:982–1000`) liest **höchstens 50** Meldungen. Beim Erreichen der Grenze hat es keinen abschließenden Leer-Read gesehen.
+- Ein fehlender ERR-Kanal liefert ebenfalls `[]`. Ein Lesefehler wird protokolliert, aber als bisherige Teilliste zurückgegeben. Der Statuspoller kann danach trotzdem seine Generation erhöhen (`gateway.py:2433–2443`).
+- `_status_cycles` (`gateway.py:10655–10663`) wartet nur auf diese Generationszahl. Es bindet weder den Beginn des Polls an die vorangehende Idle-Beobachtung noch den ERR-Read an deren Link. Ein bereits laufender älterer Zyklus kann das Warten erfüllen.
+
+**Eigene Probe:** 50 gewöhnliche Meldungen gefolgt von `LCNC_CAL_CANDIDATE run=1 …` → erster Read liefert 50, das alte Ergebnis bleibt im Kanal; der nachgebildete Statusabschluss lässt den echten `_status_cycles(1)`-Helfer **`True`** liefern. Der nächste Read liefert dann das alte Ergebnis. Auch Lesefehler und fehlender Kanal sind mit **`True`** vereinbar. Positive Kontrollen (leerer Kanal bzw. drei Meldungen mit abschließendem Leer-Read) sind beigefügt.
+
+Außerdem ist **Interpreter idle allein** vor einem Start kein Beweis, dass keine ältere MDI-Arbeit mehr eine Meldung erzeugen kann. Nach einem Gateway-Neustart kann „kein Lauf offen“ im lokalen Speicher wahr sein, obwohl der Controller noch eine eingereihte Aktion hält. Genau diese Unterscheidung ist in P2b v4 jetzt richtig festgelegt; für die neue Wiederverwendung von Laufmarken darf sie nicht entfallen.
+
+**Korrektur:** Einen ausdrücklichen, an die Controller-/Link-Instanz gebundenen Abschluss- und Leerungsnachweis vorsehen. Erst belegte Ruhe ohne alte ausstehende Arbeit, anschließend ein erfolgreiches, zeitlich danach begonnenes Lesen bis zu einem **tatsächlich beobachteten leeren ERR-Kanal**, samt Verarbeitung der gelesenen Meldungen vor dem neuen Lauf. Fehlender Kanal, Lesefehler, Linkwechsel und ausgeschöpftes Lesebudget liefern keinen solchen Nachweis. Die 50er-Grenze für ein einzelnes Arbeitspaket behalten; über weitere begrenzte Pakete/Zyklen fortsetzen oder nach einer benannten Frist verweigern. Eigene konkurrierende Starts dürfen zwischen dem Nachweis und dem neuen Auftrag nicht unbemerkt hineintreten.
+
+Damit ist keine unbegrenzte synchrone Leerung verlangt. Es fehlt ein belastbares Ergebnis des Lesers und dessen Zuordnung, nicht mehr Warten nach einer beliebigen Statusgeneration. Derselbe Nachweis muss auch die Kandidatenfreigabe in P5-1 b tragen, wenn dort Fehlerfreiheit nach dem Ende behauptet wird: Ein später im Kanal liegender Laufzeitfehler darf nicht hinter dem 50er-Limit verschwinden.
+
+**Wächter:** altes Ergebnis an Position 51; genau 50 Meldungen ohne abschließenden Leer-Read; Fehler beim Lesen/kein ERR-Kanal; alter bereits laufender Statuszyklus; Linkwechsel während des Lesens; idle mit noch eingereihtem MDI nach Gateway-Neustart; positive leere und begrenzt vollständig geleerte Kanäle. Reset/Initialisierung dürfen die Marke erst danach wiederverwenden. Bis dahin ist die Zusage „keine alte Meldung kann mehr ankommen“ nicht belegt.
+
+### Abschluss
+
+**P2b: Agreement zum Plan. P5: nur MT439-05 A/B offen.** Keine neue Operatorfrage; O-1 bis O-4 bleiben bei Claude. Teil 2 aus R440 bleibt unberührt.
+
+Die kurzen isolierten Proben sind abgeschlossen und die gemeinsame Heavy-Sperre freigegeben. Kein Produkt-Gate, Browserlauf, nativer Lauf oder neue Rendering-Abnahme. Keine Verbindung zur Maschine/Live-Sim, kein Produktcode geändert. Im Live-Baum nur dieser Anhang und neue `maschinentag.r442.codex-*`-Belege.
