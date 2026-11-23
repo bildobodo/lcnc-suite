@@ -1,0 +1,685 @@
+{
+ "_doc": "P2b-F1 native cases on the VM's real LinuxCNC with a real page (Chromium headless 1920x1080, simulation switched on by the probe's check 3) at a10525e9 (the Codex R452 fixes MT-I29..MT-I31 with their guards; MT-I29 changed the parse scheduling these cases exercise), driven by ~/claude-work/p2bf/native/p2bf_native.py (the P2b check's page driver, sampled every 100 ms from each load to the adoption of its own preview after the run). Verdicts: foreign_samples = samples naming the big program while showing A2's code or A2's published version (case c's defect); words_in_run = every sample in the run shows 'Preview after the run' in the HUD and 'PREVIEW AFTER THE RUN' in the banner; adopted = the program's own version shown after the run; parse_under_run = preview_refresh of the big program after the start (MT-I28: none in a/c; b's load parse began before the start and keeps its rules). check3 = the simulation switch's note after 'Saved' in the open dialog (F1-4). The LAN sim taken and given back: restore and restore-post 'complete'.",
+ "run": "20261123T225134-p2bf-r452",
+ "commit": "a10525e9d7a1bb8293a98112ad35ba45e3c53570",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "page": {
+  "ready": {
+   "t": 1795470729830,
+   "check3": {
+    "checkedBefore": false,
+    "simTabBefore": 0,
+    "noteBefore": 0,
+    "savedMs": 353,
+    "simTabMs": 359,
+    "noteAfterSaved": 0,
+    "simTabAfterSaved": 1,
+    "noteAfterReopen": 0
+   }
+  },
+  "a": {
+   "file": "pw_big_a.ngc",
+   "digest": "64bad98f7c34",
+   "a2_version": null,
+   "load_reply": {
+    "type": "reply",
+    "cmd": "load_file",
+    "ok": true,
+    "path": "/home/cnc/claude-work/p2bf/native/runs/20261123T225134-p2bf-r452/configs/sim/nc_files/pw_big_a.ngc",
+    "program_id": "ab989596.1"
+   },
+   "refresh_at_load": {
+    "reason": "file",
+    "file": "pw_big_a.ngc",
+    "program_id": "ab989596.1",
+    "phase": "starting",
+    "first": true,
+    "expected_ms": null,
+    "started_ms": null,
+    "job": 1,
+    "queued": false,
+    "superseded": 0
+   },
+   "published_before_start": false,
+   "start_reply": {
+    "type": "reply",
+    "cmd": "cycle_start",
+    "ok": true,
+    "toolsetter": {
+     "digest": "258eb2122d19df53",
+     "set_up": false,
+     "synced": false
+    }
+   },
+   "published_during_run": false,
+   "preview_wait_in_run": null,
+   "refresh_in_run": [
+    {
+     "t": 0.21,
+     "job": 1,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    }
+   ],
+   "abort_reply": {
+    "type": "reply",
+    "cmd": "abort",
+    "ok": true
+   },
+   "published_after_abort_s": 6.31,
+   "own_version": 1795470716,
+   "samples": 449,
+   "t": {
+    "load": 1795470729.9451551,
+    "start": 1795470730.0255315,
+    "abort": 1795470765.1743608
+   },
+   "verdict": {
+    "foreign_samples": 0,
+    "foreign_first": [],
+    "words_in_run": true,
+    "words_sample": {
+     "t": 1795470748395,
+     "file": "pw_big_a.ngc",
+     "code": [],
+     "shown": null,
+     "note": "Text and preview after the run",
+     "hud": "Preview after the run",
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:17 \u00b7 PREVIEW AFTER THE RUN"
+    },
+    "adopted": true,
+    "last_sample": {
+     "t": 1795470775394,
+     "file": "pw_big_a.ngc",
+     "code": [
+      "1(p2bcheck a)",
+      "2G21 G90 G94 G17 G64"
+     ],
+     "shown": 1795470716,
+     "note": null,
+     "hud": null,
+     "banner": "IDLE"
+    },
+    "parse_under_run": []
+   }
+  },
+  "b_A_version": 1795470717,
+  "b": {
+   "file": "pw_big_b.ngc",
+   "digest": "47763ddfe639",
+   "a2_version": 1795470717,
+   "load_reply": {
+    "type": "reply",
+    "cmd": "load_file",
+    "ok": true,
+    "path": "/home/cnc/claude-work/p2bf/native/runs/20261123T225134-p2bf-r452/configs/sim/nc_files/pw_big_b.ngc",
+    "program_id": "ab989596.3"
+   },
+   "refresh_at_load": {
+    "reason": "file",
+    "file": "pw_big_b.ngc",
+    "program_id": "ab989596.3",
+    "phase": "starting",
+    "first": true,
+    "expected_ms": null,
+    "started_ms": null,
+    "job": 4,
+    "queued": false,
+    "superseded": 1
+   },
+   "published_before_start": false,
+   "start_reply": {
+    "type": "reply",
+    "cmd": "cycle_start",
+    "ok": true,
+    "toolsetter": {
+     "digest": "258eb2122d19df53",
+     "set_up": false,
+     "synced": false
+    }
+   },
+   "published_during_run": true,
+   "preview_wait_in_run": null,
+   "refresh_in_run": [
+    {
+     "t": 0.05,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.15,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.25,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.35,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.45,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 5.37,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 5.47,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    }
+   ],
+   "abort_reply": {
+    "type": "reply",
+    "cmd": "abort",
+    "ok": true
+   },
+   "published_after_abort_s": 0.02,
+   "own_version": 1795470718,
+   "samples": 372,
+   "t": {
+    "load": 1795470779.925622,
+    "start": 1795470779.9457252,
+    "abort": 1795470815.0926583
+   },
+   "verdict": {
+    "foreign_samples": 0,
+    "foreign_first": [],
+    "words_in_run": "published in the run (case b)",
+    "words_sample": {
+     "t": 1795470799272,
+     "file": "pw_big_b.ngc",
+     "code": [
+      "3427G53 G1 X209.0",
+      "3428G53 G1 X209.5"
+     ],
+     "shown": 1795470718,
+     "note": null,
+     "hud": null,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:19"
+    },
+    "adopted": true,
+    "last_sample": {
+     "t": 1795470819072,
+     "file": "pw_big_b.ngc",
+     "code": [
+      "6452G53 G1 X119.5",
+      "6453G53 G1 X120.0"
+     ],
+     "shown": 1795470718,
+     "note": null,
+     "hud": null,
+     "banner": "IDLE"
+    },
+    "parse_under_run": [
+     {
+      "t": 0.55,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.65,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.75,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.85,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.95,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.05,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.15,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.25,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.35,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.45,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.55,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.65,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.75,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.85,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.95,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.05,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.15,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.25,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.35,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.45,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.55,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.65,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.75,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.85,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 2.95,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.05,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.15,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.25,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.35,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.45,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.55,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.66,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.76,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.86,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 3.96,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.06,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.16,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.26,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.36,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.46,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.56,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.66,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.76,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.86,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 4.96,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 5.07,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 5.17,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 5.27,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 5.37,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 5.47,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     }
+    ]
+   }
+  },
+  "c_task_mode_before": 3,
+  "c_A2_version": 1795470719,
+  "c": {
+   "file": "pw_big_c.ngc",
+   "digest": "2fe523a3d046",
+   "a2_version": 1795470719,
+   "load_reply": {
+    "type": "reply",
+    "cmd": "load_file",
+    "ok": true,
+    "path": "/home/cnc/claude-work/p2bf/native/runs/20261123T225134-p2bf-r452/configs/sim/nc_files/pw_big_c.ngc",
+    "program_id": "ab989596.5"
+   },
+   "refresh_at_load": {
+    "reason": "file",
+    "file": "pw_big_c.ngc",
+    "program_id": "ab989596.5",
+    "phase": "starting",
+    "first": true,
+    "expected_ms": null,
+    "started_ms": null,
+    "job": 6,
+    "queued": false,
+    "superseded": 1
+   },
+   "published_before_start": false,
+   "start_reply": {
+    "type": "reply",
+    "cmd": "cycle_start",
+    "ok": true,
+    "toolsetter": {
+     "digest": "258eb2122d19df53",
+     "set_up": false,
+     "synced": false
+    }
+   },
+   "published_during_run": false,
+   "preview_wait_in_run": null,
+   "refresh_in_run": [],
+   "abort_reply": {
+    "type": "reply",
+    "cmd": "abort",
+    "ok": true
+   },
+   "published_after_abort_s": 4.83,
+   "own_version": 1795470720,
+   "samples": 433,
+   "t": {
+    "load": 1795470825.512557,
+    "start": 1795470825.532714,
+    "abort": 1795470860.592539
+   },
+   "verdict": {
+    "foreign_samples": 0,
+    "foreign_first": [],
+    "words_in_run": true,
+    "words_sample": {
+     "t": 1795470843860,
+     "file": "pw_big_c.ngc",
+     "code": [],
+     "shown": null,
+     "note": "Text and preview after the run",
+     "hud": "Preview after the run",
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:17 \u00b7 PREVIEW AFTER THE RUN"
+    },
+    "adopted": true,
+    "last_sample": {
+     "t": 1795470869364,
+     "file": "pw_big_c.ngc",
+     "code": [
+      "1(p2bcheck c)",
+      "2G21 G90 G94 G17 G64"
+     ],
+     "shown": 1795470720,
+     "note": null,
+     "hud": null,
+     "banner": "IDLE"
+    },
+    "parse_under_run": []
+   }
+  },
+  "probe_end": {
+   "errors": []
+  }
+ },
+ "steps": [
+  "tree",
+  "copy",
+  "start",
+  "connect",
+  "p2bf-page"
+ ]
+}
