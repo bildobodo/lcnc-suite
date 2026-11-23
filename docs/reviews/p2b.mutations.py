@@ -165,6 +165,9 @@ MUTS = {
         "                    if not self._publish_in_generation(None, lambda: self._set_tool_basis(self.basis_of(worker_tlo)),")],
         [py("test_bulk_pipeline.py::TestGenerationAtThePublication::test_the_verify_path_is_gated_too",
             "the verified basis is not taken")]),
+    "a_parse_starts_while_unloading": (GW + "gateway.py", [(
+        "    if _bulk.unloading:\n        return \"unloading\"", "    if False:\n        return \"unloading\"")],
+        [py(CG + "TheRestartWaits::test_no_parse_of_an_unloaded_program_starts_before_the_unload_settles", "AssertionError")]),
     # ---- P2b-2 (plan v4 variant 1): the idle check waits for the drift decision
     "the_decision_wait_never_falls_back": (V + "driftWait.ts", [(
         "    if (waited >= fallbackMs) {", "    if (false) {")],

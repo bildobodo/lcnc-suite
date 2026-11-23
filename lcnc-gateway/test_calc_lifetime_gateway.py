@@ -385,6 +385,20 @@ class TheRestartWaits(_Base):
             self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), False))
             self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True), "a new file never waits")
 
+    def test_no_parse_of_an_unloaded_program_starts_before_the_unload_settles(self):
+        """Native p2b at 934ca971: between the unload's write and the status
+        without the program, the file edge restarted the cancelled load parse
+        (job 2). The unload's begin holds every schedule — a new file too —
+        until no program is active; a load's begin or a failed unload ends it."""
+        with patch.object(gateway._bulk, "unloading", False):
+            gateway._program_began("unload")
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True), "unloading")
+            gateway._program_began("load")
+            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True))
+        src = open(gateway.__file__).read()
+        self.assertIn("if _bulk.unloading and not st.active_file:\n                _bulk.unloading = False", src)
+        self.assertEqual(src.count("_bulk.unloading = False"), 3, "settled, refused, cut short")
+
     def test_every_restart_waits_for_the_actions(self):
         with patch.object(gateway._bulk, "reparse_pending_reason", "reparse"):
             a = self.ledger.hold("probe_run")

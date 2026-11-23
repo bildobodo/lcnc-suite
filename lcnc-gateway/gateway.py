@@ -1995,6 +1995,8 @@ async def _status_poller():
 
             # the idle transition opens a drift decision (P2b-2)
             _dd_idle_edge(st.interp_state == linuxcnc.INTERP_IDLE)
+            if _bulk.unloading and not st.active_file:
+                _bulk.unloading = False   # the unload settled (P2b-3)
             # Gcode preview: parse once (in subprocess) on file change, share
             # to all clients via version counter. Single-flight via
             # _bulk.refresh_running so rapid-fire loads don't stack
@@ -3829,6 +3831,10 @@ def _program_began(why: str) -> None:
     before the write: a new program generation, and the action counts as one
     that wrote (its end opens a drift decision and the debounce)."""
     _calc_gen.new_program(why)
+    # the status names the unloaded program until the unload settles: no
+    # parse of it may start in that gap (native p2b at 934ca971: the file
+    # edge restarted the cancelled load parse as job 2)
+    _bulk.unloading = why == "unload"
     _actions.wrote_file(_current_action.get(), why)
 
 
@@ -3969,6 +3975,8 @@ def _restart_wait(st, file_changed: bool) -> Optional[str]:
     for the interpreter idle and the machine still — a program start's switch
     to AUTO begins a generation, and an unpinned parse never starts under the
     run (before P2b, reparse_pending was only ever set at idle)."""
+    if _bulk.unloading:
+        return "unloading"
     if file_changed:
         return None
     if not _actions_quiet():
@@ -8014,12 +8022,14 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
                 # Refused or unanswered: the old program may still be
                 # open — named unconfirmed, never loaded (Codex R19).
                 _status_runtime.program.abandon_change("the unload was refused")
+                _bulk.unloading = False
                 return {"ok": False, "error": "LinuxCNC did not unload the program"}
             _status_runtime.program.request_unload()
         except BaseException:
             # Cut short on its way: the loaded program is not known
             # (Codex R18 XZ-08) — never the old one again.
             _status_runtime.program.abandon_change("the unload was cut short")
+            _bulk.unloading = False
             raise
         finally:
             _status_runtime.end_program_change()

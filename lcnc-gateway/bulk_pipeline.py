@@ -174,6 +174,10 @@ class BulkPipeline:
         # failed …} — the last few
         self.job_ends: "collections.OrderedDict[int, dict]" = collections.OrderedDict()
         self.last_scheduled_job: Optional[int] = None
+        # an unload's write has begun and the status still names the program
+        # (P2b-3): no parse of it starts — set at the unload's begin, cleared
+        # once no program is active, at a load's begin, or when the unload fails
+        self.unloading = False
         # Last measured publish time per file path (ms) — the expected
         # duration the banner shows and the timeout scale.
         self.parse_ms_by_file: dict = {}
