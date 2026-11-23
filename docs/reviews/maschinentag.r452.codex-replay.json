@@ -1,0 +1,292 @@
+{
+  "verdict": "PASS",
+  "run": "2316877-1795463995601",
+  "logs": 1,
+  "connections": {
+    "infra": 3,
+    "test": 2
+  },
+  "http": {
+    "with origin": 51
+  },
+  "frames": 29,
+  "frames_by_class": {
+    "test": 29
+  },
+  "commands": {
+    "get_tool_table": 4,
+    "heartbeat": 16,
+    "hello": 2,
+    "jog_stop": 3,
+    "load_file": 2,
+    "tab_visibility": 2
+  },
+  "attempts": 2,
+  "per_attempt": {
+    "codex-r452.spec.ts \u203a R452 own reload adoption reply-first [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "load_file": 1,
+      "tab_visibility": 1
+    },
+    "codex-r452.spec.ts \u203a R452 own reload adoption status-first [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 13,
+      "hello": 1,
+      "jog_stop": 3,
+      "load_file": 1,
+      "tab_visibility": 1
+    }
+  },
+  "attempt_list": [
+    {
+      "name": "codex-r452.spec.ts \u203a R452 own reload adoption reply-first [retry 0]",
+      "test": "111d250286a9eb537675-beca2317f0d5d17e625f",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ffa585c8-0332-4917-b81d-40fea1bc1ba7",
+      "status": "passed",
+      "page": true,
+      "frames": 8,
+      "observed": "page loaded at its mock, 8 frame(s)"
+    },
+    {
+      "name": "codex-r452.spec.ts \u203a R452 own reload adoption status-first [retry 0]",
+      "test": "111d250286a9eb537675-6bbe3f34426e3135b143",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "ffa585c8-0332-4917-b81d-40fea1bc1ba7",
+      "status": "failed",
+      "page": true,
+      "frames": 21,
+      "observed": "page loaded at its mock, 21 frame(s)"
+    }
+  ],
+  "no_cookie": [],
+  "per_attempt_expected": {},
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+    "coverage against the inventory (step 5c)"
+  ],
+  "http_paths": {
+    "requests": 55,
+    "contexts": 2,
+    "classes": {
+      "replaced": 4,
+      "served": 44,
+      "fallback": 7
+    },
+    "routes": {
+      "GET /": {
+        "served": 2
+      },
+      "GET /g30": {
+        "fallback": 2
+      },
+      "GET /gcode": {
+        "replaced": 2
+      },
+      "GET /macros": {
+        "served": 2
+      },
+      "GET /preview": {
+        "served": 2
+      },
+      "GET /settings": {
+        "served": 2
+      },
+      "POST /telemetry": {
+        "fallback": 5
+      },
+      "PUT /save": {
+        "replaced": 2
+      }
+    },
+    "fallback_paths": {
+      "POST /telemetry": 5,
+      "GET /g30": 2
+    },
+    "idless_covered_by_synthetic_hops": 0,
+    "ws_handshakes_joined": 0,
+    "per_attempt": {
+      "codex-r452.spec.ts \u203a R452 own reload adoption reply-first [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "codex-r452.spec.ts \u203a R452 own reload adoption status-first [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 4
+        },
+        {
+          "what": "PUT /save",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ]
+    },
+    "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+    "findings": []
+  }
+}

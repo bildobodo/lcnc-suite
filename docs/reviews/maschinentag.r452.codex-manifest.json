@@ -1,0 +1,138 @@
+{
+  "request": "R452",
+  "date": "2026-11-23",
+  "review_document_head": "8b0538b78544a1939d6628286890f857625c5917",
+  "product_base": "54955611542734e96efea9f21d12a11ddef4bf01",
+  "product_head": "99c63e753bf5605c9e979ed4af3d13bf6a14b85b",
+  "design_source_base": "54955611542734e96efea9f21d12a11ddef4bf01",
+  "tree": "/tmp/r452/tree",
+  "production_edits": false,
+  "live_contact": false,
+  "lock": "scripts/test_support/heavy_lock.py (shared default lock, all runs ended)",
+  "review_prefix_sha256": "5b7917d21e7d6374c41b6398656c1a255176223aae4650295135c4175f9b7795",
+  "review_append_sha256": "f18234ece0f0908522ead988b0aea4047c8c97313c358e42484f24bbb06bd1c4",
+  "findings": [
+    "MT-I29: scheduled A publishes as later B",
+    "MT-I30: own reload status before reply not adopted",
+    "MT-I31: late A preview failure displayed for B"
+  ],
+  "results": {
+    "backend_existing": {
+      "passed": 140,
+      "subtests_passed": 33
+    },
+    "backend_counterexample": {
+      "failed_expected": 1
+    },
+    "frontend_existing": {
+      "passed": 54
+    },
+    "frontend_counterexample": {
+      "failed_expected": 1
+    },
+    "real_worker": {
+      "passed": 5
+    },
+    "browser": {
+      "passed": 1,
+      "failed_expected": 1
+    },
+    "browser_replay": "PASS; 29 frames; 0 findings",
+    "vite_build": "PASS",
+    "import_observation": "PASS; observed non-atomic replacement after sidecar failure"
+  },
+  "browser_setup_failure": "First run: vite missing on PATH, before tests; corrected with npm exec; original output retained.",
+  "source_urls": [
+    "https://linuxcnc.org/docs/2.9/html/gcode/tool-compensation.html",
+    "https://help.autodesk.com/cloudhelp/ENU/Fusion-CAM/files/MFG-REF-LIBRARY-EXP-IMP.htm"
+  ],
+  "notes": [
+    "No full gate or native run repeated.",
+    "Import failure is an observation of existing behavior, not a P2b regression.",
+    "For backend repro copy backend-probe.py as test_codex_r452.py into archived head lcnc-gateway; use its pytest conftest to suppress host LinuxCNC.",
+    "For frontend repro copy bulk.test.ts to src/ws/codexR452.test.ts, worker.test.ts to src/previewWorker.codexR452.test.ts, editor.spec.ts to e2e/codex-r452.spec.ts in the archive.",
+    "All probes use isolated fake or mock boundaries; no controller commands were sent to a live sim."
+  ],
+  "artifacts": {
+    "maschinentag.r452.codex-backend-probe.py": {
+      "bytes": 1622,
+      "sha256": "af8044dd293432d530c44ae9e06b1f0ac24253529cc7fcb753e1d295deed1f3d"
+    },
+    "maschinentag.r452.codex-backend-probe.txt": {
+      "bytes": 2935,
+      "sha256": "93ebc875a06ea0581c6be81ebe5c941b3caae082f3a2c29dac45020088c6e586"
+    },
+    "maschinentag.r452.codex-backend-existing.txt": {
+      "bytes": 623,
+      "sha256": "4ef47014bc9ff80c6474477da62c2479cf7348d3eb79f804fdca7057cef9726d"
+    },
+    "maschinentag.r452.codex-schedule-observation.json": {
+      "bytes": 360,
+      "sha256": "278a1639da8a228103767b55244d290bea1f1b000aea7efca92f37f8ca2c5823"
+    },
+    "maschinentag.r452.codex-bulk.test.ts": {
+      "bytes": 1123,
+      "sha256": "00896448fa128997a942bbdec72bf4d2aa2c0216add9ecae405a2b4a35898710"
+    },
+    "maschinentag.r452.codex-frontend-focused.txt": {
+      "bytes": 2516,
+      "sha256": "f4edf9a8eb430f584e51310dd1f344dde89ef6e89f3edc566d606a94fc4c69e2"
+    },
+    "maschinentag.r452.codex-worker.test.ts": {
+      "bytes": 2060,
+      "sha256": "41fccd51d719f43acaaa2c4a4011215bbdbbb04314c63dedc357a176de99c68f"
+    },
+    "maschinentag.r452.codex-worker-probe.txt": {
+      "bytes": 208,
+      "sha256": "dad0128c0ab4ea57a4d20380767caecab576edaaa59e9ec81a36b9ff981b9a2e"
+    },
+    "maschinentag.r452.codex-editor.spec.ts": {
+      "bytes": 5859,
+      "sha256": "61821afa9e027178393d88e65911439a312c69d8c0707063adcd3afcd7e9955f"
+    },
+    "maschinentag.r452.codex-browser.json": {
+      "bytes": 9158,
+      "sha256": "befadd15e850b8f4ffb278079c48cbfd08ddf11d273c64ae4a3670b8d680ab16"
+    },
+    "maschinentag.r452.codex-browser-console.txt": {
+      "bytes": 3653,
+      "sha256": "cb69779e7889e0a0aa037ea0949b8103e6bba1c3a98b7f1b9f74bf02e134eff4"
+    },
+    "maschinentag.r452.codex-browser-setup-failed.txt": {
+      "bytes": 1816,
+      "sha256": "580d70e00c44fe75dcc06c0707358f62d242c86df24ce5b03686077e10c6a12e"
+    },
+    "maschinentag.r452.codex-editor-status-first.png": {
+      "bytes": 143663,
+      "sha256": "3a8e013db2e6a86dc236b33d19de54942eedfcf17e9c628e760c485f50337a90"
+    },
+    "maschinentag.r452.codex-replay.json": {
+      "bytes": 7223,
+      "sha256": "04be6d5f7e617349656d986ce39cad2a903b70882bb6fe8b9910d306324840f5"
+    },
+    "maschinentag.r452.codex-build.txt": {
+      "bytes": 2384,
+      "sha256": "f2d4c80b27f25c1542071398902b76776ab60f35a628a224a5c1c02a2d9c2463"
+    },
+    "maschinentag.r452.codex-import-probe.py": {
+      "bytes": 1439,
+      "sha256": "5733a6930403815a1d85a523f868cb749ab05f1e57d6ead90240de1b169259a7"
+    },
+    "maschinentag.r452.codex-import-probe.txt": {
+      "bytes": 465,
+      "sha256": "45204bec7be3adb78d47339975bf89217a5a2bb8e83ab05601e28b3e627c968b"
+    },
+    "maschinentag.r452.codex-import-observation.json": {
+      "bytes": 487,
+      "sha256": "08408ce15382f73d50b914024d44fb5494afbb48a0ddde46cca7d91efbbefe08"
+    },
+    "maschinentag.r452.codex-run-focused.sh": {
+      "bytes": 868,
+      "sha256": "703663276e1ca352ad02f108ebd6a66fa5d5a24c34de65aa0e7564c9ad6a979e"
+    },
+    "maschinentag.r452.codex-run-followup.sh": {
+      "bytes": 864,
+      "sha256": "a59d5e347c263ab24cff83c47f4a7a4adac3be8190882af56ddc8e6ce747dac9"
+    }
+  }
+}

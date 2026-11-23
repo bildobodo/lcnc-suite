@@ -1,0 +1,196 @@
+{
+  "config": {
+    "configFile": "/tmp/r452/tree/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/r452/tree/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "2316877-1795463995601",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r452/tree/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "2316877-1795463995601",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r452/tree/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/r452\\/tree\\/lcnc-webui\\/e2e\\/codex-r452\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "codex-r452.spec.ts",
+      "file": "codex-r452.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R452 own reload adoption reply-first",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3309,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T19:59:57.412Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "order",
+                      "contentType": "application/json",
+                      "body": "eyJvcmRlciI6InJlcGx5LWZpcnN0Iiwib2xkIjoibW9jay4xIiwib3duIjoibW9jay4yIiwicmVxdWVzdCI6eyJjbWQiOiJsb2FkX2ZpbGUiLCJwYXRoIjoiL2EyLm5nYyIsInJlcV9pZCI6Imo1amk0dy01In19"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "111d250286a9eb537675-beca2317f0d5d17e625f",
+          "file": "codex-r452.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "R452 own reload adoption status-first",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 13738,
+                  "error": {
+                    "message": "Error: the own reload is not a foreign program change\n\n\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-edit-conflict]')\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - the own reload is not a foreign program change with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-edit-conflict]')\u001b[22m\n\u001b[2m    24 × locator resolved to 1 element\u001b[22m\n\u001b[2m       - unexpected value \"1\"\u001b[22m\n",
+                    "stack": "Error: the own reload is not a foreign program change\n\n\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-edit-conflict]')\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - the own reload is not a foreign program change with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-edit-conflict]')\u001b[22m\n\u001b[2m    24 × locator resolved to 1 element\u001b[22m\n\u001b[2m       - unexpected value \"1\"\u001b[22m\n\n    at /tmp/r452/tree/lcnc-webui/e2e/codex-r452.spec.ts:113:105",
+                    "location": {
+                      "file": "/tmp/r452/tree/lcnc-webui/e2e/codex-r452.spec.ts",
+                      "column": 105,
+                      "line": 113
+                    },
+                    "snippet": "  111 |     await expect(editor).toContainText('(newer draft)');\n  112 |     await info.attach('order',{body:JSON.stringify({order,old:l1.id,own:l2.id,request:req}),contentType:'application/json'});\n> 113 |     await expect(page.locator('[data-edit-conflict]'),'the own reload is not a foreign program change').toHaveCount(0);\n      |                                                                                                         ^\n  114 |   });\n  115 | }\n  116 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r452/tree/lcnc-webui/e2e/codex-r452.spec.ts",
+                        "column": 105,
+                        "line": 113
+                      },
+                      "message": "Error: the own reload is not a foreign program change\n\n\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-edit-conflict]')\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - the own reload is not a foreign program change with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-edit-conflict]')\u001b[22m\n\u001b[2m    24 × locator resolved to 1 element\u001b[22m\n\u001b[2m       - unexpected value \"1\"\u001b[22m\n\n\n  111 |     await expect(editor).toContainText('(newer draft)');\n  112 |     await info.attach('order',{body:JSON.stringify({order,old:l1.id,own:l2.id,request:req}),contentType:'application/json'});\n> 113 |     await expect(page.locator('[data-edit-conflict]'),'the own reload is not a foreign program change').toHaveCount(0);\n      |                                                                                                         ^\n  114 |   });\n  115 | }\n  116 |\n    at /tmp/r452/tree/lcnc-webui/e2e/codex-r452.spec.ts:113:105"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T20:00:00.866Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "order",
+                      "contentType": "application/json",
+                      "body": "eyJvcmRlciI6InN0YXR1cy1maXJzdCIsIm9sZCI6Im1vY2suMyIsIm93biI6Im1vY2suNCIsInJlcXVlc3QiOnsiY21kIjoibG9hZF9maWxlIiwicGF0aCI6Ii9hMi5uZ2MiLCJyZXFfaWQiOiJzbGYxbHotNSJ9fQ=="
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r452/tree/lcnc-webui/test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r452/tree/lcnc-webui/test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r452/tree/lcnc-webui/test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r452/tree/lcnc-webui/e2e/codex-r452.spec.ts",
+                    "column": 105,
+                    "line": 113
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "111d250286a9eb537675-6bbe3f34426e3135b143",
+          "file": "codex-r452.spec.ts",
+          "line": 62,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-23T19:59:55.603Z",
+    "duration": 19622.498,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

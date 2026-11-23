@@ -1,0 +1,75 @@
+[1A[2K[2m[WebServer] [22m/bin/sh: 1: vite: not found
+
+Error: Process from config.webServer was not able to start. Exit code: 127
+
+[1A[2K{
+  "config": {
+    "configFile": "/tmp/r452/tree/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/r452/tree/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "2316436-1795463974769"
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r452/tree/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "2316436-1795463974769"
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r452/tree/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/r452\\/tree\\/lcnc-webui\\/e2e\\/codex-r452\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Process from config.webServer was not able to start. Exit code: 127",
+      "stack": "Error: Process from config.webServer was not able to start. Exit code: 127"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-11-23T19:59:34.775Z",
+    "duration": 621.5899999999999,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

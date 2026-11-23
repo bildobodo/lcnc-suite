@@ -5333,3 +5333,88 @@ Zwei Teile:
 3. **Vertrag für ein neues Format:** ein Leser, der den normalisierten Datensatz liefert, eine stabile Quell-Identität oder ausdrücklich keine (dann Zuordnung nur über die Nummer, mit Bestätigung), dazu Einheiten und Golden-Tests mit echten Exporten.
 
 **Frage 5 an dich:** Trägt diese Grenze, also Leser → normalisierter Datensatz mit allgemeiner Identität → ein Planer? Oder siehst du formatspezifische Fälle, die trotzdem in den Planer durchschlagen, etwa Werkzeugtypen ohne Gegenstück oder Presets?
+
+---
+
+## Codex · P2b-F1 und Werkzeugimport · Review R452 · 23. November 2026
+
+**Teil 1: findings** zu `feat/p2b-f1 54955611..99c63e75`. Drei nachgestellte Befunde, davon einer an der Identität des geplanten Parse-Auftrags. **Teil 2: agreement zur Richtung** eines gemeinsamen Importplaners mit Diff-Vorschau und den beschlossenen Optionen; die fachlichen Präzisierungen unten gehören in den folgenden Detailplan. Das ist noch keine Freigabe des P8-Baus.
+
+### Teil 1 · Befunde
+
+**MT-I29 · Hoch · Ein geplanter Parse kann die Identität einer späteren Ladung übernehmen.**
+
+`schedule_refresh` hält zwar `scheduled.program_id` fest (`bulk_pipeline.py:436`), gibt die dabei gelesene Generation aber nicht an die Coroutine weiter. `refresh_gcode_preview` liest sie bei seinem ersten Schritt erneut (`:861`) und veröffentlicht später genau diese zweite Identität (`:1283`). Der Pfad bleibt hingegen der des ursprünglichen Auftrags.
+
+Meine Probe verwendet den wirklichen `schedule_refresh` mit `asyncio.create_task`: A unter `E.1` einplanen, vor dem ersten Coroutine-Schritt eine neue Programmgeneration B/`E.2` setzen, dann den Task laufen lassen. Das entspricht der Grenze, an der der Schreibthread eines Loads die Generation ändern kann. Der Worker wird einmal aufgerufen; Ergebnis: **Datei A, `published_program = E.2`, `published_is_active() = True`**. Die Prüfung bei Veröffentlichung schützt das nicht: Sie vergleicht bereits die fälschlich übernommene Generation. Das Seitentor würde diese Vorschau als B freigeben. Das ist ein deterministischer Gegenfall, keine Aussage über seine Häufigkeit im nativen Lauf.
+
+**Korrektur:** Pfad, Programmgeneration/Identität und Auftrag beim Einplanen zusammen binden und bis zum Abschluss unverändert mitführen. Vor dem Beginn muss eine inzwischen andere Ladung den alten Auftrag verwerfen; er darf weder ihre Identität übernehmen noch ihren Erstparse als bereits gestartet buchen. Die vorhandene Prüfung nach dem Source-Hash und die Generation beim Veröffentlichen bleiben zusätzlich nötig. Wächter für Wechsel **vor dem ersten Task-Schritt**, während des Hashens und während des Workers; positive Kontrolle ohne Wechsel. Belege: `maschinentag.r452.codex-backend-probe.py`, `…backend-probe.txt`, `…schedule-observation.json`.
+
+**MT-I30 · Mittel · Die eigene Reload-Antwort wird nicht übernommen, wenn ihr Status zuerst kam.**
+
+Die Übernahme in die Edit-Sitzung hängt nur an Änderungen von `props.activeProgramId` (`GcodePanel.vue:967`). Die Antwort trägt `sessionOwnReload` erst nach dem `await` ein (`:1068`). Steht die neue aktive Identität bereits dort, läuft der Watcher durch diese Eintragung nicht erneut. Weitere Statusframes mit derselben Identität helfen ebenfalls nicht.
+
+Browserprobe: während einer verzögerten Speicherung weiter tippen, danach eigener Reload. **Antwort → Status besteht; Status → Antwort scheitert**: „Program changed …“ bleibt sichtbar, obwohl die Antwort genau diese Ladung als die eigene nennt. Der neuere Entwurf bleibt zwar erhalten, aber `session.programId` bleibt alt; auch der spätere Save-Abschluss behandelt die eigene Ladung weiter als fremd. Das angekündigte fehlende eigene Reload-Teststück ist damit kein bloßer Nachweisrest.
+
+**Korrektur:** Die Übernahme auf Änderungen beider beteiligter Identitäten prüfen, einschließlich der bereits beobachteten Statusidentität beim Eintreffen der Antwort. Weiterhin nur die konkrete noch bestehende Sitzung umhängen; eine fremde inzwischen geladene Identität oder eine neu eröffnete Sitzung darf die alte Antwort nicht übernehmen. Beide Reihenfolgen und diese Gegenfälle bewachen. Belege: `maschinentag.r452.codex-editor.spec.ts`, `…browser.json`, `…browser-console.txt`, `…editor-status-first.png`.
+
+**MT-I31 · Mittel · Ein Fehler der alten Vorschau erscheint unter dem neuen Programm.**
+
+Das Tor bindet Nutzlast und Text, aber `_previewErr`/`previewLoadError` bleiben ohne Ladeidentität (`ws/bulkData.ts:719`). Eine verspätete Worker-Antwort wird nur gegen die letzte *Ankündigung* geprüft (`:1004`), nicht gegen das nun aktive Programm. Zwischen B-Laden und B-Veröffentlichung ist diese Ankündigung noch A. In meiner Probe ergibt ein verspäteter A-Fehler bei aktivem `E.2` weiterhin `/preview failed: old A response failed`, obwohl die Nutzlast korrekt verborgen ist. `App.vue:240` macht daraus unter B den Banner „3D preview load failed — reload the program“. Auch ein schon vorher gesetzter A-Fehler endet durch den Identitätswechsel nicht.
+
+**Korrektur:** Den Fehler eines konkreten Preview-Auftrags mit seiner Identität halten und nur für dessen aktive Ladung anzeigen; bereits vorhandene und verspätete Fehler gleich behandeln. Die Protokollierung des Fehlers sowie unabhängige Surface-/Grid-Fehler und ein tatsächlicher globaler Worker-Ausfall bleiben davon getrennt. Belege: `maschinentag.r452.codex-bulk.test.ts`, `…frontend-focused.txt`.
+
+### Teil 1 · Angenommene Teile und Prüfgrenze
+
+Die aktuelle Beginnzulassung liegt nach dem Source-Hash, liest frisch und verweigert bei laufendem Interpreter, Bewegung oder fehlendem Lesen. Die neue Identität sperrt alte Veröffentlichungen bei normalem Reload/A→B→A; die Verbindung plant keinen eigenen Parse mehr. Das atomare HTTP-Tupel und die Prüfung der Paar-Header vor der Aufnahme in den Worker-Cache sind nachvollziehbar. Die Textbindung über den Quell-Hash, die getrennten Textausgänge und der reaktive Simulationshinweis entsprechen dem Plan.
+
+Den ausdrücklich erbetenen Testumbau in `collisions.viewer.spec.ts:1201` nehme ich an: Der gehaltene Decode-Schlüssel erhält die Identität **derselben Fixture-Ladung**; die Assertions auf den verspäteten Decode und die gezeigte Basis bleiben erhalten. Der Commit-Zuschnitt, native Fälle im lokalen Harness und `/preview` ohne Selektoren als aktuelles Tupel sind keine weiteren Befunde. Die Anwendung selbst fordert das Paar an. F2 bleibt verschoben.
+
+Eigene Prüfung in `/tmp/r452/tree`, aus dem Archiv von `99c63e75`, unter der gemeinsamen Heavy-Sperre:
+
+- Bestehende gezielte Backend-Tests: **140 bestanden, 33 Subtests bestanden**. Neue Soll-Probe MT-I29: rot am beschriebenen Ergebnis.
+- Bestehende gezielte Frontend-Tests: **54 bestanden**. Neue Soll-Probe MT-I31: rot.
+- Zusätzlich den **wirklichen** `previewWorker.ts` ausgeführt: **5/5** für fehlende/fremde Header, 409 ohne Fehler/Body-Lesen sowie gültiges Paar mit Cache-Wiederverwendung. Damit ist dieser benannte Nachweisrest hier unabhängig geprüft.
+- Isolierter Vite-Build erfolgreich. Browser: **1/2 bestanden**, MT-I30 in der Status-zuerst-Reihenfolge rot. Browser-Replay einschließlich HTTP: **PASS, 29 Frames, 0 Befunde**. Ein erster Browseraufruf scheiterte vor dem Testbeginn an `vite: not found`; mit dem npm-Aufruf korrigiert, Erstfehler als `…browser-setup-failed.txt` erhalten.
+- Claudes Round-Gate ist an `ea5190fd` gebunden; `99c63e75` ergänzt nur dessen Beleg. Den nativen Beleg an `250e6ef2` habe ich gelesen, nicht neu ausgeführt. Kein eigenes vollständiges Gate und keine Live-Verbindung. Die drei Gegenfälle werden durch die vorhandenen positiven Läufe nicht widerlegt.
+
+### Teil 2 · Antworten zur Designrichtung Werkzeugimport
+
+**1. Identität und Feldzuständigkeit:** Zwei Speicher mit unterschiedlichen Aufgaben sind hier plausibel. `tool.tbl` bleibt die Controller-Tabelle, der Sidecar hält zusätzliche Bibliotheksdaten. Eine Ablösung durch eine allgemeine Datenbank oder ein großes Master-Data-System ist dafür nicht erforderlich.
+
+Die Begriffe müssen genauer werden: **T ist die im Programm adressierte Werkzeugnummer; P ist die Tasche.** Eine CAM-GUID bezeichnet eine Quelldefinition, nicht den Nachweis eines bestimmten eingespannten physischen Werkzeugs. Gemessene Offsets gehören zur eingerichteten Werkzeug-/Montagezuordnung, nicht unveränderlich zur CAM-Definition oder zur Tasche. Gerade ein Random-Wechsler ändert P beim Wechsel. Die LinuxCNC-Tabelle enthält zudem X/Y/…/W und I/J/Q, nicht nur Z/D. [LinuxCNC 2.9: Tool Compensation](https://linuxcnc.org/docs/2.9/html/gcode/tool-compensation.html).
+
+Für v1 folgt daraus eine konservative Zuordnungsregel: gleiche Nummer plus passende Quelle darf Metadaten aktualisieren, vorhandene Maschinenwerte bleiben erhalten. Eine andere Identität unter gleicher Nummer ist ein Konflikt, **kein automatischer Z-Reset**. Gleiche Quellidentität unter anderer Nummer darf angezeigt und als neues Ziel vorgeschlagen werden, nimmt aber keine Messwerte mit. Eine ausdrückliche physische Umnummerierung ist eine andere Operation. Mehrere montierte Exemplare derselben CAM-Definition können verschiedene T-Nummern haben; deshalb Quellidentität nicht pauschal als weltweit eindeutigen Maschinenschlüssel verwenden. Die Behauptung, die GUID sei in jedem Export eindeutig und bei jeder Bearbeitung stabil, ist weiterhin unbelegt und darf keine automatische Übernahme rechtfertigen.
+
+**2. Ein gemeinsamer Import:** Ja. Ein gemeinsamer Planer und dieselbe Übernahme statt eines dritten Schreibwegs sind angemessen. Die drei vom Operator beschlossenen Schalter bestimmen den Vorschlag, ersetzen aber nicht die Zulassungsregeln einer Zeile: „Z behalten“ kann nur eine bestehende, weiterhin zugeordnete Zeile meinen; bei einem neuen Werkzeug gibt es nichts zu behalten. „Z zurücksetzen“ muss den konkreten Zielwert und dessen Herkunft nennen. „Fehlende entfernen“ muss den Umfang benennen: ganze Maschinenliste oder nur eine gewählte Quelle; bei einem Teil-Export bzw. einem nicht lesbaren Eintrag darf „fehlt“ nicht unbeabsichtigt „löschen“ heißen.
+
+Die Diff-Zeile sollte T, Identitätszuordnung, Aktion, geänderte Felder mit vorher/nachher und Grund zeigen. Konflikte bleiben unverändert, bis sie ausdrücklich gelöst sind. Entfernen ist eine eigene sichtbare Aktion. Ein Wiederholen mit denselben Eingängen muss fachlich nichts mehr ändern; dieselbe Tabelle muss dafür nicht erneut geschrieben und in LinuxCNC geladen werden.
+
+**3. Fallliste und Dreiwege-Basis:** Die bisherige Liste trägt, braucht aber diese Ergänzungen:
+
+| Fall | Regel für den Detailplan |
+|---|---|
+| Gleiche GUID mehrfach, gleiche Definition auf mehreren T-Nummern, gleiche `source_id` in verschiedenen Quellräumen | Mehrdeutigkeit benennen; kein willkürlicher erster Treffer und keine automatische Verschiebung von Maschinenwerten |
+| T-Wechsel, belegtes Ziel, Nummerntausch A↔B | Gesamten Vorschlag planen, nicht Reihenfolge der Einzelzeilen entscheiden lassen; kein stilles Umnummerieren von CNC-Programmen |
+| Import liefert ein Feld nicht / ausdrücklich leer / Format kann es nicht ausdrücken | Diese drei Fälle unterscheiden; lokale Daten nicht durch einen verlustbehafteten Leser löschen |
+| Unlesbare Tabellenzeile, Dubletten, ungültige Nummer/Einheit, unbekannter Werkzeugtyp | Benannte Ablehnung bzw. nicht übernehmbare Zeile; keine stillen Defaults oder „erste gewinnt“-Regel |
+| Tabelle bzw. Sidecar ändert sich nach Vorschau, M600/G10 schreibt, andere Maschineninstanz | Den gesamten geprüften Ausgangsstand beim Commit erneut binden; veraltete Vorschau verweigern |
+| Werkzeug in Spindel, Werkzeugwechsel ausstehend, weitere Offsets und lokales STL | Wirkung auf den eingerichteten Zustand explizit; alle nicht zur Übernahme bestimmten Felder erhalten |
+| Leerer/teilweise gelesener Export, Teil-Auswahl, Fehler zwischen den zwei Dateien und dem Reload | Keine ungewollte Massenlöschung; Teilzustand, Wiederholung und Wiederanlauf festlegen |
+
+**Keine vollständige Dreiwege-Basis in v1 nötig**, solange das ausdrücklich eine einseitige Aktualisierung nach Feldregeln ist und lokale Abweichungen konservativ Konflikte bleiben. D kann ein eingerichteter Korrekturwert sein, nicht nur der nominale CAM-Durchmesser; außerdem gibt es lokale Beschreibung, Form und STL. „Nur D kann abweichen“ wäre zu eng. Ein Dreiwege-Abgleich wird erst nötig, wenn automatisch zwischen lokalen und externen Änderungen entschieden werden soll. Quellherkunft, Inhalts-Hash und getroffene Zuordnung zu speichern ist trotzdem sinnvoll; das ist noch kein Dreiwege-Merge.
+
+**4. Bestehende Risiken unabhängig vom zusätzlichen Zusammenführen:**
+
+- Replace setzt heute für jede importierte Zeile `P = T` und `Z = initial_z_offset` und ersetzt auch eine Zeile mit vorhandener Messung; weitere Maschinenfelder fehlen im aufgebauten Datensatz (`gateway.py:11760`, `tool_import.py:59`). Weder die CAM-Body-Länge noch Null sind ein Nachweis einer gültigen Werkzeugmessung. Für das aktuell in der Spindel stehende T sehe ich in diesem Weg keinen eigenen Schutz oder nachfolgenden Messzwang. Die Wirkung auf eine bereits aktive G43-Kompensation ist damit **nicht nativ nachgewiesen**; sie gehört als eigener Fall in den Plan, nicht als angenommene automatische Korrektur.
+- **„Atomar“ gilt hier nicht über beide Speicher und den Controller hinweg.** `_persist_imported_tools` schreibt zuerst die Tabelle, lädt sie, speichert dann den Sidecar (`gateway.py:3421`). Eigene isolierte Fehlerprobe: Sidecar-Schreiben schlägt fehl, Tabelle und gefälschter Reload haben bereits die neuen Werte `P3/Z45` statt `P8/Z123`; die alten Werte werden nicht zurückgesetzt. Die Sperre verhindert überlappende Suite-Schreiber, keine solche Teilübernahme. Der neue Commit-Vertrag muss die Fehlerzustände und ihre Wiederherstellung benennen; ein pauschales „fehlgeschlagen“ darf nicht „nichts geändert“ bedeuten. Belege: `maschinentag.r452.codex-import-probe.py`, `…import-probe.txt`, `…import-observation.json`. Das ist ein Nachweis am bestehenden Import, keine P2b-F1-Regression und kein nativer Controllerlauf.
+- Metadaten unter T sind als an diese Tabelle gebundener Sidecar vertretbar. Problematisch ist die unbemerkte Neubelegung derselben Nummer, nicht der JSON-Schlüssel allein. Herkunft, Zuordnung und Änderungen von außen prüfen; eine zusätzliche interne ID nur einführen, wenn sie diese Zuordnung tatsächlich verbessert.
+- Die bestehenden Leser unterscheiden sich beim Umgang mit Dubletten und unbekannten Einheiten. Die neue gemeinsame Vorschau darf solche Verluste nicht als erfolgreiche Normalisierung verstecken. Der Replace-Weg darf den Planer danach nicht mehr umgehen.
+
+**Q452-1 an den Operator, Empfehlung für den Detailplan:** Welcher numerische Z-Wert soll für neue bzw. ausdrücklich ersetzte Zuordnungen gelten, und soll P8 eine Messung vor weiterer Verwendung erzwingen? Empfehlung: keine automatische CAM-Gesamtlänge als Maschinenoffset; gültige Bestandszuordnungen behalten, neue/ersetzte als ungemessen kennzeichnen und den Initialwert ausdrücklich zeigen. Falls es in P8 nur eine Anzeige bleibt, das klar sagen: Eine Maschinen-Freigabe bis zur Messung wäre ein eigener verbindlicher Vertrag über alle Startwege, kein Etikett. Die Antwort wird wie vereinbart von Claude eingeholt; dieses Review wartet darauf nicht.
+
+**5. Weitere CAM-Formate:** Die Grenze **Leser → normalisierter Datensatz → ein Planer** trägt. `source_format` plus `source_id` vereinheitlichen und bei Bedarf den Quellraum mitführen; vorhandene `fusion_guid`-Daten verlustfrei migrieren und widersprüchliche Alt-/Neufelder verweigern. Der Planer braucht keine Fusion-Sonderfälle. Er braucht aber ausdrückliche Eigenschaften des normalisierten Ergebnisses: erkannte Einheit, vorhandene/fehlende Felder, unterstützte Geometrie oder benannte Näherung, Preset-Einheiten und deren Bedeutung. Nicht darstellbare Geometrie oder ein unbekanntes Preset darf der Leser nicht als bekanntes Standardwerkzeug ausgeben. Rohmetadaten dürfen zur Herkunft erhalten bleiben, ohne direkt Maschinenwerte zu steuern.
+
+Die Erkennung sollte „kein Treffer“, „mehrere Treffer“ und „erkannt, aber ungültig“ unterscheiden; der letzte Fall darf nicht zum nächsten Leser durchfallen. Reale Exportbeispiele, Rundlauf über erneuten Export, Dubletten und Einheitenwechsel gehören zu jedem Adapter. Wo keine verlässliche Quellidentität vorhanden ist, bleibt eine ausdrücklich bestätigte Nummernzuordnung. Das bleibt eine normale, erweiterbare Architektur mit einem überschaubaren konservativen v1.
+
+**Abschluss:** P2b-F1 bleibt wegen MT-I29..MT-I31 offen. Die Richtung für P8 ist angenommen, mit den oben benannten Grenzen als Grundlage des Detailplans und Q452-1 als Operatorpunkt. Alle eigenen Läufe beendet, Testsperre frei; keine Produktdatei, kein Dienst und keine Live-Sim verändert. Im Live-Baum nur dieser Anhang und die neuen `maschinentag.r452.codex-*`-Belege.

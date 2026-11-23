@@ -1,0 +1,35 @@
+{
+  "before": [
+    {
+      "T": 3,
+      "P": 8,
+      "X": 1.0,
+      "Z": 123.0,
+      "D": 6.0,
+      "remark": "measured"
+    }
+  ],
+  "after": [
+    {
+      "T": 3,
+      "P": 3,
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 45.0,
+      "D": 6.0,
+      "remark": "imported"
+    }
+  ],
+  "controller_reload_saw": [
+    {
+      "T": 3,
+      "P": 3,
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 45.0,
+      "D": 6.0,
+      "remark": "imported"
+    }
+  ],
+  "error": "sidecar disk error"
+}

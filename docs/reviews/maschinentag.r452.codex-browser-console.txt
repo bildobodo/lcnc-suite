@@ -1,0 +1,61 @@
+[1A[2K[2m[WebServer] [22m(node:2316928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:2316963) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2316963) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] [e2e] › e2e/codex-r452.spec.ts:62:3 › R452 own reload adoption reply-first
+[1A[2K[2/2] [e2e] › e2e/codex-r452.spec.ts:62:3 › R452 own reload adoption status-first
+[1A[2K  1) [e2e] › e2e/codex-r452.spec.ts:62:3 › R452 own reload adoption status-first ───────────────────
+
+    Error: the own reload is not a foreign program change
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('[data-edit-conflict]')
+    Expected: [32m0[39m
+    Received: [31m1[39m
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - the own reload is not a foreign program change with timeout 10000ms[22m
+    [2m  - waiting for locator('[data-edit-conflict]')[22m
+    [2m    24 × locator resolved to 1 element[22m
+    [2m       - unexpected value "1"[22m
+
+
+      111 |     await expect(editor).toContainText('(newer draft)');
+      112 |     await info.attach('order',{body:JSON.stringify({order,old:l1.id,own:l2.id,request:req}),contentType:'application/json'});
+    > 113 |     await expect(page.locator('[data-edit-conflict]'),'the own reload is not a foreign program change').toHaveCount(0);
+          |                                                                                                         ^
+      114 |   });
+      115 | }
+      116 |
+        at /tmp/r452/tree/lcnc-webui/e2e/codex-r452.spec.ts:113:105
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r452-R452-own-reload-adoption-status-first-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [e2e] › e2e/codex-r452.spec.ts:62:3 › R452 own reload adoption status-first ────────────────────
+  1 passed (19.6s)

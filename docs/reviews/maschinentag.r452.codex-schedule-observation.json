@@ -1,0 +1,13 @@
+{
+  "scheduled": {
+    "job": 1,
+    "file": "/tmp/pytest-of-cnc/pytest-5062/test_a_scheduled_file_cannot_t0/A.ngc",
+    "reason": "file",
+    "program_id": "E.1"
+  },
+  "active": "E.2",
+  "published_program": "E.2",
+  "published_file": "/tmp/pytest-of-cnc/pytest-5062/test_a_scheduled_file_cannot_t0/A.ngc",
+  "accepted_as_active": true,
+  "worker_calls": 1
+}
