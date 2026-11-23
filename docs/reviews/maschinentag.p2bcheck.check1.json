@@ -1,0 +1,492 @@
+{
+ "head": {
+  "commit": "54955611",
+  "check3": {
+   "checkedBefore": false,
+   "simTabBefore": 0,
+   "noteBefore": 0,
+   "savedMs": 344,
+   "simTabMs": 373,
+   "noteAfterSaved": 1,
+   "simTabAfterSaved": 1,
+   "noteAfterReopen": 0
+  },
+  "c_task_mode_before": null,
+  "a": {
+   "parse_seen_s": 0.3,
+   "published_before_start": false,
+   "published_during_run": false,
+   "published_after_abort_s": 5.68,
+   "shots": [
+    {
+     "shot": "a-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-02s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:01",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-10s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-25s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  },
+  "b": {
+   "parse_seen_s": 0.12,
+   "published_before_start": false,
+   "published_during_run": true,
+   "published_after_abort_s": 1.56,
+   "shots": [
+    {
+     "shot": "b-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "11 lines"
+    },
+    {
+     "shot": "b-2-run-02s",
+     "published": true,
+     "banner": "RE-PARSING \u00b7 PROGRAM LOAD \u00b7 PW_BIG_B.NGC",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "11 lines"
+    },
+    {
+     "shot": "b-2-run-10s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-2-run-25s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  }
+ },
+ "head2": {
+  "commit": "54955611",
+  "check3": {
+   "checkedBefore": false,
+   "simTabBefore": 0,
+   "noteBefore": 0,
+   "savedMs": 368,
+   "simTabMs": 559,
+   "noteAfterSaved": 1,
+   "simTabAfterSaved": 1,
+   "noteAfterReopen": 0
+  },
+  "c_task_mode_before": 3,
+  "a": {
+   "parse_seen_s": 0.29,
+   "published_before_start": false,
+   "published_during_run": false,
+   "published_after_abort_s": 5.75,
+   "shots": [
+    {
+     "shot": "a-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-02s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:01",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-10s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-25s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  },
+  "b": {
+   "parse_seen_s": 0.09,
+   "published_before_start": false,
+   "published_during_run": true,
+   "published_after_abort_s": 2.43,
+   "shots": [
+    {
+     "shot": "b-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "11 lines"
+    },
+    {
+     "shot": "b-2-run-02s",
+     "published": false,
+     "banner": "RE-PARSING \u00b7 PROGRAM LOAD \u00b7 PW_BIG_B.NGC",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "11 lines"
+    },
+    {
+     "shot": "b-2-run-10s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-2-run-25s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  },
+  "c": {
+   "parse_seen_s": 0.09,
+   "published_before_start": false,
+   "published_during_run": false,
+   "published_after_abort_s": 5.57,
+   "shots": [
+    {
+     "shot": "c-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-2-run-02s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:01",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-2-run-10s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-2-run-25s",
+     "published": false,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  }
+ },
+ "base": {
+  "commit": "244d93a3",
+  "check3": {
+   "checkedBefore": false,
+   "simTabBefore": 0,
+   "noteBefore": 0,
+   "savedMs": 306,
+   "simTabMs": 497,
+   "noteAfterSaved": 1,
+   "simTabAfterSaved": 1,
+   "noteAfterReopen": 0
+  },
+  "c_task_mode_before": 3,
+  "a": {
+   "parse_seen_s": 0.26,
+   "published_before_start": false,
+   "published_during_run": true,
+   "published_after_abort_s": 2.01,
+   "shots": [
+    {
+     "shot": "a-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-02s",
+     "published": true,
+     "banner": "RE-PARSING \u00b7 PROGRAM LOAD \u00b7 PW_BIG_A.NGC",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": null
+    },
+    {
+     "shot": "a-2-run-10s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "a-2-run-25s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "a-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "a-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_a.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  },
+  "b": {
+   "parse_seen_s": 0.09,
+   "published_before_start": false,
+   "published_during_run": true,
+   "published_after_abort_s": 1.67,
+   "shots": [
+    {
+     "shot": "b-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "11 lines"
+    },
+    {
+     "shot": "b-2-run-02s",
+     "published": false,
+     "banner": "RE-PARSING \u00b7 PROGRAM LOAD \u00b7 PW_BIG_B.NGC",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "11 lines"
+    },
+    {
+     "shot": "b-2-run-10s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-2-run-25s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "b-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_b.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  },
+  "c": {
+   "parse_seen_s": 0.1,
+   "published_before_start": false,
+   "published_during_run": true,
+   "published_after_abort_s": 1.98,
+   "shots": [
+    {
+     "shot": "c-1-started",
+     "published": null,
+     "banner": "IDLE",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-2-run-02s",
+     "published": false,
+     "banner": "RE-PARSING \u00b7 PROGRAM LOAD \u00b7 PW_BIG_C.NGC",
+     "hud": "Preview re-parsing",
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "10 lines"
+    },
+    {
+     "shot": "c-2-run-10s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:09",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "c-2-run-25s",
+     "published": true,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:24",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "c-3-idle",
+     "published": null,
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:34",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "300008 lines"
+    },
+    {
+     "shot": "c-4-published",
+     "published": null,
+     "banner": "IDLE",
+     "hud": null,
+     "fileName": "pw_big_c.ngc",
+     "fileMeta": "300008 lines"
+    }
+   ]
+  }
+ }
+}

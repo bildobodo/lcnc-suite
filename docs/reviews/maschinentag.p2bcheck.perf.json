@@ -1,0 +1,958 @@
+[
+ {
+  "run": "20261123T152841-perf-base1",
+  "commit": "244d93a3",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1797419,
+  "matrix_rc": 1,
+  "idle_cpu_pct": 0.56,
+  "lag_windows": 1,
+  "lag_drift_max_ms": 69.4,
+  "hb_wake_n": 1,
+  "hb_wake_max_ms": 142,
+  "hal_send_slow_n": 0,
+  "hal_send_slow_max_ms": 0,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T143236Z-244d93a3.json",
+  "matrix_verdict_line": "RESULT: FAIL \u2014 (scenario) save_during_stream: status 400 | (scenario) preview_publish: load_ok False",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.52,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94448,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.58,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94712,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.8,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94984,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97460,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 0.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97480,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 69.4,
+    "lag_dominant": "reader_recv.readline",
+    "rss_kb_after": 200720,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.51,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 199724,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 199728,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 199728,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": null
+ },
+ {
+  "run": "20261123T153255-perf-head1",
+  "commit": "54955611",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1803308,
+  "matrix_rc": 1,
+  "idle_cpu_pct": 0.52,
+  "lag_windows": 1,
+  "lag_drift_max_ms": 80.4,
+  "hb_wake_n": 1,
+  "hb_wake_max_ms": 133,
+  "hal_send_slow_n": 0,
+  "hal_send_slow_max_ms": 0,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T143649Z-54955611.json",
+  "matrix_verdict_line": "RESULT: FAIL \u2014 (scenario) save_during_stream: status 400 | (scenario) preview_publish: load_ok False",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.52,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95208,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.58,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95472,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.6,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95768,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 3.5,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 98252,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 98272,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 80.4,
+    "lag_dominant": "reader_recv.readline",
+    "rss_kb_after": 207000,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.51,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 207000,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 0.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 207004,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 207004,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": null
+ },
+ {
+  "run": "20261123T153710-perf-base2",
+  "commit": "244d93a3",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1809046,
+  "matrix_rc": 0,
+  "idle_cpu_pct": 0.49,
+  "lag_windows": 3,
+  "lag_drift_max_ms": 78.4,
+  "hb_wake_n": 1,
+  "hb_wake_max_ms": 155,
+  "hal_send_slow_n": 0,
+  "hal_send_slow_max_ms": 0,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T144125Z-244d93a3.json",
+  "matrix_verdict_line": "RESULT: PASS (run a0cb79027b6a)",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.53,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94436,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.67,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94708,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.6,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94988,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97460,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 0.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97560,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 2,
+    "lag_max_drift_ms": 78.4,
+    "lag_dominant": "reader_recv.readline",
+    "rss_kb_after": 200908,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.54,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 200908,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 5.54,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 54.8,
+    "lag_dominant": "load_file.program_open",
+    "rss_kb_after": 276740,
+    "publish_total_ms": [
+     18846.3
+    ],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 276740,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": null
+ },
+ {
+  "run": "20261123T154145-perf-head2",
+  "commit": "54955611",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1815563,
+  "matrix_rc": 0,
+  "idle_cpu_pct": 0.51,
+  "lag_windows": 1,
+  "lag_drift_max_ms": 85.7,
+  "hb_wake_n": 2,
+  "hb_wake_max_ms": 127,
+  "hal_send_slow_n": 1,
+  "hal_send_slow_max_ms": 90.7,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T144601Z-54955611.json",
+  "matrix_verdict_line": "RESULT: PASS (run 6ee8dcf8f2a1)",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.53,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95136,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.67,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95464,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.8,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95848,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 98348,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 98404,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 85.7,
+    "lag_dominant": "reader_recv.readline",
+    "rss_kb_after": 208220,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.52,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 208220,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 5.31,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 289192,
+    "publish_total_ms": [
+     18304.9
+    ],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 289192,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": 2.2,
+  "timing": {
+   "cycle_ms": {
+    "n": 119,
+    "median": 0.4,
+    "mean": 0.421,
+    "p95": 0.56,
+    "max": 1.04
+   },
+   "poll_ms": {
+    "n": 119,
+    "median": 0.28,
+    "mean": 0.306,
+    "p95": 0.4,
+    "max": 0.74
+   },
+   "errors_ms": {
+    "n": 119,
+    "median": 0.08,
+    "mean": 0.09,
+    "p95": 0.16,
+    "max": 0.27
+   },
+   "parse_ms": {
+    "n": 119,
+    "median": 0.01,
+    "mean": 0.017,
+    "p95": 0.04,
+    "max": 0.09
+   },
+   "overhead_ms": {
+    "n": 119,
+    "median": -0.0,
+    "mean": 0.008,
+    "p95": 0.01,
+    "max": 0.2
+   },
+   "shared_encode_ms": {
+    "n": 119,
+    "median": 0.0,
+    "mean": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "server_ms": {
+    "n": 119,
+    "median": 97.84,
+    "mean": 97.286,
+    "p95": 187.84,
+    "max": 203.61
+   }
+  }
+ },
+ {
+  "run": "20261123T155031-perf-base3",
+  "commit": "244d93a3",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1827642,
+  "matrix_rc": 0,
+  "idle_cpu_pct": 0.51,
+  "lag_windows": 1,
+  "lag_drift_max_ms": 59.2,
+  "hb_wake_n": 1,
+  "hb_wake_max_ms": 113,
+  "hal_send_slow_n": 0,
+  "hal_send_slow_max_ms": 0,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T145446Z-244d93a3.json",
+  "matrix_verdict_line": "RESULT: PASS (run 507205205ca1)",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.53,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94492,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.58,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94716,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.6,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95096,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97556,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97680,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 59.2,
+    "lag_dominant": "reader_recv.readline",
+    "rss_kb_after": 208308,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.51,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 208312,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 5.54,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 284276,
+    "publish_total_ms": [
+     18638.4
+    ],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 284276,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": 2.23,
+  "timing": {
+   "cycle_ms": {
+    "n": 120,
+    "median": 0.4,
+    "mean": 0.426,
+    "p95": 0.61,
+    "max": 0.83
+   },
+   "poll_ms": {
+    "n": 120,
+    "median": 0.28,
+    "mean": 0.299,
+    "p95": 0.47,
+    "max": 0.67
+   },
+   "errors_ms": {
+    "n": 120,
+    "median": 0.08,
+    "mean": 0.093,
+    "p95": 0.15,
+    "max": 0.3
+   },
+   "parse_ms": {
+    "n": 120,
+    "median": 0.01,
+    "mean": 0.023,
+    "p95": 0.08,
+    "max": 0.11
+   },
+   "overhead_ms": {
+    "n": 120,
+    "median": 0.0,
+    "mean": 0.011,
+    "p95": 0.01,
+    "max": 0.21
+   },
+   "shared_encode_ms": {
+    "n": 120,
+    "median": 0.0,
+    "mean": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "server_ms": {
+    "n": 120,
+    "median": 102.1,
+    "mean": 100.047,
+    "p95": 186.6,
+    "max": 200.09
+   }
+  }
+ },
+ {
+  "run": "20261123T155606-perf-head3",
+  "commit": "54955611",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1835174,
+  "matrix_rc": 0,
+  "idle_cpu_pct": 0.51,
+  "lag_windows": 1,
+  "lag_drift_max_ms": 71.1,
+  "hb_wake_n": 1,
+  "hb_wake_max_ms": 141,
+  "hal_send_slow_n": 0,
+  "hal_send_slow_max_ms": 0,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T150021Z-54955611.json",
+  "matrix_verdict_line": "RESULT: PASS (run 2d75682e3815)",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.53,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95224,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.58,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95488,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.8,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 95904,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 4.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 98412,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 98456,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 71.1,
+    "lag_dominant": "reader_recv.readline",
+    "rss_kb_after": 197012,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.51,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 197012,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 5.54,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 230392,
+    "publish_total_ms": [
+     18895.0
+    ],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 230392,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": 2.23,
+  "timing": {
+   "cycle_ms": {
+    "n": 120,
+    "median": 0.4,
+    "mean": 0.435,
+    "p95": 0.62,
+    "max": 0.85
+   },
+   "poll_ms": {
+    "n": 120,
+    "median": 0.285,
+    "mean": 0.318,
+    "p95": 0.52,
+    "max": 0.69
+   },
+   "errors_ms": {
+    "n": 120,
+    "median": 0.08,
+    "mean": 0.089,
+    "p95": 0.15,
+    "max": 0.23
+   },
+   "parse_ms": {
+    "n": 120,
+    "median": 0.01,
+    "mean": 0.023,
+    "p95": 0.09,
+    "max": 0.12
+   },
+   "overhead_ms": {
+    "n": 120,
+    "median": 0.0,
+    "mean": 0.004,
+    "p95": 0.01,
+    "max": 0.14
+   },
+   "shared_encode_ms": {
+    "n": 120,
+    "median": 0.0,
+    "mean": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "server_ms": {
+    "n": 120,
+    "median": 102.19,
+    "mean": 99.769,
+    "p95": 182.95,
+    "max": 200.9
+   }
+  }
+ },
+ {
+  "run": "20261123T160141-perf-base4",
+  "commit": "244d93a3",
+  "error": null,
+  "restore": "complete",
+  "gateway_pid": 1842768,
+  "matrix_rc": 0,
+  "idle_cpu_pct": 0.51,
+  "lag_windows": 1,
+  "lag_drift_max_ms": 68.3,
+  "hb_wake_n": 1,
+  "hb_wake_max_ms": 132,
+  "hal_send_slow_n": 0,
+  "hal_send_slow_max_ms": 0,
+  "hb_edge_falling": 0,
+  "poll_status_slow_n": 0,
+  "poll_status_slow_max_ms": 0,
+  "stat_poll_slow_n": 0,
+  "stat_poll_slow_max_ms": 0,
+  "artifact": "20261123T150557Z-244d93a3.json",
+  "matrix_verdict_line": "RESULT: PASS (run a90be9603fd2)",
+  "scenarios": {
+   "idle_baseline": {
+    "cpu_pct": 0.53,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94444,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fanout": {
+    "cpu_pct": 0.58,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94668,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "reconnect_storm": {
+    "cpu_pct": 0.8,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 94988,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "upload_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97468,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "save_during_stream": {
+    "cpu_pct": 1.0,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 97568,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "fusion_near_limit": {
+    "cpu_pct": null,
+    "lag_windows": 1,
+    "lag_max_drift_ms": 68.3,
+    "lag_dominant": "ws_send_measured.send_done",
+    "rss_kb_after": 175744,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "rss_gc_watch": {
+    "cpu_pct": 0.52,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 175748,
+    "publish_total_ms": [],
+    "failure": null
+   },
+   "preview_publish": {
+    "cpu_pct": 5.4,
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_dominant": null,
+    "rss_kb_after": 209560,
+    "publish_total_ms": [
+     18623.1
+    ],
+    "failure": null
+   },
+   "sigstop_trip": {
+    "cpu_pct": null,
+    "lag_windows": null,
+    "lag_max_drift_ms": null,
+    "lag_dominant": null,
+    "rss_kb_after": 209560,
+    "publish_total_ms": [],
+    "failure": null
+   }
+  },
+  "timing_idle_cpu_pct": 2.22,
+  "timing": {
+   "cycle_ms": {
+    "n": 120,
+    "median": 0.4,
+    "mean": 0.425,
+    "p95": 0.63,
+    "max": 0.86
+   },
+   "poll_ms": {
+    "n": 120,
+    "median": 0.29,
+    "mean": 0.307,
+    "p95": 0.42,
+    "max": 0.6
+   },
+   "errors_ms": {
+    "n": 120,
+    "median": 0.08,
+    "mean": 0.091,
+    "p95": 0.19,
+    "max": 0.28
+   },
+   "parse_ms": {
+    "n": 120,
+    "median": 0.01,
+    "mean": 0.019,
+    "p95": 0.07,
+    "max": 0.09
+   },
+   "overhead_ms": {
+    "n": 120,
+    "median": 0.0,
+    "mean": 0.008,
+    "p95": 0.01,
+    "max": 0.23
+   },
+   "shared_encode_ms": {
+    "n": 120,
+    "median": 0.0,
+    "mean": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "server_ms": {
+    "n": 120,
+    "median": 102.035,
+    "mean": 99.502,
+    "p95": 193.5,
+    "max": 204.26
+   }
+  }
+ }
+]

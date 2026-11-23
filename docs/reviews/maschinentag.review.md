@@ -4836,3 +4836,58 @@ P2b (`feat/p2b-lifetime`, `244d93a3..a65cb806`) ist per Fast-Forward nach develo
 - **Last der Schleife:** P2b fügt jedem Status-Poll Arbeit hinzu und teilt eine Sperre mit den Schreibthreads. Dazu `wd.hb_edge` und die Loop-Lag-Werte im nativen p2b-Trace mit dem P4-Lauf vergleichen und perf-matrix auf der VM vor dem Update laufen lassen.
 
 **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+---
+
+## Claude · Prüfung nach dem P2b-Merge: veraltete Vorschau beim Start · Plan P2b-F · Anfrage R449 · 23. November 2026
+
+Die Prüfungen aus Fables Merge-Vorbehalt liefen an development `54955611` gegen die Basis `244d93a3`, auf der VM mit echter Seite (Chromium headless, 1920 × 1080, Simulation an).
+- Ergebnisse: [Fall-Übersicht](maschinentag.p2bcheck.check1.json), [perf-matrix](maschinentag.p2bcheck.perf.json), [Bildschirmfoto Fall c](maschinentag.p2bcheck.stale-preview-c.png).
+- Die LAN-Sim wurde nach jedem Lauf belegt zurückgegeben.
+
+**Befund F-P2b-01 (blockiert ein Maschinen-Update):** Ein frisch geladenes Programm wird aus MANUAL oder MDI gestartet, bevor seine erste Vorschau veröffentlicht ist.
+- Der Wechsel nach AUTO verwirft den Lade-Parse (`reparse_superseded reason=generation`).
+- Der Neustart wartet seit P2b (MT-I28) bis zum Leerlauf; die Vorschau kommt erst 5,6–5,7 s nach dem Abbruch. Vor P2b kam sie etwa 4 s nach dem Laden, mitten im Lauf.
+
+| Fall | P2b | Basis |
+|---|---|---|
+| (a) erstes Laden nach dem Boot, Start aus MANUAL | keine Vorschau während des Laufs; Codepanel-Kopf `pw_big_a.ngc`, Körper „No program loaded“ | Vorschau mitten im Lauf |
+| (b) voriges Programm veröffentlicht, Start aus AUTO | unverändert, Vorschau mitten im Lauf | dasselbe |
+| **(c) voriges Programm A2 veröffentlicht, ein MDI dazwischen, Start aus MDI** | **den ganzen Lauf lang Bahn, Code (10 Zeilen) und Zeitleiste von A2 unter dem Namen `pw_big_c.ngc`; die Zeitleiste zeigt A2s „100 %“ und 00:18** | Vorschau mitten im Lauf; während des Parse „RE-PARSING · PROGRAM LOAD“ |
+
+**Warum das blockiert:**
+- **Nichts benennt das Warten:** `preview_refresh` gibt es nur bei laufendem Worker, `drift_decision` trägt den Halt nicht.
+- **Der Start ist in diesem Fenster möglich:** Start, Leertaste und Gamepad sperren nur, solange der Text der letzten veröffentlichten Vorschau noch lädt (`App.vue:1931–1934`, `actionAdmission.ts:37–42`).
+- **Start aus MANUAL oder MDI ist der normale Weg**, etwa nach Referenzieren, Joggen, Antasten oder MDI.
+- **Größte Gefahr:** Fall (c) zeigt eine fremde Bahn als die des laufenden Programms.
+
+**Plan P2b-F (Planfreigabe erbeten):**
+1. **Grundkorrektur:** Verwirft der Wechsel nach AUTO beim Start einen unveröffentlichten Lade-Parse, wird dieser sofort neu gestartet, **gepinnt auf den Startkontext des Laufs**, wie heute schon die Tabellen-Neuberechnung mitten im Lauf (`pinned_ctx`, nice 19, lange Frist).
+   - Kein ungepinnter Neustart unter dem Lauf; die Wartezusage aus MT-I28 gilt für den ungepinnten Weg unverändert.
+   - Die Vorschau kommt wieder mitten im Lauf, mit einer an den Lauf gebundenen Basis.
+   - Ist der Startkontext nicht belegbar, wird nicht gepinnt, sondern benannt gewartet (Punkt 2).
+2. **Halt auf dem Draht:** Hält `_restart_wait` einen Neustart, sendet der Status `preview_wait {file, program_gen, why}`. `why` ist `not_idle`, `debounce`, `held:<action>` oder `unloading`.
+3. **Schutz auf der Seite, unabhängig von 1:** Gehört die veröffentlichte Vorschau zu einer anderen Datei bzw. Programmgeneration als `active_file`, zeigt die Seite sie **nicht** als die des laufenden Programms.
+   - **Ansicht:** Bahn, Zeitleiste und Prüfung werden verborgen, oder klar als „Preview of <alt> — not this program“ beschriftet.
+   - **Codepanel:** „<datei> · text and preview after the run“ statt des alten Texts bzw. „No program loaded“.
+   - **HUD-Zeile:** „Preview after the run — started before it was ready“.
+   - **Laufbanner:** um „PREVIEW AFTER THE RUN“ ergänzt.
+   - Wortlaut nach `docs/ui-glossary.md`; die Hilfe erklärt: „This program started before its preview was ready. Path, limits and collision check follow once the machine is idle.“
+4. **Nebenbefund (älter, an `244d93a3` schon vorhanden):** Der Hinweis am Simulationsschalter bleibt nach „Saved“ stehen. `simPending` (`DevicesSettings.vue:31`) liest das nicht reaktive `_confirmed` und nie `settingsVersion`. Korrektur nach dem Muster von `simulationOn` (`defaults.ts:774–777`), dazu der fehlende Wächter in `devices.spec.ts`.
+- **Wächter:**
+  - die drei Fälle (a)/(b)/(c) nativ mit echter Seite, (c) als Hauptfall: Die Seite zeigt nie A2s Bahn oder Code unter C;
+  - der gepinnte Neustart ist an den Startkontext gebunden; ist der Kontext unbelegt, wird nicht gepinnt;
+  - `preview_wait` je `why`;
+  - der Simulationsschalter;
+  - Mutationen.
+
+**Weitere Ergebnisse der Prüfung (kein Befund an P2b):**
+- **Schleifenlast:**
+  - `wd.hb_edge`: 0 fallende Flanken in allen 25 Läufen.
+  - Gleiche Last vor und nach P2b: parse-basis 0–2 → 0–1 Fenster, max. 153 → 101 ms; builds max. 177 → 51 ms.
+  - perf-matrix je 3 bzw. 2 frische Läufe, alle PASS: Idle-CPU 0,49–0,51 % gegen 0,51 %; Zykluszeit Median 0,40 ms beidseits, p95 0,61/0,63 gegen 0,56/0,62 ms; Preview-Publish 18,6–18,8 gegen 18,3–18,9 s.
+  - `sigstop_trip` am P2b-Kopf: PASS.
+  - **P2b bringt keine messbare Schleifenlast.**
+- **Defekt der nativen Stufe, nicht P2b:** In genau den Läufen, in denen `halcmd unloadrt sampler` scheitert (`rmmod -1`), friert die Schleife beim Abbau 5 s auf `handle_command cmd=abort` ein; das betrifft auch P4-Commits. Die Ursache liegt vermutlich in der Reihenfolge von `_stop_copy` (`native_run.py:500–516`). Als Werkzeugpunkt notiert.
+
+**Erbeten:** `agreement` zum Plan P2b-F oder `findings`, ausdrücklich zu Punkt 1, also zum gepinnten Neustart als Grundkorrektur.
