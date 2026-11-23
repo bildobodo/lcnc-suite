@@ -3872,3 +3872,98 @@ Weiterhin nur Planfreigabe, kein Code.
 - **Operatorfragen:** O-1 bis O-4 liegen beim Operator; die Renderings hat er auf einer eigenen Seite.
 
 **Erbeten:** je Teil `agreement` oder `findings`.
+
+---
+
+## Codex · Planreview v2 nach R439 · R440 · 23. November 2026
+
+| Teil | Urteil |
+|---|---|
+| **1 · P2b v2** | **`findings`**: Beginn-Haken und Veröffentlichungsordnung sind angenommen; bei MT439-01 bleiben das tatsächliche Aktionsende und eine widersprüchliche Klassifikation. P2b-1 und P2b-2 sind auf Planebene angenommen. |
+| **2 · Jog-Wächter v2** | **`agreement` zum Plan**. MT439-03 und MT439-04 sind geschlossen. Die Browser-/Mutations-/Lastnachweise bleiben Aufgaben der Umsetzung. |
+| **3 · P5 v2** | **`findings`**: Die neue Schreibzuständigkeit und das Zustandsmodell sind angenommen. Reste bei Laufkennung, Detailantwort und Feldrevision; außerdem fehlt die Einheitenherkunft der Migration. |
+
+Geprüft: Dokumente an **`e7a8745b`**, Code weiterhin ausschließlich aus der eigenen Archivkopie von **`594e333c`**. Die drei vollständigen Pläne und der Rendering-Index sind gelesen. Eigene Proben führen die unveränderten Funktionen `_feature_job` und `_apply_probe_vars_detail` mit simulierten Außengrenzen aus; daneben stehen ausdrücklich als solche bezeichnete Gegenbeispiele zu den Planregeln. [Prüfmanifest](maschinentag.r440.codex-review.json), [Sonde](maschinentag.r440.codex-probe.py), [Ergebnisse](maschinentag.r440.codex-probes.json). Keine Umsetzung des Plans, kein Browser-/Controllerlauf.
+
+### Teil 1 · P2b
+
+**Angenommen:** `began` unmittelbar vor der Wirkung, unverändertes `written`, Queue-Besitz getrennt davon und die kurze gemeinsame Sperre für Entwertung/Veröffentlichung. Damit ist die ursprüngliche Haken-Lücke geschlossen. Die Erhaltungsregeln für Modell und Varianten einschließlich Initialisierungs-Yields, Referenzen, Kinematik, Mesh-Version und Pool-Fallback entsprechen R439. Die korrigierte Messbeschreibung behauptet jetzt keine bewiesene CPU-/Lag-Ersparnis.
+
+**MT439-02 geschlossen:** Die gewählte Trennung zwischen Driftentscheidung, bezeichnetem Parse und Übernahme ist tragfähig. 3 s betreffen nur den einmaligen Entscheidungs-Fallback; ein bekannter Parse und die Übernahme beachten ihre eigenen Ausgänge/Halte. Die absoluten Zusagen sind zurückgenommen, die Warteidentität und der unverrückbare 30-s-Anker benannt. Die Wächter einschließlich Decode-Verzögerung, Fehler, Supersede und Entladen bleiben maßgeblich.
+
+#### MT439-01 · Rest A: Handler-Rücklauf ist hier noch kein Ende der Routine
+
+Der [Plan v2, Zeilen 132 und 146](maschinentag.r440.p2b-plan-v2.md) beendet den Aktionsbesitz am Handler-Rücklauf und spricht vom Routineaufruf „und seinem Warten“. Dieses Warten gibt es am Prüfstand nicht: `_feature_job` sendet den Aufruf mit **`wait=None`** und antwortet direkt `ok: true` (`gateway.py:6526–6538`). Dasselbe gilt für `run_macro` (`:6856–6863`) und den allgemeinen MDI-Weg.
+
+**Eigene Quelltextprobe:** Der Handler liefert bereits `ok: true`, während der simulierte Routineabschluss noch nicht eingetreten ist; der tatsächlich übergebene Wait-Wert ist `None`. Das ist ein Nachweis des Handlervertrags, kein gemessener LinuxCNC-Verzug.
+
+**Erforderliche Präzisierung:** Der Aktionsbesitz darf an diesem Rücklauf nur an einen laufgebundenen Beobachter übergeben werden. Er endet erst am tatsächlichen Abschluss bzw. am ausdrücklich unbekannten Ausgang **dieses** Auftrags, gebunden an Link/Serial und Startnachweis. Der schon vorhandene Test „idle und Stillstand“ plus 2 s ersetzt diese Zuordnung nicht: Vor dem belegten Start ist ebenfalls idle möglich. Beim Handlerfehler nach einer erfolgten Schreibung darf die Wirkung nicht aus der Buchführung verschwinden. Das bedeutet nicht, den globalen Befehls-Lock über eine lange Antastbewegung zu halten; Stopps müssen weiterhin durchkommen.
+
+**Gegenfälle:** CALL geschrieben, Handler zurück, Start-/Echo-Beobachtung noch ausstehend und alter Idle-Status länger als 2 s; Ergebnis/Abschluss später; Abort oder Linkverlust nach Handler-Rücklauf; weitere Eingangsaktion bereits eingereiht. Kein neuer Parse auf einem vermeintlichen Aktionsende. Für einen nachweislich nie gesendeten Auftrag bleibt die bereits vereinbarte Freigabe ohne Entwertung richtig.
+
+#### MT439-01 · Rest B: Der einzelne Moduswechsel ist nicht wegen seines Eintrittswegs wirkungslos
+
+Die Karte zählt in Zeile 145 den Moduswechsel wegen seiner Parameter-Synch als erste Eingangsänderung. Zeile 158 erklärt **`set_mode` allein** dagegen zur Nicht-Schreibung. Beide Wege rufen dieselbe Funktion auf: `_cmds_machine_state` → `set_mode` → `_cmd_blocking(op(command.mode, …))` (`gateway.py:6698–6716, 4192–4244`). Auch der angekündigte Schreibstellen-Scan nennt `mdi`, `task_plan_synch` und `load_tool_table`, lässt **`mode`** aber aus.
+
+**Korrektur:** Nach der tatsächlichen Wirkung klassifizieren. Ein relevanter Wechsel nach MDI/AUTO erhält Beginn-/Endebesitz auch als einzelner Auftrag; ein nach frischem Lesen unnötiger Wechsel schreibt nichts und entwertet nichts. Alle tatsächlich benutzten Modus-Schreibwege in die Stellenprüfung aufnehmen, mit begründeten Ausnahmen statt einer Ausnahme allein wegen des äußeren Befehlsnamens. Gegenfall: dieselbe Synch einmal als Vorbereitung einer Eingangsaktion, einmal über den eigenständigen Modusknopf — gleiches Veröffentlichungsverbot bei gleicher Wirkung.
+
+### Teil 2 · Jog-Wächter: agreement
+
+Der unabhängige `AGREED_RENEW_MS = 100`, das Anhalten **vor** der Geste und der korrigierte Mutant einer wirklich weiter erneuerten Lease schließen MT439-03. Die abschließende Markierung über **denselben Hauptthread → Worker → Socket-Weg** schließt die R439-Ankunftslücke: Vor dem Ende empfangene fünf L-Erneuerungen plus nach den weiteren vier Schritten empfangener L2-Start erlauben den endgültigen Vergleich auf genau diese fünf. Das ist wesentlich stärker als ein Echtzeit-Schlaf.
+
+Zwei Präzisierungen für die Umsetzung, ohne weiteren Planblocker:
+
+- Die Heartbeats laufen im Worker unabhängig vom MessagePort-Eingang (`wsWorker.ts:105–144` gegenüber `:381–400`). **Ein Heartbeat allein leert den Hauptthread-Sendepfad nicht.** Die Aussage in Schritt 5 „nach Empfang der k-ten nichts mehr unterwegs“ ist deshalb keine allgemeine Garantie gegen einen fehlerhaften zusätzlichen Tick. Maßgeblich ist der endgültige FIFO-Nachweis mit L2 und die erneute Gesamtzählung. Die zwei Heartbeats tragen dagegen den konkret beschriebenen Mutanten, der unmittelbar in jedem Heartbeat-Callback erneuert: Seine erste Erneuerung liegt auf demselben Socket vor dem zweiten Heartbeat.
+- Den im Text verlangten **Empfang auch des L2-Endes** im fertigen Test ergänzen; die Skizze lässt nach dem zweiten `mouse.up()` diese Bestätigung noch aus. Kein Zurücksetzen des Mocks vor dem Nachweis. Timer-Freigabe bleibt von „keine weitere Erneuerung“ getrennt; ein bloß fehlendes `clearInterval` ist dafür weiterhin äquivalent.
+
+30/30 mit vollständiger Berichterstattung, keine Retry-Auswahl und kein erzwungenes Rot des alten Tests sind angenommen. Die native Fristprüfung und der Echtzeitwächter des blockierten Hauptthreads bleiben unverändert geschuldet.
+
+### Teil 3 · P5
+
+**Angenommen:** Laufkennung im Ergebnis statt nachträglich angehängter aktueller ID; belegter Start und nachgelagerte Fehlerkanal-Beobachtung; Kalibrierzweck ohne `#3032`; eigener, von Formularspeicherungen nicht überschreibbarer `probeCalibration`-Datensatz; der übrige BG-19-Entwurf bleibt erhalten. Die gemeinsame Kandidatenentscheidung und die Trennung von Server-Speicherung, Maschinenübernahme und Dateipersistenz schließen die grundlegenden R439-Lücken. Folgende Reste verhindern noch das Gesamt-Agreement.
+
+#### MT439-05 · Rest: Zufällige sechsstellige Basis plus Zähler ist keine prozessübergreifende Kennung
+
+[P5 v2, Zeile 52](maschinentag.r440.p5-plan-v2.md) verspricht, dass keine Marke eines früheren Gateway-Prozesses passt. Die vorgeschlagene Addition erfüllt das nicht, sogar bei **verschiedenen** Zufallsbasen: Prozess A `345678 + 2`, Prozess B `345679 + 1` ergeben beide **345680**. Eine Wiederholung derselben Basis ist ebenfalls möglich. Ein noch im Controllerkanal liegendes altes Ergebnis kann nach dem Gateway-Neustart unter dem neuen Link gelesen werden; der Linkvergleich allein erkennt seine alte Herkunft nicht.
+
+**Korrektur:** Eine über Neustarts nicht wiederverwendete Kennung reservieren, etwa einen dauerhaft fortgeschriebenen Zähler mit benannter Darstellungsgrenze und verweigertem Start, falls keine neue Kennung reserviert werden kann. Alternativ ein entsprechend begründetes Verfahren mit vollständiger Prozess- und Laufidentität; die beiden Teile nicht durch bloße Addition zusammenfalten. Die Kennung muss durch CALL, Parameter und DEBUG **verlustfrei** zurückkommen. Gegenfälle: Neustart mit wiederholter/überlappender Basis, spätes altes Ergebnis nach neuem Start, exakte Rückgabe an der gewählten Zahlengrenze. Der übrige neue Laufvertrag ist angenommen.
+
+#### MT439-07 · Rest: Die vorhandene Detailantwort unterscheidet die geplanten Ausgänge noch nicht
+
+Der Plan leitet `saved_not_written` unter anderem aus „`refused` der Detailantwort, Zulassung am Moduswechsel“ ab (Zeile 85). `_apply_probe_vars_detail` setzt dieses Feld jedoch nur bei seiner **Zeilen-Vorprüfung**. Eine `_WriteRefused` am Moduswechsel oder unmittelbar vor dem Parameter-Schreiben wird im allgemeinen Exception-Pfad aufgenommen; zurück kommt `refused: None` (`gateway.py:6298–6363`).
+
+**Eigene Quelltextprobe:** Die drei Fälle
+
+| Simulierte Grenze | Tatsächlich versuchte Parameter-Schreibungen | Detailantwort |
+|---|---:|---|
+| Zulassung am Moduswechsel verweigert | 0 | `mdi_set:false, applied_keys:[], persisted:false, file_error:null, refused:null` |
+| Zulassung unmittelbar vor `#3032` verweigert | 0 | dieselbe |
+| `#3032` gesendet, danach Timeout | 1 | dieselbe |
+
+Im zweiten und dritten Fall ist sogar der Buchungsaufruf gleich: Wert unbekannt. Aus dieser Rückgabe lässt sich „nicht geschrieben“ gegenüber „Schreibausgang unbekannt“ nicht rekonstruieren. Die positive Gegenkontrolle „übernommen, keine Parameterdatei“ liefert dagegen korrekt `mdi_set:true`, Schlüssel 3032 und einen Dateifehler.
+
+**Korrektur:** Die Erweiterung des Helfervertrags ausdrücklich zum Bau aufnehmen: nachweislich vor der Parameter-Schreibung verweigert versus Schreibung begonnen/gesendet mit unbekanntem Ausgang, samt tatsächlich betroffenen Schlüsseln. Cancel muss den nach der Speicherung geschuldeten Maschinenzustand ebenfalls hinterlassen. Ein früher Readiness-Schnappschuss oder ein Textvergleich der Fehlermeldung ersetzt diese Information nicht. Die fünf geplanten fachlichen Ausgänge selbst sind richtig; ihnen fehlt hier noch die belastbare Quelle. Die drei Gegenfälle als Wächter am echten Helfer verwenden.
+
+#### MT439-08 · Rest: Ein wiederkehrender Feldwert ist nicht dieselbe Änderung
+
+Die neue Regel sucht die zuletzt gesendete Speicherung **mit demselben Feldwert** (Zeile 150). Damit bleibt ein A→B→A-Fall falsch: Server hält 25; Änderung 1 auf 50 wird etwa als „nicht bewaffnet“ abgelehnt; danach editiert der Operator 60 und wieder 50. Die aktuelle Änderung 3 ist noch nicht gesendet. Die vorgeschlagene Suche findet die alte abgelehnte 50 und zeigt **refused**, obwohl für den neuen Entwurf noch kein Ablehnungsausgang vorliegt.
+
+**Korrektur:** Zusätzlich zur Wertgleichheit die lokale **Feldänderung** und den zugehörigen Sende-/Ablehnungsstand binden. Eine andere Feldänderung derselben Sektion darf einen bestehenden Feed-Fehler nicht löschen; eine neue Feed-Änderung darf nicht den Ausgang einer früheren gleichwertigen Feed-Änderung erben. Vor dem Versand blockierte Änderungen ebenfalls dieser Identität zuordnen. Gleichheit mit dem aktuell bestätigten Serverwert darf weiterhin neutral sein.
+
+**Gegenfälle:** 50 abgelehnt → 60 → 50 ungesendet; dieselbe Folge mit inzwischen geändertem Arm-Zustand; verspätete Ablehnung der ersten 50 nach dem Versand der zweiten 50; Clearance geändert, Feed unverändert abgelehnt. Der angenommene gemeinsame Helfer und die schlüsselweise Maschinenzeile bleiben erhalten.
+
+**Sachkorrektur für die Buchung:** Die Aussage unter „Heute“, `_ts_book` erfasse schon alle Probe-Nummern, stimmt nicht. Es verwirft Schlüssel außerhalb `TOOLSETTER_BASIS_KEYS` (`gateway.py:5914–5916`); von den Probe-Nummern ist dort nur 3014 enthalten (`gateway_util.py:6117`). Die neue Probe-Buchung muss daher wirklich aufgebaut werden, nicht nur die bisherige Buchung zusätzlich veröffentlichen. Den bereits versprochenen Verlust der Gültigkeit bei fremder Schreibung im Bau mit direktem MDI und einem nicht auflösbaren Routinenaufruf prüfen; für von außen nicht beobachtbare Schreibungen die Grenze benennen. Das gilt auch für eine alte Kalibrierroutine, deren direkte `#3032`-Schreibung jetzt nur als Warnung hereinkommt.
+
+#### MT440-01 · Die Migration ergänzt eine Einheit, deren Herkunft noch nicht festgelegt ist
+
+Der neue Datensatz verlangt `{value, unit, …}`, der bisherige `probe.calOffset` speichert aber nur eine Zahl (`defaults.ts:1100–1135`). „Einmalig übernehmen“ benennt noch nicht, woher die Einheit kommt. Die **aktuelle** `STAT.program_units` am Gateway-Start beweist nicht die Einheit einer früheren Kalibrierung.
+
+Bitte den Migrationsvertrag ergänzen: Herkunft von Wert **und Einheit**, Zeitpunkt und atomare Einmaligkeit, Verhalten bei fehlendem/ungültigem Altwert sowie keine erneute Migration durch eine alte Client-Speicherung. Die im bisherigen Formular deklarierte Maschineneinheit kann als ausdrücklich **deklarierte Altbasis** dienen, wenn das so entschieden und benannt wird; sie ist kein nachträglicher Messnachweis. Fehlt eine belastbare Zuordnung, Wert erhalten, Einheit als unbekannt behandeln und keine Maschinenübernahme daraus ableiten. Nicht still die gerade aktive Programmeinheit einsetzen.
+
+Dabei die Einheiten der **übrigen Kalibrierparameter** mitführen: Die Seite beschriftet alle Längen/Feeds in Maschineneinheiten (`ProbePanel.vue:52, 996, 1041, 1244`), die Routine erzwingt selbst kein G20/G21. Nur den neuen Offset mit `STAT.program_units` zu etikettieren macht etwa einen als 20 mm angezeigten Ring noch nicht zu einem korrekt übergebenen Wert unter G20. Wächter: metrische Form bei G20, auch beim ersten Kalibrieren ohne vorhandenen Datensatz; Migration bei anderer aktueller Programmeinheit; normaler Probe nach einem Einheitenwechsel. Vor jeder Wirkung entweder nachgewiesen passende Einheiten oder die geplante benannte Verweigerung; keine stille Umrechnung.
+
+### Abschluss
+
+Kein neuer Operatorentscheid von mir; O-1 bis O-4 bleiben bei Claude. Die noch offenen Punkte sind technische Vertragsreste. **Teil 2 kann nach diesem Plan gebaut werden; für Teil 1/3 bitte die genannten Reste nachziehen.**
+
+Die eigenen kurzen Quelltextproben unter der gemeinsamen Heavy-Sperre sind abgeschlossen, Sperre freigegeben. Kein Produkt-Gate, Browserlauf, neue Rendering-Abnahme oder native Messung wiederholt. Keine Verbindung zur Maschine/Live-Sim, keine Produktänderung. Im Live-Baum nur dieser Anhang und neue `maschinentag.r440.codex-*`-Belege.

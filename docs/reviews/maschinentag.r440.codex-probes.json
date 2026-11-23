@@ -1,0 +1,141 @@
+{
+  "base": "594e333c",
+  "gateway_sha256": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+  "scope": "Extracted source functions with simulated boundaries, plus explicitly labelled plan-rule counterexamples. No browser/native/product implementation of R440 executed.",
+  "actual_source": {
+    "handler_return": {
+      "returned": {
+        "ok": true,
+        "persisted": true,
+        "mdi_set": true,
+        "line": "O<probe_cal_round_pocket> CALL"
+      },
+      "command_calls": [
+        {
+          "op": [
+            "mdi",
+            [
+              "O<probe_cal_round_pocket> CALL"
+            ]
+          ],
+          "wait": null
+        }
+      ],
+      "routine_completion_received": false
+    },
+    "apply_detail": [
+      {
+        "kind": "mode_refused",
+        "parameter_writes_attempted": 0,
+        "returned": {
+          "mdi_set": false,
+          "applied_keys": [],
+          "persisted": false,
+          "file_error": null,
+          "refused": null
+        },
+        "book_calls": []
+      },
+      {
+        "kind": "write_refused",
+        "parameter_writes_attempted": 0,
+        "returned": {
+          "mdi_set": false,
+          "applied_keys": [],
+          "persisted": false,
+          "file_error": null,
+          "refused": null
+        },
+        "book_calls": [
+          {
+            "values": {
+              "3032": null
+            },
+            "origin": "unknown"
+          }
+        ]
+      },
+      {
+        "kind": "write_timeout",
+        "parameter_writes_attempted": 1,
+        "returned": {
+          "mdi_set": false,
+          "applied_keys": [],
+          "persisted": false,
+          "file_error": null,
+          "refused": null
+        },
+        "book_calls": [
+          {
+            "values": {
+              "3032": null
+            },
+            "origin": "unknown"
+          }
+        ]
+      },
+      {
+        "kind": "taken_without_file",
+        "parameter_writes_attempted": 1,
+        "returned": {
+          "mdi_set": true,
+          "applied_keys": [
+            "3032"
+          ],
+          "persisted": false,
+          "file_error": "no PARAMETER_FILE",
+          "refused": null
+        },
+        "book_calls": [
+          {
+            "values": {
+              "3032": 0.2
+            },
+            "origin": "applied"
+          }
+        ]
+      }
+    ]
+  },
+  "plan_models": {
+    "token_collision": {
+      "process_A": {
+        "random_base": 345678,
+        "counter": 2,
+        "token": 345680
+      },
+      "process_B": {
+        "random_base": 345679,
+        "counter": 1,
+        "token": 345680
+      }
+    },
+    "field_ABA": {
+      "server_value": 25,
+      "sent": [
+        {
+          "edit": 1,
+          "value": 50,
+          "outcome": "refused"
+        }
+      ],
+      "local_edits": [
+        {
+          "edit": 1,
+          "value": 50
+        },
+        {
+          "edit": 2,
+          "value": 60
+        },
+        {
+          "edit": 3,
+          "value": 50
+        }
+      ],
+      "v2_value_match_state": "refused",
+      "current_edit_was_sent": false,
+      "required_current_edit_state": "draft"
+    }
+  }
+}

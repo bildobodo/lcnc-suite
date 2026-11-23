@@ -1,0 +1,87 @@
+{
+  "round": "R440",
+  "date": "2026-11-23",
+  "doc_head": "e7a8745b2dd81ce54e7a1a7314e38c48a4c1fc76",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "parts": {
+    "P2b": "findings: MT439-01 rests A/B; P2b-1 and P2b-2 accepted",
+    "jog_hardening": "agreement on plan; implementation evidence remains due",
+    "P5": "findings: MT439-05/07/08 rests, MT440-01"
+  },
+  "documents": {
+    "maschinentag.r440.p2b-plan-v2.md": "416c4e4b1729d328bee1276cce5b3c74892b8039eb66ac2ea9329ca8bcedf3b0",
+    "maschinentag.r440.jog-hardening-v2.md": "266748f4d56ebbb36a20f5211e20bdc88c50d6d68c8e49115ef7de42ee08bd05",
+    "maschinentag.r440.p5-plan-v2.md": "ebeb9c874e8c009be8eadd2a2f965e3f8d219d0f263be7e7d670d63d85d144ca",
+    "maschinentag.r440.p5-renderings.md": "7c6d36d03e3449c452065a70654003b10caa7313e45af5cc78fa10bfcf9da7e1"
+  },
+  "source_hashes": {
+    "lcnc-gateway/gateway.py": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+    "lcnc-gateway/gateway_util.py": "f64af2807c71cc1aad855d3e2d8c8e99b7992fa8afae2865480ced5e91a2c818",
+    "lcnc-gateway/features.py": "a6b45fc45703252a4402e10ad6684ae00cf63a6d65032dad807d0c4a07863f99",
+    "lcnc-gateway/bulk_pipeline.py": "3d6a24e0a439ee4657313eec8f697c38be58b480072f18e7c3fddef09eee48f7",
+    "lcnc-webui/src/wsWorker.ts": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+    "lcnc-webui/e2e/mock-gateway.mjs": "d5b991c446b1612e31ddb3033dbb601f9d37859ccb7c96f591e7fd791258b0ea",
+    "lcnc-webui/src/ProbePanel.vue": "22593dfc863845a554b55f3904d161541e32e0698050ad5269711bed7cad4f61",
+    "lcnc-webui/src/defaults.ts": "3edb5c9eff2cf2ac3400317583b2fde80575f5bbff8de2bb4dd596e64a52a167",
+    "lcnc-webui/src/probeVars.ts": "21cdb43f534aee1d30970d3ac0eb2879c82386b7231cf2bf571d2e5f7f9b0cef",
+    "subroutines/probe_basic/probe_cal_round_pocket.ngc": "6de9ea2152d4db0d3897be9f5a0f4f2d14b17a471329a9c0681a06640a3da2a9",
+    "subroutines/probe_basic/probe_z_minus_sub.ngc": "a05724b5a0df8531046b53d808daf1d7e1fa985549b4cd48cb086cdc1496b8cc"
+  },
+  "review_before_sha256": "27e8ba9e13bdd65d3e955658a2a84f970f0b056d37e03358e119d7421c49d2b9",
+  "append_sha256": "f634afa24bc44e1bd38f0835257bbdeb2d57a628cf0bae9cb9472913a81d5a07",
+  "findings": [
+    {
+      "id": "MT439-01 rest A",
+      "topic": "Handler return precedes actual routine completion; transfer action ownership to a completion observer"
+    },
+    {
+      "id": "MT439-01 rest B",
+      "topic": "Standalone set_mode contradicts mode-as-parameter-synch classification; mode absent from proposed scan"
+    },
+    {
+      "id": "MT439-05 rest",
+      "topic": "Six-digit random base plus counter can reuse a token after gateway restart"
+    },
+    {
+      "id": "MT439-07 rest",
+      "topic": "Current detail helper collapses refused-before-write and write-timeout outcomes"
+    },
+    {
+      "id": "MT439-08 rest",
+      "topic": "Same field value on a new edit must not inherit an old rejected edit outcome"
+    },
+    {
+      "id": "MT440-01",
+      "topic": "Legacy calibration migration lacks unit provenance; keep displayed input units and program units consistent"
+    }
+  ],
+  "checks": {
+    "command": "python3 -I -B /tmp/r440/probe.py /tmp/r439/base/lcnc-gateway/gateway.py",
+    "lock": "Official scripts/test_support/heavy_lock.py, codex-r440-plan-probes; short run completed and lock released",
+    "extracted_source_cases": [
+      "feature job returns ok before simulated completion, wait=None",
+      "mode refusal",
+      "write refusal",
+      "write timeout",
+      "taken without parameter file"
+    ],
+    "plan_rule_models": [
+      "token collision across distinct bases",
+      "field edit 50→60→50 with old refusal"
+    ],
+    "assertions": "all probe assertions passed; they demonstrate counterexamples, not a product gate",
+    "limits": [
+      "No implementation of the R440 plans executed",
+      "No browser/Playwright run",
+      "No native/LinuxCNC connection",
+      "No raw machine measurement or new visual rendering acceptance",
+      "No product code changed",
+      "No subagents"
+    ],
+    "operator_questions": []
+  },
+  "evidence": {
+    "maschinentag.r440.codex-probe.py": "afe93c2c77360fc93a06dc0345ff80c39cc6393b71ad89ddd72897d486e0f711",
+    "maschinentag.r440.codex-probes.json": "442c426ef4788c7243c8ac210339747569cca7efc6cb7e17e1dc9dba77d4d30c"
+  }
+}
