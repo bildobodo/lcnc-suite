@@ -103,7 +103,7 @@ test("a held jog button names its lease, the page renews it, its release ends ex
       expect((await timeline()).renewals[k - 1]!.ids, `renewal ${k} names the lease`).toContain(L);
     }
     await page.mouse.up();
-    await expect.poll(async () => (await sent()).map((c) => [c.cmd, c.axis ?? c.lease]))
+    await expect.poll(async () => (await sent()).map((c) => [c.cmd, c.axis ?? c.lease]), "the release's end received")
       .toEqual([["jog_cont", 0], ["jog_lease_end", L]]);
     await page.clock.runFor(4 * AGREED_RENEW_MS);
     // the FIFO marker: a new start through the same path — once it is RECEIVED,

@@ -20,23 +20,24 @@ WEB = "lcnc-webui/"
 SPEC = "e2e/jog-lease.spec.ts"
 TITLE = "a held jog button names its lease, the page renews it, its release ends exactly that lease"
 
+# name: (file, [(anchor, replacement)], the assertion the mutant must fail AT)
 MUTS = {
     # MT439-03: the product cadence halved — the guard steps its OWN 100 ms
     "renew_every_200_ms": (WEB + "src/jogLease.ts", [(
-        "export const RENEW_MS = 100;", "export const RENEW_MS = 200;")]),
+        "export const RENEW_MS = 100;", "export const RENEW_MS = 200;")], 'renewal 1 received'),
     # a renewal that names no lease
     "renewal_without_ids": (WEB + "src/jogLease.ts", [(
         'send({ cmd: "jog_renew", ids: [...live.keys()].slice(0, RENEW_IDS_MAX) });',
-        'send({ cmd: "jog_renew", ids: [] });')]),
+        'send({ cmd: "jog_renew", ids: [] });')], 'renewal 1 names the lease'),
     # the release does not end the lease on the wire
     "no_lease_end_at_release": (WEB + "src/jogLease.ts", [(
         '  live.delete(id);\n  l.sendEnd({ cmd: "jog_lease_end", lease: id });\n  idleCheck();',
-        '  live.delete(id);\n  idleCheck();')]),
+        '  live.delete(id);\n  idleCheck();')], "the release's end received"),
     # MT439-03 mutant 4: an ENDED lease goes on being renewed (its end is sent,
     # but it stays live — renewTick names it again)
     "ended_lease_still_renewed": (WEB + "src/jogLease.ts", [(
         '  if (!l) return;\n  live.delete(id);\n  l.sendEnd({ cmd: "jog_lease_end", lease: id });',
-        '  if (!l) return;\n  l.sendEnd({ cmd: "jog_lease_end", lease: id });')]),
+        '  if (!l) return;\n  l.sendEnd({ cmd: "jog_lease_end", lease: id });')], 'exactly the 5 renewals of L, none after its end'),
     # MT439-04: a renewal from the WORKER's real-time heartbeat (not the page's
     # clock): the worker remembers the last started lease and renews it right
     # before each heartbeat — its first renewal is on the socket before the
@@ -52,8 +53,18 @@ MUTS = {
          "          ws.send(msg.payload);"),
         ("let hbTimer: ReturnType<typeof setInterval> | null = null;",
          "let hbTimer: ReturnType<typeof setInterval> | null = null;\nlet mutLease: number | null = null;"),
-    ]),
+    ], "no renewal while the page's clock stands"),
 }
+
+
+def failures(text):
+    """The failing assertions' messages (Playwright's "Error:" blocks)."""
+    lines = text.splitlines()
+    msgs = []
+    for i, ln in enumerate(lines):
+        if "Error:" in ln:
+            msgs.append(" | ".join(x.strip() for x in lines[i:i + 4] if x.strip())[:400])
+    return msgs
 
 
 def run_spec():
@@ -62,13 +73,13 @@ def run_spec():
         return None, "the build failed: " + (b.stdout + b.stderr)[-400:]
     r = subprocess.run(["npx", "playwright", "test", SPEC, "-g", TITLE, "--workers=1", "--retries=0", "--reporter=line"],
                        cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
-    return r.returncode != 0, (r.stdout + r.stderr)[-600:]
+    return r.returncode != 0, r.stdout + r.stderr
 
 
 def main(names):
     out = {}
     for name in names or list(MUTS):
-        path, reps = MUTS[name]
+        path, reps, at = MUTS[name]
         f = ROOT / path
         orig = f.read_bytes()
         text = orig.decode()
@@ -81,12 +92,15 @@ def main(names):
             red, tail = run_spec()
         finally:
             f.write_bytes(orig)
-        out[name] = {"red": red, "tail": tail}
-        print(json.dumps({"mutation": name, "red": red,
-                          "why": None if red is None else tail.splitlines()[-12:] if red else tail[-300:]}), flush=True)
+        msgs = failures(tail) if red else []
+        at_rule = bool(red) and any(at in m for m in msgs)
+        out[name] = {"red": red, "at_rule": at_rule, "expected_at": at, "failures": msgs}
+        print(json.dumps({"mutation": name, "red": red, "at_rule": at_rule, "expected_at": at,
+                          "failures": msgs if red else [tail[-300:]]}), flush=True)
     subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, timeout=900)
-    print(json.dumps({"total": len(out), "red": sum(1 for v in out.values() if v["red"])}))
-    return 0 if all(v["red"] for v in out.values()) else 1
+    print(json.dumps({"total": len(out), "red": sum(1 for v in out.values() if v["red"]),
+                      "red_at_rule": sum(1 for v in out.values() if v["at_rule"])}))
+    return 0 if all(v["at_rule"] for v in out.values()) else 1
 
 
 if __name__ == "__main__":
