@@ -132,10 +132,10 @@ for (const key of ["z_surface", "surface_scan"]) {
 // under "Round Hole" and was titled "outside start". Each cell's name and
 // caption against the routine it sends.
 const CAL_CELLS: { name: string; caption: string; routine: string }[] = [
-  { name: 'Round hole — edge start', caption: 'Hole\nedge start', routine: 'probe_cal_round_pocket' },
-  { name: 'Round boss — above centre', caption: 'Boss\nabove centre', routine: 'probe_cal_round_boss' },
-  { name: 'Rect pocket — edge start', caption: 'Pocket\nedge start', routine: 'probe_cal_square_pocket' },
-  { name: 'Rect boss — above centre', caption: 'Boss\nabove centre', routine: 'probe_cal_square_boss' },
+  { name: 'Round hole — edge start', caption: 'edge start', routine: 'probe_cal_round_pocket' },
+  { name: 'Round boss — above centre', caption: 'above centre', routine: 'probe_cal_round_boss' },
+  { name: 'Rect pocket — edge start', caption: 'edge start', routine: 'probe_cal_square_pocket' },
+  { name: 'Rect boss — above centre', caption: 'above centre', routine: 'probe_cal_square_boss' },
 ];
 
 for (const c of CAL_CELLS) {
@@ -150,7 +150,7 @@ for (const c of CAL_CELLS) {
     await expect(cell).toBeEnabled();
     // the visible caption under the cell says the same start
     await expect(cell.locator('xpath=ancestor::div[contains(@class,"stack-micro")][1]').locator('.calCaption'))
-      .toHaveText(c.caption.replace('\n', ''));
+      .toHaveText(c.caption);
     await ctl({ op: 'clearCmds' });
     await hold(page, cell);
     await expect.poll(async () => (await sent()).filter(x => x.cmd === 'probe_run').length, { message: c.name }).toBe(1);

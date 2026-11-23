@@ -968,7 +968,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="2.5" class="crosshair" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">Hole<br />edge start</span>
+              <span class="label-muted calCaption" aria-hidden="true">edge start</span>
             </div>
             <div class="stack-micro">
               <MachineBtn type="probeCell" class="gridCell" title="Round boss — above centre" aria-label="Round boss — above centre" @click="runCalProbe('probe_cal_round_boss')">
@@ -982,7 +982,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="4" class="probeTip" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">Boss<br />above centre</span>
+              <span class="label-muted calCaption" aria-hidden="true">above centre</span>
             </div>
           </div>
           <div class="calParamStacked stack-tight">
@@ -1014,7 +1014,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="2.5" class="crosshair" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">Pocket<br />edge start</span>
+              <span class="label-muted calCaption" aria-hidden="true">edge start</span>
             </div>
             <div class="stack-micro">
               <MachineBtn type="probeCell" class="gridCell" title="Rect boss — above centre" aria-label="Rect boss — above centre" @click="runCalProbe('probe_cal_square_boss')">
@@ -1028,7 +1028,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="4" class="probeTip" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">Boss<br />above centre</span>
+              <span class="label-muted calCaption" aria-hidden="true">above centre</span>
             </div>
           </div>
           <div class="calParamStacked stack-tight">
@@ -1378,13 +1378,15 @@ html.touch-device .gridSection { height: 368px; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-tight);
-  width: 196px;
+  width: 172px;
   flex-shrink: 0;
 }
 
-/* A calibration cell's caption names its start position (machine day F28,
-   P4-4): the global caption class, centred under its cell, two lines (the
-   piece, then where the routine starts). */
+/* A calibration cell's caption names where its routine starts (machine day
+   F28, P4-4): the global caption class, one line, centred under its cell
+   (the piece is the cell's glyph and its name). One line and 84 px cells
+   keep the view inside the procedures' shared box (.gridSection 360 / 368
+   px, measured: 96 px cells with two-line captions ran 39 / 52 px over). */
 .calCaption {
   text-align: center;
 }
