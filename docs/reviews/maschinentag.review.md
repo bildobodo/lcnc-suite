@@ -4769,3 +4769,43 @@ Code `feat/p2b-lifetime`, Kopf `a285e948`; Gate 4 an `378050eb`. MT-I26, MT-I27 
 - **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
 
 **Erbeten:** `agreement` zu P2b `244d93a3..a285e948` oder `findings`.
+
+---
+
+## Codex · P2b · Nachprüfung R448 · 23. November 2026
+
+**Urteil: agreement** zu `feat/p2b-lifetime 244d93a3..a285e948`. **MT-I25 A/B und MT-I28 A geschlossen.** Die Agreements zu P2b-1, MT-I26, MT-I27 und Wächter 8 bleiben bestehen. Kein weiterer blockierender Befund, keine neue Operatorfrage.
+
+Geprüft gegen Dokumentstand `a935a6bc`, mit Schwerpunkt auf `308b56ed..a285e948`. Eigene Tests im unveränderten Produktarchiv `/tmp/r448/tree`, ausschließlich Fake-LinuxCNC und temporäre Dateien, unter dem offiziellen Heavy-Lock-Wrapper. Keine Live-Verbindung und keine Produktänderung. [Manifest mit Befehlen, Anpassungen und Hashes](maschinentag.r448.codex-manifest.json).
+
+**MT-I25 A:** Datei-Beobachter bleiben bei `end_all` und nach ihrer Frist offen. Die Frist erzeugt eine Meldung, keine Freigabe. Meine beiden R447-Proben über den wirklichen `_atomic_stream_write` bestehen: Sowohl der echte `abort`-Befehlszweig als auch der Poll nach 301 s lassen den blockierten Dateischreiber busy und halten den Neustart. Die übernommenen Wächter prüfen außerdem das Ende und die ab dort laufende Ruhefrist. Eine zusätzliche eigene Probe mischt einen Controller- mit einem Datei-Beobachter: Nur der Controller-Beobachter endet als `aborted`; zwei Polls nach insgesamt 602 s ergeben genau **eine** `action.file_overdue`-Meldung. Der anschließende tatsächliche Dateifehler beendet die Dateiaktion als `unknown` und setzt erst dann ihre Ruhefrist.
+
+**MT-I25 B:** Der äußere Dateieffekt umfasst jetzt Veröffentlichung, `after_publish` und Rollback. Der zusätzliche innere Effekt beim Entfernen des alten Namens kann den äußeren Halt nicht beenden. Die R447-Gegenprobe mit fehlgeschlagenem Entfernen des alten Namens und blockiertem Rollback besteht: Auch solange der neue Name noch vorhanden ist, bleibt der Commit gehalten. Die Generation steigt weiterhin vor dem ersten Effekt.
+
+**MT-I28 A:** Die Neustartzulassung ist nun an die bereits gestartete Programmgeneration gebunden; `rotary:A`, `discarded:mode` oder ein später ersetzter Grundtext ändern diese Identität nicht. Meine kombinierte R447-Pollprobe besteht. Für die simulierten bereits laufenden Parses wurde jeweils das neue Feld `spawned_program_gen` gesetzt; Zusicherungen wurden nicht abgeschwächt. Dass der echte Parse dieses Feld tatsächlich setzt, habe ich zusätzlich unabhängig geprüft:
+
+- Der wirkliche `schedule_refresh`/`refresh_gcode_preview`-Pfad steht am ersten `program_source`-Lesen. Schon dort trägt er die aktuelle Programmgeneration, ohne dass die Probe das Feld vorbesetzt.
+- Ein inzwischen begonnener Moduswechsel macht den Parse veraltet. Er veröffentlicht nichts, und die Neustartprüfung verweigert während des Laufs mit `not_idle`, auch nach einem Wechsel des Grundtextes.
+- Im Leerlauf hält eine offene Dateiaktion weiter; danach gilt zunächst `debounce`, nach 2,1 s wird freigegeben.
+- Der Aufruf des echten Ladebeginn-Hakens erhöht die Programmgeneration und darf seinen ersten Parse starten. Dieser übernimmt seine neue Kennung; ein weiterer Neustart unter dem Lauf wird wieder verweigert.
+
+Die Cycle-Start-Regel ist damit im geprüften Umfang angenommen: **Der Start selbst bleibt erlaubt, der ungepinnte Neustart desselben Programms wartet auf Aktionsende, Ruhefrist, Leerlauf und Stillstand.**
+
+Eigene Ergebnisse:
+
+| Prüfung | Ergebnis |
+|---|---|
+| Vorhandene gezielte Backend-Tests | **220 bestanden**, zusätzlich 30 Subtests |
+| R446-Gateway-Proben | **4 bestanden** |
+| R447-Gegenproben | **4 bestanden** |
+| Zusätzliche R448-Proben zu echtem Parsepfad und überfälliger Dateiarbeit | **2 bestanden** |
+
+[Backend-Lauf](maschinentag.r448.codex-backend.txt), [Probenlauf](maschinentag.r448.codex-probes.txt), [neue Proben](maschinentag.r448.codex-probes.py), [R447-Proben mit benannter Fixture-Anpassung](maschinentag.r448.codex-r447-probes.py), [Messwerte](maschinentag.r448.codex-observations.json). Alle 41 im Produktbereich geänderten Nicht-Dokument-Dateien stimmen nach den Läufen bytegenau mit `a285e948` überein.
+
+**Vorgelegte Belege:** Round-Gate 4 ist an `378050eb` gebunden, sauberer Baum, Chromium **1055/1055**, Firefox-Kern **94/94**, keine Flakes; danach folgen nur Gate-/Native-Belege. Der neue native `p2b`-Bericht nennt **PASS**, Rückgabe und Nachprüfung jeweils `complete`, #3104 wieder **2**. `parse-basis` bleibt insgesamt ausdrücklich **incomplete**: seine Basis-Zeile ist PASS, aber kein Drift-Parse hat die nice-Zeile ausgeübt. Diese Beleggrenze wird nicht zu einem PASS umgedeutet. [Ausgelesene Berichte und Herkunft](maschinentag.r448.codex-evidence-audit.json).
+
+Der Client ist seit R447 unverändert; dessen eigene sechs grünen Browserwächter und Client-Proben bleiben anwendbar. Ich habe deshalb keinen weiteren Browser-, Gesamtgate- oder nativen Lauf angesetzt. Die schon benannten sieben verspäteten Fenster und die fehlenden nativen Wächter 4/7/13 bleiben Grenzen der bisherigen Messung. Vor `main` sind weiterhin **live-twp, perf-matrix und twp-buttons** geschuldet; dieses Review ersetzt sie nicht.
+
+Kleiner, nicht blockierender Dokumentationsnachtrag: Der Docstring von `ActionLedger.begin_file` sagt noch „or, past its limit, `unknown`“. Er sollte die jetzt implementierte Regel wiedergeben: nach der Grenze einmal benannt, bis zum tatsächlichen Ende weiter gehalten. Code und Architekturtext stimmen darin bereits überein.
+
+**Abschluss:** Agreement zu P2b am geprüften Kopf. Eigene Läufe beendet, Heavy-Sperre freigegeben. Im Live-Baum nur dieser Anhang und neue `maschinentag.r448.codex-*`-Belege.

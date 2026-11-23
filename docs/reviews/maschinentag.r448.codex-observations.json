@@ -1,0 +1,237 @@
+{
+  "overdue-and-controller": [
+    {
+      "tag": "action.file_overdue",
+      "level": "warn",
+      "what": "macro_file",
+      "limit_s": 300.0
+    },
+    {
+      "tag": "action.ended",
+      "what": "mdi",
+      "outcome": "aborted",
+      "handler": null,
+      "writes": 1,
+      "held_ms": 0
+    },
+    {
+      "tag": "action.ended",
+      "what": "macro_file",
+      "outcome": "unknown",
+      "handler": null,
+      "writes": 1,
+      "held_ms": 602000
+    }
+  ],
+  "actual-lifecycle": {
+    "before_source": {
+      "spawned": 0,
+      "gen": [
+        0,
+        1
+      ],
+      "wait": "not_idle"
+    },
+    "after_reload": {
+      "spawned": 1,
+      "gen": [
+        1,
+        2
+      ],
+      "published": true,
+      "wait": "not_idle"
+    }
+  },
+  "timeout": {
+    "gen": [
+      0,
+      1
+    ],
+    "busy": "observed:macro_file",
+    "quiet": false,
+    "restart_wait": "observed:macro_file",
+    "before": "old macro\n",
+    "end_before": null,
+    "now": 2386134.095654867,
+    "decision": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "why": "start"
+    },
+    "accepted": true,
+    "gen_after": [
+      0,
+      1
+    ],
+    "after": "new macro\n",
+    "end_after": 2386135.095654867,
+    "actual_end": 2386135.095654867,
+    "publications": [
+      "old macro\n"
+    ]
+  },
+  "rotary-restart": {
+    "calls": [
+      [
+        "cancel",
+        "rotary:A"
+      ]
+    ],
+    "reason": "rotary:A",
+    "file_changed": true
+  },
+  "rollback": {
+    "gen": [
+      0,
+      2
+    ],
+    "busy": "observed:macro_file",
+    "quiet": false,
+    "restart_wait": "observed:macro_file",
+    "before": "new macro\n",
+    "end_before": 2385830.913550554,
+    "now": 2385833.013550554,
+    "decision": {
+      "state": "pending",
+      "gen": [
+        0,
+        2
+      ],
+      "round": 4,
+      "why": "action:macro_file"
+    },
+    "error": "Not renamed \u2014 simulated old-name unlink failure",
+    "accepted": true,
+    "gen_after": [
+      0,
+      2
+    ],
+    "after": null,
+    "end_after": 2385834.013550554,
+    "actual_end": 2385834.013550554,
+    "publications": [
+      "new macro\n"
+    ]
+  },
+  "abort": {
+    "abort_reply": {
+      "ok": true
+    },
+    "gen": [
+      0,
+      1
+    ],
+    "busy": "observed:macro_file",
+    "quiet": false,
+    "restart_wait": "observed:macro_file",
+    "before": "old macro\n",
+    "end_before": null,
+    "now": 2385833.0115663363,
+    "decision": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "why": "start"
+    },
+    "accepted": true,
+    "gen_after": [
+      0,
+      1
+    ],
+    "after": "new macro\n",
+    "end_after": 2385834.0115663363,
+    "actual_end": 2385834.0115663363,
+    "publications": [
+      "old macro\n"
+    ]
+  },
+  "cycle-start-probe": [
+    {
+      "file_changed": true,
+      "actions_busy": null,
+      "wait": "not_idle",
+      "scheduled": [],
+      "published_file_control": "not_idle"
+    },
+    {
+      "file_changed": true,
+      "actions_busy": "held:probe_run",
+      "wait": "held:probe_run",
+      "scheduled": [],
+      "published_file_control": "held:probe_run"
+    }
+  ],
+  "decision-wire": {
+    "first": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 2
+    },
+    "next": {
+      "state": "pending",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 3,
+      "why": "idle"
+    }
+  },
+  "file-probe": {
+    "gen": [
+      0,
+      1
+    ],
+    "busy": "observed:macro_file",
+    "quiet": false,
+    "restart_wait": "observed:macro_file",
+    "decision": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "why": "start"
+    },
+    "read_under_new_gen": "old macro\n",
+    "file_after": "new macro\n",
+    "gen_after": [
+      0,
+      1
+    ],
+    "accepted": true,
+    "published": [
+      "old macro\n"
+    ]
+  },
+  "forgotten-end": {
+    "before": {
+      "state": "parse",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 1,
+      "job": 7,
+      "published": 107
+    },
+    "after": {
+      "state": "parse",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 1,
+      "job": 7,
+      "published": 107
+    }
+  }
+}

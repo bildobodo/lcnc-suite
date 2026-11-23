@@ -1,0 +1,8 @@
+..........                                                               [100%]
+10 passed in 0.49s
+[GC] +313ms gen=2 duration=9.1ms collected=1149 uncollectable=0
+[GC] +320ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +326ms gen=2 duration=6.1ms collected=0 uncollectable=0
+[GC] +332ms gen=2 duration=6.3ms collected=0 uncollectable=0
+[GC] +339ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +345ms gen=2 duration=6.3ms collected=0 uncollectable=0

@@ -1,0 +1,11 @@
+[GC] +159ms gen=1 duration=11.3ms collected=470 uncollectable=0
+........................................................................ [ 32%]
+.................................................................................................................. [ 84%]
+..................................                                       [100%]
+220 passed, 30 subtests passed in 13.80s
+[GC] +13622ms gen=2 duration=27.8ms collected=4100 uncollectable=0
+[GC] +13645ms gen=2 duration=23.5ms collected=0 uncollectable=0
+[GC] +13667ms gen=2 duration=22.2ms collected=0 uncollectable=0
+[GC] +13691ms gen=2 duration=23.9ms collected=0 uncollectable=0
+[GC] +13714ms gen=2 duration=23.0ms collected=0 uncollectable=0
+[GC] +13737ms gen=2 duration=22.9ms collected=0 uncollectable=0
