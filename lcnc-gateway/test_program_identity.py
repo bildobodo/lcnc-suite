@@ -289,6 +289,40 @@ class TheJobIsBoundAtItsSchedule(unittest.TestCase):
             self.assertEqual(b.scheduled["program_id"], "E.2")
             coros[0].close()
 
+    def test_the_status_identity_is_the_generation_while_a_program_is_proven(self):
+        # the schedule's refusal rests on this: whenever the status proves a
+        # program, its identity IS the current program generation's — a
+        # restored record, an own load, a reload of the same path, input
+        # writes between; a load or unload begun since is a mismatch (no
+        # schedule) until the status names the new state
+        from calc_lifetime import Generation
+        with tempfile.TemporaryDirectory() as tmp:
+            b = _pipeline(tmp)
+            gen = b.generation = Generation()
+            p = LoadedProgram()
+            p.gen_now = lambda: gen.snapshot()[0]
+            same = lambda: self.assertEqual(p.program_id("E"), b.program_id_of(gen.snapshot()))  # noqa: E731
+            p.restore("/a.ngc")
+            p.update("/a.ngc", True, 0.0)
+            same()
+            gen.began("mdi")
+            same()
+            for t, path, before in ((1.0, "/b.ngc", "/a.ngc"), (2.0, "/b.ngc", "/b.ngc")):
+                g = gen.new_program("load")
+                self.assertNotEqual(p.program_id("E"), b.program_id_of(gen.snapshot()),
+                                    "a load begun since the status: no schedule")
+                p.request_load(path, t, before=before)
+                p.note_load_gen(g[0])
+                self.assertIsNone(p.program_id("E"), "the load window proves nothing")
+                p.confirm_open(True)
+                p.update(path, True, t + 0.1)
+                same()
+                gen.began("touchoff")
+                same()
+            gen.new_program("unload")
+            p.request_unload()
+            self.assertIsNone(p.program_id("E"))
+
     def test_the_gateway_schedules_with_the_status_identity(self):
         src = inspect.getsource(gateway)
         self.assertEqual(src.count("_spawn_preview_task, program_id=st.program_id"), 2)

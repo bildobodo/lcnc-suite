@@ -291,6 +291,10 @@ for (const order of ["reply-first", "status-first"] as const) {
     }
     await expect(editor, "the newer draft stays").toContainText("(newer draft)");
     await expect(conflict(page), "the own reload is not a foreign program change").toHaveCount(0);
+    // the session's LOAD moved too (R452): the next save completes as the
+    // own program's — the session ends, nothing is said to be foreign
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.locator(".cm-content"), "the own load is the session's: the next save ends the session").toHaveCount(0);
   });
 }
 

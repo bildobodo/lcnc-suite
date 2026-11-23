@@ -199,6 +199,11 @@ MUTS = {
         "          // the status may show that load already: adopted now (MT-I30)\n          _adoptOwnReload();\n", "")],
         [pw("e2e/program-identity.spec.ts", "own reload is its load, status-first",
             "the own reload is not a foreign program change")]),
+    "the_session_keeps_its_old_load": (S + "GcodePanel.vue", [(
+        "  s.programId = active;\n  sessionProgramId.value = active;\n",
+        "  sessionProgramId.value = active;\n")],
+        [pw("e2e/program-identity.spec.ts", "own reload is its load, status-first",
+            "the next save ends the session")]),
     "an_old_reply_takes_any_load": (S + "GcodePanel.vue", [(
         "  if (!s || s.ownReload == null || active == null || active !== s.ownReload) return;",
         "  if (!s || s.ownReload == null || active == null) return;")],
