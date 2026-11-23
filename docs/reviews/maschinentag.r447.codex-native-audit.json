@@ -1,0 +1,284 @@
+{
+  "source": "/home/cnc/claude-work/live-tier/20261123T120724-p2b/logs/trace.ndjson",
+  "sha256": "2fdb5f30c564c26de845a7de3f8a05e77b37d8647fbf177404ca11a7d326f1e1",
+  "start_line": 793,
+  "end_line": 874,
+  "events": [
+    {
+      "t_wall_ns": 1795432157927512914,
+      "t_mono_ms": 93369.25,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "client.diag",
+      "level": "info",
+      "client_id": 0,
+      "native_mark": "p2b-readback-parse.77dc3cd0bcec4b92b6e2036a05020c87",
+      "edge": "start"
+    },
+    {
+      "t_wall_ns": 1795432157927770540,
+      "t_mono_ms": 93369.507,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "toolsetter.basis",
+      "level": "info",
+      "origin": "assumed",
+      "keys": [
+        3104
+      ],
+      "version": 7
+    },
+    {
+      "t_wall_ns": 1795432157954341581,
+      "t_mono_ms": 93396.078,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "action.ended",
+      "level": "info",
+      "what": "mdi",
+      "outcome": "done",
+      "handler": "ok",
+      "writes": 1,
+      "held_ms": 27
+    },
+    {
+      "t_wall_ns": 1795432160035185442,
+      "t_mono_ms": 95476.922,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "action.ended",
+      "level": "info",
+      "what": "task_plan_synch",
+      "outcome": "done",
+      "handler": null,
+      "writes": 1,
+      "held_ms": 47
+    },
+    {
+      "t_wall_ns": 1795432160035607277,
+      "t_mono_ms": 95477.344,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "toolsetter.basis",
+      "level": "info",
+      "origin": "read",
+      "keys": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+      ],
+      "version": 8
+    },
+    {
+      "t_wall_ns": 1795432160035649319,
+      "t_mono_ms": 95477.386,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "toolsetter.read_back_outcome",
+      "level": "info",
+      "attempt_version": 7,
+      "outcome": "confirmed"
+    },
+    {
+      "t_wall_ns": 1795432162057356905,
+      "t_mono_ms": 97499.094,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "gcode.spawn_start",
+      "level": "info",
+      "job": 6,
+      "basis": "d8f029661ae9",
+      "file": "native_parse_basis.ngc",
+      "active_idx": 1,
+      "reason": "toolsetter",
+      "expected_ms": 276,
+      "timeout_s": 180.0,
+      "nice": 19
+    },
+    {
+      "t_wall_ns": 1795432162333802277,
+      "t_mono_ms": 97775.539,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "gcode.publish",
+      "level": "info",
+      "job": 6,
+      "basis": "d8f029661ae9",
+      "active_idx": 1,
+      "version": 1795432071,
+      "schema": 11,
+      "gzip_ms": 12.4,
+      "bytes": 582799,
+      "bytes_gz": 91779,
+      "total_ms": 276.1
+    },
+    {
+      "t_wall_ns": 1795432166478737466,
+      "t_mono_ms": 101920.474,
+      "proc": "gateway",
+      "pid": 1438256,
+      "tag": "client.diag",
+      "level": "info",
+      "client_id": 0,
+      "native_mark": "p2b-readback-parse.77dc3cd0bcec4b92b6e2036a05020c87",
+      "edge": "end"
+    }
+  ],
+  "reported": {
+    "run": "20261123T120724-p2b",
+    "commit": "93b38b245205868d2006ecb25fe1c449a89f1d60",
+    "variant": "p2b",
+    "verdict": "PASS",
+    "restore": "complete",
+    "rows": [
+      {
+        "case": "home-all",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          true,
+          true,
+          true
+        ],
+        "observed": [
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "case": "home-joint-0",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          true,
+          false,
+          false
+        ],
+        "observed": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case": "home-joint-1",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          false,
+          true,
+          false
+        ],
+        "observed": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case": "home-joint-2",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          false,
+          false,
+          true
+        ],
+        "observed": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "case": "p2b-unload-during-parse",
+        "status": "PASS",
+        "detail": "superseded by the unload, ended unpublished, nothing restarted",
+        "job": 1,
+        "superseded": 1,
+        "published": 0,
+        "ends": [
+          "gcode.parse_cancelled"
+        ],
+        "spawned_after": []
+      },
+      {
+        "case": "p2b-tool-measure",
+        "status": "PASS",
+        "detail": "one parse, after the action's observed end (no read-back ran: nothing left assumed)",
+        "parses": [
+          [
+            4,
+            "table_mtime"
+          ]
+        ],
+        "action": [
+          "done"
+        ],
+        "read_backs": [],
+        "discarded": 0,
+        "quiet_s": 6.3
+      },
+      {
+        "case": "p2b-readback-parse",
+        "status": "PASS",
+        "detail": "the basis left open by the action, confirmed by its read-back, then exactly one parse",
+        "key": 3104,
+        "assumed": 1,
+        "action": [
+          "done"
+        ],
+        "read_backs": [
+          "confirmed"
+        ],
+        "parses": [
+          [
+            6,
+            "toolsetter"
+          ]
+        ]
+      }
+    ],
+    "p2b_unload_job": 1,
+    "p2b_tool_measure": {
+      "reply": {
+        "type": "reply",
+        "cmd": "tool_measure",
+        "ok": true,
+        "persisted": true,
+        "mdi_set": true,
+        "line": "T1 M600"
+      },
+      "errors": [],
+      "quiet_s": 6.3
+    },
+    "p2b_readback": {
+      "key": 3104,
+      "old": 2.0,
+      "new": 3.0,
+      "quiet_s": 6.5
+    },
+    "p2b_readback_restored": 2.0
+  }
+}

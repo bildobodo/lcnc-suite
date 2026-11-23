@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/r447/tree/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  66 passed (66)
+   Start at  13:01:53
+   Duration  807ms (transform 223ms, setup 0ms, import 302ms, tests 292ms, environment 0ms)
+

@@ -1,0 +1,416 @@
+{
+  "rotary-restart": {
+    "calls": [
+      [
+        "cancel",
+        "rotary:A"
+      ],
+      [
+        "schedule",
+        "rotary:A",
+        false
+      ]
+    ],
+    "reason": "rotary:A",
+    "file_changed": true
+  },
+  "forgotten-client": {
+    "wire": {
+      "before": {
+        "state": "parse",
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "job": 7,
+        "published": 107
+      },
+      "after": {
+        "state": "parse",
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "job": 7,
+        "published": 107
+      }
+    },
+    "prev": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "parse",
+          "gen": [
+            0,
+            0
+          ],
+          "round": 1,
+          "job": 7,
+          "published": 107
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "parse",
+          "gen": [
+            0,
+            0
+          ],
+          "round": 1,
+          "job": 7,
+          "published": 107
+        }
+      }
+    }
+  },
+  "drift-fallback": {
+    "previous": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "conn": 1,
+        "since": 0,
+        "fellBack": true,
+        "last": {
+          "state": "none",
+          "round": 1,
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": false,
+        "why": "decision",
+        "retryInMs": 3000
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 2,
+        "conn": 1,
+        "since": 10000,
+        "fellBack": false,
+        "last": {
+          "state": "pending",
+          "round": 2,
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "drift-published": {
+    "previous": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "parse",
+          "round": 1,
+          "gen": [
+            0,
+            0
+          ],
+          "job": 5,
+          "published": 6
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": false,
+        "why": "decision",
+        "retryInMs": 3000
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 2,
+        "conn": 1,
+        "since": 10000,
+        "fellBack": false,
+        "last": {
+          "state": "pending",
+          "round": 2,
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "drift-none": {
+    "previous": {
+      "verdict": {
+        "go": true,
+        "named": null
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 1,
+        "conn": 1,
+        "since": 0,
+        "fellBack": false,
+        "last": {
+          "state": "none",
+          "round": 1,
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "next": {
+      "verdict": {
+        "go": false,
+        "why": "decision",
+        "retryInMs": 3000
+      },
+      "wait": {
+        "gen": [
+          0,
+          0
+        ],
+        "round": 2,
+        "conn": 1,
+        "since": 10000,
+        "fellBack": false,
+        "last": {
+          "state": "pending",
+          "round": 2,
+          "gen": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  },
+  "timeout": {
+    "gen": [
+      0,
+      1
+    ],
+    "busy": null,
+    "quiet": true,
+    "restart_wait": null,
+    "before": "old macro\n",
+    "end_before": 2382256.295824839,
+    "now": 2382258.395824839,
+    "decision": {
+      "state": "pending",
+      "gen": [
+        0,
+        1
+      ],
+      "round": 4,
+      "why": "action:macro_file"
+    },
+    "accepted": true,
+    "gen_after": [
+      0,
+      1
+    ],
+    "after": "new macro\n",
+    "end_after": 2382256.295824839,
+    "actual_end": 2382259.395824839,
+    "publications": [
+      "old macro\n"
+    ]
+  },
+  "rollback": {
+    "gen": [
+      0,
+      2
+    ],
+    "busy": null,
+    "quiet": true,
+    "restart_wait": null,
+    "before": "new macro\n",
+    "end_before": 2381955.194391439,
+    "now": 2381957.2943914393,
+    "decision": {
+      "state": "pending",
+      "gen": [
+        0,
+        2
+      ],
+      "round": 3,
+      "why": "action:macro_file"
+    },
+    "error": "Not renamed \u2014 simulated old-name unlink failure",
+    "accepted": true,
+    "gen_after": [
+      0,
+      2
+    ],
+    "after": null,
+    "end_after": 2381955.194391439,
+    "actual_end": 2381958.2943914393,
+    "publications": [
+      "new macro\n"
+    ]
+  },
+  "abort": {
+    "abort_reply": {
+      "ok": true
+    },
+    "gen": [
+      0,
+      1
+    ],
+    "busy": null,
+    "quiet": true,
+    "restart_wait": null,
+    "before": "old macro\n",
+    "end_before": 2381955.169861604,
+    "now": 2381957.269861604,
+    "decision": {
+      "state": "pending",
+      "gen": [
+        0,
+        1
+      ],
+      "round": 1,
+      "why": "action:macro_file"
+    },
+    "accepted": true,
+    "gen_after": [
+      0,
+      1
+    ],
+    "after": "new macro\n",
+    "end_after": 2381955.169861604,
+    "actual_end": 2381958.269861604,
+    "publications": [
+      "old macro\n"
+    ]
+  },
+  "decision-wire": {
+    "first": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 6
+    },
+    "next": {
+      "state": "pending",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 7,
+      "why": "idle"
+    }
+  },
+  "file-probe": {
+    "gen": [
+      0,
+      1
+    ],
+    "busy": "observed:macro_file",
+    "quiet": false,
+    "restart_wait": "observed:macro_file",
+    "decision": {
+      "state": "none",
+      "gen": [
+        0,
+        0
+      ],
+      "why": "start"
+    },
+    "read_under_new_gen": "old macro\n",
+    "file_after": "new macro\n",
+    "gen_after": [
+      0,
+      1
+    ],
+    "accepted": true,
+    "published": [
+      "old macro\n"
+    ]
+  },
+  "forgotten-end": {
+    "before": {
+      "state": "parse",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 5,
+      "job": 7,
+      "published": 107
+    },
+    "after": {
+      "state": "parse",
+      "gen": [
+        0,
+        0
+      ],
+      "round": 5,
+      "job": 7,
+      "published": 107
+    }
+  }
+}

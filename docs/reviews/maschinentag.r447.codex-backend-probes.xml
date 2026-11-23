@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="8" time="0.472" timestamp="2026-11-23T13:02:42.514335+01:00" hostname="debian"><testcase classname="test_r447_codex.TestR447" name="test_controller_abort_does_not_end_a_running_http_writer" time="0.011"><failure message="AssertionError: True is not false : {'abort_reply': {'ok': True}, 'gen': (0, 1), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'old macro\n', 'end_before': 2381955.169861604, 'now': 2381957.269861604, 'decision': {'state': 'pending', 'gen': [0, 1], 'round': 1, 'why': 'action:macro_file'}, 'accepted': True, 'gen_after': (0, 1), 'after': 'new macro\n', 'end_after': 2381955.169861604, 'actual_end': 2381958.269861604, 'publications': ['old macro\n']}">self = &lt;test_r447_codex.TestR447 testMethod=test_controller_abort_does_not_end_a_running_http_writer&gt;
+
+    def test_controller_abort_does_not_end_a_running_http_writer(self):
+&gt;       self.writer('abort')
+
+../lcnc-gateway/test_r447_codex.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../lcnc-gateway/test_r447_codex.py:77: in writer
+    self.assertFalse(captured['quiet'], captured)
+E   AssertionError: True is not false : {'abort_reply': {'ok': True}, 'gen': (0, 1), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'old macro\n', 'end_before': 2381955.169861604, 'now': 2381957.269861604, 'decision': {'state': 'pending', 'gen': [0, 1], 'round': 1, 'why': 'action:macro_file'}, 'accepted': True, 'gen_after': (0, 1), 'after': 'new macro\n', 'end_after': 2381955.169861604, 'actual_end': 2381958.269861604, 'publications': ['old macro\n']}</failure></testcase><testcase classname="test_r447_codex.TestR447" name="test_macro_rename_is_owned_through_rollback" time="0.010"><failure message="AssertionError: True is not false : {'gen': (0, 2), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'new macro\n', 'end_before': 2381955.194391439, 'now': 2381957.2943914393, 'decision': {'state': 'pending', 'gen': [0, 2], 'round': 3, 'why': 'action:macro_file'}, 'error': 'Not renamed — simulated old-name unlink failure', 'accepted': True, 'gen_after': (0, 2), 'after': None, 'end_after': 2381955.194391439, 'actual_end': 2381958.2943914393, 'publications': ['new macro\n']}">self = &lt;test_r447_codex.TestR447 testMethod=test_macro_rename_is_owned_through_rollback&gt;
+
+    def test_macro_rename_is_owned_through_rollback(self):
+&gt;       self.writer('rollback')
+
+../lcnc-gateway/test_r447_codex.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../lcnc-gateway/test_r447_codex.py:77: in writer
+    self.assertFalse(captured['quiet'], captured)
+E   AssertionError: True is not false : {'gen': (0, 2), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'new macro\n', 'end_before': 2381955.194391439, 'now': 2381957.2943914393, 'decision': {'state': 'pending', 'gen': [0, 2], 'round': 3, 'why': 'action:macro_file'}, 'error': 'Not renamed — simulated old-name unlink failure', 'accepted': True, 'gen_after': (0, 2), 'after': None, 'end_after': 2381955.194391439, 'actual_end': 2381958.2943914393, 'publications': ['new macro\n']}</failure></testcase><testcase classname="test_r447_codex.TestR447" name="test_rotary_cancel_does_not_hide_an_input_generation_change" time="0.083"><failure message="AssertionError: True is not false : [('cancel', 'rotary:A'), ('schedule', 'rotary:A', False)]">self = &lt;test_r447_codex.TestR447 testMethod=test_rotary_cancel_does_not_hide_an_input_generation_change&gt;
+
+    def test_rotary_cancel_does_not_hide_an_input_generation_change(self):
+        from bulk_pipeline import BulkPipeline
+        from gateway_util import preview_file_changed, preview_file_edge_action, inflight_doomed_reason, rotary_hold_update, rotary_hold_settled
+        from calc_lifetime import inflight_outdated
+        # Unchanged actual poll statements from the file-edge decision through
+        # the generation branch; stop before unrelated pinned/drift checks.
+        tree=ast.parse(Path(gateway.__file__).read_text())
+        code=None
+        for node in ast.walk(tree):
+            body=getattr(node,'body',None)
+            if not isinstance(body,list): continue
+            for i,s in enumerate(body):
+                if not isinstance(s,ast.Assign) or not ast.unparse(s).startswith('_fe = preview_file_edge_action('): continue
+                j=next(k for k in range(i,len(body)) if isinstance(body[k],ast.If) and ast.unparse(body[k].test)=='_fe is not None and st.active_file')
+                root=copy.deepcopy(body[j]); c=root
+                while c.orelse and isinstance(c.orelse[0],ast.If):
+                    if 'inflight_outdated(' in ast.unparse(c.test):
+                        c.orelse=[]; break
+                    c=c.orelse[0]
+                code=compile(ast.fix_missing_locations(ast.Module(body=copy.deepcopy(body[i:j])+[root],type_ignores=[])), 'gateway.py:poll-chain', 'exec')
+        assert code is not None
+        b=BulkPipeline(get_stat=lambda:None,get_machine_units=lambda:'mm',build_wcs_rotation_patches=lambda:{})
+        b.refresh_running=True
+        b.inflight={'file':'/p.ngc','mtime':1.0,'rotary_seed':{'A':0,'B':0,'C':0},'gen':self.gen.snapshot()}
+        self.gen.began('mode')
+        st=SimpleNamespace(active_file='/p.ngc', interp_state=linuxcnc.INTERP_READING, current_vel=1.0,rotary_abc=[10,0,0])
+        b.rotary_hold=rotary_hold_update(None, st.rotary_abc, 100)
+        calls=[]
+        def cancel(why):
+            calls.append(('cancel',why)); b.refresh_running=False; b.inflight=None
+            return True
+        b.cancel_inflight=cancel
+        b.schedule_refresh=lambda *a,**kw: calls.append(('schedule',a[1],kw.get('pinned',False))) or True
+        ns={'_bulk':b,'st':st,'_now':100,'_cur_mtime':1.0,
+            'file_changed':preview_file_changed(st.active_file,1.0,b.last_file,b.last_mtime),
+            'preview_file_edge_action':preview_file_edge_action,'rotary_hold_settled':rotary_hold_settled,
+            '_restart_wait':gateway._restart_wait,'inflight_doomed_reason':inflight_doomed_reason,
+            'inflight_outdated':inflight_outdated,'_calc_gen':self.gen,
+            '_spawn_preview_task':lambda c:None,'_dd_decide':lambda *a:None,
+            '_trace':SimpleNamespace(emit=lambda *a,**k:None)}
+        with patch.object(gateway,'_bulk',b):
+            exec(code,ns) # rotary and generation invalidation compete
+            ns['_now']=101.1
+            exec(code,ns) # after cancellation and settled rotary pose, still running
+        (OUT/'rotary-restart.json').write_text(json.dumps({'calls':calls,'reason':b.reparse_pending_reason,'file_changed':ns['file_changed']},indent=2))
+        self.assertTrue(calls and calls[0][0]=='cancel')
+&gt;       self.assertFalse(any(c[0]=='schedule' for c in calls), calls)
+E       AssertionError: True is not false : [('cancel', 'rotary:A'), ('schedule', 'rotary:A', False)]
+
+../lcnc-gateway/test_r447_codex.py:135: AssertionError</failure></testcase><testcase classname="test_r447_codex.TestR447" name="test_running_http_writer_survives_its_observer_timeout" time="0.002"><failure message="AssertionError: True is not false : {'gen': (0, 1), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'old macro\n', 'end_before': 2382256.295824839, 'now': 2382258.395824839, 'decision': {'state': 'pending', 'gen': [0, 1], 'round': 4, 'why': 'action:macro_file'}, 'accepted': True, 'gen_after': (0, 1), 'after': 'new macro\n', 'end_after': 2382256.295824839, 'actual_end': 2382259.395824839, 'publications': ['old macro\n']}">self = &lt;test_r447_codex.TestR447 testMethod=test_running_http_writer_survives_its_observer_timeout&gt;
+
+    def test_running_http_writer_survives_its_observer_timeout(self):
+&gt;       self.writer('timeout')
+
+../lcnc-gateway/test_r447_codex.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../lcnc-gateway/test_r447_codex.py:77: in writer
+    self.assertFalse(captured['quiet'], captured)
+E   AssertionError: True is not false : {'gen': (0, 1), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'old macro\n', 'end_before': 2382256.295824839, 'now': 2382258.395824839, 'decision': {'state': 'pending', 'gen': [0, 1], 'round': 4, 'why': 'action:macro_file'}, 'accepted': True, 'gen_after': (0, 1), 'after': 'new macro\n', 'end_after': 2382256.295824839, 'actual_end': 2382259.395824839, 'publications': ['old macro\n']}</failure></testcase><testcase classname="test_r446_codex.TestR446" name="test_current_decision_keeps_its_terminal_state_past_other_jobs" time="0.000" /><testcase classname="test_r446_codex.TestR446" name="test_http_macro_commit_is_owned_until_replace_returns" time="0.002" /><testcase classname="test_r446_codex.TestR446" name="test_idle_edge_without_input_write_reopens_same_generation" time="0.000" /><testcase classname="test_r446_codex.TestR446" name="test_same_unpublished_file_restart_still_waits_after_cycle_start" time="0.112" /></testsuite></testsuites>

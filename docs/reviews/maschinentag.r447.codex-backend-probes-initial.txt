@@ -1,0 +1,130 @@
+....FFFF                                                                 [100%]
+=================================== FAILURES ===================================
+______ TestR447.test_controller_abort_does_not_end_a_running_http_writer _______
+
+self = <test_r447_codex.TestR447 testMethod=test_controller_abort_does_not_end_a_running_http_writer>
+
+    def test_controller_abort_does_not_end_a_running_http_writer(self):
+>       self.writer('abort')
+
+test_r447_codex.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r447_codex.py:77: in writer
+    self.assertFalse(captured['quiet'], captured)
+E   AssertionError: True is not false : {'abort_reply': {'ok': True}, 'gen': (0, 1), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'old macro\n', 'end_before': 2381905.379380739, 'now': 2381907.479380739, 'decision': {'state': 'pending', 'gen': [0, 1], 'round': 4, 'why': 'action:macro_file'}, 'accepted': True, 'gen_after': (0, 1), 'after': 'new macro\n', 'end_after': 2381905.379380739, 'actual_end': 2381908.479380739, 'publications': ['old macro\n']}
+_____________ TestR447.test_macro_rename_is_owned_through_rollback _____________
+
+self = <test_r447_codex.TestR447 testMethod=test_macro_rename_is_owned_through_rollback>
+
+    def test_macro_rename_is_owned_through_rollback(self):
+>       self.writer('rollback')
+
+test_r447_codex.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r447_codex.py:77: in writer
+    self.assertFalse(captured['quiet'], captured)
+E   AssertionError: True is not false : {'gen': (0, 2), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'new macro\n', 'end_before': 2381905.389514583, 'now': 2381907.4895145833, 'decision': {'state': 'pending', 'gen': [0, 2], 'round': 6, 'why': 'action:macro_file'}, 'error': 'Not renamed — simulated old-name unlink failure', 'accepted': True, 'gen_after': (0, 2), 'after': None, 'end_after': 2381905.389514583, 'actual_end': 2381908.4895145833, 'publications': ['new macro\n']}
+_____ TestR447.test_rotary_cancel_does_not_hide_an_input_generation_change _____
+
+self = <test_r447_codex.TestR447 testMethod=test_rotary_cancel_does_not_hide_an_input_generation_change>
+
+    def test_rotary_cancel_does_not_hide_an_input_generation_change(self):
+        from bulk_pipeline import BulkPipeline
+        from gateway_util import preview_file_changed, preview_file_edge_action, inflight_doomed_reason
+        from calc_lifetime import inflight_outdated
+        # Unchanged actual poll statements from the file-edge decision through
+        # the generation branch; stop before unrelated pinned/drift checks.
+        tree=ast.parse(Path(gateway.__file__).read_text())
+        code=None
+        for node in ast.walk(tree):
+            body=getattr(node,'body',None)
+            if not isinstance(body,list): continue
+            for i,s in enumerate(body):
+                if not isinstance(s,ast.Assign) or not ast.unparse(s).startswith('_fe = preview_file_edge_action('): continue
+                j=next(k for k in range(i,len(body)) if isinstance(body[k],ast.If) and ast.unparse(body[k].test)=='_fe is not None and st.active_file')
+                root=copy.deepcopy(body[j]); c=root
+                while c.orelse and isinstance(c.orelse[0],ast.If):
+                    if 'inflight_outdated(' in ast.unparse(c.test):
+                        c.orelse=[]; break
+                    c=c.orelse[0]
+                code=compile(ast.fix_missing_locations(ast.Module(body=copy.deepcopy(body[i:j])+[root],type_ignores=[])), 'gateway.py:poll-chain', 'exec')
+        assert code is not None
+        b=BulkPipeline(get_stat=lambda:None,get_machine_units=lambda:'mm',build_wcs_rotation_patches=lambda:{})
+        b.refresh_running=True
+        b.inflight={'file':'/p.ngc','mtime':1.0,'rotary_seed':[0,0,0],'gen':self.gen.snapshot()}
+        self.gen.began('mode')
+        st=SimpleNamespace(active_file='/p.ngc', interp_state=linuxcnc.INTERP_READING, current_vel=1.0,rotary_abc=[10,0,0])
+        calls=[]
+        def cancel(why):
+            calls.append(('cancel',why)); b.refresh_running=False; b.inflight=None
+            return True
+        b.cancel_inflight=cancel
+        b.schedule_refresh=lambda *a,**kw: calls.append(('schedule',a[1],kw.get('pinned',False))) or True
+        ns={'_bulk':b,'st':st,'_now':100,'_cur_mtime':1.0,
+            'file_changed':preview_file_changed(st.active_file,1.0,b.last_file,b.last_mtime),
+            'preview_file_edge_action':preview_file_edge_action,'rotary_hold_settled':lambda *a:True,
+            '_restart_wait':gateway._restart_wait,'inflight_doomed_reason':inflight_doomed_reason,
+            'inflight_outdated':inflight_outdated,'_calc_gen':self.gen,
+            '_spawn_preview_task':lambda c:None,'_dd_decide':lambda *a:None,
+            '_trace':SimpleNamespace(emit=lambda *a,**k:None)}
+        with patch.object(gateway,'_bulk',b):
+>           exec(code,ns) # rotary and generation invalidation compete
+            ^^^^^^^^^^^^^
+
+test_r447_codex.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gateway.py:poll-chain:2076: in <module>
+    ???
+gateway_util.py:2347: in inflight_doomed_reason
+    return evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc, eps=eps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+seed = [0, 0, 0], rotary_abc = [10, 0, 0], eps = 0.01
+
+    def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
+        """Has the machine's ROTARY pose moved since the preview was parsed?
+        (W6 — the arc-vs-plunge class: a run leaves the table tilted, `;g69`
+        style programs restore nothing, and the cached preview still poses
+        every uncommanded-rotary segment at the parse-time values — the sim
+        then shows an orient sweep from a pose the next run never visits,
+        while the real machine plunges straight.)
+    
+        seed       -- the worker's __ABCSEED__ snapshot {letter: degrees}.
+        rotary_abc -- live canonical [A, B, C] degrees (status snapshot).
+    
+        Returns "rotary:<letters>" naming the drifted axes, or None. Absent
+        live data makes no claim. The CALLER owns idle-gating and debounce
+        (same contract as evaluate_tlo_drift). Pure."""
+        if not seed or not rotary_abc:
+            return None
+        drifted = ""
+        for i, letter in enumerate("ABC"):
+>           v = seed.get(letter)
+                ^^^^^^^^
+E           AttributeError: 'list' object has no attribute 'get'
+
+gateway_util.py:2094: AttributeError
+_______ TestR447.test_running_http_writer_survives_its_observer_timeout ________
+
+self = <test_r447_codex.TestR447 testMethod=test_running_http_writer_survives_its_observer_timeout>
+
+    def test_running_http_writer_survives_its_observer_timeout(self):
+>       self.writer('timeout')
+
+test_r447_codex.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r447_codex.py:77: in writer
+    self.assertFalse(captured['quiet'], captured)
+E   AssertionError: True is not false : {'gen': (0, 1), 'busy': None, 'quiet': True, 'restart_wait': None, 'before': 'old macro\n', 'end_before': 2382206.513232476, 'now': 2382208.613232476, 'decision': {'state': 'pending', 'gen': [0, 1], 'round': 7, 'why': 'action:macro_file'}, 'accepted': True, 'gen_after': (0, 1), 'after': 'new macro\n', 'end_after': 2382206.513232476, 'actual_end': 2382209.613232476, 'publications': ['old macro\n']}
+=========================== short test summary info ============================
+FAILED test_r447_codex.py::TestR447::test_controller_abort_does_not_end_a_running_http_writer
+FAILED test_r447_codex.py::TestR447::test_macro_rename_is_owned_through_rollback
+FAILED test_r447_codex.py::TestR447::test_rotary_cancel_does_not_hide_an_input_generation_change
+FAILED test_r447_codex.py::TestR447::test_running_http_writer_survives_its_observer_timeout
+[GC] +367ms gen=2 duration=32.5ms collected=116192 uncollectable=0
+[GC] +375ms gen=2 duration=8.2ms collected=0 uncollectable=0
+[GC] +382ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +388ms gen=2 duration=6.0ms collected=0 uncollectable=0
+[GC] +394ms gen=2 duration=6.0ms collected=0 uncollectable=0
+[GC] +400ms gen=2 duration=6.1ms collected=0 uncollectable=0

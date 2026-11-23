@@ -4663,3 +4663,80 @@ Code: `feat/p2b-lifetime`, Kopf `308b56ed`, Gate 3 an `31e0be03`; danach folgt n
 **Weiter offen:** Die 7 verspäteten Fenster sind nicht gesunken. Die Wächter 4, 7 und 13 haben keinen nativen Lauf; die Entscheidung zum Neustart decken die Poll-Ketten-Wächter ab. Vor main bleiben live-twp, perf-matrix und twp-buttons geschuldet.
 
 **Erbeten:** `agreement` zu P2b `244d93a3..308b56ed` oder `findings`.
+
+---
+
+## Codex · P2b · Nachprüfung R447 · 23. November 2026
+
+**Urteil: findings** zu `feat/p2b-lifetime 244d93a3..308b56ed`. **MT-I26 und MT-I27 geschlossen; P2b-1 bleibt angenommen.** Auch die Read-back-Hälfte von Wächter 8 ist jetzt belegt. Offen bleiben **MT-I25, Reste A/B**, und **MT-I28, Rest A**. Keine neue Operatorfrage.
+
+Geprüft ist Produktkopf `308b56ed`, insbesondere die Änderungen seit `cea83f9d`, gegen Dokumentstand `ce408cf3`. Eigene Tests ausschließlich im Archiv `/tmp/r447/tree`, mit kopierten Node-Abhängigkeiten, Fake-LinuxCNC und eigenen Browser-Mocks, unter dem offiziellen Heavy-Lock-Wrapper. Keine Live-Verbindung, kein Build oder Test im ausgelieferten Baum. [Manifest mit Befehlen, Anpassungen und Hashes](maschinentag.r447.codex-manifest.json).
+
+### MT-I25 · Rest A: Abbruch und Beobachterfrist beenden einen noch schreibenden HTTP-Besitzer
+
+**Stellen an `308b56ed`:** `calc_lifetime.py`, `begin_file`, `decide`, `end_all`, `end_file`; `gateway.py`, `_file_effect` und die `abort`-/`estop`-Zweige von `_cmds_machine_state`.
+
+Der normale Dateiabschluss ist korrigiert: Ein blockiertes `os.replace` hält jetzt eine eigene Aktion, und das erfolgreiche Zurückkehren startet die Ruhefrist. Es fehlt aber die Trennung zwischen dem **Ergebnis des Beobachters** und dem **noch laufenden Schreibthread**. Die eigene Dateiaktion wird mit `held=False` angelegt. Sowohl `end_all("aborted")` als auch die 300-s-Grenze können ihren einzigen Beobachter abschließen und damit die ganze Aktion entfernen. Der NML-Abbruch beendet diesen HTTP-Dateithread nicht. Sein späteres `end_file` kehrt wegen des schon vorhandenen Ergebnisses sofort zurück; das tatsächliche Ende aktualisiert weder Ruhefrist noch Drift-Entscheidung.
+
+**Zwei eigene Gegenproben über den echten `_atomic_stream_write`:** Eine Makro-Schreibung wartet in `os.replace`. Im ersten Fall läuft `handle_command({cmd:"abort"}, False)` durch den wirklichen Befehlszweig und antwortet `ok:true`; im zweiten Fall erreicht ein wirklicher Beobachter-Poll auf kontrollierter Uhr 301 s. Jeweils 2,1 s später gilt noch vor dem Ersetzen:
+
+- Datei enthält weiterhin `old macro`, Generation bereits `(0,1)`;
+- `busy = null`, `quiet = true`, `_restart_wait = null`;
+- nach Freigabe des Threads steht `new macro` in der Datei, die Generation bleibt `(0,1)`;
+- der Veröffentlichungsabschluss akzeptiert den vorher unter dieser Generation gelesenen alten Inhalt. `last_end` bleibt am Abbruch bzw. Fristablauf stehen.
+
+Die letzte Prüfung stellt den Eingangsleser und den Veröffentlichungsabschluss nach; kein nativer Parser läuft. Der nachgewiesene Fehler ist die Freigabe während der noch möglichen Dateiwirkung. Dieselbe `end_all`-Stelle liegt auch im E-Stop-Zweig; dynamisch geprüft wurde `abort`.
+
+**Korrektur:** Ein laufender Dateischreiber braucht einen Halt bis zu seinem tatsächlichen Ende, unabhängig vom benannten Beobachterergebnis. `unknown` nach einer Frist kann die fehlende Bestätigung benennen, darf aber den weiter schreibenden Besitzer nicht freigeben. Ein Controller-Abbruch darf Dateiarbeit nicht als mit abgebrochen behandeln. Die bereits akzeptierten Grenzen für Controller-Beobachter sind damit nicht zurückgenommen; hier ist die physische Dateiarbeit noch nachweislich offen. Die beiden Fälle einschließlich späterem Threadende als Wächter übernehmen.
+
+### MT-I25 · Rest B: Der Rollback einer Makroumbenennung liegt außerhalb des Halts
+
+**Stelle:** `gateway.py`, `_atomic_stream_write._commit` (ab Zeile 10754), zusammen mit `_unlink_renamed` und `_safe_unlink`.
+
+Der erste Dateihalt endet nach Veröffentlichung des neuen Namens. Das Entfernen des alten Namens besitzt einen zweiten Halt; bei seinem Fehler endet dieser als `unknown`. Der anschließende Rollback `_safe_unlink(dest_path)` liegt außerhalb beider Halte. `_source_lock` umfasst richtigerweise den ganzen Commit, aber der Preview-Pfad nimmt diese Sperre nicht.
+
+**Eigene Gegenprobe:** Die echte No-replace-Veröffentlichung erstellt `new.ngc`; das echte `_unlink_renamed(old.ngc)` scheitert im gepatchten Dateisystemaufruf, und der anschließende Rollback wartet in `os.unlink(new.ngc)`. Nach 2,1 s melden Ledger und Neustartprüfung bereits frei. Ein neuer Parser könnte jetzt unter Generation `(0,2)` die noch vorhandene neue Makrodatei lesen. Nach dem Rollback existiert sie nicht mehr; die Generation bleibt `(0,2)` und der Veröffentlichungsabschluss nimmt den zwischenzeitlich gelesenen Inhalt an. Auch hier wird das tatsächliche Commit-Ende nicht als Ende gebucht.
+
+**Korrektur:** Veröffentlichung, `after_publish` und gegebenenfalls Rollback müssen als **ein durchgehend gehaltener Commit** bis zum letzten möglichen Dateieffekt behandelt werden. Die Generation weiterhin vor dem ersten Effekt erhöhen. Nicht nur den erfolgreichen Rename, sondern den blockierten Fehler-Rollback prüfen.
+
+Belege für beide Reste: [ausführbare neue Gegenproben](maschinentag.r447.codex-probes.py), [finaler Lauf](maschinentag.r447.codex-backend-probes.txt), [Messwerte `abort`, `timeout`, `rollback`](maschinentag.r447.codex-observations.json). Alle drei zugesicherten Halte sind am Kopf rot.
+
+### MT-I28 · Rest A: Rotary-Verwerfen verdeckt die zugleich veraltete Generation
+
+**Stellen:** `gateway.py:2066` ff. (Rotary-Zweig vor Generations-Zweig), `_restart_wait` ab `:4019`.
+
+Der vorgelegte reine `discarded:mode`-Fall ist jetzt geschlossen. Die neue Zulassung erkennt einen Neustart aber weiterhin nur am Textpräfix `discarded:`. Bei gleichzeitig veränderter Rotary-Pose und veralteter Eingangsgeneration nimmt der Poll zuerst den Rotary-Zweig. Dieser setzt `reparse_pending_reason = "rotary:A"` und cancelt; der Generations-Zweig wird nicht ausgeführt. Nach Ende dieses Parse bleibt die erste Datei unveröffentlicht und somit `file_changed = true`. Wegen des anderen Grundtextes umgeht `_restart_wait` erneut sowohl Aktionshalt als auch Leerlauf/Stillstand.
+
+**Eigene Gegenprobe durch die unveränderten Poll-Anweisungen:** Erster Parse von `/p.ngc`, noch keine Veröffentlichung, anschließend Generation durch `mode` erhöht; im laufenden Programm ist A von 0 auf 10 gewechselt. Der erste Poll cancelt mit `rotary:A`. Im nächsten geprüften Poll, nach dem Prozessende und 1,1 s stabiler Rotary-Pose, liest das Programm weiter und `current_vel = 1`. Trotzdem wird `("schedule", "rotary:A", pinned:false)` aufgezeichnet. Der wirkliche Helfer für die Rotary-Ruhefrist ist beteiligt; Abbruch/Prozessende und Einplanung werden an den Testnähten nachgestellt. Kein neuer Ladevorgang liegt dazwischen.
+
+**Korrektur:** Die Pflicht zum Warten muss an Programm-/Auftragsidentität und veralteter Basis hängen und konkurrierende Abbruchgründe überleben. Ein anderer Grundtext darf sie nicht aufheben. Mindestens diesen kombinierten Verlauf prüfen, statt den Wächter erst mit schon gesetztem `discarded:mode` beginnen zu lassen. Cycle Start selbst bleibt erlaubt; der ungepinnte Neustart wartet wie vereinbart. Die ursprüngliche Ausnahme ist damit noch nicht insgesamt geschlossen.
+
+Belege: dieselben [Gegenproben](maschinentag.r447.codex-probes.py) und [finalen Ergebnisse](maschinentag.r447.codex-backend-probes.txt), Messwerte `rotary-restart` in den [Beobachtungen](maschinentag.r447.codex-observations.json).
+
+### Geschlossene Punkte und Beleggrenzen
+
+**MT-I26:** Die Rundennummer trennt neue Entscheidungen derselben Generation, einschließlich verpasstem `pending`. Wiederholte Frames verbrauchen dieselbe Frist; ältere Runden schließen die neue nicht. Meine drei R446-Clientverläufe bestehen mit Runde 1/2 auf dem Draht, ebenso der unveränderte neue Browserwächter. Die Legacy-Grenze eines Gateways ohne Rundennummer ist im Modul benannt.
+
+**MT-I27:** Der aktuelle Entscheidungsdatensatz hält seinen Jobabschluss selbst. Meine gekoppelte Gateway-/Clientprobe besteht; die neuen Wächter decken veröffentlichte und unveröffentlicht beendete Jobs über 48 Folgeabschlüsse sowie den schon vor Benennung beendeten Job ab.
+
+**MT-I25, normaler Abschluss und Werkzeugimport:** Die alten R446-Proben bestehen. Der gehaltene `tool_import` umfasst Schreiben, Reload und Metadaten; der eigentliche Fehler bleibt benannt. Die verbleibenden Fälle oben betreffen den noch laufenden Dateibesitzer und den mehrteiligen Commit.
+
+**Wächter 8:** Im Rohtrace von `20261123T120724-p2b` nachgelesen: innerhalb der beiden eindeutigen Marken wird #3104 in Basisversion 7 `assumed`, danach endet `mdi`, der Read-back bestätigt ausdrücklich `attempt_version:7`, anschließend startet genau Job 6 mit Grund `toolsetter`. Die Rückstellung besitzt Version 9 und ihre eigene Bestätigung; der Bericht nennt wieder den alten Wert 2. Damit ist die vorher fehlende Voraussetzung diesmal vorhanden. [Lokaler Trace-Ausschnitt, Herkunft und Hash](maschinentag.r447.codex-native-audit.json). Die präzisierte Werkzeugmessungszeile und die beiden erlaubten Unload-Abbruchgründe sind im vorgelegten Ablauf nachvollziehbar. Kein neuer nativer Lauf durch Codex.
+
+**Eigene Prüfungen:**
+
+| Prüfung | Ergebnis |
+|---|---|
+| Vorhandene gezielte Backend-Tests | **216 bestanden** |
+| R446-Gateway-Proben, nur Belegpfade angepasst | **4 bestanden** |
+| Client-Modul-/Worker-Tests einschließlich vier angepasster R446-Proben | **66 bestanden** |
+| Neue R447-Gegenproben | **4 erwartete Assertion-Fehler** |
+| Gezielt geänderte native Auswerter | **3 bestanden**, 711 nicht ausgewählt |
+| Vite-Build der isolierten Kopie | **PASS** |
+| Sechs P2b-/R446-Browserwächter, unverändert | **6/6 bestanden**, Chromium, kein Retry |
+
+[Backend](maschinentag.r447.codex-backend.txt), [Client](maschinentag.r447.codex-frontend.txt), [Auswerter](maschinentag.r447.codex-native-oracles.txt), [Browser](maschinentag.r447.codex-browser.txt). Die erste neue Rotary-Probe hatte eine falsche Seed-Form (Liste statt ABC-Objekt); dieser Testfehler wurde korrigiert, der finale Lauf scheitert an der Einplanung selbst. Die erste Ausgabe bleibt benannt erhalten. Alle 41 im Produktbereich geänderten Nicht-Dokument-Dateien stimmen nach den Läufen weiterhin bytegenau mit `308b56ed` überein.
+
+Das vorgelegte Round-Gate ist an `31e0be03` gebunden; danach folgen nur seine Belege. Die sieben verspäteten Fenster, die benannten fehlenden nativen Wächter 4/7/13 und `live-twp`/`perf-matrix`/`twp-buttons` vor main bleiben wie angegeben offen. Ich habe keinen vollständigen Gate-Lauf wiederholt.
+
+**Abschluss:** Findings zu den Resten von MT-I25 und MT-I28; Agreement zu MT-I26, MT-I27 und dem ergänzten Read-back-Nachweis. Eigene Läufe beendet, Heavy-Sperre frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r447.codex-*`-Belege.
