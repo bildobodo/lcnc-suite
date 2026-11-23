@@ -640,6 +640,69 @@ describe("the program identity gate (P2b-F1-2)", () => {
                                    error: "protocol: preview named 962 / S.1, asked 961 / S.1" } } as any);
     expect(previewLoadError.value).toContain("protocol");
   });
+
+  // Codex R452 MT-I31: a preview job's failure is held with ITS load and
+  // shown only while that load is active — late or already set alike; the
+  // worker's own failure and the surface / grid channels belong to no load.
+  it("a preview load failure is its own load's: late or already set, never under another", async () => {
+    const { nextTick } = await import("vue");
+    // an earlier test's surface failure ends first (another channel)
+    fetchImpl = () => okBuffer([[1]]);
+    fetchSurfacePoints(9200, () => {});
+    await flush();
+    fetchImpl = () => new Promise<Response>(() => {});
+    // Codex's probe: A asked, B loaded (its status first), A's late failure
+    setActive("F.1");
+    await nextTick();
+    ready(970, "/fa.ngc", "F.1", "fa");
+    const req = worker().posted[worker().posted.length - 1];
+    setActive("F.2");
+    await nextTick();
+    worker().onmessage?.({ data: { ...req, error: "old A response failed" } } as any);
+    await nextTick();
+    expect(previewLoadError.value, "an old load's late failure is not the active program's").toBeNull();
+    expect(viewerGcode.value).toBeNull();
+    // a failure already set ends with the identity change
+    ready(971, "/fb.ngc", "F.2", "fb");
+    worker().onmessage?.({ data: { programId: "F.2", version: 971, basisKey: "F.2|/fb.ngc#971:start",
+                                   error: "B bytes" } } as any);
+    expect(previewLoadError.value).toContain("B bytes");
+    setActive("F.3");
+    await nextTick();
+    expect(previewLoadError.value, "an earlier load's failure ends with the identity change").toBeNull();
+    // a failure announced ahead of its status shows once the status names its load
+    ready(972, "/fc.ngc", "F.4", "fc");
+    worker().onmessage?.({ data: { programId: "F.4", version: 972, basisKey: "F.4|/fc.ngc#972:start",
+                                   error: "C bytes" } } as any);
+    expect(previewLoadError.value).toBeNull();
+    setActive("F.4");
+    await nextTick();
+    expect(previewLoadError.value, "its own load's failure").toContain("C bytes");
+    // the worker's own failure belongs to no load: shown under any identity,
+    // ended by its next good answer
+    setActive("F.5");
+    await nextTick();
+    ready(973, "/fd.ngc", "F.5", "fd");
+    worker().onerror?.({ message: "worker died" });
+    expect(previewLoadError.value, "the worker's own failure under any load").toContain("worker died");
+    setActive("F.6");
+    await nextTick();
+    expect(previewLoadError.value, "the worker's own failure under any load").toContain("worker died");
+    ready(974, "/fe.ngc", "F.6", "fe");
+    land("F.6", 974, "/fe.ngc");
+    expect(previewLoadError.value).toBeNull();
+    // a surface channel's failure belongs to no load either
+    fetchImpl = () => httpError(503);
+    fetchSurfacePoints(9201, () => {});
+    await flush();
+    setActive("F.7");
+    await nextTick();
+    expect(previewLoadError.value, "the surface channel under any load").toContain("/surface_points failed");
+    fetchImpl = () => okBuffer([[1]]);
+    fetchSurfacePoints(9202, () => {});
+    await flush();
+    expect(previewLoadError.value).toBeNull();
+  });
 });
 
 // P4-7 (machine day F29): the banner names a parse error's line only where

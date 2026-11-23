@@ -716,12 +716,21 @@ export const gcodeTextSource = ref("");
 // Per-channel load errors so a success on one fetch channel can't clear a real
 // error on another (the three channels are independent HTTP fetches). The
 // banner shows the union — first non-null wins.
-const _previewErr = ref<string | null>(null);
+// A preview JOB's failure is held with the load it was asked for (Codex R452
+// MT-I31): shown only while that load is the active program — an error of
+// another load, already set or arriving late, never stands under this one
+// (the identity gate's rule; null never matches). The worker's OWN failure
+// (onerror: the worker itself, no job's answer) and the surface / grid
+// channels belong to no load.
+const _previewErr = shallowRef<{ programId: string | null; text: string } | null>(null);
+const _previewWorkerErr = ref<string | null>(null);
 const _surfaceErr = ref<string | null>(null);
 const _compGridErr = ref<string | null>(null);
-export const previewLoadError = computed<string | null>(
-  () => _previewErr.value ?? _surfaceErr.value ?? _compGridErr.value,
-);
+export const previewLoadError = computed<string | null>(() => {
+  const job = _previewErr.value;
+  const own = job && _matches(job.programId, activeProgramId.value) ? job.text : null;
+  return own ?? _previewWorkerErr.value ?? _surfaceErr.value ?? _compGridErr.value;
+});
 
 // Interpreter abort inside the parse worker (distinct from the transport
 // errors above — the payload ARRIVED, but the program didn't parse). Derived
@@ -1013,7 +1022,9 @@ function _ensurePreviewWorker(): Worker {
     }
     if (m.error) {
       console.error("preview load failed", m.error);
-      _previewErr.value = `/preview failed: ${m.error}`;
+      // bound to the job's own load (its answer's identity), never to the
+      // active one at arrival (MT-I31)
+      _previewErr.value = { programId: m.programId ?? null, text: `/preview failed: ${m.error}` };
       previewDecodeFailure.value = { file: _previewLastFile, version: m.version, n: ++_decodeFailures };
       if (_previewLastVersion === m.version) _previewLastVersion = -1;  // allow retry
       return;
@@ -1029,6 +1040,7 @@ function _ensurePreviewWorker(): Worker {
     _heldGcode.value = m.gcode ? markRaw(m.gcode) : null;
     _exposeGcode();
     _previewErr.value = null;
+    _previewWorkerErr.value = null;
     if (m.basisKey !== undefined) {
       _previewAppliedKey = m.basisKey;
       endPreviewBasisPending();
@@ -1037,7 +1049,7 @@ function _ensurePreviewWorker(): Worker {
   _previewWorker.onerror = (ev) => {
     previewDecoding.value = false;
     console.error("previewWorker error", ev.message);
-    _previewErr.value = `preview worker error: ${ev.message}`;
+    _previewWorkerErr.value = `preview worker error: ${ev.message}`;
     if (_previewLastVersion >= 0) {
       previewDecodeFailure.value = { file: _previewLastFile, version: _previewLastVersion, n: ++_decodeFailures };
     }

@@ -778,7 +778,14 @@ PW_BIG_C.NGC with A2's). Now:
   (`X-Program-Source` = the announcement's `origin.source`), else it is
   named ("differs" / "failed") and gives no line mapping or text-bound
   control; the line marks need text and payload of ONE publication
-  (`gcodeLinesBound`). Hidden is no load in flight: both revisions equal, no
+  (`gcodeLinesBound`). A preview job's load error is held with its job's
+  identity (the worker answer's `programId`, never the active one at
+  arrival) and `previewLoadError` shows it only while that load is active —
+  an error of the old load, already set or arriving late between the new
+  load's status and its announcement, never says "3D preview load failed"
+  under the new one (R452 MT-I31); its console log stays; the worker's own
+  failure (`onerror`, no job's answer) and the surface / grid channels
+  belong to no load. Hidden is no load in flight: both revisions equal, no
   start lock; a failed or unproven text ends `loading`. Edit, Run from line
   (`auto_run.program_id`) and the editor's conflict and save completion bind
   to the identity (the own reload's reply names its load; the status decides
