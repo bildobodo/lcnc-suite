@@ -44,6 +44,14 @@ axis stopped and the standstill by the position, each observed; the overrun is
 reported, never bounded; a counter runs the expiry judge on the renewed jog). The
 client renews as the page's main thread does; the real page on the sim with its
 main thread blocked is the browser probe, a separate live check.
+In the browser suite (`e2e/jog-lease.spec.ts`) the renewal CADENCE is held on the page's clock
+(jog-lease hardening, Codex R439/R440): the clock stands before the gesture, every renewal is
+made by an exact 100 ms step of the test's own (never the product's `RENEW_MS`) and waited for
+at the mock, the end is proven by a FIFO marker through the same path (the next start and its
+end received) — a real-time gap at the mock measured the loaded runner (the P2a merge gate's
+443 ms). That the renewals come from the MAIN thread stays the real-time blocked-thread test.
+Red proofs: `docs/reviews/jog-lease-hardening.mutations.py`; the stability record under load:
+`docs/reviews/jog-lease-hardening.load.sh` (every run reported, no retry).
 
 The toolsetter re-parses a probe op causes (P2a, machine day F24) are a run of their own too:
 `native_run.py … --variant parse-basis` (home, a loaded program that runs the routine, a warm-up

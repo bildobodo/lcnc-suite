@@ -12,6 +12,7 @@
 import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { GATE_NAMES, type Permissions } from "../src/permissions";
+import { installHoldClock } from "./holdClock";
 
 function perms(): Permissions {
   const p = Object.fromEntries(GATE_NAMES.map((k) => [k, true])) as Permissions;
@@ -58,23 +59,71 @@ test.afterEach(async () => {
   await ctl({ op: "reset" });
 });
 
+// The agreed renewal cadence, fixed HERE — never the product's RENEW_MS, which
+// a mutant would carry along (Codex R439 MT439-03; the unit test holds
+// RENEW_MS against the gateway's JOG_RENEW_EXPECTED_S).
+const AGREED_RENEW_MS = 100;
+
+// On the PAGE's clock (jog-lease hardening, Codex R439/R440): a real-time gap
+// at the mock measured the loaded runner (the P2a merge gate's 443 ms), not
+// the page. The clock stands BEFORE the gesture, so every renewal is made by
+// an exact step; each step's renewal is waited for at the mock; the end is
+// proven by a FIFO marker through the same main-thread → worker → socket
+// path (the next start), never by a real-time sleep. That the renewals come
+// from the MAIN thread is the blocked-thread test below (real time, by design).
 test("a held jog button names its lease, the page renews it, its release ends exactly that lease", async ({ page }) => {
-  await open(page);
-  await hold(page, "X+");
-  const start = await startOf();
-  expect(start).toMatchObject({ cmd: "jog_cont", axis: 0, lease: expect.any(Number) });
-  const L = start.lease!;
-  await expect.poll(async () => (await timeline()).renewals.length, "renewals while held").toBeGreaterThanOrEqual(4);
-  const tl = await timeline();
-  expect(tl.renewals.every((r) => r.ids.includes(L)), JSON.stringify(tl.renewals)).toBe(true);
-  const gaps = tl.renewals.slice(1).map((r, i) => r.t - tl.renewals[i]!.t);
-  expect(Math.max(...gaps), `renewal gaps ${gaps.map(Math.round)}`).toBeLessThan(400);
-  await page.mouse.up();
-  await expect.poll(async () => (await sent()).map((c) => [c.cmd, c.axis ?? c.lease]))
-    .toEqual([["jog_cont", 0], ["jog_lease_end", L]]);
-  const upAt = (await timeline()).now;
-  await page.waitForTimeout(400);
-  expect((await timeline()).renewals.filter((r) => r.t > upAt + 150), "no renewal after the release").toEqual([]);
+  await installHoldClock(page);
+  await open(page);                                   // commands and renewals cleared
+  // the buttons' places taken while the clock runs: under a standing clock a
+  // locator action would wait on the page's (faked) animation frames
+  const at = async (name: string) => {
+    const b = (await jogButton(page, name).boundingBox())!;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
+  const xPlus = await at("X+"), xMinus = await at("X-");
+  const press = async (p: { x: number; y: number }) => { await page.mouse.move(p.x, p.y); await page.mouse.down(); };
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 1_000);              // the clock stands before the gesture (MT439-04)
+  try {
+    await press(xPlus);
+    const start = await startOf();                    // the start's RECEIPT at the mock
+    expect(start).toMatchObject({ cmd: "jog_cont", axis: 0, lease: expect.any(Number) });
+    const L = start.lease!;
+    const t0 = (await timeline()).now;
+    expect((await timeline()).renewals.length, "no renewal before the page's clock moves").toBe(0);
+    // real time passed for the worker: two of its heartbeats RECEIVED after the
+    // start — a renewal made in (or with) the worker's heartbeat would be on the
+    // same socket before the second one (the worker/heartbeat mutant)
+    await expect.poll(async () => (await timeline()).beats.filter((b) => b > t0).length,
+      "two worker heartbeats after the start").toBeGreaterThanOrEqual(2);
+    expect((await timeline()).renewals.length, "no renewal while the page's clock stands").toBe(0);
+    for (let k = 1; k <= 5; k++) {
+      await page.clock.runFor(AGREED_RENEW_MS);
+      await expect.poll(async () => (await timeline()).renewals.length, `renewal ${k} received`).toBe(k);
+      expect((await timeline()).renewals[k - 1]!.ids, `renewal ${k} names the lease`).toContain(L);
+    }
+    await page.mouse.up();
+    await expect.poll(async () => (await sent()).map((c) => [c.cmd, c.axis ?? c.lease]))
+      .toEqual([["jog_cont", 0], ["jog_lease_end", L]]);
+    await page.clock.runFor(4 * AGREED_RENEW_MS);
+    // the FIFO marker: a new start through the same path — once it is RECEIVED,
+    // everything the page sent before it has arrived (one MessagePort, one socket)
+    await press(xMinus);
+    await expect.poll(async () => (await sent()).filter((c) => c.cmd === "jog_cont").length,
+      "the marker's start received").toBe(2);
+    const L2 = (await sent()).filter((c) => c.cmd === "jog_cont")[1]!.lease!;
+    expect(L2).toBeGreaterThan(L);
+    await page.mouse.up();
+    await expect.poll(async () => (await sent()).map((c) => [c.cmd, c.axis ?? c.lease]), "the marker's end received")
+      .toEqual([["jog_cont", 0], ["jog_lease_end", L], ["jog_cont", 0], ["jog_lease_end", L2]]);
+    // the recount (no mock reset before it): exactly one renewal per step while
+    // held, none of L after its end
+    const all = (await timeline()).renewals;
+    expect(all.filter((r) => r.ids.includes(L)).length, "exactly the 5 renewals of L, none after its end").toBe(5);
+    expect(all.length, "no renewal beyond the 5 steps").toBe(5);
+  } finally {
+    await page.clock.resume();
+  }
 });
 
 test("an answered start keeps its gesture past REPLY_MS: renewals go on while held", async ({ page }) => {
