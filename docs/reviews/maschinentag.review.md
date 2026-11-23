@@ -4433,3 +4433,89 @@ Der Lastbeleg enthält vollständig **30/30 neue und 30/30 alte** bestandene Fä
 - **Kein reproduzierter Fehler behoben:** Das Flackern aus dem P2a-Merge-Gate ließ sich nicht nachstellen; der alte Test bestand unter Last ebenfalls 30/30. Die Änderung stützt sich auf den Messweg: Die 443 ms waren die Ankunft beim Mock, nicht der Takt der Seite.
 - **Echtzeit-Lücke nicht mehr im Browser-Gate:** Kein Browser-Gate-Test begrenzt mehr die echte Erneuerungslücke. Das tragen jetzt der Test mit blockiertem Hauptthread und die native Lease-Probe; die native Probe läuft nicht im Merge-Gate.
 - **Keine Produktänderung:** nichts für den Operator Sichtbares, nichts für die Maschine.
+
+---
+
+## Claude · P2b gebaut · Anfrage R446 · 23. November 2026
+
+Code: `feat/p2b-lifetime`, Basis development `244d93a3`, Kopf `cea83f9d`. Gebaut nach dem P2b-Plan v4 (Agreement in R442).
+
+**Vorweg zur Historie.** Der Zweig hatte die Logs beider Gate-Läufe mitcommittet, 88 MB. Vor dieser Anfrage sind sie aus der Zweighistorie entfernt; die `.json`-Belege bleiben.
+- **Hash-Zuordnung:** Bis `8d2d5662` sind die Hashes gleich. Danach: `e295efd6`→`fbe9ed02`, `934ca971`→`72c656b5`, `fda61f19`→`fdf05164`, **`ab0e798f`→`4a84f968`** (Gate 2, Baum ohne Logs identisch, geprüft), `3cd9d96d`→`81ef9bac`, `ad882141`→`a9a6322f`.
+- **Alter Stand:** liegt zur Nachverfolgung als `review/p2b-with-logs`.
+- **Neuer Commit `cea83f9d`:** `.gitignore` nimmt `docs/reviews/*.logs/` aus. Die P1b-Logs, die schon in development liegen, bleiben unverändert.
+
+### Je Punkt
+
+**P2b-1 · Das Kollisionsmodell überlebt einen Werkzeugwechsel** (`2d3a5998`, Nachweise `1d36ec64`, `0d746f77`, `8d2d5662`)
+- Der Schlüssel trägt alle modellbildenden Eingänge, aber keine Werkzeugmaße.
+- Jeder Lauf hat eine unveränderliche Basisvariante.
+- Telemetrie:
+  - Jede Worker-Instanz meldet `collision.model_built` / `model_reused` mit `model_gen`, sobald sie das Modell hält. So zählt auch eine abgebrochene Prüfung ihren Bau.
+  - `sweep_start` meldet `model_gen` und `max_shards`, `sweep_done` meldet `shards` und `tool_variant_ms`.
+- Browser-Wächter in `collisions.viewer.spec.ts`: Nach einem Werkzeugwechsel werden keine Körper gesendet, die Bauzahl bleibt gleich, und jede Instanz verwendet ihr Modell weiter.
+
+**P2b-3 · Lebensdauer im Gateway** (`0a04465d`, `3e351ec0`; Korrekturen `8f78f0ca`, `36ff2907`, `72c656b5`, `fdf05164`)
+- **`calc_lifetime.py`:**
+  - Die Generation steht unter einem `threading.Lock`. Die Veröffentlichung prüft sie und setzt ihre Felder in einem Schritt, `preview_version` zuletzt.
+  - Klassifikation nach Wirkung (`input_write_class`) und `COMMAND_EFFECTS` für alle Befehle in `COMMAND_GATES`, mit statischem Scan einschließlich `mode`.
+- **`began`-Haken:** in `_cmd_blocking` unmittelbar vor der Schreibung. Datei-Schreiber haben einen eigenen Beginn.
+- **Laden und Entladen:**
+  - Beide beginnen eine neue Programmgeneration und zählen als Aktionen, die geschrieben haben.
+  - Entladen bricht einen laufenden Parse ab.
+  - Solange das Entladen noch nicht abgeschlossen ist, startet kein Parse des entladenen Programms. Diese Lücke zeigte der native Lauf an `72c656b5` als FAIL; `fdf05164` schließt sie.
+- **Queue-Halte und Beobachter:**
+  - Der Beobachter steht vor der Schreibung als pending und bekommt die Serial danach.
+  - Er endet nur über `controller_done` (`0a04465d`, ausgelagert aus `_release_start_claims`, deren Tests unverändert) oder über einen benannten Ausgang: `aborted`, `link_lost`, `unknown`.
+- **30-s-Halt:** Jede Leerlauf-Kante wartet auf die eine offene Toolsetter-Bestätigung.
+- **Abgelaufene Generation:** Die Poll-Schleife bricht einen Parse mit veralteter Generation ab; ein verworfener Neustart wartet auf Leerlauf.
+
+**P2b-2 · Prüfung erst nach der Drift-Entscheidung** (`48496015`, `fbe9ed02`)
+- **Status:** `drift_decision` steht in jedem Frame: pending / none / parse {job, published | why}.
+- **Warten der Seite** (`viewer/driftWait.ts`):
+  - Auf die Entscheidung wartet sie höchstens 3 s, danach einmal der benannte Fallback (`collision.check_fallback`).
+  - Auf einen benannten Parse wartet sie, bis seine Veröffentlichung übernommen ist.
+  - Das Warten gehört zu Programmgeneration, Eingangsgeneration und Verbindung.
+- **Ohne `drift_decision`:** Ein Gateway, das keine Entscheidung sendet (der Mock), wird nicht abgewartet; das wird einmal gemeldet.
+
+### Belege
+- **Tests:** Gateway 2445, vitest 2877, native Stufe 712 (offline); ruff und pyright 0. **Mutationen 41/41 rot** an ihrer Regel (`p2b.mutations.*`).
+- **Native Stufe (VM-Sim, LAN-Sim jeweils belegt zurückgegeben):**
+  - `p2b` an `fdf05164` **PASS** (`p2b.native-p2b.json`):
+    - Entladen während eines großen Parse: Der Parse wird wegen `unload` verdrängt, nichts wird veröffentlicht, nichts neu gestartet.
+    - `tool_measure`: genau ein Parse (`table_mtime`), 2,01 s nach dem beobachteten Aktionsende.
+  - `parse-basis`: **incomplete** (`p2b.native-parse-basis.json`).
+    - Die P2a-Zeile ist PASS.
+    - Die nice-Zeile ist **nicht geprüft**: Im Fenster lief kein Drift-Parse, weil die Halte von P2b die 6 `tool_offset`-Parses aus dem P2a-Lauf entfernen. Das ist beabsichtigt.
+    - Die Prioritätsregel lief im selben Lauf außerhalb des Fensters: Der Drift-Parse beim Aufwärmen verlangte nice 19 und bekam 19.
+- **Modellbauten vorher/nachher** (`p2b.native-builds.json`; Folge Laden → Lauf mit M600 → Werkzeugwechsel → Laden, eine echte Seite mit Simulation an):
+
+| | vorher `244d93a3` | nachher `36ff2907` |
+|---|---|---|
+| Anfragen mit Körpern | 3 | 1 |
+| Modellbauten | **6** | **2** |
+| Prüfung abgeschlossen nach Lauf / Werkzeugwechsel | 31,7 s / 32,8 s | 10,6 s / 11,1 s |
+| Fenster mit Hauptthread-Verspätung > 150 ms | 7 von 49 | 7 von 35 (**nicht gesunken**) |
+
+  Der Nachher-Lauf liegt vor den späteren Korrekturen; der Modellcode ist seitdem unverändert. Im Vorher-Stand fehlt die Instanzmeldung, deshalb ist dort nach der Abgriffregel gezählt: eine Anfrage mit Körpern ergibt einen Bau je Shard.
+  - P2b-2 im Nachher-Lauf: 0 Abbrüche durch einen Parse, der beim Prüfstart schon entschieden war. Der eine Abbruch kam von einer Entscheidung 3,2 s nach dem Prüfstart, die der Plan erlaubt. Zwei Prüfungen haben ohne Fallback auf ihre Entscheidung gewartet.
+- **Round-Gate:**
+  - Runde 1 an `8d2d5662`: FAIL, 1053/1054. Ein Wächter las den Viewer, bevor er bereit war.
+  - **Runde 2 an `ab0e798f` = `4a84f968`: PASS**, mit lint, build, unit-light 2773, unit-heavy 104, Backend, Browser 1054/1054, Firefox-Kern 94/94 und beiden Replays.
+  - Seitdem sind nur Doku-Commits dazugekommen sowie `.gitignore`.
+
+### Grenzen und Abweichungen, offen benannt
+- **Verhaltensänderung bei Cycle Start:** Läuft der Parse eines Ladevorgangs noch, bricht ihn der Wechsel nach AUTO ab, und die Datei-Kante startet ihn sofort neu, unter dem Lauf und mit normaler Priorität. Eine neue Datei wartet nie (`_restart_wait`). Vor P2b lief derselbe Parse einfach weiter, jetzt läuft er zweimal.
+- **Wächter 8 nur zur Hälfte belegt:** Die Read-back-Hälfte lief nie. Die eigenen Werte des Auftrags waren als `applied` gebucht, deshalb gab es in jedem p2b-Lauf `read_backs: []`.
+- **Zeitpunkt der Entscheidung:** Die WCS-Kante eines Antastvorgangs wird erst 4,05 s nach dem Ende entschieden, also nach den 3 s der Seite. Es geht nur deshalb gut, weil das Ende des Read-backs nach 2,04 s eine neuere Entscheidung öffnet und das Warten neu beginnt.
+- **Aufrufstellen in der Poll-Schleife** sind nur nativ belegt, ohne Unit-Test oder Mutation: `_actions_quiet`, `_restart_wait`, die Bedingung vor `none`, `_dd_idle_edge`, `_observe_actions`.
+- **Dünnere Abdeckung als im Plan:**
+  - Die Wächter 4, 7 und 13 (zweiter Client bereits eingereiht) sind nur auf Ledger-Ebene geprüft. Drei eingereihte Antastvorgänge liefen nicht nativ.
+  - `partial` wird nur in `_feature_job` und `set_params` gesetzt.
+- **Eigene Wahl:** Die Beobachter-Grenzen sind 900 / 300 / 30 s. `sweep_start` nennt `max_shards`, nicht `shards`, weil die Zahl erst am Ende bekannt ist.
+- **Auf der Basis gefunden, nicht durch P2b verursacht:**
+  - `_pb_quiet` las `preview_refresh` aus `data`, wo es nie steht. Korrigiert im nativen Client, mit Test.
+  - Auf einer frischen Headless-Seite zeigt der Simulationsschalter des Geräts nach „Saved“ weiter „Not active until the gateway holds it“, bis die Seite neu geladen wird. Das zeigt sich schon an `244d93a3`. Möglicherweise ein Produktfehler; nicht untersucht, als eigener Punkt notiert.
+- **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+**Erbeten:** `agreement` zu P2b `244d93a3..cea83f9d` oder `findings`, ausdrücklich auch zur Verhaltensänderung bei Cycle Start.
