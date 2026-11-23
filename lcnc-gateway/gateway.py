@@ -2017,7 +2017,16 @@ async def _status_poller():
                     _cur_mtime = _bulk.last_mtime
             else:
                 _cur_mtime = None
-            file_changed = preview_file_changed(st.active_file, _cur_mtime, _bulk.last_file, _bulk.last_mtime)
+            # The edge is the program IDENTITY (P2b-F1-1, Codex R449/R450 C1):
+            # a reload of the same path and A→B→A are new loads, each parses
+            # its own; within ONE program the file's path/mtime edge stays.
+            # No edge while no program is proven (the load window, an
+            # unresolved change): a parse there would read the old path under
+            # the new generation and turn the real load into a restart.
+            _pid = st.program_id
+            _pub_active = bool(_pid) and _pid == _bulk.published_program
+            file_changed = preview_file_changed(st.active_file, _cur_mtime, _bulk.last_file, _bulk.last_mtime,
+                                                _pid, _bulk.published_program)
             # reparse_pending: an operator Reparse that arrived during an
             # in-flight parse (or any Reparse — the flag is the request,
             # the cache keys are no longer cleared for it).
@@ -2025,7 +2034,7 @@ async def _status_poller():
             _bulk.rotary_hold = rotary_hold_update(_bulk.rotary_hold, st.rotary_abc, _now)
             _fe = preview_file_edge_action(
                 file_changed, _bulk.reparse_pending, _bulk.refresh_running,
-                _bulk.inflight, st.active_file, _cur_mtime)
+                _bulk.inflight, st.active_file if st.program_id else None, _cur_mtime)
             _rw = _restart_wait(st, file_changed) if _fe == "schedule" else None
             if _rw is not None:
                 # A restart (reparse_pending) waits for the input actions'
@@ -2148,6 +2157,7 @@ async def _status_poller():
                 # imported — a half-upgraded install), respawning every tick
                 # fixes nothing; the client banner carries the signal instead.
                 bool(st.active_file)
+                and _pub_active   # (the active program's own publication — P2b-F1-1)
                 and not _bulk.refresh_running
                 and _bulk.preview_available()
                 and _bulk.published_schema != PREVIEW_SCHEMA
@@ -2157,7 +2167,7 @@ async def _status_poller():
                 _trace.emit("gcode.schema_stale_reparse", level="warn",
                             published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
                 _bulk.schedule_refresh(st.active_file, "schema", _spawn_preview_task)
-            elif st.active_file and midrun_table_gate_open(   # (the gate requires the file too)
+            elif st.active_file and _pub_active and midrun_table_gate_open(   # (the file, and its own publication — P2b-F1-1)
                 # Mid-run tool-table edge (operator 2026-09-29): the program
                 # measured a tool (T13 M600 → G10 L1) and goes on cutting —
                 # the idle edge below never gets its turn before M2, so the
@@ -2180,7 +2190,7 @@ async def _status_poller():
                         table_rows=_rows, table_only=True)
                 _mact, _mwhy = midrun_table_action(
                     _mdrift,
-                    bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file,
+                    bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file and _pub_active,
                     bool(_bulk.published_params) and _bulk.published_params.get("text") is not None,
                     _bulk.pin_unsupported)
                 # (an action only with a drift — midrun_table_action — and a
@@ -2206,7 +2216,7 @@ async def _status_poller():
                 # gate. They used to sit under `published_tlo is not None`
                 # too, so a payload whose __TLO__ line was absent or
                 # malformed never re-seeded its rotary pose at all.
-                st.active_file and drift_gate_open(   # (the gate requires the file too)
+                st.active_file and _pub_active and drift_gate_open(   # (drift of the active program's own publication — P2b-F1-1)
                     st.active_file, _bulk.refresh_running, _bulk.preview_available(),
                     st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,
                     time.monotonic() - _bulk.tlo_check_ts)
@@ -2910,6 +2920,8 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     # the gateway's own record, per LinuxCNC instance, in the suite's dir.
     get_instance=lambda: _bound_instance,
     load_record_path=os.path.join(lcnc_paths.resolve()[0], LOAD_RECORD_NAME),
+    # the program identity's first part (P2b-F1-1): this process's epoch
+    epoch=_TRIP_EPOCH,
 )
 safe_get = _status_runtime.safe_get
 normalize_homed = _status_runtime.normalize_homed
@@ -3808,6 +3820,12 @@ _source_claims: List[_StartClaim] = []
 # (gateway_util.controller_done) or a named unknown outcome.
 _calc_gen = Generation()
 _bulk.generation = _calc_gen   # the publication checks it (bulk_pipeline)
+# The program identity (P2b-F1-1, Codex R449 MT449-02): `<epoch>.<program
+# generation of the load>` — the status names the loaded program's, every
+# publication the one it was spawned under; a restored record takes the
+# generation at its first sight.
+_status_runtime.program.gen_now = lambda: _calc_gen.snapshot()[0]
+_bulk.epoch = _TRIP_EPOCH
 _bulk.on_job_end = lambda job, end: _dd_job_ended(job, end)   # the decision keeps its job's end (R446 MT-I27)
 _actions = ActionLedger()
 # the action the running handler belongs to (set by the client's command
@@ -3846,8 +3864,10 @@ def _program_began(why: str) -> None:
     """A load's or an unload's begin (P2b-3), in its write thread right
     before the write: a new program generation, and the action counts as one
     that wrote (its end opens a drift decision and the debounce)."""
-    _calc_gen.new_program(why)
+    gen = _calc_gen.new_program(why)
     if why == "load":
+        # the load's own identity, before the open (P2b-F1-1)
+        _status_runtime.program.note_load_gen(gen[0])
         # a new program: a discard of the old one's parse asks for nothing
         # more — its file edge is a real load (Codex R446 MT-I28)
         if str(_bulk.reparse_pending_reason or "").startswith("discarded:"):
@@ -4036,14 +4056,56 @@ def _restart_wait(st, file_changed: bool) -> Optional[str]:
     # a real LOAD: a new program generation whose parse has not been spawned
     # yet — bound to the program's identity, never to a reason's text
     # (Codex R447 MT-I28 A: a rotary cancel of the first load's parse
-    # carried "rotary:A" and the restart ran under the program)
-    if file_changed and _bulk.spawned_program_gen != _calc_gen.snapshot()[0]:
-        return None
-    if not _actions_quiet():
+    # carried "rotary:A" and the restart ran under the program). Only a
+    # load THIS process wrote (P2b-F1-1: a restored record is a restart), and
+    # it skips the actions' quiet window only — never the run or a move
+    # (Codex R450 MT450-01: a first parse held by the rotary settle, then
+    # Cycle Start, read its live basis under the run).
+    if not (file_changed and _own_load_unparsed()) and not _actions_quiet():
         return _actions.busy() or "debounce"
     if not (st.interp_state == linuxcnc.INTERP_IDLE and not st.current_vel):
-        return "not_idle"   # a restart reads live inputs: never under a run or a move
+        return "not_idle"   # a parse reads live inputs: never under a run or a move
     return None
+
+
+def _active_program_id() -> Optional[str]:
+    """The loaded program's identity now (P2b-F1-1) — None while none is
+    proven."""
+    return _status_runtime.program.program_id(_TRIP_EPOCH)
+
+
+def _own_load_unparsed() -> bool:
+    """The active program is a load THIS process wrote whose program
+    generation has not spawned a parse yet (P2b-F1-1)."""
+    prog = _status_runtime.program
+    return (prog.loaded_own and prog.loaded_gen is not None and _active_program_id() is not None
+            and _bulk.spawned_program_gen != prog.loaded_gen)
+
+
+def _parse_begin_refusal() -> Optional[str]:
+    """The begin admission of an unpinned parse (P2b-F1-1 V5a, Codex R450
+    MT450-01; R451: the fresh-read pattern of _controller_capture_state): a
+    CURRENT controller read — the interpreter idle and the machine standing,
+    else why not. A poll that failed, or a field it did not deliver, is no
+    read: refused ("unread") — never the last poll's values."""
+    try:
+        link().stat.poll()
+    except Exception as e:  # noqa: BLE001 - no poll: no begin
+        _trace.emit_exc("gcode.begin_poll_failed", e)
+        return "unread"
+    interp = safe_get("interp_state", None)
+    still = motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))
+    if interp is None or still is None:
+        return "unread"
+    if interp != linuxcnc.INTERP_IDLE:
+        return "running"
+    if not still:
+        return "moving"
+    return None
+
+
+_bulk.get_active_program = _active_program_id
+_bulk.admit_begin = _parse_begin_refusal
 
 
 def _release_action(action: Optional[_Action], how: str) -> None:
@@ -4201,6 +4263,7 @@ def _unverified_run_basis(why: str) -> Dict[str, Any]:
     except Exception:  # noqa: BLE001 - the name only labels the record
         file = None
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": None, "version": None,
+          "program_id": _active_program_id(),
           "ctx": None, "ctx_digest": None, "tool_basis_rev": _bulk.tool_basis_rev,
           "start": None, "verified": False, "why": why}
     _run_basis = rb
@@ -4242,7 +4305,10 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
         return _unverified_run_basis("start not captured")
     _run_seq += 1
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": source,
-          "version": _bulk.preview_version if _bulk.last_file == file else None,
+          # the program identity at the start's capture (P2b-F1-1); the
+          # version only of this program's own publication
+          "program_id": _active_program_id(),
+          "version": _bulk.preview_version if _bulk.last_file == file and _bulk.published_is_active() else None,
           "ctx": ctx, "ctx_digest": _bulk_mod.ctx_digest(ctx), "tool_basis_rev": _bulk.tool_basis_rev,
           "start": start, "verified": bool(ok and ctx is not None),
           "why": why if not ok else (None if ctx is not None else "no published start")}
@@ -4283,6 +4349,9 @@ def _run_for_pin(file: Optional[str]) -> Optional[Dict[str, Any]]:
     if rb is None or not rb.get("verified") or rb.get("state") != "sent" or not file:
         return None
     if canonical_path(rb.get("file") or "") != canonical_path(file):
+        return None
+    # the run's program identity is the active one's (P2b-F1-1)
+    if rb.get("program_id") is None or rb.get("program_id") != _active_program_id():
         return None
     return rb
 
@@ -6284,7 +6353,8 @@ def _ts_program_writes():
     any, or no scan of exactly that program."""
     pts = _bulk.published_toolsetter
     loaded = _status_runtime.program.loaded
-    if not pts or not loaded or canonical_path(_bulk.last_file or "") != canonical_path(loaded):
+    if (not pts or not loaded or canonical_path(_bulk.last_file or "") != canonical_path(loaded)
+            or not _bulk.published_is_active()):
         return None
     return pts.get("writes")
 
@@ -6413,7 +6483,7 @@ def _ts_read_back_due(st) -> bool:
     basis not confirmed, once per (basis version, program), the machine
     standing with no command in flight (idle gate: the caller)."""
     pts = _bulk.published_toolsetter
-    if not pts or not pts.get("routine") or _bulk.last_file != st.active_file:
+    if not pts or not pts.get("routine") or _bulk.last_file != st.active_file or not _bulk.published_is_active():
         return False
     if toolsetter_basis_view(_ts_basis)["state"] == "confirmed":
         return False
@@ -8058,7 +8128,10 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
         # else no answer in time — or the answer came through a Link replaced
         # meanwhile (no confirmation for this one, Fable's check of f4ba0f31):
         # the window and the observation decide
-        return {"ok": True, "path": abs_path}
+        # The reply names its load's identity (P2b-F1-1, R451): what shows is
+        # still decided by the observed status, never by this reply alone.
+        _lg = _status_runtime.program.last_requested_gen
+        return {"ok": True, "path": abs_path, "program_id": f"{_TRIP_EPOCH}.{_lg}" if _lg is not None else None}
 
     if cmd == "unload_file":
         require_armed(armed)
@@ -11834,40 +11907,49 @@ def get_subfile(name: str):
 
 
 @app.get("/preview")
-def get_preview(request: Request, v: Optional[int] = None):
+def get_preview(request: Request, v: Optional[int] = None, p: Optional[str] = None):
     """Return the cached msgpack-encoded parsed G-code preview.
 
-    The `v` query parameter is advisory — purely a cache-buster so the
-    browser treats each version as a distinct URL. The server always returns
-    the CURRENT cached preview (even if `v` is stale), because that's what
-    the client wants anyway. Returns 404 if no file is loaded. If the client
-    accepts gzip and a pre-compressed copy exists, serve that instead — both
-    variants are produced once per parse, so per-fetch CPU stays at zero.
+    Bound to what was asked for (P2b-F1-1 V4, Codex R450 C2): the published
+    payload is ONE tuple (version, program identity, gz, raw), read once — a
+    request whose `v` (version) or `p` (program identity) is not that tuple's
+    is answered 409 `superseded`, `no-store`, never with other bytes; the
+    newer announcement reaches the page by itself. The answer names its
+    version and identity (`X-Preview-Version`, `X-Preview-Program`); the
+    worker checks them before the bytes enter its cache. 404 when nothing is
+    published. If the client accepts gzip and a pre-compressed copy exists,
+    serve that instead — both variants are produced once per parse, so
+    per-fetch CPU stays at zero.
     """
-    if not _bulk.preview_available():
+    served = _bulk.preview_served
+    if served is None:
         raise HTTPException(status_code=404, detail="No preview cached")
+    version, program, gz, raw = served
+    if (v is not None and v != version) or (p is not None and p != (program or "")):
+        return Response(content=b"superseded", status_code=409, media_type="text/plain",
+                        headers={"Cache-Control": "no-store"})
     t_start = time.monotonic()
     peak = _fanout_enter("preview")
     try:
         accept_enc = request.headers.get("accept-encoding", "")
-        use_gzip = "gzip" in accept_enc and _bulk.preview_bytes_gz is not None
+        use_gzip = "gzip" in accept_enc and gz is not None
         if use_gzip:
-            body = _bulk.preview_bytes_gz
-        elif _bulk.preview_bytes is not None:
-            body = _bulk.preview_bytes
+            body = gz
+        elif raw is not None:
+            body = raw
         else:
             # Non-gzip client and the raw copy was dropped: decompress on demand.
             # This is a SYNC endpoint (threadpool), so the loop is untouched.
             # Loud, not silent — exotic clients paying ~100 ms is auditable.
-            gz = _bulk.preview_bytes_gz
-            if gz is None:   # dropped since preview_available(): the same 404
+            if gz is None:   # neither variant: the same 404
                 raise HTTPException(status_code=404, detail="No preview cached")
             body = gzip.decompress(gz)
             _trace.emit("preview.raw_decompress", level="info",
                         bytes=len(body), peer=str(request.client.host if request.client else "?"))
         headers = {
             "Cache-Control": "public, max-age=31536000, immutable",
-            "X-Preview-Version": str(_bulk.preview_version),
+            "X-Preview-Version": str(version),
+            "X-Preview-Program": program or "",
             "Vary": "Accept-Encoding",
         }
         if use_gzip:
@@ -11883,7 +11965,7 @@ def get_preview(request: Request, v: Optional[int] = None):
         if peak > 1 or handler_ms > 50:
             print(
                 f"[FANOUT] preview peak={peak} handler_ms={handler_ms:.0f} "
-                f"bytes={_bulk.preview_raw_len}B v={_bulk.preview_version}",
+                f"bytes={_bulk.preview_raw_len}B v={version}",
                 flush=True,
             )
 
@@ -12523,6 +12605,8 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
             _bulk.preview_pending = None
             _bulk.preview_bytes = None
             _bulk.preview_bytes_gz = None
+            _bulk.preview_served = None
+            _bulk.published_program = None
             _bulk.published_source = None
             _bulk.preview_version += 1
             _bulk.last_file = None
@@ -12626,23 +12710,28 @@ async def ws_endpoint(ws: WebSocket):
             # to preview (Codex R16 XZ-08: the second adoption site).
             initial_file = _status_runtime.program.loaded
             if initial_file:
+                # Only the ACTIVE program's own publication (P2b-F1-1). A
+                # connect never schedules a parse: the poller's edge, under
+                # its restart wait, is the one scheduler of a missing
+                # publication (a reconnect during a run started an unpinned
+                # parse under it — Codex R448 MT-I28).
                 cache_hit = (
                     _bulk.preview_pending is not None
                     and _bulk.preview_pending.get("file") == initial_file
                     and _bulk.preview_available()
+                    and _bulk.published_is_active()
                 )
                 if cache_hit:
                     await ws_send_json(ws, {
                         "type": "viewer_gcode_ready",
                         "version": _bulk.preview_version,
                         "file": initial_file,
+                        "program_id": _bulk.published_program,
                         "origin": _bulk.preview_origin_status(),
                     })
                     _gcode_path = "cache-hit-sent"
-                elif _bulk.schedule_refresh(initial_file, "connect", _spawn_preview_task):
-                    _gcode_path = "refresh-scheduled"
                 else:
-                    _gcode_path = "refresh-already-running"
+                    _gcode_path = "awaiting-poller-edge"
         except Exception as e:
             print(f"Error loading initial G-code: {e}")
         _trace.emit(
@@ -13010,6 +13099,7 @@ async def ws_endpoint(ws: WebSocket):
                                     "type": "viewer_gcode_ready",
                                     "version": _bulk.preview_version,
                                     "file": pending.get("file"),
+                                    "program_id": _bulk.published_program,
                                     "origin": _bulk.preview_origin_status(),
                                 })
                             except RuntimeError:

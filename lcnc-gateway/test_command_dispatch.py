@@ -9,6 +9,7 @@ off-machine. Requires the gateway venv (fastapi/msgspec are real deps):
 import asyncio
 import os
 import unittest
+from unittest.mock import patch as _patch
 import unittest.mock
 from pathlib import Path
 from types import SimpleNamespace
@@ -52,6 +53,14 @@ def _payload(**over):
 # restart and nothing tells a new gateway the interpreter's value.
 _SKIP_FLAG_AT_BOOT = getattr(gateway, "_skip_flag_unknown", None)
 
+
+
+def _load_reply(r):
+    """A load's reply without its load identity, which is checked here: it
+    names the program generation the load began under (P2b-F1-1)."""
+    pid = r.get("program_id")
+    assert pid is None or (isinstance(pid, str) and pid.rsplit(".", 1)[1].isdigit()), r
+    return {k: v for k, v in r.items() if k != "program_id"}
 
 class _Pending:
     """A task that has not finished (the run-from-line sequence or its clear)."""
@@ -658,6 +667,10 @@ class TestHandlerExecution(unittest.TestCase):
         Path(self.prog).write_text("G21 G90\nG0 X1 Y1 Z0\n#3009=4\nG0 X2\nM2\n")
         gateway._bulk.last_file = self.prog
         gateway._bulk.published_toolsetter = {"routine": False, "writes": [3009]}
+        # the published payload is the loaded program's own (P2b-F1-1: by identity)
+        _own = _patch.object(gateway._bulk, "published_is_active", return_value=True)
+        _own.start()
+        self.addCleanup(_own.stop)
         cmd = self._rcs()
         at_send = []
         remap_env = gateway._remap_env
@@ -1145,7 +1158,7 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertEqual(again.program.unconfirmed, a)
             # the operator loads it again and task opens it: settled
             r, _cmd = self._load_with_rc(tmp, rt, a, rc=1)      # RCS_DONE
-            self.assertEqual(r, {"ok": True, "path": a})
+            self.assertEqual(_load_reply(r), {"ok": True, "path": a})
             self.assertEqual(rt.program_tick(a, True, time.monotonic()), a)
             self.assertIsNone(rt.program.unconfirmed)
             self.assertEqual(read_load_record(path, (10, 20)), (a,))
@@ -1177,7 +1190,7 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertEqual(read_load_record(path, (10, 20)), (a,), "A stays the loaded program")
             edge = at(254)
             r, cmd = self._load_with_rc(tmp, rt, edge, rc=1)
-            self.assertEqual(r, {"ok": True, "path": edge})
+            self.assertEqual(_load_reply(r), {"ok": True, "path": edge})
             self.assertIn(("program_open", (edge,), {}), cmd.calls)
 
     def test_an_open_done_on_a_replaced_link_proves_nothing(self):
@@ -1207,7 +1220,7 @@ class TestHandlerExecution(unittest.TestCase):
                     unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=tmp):
                 r = self._send({"cmd": "load_file", "path": a})
             gateway._cmd_lock = None
-            self.assertEqual(r, {"ok": True, "path": a})        # the open went out
+            self.assertEqual(_load_reply(r), {"ok": True, "path": a})        # the open went out
             self.assertEqual(swapped, [1])
             rt.program_tick(a, True, time.monotonic() + 0.1)
             self.assertTrue(rt.program.change_pending,
@@ -1225,7 +1238,7 @@ class TestHandlerExecution(unittest.TestCase):
             rt, _path = self._record_runtime(tmp, a)
             current().stat.file = a
             r, _cmd = self._load_with_rc(tmp, rt, a, rc=1)
-            self.assertEqual(r, {"ok": True, "path": a})
+            self.assertEqual(_load_reply(r), {"ok": True, "path": a})
             rt.program_tick(a, True, time.monotonic() + 0.1)
             self.assertFalse(rt.program.change_pending)
             self.assertEqual(rt.program_tick(a, True, time.monotonic() + 6.0), a)

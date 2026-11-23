@@ -130,6 +130,10 @@ class TestProgramStartSync(unittest.TestCase):
         gateway._bulk.last_file = self.prog
         gateway._bulk.published_toolsetter = {"routine": False, "writes": []}
         gateway._remap_env = lambda: gateway.RemapEnv([], [])
+        # the published payload is the loaded program's own (P2b-F1-1: by identity)
+        _own = unittest.mock.patch.object(gateway._bulk, "published_is_active", return_value=True)
+        _own.start()
+        self.addCleanup(_own.stop)
         # the scanned program IS the loaded one (else _ts_program_writes is
         # "unknown — every key": the start books all assumed, rightly). Before
         # the Link this double's `auto` was not recognised as a start at all

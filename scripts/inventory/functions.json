@@ -195,6 +195,7 @@
    "atoms": ["control:GcodePanel.vue|MachineBtn:fileOp|*=3", "control:FileBrowser.vue|*=3",
              "control:App.vue|MachineBtn:bannerReload|*=2", "cmd:load_file", "cmd:unload_file", "http:GET /files",
              "http:GET /gcode", "http:GET /subfile", "status:data.active_file", "status:data.program_unconfirmed",
+             "status:data.program_id",
              "ini:DISPLAY/PROGRAM_PREFIX"],
    "statements": [
     {"id": "S1", "kind": "Bedienbarkeit", "text": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "setup-gates.spec.ts", "title": "a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)"}, {"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_open_in_estop_off_and_unhomed"}, {"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_closed_disarmed_running_or_unread"}]},

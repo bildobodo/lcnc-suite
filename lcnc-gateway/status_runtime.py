@@ -330,6 +330,13 @@ class StatusPayload:
     # for this LinuxCNC (Codex R16 XZ-08): named, never loaded or previewed —
     # the operator loads it (or another) to resolve it. None otherwise.
     program_unconfirmed: Optional[str]
+    # The loaded program's IDENTITY `<gateway epoch>.<program generation>`
+    # (P2b-F1-1, Codex R449 MT449-02): every load is a new one (the same path
+    # again, A→B→A); None while no program is proven (nothing loaded, a
+    # change pending or unresolved, an unconfirmed open file). Every preview
+    # publication names the identity it was parsed for; the page shows only
+    # a publication of THIS identity.
+    program_id: Optional[str]
     motion_line: Optional[int]
     # Canonical [A, B, C] actual position (degrees) — the gateway's
     # rotary-drift reparse edge compares this against the payload's
@@ -631,8 +638,10 @@ class StatusRuntime:
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
         get_instance: Callable[[], Optional[tuple]] = lambda: None,
         load_record_path: Optional[str] = None,
+        epoch: str = "",
     ) -> None:
         self._get_stat = get_stat
+        self._epoch = epoch   # the gateway process's epoch: the program identity's first part
         # Kins declaration for the touch-off gates; default "unknown" = closed
         # (see policy_state_from_payload). The gateway wires _kins_is_switchable,
         # _twp_capable and _identity_first (TWP-08).
@@ -1351,6 +1360,7 @@ class StatusRuntime:
             spindle_direction=spindle_direction,
             active_file=active_file,
             program_unconfirmed=self.program.unconfirmed,
+            program_id=self.program.program_id(self._epoch),
             motion_line=safe_get("motion_line", None),
             rotary_abc=rotary_abc,
             program_elapsed_ms=program_elapsed_ms,

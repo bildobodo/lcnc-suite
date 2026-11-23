@@ -428,9 +428,20 @@ class TheRestartWaits(_Base):
             # whatever reason cancelled it — a rotary edge's too
             with patch.object(gateway._bulk, "reparse_pending_reason", "rotary:A"):
                 self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING, 1.0), True), "not_idle")
-        # a new program generation whose parse was never spawned: a load, never waits
-        with patch.object(gateway._bulk, "spawned_program_gen", None):
-            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True))
+        # a new program generation whose parse was never spawned — a load THIS
+        # process wrote: it skips the actions' quiet window, never the run or
+        # a move (P2b-F1-1, Codex R450 MT450-01)
+        with patch.object(gateway._bulk, "spawned_program_gen", None), \
+             patch.object(gateway, "_own_load_unparsed", return_value=True):
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True), "not_idle")
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE, 1.0), True), "not_idle")
+            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True))
+        # a restored program (no own load) is a restart: it waits for the quiet window too
+        with patch.object(gateway._bulk, "spawned_program_gen", None), \
+             patch.object(gateway, "_own_load_unparsed", return_value=False):
+            a = self.ledger.hold("probe_run")
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True), "held:probe_run")
+            self.ledger.release(a, "refused")
 
     def test_no_parse_of_an_unloaded_program_starts_before_the_unload_settles(self):
         """Native p2b at 934ca971: between the unload's write and the status
@@ -441,7 +452,8 @@ class TheRestartWaits(_Base):
             gateway._program_began("unload")
             self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True), "unloading")
             gateway._program_began("load")
-            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True))
+            with patch.object(gateway, "_own_load_unparsed", return_value=True):
+                self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), True))
         src = open(gateway.__file__).read()
         self.assertIn("if _bulk.unloading and not st.active_file:\n                _bulk.unloading = False", src)
         self.assertEqual(src.count("_bulk.unloading = False"), 3, "settled, refused, cut short")
@@ -510,6 +522,7 @@ class TheFirstLoadsRestart(_Base):
         b = BulkPipeline(get_stat=lambda: None, get_machine_units=lambda: "mm", build_wcs_rotation_patches=lambda: {})
         b.reparse_pending, b.reparse_pending_reason = True, reason
         b.last_file, b.last_mtime = ("/p.ngc", 1.0) if published else (None, None)
+        b.published_program = "e.1" if published else None
         # the first load's parse was spawned under this program generation (or not: a load)
         b.spawned_program_gen = self.gen.snapshot()[0] if spawned else None
         scheduled = []
@@ -517,12 +530,15 @@ class TheFirstLoadsRestart(_Base):
         if hold:
             self.ledger.hold("probe_run")
         self.clock.t += 10          # the debounce long past
-        st = type("St", (), {"active_file": "/p.ngc", "interp_state": interp, "current_vel": vel, "rotary_abc": [0, 0, 0]})
+        st = type("St", (), {"active_file": "/p.ngc", "program_id": "e.1", "interp_state": interp, "current_vel": vel,
+                             "rotary_abc": [0, 0, 0]})
         ns = {"preview_file_edge_action": preview_file_edge_action, "rotary_hold_settled": lambda *a: True,
               "_restart_wait": gateway._restart_wait, "_bulk": b, "st": st, "_now": 0.0, "_cur_mtime": 1.0,
-              "file_changed": preview_file_changed("/p.ngc", 1.0, b.last_file, b.last_mtime),
+              "file_changed": preview_file_changed("/p.ngc", 1.0, b.last_file, b.last_mtime, st.program_id,
+                                                   b.published_program),
               "_spawn_preview_task": lambda c: None, "_dd_decide": lambda *a: None, "_trace": type("T", (), {"emit": lambda *a, **k: None})()}
-        with patch.object(gateway, "_bulk", b):
+        # an own load (this process) whose generation spawned nothing yet
+        with patch.object(gateway, "_bulk", b), patch.object(gateway, "_own_load_unparsed", return_value=not spawned):
             exec(_file_edge_chain(), ns)
         return scheduled, ns["file_changed"]
 
@@ -540,9 +556,18 @@ class TheFirstLoadsRestart(_Base):
         scheduled, _ = self.run_edge(reason="discarded:mode", interp=linuxcnc.INTERP_IDLE, vel=0.0)
         self.assertEqual(scheduled, [("/p.ngc", "discarded:mode", False)])
 
-    def test_a_real_load_never_waits(self):
+    def test_a_real_load_never_waits_for_the_actions(self):
         scheduled, _ = self.run_edge(reason=None, interp=linuxcnc.INTERP_IDLE, vel=0.0, hold=True, spawned=False)
         self.assertEqual([s[1] for s in scheduled], ["file"], "a load's own parse, even beside a held action")
+
+    def test_a_real_load_never_parses_under_a_run_or_a_move(self):
+        """Codex R450 MT450-01: an own load whose first parse the rotary
+        settle (or a late job begin) held, then Cycle Start — the load's
+        exception skips the quiet window only, never the run or a move."""
+        for interp, vel in ((linuxcnc.INTERP_READING, 1.0), (linuxcnc.INTERP_READING, 0.0), (linuxcnc.INTERP_IDLE, 1.0)):
+            scheduled, changed = self.run_edge(reason=None, interp=interp, vel=vel, spawned=False)
+            self.assertTrue(changed)
+            self.assertEqual(scheduled, [], f"no unpinned parse under the run / a move ({interp}, {vel})")
 
     def test_a_load_clears_the_old_programs_discard(self):
         with patch.object(gateway._bulk, "reparse_pending", True), \
@@ -787,7 +812,8 @@ class TheRotaryCancelOfTheFirstLoad(_Base):
         b.inflight = {"file": "/p.ngc", "mtime": 1.0, "rotary_seed": {"A": 0, "B": 0, "C": 0}, "gen": self.gen.snapshot()}
         b.spawned_program_gen = self.gen.snapshot()[0]      # the first load's parse runs
         self.gen.began("mode")                               # the switch to AUTO
-        st = SimpleNamespace(active_file="/p.ngc", interp_state=linuxcnc.INTERP_READING, current_vel=1.0, rotary_abc=[10, 0, 0])
+        st = SimpleNamespace(active_file="/p.ngc", program_id="e.1", interp_state=linuxcnc.INTERP_READING, current_vel=1.0,
+                             rotary_abc=[10, 0, 0])
         b.rotary_hold = rotary_hold_update(None, st.rotary_abc, 100)
         calls = []
 
@@ -799,7 +825,8 @@ class TheRotaryCancelOfTheFirstLoad(_Base):
         b.schedule_refresh = lambda *a, **kw: calls.append(("schedule", a[1], kw.get("pinned", False))) or True
         self.clock.t += 10
         ns = {"_bulk": b, "st": st, "_now": 100, "_cur_mtime": 1.0,
-              "file_changed": preview_file_changed(st.active_file, 1.0, b.last_file, b.last_mtime),
+              "file_changed": preview_file_changed(st.active_file, 1.0, b.last_file, b.last_mtime, st.program_id,
+                                                   b.published_program),
               "preview_file_edge_action": preview_file_edge_action, "rotary_hold_settled": rotary_hold_settled,
               "_restart_wait": gateway._restart_wait, "inflight_doomed_reason": inflight_doomed_reason,
               "inflight_outdated": inflight_outdated, "_calc_gen": self.gen,

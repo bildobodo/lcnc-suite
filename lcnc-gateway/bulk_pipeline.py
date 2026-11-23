@@ -234,6 +234,25 @@ class BulkPipeline:
         # version, file, source, reason, pinned, the run it was planned for,
         # the tool table it read. None: nothing published.
         self.published_origin: Optional[dict] = None
+        # The program IDENTITY of the published payload (P2b-F1-1, Codex R449
+        # MT449-02): `<epoch>.<program generation>` of the generation the
+        # parse was SPAWNED under — None: nothing published, or a pipeline
+        # without a generation (a test's). `epoch` is the gateway process's.
+        self.epoch: str = ""
+        self.published_program: Optional[str] = None
+        # What GET /preview serves, as ONE tuple (version, program_id, gz,
+        # raw), rebound at a publication and at a clear — the route reads it
+        # once (F1-1 V4: body, version and identity never from two reads).
+        self.preview_served: Optional[tuple] = None
+        # The active program's identity now (the gateway's LoadedProgram) —
+        # None: no getter (a test's pipeline: every publication counts as
+        # the active program's).
+        self.get_active_program: Optional[Callable[[], Optional[str]]] = None
+        # The begin admission of an unpinned job (F1-1 V5a, Codex R450
+        # MT450-01): a CURRENT controller read right before the job's first
+        # live-basis read — None when it may begin, else why not
+        # ("running" / "moving" / "unread"). None: no admission (a test's).
+        self.admit_begin: Optional[Callable[[], Optional[str]]] = None
         # Parse-time rotary seed of the published payload (W6), from the
         # worker's `__ABCSEED__` stderr line: {letter: degrees} the sync
         # initcode posed uncommanded rotaries at. The same idle drift edge
@@ -363,6 +382,19 @@ class BulkPipeline:
         return start_tlo_seed(getattr(stat, "tool_offset", None), getattr(stat, "gcodes", None),
                               getattr(stat, "axis_mask", 0))
 
+    def published_is_active(self) -> bool:
+        """Is the published payload the ACTIVE program's (P2b-F1-1)? The
+        same identity — never by the path; null is never a match. Without a
+        getter (a test's pipeline) it is."""
+        if self.get_active_program is None:
+            return True
+        active = self.get_active_program()
+        return active is not None and active == self.published_program
+
+    def program_id_of(self, gen_at: Optional[tuple]) -> Optional[str]:
+        """The identity a parse spawned under `gen_at` publishes for."""
+        return f"{self.epoch}.{gen_at[0]}" if gen_at is not None else None
+
     def preview_available(self) -> bool:
         """A preview is servable when either variant exists — the raw copy is
         dropped once the gz exists (every real browser sends Accept-Encoding:
@@ -430,6 +462,8 @@ class BulkPipeline:
         self.published_tlo = None
         self._set_tool_basis(None)
         self.published_origin = None
+        self.published_program = None
+        self.preview_served = None
         self.published_rotary_seed = None
         self.published_kins_seed = None
         self.published_wcs_off = None
@@ -576,7 +610,8 @@ class BulkPipeline:
         guard (the tool table, the WCS snapshot, the soft-limit window, and
         `open_drift`, the caller's own: the toolsetter book). Whatever cannot
         be compared is not verified."""
-        if not filepath or self.last_file != filepath or not self.preview_available():
+        if (not filepath or self.last_file != filepath or not self.preview_available()
+                or not self.published_is_active()):
             return False, "no publication of this program"
         if self.refresh_running or self.reparse_pending:
             return False, "a parse runs or is pending"
@@ -658,7 +693,8 @@ class BulkPipeline:
         when nothing, or no parameter basis, is published for this file."""
         base = self.published_ctx
         params = self.published_params
-        if not base or base.get("file") != filepath or not params or params.get("text") is None:
+        if (not base or base.get("file") != filepath or not params or params.get("text") is None
+                or not self.published_is_active()):
             return None
         ctx = dict(base)
         ctx["param_text"] = params["text"]
@@ -757,6 +793,7 @@ class BulkPipeline:
         reason can mask a file change — the operator waits for that preview,
         it keeps its normal priority."""
         return (self.last_file == filepath and self.preview_available()
+                and self.published_is_active()
                 and mtime is not None and self.last_mtime == mtime)
 
     def preview_refresh_status(self) -> Optional[dict]:
@@ -768,6 +805,8 @@ class BulkPipeline:
         if inf is None or not self.refresh_running:
             return None
         return {"reason": inf.get("reason"), "file": os.path.basename(inf.get("file") or ""),
+                # the identity this parse publishes for (P2b-F1-1)
+                "program_id": self.program_id_of(inf.get("gen")),
                 "expected_ms": inf.get("expected_ms"), "started_ms": inf.get("started_ms"),
                 # the parse job (the trace's `job`): the page names the parse
                 # it saw by it (Codex R185 — no ±50 ms match on started_ms)
@@ -810,6 +849,23 @@ class BulkPipeline:
         # program hashes in ~0.2 s, the GIL released.
         _source_at_parse = await asyncio.to_thread(program_source, filepath)
         try:
+            # The begin admission (P2b-F1-1 V5a, Codex R450 MT450-01): after
+            # every async step before it (the source hash) and BEFORE the
+            # first read of the live basis, on a CURRENT controller read —
+            # an unpinned parse never reads its basis under a run or a move,
+            # however long the job waited between its schedule and here (a
+            # start from AUTO bumps no generation). Refused: no worker, no
+            # publication, the job's end named; the next schedule of this
+            # program generation is a RESTART and waits, named.
+            if not pinned and self.admit_begin is not None:
+                _refused = self.admit_begin()
+                if _refused:
+                    _gen_published["why"] = f"refused:{_refused}"
+                    self.reparse_pending = True
+                    self.reparse_pending_reason = reason
+                    _trace.emit("gcode.parse_refused_at_begin", job=job, file=os.path.basename(filepath),
+                                reason=reason, why=_refused)
+                    return
             stat = self._get_stat()
             ini_path = getattr(stat, "ini_filename", None) if stat is not None else None
             if not ini_path:
@@ -913,7 +969,7 @@ class BulkPipeline:
                                   "wcs_off": _seed_wcs, "rotary_seed": _seed_rot,
                                   "tlo_seed": _tlo_seed}) or "")[:12]
             self.inflight = {
-                "job": _job, "basis": _basis, "gen": _gen_at,
+                "job": _job, "basis": _basis, "gen": _gen_at, "program_id": self.program_id_of(_gen_at),
                 "file": filepath, "mtime": _mtime_at_parse, "reason": reason,
                 "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
                 "expected_ms": expected_ms,
@@ -1197,8 +1253,10 @@ class BulkPipeline:
                             self.tool_basis_rev != fr["tool_basis_rev"]):
                         _binding["lost"] = (fr["run_id"], cur.get("run_id"))
                         _binding["for_run"] = fr = None
+                self.published_program = self.program_id_of(_gen_at)
                 self.published_origin = {
                     "version": self.preview_version + 1, "file": filepath,
+                    "program_id": self.published_program,
                     "source": self.published_source, "reason": reason, "pinned": bool(pinned),
                     "for_run": fr,
                     # the tool table the parse actually read (its __TLO__ meta)
@@ -1210,6 +1268,9 @@ class BulkPipeline:
                 self.last_file = filepath
                 self.last_mtime = _mtime_at_parse
                 self.preview_version += 1
+                # what GET /preview serves: ONE tuple, rebound last (F1-1 V4)
+                self.preview_served = (self.preview_version, self.published_program,
+                                       self.preview_bytes_gz, self.preview_bytes)
             if not self._publish_in_generation(_gen_at, _apply, _job, filepath, "publish"):
                 _gen_published["why"] = "discarded"
                 return

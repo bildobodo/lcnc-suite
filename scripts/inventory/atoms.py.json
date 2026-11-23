@@ -691,6 +691,10 @@
      "id": "status:data.program_elapsed_ms"
     },
     {
+     "id": "status:data.program_id",
+     "unread": true
+    },
+    {
      "id": "status:data.program_unconfirmed"
     },
     {

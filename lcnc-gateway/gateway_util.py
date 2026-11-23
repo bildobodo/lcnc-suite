@@ -17,7 +17,7 @@ import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 
 # File-upload allow-list. Lives here (not gateway.py) so validate_extension is
@@ -357,6 +357,17 @@ class LoadedProgram:
 
     def __init__(self):
         self.loaded = None
+        # The program IDENTITY (P2b-F1-1, Codex R449 MT449-02): the program
+        # generation THIS load began under — a reload of the same path and
+        # A→B→A are new loads — and whether this process wrote it (a
+        # restored record is no own load: its first parse is a restart).
+        self.loaded_gen = None
+        self.loaded_own = False
+        self._pending_gen = None      # the generation of the load in flight
+        self.last_requested_gen = None
+        # the program generation now (the gateway's Generation; a restore
+        # takes it at the first sight)
+        self.gen_now: Callable[[], int] = lambda: 0
         self.unconfirmed = None   # first sight without proof: the open file, named
         self.seen = False
         self._record = None       # (loaded,) — the gateway's own record for this instance
@@ -392,7 +403,29 @@ class LoadedProgram:
         self._pending = (loaded, now + LOAD_WINDOW_S)
         self._pending_before = canonical_path(before or None)
         self._pending_opened = None
+        self._pending_gen = None
         self._unresolved = None
+
+    def note_load_gen(self, gen):
+        """The load's own program generation, in its write thread right
+        before the open (gateway `_program_began`): one rebind."""
+        self._pending_gen = gen
+        self.last_requested_gen = gen
+
+    def _adopt_pending(self):
+        # the load in flight is the loaded program now — its own identity
+        self.loaded_gen = self._pending_gen if self._pending_gen is not None else self.gen_now()
+        self.loaded_own = self._pending_gen is not None
+        self._pending_gen = None
+
+    def program_id(self, epoch):
+        """The loaded program's identity `<epoch>.<gen>` — None while no
+        program is proven: nothing loaded, a change pending or unresolved,
+        an unconfirmed open file."""
+        if (self.loaded is None or self.loaded_gen is None or self.change_pending
+                or self.unconfirmed is not None):
+            return None
+        return f"{epoch}.{self.loaded_gen}"
 
     def confirm_open(self, ok):
         """The open's own status: done, or refused — then the interpreter's
@@ -411,9 +444,11 @@ class LoadedProgram:
         """A change that may have reached the interpreter ended without its
         outcome (refused, or an unload cancelled or failed on its way)."""
         self.loaded, self._pending, self._unresolved = None, None, why
+        self.loaded_gen, self.loaded_own, self._pending_gen = None, False, None
 
     def request_unload(self):
         self.loaded, self._pending, self.seen, self.unconfirmed = None, None, True, None
+        self.loaded_gen, self.loaded_own, self._pending_gen = None, False, None
         self._unresolved = None
 
     def update(self, raw_file, interp_idle, now):
@@ -430,6 +465,8 @@ class LoadedProgram:
             recorded = self._record[0] if self._record else None
             if recorded is not None:
                 self.loaded = recorded
+                # restored, not loaded by this process (P2b-F1-1)
+                self.loaded_gen, self.loaded_own = self.gen_now(), False
                 events.append(("status.program_restored", {"path": os.path.basename(recorded)}))
                 if canon != canonical_path(recorded):
                     events.append(("status.file_flip_ignored",
@@ -456,14 +493,17 @@ class LoadedProgram:
         if raw is None:
             if interp_idle:
                 self.loaded, self._ignored, self.unconfirmed = None, None, None
+                self.loaded_gen, self.loaded_own = None, False
             return events
         if canon == canonical_path(self.loaded):
             self._ignored = None
             if self._pending is not None and self._pending[0] == canon and self._open_proven(canon):
                 self._pending = None    # a reload of the same program, opened
+                self._adopt_pending()   # ... and a new load (P2b-F1-1)
             return events
         if self._pending is not None and self._pending[0] == canon and self._open_proven(canon):
             self.loaded, self._pending, self._ignored, self.unconfirmed = raw, None, None, None
+            self._adopt_pending()
             return events
         if self.unconfirmed is not None and interp_idle and raw != self.unconfirmed:
             # Still unproven: the candidate is what the interpreter has open.
@@ -2258,11 +2298,27 @@ def evaluate_wcs_offset_drift(snap_flat, live_flat, eps=1e-3):
 
 
 
-def preview_file_changed(active_file, mtime, last_file, last_mtime) -> bool:
+_NO_IDENTITY = object()
+
+
+def preview_file_changed(active_file, mtime, last_file, last_mtime,
+                         program_id=_NO_IDENTITY, published_program=None) -> bool:
     """The poller's file edge (F-LOAD.S3): the loaded program is another path
     than the published one, or the same path with another mtime — a reload
     after an in-place edit (the editor's Save, an external edit) re-parses; the
-    same path at the same mtime does not (the Reparse action is for that)."""
+    same path at the same mtime does not (the Reparse action is for that).
+
+    With the program IDENTITY (P2b-F1-1, Codex R449/R450 C1): the edge is
+    another identity than the published one — a reload of the same path and
+    A→B→A are new loads, each parses its own — and within ONE identity the
+    path/mtime edge above; no edge while no program is proven (`program_id`
+    None: the load window — a parse there would read the old path under the
+    new generation)."""
+    if program_id is not _NO_IDENTITY:
+        if not active_file or not program_id:
+            return False
+        if program_id != published_program:
+            return True
     return bool(active_file) and (active_file != last_file or mtime != last_mtime)
 
 

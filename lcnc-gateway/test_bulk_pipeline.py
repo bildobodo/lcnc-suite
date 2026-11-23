@@ -1057,7 +1057,7 @@ class TestRunBinding(unittest.TestCase):
         self._load()
         o = self.b.preview_origin_status()
         rows = hashlib.sha256(json.dumps([[13, 0.0, 0.0, 48.2, 8.0]]).encode()).hexdigest()[:16]
-        self.assertEqual(o, {"version": self.b.preview_version, "file": self.ngc,
+        self.assertEqual(o, {"version": self.b.preview_version, "file": self.ngc, "program_id": None,
                              "source": program_source(self.ngc), "reason": "file", "pinned": False,
                              "for_run": None, "table": {"mtime": 5.0, "rows": rows},
                              "tool_basis_rev": self.b.tool_basis_rev,

@@ -285,6 +285,10 @@ class TestEdges(_BasisCase):
         gateway._bulk.published_toolsetter = {"routine": True, "writes": []}
         gateway._bulk.published_ctx = {"toolsetter": {"version": gateway._ts_basis_version}}
         gateway._bulk.last_file = "/p.ngc"
+        # the published payload is the loaded program's own (P2b-F1-1: by identity)
+        _own = mock.patch.object(gateway._bulk, "published_is_active", return_value=True)
+        _own.start()
+        self.addCleanup(_own.stop)
 
     def test_a_changed_basis_re_parses_a_program_that_runs_the_routine_once(self):
         self.assertIsNone(gateway._ts_drift_reason())
@@ -427,6 +431,10 @@ class _HoldBase(_BasisCase):
         gateway._bulk.published_toolsetter = {"routine": True, "writes": []}
         gateway._bulk.last_file = "/p.ngc"
         gateway._bulk.published_source = "src-1"
+        # the published payload is the loaded program's own (P2b-F1-1: by identity)
+        _own = mock.patch.object(gateway._bulk, "published_is_active", return_value=True)
+        _own.start()
+        self.addCleanup(_own.stop)
         self.events = []
         real = gateway._trace.emit
 
