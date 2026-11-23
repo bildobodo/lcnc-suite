@@ -176,7 +176,7 @@ const params = ref({ ...PROBE_PARAMS });
 // The states the plan proposes, set from the test page:
 // window.__p5set({ cal: "pending", field: "draft" }).
 type P5Cal = "idle" | "pending" | "applied" | "applied_saved" | "discarded" | "failed" | "stale";
-type P5Field = "saved" | "draft" | "confirmed" | "refused";
+type P5Field = "saved" | "draft" | "confirmed" | "disarmed" | "refused";
 const p5 = ref<{ cal: P5Cal; field: P5Field }>({ cal: "idle", field: "confirmed" });
 (window as unknown as { __p5set?: (s: Partial<{ cal: P5Cal; field: P5Field }>) => void }).__p5set =
   (st) => { p5.value = { ...p5.value, ...st }; };
@@ -1280,15 +1280,15 @@ function fmtR(key: string): string {
          probeFields.ts — design wave D4) -->
     <div class="formGrid">
       <div class="sub">Parameters</div>
-      <div v-if="p5.field === 'refused'" class="statusNote error wide" role="alert" data-p5="line">
-        <span>Slow Feed not saved: Not armed — press Arm. On the machine: 25.0 (written 05:12).</span>
-      </div>
-      <div v-else class="settingDesc" data-p5="line">{{
-        p5.field === 'draft' ? 'Slow Feed not saved yet · on the machine: 25.0 (written 05:12)'
-        : p5.field === 'saved' ? 'Saved — written to the machine with the next probe'
-        : 'On the machine — written 05:12' }}</div>
+      <!-- ONE section line, always one line (operator 2026-11-23: no text under
+           a field, one fact in one place, no layout shift): what the machine
+           holds — or a real server refusal. The field carries only its bar. -->
+      <div class="settingDesc" :class="{ 'text-danger': p5.field === 'refused' }" data-p5="line">{{
+        p5.field === 'refused' ? 'Not saved: changed elsewhere — reload'
+        : p5.field === 'saved' ? 'Saved · the next probe writes it'
+        : 'On the machine · 05:12' }}</div>
       <FormField v-for="(f, i) in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)"
-                 :state="p5FieldState(i)" :error="p5FieldState(i) === 'refused' ? 'Not saved — press Arm' : null">
+                 :state="p5FieldState(i)">
         <template #default="{ input }">
           <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
                         :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
