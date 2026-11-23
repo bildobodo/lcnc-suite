@@ -133,12 +133,25 @@
  },
  "parse_basis_warm_quiet_s": 8.4,
  "parse_basis_file": "native_parse_basis.ngc",
- "note": "parse-basis.nice is incomplete: no drift re-parse fell inside the three-op window (the warm-up's WCS parse, job 2 wcsoff:G54:z, ran before it; the three ops with unchanged values parsed nothing) - nothing to judge, so the variant's verdict is incomplete, not FAIL",
+ "note": "parse-basis.nice is NOT EXERCISED, not failed: its window holds no drift parse to judge. At P2a's head run (parse-basis.head-run.json) the same three probe ops caused 6 tool_offset drift re-parses inside the window - the routine's own G43/G49 moved the tool offset between its writes, and the idle edge fired between them. Under P2b no parse starts while an input action is held or observed, and every idle edge waits for the open read-back (gcode.reparse_edge_held tool_offset at 72.02 s); after the op and its read-back the offset is back, so nothing drifts and nothing parses - the removal of those 6 parses is P2b's intended effect. The priority rule itself (P2a-3) is unchanged code and was exercised in the same run outside the window: the warm-up's drift parse (job 2, wcsoff:G54:z) asked nice 19 and its worker applied 19. The row need not PASS for P2b; the variant's verdict is `incomplete` for that reason only (its P2a row PASS).",
  "decision_timing_s": {
   "probe_run end -> its read-back's end": 2.04,
   "read-back end -> WCS edge decided (parse job 2)": 2.01,
   "probe_run end -> WCS edge decided": 4.05,
   "why the page waits no fallback here": "the read-back's own action end (a synch, an input write) opens a NEWER decision 2.04 s after the probe's end; the page's wait follows the newer generation (its 3 s run from there) and the decision came 2.01 s into it",
   "the extended hold": "gcode.reparse_edge_held {why: tool_offset} at 72.02 s: an idle edge held by the open read-back (P2b-2's 30 s hold for every edge)"
+ },
+ "warmup_drift_parse": {
+  "job": 2,
+  "reason": "wcsoff:G54:z",
+  "nice_asked": 19,
+  "nice_applied": "19"
+ },
+ "p2a_head_run_comparison": {
+  "file": "parse-basis.head-run.json",
+  "parses_in_window": {
+   "tool_offset": 6
+  },
+  "nice": "PASS 6/6"
  }
 }
