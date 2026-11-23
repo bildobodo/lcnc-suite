@@ -302,8 +302,10 @@ class ActionLedger:
         """A FILE writer's effect begins (Codex R446 MT-I25): a PENDING
         observer — of the running action, else of an action of its own (an
         HTTP writer has no queue hold) — ended only at the writer's ACTUAL
-        end (end_file) or, past its limit, `unknown`. The 2 s quiet and the
-        next drift decision start at that end, never at the begin."""
+        end (end_file). Past its limit it is named once (`action.file_overdue`)
+        and keeps holding until that end (Codex R447/R448); a controller
+        abort (end_all) never ends it. The 2 s quiet and the next drift
+        decision start at that end, never at the begin."""
         with self._lock:
             if action is None:
                 self._seq += 1
