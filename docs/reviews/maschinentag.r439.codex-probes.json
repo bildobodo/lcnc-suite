@@ -1,0 +1,104 @@
+{
+  "scope": "Actual source in an isolated VM with synthetic timers/import dependencies; no browser, socket, controller or planned implementation executed.",
+  "base": "594e333c",
+  "hashes": {
+    "jogLease.ts": "9dd09a462fc6014f27e1234c502a4bef26e67db653d142a2dc1ab193b98eac03",
+    "probeVars.ts": "21cdb43f534aee1d30970d3ac0eb2879c82386b7231cf2bf571d2e5f7f9b0cef"
+  },
+  "jog": [
+    {
+      "mutation": "none",
+      "step": 100,
+      "productPeriod": 100,
+      "counts": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "proposedCountAssertion": true,
+      "allNameLease": true,
+      "end": [
+        {
+          "cmd": "jog_lease_end",
+          "lease": 1
+        }
+      ],
+      "renewalsAfterRelease": 0,
+      "timersAfterRelease": 0
+    },
+    {
+      "mutation": "period200",
+      "step": 200,
+      "productPeriod": 200,
+      "counts": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "proposedCountAssertion": true,
+      "allNameLease": true,
+      "end": [
+        {
+          "cmd": "jog_lease_end",
+          "lease": 1
+        }
+      ],
+      "renewalsAfterRelease": 0,
+      "timersAfterRelease": 0
+    },
+    {
+      "mutation": "period200",
+      "step": 100,
+      "productPeriod": 200,
+      "counts": [
+        0,
+        1,
+        1,
+        2,
+        2
+      ],
+      "proposedCountAssertion": false,
+      "allNameLease": true,
+      "end": [
+        {
+          "cmd": "jog_lease_end",
+          "lease": 1
+        }
+      ],
+      "renewalsAfterRelease": 0,
+      "timersAfterRelease": 0
+    },
+    {
+      "mutation": "noClearInterval",
+      "step": 100,
+      "productPeriod": 100,
+      "counts": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "proposedCountAssertion": true,
+      "allNameLease": true,
+      "end": [
+        {
+          "cmd": "jog_lease_end",
+          "lease": 1
+        }
+      ],
+      "renewalsAfterRelease": 0,
+      "timersAfterRelease": 1
+    }
+  ],
+  "calibrationMap": {
+    "savedCalOffset": 0.2,
+    "localDraft": 0.05,
+    "sent3032": 0.05,
+    "observation": "calibrationVarMap still sends the local draft #3032 before the routine; removing writes inside the routine alone does not preserve the prior controller value."
+  }
+}

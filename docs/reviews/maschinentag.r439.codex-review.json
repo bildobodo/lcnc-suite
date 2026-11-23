@@ -1,0 +1,101 @@
+{
+  "round": "R439",
+  "date": "2026-11-23",
+  "verdicts": {
+    "part1": "findings",
+    "P2b-1_direction": "agreement with stated preservation/acceptance rules",
+    "part2": "findings",
+    "part3": "findings"
+  },
+  "document_head": "ede2c35c12ca717f6346d81a82f1245ceda99b35",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "review_before_sha256": "699f2a8fb7b338df98c443da2ea7bed86cf18c9005a03cb6f1184e2d1d4c75d7",
+  "append_sha256": "d0cfc6bbfc1b11bf7bf7210957b3a39693c076a8f796c828c894175bf5ee3d9f",
+  "code": {
+    "lcnc-gateway/gateway.py": "cf8e886d6f0f27e8bf57a0ca4218a1ec884c78588da35e27f322080546e5e365",
+    "lcnc-gateway/bulk_pipeline.py": "3d6a24e0a439ee4657313eec8f697c38be58b480072f18e7c3fddef09eee48f7",
+    "lcnc-gateway/settings_store.py": "215e4684714022ebc0885e6a2684cba0ea1310afdf59e46ab520e027ac2df989",
+    "lcnc-webui/src/ThreeViewer.vue": "92c5b959babc9065c07ab9d001f549663e81f895561c852318c2d9ae144b5dc2",
+    "lcnc-webui/src/viewer/collision.ts": "2aabc6a6a9aa4165fce285be2d58719ad74d84a37d17732faed6f020bccb410e",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "39eab92d9a224e23304bb5f6f475a146b6ea86d144324bda4beb6b0131db9b85",
+    "lcnc-webui/src/jogLease.ts": "9dd09a462fc6014f27e1234c502a4bef26e67db653d142a2dc1ab193b98eac03",
+    "lcnc-webui/e2e/holdClock.ts": "fa620ef44db9256c088f5cc4bd5275c0b4219ca24dbc0469fc542720fbe51866",
+    "lcnc-webui/e2e/jog-lease.spec.ts": "b9cc4f54b491f31a41a72c822d5ea7d1cd72cfd55ec12ee0f7297254a5bc64a5",
+    "lcnc-webui/src/ProbePanel.vue": "22593dfc863845a554b55f3904d161541e32e0698050ad5269711bed7cad4f61",
+    "lcnc-webui/src/probeVars.ts": "21cdb43f534aee1d30970d3ac0eb2879c82386b7231cf2bf571d2e5f7f9b0cef",
+    "lcnc-webui/src/defaults.ts": "3edb5c9eff2cf2ac3400317583b2fde80575f5bbff8de2bb4dd596e64a52a167",
+    "lcnc-webui/src/settingsSaveStatus.ts": "397e2980b0c57bc6714518ba819062bcafcf0a91292fac8d7ac147fdf65819b5"
+  },
+  "findings": [
+    {
+      "id": "MT439-01",
+      "subject": "Invalidate before first effect; distinguish queued action ownership and actual write; cover non-NML writers"
+    },
+    {
+      "id": "MT439-02",
+      "subject": "3-second fallback contradicts never-before-publish/no-early-cancel claims"
+    },
+    {
+      "id": "MT439-03",
+      "subject": "Imported product period moves test oracle; no-clearInterval is wire-equivalent for the stated stop assertion"
+    },
+    {
+      "id": "MT439-04",
+      "subject": "Pausing after lease start leaves queued pre-pause arrivals and unsettled timer phase"
+    },
+    {
+      "id": "MT439-05",
+      "subject": "Candidate value without end-to-end run identity cannot distinguish old same-Link result"
+    },
+    {
+      "id": "MT439-06",
+      "subject": "Calibration parameter prelude still writes draft #3032; define active-offset ownership across callers and clients"
+    },
+    {
+      "id": "MT439-07",
+      "subject": "Separate settings commit, controller write and persistence outcomes; serialize candidate consumption"
+    },
+    {
+      "id": "MT439-08",
+      "subject": "Field acknowledgement and controller booking need revision/value/subset identity"
+    }
+  ],
+  "own_checks": {
+    "isolated_source_probe": "probe.cjs: TypeScript transpilation with ES2022 target, VM mocks, synthetic timers; assertions passed",
+    "initial_harness_issue": "Initial transpile target defaulted to ES5 and failed to represent Map iterator spread; that output is retained and not used as product evidence; corrected and added allNameLease assertion.",
+    "commands": [
+      "node /tmp/r439/probe.cjs /tmp/r439/base /tmp/r438/head/lcnc-webui/node_modules/typescript/lib/typescript.js"
+    ],
+    "lock": "Both short source runs under scripts/test_support/heavy_lock.py, codex-r439-plan-probes, completed and released",
+    "browser_run": false,
+    "native_run": false,
+    "live_connection": false,
+    "product_changes": false,
+    "new_operator_questions": [],
+    "limitations": [
+      "Plan review; source probes do not execute the proposed implementation or browser clock/transport",
+      "No raw machine trace re-evaluation",
+      "No product gate repeated",
+      "No rendering/layout acceptance; only two named prototype crops inspected"
+    ]
+  },
+  "local_sources": {
+    "/home/cnc/claude-work/p2b/analyze_builds.py": {
+      "sha256": "d5c9843567b98f4bba2f25a3b04bcede19fa3c4525b6a82f4ee6f94ae7157e2e",
+      "use": "Read aggregation code only; raw trace not copied/reprocessed"
+    },
+    "/home/cnc/claude-work/p5/renderings/cal-pending-narrow.png": {
+      "sha256": "030202daf6cd737b6a2b585f7374c6339233759dd8f010f54c00c5dbbe9ce84e",
+      "use": "Visually inspected prototype crop, no acceptance test"
+    },
+    "/home/cnc/claude-work/p5/renderings/field-refused-narrow.png": {
+      "sha256": "312edf6ff9737155a73ed3684a205072a80245b6d9476bb90cc64e4299990a68",
+      "use": "Visually inspected prototype crop, no acceptance test"
+    }
+  },
+  "evidence": {
+    "maschinentag.r439.codex-probe.cjs": "3309af2ab331024a46b7e84aae656a10856fd5f052936aa59b662d5a78727746",
+    "maschinentag.r439.codex-probes.json": "786da74da600127b1e690ceda09298fc9a8f8cce6faedae141563be620976e94",
+    "maschinentag.r439.codex-probe-initial-harness.json": "8642cec402aa226b965578d37c32f9622c2abe4e3785d5f8de79e3dea299617d"
+  }
+}
