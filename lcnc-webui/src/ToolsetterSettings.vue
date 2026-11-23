@@ -159,10 +159,21 @@ const g30Context = (): G30Context => ({ units: props.linearUnit, kinsType: kinsT
 // line only when no newer reply is shown and in its connection and units,
 // the draft only when it is still the one the request was sent with.
 let draftRev = 0, reqSeq = 0, appliedSeq = 0;
+// The ENTRIES apart from the draft's revision (Codex R437 MT-I23): an
+// operator entry and a captured position count — a Discard does not (it
+// puts the draft back to the stored values, no entry). A reply that brings
+// new stored values replaces the draft only where nothing was entered since
+// its request AND the draft shows no difference: an entry that happens to
+// equal the old stored value is still the operator's newer entry.
+let entryRev = 0;
+// A Discard while a capture is out drops that capture without a word (the
+// operator asked for the stored values) — MT-I22.
+let discardSeq = 0;
 /** An operator entry into a G30 field (the v-model.number cast, and an edit). */
 function editDraft(letter: string, v: string | number | null | undefined) {
   g30Draft[letter] = v == null || v === "" ? null : Number(v);
   draftRev++;
+  entryRev++;
 }
 const ticket = (): G30Ticket => ({ seq: ++reqSeq, rev: draftRev, ctx: g30Context() });
 const applies = (t: G30Ticket) => replyApplies(t, { appliedSeq, rev: draftRev, ctx: g30Context() });
@@ -193,12 +204,14 @@ function takeStored(t: G30Ticket, values: G30Values | undefined, state: "file" |
 
 async function loadG30() {
   const t = ticket();
+  const e0 = entryRev;
   try {
     const data = await fetchG30();
     const may = applies(t);
     if (data.ok) {
       if (!may.stored) return;   // a newer reply is shown already
-      const keep = g30Dirty.value;      // an entry stays a draft (P4-6, F17)
+      // an entry stays a draft (P4-6, F17; R437 MT-I23: one made during the read too)
+      const keep = g30Dirty.value || entryRev !== e0;
       takeStored(t, data.values, "file");
       g30StoredAt.value = data.mtime_ms ?? null;
       if (!keep) resetG30Draft();
@@ -227,22 +240,27 @@ async function g30Request(msg: { cmd: "read_g30" } | { cmd: "capture_g30" } | { 
  *  draft revision is gone); a SENT save is waited for — Discard does not
  *  abort a write, and its outcome stays shown. */
 const g30DiscardWhy = computed(() => g30Op.value === "save" ? "Saving — wait for the answer" : undefined);
+/** Something to discard: a draft that differs, or a capture still out —
+ *  also from an unchanged draft (Codex R437 MT-I22) — and no sent save. */
+const g30DiscardOpen = computed(() => (g30Dirty.value || g30Op.value === "capture") && g30Op.value !== "save");
 function discardG30() {
-  if (!g30Dirty.value || g30Op.value === "save") return;
+  if (!g30DiscardOpen.value) return;
   resetG30Draft();
   draftRev++;
+  discardSeq++;
   g30Note.value = null;
 }
 
 async function refreshG30() {
   const t = ticket();
+  const e0 = entryRev;
   const r = await g30Request({ cmd: "read_g30" });
   const may = applies(t);
   if (r?.ok) {
     if (!may.stored) return;
     // An entry stays a draft — typed BEFORE the press as well as during the
     // read (P4-6, machine day F17: Refresh reset a draft typed before it)
-    const keep = g30Dirty.value;
+    const keep = g30Dirty.value || entryRev !== e0;   // R437 MT-I23
     takeStored(t, r.values, "confirmed");
     if (!keep) { resetG30Draft(); g30Note.value = null; }
     else g30Note.value = { kind: "warn", text: "Stored G30 refreshed — your entry stays a draft" };
@@ -254,6 +272,7 @@ async function refreshG30() {
 
 async function captureG30() {
   const t = ticket();
+  const d0 = discardSeq;
   const r = await g30Request({ cmd: "capture_g30" });
   if (!r?.ok || !r.current) {
     g30Note.value = { kind: "error", text: r?.error ?? "No reply — nothing taken over" };
@@ -261,6 +280,7 @@ async function captureG30() {
   }
   // The position belongs to the request's frame, units and connection, and
   // to the draft as it was: another one takes nothing over.
+  if (discardSeq !== d0) return;   // discarded while it was out: nothing taken, nothing to say
   if (!applies(t).draft) {
     g30Note.value = { kind: "warn", text: contextChanged(t.ctx, g30Context())
       ? "Capture dropped — units or kinematics changed" : "Capture dropped — the draft was edited meanwhile" };
@@ -268,6 +288,7 @@ async function captureG30() {
   }
   for (const l of g30Letters.value) g30Draft[l] = r.current[l] ?? null;
   draftRev++;
+  entryRev++;
   g30DraftContext.value = t.ctx;
   // The basis stays: a stored value that moved meanwhile is said, never
   // swapped in silently (Codex R22 OP22-02).
@@ -371,7 +392,7 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
       <MachineBtn type="g30Save" :disabled="g30Busy || 'error' in g30SaveCheck"
                   :reason="'error' in g30SaveCheck ? g30SaveCheck.error : undefined" @click="saveG30">Save G30</MachineBtn>
       <MachineBtn type="g30Read" :disabled="g30Busy" @click="refreshG30">Refresh</MachineBtn>
-      <MachineBtn type="g30Discard" :disabled="!g30Dirty || !!g30DiscardWhy" :reason="g30DiscardWhy"
+      <MachineBtn type="g30Discard" :disabled="!g30DiscardOpen" :reason="g30DiscardWhy"
                   aria-label="Discard G30 draft" @click="discardG30">Discard</MachineBtn>
     </div>
     <div v-if="g30Note" class="statusNote wide" :class="g30Note.kind" :role="g30Note.kind === 'ok' ? undefined : 'alert'"><span>{{ g30Note.text }}</span></div>

@@ -301,9 +301,73 @@ test("Discard while a capture is out: the capture takes nothing over", async ({ 
   await discard(page).click();
   expect(await values(page)).toEqual(["100", "0", "-26.275"]);
   await deliver("capture_g30", { ok: true, confirmed: true, values: STORED, current: { X: 10, Y: 20, Z: -5 }, units: "mm" });
-  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Capture dropped — the draft was edited meanwhile");
+  await page.waitForTimeout(300);
+  expect(await values(page), "the discarded capture took nothing over").toEqual(["100", "0", "-26.275"]);
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)"), "discarded: nothing to say").toHaveCount(0);
+  expect((await sent()).map(c => c.cmd), "nothing written").toEqual(["capture_g30"]);
+});
+
+// Codex R437 MT-I22: a capture started from an UNCHANGED draft is itself
+// something to discard — the button opens while it is out.
+test("a capture from an unchanged draft can be discarded; it takes nothing over", async ({ page }) => {
+  await open(page, STORED);
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await expect(discard(page), "nothing to discard yet").toBeDisabled();
+  await page.getByRole("button", { name: "Use Current Position", exact: true }).click();
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("capture_g30");
+  await expect(discard(page), "the capture out is discardable").toBeEnabled({ timeout: 1500 });
+  await discard(page).click();
+  await deliver("capture_g30", { ok: true, confirmed: true, values: STORED, current: { X: 10, Y: 20, Z: -5 }, units: "mm" });
+  await page.waitForTimeout(300);
   expect(await values(page)).toEqual(["100", "0", "-26.275"]);
   expect((await sent()).map(c => c.cmd), "nothing written").toEqual(["capture_g30"]);
+});
+
+// Codex R437 MT-I23: an entry made DURING a read stays a draft even when it
+// equals the old stored value — Refresh, and the file read at a reconnect.
+test("Refresh keeps an entry made during it that equals the old stored value", async ({ page }) => {
+  await open(page, STORED);
+  await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("read_g30");
+  await enter(page, "X", 120);
+  await enter(page, "X", 100);
+  await deliver("read_g30", { ok: true, confirmed: true, values: { ...STORED, X: 105 } });
+  await expect(storedLine(page)).toHaveText("Stored: confirmed by LinuxCNC · draft not saved");
+  await expect(field(page, "X")).toHaveValue("100");
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Stored G30 refreshed — your entry stays a draft");
+});
+
+test("the file read after a units change keeps an entry made during it that equals what was shown", async ({ page }) => {
+  // loadG30 (R437 MT-I23): the units change reads the file again while the
+  // section still shows X = 100; an entry made during that read — 120, then
+  // 100 again, equal to what is shown — is the operator's and stays
+  let release!: () => void;
+  const held = new Promise<void>(r => { release = r; });
+  try {
+    await open(page, STORED);
+    await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
+    let reads = 0;
+    await page.route("**/g30*", async r => {             // the units change's read (X = 105), held
+      reads++;
+      await held;
+      await r.fulfill({ contentType: "application/json",
+        body: JSON.stringify({ ok: true, values: { ...STORED, X: 105 }, mtime_ms: Date.UTC(2026, 8, 28, 12, 6), units: "in" }) });
+    });
+    await ctl({ op: "setViewerInit", data: { units: "in", stl_base_url: "/machine/", parts: [], kinematics: [],
+      axes: ["X", "Y", "Z"], machine_bounds: { origin: [0, 0, 0], size: [100, 100, 100] }, ini_config: { linear_units: "in" } } });
+    await expect.poll(() => reads, { message: "the units change reads the file again" }).toBeGreaterThan(0);
+    await expect.poll(() => values(page), { message: "the section still shows the values" }).toEqual(["100", "0", "-26.275"]);
+    await enter(page, "X", 120);
+    await enter(page, "X", 100);
+    release();
+    await expect(storedLine(page)).toHaveText(/^Stored: as of LinuxCNC's last synch/);
+    await page.waitForTimeout(300);
+    await expect(field(page, "X"), "the entry made during the read stays").toHaveValue("100");
+    await expect(storedLine(page)).toHaveText(/· draft not saved$/);
+  } finally {
+    release();
+  }
 });
 
 test("Refresh keeps an entry typed BEFORE it (machine day F17)", async ({ page }) => {
