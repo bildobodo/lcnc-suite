@@ -1,0 +1,79 @@
+{
+  "round": "R445",
+  "date": "2026-11-23",
+  "verdict": "agreement",
+  "doc_head": "94cd0f275ae4cf386a7a248356871c07b678650c",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "review_head": "64bf95ae4d61e9c121192c646b1667036bd952db",
+  "scope": "jog-lease.spec hardening and documentation; complete named branch diff reviewed",
+  "source_hashes": {
+    "lcnc-webui/e2e/jog-lease.spec.ts": "ad5efdea805e5629aa3d68f2d8919b26c297405534bfb999b7dac18daa590f2a",
+    "lcnc-webui/e2e/holdClock.ts": "fa620ef44db9256c088f5cc4bd5275c0b4219ca24dbc0469fc542720fbe51866",
+    "lcnc-webui/e2e/mock-gateway.mjs": "d5b991c446b1612e31ddb3033dbb601f9d37859ccb7c96f591e7fd791258b0ea",
+    "lcnc-webui/src/jogLease.ts": "9dd09a462fc6014f27e1234c502a4bef26e67db653d142a2dc1ab193b98eac03",
+    "lcnc-webui/src/wsWorker.ts": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+    "lcnc-webui/package-lock.json": "637d721dbcf0c202073dfd26ebae3cc59ab6f71358a021d664bcfd7f958a9dbc",
+    "docs/testing.md": "212b45dd6de787e438eca4bf062937956a39ed4ac9d971f9a1216e7b0e6cd1f4"
+  },
+  "review_before_sha256": "aee9865d737eae64f51e15d406b18d65505ed0403296670a7894babe042c15b4",
+  "append_sha256": "ee70a4328cb1b6f2278ee4b4de4a0073bbfb5626b25d0d588f583eb3e8a6f3eb",
+  "evidence": {
+    "maschinentag.r445.codex-browser.json": "77fe05c7c00e78d426d5bfb6ff006f8b974de6a57ef927cbc2a92e94f1d7fb99",
+    "maschinentag.r445.codex-build.txt": "7b0d241ef60f9cbf7b15fda353bc536a5282c4eba390c523659c6e762d5b3c6a",
+    "maschinentag.r445.codex-bootstrap.txt": "bec00502482cabc4f31a8a87d89a9a4834482bc83970e2648205f99c71bbfdfb",
+    "maschinentag.r445.codex-fifo-probe.py": "2ffefda4978ade69deeef9f2083930320bd9a0b3d63e614338f19b8d37fdf825",
+    "maschinentag.r445.codex-fifo-results.json": "cebc33bcdaa8e9f0c28a36a7569165b692376a389b9a06980b5c4f1eaae0a236",
+    "maschinentag.r445.codex-fifo-wire.json": "17079ec7ff58945cf25cb490085e96ff93b9518785fc53162553f1bcd29cd1d2",
+    "maschinentag.r445.codex-fifo-red-browser.json": "4310ff301527ae530bd8b7d77fcb7262d320d1bb4fb6e3ac5f2752468b9eb682",
+    "maschinentag.r445.codex-fifo-control-browser.json": "398f69a1a7a70da725a7abf6d5ed448264faceea9501000aa782c451665e9a23",
+    "maschinentag.r445.codex-restored-build.txt": "f269e9105a4ed8cdba4887e2aa5aceef8c5c200a7ace3e380a4ac56a0f045694"
+  },
+  "provided_evidence_read": {
+    "jog-lease-hardening.mutations.py": "ae07642c8a2d8ef2eab86bc85eaf92aeefe7e4b945a821dfce954a935eeb2354",
+    "jog-lease-hardening.mutations.txt": "4d6030a90dbcb99c9430335c52b181f2a918da9dd52b863a1df1cba140d81875",
+    "jog-lease-hardening.load.sh": "20f339c3dd297afdaacae1ea3c1a53a42f6b6a0062db8574e4e6597529386ce3",
+    "jog-lease-hardening.load.json": "d8daa0f45e8c7611f892fa4b282cd8be1276e7d27e7a7ed39f856d1629e03235",
+    "jog-lease-hardening.gate-round1.json": "3c40abd7eb9509602434a5571319a7c36c32b7797b0c2b5c60e16d735422b7ad"
+  },
+  "provided_evidence_conclusions": {
+    "mutations": "5/5 at named assertion, scripts and result records inspected, not rerun",
+    "load": "All 30 new and 30 old cases passed; all reported, not rerun",
+    "gate": "PASS at 6b44c323; only gate record added through 64bf95ae"
+  },
+  "own_checks": {
+    "isolation": "git archive 64bf95ae at /tmp/r445/tree; independent copy of node_modules; sources matched to commit and restored after mutation",
+    "lock": "Official scripts/test_support/heavy_lock.py; codex-r445-browser-review and codex-r445-fifo-probe; completed, released",
+    "build": "npm run build passed before control, with mutation, and after restoration",
+    "bootstrap": {
+      "exit": 1,
+      "tests_executed": 0,
+      "reason": "Direct Playwright binary invocation omitted npm bin PATH for config webServer vite",
+      "correction": "npx --no-install playwright; no source changes"
+    },
+    "browser": {
+      "command": "CI=1 npx --no-install playwright test e2e/jog-lease.spec.ts --workers=1 --retries=0 --forbid-only --reporter=line,json",
+      "run": "codex-r445-control",
+      "stats": {
+        "startTime": "2026-11-23T06:31:00.730Z",
+        "duration": 30206.763000000003,
+        "expected": 9,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "fifo_counterexample": {
+      "queued_extra_renewal": "failed at final count, received 6 expected 5",
+      "without_final_counts": "same defect passed, sensitivity demonstrated",
+      "same_socket_order_observed": true
+    },
+    "limits": [
+      "Mock-only browser checks; no actual machine stop proof",
+      "No new native run",
+      "No full gate or repeated load/mutation suite",
+      "No live gateway connection; no product edits in live tree"
+    ]
+  },
+  "findings": [],
+  "operator_questions": []
+}

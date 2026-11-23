@@ -1,0 +1,5 @@
+[1A[2K[WebServer] /bin/sh: 1: vite: not found
+
+Error: Process from config.webServer was not able to start. Exit code: 127
+
+[1A[2K

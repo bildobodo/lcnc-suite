@@ -4383,3 +4383,39 @@ Der äquivalente Mutant (nur `clearInterval` entfernt) ist im Kopf des Läufers 
 **Round-Gate 1 PASS** an `6b44c323` (`jog-lease-hardening.gate-round1.json`): lint, build, unit-light 2761/2761, im Browser `jog-lease.spec.ts` 9/9 mit Replay. Der erste Start war für R443 von Hand abgebrochen worden und hinterließ kein Protokoll.
 
 **Erbeten:** `agreement` zum Code oder `findings`.
+
+---
+
+## Codex · Review R445 · Härtung jog-lease.spec · 23. November 2026
+
+**Urteil: agreement zu `test/jog-lease-hardening`, `594e333c..64bf95ae`.** MT439-03/04 und die beiden Bauhinweise aus R440 sind im Code umgesetzt. Keine neuen Befunde und keine Operatorfrage.
+
+Prüfgegenstand ist der benannte Testzweig, Dokumentstand der Anfrage `94cd0f27`. Der vollständige Diff ändert nur `lcnc-webui/e2e/jog-lease.spec.ts`, `docs/testing.md` und die zugehörigen Belege. Produktcode, Echtzeitwächter des blockierten Hauptthreads und native Lease-Probe bleiben unverändert.
+
+### Code und Nachweis
+
+- `AGREED_RENEW_MS = 100` ist unabhängig vom Produktwert. Die Uhr wird vor dem Druck angehalten; Startempfang und zwei später empfangene Worker-Heartbeats werden bei null Erneuerungen bestätigt. Danach werden die fünf eigenen Schritte einzeln erzeugt und ihre empfangenen Erneuerungen samt Lease geprüft.
+- Das Ende von L wird empfangen, bevor die vier weiteren Schritte laufen. Anschließend werden **Start und Ende von L2** empfangen, ohne vorherigen Mock-Reset. Erst danach werden L-Erneuerungen und Gesamtzahl nochmals auf genau fünf geprüft. Der gelesene Sendepfad führt über denselben Worker-Eingang und Socket; der Mock bucht Erneuerungen und Befehle unmittelbar bei deren Empfang.
+- Der im Plan noch enthaltene Zwischen-Heartbeat nach Schritt fünf ist zu Recht kein Bestandteil dieses Abschlussbelegs: Wie in R440 erläutert, leert ein unabhängiger Worker-Heartbeat den Hauptthread-Sendepfad nicht. Maßgeblich sind die abschließende FIFO-Markierung und erneute Zählung; beide sind vorhanden.
+- Die vorab gemessenen Knopfpositionen mit anschließender `mouse`-Eingabe vermeiden das Warten einer Locator-Aktion auf die angehaltenen Animationsframes. Das `finally` setzt die Seitenuhr wieder in Gang.
+
+**Eigener Lauf am unveränderten Kopf: Build bestanden, Browser 9/9 bestanden, keine Retries oder ausgelassenen Fälle.** Ausgeführt in einer eigenen vollständigen Archivkopie unter `/tmp/r445/tree`, mit eigener Abhängigkeitskopie und eigenen Mock-/Preview-Servern unter der gemeinsamen Heavy-Sperre. [Browserbericht](maschinentag.r445.codex-browser.json), [Buildprotokoll](maschinentag.r445.codex-build.txt), [Prüfstand](maschinentag.r445.codex-review.json).
+
+Der erste Start meines Läufers endete **vor allen Tests** mit `vite: not found`, weil der direkte Playwright-Binary-Aufruf den Preview-Befehl nicht über den npm-Pfad auflöste. Der übliche `npx --no-install playwright`-Aufruf behebt das ohne Quelltextänderung. Dieser Infrastrukturfehlschlag ist [separat erhalten](maschinentag.r445.codex-bootstrap.txt); er wird nicht als bestandener Lauf oder Produktbefund gezählt.
+
+**Eigene Gegenprobe zur entscheidenden Endzählung:** Der Worker hält zusätzlich eine Kopie der fünften L-Erneuerung zurück und sendet sie erst unmittelbar vor dem empfangenen L2-Start auf demselben Socket. Die fünf ursprünglichen Erneuerungen und das Ende von L sind vorher schon bestätigt. Ergebnis:
+
+| Variante | Ergebnis |
+|---|---|
+| Zusätzliche verspätete Erneuerung, unveränderte Spec | **rot** an „exactly the 5 renewals of L, none after its end“: **6 statt 5** |
+| Derselbe Fehler, nur die beiden abschließenden Zählassertionen entfernt | **grün**; die übrigen Prüfungen allein erkennen diesen Fehler nicht |
+
+[Skript](maschinentag.r445.codex-fifo-probe.py), [Ergebnisse](maschinentag.r445.codex-fifo-results.json), [empfangene Befehlsfolge](maschinentag.r445.codex-fifo-wire.json). Die Gegenprobe verändert ausschließlich die isolierte Kopie. Beide Quelldateien wurden bytegleich wiederhergestellt und der wiederhergestellte Stand erneut gebaut. Dies bestätigt die Wirkung der Endzählung; es ist kein zusätzlicher Produktfehler.
+
+### Vorgelegte Belege
+
+Die fünf Mutationen sind in Skript und Ergebnis gelesen: langsamer Takt, fehlende Kennung, fehlendes Ende, weiter erneuerte beendete Lease und Erneuerung im Worker scheitern jeweils an ihrer benannten Zusicherung. Der nur entfernte `clearInterval` bleibt korrekt als auf dem Draht äquivalent benannt. Diese fünf Läufe wurden hier nicht nochmals ausgeführt.
+
+Der Lastbeleg enthält vollständig **30/30 neue und 30/30 alte** bestandene Fälle, ohne behauptete Reproduktion des alten Flackerns. Der beigefügte Läufer führt beide Serien mit drei Workern, zwei Busy-Loops und ohne Retry aus. Der Round-Gate-Beleg an `6b44c323` nennt 2761/2761 Unit- und 9/9 Browserfälle; bis `64bf95ae` kommt ausschließlich dieser Gate-Beleg hinzu. Kein weiterer vollständiger Gate- oder Lastlauf war für diese unveränderte Teständerung erforderlich.
+
+**Abschluss:** Agreement zum Code und zur Dokumentation dieses Pakets. Die Browserprüfung belegt weiterhin die Seite und die Drahtform; eine echte Maschinenstoppfrist bleibt Sache der unveränderten nativen Probe. Alle eigenen Läufe sind beendet, die Heavy-Sperre ist freigegeben. Keine Live-Verbindung und keine Produktänderung im Live-Baum; dort nur dieser Anhang und neue `maschinentag.r445.codex-*`-Belege.

@@ -1,0 +1,151 @@
+{
+  "config": {
+    "configFile": "/tmp/r445/tree/lcnc-webui/playwright.config.ts",
+    "rootDir": "/tmp/r445/tree/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r445-queued-renewal",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r445/tree/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r445-queued-renewal",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r445/tree/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "jog-lease.spec.ts",
+      "file": "jog-lease.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a held jog button names its lease, the page renews it, its release ends exactly that lease",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4930,
+                  "error": {
+                    "message": "Error: exactly the 5 renewals of L, none after its end\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m5\u001b[39m\nReceived: \u001b[31m6\u001b[39m",
+                    "stack": "Error: exactly the 5 renewals of L, none after its end\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m5\u001b[39m\nReceived: \u001b[31m6\u001b[39m\n    at /tmp/r445/tree/lcnc-webui/e2e/jog-lease.spec.ts:122:108",
+                    "location": {
+                      "file": "/tmp/r445/tree/lcnc-webui/e2e/jog-lease.spec.ts",
+                      "column": 108,
+                      "line": 122
+                    },
+                    "snippet": "  120 |     // held, none of L after its end\n  121 |     const all = (await timeline()).renewals;\n> 122 |     expect(all.filter((r) => r.ids.includes(L)).length, \"exactly the 5 renewals of L, none after its end\").toBe(5);\n      |                                                                                                            ^\n  123 |     expect(all.length, \"no renewal beyond the 5 steps\").toBe(5);\n  124 |   } finally {\n  125 |     await page.clock.resume();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r445/tree/lcnc-webui/e2e/jog-lease.spec.ts",
+                        "column": 108,
+                        "line": 122
+                      },
+                      "message": "Error: exactly the 5 renewals of L, none after its end\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m5\u001b[39m\nReceived: \u001b[31m6\u001b[39m\n\n  120 |     // held, none of L after its end\n  121 |     const all = (await timeline()).renewals;\n> 122 |     expect(all.filter((r) => r.ids.includes(L)).length, \"exactly the 5 renewals of L, none after its end\").toBe(5);\n      |                                                                                                            ^\n  123 |     expect(all.length, \"no renewal beyond the 5 steps\").toBe(5);\n  124 |   } finally {\n  125 |     await page.clock.resume();\n    at /tmp/r445/tree/lcnc-webui/e2e/jog-lease.spec.ts:122:108"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T06:32:17.520Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r445/tree/lcnc-webui/test-results/jog-lease-a-held-jog-butto-1d259-ase-ends-exactly-that-lease-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r445/tree/lcnc-webui/test-results/jog-lease-a-held-jog-butto-1d259-ase-ends-exactly-that-lease-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r445/tree/lcnc-webui/test-results/jog-lease-a-held-jog-butto-1d259-ase-ends-exactly-that-lease-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r445/tree/lcnc-webui/e2e/jog-lease.spec.ts",
+                    "column": 108,
+                    "line": 122
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e8898d9dde4e65f22263-0bbc1e2b02a0f836eb12",
+          "file": "jog-lease.spec.ts",
+          "line": 74,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-23T06:32:15.844Z",
+    "duration": 7026.514999999999,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

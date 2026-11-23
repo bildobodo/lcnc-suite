@@ -1,0 +1,42 @@
+{
+  "round": "R445",
+  "results": [
+    {
+      "label": "queued-renewal",
+      "exit": 1,
+      "stats": {
+        "startTime": "2026-11-23T06:32:15.844Z",
+        "duration": 7026.514999999999,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "statuses": [
+        "failed"
+      ],
+      "messages": [
+        "Error: exactly the 5 renewals of L, none after its end\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m5\u001b[39m\nReceived: \u001b[31m6\u001b[39m\n\n  120 |     // held, none of L after its end\n  121 |     const all = (await timeline()).renewals;\n> 122 |     expect(all.filter((r) => r.ids.includes(L)).length, \"exactly the 5 renewals of L, none after its end\").toBe(5);\n      |                                                                                                            ^\n  123 |     expect(all.length, \"no renewal beyond the 5 steps\").toBe(5);\n  124 |   } finally {\n  125 |     await page.clock.resume();\n    at /tmp/r445/tree/lcnc-webui/e2e/jog-lease.spec.ts:122:108"
+      ]
+    },
+    {
+      "label": "no-final-count",
+      "exit": 0,
+      "stats": {
+        "startTime": "2026-11-23T06:32:23.265Z",
+        "duration": 7821.897,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "statuses": [
+        "passed"
+      ],
+      "messages": []
+    }
+  ],
+  "restored": true,
+  "original_worker_sha256": "fcd9aead11545b021ef39309518eaf324b786e4575582ab9d2527541293e7143",
+  "original_spec_sha256": "ad5efdea805e5629aa3d68f2d8919b26c297405534bfb999b7dac18daa590f2a"
+}

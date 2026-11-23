@@ -1,0 +1,141 @@
+{
+  "round": "R445",
+  "source_file": "/tmp/r445/fifo/queued-renewal-replay/codex-r445-queued-renewal-07156b64-6088-4fab-9ff3-a8fe3c21fad0.jsonl",
+  "source_sha256": "0b3fb56010402e875455785709fd1f852d3916ad6b17da878543c645846c5e53",
+  "head": {
+    "t": 1795415537618,
+    "kind": "head",
+    "run": "codex-r445-queued-renewal",
+    "instance": "07156b64-6088-4fab-9ff3-a8fe3c21fad0",
+    "port": 4500,
+    "pid": 939553
+  },
+  "frames": [
+    {
+      "source_line": 39,
+      "t": 1795415539008,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_cont",
+        "axis": 0,
+        "vel": 10,
+        "lease": 1,
+        "req_id": "izv1cg-5"
+      }
+    },
+    {
+      "source_line": 52,
+      "t": 1795415540991,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_renew",
+        "ids": [
+          1
+        ],
+        "req_id": "izv1cg-6"
+      }
+    },
+    {
+      "source_line": 55,
+      "t": 1795415541108,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_renew",
+        "ids": [
+          1
+        ],
+        "req_id": "izv1cg-7"
+      }
+    },
+    {
+      "source_line": 58,
+      "t": 1795415541234,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_renew",
+        "ids": [
+          1
+        ],
+        "req_id": "izv1cg-8"
+      }
+    },
+    {
+      "source_line": 61,
+      "t": 1795415541352,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_renew",
+        "ids": [
+          1
+        ],
+        "req_id": "izv1cg-9"
+      }
+    },
+    {
+      "source_line": 64,
+      "t": 1795415541490,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_renew",
+        "ids": [
+          1
+        ],
+        "req_id": "izv1cg-10"
+      }
+    },
+    {
+      "source_line": 67,
+      "t": 1795415541500,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_lease_end",
+        "lease": 1,
+        "req_id": "izv1cg-11"
+      }
+    },
+    {
+      "source_line": 70,
+      "t": 1795415542090,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_renew",
+        "ids": [
+          1
+        ],
+        "req_id": "izv1cg-10"
+      }
+    },
+    {
+      "source_line": 71,
+      "t": 1795415542090,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_cont",
+        "axis": 0,
+        "vel": -10,
+        "lease": 2,
+        "req_id": "izv1cg-12"
+      }
+    },
+    {
+      "source_line": 74,
+      "t": 1795415542098,
+      "kind": "frame",
+      "conn": 3,
+      "msg": {
+        "cmd": "jog_lease_end",
+        "lease": 2,
+        "req_id": "izv1cg-13"
+      }
+    }
+  ]
+}
