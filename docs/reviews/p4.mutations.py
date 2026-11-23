@@ -101,7 +101,7 @@ MUTS = {
         [pw("e2e/g30.spec.ts", "the file read after a units change keeps an entry")]),
     "mt_i24_no_resting_pocket_note": (WEB + "src/ProbePanel.vue", [(
         '<div v-if="pocketNotes.length" class="settingDesc stack-micro">', '<div v-if="false" class="settingDesc stack-micro">')],
-        [pw("e2e/probe-click.spec.ts", "a pocket at 0 says its limited search before any press")]),
+        [pw("e2e/probe-visual.spec.ts", "a pocket at 0 says its limited search before any press")]),
     "the_page_prints_zero": (WEB + "src/ws/bulkData.ts", [(
         "typeof line === \"number\" && Number.isInteger(line) && line >= 1", "line != null")],
         [vt("src/ws/bulkData.test.ts", "leaves out a line that is no line")]),

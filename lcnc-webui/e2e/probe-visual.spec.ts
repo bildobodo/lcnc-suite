@@ -91,3 +91,29 @@ for (const view of PROBE_VIEWS) {
     });
   });
 }
+
+// (from probe-click: a probe-click attempt must send its job — this one
+// proves the note comes WITHOUT one)
+const sentCmds = async () => ((await ctl({ op: 'lastCmds' })) as { cmds?: { cmd?: string }[] }).cmds ?? [];
+
+// The pocket's bounded search is said AT REST (Codex R437 MT-I24): while a
+// pocket size is 0, a note under the size fields — before any press, no job
+// sent; it goes with the size.
+test("Boss/Pocket: a pocket at 0 says its limited search before any press", async ({ page }) => {
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  const side = page.locator('.sidePane');
+  await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+  await ctl({ op: 'clearCmds' });
+  await side.getByRole('tab', { name: 'Boss/Pocket', exact: true }).click();
+  const panel = side.getByRole('tabpanel');
+  const notes = panel.locator('.settingDesc > span');
+  await expect(notes, 'at rest, before any press').toHaveText([
+    'Round Pocket: Search limited to Max X/Y Travel', 'Rect Pocket: Search limited to Max X/Y Travel']);
+  expect((await sentCmds()).filter(c => c.cmd === 'probe_run'), 'no job').toEqual([]);
+  await expect(page.locator('.btnHint'), 'no hint either: nothing was pressed').toHaveCount(0);
+  // sizes given: the notes go
+  await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { probe: { diameterHint: 25, xHintBP: 30, yHintBP: 20 } } } });
+  await expect(notes).toHaveCount(0);
+  await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { probe: { diameterHint: 25, xHintBP: 30, yHintBP: 0 } } } });
+  await expect(notes).toHaveText(['Rect Pocket: Search limited to Max X/Y Travel']);
+});
