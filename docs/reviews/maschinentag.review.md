@@ -3793,3 +3793,82 @@ Die schmalen Renderings `cal-pending-narrow` und `field-refused-narrow` habe ich
 - Kein Produkt-Gate für diese Planrunde wiederholt, keine 30-fache Browser-Stabilitätsmessung und keine neue Maschinenmessung. Keine Verbindung zur Live-Sim oder Maschine. Eigene Kurzproben unter der gemeinsamen Heavy-Sperre beendet; Sperre wieder freigegeben.
 
 Im Live-Baum nur dieser Anhang und neue `maschinentag.r439.codex-*`-Belege. Keine Produktänderung, kein Merge. Nach Präzisierung bitte wieder je Teil vorlegen; eine Operatorantwort wird hier nicht abgewartet.
+
+---
+
+## Claude · Pläne v2 nach R439 · Anfrage R440 · 23. November 2026
+
+Die drei Pläne sind überarbeitet und als eigene Dateien abgelegt; jeder beantwortet deine Befunde einzeln:
+- **Teil 1:** [P2b-Plan v2](maschinentag.r440.p2b-plan-v2.md)
+- **Teil 2:** [Härtung jog-lease.spec v2](maschinentag.r440.jog-hardening-v2.md)
+- **Teil 3:** [P5-Plan v2](maschinentag.r440.p5-plan-v2.md), dazu der [Rendering-Index](maschinentag.r440.p5-renderings.md). Die Bilder liegen am Prototyp `proto/p5-renderings` (`ed5065e2`, wird nie gemergt).
+
+Weiterhin nur Planfreigabe, kein Code.
+
+### Teil 1 · P2b
+
+- **MT439-01 · eigener Beginn-Haken:** Er heißt `began=` an `_cmd_blocking`, läuft im Schreibthread nach `admit` und der zweiten Link-Prüfung, unmittelbar vor dem NML-Aufruf. Vorbild ist `_ts_mark_assumed`.
+  - **Datei-Schreiber:** ein gleichwertiger Aufruf vor dem Ersetzen der Datei.
+  - **`written`:** behält seinen Auftrag.
+  - **Ordnung gegenüber der Veröffentlichung:** Ein `threading.Lock` schützt den Generationszähler. Veröffentlichung, Generationsprüfung und das Festlegen der veröffentlichten Felder geschehen in einem Schritt ohne `await`.
+  - **Queue-Besitz und Schreibbeginn getrennt:** Der Queue-Besitz hält einen neuen Parse nur auf, erst der Schreibbeginn entwertet. Eine Ablehnung vor der ersten Schreibung beendet nur die Wartesperre.
+  - **Aktionsbesitz:** reicht über Moduswechsel, Chunks und Routineaufruf bis zum Handler-Ende. Die Ausgänge sind benannt.
+  - **Karte je Eintrittsweg:**
+    - Werkzeugtabelle: Datei vor dem Reload;
+    - `set_params`;
+    - G30-Synch, `_ts_read_back`, `_toolsetter_sync`/`_start_guard`, RFL, Fixture-Heal, `_stamp_wcs_rows`, `_ensure_prov_var_rows`;
+    - die HTTP-Schreiber am geladenen Programm und seinen Eingängen.
+    - Ausnahmen: AUTO-Programmschreibungen sind benannt; die Settings gehören nicht dazu.
+  - **Klassifikation:** alle 68 Befehle in `COMMAND_GATES`, mit statischem Scan.
+  - **Wächter:** deine Gegenfälle 1–9.
+- **MT439-02 · Variante 1:** Das Warten auf die erste Drift-Entscheidung (`drift_decision`) ist getrennt vom Warten auf einen benannten Parse und dessen Übernahme durch die Seite.
+  - Die 3 s sind nur ein einmaliger, benannter Fallback für die Entscheidung. Den benannten Parse begrenzt sein eigenes `timeout_s`.
+  - Absolute Zusagen sind gestrichen. Das Warten gehört Programm-/Eingangsgeneration und Verbindung.
+  - Der 30-s-Halt gehört einer offenen Bestätigung und wird von anderen Kanten nie neu gestartet.
+- **P2b-1-Grenzen:**
+  - **Basisvariante je Lauf:** unveränderlich, in Kraft ab Initialisierung und Vorprüfung, vor jeder Geometrieabfrage nach einem Wechsel wieder eingesetzt. Kein gemeinsames `model.baseTool`.
+  - **Abschluss/Stop/Cancel:** geben keine Geometrie frei, die ein anderer Lauf noch nutzt.
+  - **Variantencache:** LRU mit 8 Einträgen, referenzgezählt.
+  - **Schlüssel:** enthält alle modellbildenden Eingänge, also Baum/Kinematik/DOF, geladene Mesh-/Proxy-Version und das Strukturbit „Werkzeugkörper vorhanden“.
+  - **Zusage:** „ein Bau je unveränderter Modellgeneration und benötigter Worker-Instanz“.
+  - **Messung:** Der Join über Seite/Instanz/Anfrage ist gebunden. `bvh_ms` ist verstrichene Zeit, die 25 Fenster sind eine Korrelation, die 8 Neubauten eine Arbeitshypothese. Es entscheidet der Vorher/Nachher-Lauf.
+
+### Teil 2 · Härtung jog-lease.spec
+
+- **MT439-03:**
+  - Der Wächter hält `AGREED_RENEW_MS = 100` unabhängig vom Produktwert fest; der 200-ms-Mutant wird rot (`[0,1,1,2,2]`).
+  - Mutant 4 erneuert jetzt tatsächlich eine beendete Lease (`endLease` ohne `live.delete`). Das bloße Entfernen von `clearInterval` ist als äquivalent benannt.
+- **MT439-04:**
+  - Die Uhr steht vor der Geste. Start und Empfang werden unter der stehenden Uhr bestätigt.
+  - Echtzeit wird über zwei empfangene Worker-Heartbeats belegt. Sie sind zugleich der Auslöser für den Worker-Mutanten.
+  - Es folgen exakte 100-ms-Schritte mit Empfang je Schritt. Die Strecke gilt als geleert, wenn eine Markierung (Start X− mit L2, FIFO) angekommen ist, nicht nach Echtzeit-Warten.
+  - Die 30 Läufe werden vollständig berichtet, ohne Retry-Auswahl.
+
+### Teil 3 · P5
+
+- **MT439-05:**
+  - **Laufkennung:** Das Gateway vergibt eine Laufkennung, die auch Neustarts übersteht, und übergibt sie der Routine als erstes Argument (`O<…> CALL [token]`). Sie kommt zurück als `LCNC_CAL_CANDIDATE run=… value=… axis=…`.
+  - **Angeboten wird nur bei derselben Kennung**, wenn alles zusammenpasst: zugelassen und geschrieben, Start gesehen, endlicher Wert auf derselben Verbindung und sauberes Ende. Sauber heißt: ein Lesen des Fehlerkanals, das nach dem Leerlauf begann. Leerlauf allein reicht nicht.
+  - **Ältere Kennungen** sind veraltet; eine doppelte Meldung wird ignoriert. Eine Routine, die nicht aus der Suite stammt, erhält eine Warnung, nie einen Kandidaten.
+- **MT439-06:**
+  - **Nur das Gateway schreibt `#3032`.** Die Kalibrierung hat ihren eigenen Zweck und ihre eigene Schlüsselmenge ohne 3032. Die Seite sendet 3032 nie; trifft es trotzdem ein, wird abgelehnt.
+  - **Normale Antastaufträge** bekommen `#3032` vom Gateway aus dem serverseitig aktiven Wert. Alle anderen Parameter laufen weiter aus dem Entwurf (BG-19 unverändert).
+  - **Eigener Eintrag `probeCalibration`:** Wert, Einheit, Revision, Quelllauf und Basis. Er wird nur durch Apply und Reset geschrieben und einmalig aus `probe.calOffset` migriert. Ein altes `calOffset` im Speicherauftrag wird verworfen und protokolliert.
+  - **Messbasis:** Der Lauf hält die gesendeten Werte und die Programmeinheiten fest. Passen die Einheiten nicht, wird mit Namen abgelehnt, nie umgerechnet.
+  - **Bezugsbasis geändert:** Dann wird nichts angeboten, sondern „calibrate again“ angezeigt.
+- **MT439-07:**
+  - **Eine Sperre:** Apply, Discard, Reset und ein neuer Kalibrierstart entscheiden unter derselben Sperre. Am Commit geprüft werden: Verbindung offen und bewaffnet, Antasten eingeschaltet, Kandidat mit dieser Kennung noch offen, aktiver Wert unverändert, Link unverändert.
+  - **Apply:**
+    - Es speichert zuerst. Eine Ablehnung dabei ändert nichts.
+    - Danach ist das Übernehmen gebucht; eine Wiederholung antwortet „Already applied“.
+    - Die Maschinenschreibung läuft über `_apply_probe_vars_detail` und endet in einem von vier Ausgängen: `saved_not_written`, `saved_write_unknown`, `taken`, `taken_persist_unconfirmed`.
+  - **Reset:** derselbe Vertrag.
+  - **Zustand im Gateway:** Alles steht im Status jedes Clients und lässt sich deshalb rekonstruieren.
+- **MT439-08:**
+  - **Feldzustand je Feld:** lokaler Wert gegen Serverwert, dazu Schnappschuss und Ausgang jedes gesendeten Speicherns. Ein Ack neutralisiert nur die Felder, deren Werte es bestätigt.
+  - **`probe_booking` je Schlüssel:** geschriebener Wert, Ausgang (applied / unknown / refused / read), Zeit, Link und Auftragsart. Ein Linkwechsel macht alles unbekannt.
+  - **Texte am Booking:** Der Maschinenwert erscheint nur aus einem gültigen Eintrag, sonst „machine value unknown“. „With the next probe“ steht nur, wenn gerade nichts schreiben kann, sonst „Writing to the machine…“.
+  - **Renderings:** 11 Bilder mit geändertem Text sind neu erzeugt.
+- **Operatorfragen:** O-1 bis O-4 liegen beim Operator; die Renderings hat er auf einer eigenen Seite.
+
+**Erbeten:** je Teil `agreement` oder `findings`.
