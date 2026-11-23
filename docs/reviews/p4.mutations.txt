@@ -38,3 +38,42 @@ Green, and why (the GUARDS were short, not the product):
 {"mutation": "the_card_outlives_its_tab", "red": true}
 
 Result: 24 of 24 red.
+
+## Run 3 (after Codex R437, at 884c14e1's tree): all 31 — 30 red, 1 green
+{"mutation": "reset_answers_at_once", "red": true}
+{"mutation": "a_timeout_proves_estop", "red": true}
+{"mutation": "a_poll_before_the_write_counts", "red": true}
+{"mutation": "decided_at_the_echo", "red": true}
+{"mutation": "any_link", "red": true}
+{"mutation": "the_reset_is_never_preempted", "red": true}
+{"mutation": "the_page_ignores_the_outcome", "red": true}
+{"mutation": "seq_is_the_line", "red": true}
+{"mutation": "the_main_context_alone", "red": false}
+{"mutation": "mt_i20_a_late_poll_decides", "red": true}
+{"mutation": "mt_i20_a_late_echo_opens_the_window", "red": true}
+{"mutation": "mt_i21_numbers_alone_name_a_called_files_error", "red": true}
+{"mutation": "mt_i22_a_capture_is_not_discardable", "red": true}
+{"mutation": "mt_i23_refresh_ignores_entries_since_its_request", "red": true}
+{"mutation": "mt_i23_the_file_read_ignores_entries_since_its_request", "red": true}
+{"mutation": "mt_i24_no_resting_pocket_note", "red": true}
+{"mutation": "the_page_prints_zero", "red": true}
+{"mutation": "the_card_outlives_its_tab", "red": true}
+{"mutation": "a_pending_hover_opens_late", "red": true}
+{"mutation": "no_close_on_an_outside_press", "red": true}
+{"mutation": "the_boss_outside_start_again", "red": true}
+{"mutation": "no_row_check", "red": true}
+{"mutation": "no_table_base_check", "red": true}
+{"mutation": "the_inode_is_the_table", "red": true}
+{"mutation": "the_watch_counts_the_own_write", "red": true}
+{"mutation": "unreadable_is_a_change", "red": true}
+{"mutation": "the_page_sends_a_newer_read", "red": true}
+{"mutation": "discard_during_a_sent_save", "red": true}
+{"mutation": "refresh_resets_an_entry_typed_before", "red": true}
+{"mutation": "a_boss_at_zero", "red": true}
+{"mutation": "empty_is_zero", "red": true}
+{"total": 31, "red": 30}
+
+Green: the_main_context_alone as it stood (the offset agreement alone removed) — for every golden program the caller's frame and the call-line text (MT-I21) catch what the offset agreement caught: it is a deliberate third layer now. The mutation removes all three (the main context alone):
+{"mutation": "the_main_context_alone", "red": true}
+
+Result: 31 of 31 red (7 new for MT-I20..I24: mt_i20 x2, mt_i21, mt_i22, mt_i23 x2, mt_i24).

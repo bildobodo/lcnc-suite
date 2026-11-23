@@ -39,7 +39,9 @@ MUTS = {
         "        return {\"ok\": True}\n")],
         [py(ER + "TestTheHandler::test_not_confirmed_through_the_socket")]),
     "a_timeout_proves_estop": (GW + "gateway.py", [(
+        '        if echo_at is not None and now > echo_at + ESTOP_RESET_SETTLE_S + ESTOP_RESET_LATE_S:\n'
         '            return unknown("no poll after the settle window")',
+        '        if echo_at is not None and now > echo_at + ESTOP_RESET_SETTLE_S + ESTOP_RESET_LATE_S:\n'
         '            return {"ok": False, "confirmed": False, "error": ESTOP_RESET_NOT_CONFIRMED}')],
         [py(ER + "TestTheOutcome::test_no_poll_after_the_window_is_unknown")]),
     "a_poll_before_the_write_counts": (GW + "gateway.py", [(
@@ -64,9 +66,42 @@ MUTS = {
     "seq_is_the_line": (GW + "gcode_parse_worker.py", [(
         "            error_line = proven_error_line(canon)\n", "            error_line = seq\n")],
         [py("test_error_line_golden.py::TestTheProvenErrorLine::test_each_program_names_only_its_proven_line")]),
-    "the_main_context_alone": (GW + "gcode_parse_worker.py", [(
-        "    return n if at == n else None\n", "    return n\n")],
+    # the main context alone (R437): the offset agreement, the caller's frame
+    # and the call-line text all removed. The offset agreement ALONE removed
+    # stays green — for every golden program the frame and the text catch
+    # what it caught (run 3, 2026-11-23): a deliberate third layer
+    "the_main_context_alone": (GW + "gcode_parse_worker.py", [
+        ("    if at != n or called_from_here:\n", "    if False:\n"),
+        ("    if text is None or _CALL_LINE.search(_NGC_COMMENT.sub(\"\", text)):\n", "    if text is None:\n")],
         [py("test_error_line_golden.py::TestTheProvenErrorLine::test_each_program_names_only_its_proven_line")]),
+    # ---- R437: the fixes, each its own mutation
+    "mt_i20_a_late_poll_decides": (GW + "gateway.py", [(
+        "                    if began > echo_at + ESTOP_RESET_SETTLE_S + ESTOP_RESET_LATE_S:\n"
+        "                        return unknown(\"no poll after the settle window\")\n", "")],
+        [py(ER + "TestTheDeadlinesJudgeTheBegin::test_a_deciding_poll_begun_after_the_final_deadline_is_unknown")]),
+    "mt_i20_a_late_echo_opens_the_window": (GW + "gateway.py", [(
+        "                    if began > t_w + ESTOP_RESET_ECHO_S:\n"
+        "                        return unknown(\"no echo of the write\")\n", "")],
+        [py(ER + "TestTheDeadlinesJudgeTheBegin::test_a_first_echo_begun_after_the_echo_deadline_is_unknown")]),
+    # the caller's frame and the call-line text are two layers on purpose: an
+    # o-word call is caught by either, so the mutation removes both
+    "mt_i21_numbers_alone_name_a_called_files_error": (GW + "gcode_parse_worker.py", [
+        ("    if at != n or called_from_here:\n", "    if at != n:\n"),
+        ("    if text is None or _CALL_LINE.search(_NGC_COMMENT.sub(\"\", text)):\n", "    if text is None:\n")],
+        [py("test_error_line_golden.py::TestTheProvenErrorLine::test_each_program_names_only_its_proven_line")]),
+    "mt_i22_a_capture_is_not_discardable": (WEB + "src/ToolsetterSettings.vue", [(
+        '(g30Dirty.value || g30Op.value === "capture") && g30Op.value !== "save"',
+        'g30Dirty.value && g30Op.value !== "save"')],
+        [pw("e2e/g30.spec.ts", "a capture from an unchanged draft can be discarded")]),
+    "mt_i23_refresh_ignores_entries_since_its_request": (WEB + "src/ToolsetterSettings.vue", [(
+        "    const keep = g30Dirty.value || entryRev !== e0;   // R437 MT-I23\n", "    const keep = g30Dirty.value;\n")],
+        [pw("e2e/g30.spec.ts", "Refresh keeps an entry made during it that equals the old stored value")]),
+    "mt_i23_the_file_read_ignores_entries_since_its_request": (WEB + "src/ToolsetterSettings.vue", [(
+        "      const keep = g30Dirty.value || entryRev !== e0;\n", "      const keep = g30Dirty.value;\n")],
+        [pw("e2e/g30.spec.ts", "the file read after a units change keeps an entry")]),
+    "mt_i24_no_resting_pocket_note": (WEB + "src/ProbePanel.vue", [(
+        '<div v-if="pocketNotes.length" class="settingDesc stack-micro">', '<div v-if="false" class="settingDesc stack-micro">')],
+        [pw("e2e/probe-click.spec.ts", "a pocket at 0 says its limited search before any press")]),
     "the_page_prints_zero": (WEB + "src/ws/bulkData.ts", [(
         "typeof line === \"number\" && Number.isInteger(line) && line >= 1", "line != null")],
         [vt("src/ws/bulkData.test.ts", "leaves out a line that is no line")]),
@@ -114,11 +149,12 @@ MUTS = {
     "discard_during_a_sent_save": (WEB + "src/ToolsetterSettings.vue", [
         ('const g30DiscardWhy = computed(() => g30Op.value === "save" ? "Saving — wait for the answer" : undefined);',
          "const g30DiscardWhy = computed(() => undefined as string | undefined);"),
-        ('  if (!g30Dirty.value || g30Op.value === "save") return;', "  if (!g30Dirty.value) return;")],
+        ('(g30Dirty.value || g30Op.value === "capture") && g30Op.value !== "save"',
+         '(g30Dirty.value || g30Op.value === "capture")')],
         [pw("e2e/g30.spec.ts", "Discard waits for a sent save; the save's outcome is shown")]),
     "refresh_resets_an_entry_typed_before": (WEB + "src/ToolsetterSettings.vue", [(
-        "    const keep = g30Dirty.value;\n    takeStored(t, r.values, \"confirmed\");",
-        "    const keep = !may.reset;\n    takeStored(t, r.values, \"confirmed\");")],
+        "    const keep = g30Dirty.value || entryRev !== e0;   // R437 MT-I23\n",
+        "    const keep = entryRev !== e0;\n")],
         [pw("e2e/g30.spec.ts", "Refresh keeps an entry typed BEFORE it (machine day F17)")]),
     # ---- P4-5: the size contract
     "a_boss_at_zero": (WEB + "src/probeFields.ts", [(
