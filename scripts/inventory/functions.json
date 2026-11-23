@@ -440,14 +440,20 @@
              "control:ProbePanel.vue|MachineRadio:probeParam|*=3",
              "control:ProbePanel.vue|MachineBtn:probeReset|*=1",
              "control:ProbePanel.vue|MachineBtn:dialogCancel|*=1",
-             "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1", "routine:probe_cal_*=5"],
+             "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1", "routine:probe_cal_*=5",
+             "control:ProbePanel.vue|MachineBtn:calApply|*=1", "control:ProbePanel.vue|MachineBtn:calDiscard|*=1",
+             "cmd:cal_apply", "cmd:cal_discard"],
    "feature": {"switch": "probing", "roles": {
     "control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe*=4": "switched",
     "control:ProbePanel.vue|MachineRadio:probeParam|*=3": "switched",
     "control:ProbePanel.vue|MachineBtn:probeReset|*=1": "switched",
     "control:ProbePanel.vue|MachineBtn:dialogCancel|*=1": "switched",
     "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1": "switched",
-    "routine:probe_cal_*=5": "switched"
+    "routine:probe_cal_*=5": "switched",
+    "control:ProbePanel.vue|MachineBtn:calApply|*=1": "switched",
+    "control:ProbePanel.vue|MachineBtn:calDiscard|*=1": "switched",
+    "cmd:cal_apply": "switched",
+    "cmd:cal_discard": "switched"
    }},
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Kalibrieren sendet seine Routine mit der Achswahl #3036 und den Zahlen der Kalibrier-Zuordnung.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "${form.sub}: a held probe button sends its routine with the panel's numbers", "instances": ["Calibrate"]}]}
@@ -681,7 +687,7 @@
              "control:FloatingOverlays.vue|*=1", "listener:inputSession.ts:*=8", "listener:MachineInput.vue:*=2",
              "listener:FloatingOverlays.vue:*=4"]},
   {"id": "SYS-CONTROLS", "area": "system", "name": "Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe",
-   "atoms": ["buttonType:*=110", "inputDef:*=49", "control:Btn.vue|*=1", "control:MachineBtn.vue|*=1",
+   "atoms": ["buttonType:*=112", "inputDef:*=49", "control:Btn.vue|*=1", "control:MachineBtn.vue|*=1",
              "control:MachineChoice.vue|*=1", "control:MachineColor.vue|*=1", "control:MachineInput.vue|*=2",
              "control:MachineRadio.vue|*=1", "control:MachineSelect.vue|*=1", "control:MachineSlider.vue|*=1",
              "control:MachineToggle.vue|*=2", "control:ChoiceGroup.vue|*=1", "control:HelpIcon.vue|*=1",

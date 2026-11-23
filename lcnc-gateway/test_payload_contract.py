@@ -74,6 +74,8 @@ VALID = {
     "probe_run": {"routine": "probe_x_plus", "vars": {"3014": 1.0}},
     "surface_scan_run": {"vars": {"3054": 5.0}},
     "set_g30": {"values": {"X": 0.0}, "based_on": {"X": 0.0}},
+    "cal_apply": {"run": 1, "value": 0.05},
+    "cal_discard": {"run": 1},
     "load_file": {"path": "/p.ngc"},
 }
 

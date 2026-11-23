@@ -287,7 +287,7 @@ RULES: tuple[Rule, ...] = (
          "the G-code reference", browser=("gcode-reference", "editor-guards")),
     Rule(src("MessagesDialog.vue", "messageView.ts"), "the message center", browser=MESSAGES),
     Rule(src("ProbePanel.vue", "probeFields.ts", "probeViews.ts", "probeVars.ts",
-             "CornerGlyph.vue", "axisColors.ts"),
+             "CornerGlyph.vue", "axisColors.ts", "calibrationView.ts"),
          "the probing panel and its glyphs", browser=PROBING, firefox=True,
          live=("probe-live",)),
     Rule(src("ToolsetterSettings.vue", "toolsetterSetup.ts", "toolsetterVars.ts",

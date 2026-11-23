@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1198 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1204 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -395,7 +395,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 5 | 5 | 0 |
-| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
+| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 1 | 1 | 0 |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 3 | 3 | 0 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
@@ -537,7 +537,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe** `SYS-CONTROLS` | Auswahlgruppen, Detailkarte, Menü „More“, jeder Dialog, jedes Bedienelement, „?“-Hilfe | 197 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe** `SYS-CONTROLS` | Auswahlgruppen, Detailkarte, Menü „More“, jeder Dialog, jedes Bedienelement, „?“-Hilfe | 199 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung** `SYS-CONN` | — | 26 | 5 | 5 | 0 |
 | **Statusübertragung (Rahmen und gemeinsame Felder)** `SYS-STATUS` | — | 9 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile** `SYS-CONFIG` | — | 19 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -568,7 +568,7 @@ Je Schalter (Einstellungen › Features) die Funktionen und was mit ihren Atomen
 | macros | Makro starten (Tab, Leiste, Parameter-Dialog) `F-MACRORUN` | geschaltet 6 | — |
 | keiner (Ausnahme) | Antast-Auslösung simulieren (nur Sim) `F-SIMTRIP` | bleibt 3 | Diagnose des Taster-Eingangs, nur in Dev-Builds sichtbar, serverseitig nur Arm — benannte Ausnahme (R336), kein Schalter |
 | probing | Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut `F-PROBE` | geschaltet 39, nach Inhalt 1, bleibt lesbar 38, gemeinsam 9 | — |
-| probing | Taster kalibrieren `F-PROBECAL` | geschaltet 15 | — |
+| probing | Taster kalibrieren `F-PROBECAL` | geschaltet 19 | — |
 | surfaceMap | Flächenkompensation ein/aus und Interpolation umschalten `F-COMP` | geschaltet 2, nach Inhalt 4, bleibt lesbar 7 | Kompensation AUS ist immer zugelassen; EIN und die Methode gehören zum Schalter |
 | surfaceMap | Fläche abtasten (Surface-Scan) `F-SURFACE` | geschaltet 6, bleibt lesbar 1 | — |
 | toolsetter | Werkzeuglänge messen (M600) und Werkzeug entladen `F-TOOLMEASURE` | geschaltet 4, bleibt lesbar 3, bleibt 3 | Unload bleibt: mit Toolsetter aus ist der Werkzeugwechsel M6 G43 (ein gespeichertes M600 verweigert das Ausschalten) |

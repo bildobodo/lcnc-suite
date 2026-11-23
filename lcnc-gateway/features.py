@@ -47,6 +47,9 @@ PURPOSE_FEATURE = {"probe": "probing", "surface": "surfaceMap", "toolsetter": "t
 #: switched by its purposes, `set_compensation` only when it switches ON.
 COMMAND_FEATURES = {
     "probe_run": "probing",
+    # P5: the calibration candidate is probing's (plan v6: the switch at the commit)
+    "cal_apply": "probing",
+    "cal_discard": "probing",
     "surface_scan_run": "surfaceMap",
     "set_compensation_method": "surfaceMap",
     "tool_measure": "toolsetter",

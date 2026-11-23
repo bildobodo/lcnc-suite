@@ -156,6 +156,9 @@ export type WsCommand =
   // G30's stored position (operator P4): a confirmed read, the current
   // machine position with it, a confirmed write on its basis.
   | { cmd: "read_g30" }
+  // P5: Apply / Discard the calibration candidate the gateway offers, by its run
+  | { cmd: "cal_apply"; run: number; value: number }
+  | { cmd: "cal_discard"; run: number }
   | { cmd: "capture_g30" }
   | { cmd: "set_g30"; values: Record<string, number>; based_on: Record<string, number> }
   | { cmd: "get_probe_results" }

@@ -60,6 +60,10 @@ export const BUTTON_TYPES = {
   // A probe-grid cell: the probe cycle's gate and hold, a square glyph cell.
   probeCell:      { gate: 'machineFrame',    variant: 'default', size: 'cell', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
+  // P5: decide the calibration candidate — the writer's arm (operator O-2:
+  // any armed client); Discard changes the shared candidate, so it is no `always`
+  calApply:       { gate: 'armed',    variant: 'primary', size: 'md' },
+  calDiscard:     { gate: 'armed',    variant: 'danger',  size: 'md' },
   // Surface-map scan: `probe` plus every rotary parked at zero. The map is a
   // machine-Z shim valid only with the tool normal to the mapped surface and
   // the grid aligned to the work, so probing one tilted is directionally wrong.

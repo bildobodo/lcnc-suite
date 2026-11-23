@@ -879,6 +879,12 @@
      "id": "control:ProbePanel.vue|MachineBtn:abort|@click=emit('abort')"
     },
     {
+     "id": "control:ProbePanel.vue|MachineBtn:calApply|@click=calDecide('cal_apply')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:calDiscard|@click=calDecide('cal_discard')"
+    },
+    {
      "id": "control:ProbePanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null"
     },
     {
@@ -1954,6 +1960,12 @@
      "id": "buttonType:bannerReload"
     },
     {
+     "id": "buttonType:calApply"
+    },
+    {
+     "id": "buttonType:calDiscard"
+    },
+    {
      "id": "buttonType:close"
     },
     {
@@ -2627,6 +2639,19 @@
     {
      "id": "cmd:auto_step",
      "members": []
+    },
+    {
+     "id": "cmd:cal_apply",
+     "members": [
+      "run",
+      "value"
+     ]
+    },
+    {
+     "id": "cmd:cal_discard",
+     "members": [
+      "run"
+     ]
     },
     {
      "id": "cmd:capture_g30",

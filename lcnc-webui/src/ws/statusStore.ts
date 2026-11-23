@@ -17,6 +17,7 @@ import { OPERATOR_DISPLAY, OPERATOR_ERROR, OPERATOR_TEXT } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
 import { parseDriftDecision, type DriftDecision } from "../viewer/driftWait";
 import { emitTelemetry } from "./telemetry";
+import type { CalCandidate, ProbeCalibration } from "../calibrationView";
 
 export interface LcncMessage {
   id: number;
@@ -72,6 +73,9 @@ export interface WsStatus {
   // a connection's first frame and on every change, carried in between,
   // dropped with the connection. The toolsetter form projects its state from it.
   toolsetter_booking?: ToolsetterBooking | null;
+  // P5: the gateway's active calibration record and a calibration run's candidate
+  probe_calibration?: ProbeCalibration | null;
+  cal_candidate?: CalCandidate | null;
 }
 
 /** Per parameter number, what the gateway knows the interpreter holds and

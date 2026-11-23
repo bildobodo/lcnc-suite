@@ -8086,6 +8086,15 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
     return _UNHANDLED
 
 
+def _cal_decision(cmd: str, msg: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply / Discard of the calibration candidate named by `run` (P5-1 d).
+    No calibration run offers a candidate yet (its run, result and clean end
+    are the next build step): there is nothing to decide — said, never a
+    guessed success."""
+    what = "apply" if cmd == "cal_apply" else "discard"
+    return {"ok": False, "error": f"No calibration result to {what}"}
+
+
 async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
                                   conn_key: Optional[str]) -> Any:
     """_handle_command_impl's commands: program files, G30, parameters, probing, the preview, compensation, the tool-change confirm, the sim trip. The reply, or _UNHANDLED
@@ -8220,6 +8229,13 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
         finally:
             _status_runtime.end_program_change()
         return {"ok": True}
+
+    # A calibration's candidate (P5, plan v6 P5-1 d): Apply / Discard decide
+    # the gateway-owned candidate. No calibration run offers one yet: every
+    # decision answers that there is none — never a guessed success.
+    if cmd == "cal_apply" or cmd == "cal_discard":
+        require_armed(armed)
+        return _cal_decision(cmd, msg)
 
     # G30's stored position (operator P4): one sequence, three commands.
     if cmd == "read_g30":

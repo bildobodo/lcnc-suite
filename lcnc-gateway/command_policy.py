@@ -896,6 +896,11 @@ COMMAND_GATES: Dict[str, str] = {
     "read_g30": "parameterRead",
     "capture_g30": "g30Capture",
     "set_g30": "g30Write",
+    # A calibration's candidate (P5, plan v6): Apply / Discard decide the
+    # gateway-owned candidate — the writer's arm, re-checked at the commit
+    # (operator O-2: any armed client).
+    "cal_apply": "armed",
+    "cal_discard": "armed",
     # --- tool-table edits (button gates BG-14: E-Stop allowed, no pending
     #     tool change; the handler re-checks at the write) ---
     "save_tool": "toolTableWrite",
@@ -969,6 +974,8 @@ COMMAND_EFFECTS: Dict[str, str] = {
     "tool_measure": "input_action", "tool_unload_measure": "input_action",
     # the confirming read synchs the parameters into the file (task_plan_synch)
     "read_g30": "input_action", "capture_g30": "input_action", "set_g30": "input_action",
+    # the probe tip offset is no parse input (no preview reads #3032)
+    "cal_apply": "none", "cal_discard": "none",
     "save_tool": "input_action", "add_tool": "input_action", "delete_tool": "input_action",
     "renumber_tool": "input_action",
     "load_file": "input_action", "unload_file": "input_action",
@@ -1487,6 +1494,11 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "probe_run": {"routine": Text(max_len=63, required=True), "vars": VarNumbers()},
     "surface_scan_run": {"vars": VarNumbers(required=True)},
     "set_g30": {"values": AxisMap(required=True), "based_on": AxisMap(required=True)},
+    # a calibration candidate named by its run (P5: 1 … 9 999 999) and, for
+    # Apply, the value the page shows — the offset is an ABS (≥ 0)
+    "cal_apply": {"run": Num(lo=1, hi=9_999_999, integer=True, required=True),
+                  "value": Num(lo=0, hi=1000, required=True)},
+    "cal_discard": {"run": Num(lo=1, hi=9_999_999, integer=True, required=True)},
     "load_file": {"path": Text(max_len=PATH_MAX, required=True)},
 }
 

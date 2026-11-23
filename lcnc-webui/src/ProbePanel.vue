@@ -18,6 +18,8 @@ import FormField from "./FormField.vue";
 import { PROBE_COMMON_FIELDS, PROBE_HINT_FIELDS, CAL_ROUND_FIELD, CAL_RECT_FIELDS, SCAN_FIELDS, unitText,
          bossPocketRefusal, bossPocketNote } from "./probeFields";
 import { showBtnHint } from "./btnHint";
+import { status, request } from "./lcncWs";
+import { calOffsetView } from "./calibrationView";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
@@ -303,6 +305,21 @@ function runCalProbe(macro: string) {
 function resetCal() {
   if (!can.value.ready || props.probing) return;
   resetTarget.value = "cal";
+}
+
+// ─── Calibration offset and candidate (P5, W3; operator 2026-11-23 O-2/O-4) ──
+// The gateway's record and candidate — the same on every client. This
+// client's refusal of Apply stays where it began (the block), for its run.
+const calRefusal = ref<{ run: number; why: string } | null>(null);
+const calView = computed(() => calOffsetView(status.value?.probe_calibration ?? null, params.value.calOffset,
+  status.value?.cal_candidate ?? null, props.linearUnit, calRefusal.value));
+async function calDecide(kind: "cal_apply" | "cal_discard") {
+  const note = calView.value.note;
+  if (note?.kind !== "pending") return;
+  calRefusal.value = null;
+  const r = await request(kind === "cal_apply" ? { cmd: kind, run: note.run, value: note.value } : { cmd: kind, run: note.run });
+  if (!r) calRefusal.value = { run: note.run, why: "no reply — outcome unknown" };
+  else if (r.ok === false) calRefusal.value = { run: note.run, why: typeof r.error === "string" ? r.error : "refused" };
 }
 
 // ─── Surface map ──────────────────────────────────────────────────
@@ -958,7 +975,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ CALIBRATE VIEW ═══ -->
     <template v-else-if="probeView === 'cal'">
-      <div class="gridSection stack-sections">
+      <div class="gridSection calSection stack-controls">
       <!-- Round calibration: buttons + diameter -->
       <div class="stack-tight">
         <div class="row-sections">
@@ -1049,8 +1066,10 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <!-- Calibrate on axis selector -->
-      <div class="stack-controls">
+      <!-- Calibrate On, and directly under it the calibration offset (W3,
+           operator O-4: inside the cells' box): the active value, what the
+           machine holds of it, Reset; a candidate with Apply / Discard. -->
+      <div class="stack-micro">
         <div class="row-controls">
           <span id="probeCalAxisLabel" class="sub">Calibrate On</span>
           <div class="radioGroup inline" role="radiogroup" aria-labelledby="probeCalAxisLabel">
@@ -1059,8 +1078,24 @@ function fmtR(key: string): string {
             <label><MachineRadio gate="probeParam" name="calAxis" :value="2" v-model.number="calAxis" /> Y Error</label>
           </div>
         </div>
-        <div class="resetRow">
-          <MachineBtn type="probeReset" @click="resetCal">Reset Calibration</MachineBtn>
+        <div class="statusNote" data-cal="active">
+          <span>Calibration offset <strong class="mono">{{ calView.value }}</strong><template v-if="calView.machine">
+            · <span class="text-muted">{{ calView.machine }}</span></template></span>
+          <MachineBtn type="probeReset" aria-label="Reset Calibration" @click="resetCal">Reset</MachineBtn>
+        </div>
+        <div v-if="calView.note?.kind === 'pending'" class="statusNote warn" role="status" data-cal="candidate">
+          <span>{{ calView.note.text }}</span>
+          <div class="row-tight">
+            <MachineBtn type="calApply" @click="calDecide('cal_apply')">Apply</MachineBtn>
+            <MachineBtn type="calDiscard" @click="calDecide('cal_discard')">Discard</MachineBtn>
+          </div>
+        </div>
+        <div v-if="calView.refusal" class="statusNote error" role="alert" data-cal="refusal">
+          <span>{{ calView.refusal }}</span>
+        </div>
+        <div v-if="calView.note && calView.note.kind !== 'pending'" class="statusNote" data-cal="outcome"
+             :class="{ ok: calView.note.kind === 'applied', warn: calView.note.kind === 'stale' }" role="status">
+          <span>{{ calView.note.text }}</span>
         </div>
       </div>
       </div>
@@ -1384,7 +1419,7 @@ html.touch-device .gridSection { height: 368px; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-tight);
-  width: 172px;
+  width: calc(2 * var(--cal-cell) + var(--gap-tight));
   flex-shrink: 0;
 }
 
@@ -1399,8 +1434,33 @@ html.touch-device .gridSection { height: 368px; }
   text-align: center;
 }
 
+/* The calibration view (operator 2026-11-23, P5): the sizes stand centred on
+   their ROW OF CELLS, not on the cells with their captions ("sonst
+   zusammengewürfelt") — the Diameter field on the Round cells, X / Y Width as
+   a group on the Rect cells: the field column takes the cell's height and
+   centres in it (two touch fields overhang it evenly). The box grows here
+   only (min-height): the calibration offset sits inside it under Calibrate
+   On (O-4); the cells keep their place at its top in every procedure. Where
+   the pane cannot hold cells and sizes side by side (the narrow pane at
+   150 %: 356 CSS px of content in 272 — the box ran out sideways), the sizes
+   go under the cells. */
+.gridSection.calSection {
+  --cal-cell: 84px;
+  height: auto;
+  min-height: 360px;
+  container-type: inline-size;
+}
+html.touch-device .gridSection.calSection { height: auto; min-height: 368px; }
 .calParamStacked {
-  align-self: center;
+  align-self: flex-start;
+  height: var(--cal-cell);
+  justify-content: center;
+}
+@container (max-width: 380px) {
+  .calSection .row-sections { flex-direction: column; }
+  .calParamStacked { height: auto; }
+  /* "Calibrate On" over its choices, not broken into two lines beside them */
+  .calSection .row-controls { flex-direction: column; align-items: flex-start; }
 }
 
 
