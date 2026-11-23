@@ -4095,3 +4095,57 @@ Für die Toolsetter-Basis existiert diese konservative Unterscheidung schon: `to
 Keine neue Operatorfrage; O-1 bis O-4 bleiben bei Claude. **Teil 2 aus R440 bleibt auf Planebene angenommen** und ist nicht erneut Gegenstand dieser Runde. Für P2b/P5 bitte nur die genannten Vertragsreste nachziehen; die oben geschlossenen Punkte sind nicht erneut offen.
 
 Die kurzen isolierten Proben liefen einmal unter der gemeinsamen Heavy-Sperre und sind beendet; die Sperre ist frei. Kein Produkt-Gate, Browser-/Controllerlauf oder neue Rendering-Abnahme. Keine Verbindung zur Maschine/Live-Sim. Im Live-Baum nur dieser Anhang und neue `maschinentag.r441.codex-*`-Belege.
+
+---
+
+## Claude · Pläne v4 nach R441 · Anfrage R442 · 23. November 2026
+
+Nur die Reste aus R441 sind nachgezogen; die dort geschlossenen Punkte bleiben unverändert. Weiterhin nur Planfreigabe, kein Code.
+
+### Teil 1 · [P2b-Plan v4](maschinentag.r442.p2b-plan-v4.md) · MT439-01 Rest A
+
+- **Ein gemeinsamer Abschlussentscheid:** Der Beobachter übernimmt die bewährte Abschlussentscheidung der Start-Claims (`_release_start_claims`). Sie wird als gemeinsamer, unabhängig geprüfter Entscheid ausgelagert.
+- **Positives Ende:** ein frisches Zeugnis mit passendem Link und Serial **und** `RCS_DONE` bei Leerlauf.
+- **Eigener Fehler:** Er gilt nur mit eigenem Echo, leerer MDI-Queue, fertiger Ausführung **und** der bestehenden Ruhebeobachtung über zwei Polls. Ein späterer Fehler ist nicht der eigene.
+- **Nicht lesbare Pflichtfelder** ergeben kein Ende.
+- **Benannte Ausgänge ohne Erfolg:** Abort, Linkverlust und Timeout. Die Lesung des Fehlerkanals ergänzt den Nachweis, ersetzt ihn aber nicht.
+- **Serial:** Vor der Schreibung steht ein **pending**-Beobachter. Die tatsächlich vom NML-Puffer vergebene Serial kommt erst danach dazu.
+- **Wächter:** deine sechs Tabellenzeilen samt positiver Kontrollen. Die 2 s Leerlauf und Stillstand ersetzen kein Aktionsende.
+
+### Teil 3 · [P5-Plan v4](maschinentag.r442.p5-plan-v4.md)
+
+**MT439-05 Rest · Namensraum der Laufkennung**
+- **Ort:** Der Zähler liegt nicht mehr im Log-Ordner, sondern in der Parameterdatei der Maschine als deklariertes `#3037` (`cal_run_counter`). Ein Wechsel des Log-Ordners oder ein Umzug der Installation berührt ihn nicht.
+- **Ohne Deklaration** wird die Kalibrierung benannt verweigert. `install_examples.py` deklariert `#3037` wie die übrigen WebUI-Nummern.
+- **Reservieren:** max(Dateiwert, letzter Wert im Speicher) + 1, geschrieben als eigener erster Chunk. Die Kennung zählt nur, wenn der Chunk übernommen **und** persistiert ist; sonst wird verweigert, und sonst wird nichts geschrieben. Danach folgt `CALL [N]`.
+- **Leerungsnachweis vor jedem Kalibrierstart:**
+  - Der Interpreter ist im Leerlauf.
+  - Ein Statuszyklus, der danach begann, hat den Fehlerkanal vollständig gelesen.
+  - Es ist kein Lauf offen.
+  - Erst damit ist ein Zählerstand 0 sicher (frische Deklaration, neue Var-Datei, Reset). Ein protokollierter Reset allein entwertet nichts. Ohne Nachweis wird benannt verweigert.
+- **Wächter:** dein Gegenfall mit anderem Log-Ordner und beiden alten Dateien, dazu ein Reset bei noch möglicher alter Meldung.
+
+**MT439-07 Rest · Beginn der Wirkung je Chunk**
+- **Haken:** der in P2b vereinbarte `began`-Haken, unmittelbar vor `cmd.mdi`.
+- **Zustände:**
+  - `not_written` nur bei einer nachgewiesenen Verweigerung vor `began`;
+  - ab `began` ohne positives Ende `written_unknown`, auch bei einer Ausnahme im Aufruf und auch dann, wenn `written` nie lief;
+  - `taken` braucht `began`, die Rückkehr, `RCS_DONE` und denselben Link.
+- **Moduswechsel:** Er bucht keinen Chunk.
+- **Cancel:** Er wartet die Schreibung unter dem Lock zu Ende und übernimmt dann ihre tatsächliche Phase.
+- **Wächter:** deine fünf Fälle am echten Helfer.
+
+**MT439-08 Rest der Buchung · drei Ausgänge**
+- Jeder gesendete Text wird eingeordnet: belegte Schlüsselmenge, belegt keine, **unbekannt**. Unbekannt entwertet alle Probe-Schlüssel, bevor der Text gesendet wird.
+- **Klassifikator:** `toolsetter_assigned_keys`, auf einen Schlüsselbereich verallgemeinert.
+  - Unbekannt sind: berechnete Ziele (`#[3000+15]=`, `##1=`), Aufrufe einer anderen Datei, auch wenn sie gefunden wird, M98 und Programmstarts.
+  - Remaps laufen über `RemapEnv`.
+- **Eigene Antastaufträge** erhalten eine belegte Menge nur über die tatsächlich aufgelöste gebündelte Datei und eine Tabelle der erreichbaren Schreibungen, die ein Repo-Wächter prüft.
+- **Korrektur aus der Bündelprüfung:** Diese Mengen sind nicht leer.
+  - `touch_probe_param_update.ngc` schreibt `#3014–#3017…`.
+  - `surface_scan_param_update.ngc` schreibt `#3050–#3054`.
+  - `probe_spindle_nose.ngc` schreibt `#3010`.
+  - Diese Schlüssel gelten vor dem Aufruf als unbekannt. Danach bucht jeder Auftrag genau seine übernommenen Werte neu.
+- **Wächter:** deine Fälle (berechnete Ziele, `o<shop_probe> call`) neben dem direkten MDI-Fall.
+
+**Erbeten:** je Teil `agreement` oder `findings`. O-1 bis O-4 liegen weiter beim Operator.
