@@ -126,16 +126,16 @@ for (const key of ["z_surface", "surface_scan"]) {
   });
 }
 
-// The calibration cells say where their routine starts (machine day F28,
+// The calibration cells name their piece and where their routine starts (machine day F28,
 // P4-4, Codex R433): the boss routines start ABOVE THE CENTRE (they touch Z
 // there, then step out by half the gauge plus Step Off) — the right cell sat
 // under "Round Hole" and was titled "outside start". Each cell's name and
 // caption against the routine it sends.
 const CAL_CELLS: { name: string; caption: string; routine: string }[] = [
-  { name: 'Round hole — edge start', caption: 'edge start', routine: 'probe_cal_round_pocket' },
-  { name: 'Round boss — above centre', caption: 'above centre', routine: 'probe_cal_round_boss' },
-  { name: 'Rect pocket — edge start', caption: 'edge start', routine: 'probe_cal_square_pocket' },
-  { name: 'Rect boss — above centre', caption: 'above centre', routine: 'probe_cal_square_boss' },
+  { name: 'Round hole — edge start', caption: 'Round hole|edge start', routine: 'probe_cal_round_pocket' },
+  { name: 'Round boss — above centre', caption: 'Round boss|above centre', routine: 'probe_cal_round_boss' },
+  { name: 'Rect pocket — edge start', caption: 'Rect pocket|edge start', routine: 'probe_cal_square_pocket' },
+  { name: 'Rect boss — above centre', caption: 'Rect boss|above centre', routine: 'probe_cal_square_boss' },
 ];
 
 for (const c of CAL_CELLS) {
@@ -145,12 +145,11 @@ for (const c of CAL_CELLS) {
     await side.getByRole('tab', { name: 'Probing', exact: true }).click();
     await side.getByRole('tab', { name: 'Calibrate', exact: true }).click();
     const panel = side.getByRole('tabpanel');
-    await expect(panel.locator('.sub').filter({ hasText: /^(Round|Rectangular)$/ })).toHaveText(['Round', 'Rectangular']);
     const cell = panel.getByRole('button', { name: c.name, exact: true });
     await expect(cell).toBeEnabled();
     // the visible caption under the cell says the same start
     await expect(cell.locator('xpath=ancestor::div[contains(@class,"stack-micro")][1]').locator('.calCaption'))
-      .toHaveText(c.caption);
+      .toHaveJSProperty('innerText', c.caption.replace('|', '\n'));
     await ctl({ op: 'clearCmds' });
     await hold(page, cell);
     await expect.poll(async () => (await sent()).filter(x => x.cmd === 'probe_run').length, { message: c.name }).toBe(1);

@@ -953,7 +953,6 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <!-- Round calibration: buttons + diameter -->
       <div class="stack-tight">
-        <div class="sub">Round</div>
         <div class="row-sections">
           <div class="calBtnPair">
             <div class="stack-micro">
@@ -968,7 +967,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="2.5" class="crosshair" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">edge start</span>
+              <span class="label-muted calCaption" aria-hidden="true">Round hole<br />edge start</span>
             </div>
             <div class="stack-micro">
               <MachineBtn type="probeCell" class="gridCell" title="Round boss — above centre" aria-label="Round boss — above centre" @click="runCalProbe('probe_cal_round_boss')">
@@ -982,7 +981,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="4" class="probeTip" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">above centre</span>
+              <span class="label-muted calCaption" aria-hidden="true">Round boss<br />above centre</span>
             </div>
           </div>
           <div class="calParamStacked stack-tight">
@@ -999,7 +998,6 @@ function fmtR(key: string): string {
 
       <!-- Rect calibration: buttons + x/y width -->
       <div class="stack-tight">
-        <div class="sub">Rectangular</div>
         <div class="row-sections">
           <div class="calBtnPair">
             <div class="stack-micro">
@@ -1014,7 +1012,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="2.5" class="crosshair" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">edge start</span>
+              <span class="label-muted calCaption" aria-hidden="true">Rect pocket<br />edge start</span>
             </div>
             <div class="stack-micro">
               <MachineBtn type="probeCell" class="gridCell" title="Rect boss — above centre" aria-label="Rect boss — above centre" @click="runCalProbe('probe_cal_square_boss')">
@@ -1028,7 +1026,7 @@ function fmtR(key: string): string {
                   <circle cx="40" cy="40" r="4" class="probeTip" />
                 </svg>
               </MachineBtn>
-              <span class="label-muted calCaption" aria-hidden="true">above centre</span>
+              <span class="label-muted calCaption" aria-hidden="true">Rect boss<br />above centre</span>
             </div>
           </div>
           <div class="calParamStacked stack-tight">
@@ -1382,11 +1380,13 @@ html.touch-device .gridSection { height: 368px; }
   flex-shrink: 0;
 }
 
-/* A calibration cell's caption names where its routine starts (machine day
-   F28, P4-4): the global caption class, one line, centred under its cell
-   (the piece is the cell's glyph and its name). One line and 84 px cells
-   keep the view inside the procedures' shared box (.gridSection 360 / 368
-   px, measured: 96 px cells with two-line captions ran 39 / 52 px over). */
+/* A calibration cell's caption names its piece and where its routine starts
+   (machine day F28, P4-4): the global caption class, two lines centred under
+   the cell — "Round boss" / "above centre", the words of its name. The pair
+   rows carry no heading (the caption names the shape) and the cells are
+   84 px: the view stays inside the procedures' shared box (.gridSection
+   360 / 368 px — measured: headings with two-line captions under 96 px cells
+   ran 39 / 52 px over; with headings two lines would need cells of 70 px). */
 .calCaption {
   text-align: center;
 }
