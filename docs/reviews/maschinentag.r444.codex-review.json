@@ -1,0 +1,37 @@
+{
+  "round": "R444",
+  "date": "2026-11-23",
+  "doc_head": "675d81b4c9eb48dee694715e80a38bd387fc6b75",
+  "product_base": "594e333c9d1021d7c450d5936df5566df1657f36",
+  "verdict": "agreement",
+  "scope": "P5 v6 technical plan; MT439-05 final counter rest closed",
+  "documents": {
+    "maschinentag.r443.p5-plan-v5.md": "2830d99aab89788144e7753b1d3579c45bcf8253a090fbb5b18242820028d3a7",
+    "maschinentag.r444.p5-plan-v6.md": "5b3cf1419a121254f99cfa5946def0ff37047de22dc35c612765cb2296cc8dea",
+    "maschinentag.r443.codex-probe.py": "38ce0201f676ee408515b685beb36ed88dcde9cd27bf75f6ff6b85ba29772735"
+  },
+  "diff_review": "Full v5-to-v6 diff read; changes limited to title and counter convention, exhaustion and guards",
+  "review_before_sha256": "d77efde6e2e6a70484a163f6e2ac2d18ad905d4f9e3fdea37adf1d4cbc1e4cae",
+  "append_sha256": "40f141ada9cafd3b121b5d618201e56108a2063cc091cb65548e1dd1147b76da",
+  "evidence": {
+    "maschinentag.r444.codex-probe.py": "6f8bcaa2867b54022d9fe618136daf48df8af8cdaa149108058373b6e108d02f",
+    "maschinentag.r444.codex-probes.json": "0b5dae06ca55054055652d2aa0b35a003a8c4952f1f6889ee22e0cc793133d31"
+  },
+  "findings": [],
+  "checks": {
+    "command": "python3 -I -B /tmp/r444/probe.py",
+    "lock": "Official scripts/test_support/heavy_lock.py, codex-r444-plan-probes; completed and released",
+    "exit_code": 0,
+    "cases_passed": 14,
+    "cases_total": 14,
+    "model": "Unchanged R443 suggested() function, AST-extracted; plan formula and bounds text checked",
+    "limits": [
+      "Arithmetic model only; no P5 implementation executed",
+      "No atomic-write, locking or gateway integration test",
+      "No product gate, browser, native interpreter or LinuxCNC connection",
+      "No product edits or subagents"
+    ],
+    "operator_questions": [],
+    "existing_operator_decisions": "O-1 through O-4 and rendering approval remain with Claude/operator as previously agreed"
+  }
+}

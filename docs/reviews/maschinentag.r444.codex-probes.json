@@ -1,0 +1,127 @@
+{
+  "round": "R444",
+  "scope": "Arithmetic model from R443 proposal adopted by v6; not a product test",
+  "model_source": "docs/reviews/maschinentag.r443.codex-probe.py",
+  "model_source_sha256": "38ce0201f676ee408515b685beb36ed88dcde9cd27bf75f6ff6b85ba29772735",
+  "plan_sha256": "5b3cf1419a121254f99cfa5946def0ff37047de22dc35c612765cb2296cc8dea",
+  "cases": [
+    {
+      "case": "first",
+      "disk_next": 1,
+      "memory_last": 0,
+      "outcome": "reserved",
+      "allocated_N": 1,
+      "written_next": 2,
+      "write": true
+    },
+    {
+      "case": "second",
+      "disk_next": 2,
+      "memory_last": 1,
+      "outcome": "reserved",
+      "allocated_N": 2,
+      "written_next": 3,
+      "write": true
+    },
+    {
+      "case": "third",
+      "disk_next": 3,
+      "memory_last": 2,
+      "outcome": "reserved",
+      "allocated_N": 3,
+      "written_next": 4,
+      "write": true
+    },
+    {
+      "case": "restart_reserved_unsent",
+      "disk_next": 2,
+      "memory_last": 0,
+      "outcome": "reserved",
+      "allocated_N": 2,
+      "written_next": 3,
+      "write": true
+    },
+    {
+      "case": "higher_local_reservation",
+      "disk_next": 2,
+      "memory_last": 7,
+      "outcome": "reserved",
+      "allocated_N": 8,
+      "written_next": 9,
+      "write": true
+    },
+    {
+      "case": "last_token",
+      "disk_next": 9999999,
+      "memory_last": 9999998,
+      "outcome": "reserved",
+      "allocated_N": 9999999,
+      "written_next": 10000000,
+      "write": true
+    },
+    {
+      "case": "restart_exhausted",
+      "disk_next": 10000000,
+      "memory_last": 0,
+      "outcome": "exhausted",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "local_exhaustion",
+      "disk_next": 1,
+      "memory_last": 9999999,
+      "outcome": "exhausted",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "fraction",
+      "disk_next": 1.2,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "bool",
+      "disk_next": true,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "negative",
+      "disk_next": -1,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "string",
+      "disk_next": "1",
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "zero",
+      "disk_next": 0,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    },
+    {
+      "case": "above_sentinel",
+      "disk_next": 10000001,
+      "memory_last": 0,
+      "outcome": "invalid",
+      "allocated_N": null,
+      "write": false
+    }
+  ]
+}
