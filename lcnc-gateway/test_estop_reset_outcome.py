@@ -13,6 +13,7 @@ client preempting the wait).
 import asyncio
 import time
 import unittest
+from unittest.mock import patch
 
 import fake_linuxcnc
 
@@ -123,6 +124,43 @@ class TestTheOutcome(unittest.TestCase):
         async def main():
             return await gateway._estop_reset_outcome(object(), {})
         self.assertIsNone(asyncio.run(main())["confirmed"])
+
+
+def _on_a_clock(records):
+    """The outcome on a controlled clock (Codex R437 MT-I20): the write at
+    t=100, each record (began, task state, echo 7) delivered at its own time;
+    after the last one the clock runs on in 2 s steps."""
+    conn, clock, seq = object(), [100.0], [0]
+
+    async def sleep(_s):
+        if seq[0] >= len(records):
+            clock[0] += 2
+            return
+        at, state = records[seq[0]]
+        seq[0] += 1
+        clock[0] = at
+        gateway._poll_record = (seq[0], at, conn, 7, state)
+    with patch.object(gateway, "_poll_record", None), patch.object(gateway.time, "monotonic", lambda: clock[0]), \
+            patch.object(gateway.asyncio, "sleep", sleep):
+        return asyncio.run(gateway._estop_reset_outcome(conn, {"serial": 7, "t": 100.0}))
+
+
+class TestTheDeadlinesJudgeTheBegin(unittest.TestCase):
+    """Codex R437 MT-I20: a poll BEGUN after a deadline decides nothing, even
+    when the loop reads it late; one begun in time decides."""
+
+    def test_control_a_poll_in_the_window_decides(self):
+        self.assertIs(_on_a_clock([(100.02, ESTOP), (100.55, RESET)])["confirmed"], True)
+
+    def test_a_deciding_poll_begun_after_the_final_deadline_is_unknown(self):
+        for state in (ESTOP, RESET):
+            with self.subTest(state=state):
+                r = _on_a_clock([(100.02, ESTOP), (102.1, state)])
+                self.assertIsNone(r["confirmed"], r)
+
+    def test_a_first_echo_begun_after_the_echo_deadline_is_unknown(self):
+        r = _on_a_clock([(101.2, ESTOP), (101.8, RESET)])
+        self.assertIsNone(r["confirmed"], r)
 
 
 class TestTheHandler(unittest.TestCase):

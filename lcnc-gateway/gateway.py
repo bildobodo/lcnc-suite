@@ -10621,11 +10621,21 @@ async def _estop_reset_outcome(conn: "Link", booked: Dict[str, Any]) -> Dict[str
             if lk is not conn:
                 return unknown("the Link changed")
             if began > t_w:
-                if echo_at is None and isinstance(echo, int) and echo >= serial:
-                    echo_at = began
+                # a poll is judged by when it BEGAN, against the deadlines,
+                # before it is used (Codex R437 MT-I20): one begun after the
+                # echo deadline opens no window, one begun after the final
+                # deadline decides nothing — however late it is processed;
+                # one begun in time stays valid however late it is read
+                if echo_at is None:
+                    if began > t_w + ESTOP_RESET_ECHO_S:
+                        return unknown("no echo of the write")
+                    if isinstance(echo, int) and echo >= serial:
+                        echo_at = began
                 if left_at is None and state in left_states:
                     left_at = began
                 if echo_at is not None and began >= echo_at + ESTOP_RESET_SETTLE_S:
+                    if began > echo_at + ESTOP_RESET_SETTLE_S + ESTOP_RESET_LATE_S:
+                        return unknown("no poll after the settle window")
                     # the deciding poll: a valid observation at the window's end
                     if state == estop_s:
                         said("not_confirmed", state=state)
