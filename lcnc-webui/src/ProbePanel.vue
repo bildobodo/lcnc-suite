@@ -182,7 +182,7 @@ const p5 = ref<{ cal: P5Cal; field: P5Field }>({ cal: "idle", field: "confirmed"
   (st) => { p5.value = { ...p5.value, ...st }; };
 const p5Active = computed(() => (p5.value.cal === "applied" || p5.value.cal === "applied_saved") ? "0.0712" : "0.0677");
 const p5Machine = computed(() => p5.value.cal === "applied_saved"
-  ? "Saved — reaches the machine with the next probe" : "On the machine");
+  ? "Saved — written to the machine with the next probe" : "On the machine");
 const p5FieldState = (i: number) => i !== 1 ? null
   : p5.value.field === "draft" ? "draft" : p5.value.field === "refused" ? "refused" : null;
 
@@ -1281,12 +1281,12 @@ function fmtR(key: string): string {
     <div class="formGrid">
       <div class="sub">Parameters</div>
       <div v-if="p5.field === 'refused'" class="statusNote error wide" role="alert" data-p5="line">
-        <span>Slow Feed not saved: Not armed — press Arm. The machine keeps 25.0.</span>
+        <span>Slow Feed not saved: Not armed — press Arm. On the machine: 25.0 (written 05:12).</span>
       </div>
       <div v-else class="settingDesc" data-p5="line">{{
-        p5.field === 'draft' ? 'Slow Feed not saved yet — the machine keeps 25.0'
-        : p5.field === 'saved' ? 'Saved — reaches the machine with the next probe'
-        : 'On the machine — written with the probe at 05:12' }}</div>
+        p5.field === 'draft' ? 'Slow Feed not saved yet · on the machine: 25.0 (written 05:12)'
+        : p5.field === 'saved' ? 'Saved — written to the machine with the next probe'
+        : 'On the machine — written 05:12' }}</div>
       <FormField v-for="(f, i) in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)"
                  :state="p5FieldState(i)" :error="p5FieldState(i) === 'refused' ? 'Not saved — press Arm' : null">
         <template #default="{ input }">
