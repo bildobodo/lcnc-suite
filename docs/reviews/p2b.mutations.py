@@ -113,8 +113,8 @@ MUTS = {
         "                how = (\"done\" if seen else None)")],
         [py(CL + "TestActionOwnership::test_a_mode_switch_needs_its_target", "AssertionError")]),
     "the_tool_file_begins_after": (GW + "gateway.py", [(
-        "    _file_input_began(\"tool_table_file\")   # right before the file is replaced (P2b-3)\n    write_tool_table(tbl_path, tools)",
-        "    write_tool_table(tbl_path, tools)\n    _file_input_began(\"tool_table_file\")")],
+        "    with _file_effect(\"tool_table_file\"):   # begun right before the file is replaced, ended at its end (P2b-3)\n        write_tool_table(tbl_path, tools)",
+        "    write_tool_table(tbl_path, tools)\n    with _file_effect(\"tool_table_file\"):\n        pass")],
         [py(CG + "TheFileWritersBegin::test_the_tool_table_begins_before_its_file_is_replaced", "AssertionError")]),
     "a_command_unclassified": (GW + "command_policy.py", [(
         "    \"simulate_probe_trip\": \"none\",\n}", "}")],
@@ -168,6 +168,37 @@ MUTS = {
     "a_parse_starts_while_unloading": (GW + "gateway.py", [(
         "    if _bulk.unloading:\n        return \"unloading\"", "    if False:\n        return \"unloading\"")],
         [py(CG + "TheRestartWaits::test_no_parse_of_an_unloaded_program_starts_before_the_unload_settles", "AssertionError")]),
+    # ---- Codex R446: MT-I25 the file writers' end, MT-I27 the kept job end, MT-I28 the first load's restart
+    "a_file_end_at_its_begin": (GW + "gateway.py", [(
+        "    o = _actions.begin_file(_current_action.get(), why)\n    _calc_gen.began(why)\n    try:\n        yield",
+        "    o = _actions.begin_file(_current_action.get(), why)\n    _calc_gen.began(why)\n    _actions.end_file(o, \"done\")\n    try:\n        yield")],
+        [py(CG + "TheFileWritersOwnTheirEnd::test_a_slow_commit_is_never_quiet_and_its_end_starts_the_debounce", "AssertionError")]),
+    "a_failed_file_write_is_done": (GW + "gateway.py", [(
+        "    except BaseException:\n        _actions.end_file(o, \"unknown\")\n        raise",
+        "    except BaseException:\n        _actions.end_file(o, \"done\")\n        raise")],
+        [py(CG + "TheFileWritersOwnTheirEnd::test_a_failed_commit_ends_named_never_done", "AssertionError")]),
+    "the_tool_import_unowned": (GW + "gateway.py", [(
+        "    act = _actions.internal(\"tool_import\")", "    act = None")],
+        [py(CG + "TheFileWritersOwnTheirEnd::test_the_http_tool_import_is_one_action_to_its_metadata", "AssertionError")]),
+    "the_decision_forgets_its_jobs_end": (GW + "gateway.py", [(
+        "    if d is not None and d.get(\"state\") == \"parse\" and d.get(\"job\") == job:\n        d.update(end)",
+        "    if False:\n        d.update(end)")],
+        [py(CG + "TheDriftDecision::test_the_decision_keeps_its_jobs_end_past_the_store", "AssertionError")]),
+    "the_round_never_moves": (GW + "gateway.py", [(
+        "    _dd_round += 1\n", "    _dd_round += 0\n")],
+        [py(CG + "TheDriftDecision::test_a_new_round_of_the_same_generation_has_its_own_number", "a new round")]),
+    "a_round_inherits_the_deadline": (V + "driftWait.ts", [(
+        "  if (d.round !== undefined && w.round !== null) return d.round - w.round;", "  if (false) return 0;")],
+        [vt("src/viewer/driftWait.test.ts", "a new round after", "AssertionError")]),
+    "the_page_ignores_the_round": (V + "driftWait.ts", [(
+        "  if (d.round !== undefined && w.round !== null) return d.round - w.round;", "  if (false) return 0;")],
+        [pw("e2e/collisions.viewer.spec.ts", "a fresh pending round after none", "the wait belongs to the new round")]),
+    "a_first_load_restart_never_waits": (GW + "gateway.py", [(
+        "    if file_changed and not discarded:\n        return None", "    if file_changed:\n        return None")],
+        [py(CG + "TheFirstLoadsRestart::test_a_discarded_first_load_never_restarts_unpinned_under_the_run", "AssertionError")]),
+    "the_read_back_judge_ignores_the_order": ("scripts/test_support/native_cases.py", [(
+        "    early = [e for e in spawns if idx[id(e)] < t_rb]", "    early = []")],
+        [py("../scripts/test_native_stage.py::test_the_read_back_half_needs_an_open_confirmation", "AssertionError")]),
     # ---- P2b-2 (plan v4 variant 1): the idle check waits for the drift decision
     "the_decision_wait_never_falls_back": (V + "driftWait.ts", [(
         "    if (waited >= fallbackMs) {", "    if (false) {")],
@@ -180,7 +211,7 @@ MUTS = {
         "  return adopted(d.published)", "  return true")],
         [vt("src/viewer/driftWait.test.ts", "a parse decided early", "published, not adopted")]),
     "an_older_status_counts": (V + "driftWait.ts", [(
-        "  if (w && cmpGen(d.gen, w.gen) < 0) {", "  if (false) {")],
+        "  if (w && cmpRound(d, w) < 0) {", "  if (false) {")],
         [vt("src/viewer/driftWait.test.ts", "a newer generation", "an older generation")]),
     "an_action_end_opens_no_decision": (GW + "gateway.py", [(
         "            _dd_pending(f\"action:{a.what}\")", "            pass")],

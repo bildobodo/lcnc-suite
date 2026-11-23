@@ -4,14 +4,20 @@
 // parse's publication and the page's adoption of it. Two separate waits:
 // the decision at most FALLBACK_MS (one named fallback), a named parse under
 // its own bound (the gateway's timeout_s ends the job, its end rides the
-// decision). The wait belongs to (program generation, input generation,
-// connection): a newer generation or another connection closes it; a late
-// status of an OLDER generation changes nothing. Pure.
+// decision). The wait belongs to ONE decision round (its number on the wire —
+// Codex R446 MT-I26: the gateway opens a new round at every idle edge, input
+// write or not, so the generation alone cannot tell two rounds apart) of one
+// connection: a newer round or another connection opens a new wait with its
+// own deadline and its own one fallback; repeated frames of the same round
+// change neither; a late decision of an OLDER round changes nothing. A gateway
+// without round numbers is ordered by its generation. Pure.
 
 /** The gateway's `drift_decision` (gateway._drift_decision_status). */
 export interface DriftDecision {
   state: "pending" | "none" | "parse";
   gen: [number, number];
+  /** the decision round (the gateway's counter; every pending opens one) */
+  round?: number;
   /** a named parse's job */
   job?: number;
   /** its publication (the version), once it published */
@@ -22,7 +28,8 @@ export interface DriftDecision {
 
 /** One open wait: its owner, since when it waits for a decision, and the
  *  last decision of ITS generation (what a late older status is judged by). */
-export interface DriftWait { gen: [number, number]; conn: number; since: number; fellBack: boolean; last?: DriftDecision }
+export interface DriftWait { gen: [number, number]; round: number | null; conn: number; since: number; fellBack: boolean;
+                            last?: DriftDecision }
 
 export type DriftVerdict =
   | { go: true; named: null | { kind: "fallback"; waited_ms: number } | { kind: "parse_ended"; job: number | null; why: string }
@@ -36,6 +43,13 @@ export function cmpGen(a: readonly [number, number], b: readonly [number, number
   return a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1];
 }
 
+/** Is decision `d` of a newer (> 0), the same (0) or an older (< 0) round
+ *  than the wait's — by the round number, else by the generation. */
+export function cmpRound(d: DriftDecision, w: DriftWait): number {
+  if (d.round !== undefined && w.round !== null) return d.round - w.round;
+  return cmpGen(d.gen, w.gen);
+}
+
 /** Parse the wire's field; null for anything that is not one. */
 export function parseDriftDecision(raw: unknown): DriftDecision | null {
   if (!raw || typeof raw !== "object") return null;
@@ -46,6 +60,7 @@ export function parseDriftDecision(raw: unknown): DriftDecision | null {
       || !gen.every(n => typeof n === "number" && Number.isFinite(n))) return null;
   return {
     state, gen: [gen[0] as number, gen[1] as number],
+    ...(typeof r.round === "number" && Number.isFinite(r.round) ? { round: r.round } : {}),
     ...(typeof r.job === "number" ? { job: r.job } : {}),
     ...(typeof r.published === "number" ? { published: r.published } : {}),
     ...(typeof r.why === "string" && state === "parse" ? { why: r.why } : {}),
@@ -65,13 +80,13 @@ export function driftVerdict(d: DriftDecision | null, wait: DriftWait | null, no
     return { verdict: { go: true, named: { kind: "no_decision" } }, wait: null };
   }
   let w = wait && wait.conn === conn ? wait : null;
-  if (w && cmpGen(d.gen, w.gen) < 0) {
-    // a late status of an older generation: no effect — the open wait stays,
-    // judged by its own generation's last decision
+  if (w && cmpRound(d, w) < 0) {
+    // a late decision of an older round: no effect — the open wait stays,
+    // judged by its own round's last decision
     if (w.last) return driftVerdict(w.last, w, now, conn, adopted, fallbackMs);
     return { verdict: { go: false, why: "decision", retryInMs: Math.max(0, w.since + fallbackMs - now) }, wait: w };
   }
-  if (!w || cmpGen(d.gen, w.gen) > 0) w = { gen: [d.gen[0], d.gen[1]], conn, since: now, fellBack: false };
+  if (!w || cmpRound(d, w) > 0) w = { gen: [d.gen[0], d.gen[1]], round: d.round ?? null, conn, since: now, fellBack: false };
   w = { ...w, last: d };
   if (d.state === "none") return { verdict: { go: true, named: null }, wait: w };
   if (d.state === "pending") {

@@ -83,10 +83,10 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
     def test_every_file_writer_begins(self):
         """The tool table, the parameter file, a program's and a macro's
         publish or delete: each writer's function begins right before."""
-        for pattern, hook in ((r"\bwrite_tool_table\(", "_file_input_began("),
-                              (r"_publish_no_replace\(tmp, dest_path\)", "_file_publish_began("),
-                              (r"os\.replace\(tmp, dest_path\)", "_file_publish_began("),
-                              (r"os\.unlink\(path\)\n", "_file_publish_began(")):
+        for pattern, hook in ((r"\bwrite_tool_table\(", "with _file_effect("),
+                              (r"_publish_no_replace\(tmp, dest_path\)", "with _file_publish_effect("),
+                              (r"os\.replace\(tmp, dest_path\)", "with _file_publish_effect("),
+                              (r"os\.unlink\(path\)\n", "with _file_publish_effect(")):
             hits = innermost_holding(pattern)
             self.assertTrue(hits, pattern)
             for n, s in hits:
@@ -122,6 +122,16 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
         """The pipeline's gate is the gateway's ONE generation (a pipeline
         without it publishes unchecked — a test's)."""
         self.assertEqual(SRC.count("_bulk.generation = _calc_gen"), 1)
+
+    def test_a_file_effect_ends_at_the_writers_end(self):
+        """Codex R446 MT-I25: the begin before the change, the end after it
+        (or `unknown` when it raised) — never booked at the begin."""
+        (_n, s), = [(n, s) for n, s in functions() if n.name == "_file_effect"]
+        order = ["_actions.begin_file(", "_calc_gen.began(why)", "yield", '_actions.end_file(o, "unknown")',
+                 '_actions.end_file(o, "done")']
+        at = [s.find(x) for x in order]
+        self.assertTrue(all(i >= 0 for i in at) and at == sorted(at), dict(zip(order, at)))
+        self.assertNotIn("wrote_file", s)
 
     def test_load_and_unload_begin_a_program_generation(self):
         self.assertIn('began=lambda: _program_began("load")', SRC)

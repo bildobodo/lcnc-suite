@@ -174,6 +174,9 @@ class BulkPipeline:
         # failed …} — the last few
         self.job_ends: "collections.OrderedDict[int, dict]" = collections.OrderedDict()
         self.last_scheduled_job: Optional[int] = None
+        # told every job's end (the gateway's drift decision keeps the end of
+        # the job it names — the bounded job_ends store may drop it)
+        self.on_job_end: Optional[Callable[[int, dict], None]] = None
         # an unload's write has begun and the status still names the program
         # (P2b-3): no parse of it starts — set at the unload's begin, cleared
         # once no program is active, at a load's begin, or when the unload fails
@@ -519,6 +522,8 @@ class BulkPipeline:
         self.job_ends[job] = end
         while len(self.job_ends) > 16:
             self.job_ends.popitem(last=False)
+        if self.on_job_end is not None:
+            self.on_job_end(job, dict(end))
 
     def _publish_in_generation(self, gen_at: Optional[tuple], apply: Callable[[], None],
                                job: Optional[int], filepath: str, what: str) -> bool:

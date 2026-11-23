@@ -2399,7 +2399,7 @@ async function buildFromInit(init: ViewerInit) {
         getCollisionStopped: () => (collisionStopped.value ? { ...collisionStopped.value } : null),
         getCollisionHoldLog: () => _colHoldLog.slice(),
         getDriftWait: () => ({ waiting: _colDriftWaiting, why: _colDriftWhy, since: _colDriftWait?.since ?? null,
-                               gen: _colDriftWait?.gen ?? null, now: performance.now() }),
+                               gen: _colDriftWait?.gen ?? null, round: _colDriftWait?.round ?? null, now: performance.now() }),
         // Main checks started, and whether one runs, waits parked, or has a
         // result (VP188-02 E1: the check waits at the re-parse hold).
         getCollisionActivity: () => ({ starts: _colStarts, busy: collisionBusy.value,
@@ -4314,7 +4314,7 @@ function _colScheduleAuto() {
 // Two waits (viewer/driftWait.ts): the decision at most 3 s — then ONE named
 // fallback (collision.check_fallback) —, a named parse under its own bound
 // and the page's adoption (decoded, no basis hold). The wait belongs to
-// (program generation, input generation, connection).
+// decision ROUND (its number on the wire) and connection — Codex R446 MT-I26.
 let _colDriftWait: DriftWait | null = null;
 let _colDriftTimer: ReturnType<typeof setTimeout> | undefined;
 let _colDriftWaiting = false;
@@ -4333,6 +4333,7 @@ function _colDriftReady(): boolean {
   const { verdict, wait } = driftVerdict(driftDecision.value, _colDriftWait, performance.now(), _colConnSeq, _colAdopted);
   _colDriftWait = wait;
   const gen = wait?.gen ?? null;
+  const round = wait?.round ?? null;   // the decision round (Codex R446 MT-I26)
   if (verdict.go) {
     _colDriftWaiting = false;
     _colDriftWhy = null;
@@ -4340,19 +4341,19 @@ function _colDriftReady(): boolean {
     if (n?.kind === "no_decision") {
       if (!_colNoDecisionSaid) { _colNoDecisionSaid = true; emitTelemetry("collision.check_no_decision", {}); }
     } else if (n) {
-      const key = `${n.kind}:${gen}`;
+      const key = `${n.kind}:${gen}:${round}`;
       // (the event's own `kind` is its name: never a field's)
       const { kind, ...fields } = n;
-      if (key !== _colDriftSaid) { _colDriftSaid = key; emitTelemetry(`collision.check_${kind}`, { ...fields, gen }); }
+      if (key !== _colDriftSaid) { _colDriftSaid = key; emitTelemetry(`collision.check_${kind}`, { ...fields, gen, round }); }
     }
     return true;
   }
   _colDriftWaiting = true;
   _colDriftWhy = verdict.why;
-  const key = `${verdict.why}:${gen}`;
+  const key = `${verdict.why}:${gen}:${round}`;
   if (key !== _colDriftSaid) {
     _colDriftSaid = key;
-    emitTelemetry("collision.check_waits", { why: verdict.why, gen, job: driftDecision.value?.job ?? null });
+    emitTelemetry("collision.check_waits", { why: verdict.why, gen, round, job: driftDecision.value?.job ?? null });
   }
   if (verdict.retryInMs != null) _colDriftTimer = setTimeout(_colScheduleAuto, verdict.retryInMs + 1);
   return false;

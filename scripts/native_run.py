@@ -2083,6 +2083,9 @@ P2B_FILE, P2B_PADDING = "native_p2b.ngc", 80000
 #: after the parse's end: this long for a late spawn or publication
 P2B_AFTER_S = 6.0
 P2B_END_WAIT_S = 120.0
+#: guard 8's read-back half: a toolsetter value an MDI writes (tool_min_dis,
+#: #3104 — read by the routine, never by a motion of this run)
+P2B_READBACK_KEY = 3104
 
 
 def p2b_cases():
@@ -2173,6 +2176,33 @@ def _p2b_steps(ctx):
     finally:
         c.request("unload_file")
     ctx["report"]["p2b_measure_file"] = loaded.name
+
+    # (3) guard 8's read-back half (Codex R446): an MDI writing a toolsetter
+    # value leaves the basis OPEN (assumed) — no artificial read-back in the
+    # product; its own read-back confirms the new value, then exactly ONE
+    # parse; the value is put back after the window
+    key = P2B_READBACK_KEY
+    _load_program(ctx, c, PB_FILE, _pb_program(), timeout=PB_QUIET_MAX_S)
+    _pb_quiet(c, "p2b-readback-before")
+    old = _vars(c, [key])[key]
+    if old is None:
+        raise Refused(f"p2b-readback-parse: #{key} has no value in the copy's parameter file")
+    new = old + 1.0
+
+    def write():
+        t_ns = time.time_ns()
+        _short(c, f"#{key}={new:.6f}")
+        return _pb_quiet(c, "p2b-readback-parse", owed_since(t_ns))
+    try:
+        quiet_s, window = _framed(ctx, c, "p2b-readback-parse", write)
+        rows.append(nc.eval_readback_parse("p2b-readback-parse", window, key))
+        ctx["report"]["p2b_readback"] = {"key": key, "old": old, "new": new, "quiet_s": quiet_s}
+    finally:
+        t_ns = time.time_ns()
+        _short(c, f"#{key}={old:.6f}")
+        _pb_quiet(c, "p2b-readback-restore", owed_since(t_ns))
+        ctx["report"]["p2b_readback_restored"] = _vars(c, [key])[key]
+        c.request("unload_file")
     return rows
 
 

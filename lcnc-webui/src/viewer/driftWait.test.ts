@@ -57,9 +57,40 @@ describe("an idle check waits for the drift decision, then for its named parse (
     expect(driftVerdict(null, null, 0, 1, never).verdict).toEqual({ go: true, named: { kind: "no_decision" } });
   });
 
+  // Codex R446 MT-I26 (his three cases, with the round on the wire): a new
+  // round of the SAME generation — after none, after an adopted parse, after a
+  // round that fell back — waits its own three seconds from its own start
+  it.each(["none", "published", "fallback"] as const)("a new round after %s waits its own 3 s, even at the same generation", previous => {
+    const g = (state: DriftDecision["state"], round: number, extra = {}): DriftDecision => ({ state, gen: [0, 0], round, ...extra });
+    let r = driftVerdict(previous === "published" ? g("parse", 1, { job: 5, published: 6 }) : g(previous === "none" ? "none" : "pending", 1),
+                         null, 0, 1, () => true);
+    if (previous === "fallback") {
+      r = driftVerdict(g("pending", 1), r.wait, 3000, 1, () => true);
+      expect(r.verdict).toEqual({ go: true, named: { kind: "fallback", waited_ms: 3000 } });
+      r = driftVerdict(g("none", 1), r.wait, 3500, 1, () => true);
+    }
+    const next = driftVerdict(g("pending", 2), r.wait, 10000, 1, () => true);
+    expect(next.verdict).toEqual({ go: false, why: "decision", retryInMs: 3000 });
+    // repeated frames of that round never reset it; its own fallback is said once
+    const again = driftVerdict(g("pending", 2), next.wait, 12000, 1, () => true);
+    expect(again.wait?.since).toBe(10000);
+    expect(driftVerdict(g("pending", 2), again.wait, 13000, 1, () => true).verdict)
+      .toEqual({ go: true, named: { kind: "fallback", waited_ms: 3000 } });
+    // a late decision of the previous round closes nothing
+    expect(driftVerdict(g("none", 1), next.wait, 11000, 1, () => true).verdict.go).toBe(false);
+  });
+
+  it("a round decided before the page saw its pending is a new round too (never guessed from pending)", () => {
+    const g = (state: DriftDecision["state"], round: number, extra = {}): DriftDecision => ({ state, gen: [0, 0], round, ...extra });
+    let r = driftVerdict(g("none", 1), null, 0, 1, () => true);
+    r = driftVerdict(g("parse", 2, { job: 8 }), r.wait, 5000, 1, () => true);
+    expect(r.verdict, "round 2's named parse, its pending missed").toEqual({ go: false, why: "parse", retryInMs: null });
+    expect(r.wait?.since).toBe(5000);
+  });
+
   it("the wire's field", () => {
-    expect(parseDriftDecision({ state: "parse", gen: [1, 2], job: 3, published: 4 }))
-      .toEqual({ state: "parse", gen: [1, 2], job: 3, published: 4 });
+    expect(parseDriftDecision({ state: "parse", gen: [1, 2], round: 6, job: 3, published: 4 }))
+      .toEqual({ state: "parse", gen: [1, 2], round: 6, job: 3, published: 4 });
     expect(parseDriftDecision({ state: "none", gen: [0, 0], why: "start" })).toEqual({ state: "none", gen: [0, 0] });
     for (const bad of [null, {}, { state: "x", gen: [0, 0] }, { state: "none", gen: [0] }, { state: "none", gen: ["a", 1] }]) {
       expect(parseDriftDecision(bad)).toBeNull();

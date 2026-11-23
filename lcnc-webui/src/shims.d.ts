@@ -74,7 +74,7 @@ interface ViewerDiag {
   getCollisionStopped?: () => { covered: number; reason: "motion" } | null;
   getCollisionHoldLog?: () => string[];
   /** P2b-2: the idle check's decision wait — open or not, since when (page clock). */
-  getDriftWait?: () => { waiting: boolean; why: string | null; since: number | null; gen: [number, number] | null; now: number };
+  getDriftWait?: () => { waiting: boolean; why: string | null; since: number | null; gen: [number, number] | null; round: number | null; now: number };
   /** Main checks started; one running, one parked, a result on hand (E1). */
   getCollisionActivity?: () => { starts: number; busy: boolean; resumable: boolean; result: boolean };
   getCollisionRange?: () => { fromCum: number; fromLine: number; empty?: true; boundary: number } | null;

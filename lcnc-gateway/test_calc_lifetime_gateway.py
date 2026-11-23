@@ -354,6 +354,42 @@ class TheDriftDecision(_Base):
         gateway._bulk._note_job_end(8, {"why": "discarded"})
         self.assertEqual(gateway._drift_decision_status()["why"], "discarded")
 
+    def test_a_new_round_of_the_same_generation_has_its_own_number(self):
+        """Codex R446 MT-I26: an idle edge opens a decision without an input
+        write — the same generation; its ROUND tells it from the last one, on
+        every frame of it, and a decided round keeps its number."""
+        gateway._dd_idle_edge(False)
+        gateway._dd_idle_edge(True)
+        first = gateway._drift_decision_status()
+        gateway._dd_decide("none")
+        decided = gateway._drift_decision_status()
+        gateway._dd_idle_edge(False)
+        gateway._dd_idle_edge(True)
+        nxt = gateway._drift_decision_status()
+        self.assertEqual(first["gen"], nxt["gen"], "no input write: the same generation")
+        self.assertEqual(decided["round"], first["round"], "the decision stays in its round")
+        self.assertGreater(nxt["round"], first["round"], "a new round")
+        self.assertEqual(gateway._drift_decision_status()["round"], nxt["round"], "repeated frames: the same round")
+
+    def test_the_decision_keeps_its_jobs_end_past_the_store(self):
+        """Codex R446 MT-I27: the decision names job 7; sixteen and more
+        other jobs end — the bounded store drops 7, the decision still says
+        how 7 ended (published, and ended without a publication)."""
+        for end, key, val in (({"version": 107}, "published", 107), ({"why": "cancelled:generation"}, "why", "cancelled:generation")):
+            gateway._dd_pending("idle")
+            gateway._dd_decide("parse", 7)
+            gateway._bulk._note_job_end(7, end)
+            for job in range(8, 8 + 3 * 16):
+                gateway._bulk._note_job_end(job, {"version": 100 + job})
+            self.assertNotIn(7, gateway._bulk.job_ends, "the store is bounded")
+            self.assertEqual(gateway._drift_decision_status().get(key), val, end)
+
+    def test_a_job_that_ended_before_the_decision_named_it(self):
+        gateway._bulk._note_job_end(9, {"version": 33})
+        gateway._dd_pending("idle")
+        gateway._dd_decide("parse", 9)
+        self.assertEqual(gateway._drift_decision_status()["published"], 33)
+
     def test_a_parse_of_this_generation_already_running_is_the_decision(self):
         gateway._dd_pending("idle")
         gateway._bulk.refresh_running = True
@@ -383,7 +419,9 @@ class TheRestartWaits(_Base):
             self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), False), "not_idle")
             self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE, 5.0), False), "not_idle")
             self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_IDLE), False))
-            self.assertIsNone(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True), "a new file never waits")
+            # a first load whose parse was discarded unpublished stays
+            # `file_changed` — repeating it is a restart, not a load (R446 MT-I28)
+            self.assertEqual(gateway._restart_wait(self.st(linuxcnc.INTERP_READING), True), "not_idle")
 
     def test_no_parse_of_an_unloaded_program_starts_before_the_unload_settles(self):
         """Native p2b at 934ca971: between the unload's write and the status
@@ -422,3 +460,190 @@ class TheRestartWaits(_Base):
         i = src.find("and inflight_outdated(_bulk.inflight.get(\"gen\"), _calc_gen.snapshot())")
         self.assertGreater(i, 0)
         self.assertIn('_bulk.cancel_inflight("generation")', src[i:i + 600])
+
+
+def _file_edge_chain():
+    """The poll loop's preview step from the file edge's decision through the
+    branch chain (gateway.py, unchanged statements): `_fe = preview_file_
+    edge_action(…)`, the restart gate, the settle gate and the If chain."""
+    import ast
+    import copy
+    tree = ast.parse(open(gateway.__file__).read())
+    for fn in ast.walk(tree):
+        body = getattr(fn, "body", None)
+        if not isinstance(body, list):
+            continue
+        for i, stmt in enumerate(body):
+            if isinstance(stmt, ast.Assign) and ast.unparse(stmt).startswith("_fe = preview_file_edge_action("):
+                j = next(k for k in range(i, len(body)) if isinstance(body[k], ast.If)
+                         and ast.unparse(body[k].test) == "_fe is not None and st.active_file")
+                root = copy.deepcopy(body[j])
+                c = root
+                while c.orelse and isinstance(c.orelse[0], ast.If):   # the chain up to the doom branches
+                    if "inflight_doomed_reason(" in ast.unparse(c.test):
+                        c.orelse = []
+                        break
+                    c = c.orelse[0]
+                mod = ast.Module(body=copy.deepcopy(body[i:j]) + [root], type_ignores=[])
+                return compile(ast.fix_missing_locations(mod), "gateway.py:file-edge-chain", "exec")
+    raise AssertionError("the file edge's statements were not found")
+
+
+class TheFirstLoadsRestart(_Base):
+    """Codex R446 MT-I28 through the poll call chain: a first load whose parse
+    the switch to AUTO discarded unpublished stays `file_changed` (it compares
+    with the last PUBLISHED file) — repeating that job is a restart: it waits
+    for the actions, idle and the quiet window; a real load never waits."""
+
+    def run_edge(self, *, reason, interp, vel, hold=False, published=False):
+        from bulk_pipeline import BulkPipeline
+        from gateway_util import preview_file_changed, preview_file_edge_action
+        b = BulkPipeline(get_stat=lambda: None, get_machine_units=lambda: "mm", build_wcs_rotation_patches=lambda: {})
+        b.reparse_pending, b.reparse_pending_reason = True, reason
+        b.last_file, b.last_mtime = ("/p.ngc", 1.0) if published else (None, None)
+        scheduled = []
+        b.schedule_refresh = lambda *a, **kw: scheduled.append((a[0], a[1], kw.get("pinned", False))) or True
+        if hold:
+            self.ledger.hold("probe_run")
+        self.clock.t += 10          # the debounce long past
+        st = type("St", (), {"active_file": "/p.ngc", "interp_state": interp, "current_vel": vel, "rotary_abc": [0, 0, 0]})
+        ns = {"preview_file_edge_action": preview_file_edge_action, "rotary_hold_settled": lambda *a: True,
+              "_restart_wait": gateway._restart_wait, "_bulk": b, "st": st, "_now": 0.0, "_cur_mtime": 1.0,
+              "file_changed": preview_file_changed("/p.ngc", 1.0, b.last_file, b.last_mtime),
+              "_spawn_preview_task": lambda c: None, "_dd_decide": lambda *a: None, "_trace": type("T", (), {"emit": lambda *a, **k: None})()}
+        with patch.object(gateway, "_bulk", b):
+            exec(_file_edge_chain(), ns)
+        return scheduled, ns["file_changed"]
+
+    def test_a_discarded_first_load_never_restarts_unpinned_under_the_run(self):
+        for hold in (False, True):
+            scheduled, changed = self.run_edge(reason="discarded:mode", interp=linuxcnc.INTERP_READING, vel=1.0, hold=hold)
+            self.assertTrue(changed, "the first load is still `file_changed`")
+            self.assertEqual(scheduled, [], f"no parse under the run (a held probe_run: {hold})")
+            self.ledger = ActionLedger(self.clock)
+            pa = patch.object(gateway, "_actions", self.ledger)
+            pa.start()
+            self.addCleanup(pa.stop)
+
+    def test_after_the_run_and_the_quiet_window_it_restarts(self):
+        scheduled, _ = self.run_edge(reason="discarded:mode", interp=linuxcnc.INTERP_IDLE, vel=0.0)
+        self.assertEqual(scheduled, [("/p.ngc", "discarded:mode", False)])
+
+    def test_a_real_load_never_waits(self):
+        scheduled, _ = self.run_edge(reason=None, interp=linuxcnc.INTERP_IDLE, vel=0.0, hold=True)
+        self.assertEqual([s[1] for s in scheduled], ["file"], "a load's own parse, even beside a held action")
+
+    def test_a_load_clears_the_old_programs_discard(self):
+        with patch.object(gateway._bulk, "reparse_pending", True), \
+             patch.object(gateway._bulk, "reparse_pending_reason", "discarded:mode"), \
+             patch.object(gateway._bulk, "unloading", False):
+            gateway._program_began("load")
+            self.assertEqual((gateway._bulk.reparse_pending, gateway._bulk.reparse_pending_reason), (False, None))
+
+
+class TheFileWritersOwnTheirEnd(_Base):
+    """Codex R446 MT-I25 through the real entry paths: an HTTP writer (no
+    queue hold) owns its action from before the file changes to its actual
+    end — a slow commit is never quiet, its error ends it named, and the HTTP
+    tool import (table, reload, metadata) is ONE action."""
+
+    def setUp(self):
+        super().setUp()
+        self.ended = []
+        p = patch.object(gateway, "_trace_ended_actions", lambda: self.ended.extend(self.ledger.take_ended()))
+        p.start()
+        self.addCleanup(p.stop)
+
+    def all_ended(self):
+        return self.ended + self.ledger.take_ended()
+
+    def commit(self, fail=False):
+        import os as _os
+        import tempfile
+        entered, release = threading.Event(), threading.Event()
+        real_replace = _os.replace
+        seen = {}
+        folder = tempfile.mkdtemp()
+        path = _os.path.join(folder, "macro.ngc")
+        open(path, "w").write("old macro\n")
+
+        def blocked(src, dst):
+            if str(dst) == path:
+                entered.set()
+                release.wait(5)
+                if fail:
+                    raise OSError(28, "No space left on device")
+            return real_replace(src, dst)
+
+        async def chunks():
+            yield b"new macro\n"
+
+        async def scenario():
+            task = asyncio.create_task(gateway._atomic_stream_write(chunks(), path, 1024, gate=lambda: None))
+            await asyncio.to_thread(entered.wait, 5)
+            self.clock.t += 2.1                       # well past the debounce, the file still old
+            seen.update(busy=gateway._actions.busy(), quiet=gateway._actions_quiet(),
+                        wait=gateway._restart_wait(type("S", (), {"interp_state": linuxcnc.INTERP_IDLE, "current_vel": 0})(), False),
+                        file=open(path).read(), gen=self.gen.snapshot())
+            self.clock.t += 1.0
+            release.set()
+            try:
+                await task
+            except Exception as e:  # noqa: BLE001 - the writer's own error is the case
+                seen["error"] = type(e).__name__
+        with patch.object(gateway, "_macro_folder_path", return_value=folder), \
+             patch.object(gateway.os, "replace", side_effect=blocked), \
+             patch.object(gateway._bulk, "unloading", False), \
+             patch.object(gateway._bulk, "reparse_pending_reason", None):
+            _run(scenario())
+        return seen
+
+    def test_a_slow_commit_is_never_quiet_and_its_end_starts_the_debounce(self):
+        seen = self.commit()
+        self.assertEqual(seen["file"], "old macro\n", "the probe stood inside the change")
+        self.assertEqual(seen["busy"], "observed:macro_file", seen)
+        self.assertFalse(seen["quiet"])
+        self.assertIsNotNone(seen["wait"])
+        self.assertNotEqual(seen["gen"], (0, 0), "begun before the change")
+        self.assertIsNone(gateway._actions.busy(), "ended at the writer's end")
+        self.assertEqual(gateway._actions.last_end, self.clock.t, "the debounce from the actual end")
+        ended = self.all_ended()
+        self.assertEqual([(a.what, a.outcome) for a in ended], [("macro_file", "done")])
+
+    def test_a_failed_commit_ends_named_never_done(self):
+        seen = self.commit(fail=True)
+        self.assertEqual(seen["busy"], "observed:macro_file")
+        self.assertIn("error", seen)
+        self.assertIsNone(gateway._actions.busy())
+        self.assertEqual([(a.what, a.outcome) for a in self.all_ended()], [("macro_file", "unknown")])
+
+    def test_the_http_tool_import_is_one_action_to_its_metadata(self):
+        import collections
+        busy = collections.OrderedDict()
+
+        def write(path, tools):
+            busy["write"] = gateway._actions.busy()
+
+        async def reload():
+            busy["reload"] = gateway._actions.busy()
+
+        def save(library):
+            busy["metadata"] = gateway._actions.busy()
+        with patch.object(gateway, "_write_admission_refusal", return_value=None), \
+             patch.object(gateway, "write_tool_table", side_effect=write), \
+             patch.object(gateway, "_reload_tool_table_and_bump", side_effect=reload), \
+             patch.object(gateway, "save_tool_library", side_effect=save):
+            _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k"))
+        self.assertEqual(dict(busy), {"write": "held:tool_import", "reload": "held:tool_import", "metadata": "held:tool_import"})
+        ended = self.all_ended()
+        self.assertEqual([(a.what, a.outcome, [o.what for o in a.observers]) for a in ended],
+                         [("tool_import", "done", ["tool_table_file"])])
+        self.assertIsNone(gateway._actions.busy())
+
+    def test_a_failed_import_ends_its_action(self):
+        with patch.object(gateway, "_write_admission_refusal", return_value=None), \
+             patch.object(gateway, "write_tool_table", side_effect=OSError(5, "I/O error")):
+            with self.assertRaises(OSError):
+                _run(gateway._persist_imported_tools("/t.tbl", [], {}, conn_key="k"))
+        self.assertEqual([(a.what, a.outcome) for a in self.all_ended()], [("tool_import", "unknown")])
+        self.assertIsNone(gateway._actions.busy())

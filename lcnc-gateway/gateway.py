@@ -3425,15 +3425,29 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
         why = _write_admission_refusal(conn_key, tool_table=True)
         if why:
             raise HTTPException(status_code=409, detail=why)
-        _file_input_began("tool_table_file")   # right before the file is replaced (P2b-3)
-        write_tool_table(tbl_path, tbl_tools)
+        with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
+            write_tool_table(tbl_path, tbl_tools)
 
     async def section():
         await asyncio.to_thread(_replace)
         await _reload_tool_table_and_bump()
         await asyncio.to_thread(save_tool_library, library)
-    async with _get_cmd_lock():
-        await _thread_to_end(asyncio.ensure_future(section()))
+    # table, reload and metadata are ONE input action (Codex R446 MT-I25):
+    # it holds the idle parse from before the file's change to the section's
+    # end; its writes book their observers to it
+    act = _actions.internal("tool_import")
+    token = _current_action.set(act)
+    how = "error"
+    try:
+        async with _get_cmd_lock():
+            await _thread_to_end(asyncio.ensure_future(section()))
+        how = "ok"
+    except asyncio.CancelledError:
+        how = "cancelled"
+        raise
+    finally:
+        _current_action.reset(token)
+        _release_action(act, how)
 
 
 def _current_ini_path() -> str:
@@ -3794,6 +3808,7 @@ _source_claims: List[_StartClaim] = []
 # (gateway_util.controller_done) or a named unknown outcome.
 _calc_gen = Generation()
 _bulk.generation = _calc_gen   # the publication checks it (bulk_pipeline)
+_bulk.on_job_end = lambda job, end: _dd_job_ended(job, end)   # the decision keeps its job's end (R446 MT-I27)
 _actions = ActionLedger()
 # the action the running handler belongs to (set by the client's command
 # worker; asyncio.to_thread copies it into the write's thread)
@@ -3802,28 +3817,29 @@ _TASK_MODES = {"MODE_MDI": getattr(linuxcnc, "MODE_MDI", 3), "MODE_AUTO": getatt
 
 
 def _var_file_write_began(why: str) -> Callable[[str, Dict[str, Any]], Any]:
-    """The parameter file's writer with its begin (P2b-3): in the write's
-    thread, right before the file is replaced."""
+    """The parameter file's writer within its effect (P2b-3, R446 MT-I25):
+    in the write's thread, begun right before the file is replaced, ended
+    when the writer returned or raised."""
     def run(path: str, values: Dict[str, Any]) -> Any:
-        _file_input_began(why)
-        return _write_var_file_updates(path, values)
+        with _file_effect(why):
+            return _write_var_file_updates(path, values)
     return run
 
 
-def _file_publish_began(dest_path: str) -> None:
-    """A program or macro file's publish or delete (P2b-3), in its thread
-    right before the file changes: a macro is a subroutine-path input — of
-    every program that calls it, simplified to always; a program is an
-    input when it is the file the published or the running parse reads.
-    Any other file reaches no parse."""
+def _file_publish_effect(dest_path: str) -> "contextlib.AbstractContextManager[None]":
+    """A program or macro file's publish or delete (P2b-3), wrapped around
+    the change in its thread: a macro is a subroutine-path input — of every
+    program that calls it, simplified to always; a program is an input when
+    it is the file the published or the running parse reads. Any other file
+    reaches no parse (no effect booked)."""
     cp = canonical_path(dest_path)
     mdir = _macro_folder_path()
     if mdir and canonical_path(os.path.dirname(dest_path)) == canonical_path(mdir):
-        _file_input_began("macro_file")
-        return
+        return _file_effect("macro_file")
     parse_files = {canonical_path(f) for f in (_bulk.last_file, (_bulk.inflight or {}).get("file")) if f}
     if cp in parse_files:
-        _file_input_began("program_file")
+        return _file_effect("program_file")
+    return contextlib.nullcontext()
 
 
 def _program_began(why: str) -> None:
@@ -3831,6 +3847,11 @@ def _program_began(why: str) -> None:
     before the write: a new program generation, and the action counts as one
     that wrote (its end opens a drift decision and the debounce)."""
     _calc_gen.new_program(why)
+    if why == "load":
+        # a new program: a discard of the old one's parse asks for nothing
+        # more — its file edge is a real load (Codex R446 MT-I28)
+        if str(_bulk.reparse_pending_reason or "").startswith("discarded:"):
+            _bulk.reparse_pending, _bulk.reparse_pending_reason = False, None
     # the status names the unloaded program until the unload settles: no
     # parse of it may start in that gap (native p2b at 934ca971: the file
     # edge restarted the cancelled load parse as job 2)
@@ -3838,13 +3859,23 @@ def _program_began(why: str) -> None:
     _actions.wrote_file(_current_action.get(), why)
 
 
-def _file_input_began(why: str) -> None:
-    """A FILE writer's begin (P2b-3): in the write's thread, right before
-    the parse input file is replaced — the tool table, the parameter file,
-    the loaded program or a macro. The generation first, then the booking
-    (the effect is complete when the writer's call returns)."""
+@contextlib.contextmanager
+def _file_effect(why: str) -> Iterator[None]:
+    """A FILE writer's effect (P2b-3, Codex R446 MT-I25), around the change
+    in the writer's thread — the tool table, the parameter file, a program
+    or a macro: begun right before the file changes (an observer owned by the
+    running action, else by an action of its own — an HTTP writer has no
+    queue hold — then the generation), ended at the writer's ACTUAL end:
+    `done` when it returned, `unknown` when it raised or was cut. The 2 s
+    quiet and the next drift decision start at that end."""
+    o = _actions.begin_file(_current_action.get(), why)
     _calc_gen.began(why)
-    _actions.wrote_file(_current_action.get(), why)
+    try:
+        yield
+    except BaseException:
+        _actions.end_file(o, "unknown")
+        raise
+    _actions.end_file(o, "done")
 
 
 def _get_source_lock() -> asyncio.Lock:
@@ -3924,23 +3955,43 @@ def _actions_quiet() -> bool:
 # parse's own bound and its adoption.
 # (from the start: none — no idle transition or action of this process yet;
 # the field rides every frame, so a page never has to guess)
-_drift_decision: Optional[Dict[str, Any]] = {"state": "none", "gen": [0, 0], "why": "start"}
+# Each decision is a ROUND with its own number on the wire (Codex R446
+# MT-I26): an idle edge opens a new round without any input write, so the
+# generation alone cannot tell two rounds apart — the page's deadline and its
+# one fallback belong to the round, never to a guess from `pending`.
+_dd_round = 0
+_drift_decision: Optional[Dict[str, Any]] = {"state": "none", "gen": [0, 0], "round": 0, "why": "start"}
 _dd_prev_idle: Optional[bool] = None
 
 
 def _dd_pending(why: str) -> None:
-    global _drift_decision
-    _drift_decision = {"state": "pending", "gen": list(_calc_gen.snapshot()), "why": why}
+    global _drift_decision, _dd_round
+    _dd_round += 1
+    _drift_decision = {"state": "pending", "gen": list(_calc_gen.snapshot()), "round": _dd_round, "why": why}
 
 
 def _dd_decide(state: str, job: Optional[int] = None) -> None:
-    """The pending decision ends: `none` or `parse` (with its job). A
-    decision already made stays until the next pending."""
+    """The pending decision ends: `none` or `parse` (with its job) — in its
+    round. A decision already made stays until the next pending. A named
+    job's end is kept IN the decision (Codex R446 MT-I27: the bounded job
+    store may drop it while the decision is still sent)."""
     global _drift_decision
     if _drift_decision is None or _drift_decision["state"] != "pending":
         return
-    _drift_decision = {"state": state, "gen": _drift_decision["gen"], **({"job": job} if job is not None else {})}
-    _trace.emit("gcode.drift_decision", state=state, job=job, gen=_drift_decision["gen"])
+    _drift_decision = {"state": state, "gen": _drift_decision["gen"], "round": _drift_decision["round"],
+                       **({"job": job} if job is not None else {})}
+    if job is not None and job in _bulk.job_ends:
+        _drift_decision.update(_bulk.job_ends[job])   # it ended already
+    _trace.emit("gcode.drift_decision", state=state, job=job, gen=_drift_decision["gen"],
+                round=_drift_decision["round"])
+
+
+def _dd_job_ended(job: int, end: Dict[str, Any]) -> None:
+    """A parse job ended (bulk_pipeline's on_job_end): the decision that
+    names it keeps its terminal state for as long as it is sent."""
+    d = _drift_decision
+    if d is not None and d.get("state") == "parse" and d.get("job") == job:
+        d.update(end)
 
 
 def _dd_idle_edge(idle: bool) -> None:
@@ -3962,22 +4013,24 @@ def _drift_decision_status() -> Optional[Dict[str, Any]]:
         # a parse of exactly this generation already runs: it is the decision
         _dd_decide("parse", _bulk.inflight.get("job"))
         d = _drift_decision or d
-    out = dict(d)
-    if d["state"] == "parse" and d.get("job") is not None:
-        out.update(_bulk.job_ends.get(d["job"], {}))
-    return out
+    return dict(d)
 
 
 def _restart_wait(st, file_changed: bool) -> Optional[str]:
     """Why a parse restart (reparse_pending) waits this tick — None: it may
-    start (P2b-3). A new file never waits. Every restart waits for the input
-    actions' observed end and the debounce; a DISCARDED parse's restart also
-    for the interpreter idle and the machine still — a program start's switch
-    to AUTO begins a generation, and an unpinned parse never starts under the
-    run (before P2b, reparse_pending was only ever set at idle)."""
+    start (P2b-3). A real LOAD (a new program generation; its begin cleared
+    any discard) never waits. Every restart waits for the input actions'
+    observed end and the debounce; a DISCARDED parse's restart also for the
+    interpreter idle and the machine still — a program start's switch to AUTO
+    begins a generation, and an unpinned parse never starts under the run.
+    `file_changed` alone is no load (Codex R446 MT-I28): it compares with the
+    last PUBLISHED path and stays true through a first load whose parse was
+    discarded unpublished — repeating that job is a restart, not a load (the
+    preview waits, named; Cycle Start is not blocked)."""
     if _bulk.unloading:
         return "unloading"
-    if file_changed:
+    discarded = str(_bulk.reparse_pending_reason or "").startswith("discarded:")
+    if file_changed and not discarded:
         return None
     if not _actions_quiet():
         return _actions.busy() or "debounce"
@@ -5394,8 +5447,8 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
         conflict = check()
         if conflict:
             raise _ToolEditConflict(conflict)
-    _file_input_began("tool_table_file")   # right before the file is replaced (P2b-3)
-    write_tool_table(tbl_path, tools)
+    with _file_effect("tool_table_file"):   # begun right before the file is replaced, ended at its end (P2b-3)
+        write_tool_table(tbl_path, tools)
 
 
 async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_library,
@@ -10698,12 +10751,12 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                     if refusal:
                         raise HTTPException(status_code=409, detail={"error": "refused", **(
                             refusal if isinstance(refusal, dict) else {"reason": refusal})})
-                _file_publish_began(dest_path)   # right before the file changes (P2b-3)
-                if replace:
-                    os.replace(tmp, dest_path)
-                    tmp = None  # published — don't unlink in finally
-                else:
-                    _publish_no_replace(tmp, dest_path)
+                with _file_publish_effect(dest_path):   # around the change, to its end (P2b-3, R446)
+                    if replace:
+                        os.replace(tmp, dest_path)
+                        tmp = None  # published — don't unlink in finally
+                    else:
+                        _publish_no_replace(tmp, dest_path)
                     # linked — the temp name is unlinked in finally; the data is
                     # already durable under dest_path.
                 if after_publish is not None:
@@ -11292,8 +11345,8 @@ async def _macro_read_or_raise(state: Dict[str, Any], path: str) -> Tuple[bytes,
 
 def _unlink_renamed(path: str) -> None:
     """The old name of a renamed macro leaves (its own seam for the tests)."""
-    _file_publish_began(path)   # a macro name gone: a subroutine-path input (P2b-3)
-    os.unlink(path)
+    with _file_publish_effect(path):   # a macro name gone: a subroutine-path input (P2b-3)
+        os.unlink(path)
 
 
 @app.put("/macro", dependencies=[Depends(require_token)])
@@ -11385,8 +11438,8 @@ async def delete_macro(name: str = Query(...), base: str = Query(...),
         refusal = gate()
         if refusal and refusal["kind"] != "taken":
             raise HTTPException(status_code=409, detail={"error": "refused", **refusal})
-        _file_publish_began(path)   # right before the file goes (P2b-3)
-        os.unlink(path)
+        with _file_publish_effect(path):   # around the change, to its end (P2b-3, R446)
+            os.unlink(path)
     async with _get_source_lock():
         # to its END under the lock, through a cancel (Codex R70 VP-I29)
         await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(_delete)))

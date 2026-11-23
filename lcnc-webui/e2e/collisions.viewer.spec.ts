@@ -2261,3 +2261,34 @@ test("a newer generation closes the wait, a late older one has no effect (P2b-2 
   expect(of("collision.sweep_start")[0]!.t_wall_ms).toBeGreaterThanOrEqual(of("collision.check_fallback")[0]!.t_wall_ms);
   await ctl({ op: "reset" });
 });
+
+// Codex R446 MT-I26 (his Chromium probe, maschinentag.r446.codex-browser-probe.ts,
+// with the round on the wire): a later idle round at an unchanged input
+// generation waits its own three seconds — the gateway opens a round at every
+// idle edge, input write or not; the round's number tells it apart.
+test("a fresh pending round after none waits its own three seconds, at the same generation (Codex R446 MT-I26)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const tel = await colTelemetry(page);
+  await prepare(page, context, { file: "/r446-same-gen.ngc", version: 4501, ...DD_FEED,
+    before: () => decision({ state: "none", round: 1 }) });
+  await viewerUp(page);
+  await expect.poll(() => tel.filter(e => e.kind === "collision.sweep_done").length, { timeout: 90_000 }).toBe(1);
+  await expect.poll(async () => {
+    const w = await driftWaitOf(page);
+    return !!w && w.since !== null && w.now - w.since > 3500;
+  }).toBe(true);
+  const before = await page.evaluate(() => window.__viewerDiag!.getDebounceFired!().check);
+  const oldWait = await driftWaitOf(page);
+  await decision({ state: "pending", round: 2 });
+  // a tool status change triggers the page's re-check (an idle edge brings no input write)
+  await ctl({ op: "status_delta", data: { tool_number: 5, tool_diameter: 20, tool_length: 90 } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getDebounceFired!().check), { timeout: 15_000 }).toBeGreaterThan(before);
+  await expect.poll(() => driftWaitOf(page).then(w => w?.round), { timeout: 10_000, message: "the wait belongs to the new round" }).toBe(2);
+  const nextWait = (await driftWaitOf(page))!;
+  expect(nextWait.waiting, "the new pending round waits from its own start, not the old none's").toBe(true);
+  expect(nextWait.since!, "its own deadline").toBeGreaterThan(oldWait!.since!);
+  expect(nextWait.gen, "at the same generation").toEqual(oldWait!.gen);
+  // its own one fallback, named with its round
+  await expect.poll(() => tel.filter(e => e.kind === "collision.check_fallback").map(e => e.round), { timeout: 30_000 }).toEqual([2]);
+  await ctl({ op: "reset" });
+});

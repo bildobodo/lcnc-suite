@@ -8544,3 +8544,30 @@ def test_the_build_count_by_the_taps_rule_and_the_pages_words():
     assert nc.eval_build_count("b", _w([start, {**start, "page": "q"}]), tap, {})["status"] == "incomplete"
     assert nc.eval_build_count("b", _w([late]), tap, {})["status"] == "incomplete"
     assert nc.eval_build_count("b", _w([start], framed=False), tap, {})["status"] == "incomplete"
+
+
+def test_the_read_back_half_needs_an_open_confirmation():
+    """Codex R446 (guard 8): the basis left open by the action, confirmed by
+    its read-back, then exactly one parse; the precondition proven or nothing."""
+    assumed = {"tag": "toolsetter.basis", "origin": "assumed", "keys": [3104]}
+    act = {"tag": "action.ended", "what": "mdi", "outcome": "done"}
+    rb = {"tag": "toolsetter.read_back_outcome", "outcome": "confirmed"}
+    spawn = {"tag": "gcode.spawn_start", "job": 4, "reason": "toolsetter"}
+    assert nc.eval_readback_parse("r", _w([assumed, act, rb, spawn]), 3104)["status"] == "PASS"
+    # a parse between the action's end and the read-back, two parses, none: red
+    assert nc.eval_readback_parse("r", _w([assumed, act, spawn, rb]), 3104)["status"] == "FAIL"
+    assert nc.eval_readback_parse("r", _w([assumed, act, rb, spawn, {**spawn, "job": 5}]), 3104)["status"] == "FAIL"
+    assert nc.eval_readback_parse("r", _w([assumed, act, rb]), 3104)["status"] == "FAIL"
+    # no open confirmation of THIS key, no read-back, no action end: proves nothing
+    other = {**assumed, "keys": [3009]}
+    for ev in ([other, act, rb, spawn], [assumed, act, spawn], [assumed, rb, spawn], [act, rb, assumed, spawn]):
+        assert nc.eval_readback_parse("r", _w(ev), 3104)["status"] == "incomplete", ev
+
+
+def test_the_measure_row_says_only_what_its_run_shows():
+    act = {"tag": "action.ended", "what": "tool_measure", "outcome": "done"}
+    spawn = {"tag": "gcode.spawn_start", "job": 3, "reason": "table_mtime"}
+    row = nc.eval_measure_parses_once("m", _w([act, spawn]))
+    assert row["status"] == "PASS" and "no read-back ran" in row["detail"]
+    rb = {"tag": "toolsetter.read_back_outcome", "outcome": "confirmed"}
+    assert "read-back's end" in nc.eval_measure_parses_once("m", _w([act, rb, spawn]))["detail"]

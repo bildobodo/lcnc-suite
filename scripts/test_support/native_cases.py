@@ -1962,7 +1962,51 @@ def eval_measure_parses_once(case: str, window: dict, quiet_s=None) -> dict:
         return _row(case, "FAIL", "a parse before the read-back ended", **measured)
     if len(spawns) != 1:
         return _row(case, "FAIL", f"{len(spawns)} drift parses after the measure, not exactly one", **measured)
-    return _row(case, "PASS", "one parse, after the action's observed end and the read-back", **measured)
+    if not outcomes:
+        # what the run shows, no more (Codex R446): the job's values were
+        # booked applied, nothing was left to confirm — the read-back half is
+        # eval_readback_parse's, on a run with an OPEN confirmation
+        return _row(case, "PASS", "one parse, after the action's observed end (no read-back ran: nothing left assumed)",
+                    **measured)
+    return _row(case, "PASS", "one parse, after the action's observed end and the read-back's end", **measured)
+
+
+def eval_readback_parse(case: str, window: dict, key: int) -> dict:
+    """Guard 8's read-back half (Codex R446): an input action that leaves the
+    toolsetter basis OPEN — the booking after its write is `assumed` for
+    `key` — then its read-back confirms a DIFFERENT value: exactly ONE drift
+    parse, started after the read-back's confirmed outcome, none between the
+    action's end and that outcome. The precondition is proven from the trace
+    (an assumed booking naming the key before the read-back); without it the
+    run proves nothing (incomplete)."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    if window.get("losses"):
+        return _row(case, "incomplete", "the gateway lost trace records overlapping the window", losses=window["losses"])
+    ev = window.get("events") or []
+    idx = {id(e): i for i, e in enumerate(ev)}
+    assumed = [e for e in ev if e.get("tag") == "toolsetter.basis" and e.get("origin") == "assumed"
+               and isinstance(e.get("keys"), list) and key in e["keys"]]
+    ended = [e for e in ev if e.get("tag") == "action.ended" and e.get("what") == "mdi"]
+    confirmed = [e for e in ev if e.get("tag") == "toolsetter.read_back_outcome" and e.get("outcome") == "confirmed"]
+    spawns = [e for e in _spawns(ev) if str(e.get("reason")) not in LOAD_REASONS]
+    measured = {"key": key, "assumed": len(assumed), "action": [e.get("outcome") for e in ended],
+                "read_backs": [e.get("outcome") for e in ev if e.get("tag") == "toolsetter.read_back_outcome"],
+                "parses": [(e.get("job"), e.get("reason")) for e in spawns]}
+    if not assumed or not ended or not confirmed:
+        return _row(case, "incomplete", "no open confirmation proven (an assumed booking of the key, the action's end "
+                    "and a confirmed read-back)", **measured)
+    if idx[id(assumed[0])] > idx[id(confirmed[0])]:
+        return _row(case, "incomplete", "the assumed booking came after the read-back", **measured)
+    t_end, t_rb = idx[id(ended[0])], idx[id(confirmed[0])]
+    early = [e for e in spawns if idx[id(e)] < t_rb]
+    if early:
+        return _row(case, "FAIL", f"{len(early)} parse(s) before the read-back ended "
+                    f"({sum(1 for e in early if idx[id(e)] > t_end)} after the action's end)", **measured)
+    if len(spawns) != 1:
+        return _row(case, "FAIL", f"{len(spawns)} drift parses after the read-back, not exactly one", **measured)
+    return _row(case, "PASS", "the basis left open by the action, confirmed by its read-back, then exactly one parse",
+                **measured)
 
 
 #: the page's collision worker pool (collisionWorker.ts shardCount): at most

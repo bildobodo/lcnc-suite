@@ -41,7 +41,8 @@ OUTCOMES = ("aborted", "link_lost", "unknown", "partial", "error", "done", "refu
 #: how long an observer may wait for its proof before its outcome is
 #: `unknown` (named per class; a routine generously — a probing move may run
 #: for minutes)
-OBSERVER_LIMIT_S = {"routine": 900.0, "mdi": 300.0, "mode": 30.0, "synch": 30.0, "tool_table": 30.0}
+OBSERVER_LIMIT_S = {"routine": 900.0, "mdi": 300.0, "mode": 30.0, "synch": 30.0, "tool_table": 30.0,
+                    "file": 300.0}
 
 #: an MDI line that runs a routine: an O-word call, M600, M6
 _ROUTINE_LINE = re.compile(r"(?i)\bcall\b|\bm0*600\b|\bm0*6\b")
@@ -297,6 +298,32 @@ class ActionLedger:
             action.observers.append(o)
             self._settle(action)
 
+    def begin_file(self, action: Optional[Action], what: str) -> Observer:
+        """A FILE writer's effect begins (Codex R446 MT-I25): a PENDING
+        observer — of the running action, else of an action of its own (an
+        HTTP writer has no queue hold) — ended only at the writer's ACTUAL
+        end (end_file) or, past its limit, `unknown`. The 2 s quiet and the
+        next drift decision start at that end, never at the begin."""
+        with self._lock:
+            if action is None:
+                self._seq += 1
+                action = Action(self._seq, what, None, self._clock(), held=False)
+                self._actions[action.token] = action
+            o = Observer("file", what, self._clock(), OBSERVER_LIMIT_S["file"], None, action)
+            o.state = "file"
+            action.observers.append(o)
+            return o
+
+    def end_file(self, o: Observer, outcome: str) -> None:
+        """The file writer's actual end: `done` when it returned, `unknown`
+        when it raised or was cut (its effect not known)."""
+        with self._lock:
+            if o.outcome is not None:
+                return
+            o.outcome = outcome
+            if o.action is not None:
+                self._settle(o.action)
+
     def failed(self, o: Observer) -> None:
         """The write call itself raised: its effect is UNKNOWN — the observer
         stays pending until its limit names it `unknown` (never "not written")."""
@@ -317,7 +344,9 @@ class ActionLedger:
             live = [o for a in self._actions.values() for o in a.observers if o.outcome is None]
         out = []
         for o in live:
-            if o.state == "pending":
+            if o.state in ("pending", "file"):
+                # a write not returned yet, a file writer still running: no
+                # controller proof ends it — its own end does, or its limit
                 out.append((o, "unknown" if t - o.t >= o.limit_s else None, (o.err_since, o.err_proof)))
                 continue
             if o.mode_target is not None and o.link_seq == owner_seq:
