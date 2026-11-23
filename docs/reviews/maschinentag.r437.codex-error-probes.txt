@@ -1,0 +1,79 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p4ui/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r437/head/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 8 items
+
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_0] FAILED [ 12%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_0] PASSED [ 25%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_30] FAILED [ 37%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_30] PASSED [ 50%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_80] FAILED [ 62%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_80] PASSED [ 75%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_200] FAILED [ 87%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_200] PASSED [100%]
+
+=================================== FAILURES ===================================
+____________ test_called_file_error_has_no_proven_main_line[sub_0] _____________
+
+parsed = {'remap_0.ngc': ['No characters found in reading real value', None], 'remap_200.ngc': ['No characters found in reading...aracters found in reading real value', None], 'remap_80.ngc': ['No characters found in reading real value', None], ...}
+name = 'sub_0'
+
+    @pytest.mark.parametrize('name', list(CASES))
+    def test_called_file_error_has_no_proven_main_line(parsed, name):
+        error, line = parsed[f'{name}.ngc']
+        assert error == 'No characters found in reading real value'
+>       assert line is None, (name, error, line)
+E       AssertionError: ('sub_0', 'No characters found in reading real value', 2)
+E       assert 2 is None
+
+test_r437_codex_error_line.py:28: AssertionError
+____________ test_called_file_error_has_no_proven_main_line[sub_30] ____________
+
+parsed = {'remap_0.ngc': ['No characters found in reading real value', None], 'remap_200.ngc': ['No characters found in reading...aracters found in reading real value', None], 'remap_80.ngc': ['No characters found in reading real value', None], ...}
+name = 'sub_30'
+
+    @pytest.mark.parametrize('name', list(CASES))
+    def test_called_file_error_has_no_proven_main_line(parsed, name):
+        error, line = parsed[f'{name}.ngc']
+        assert error == 'No characters found in reading real value'
+>       assert line is None, (name, error, line)
+E       AssertionError: ('sub_30', 'No characters found in reading real value', 2)
+E       assert 2 is None
+
+test_r437_codex_error_line.py:28: AssertionError
+____________ test_called_file_error_has_no_proven_main_line[sub_80] ____________
+
+parsed = {'remap_0.ngc': ['No characters found in reading real value', None], 'remap_200.ngc': ['No characters found in reading...aracters found in reading real value', None], 'remap_80.ngc': ['No characters found in reading real value', None], ...}
+name = 'sub_80'
+
+    @pytest.mark.parametrize('name', list(CASES))
+    def test_called_file_error_has_no_proven_main_line(parsed, name):
+        error, line = parsed[f'{name}.ngc']
+        assert error == 'No characters found in reading real value'
+>       assert line is None, (name, error, line)
+E       AssertionError: ('sub_80', 'No characters found in reading real value', 2)
+E       assert 2 is None
+
+test_r437_codex_error_line.py:28: AssertionError
+___________ test_called_file_error_has_no_proven_main_line[sub_200] ____________
+
+parsed = {'remap_0.ngc': ['No characters found in reading real value', None], 'remap_200.ngc': ['No characters found in reading...aracters found in reading real value', None], 'remap_80.ngc': ['No characters found in reading real value', None], ...}
+name = 'sub_200'
+
+    @pytest.mark.parametrize('name', list(CASES))
+    def test_called_file_error_has_no_proven_main_line(parsed, name):
+        error, line = parsed[f'{name}.ngc']
+        assert error == 'No characters found in reading real value'
+>       assert line is None, (name, error, line)
+E       AssertionError: ('sub_200', 'No characters found in reading real value', 2)
+E       assert 2 is None
+
+test_r437_codex_error_line.py:28: AssertionError
+=========================== short test summary info ============================
+FAILED test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_0]
+FAILED test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_30]
+FAILED test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_80]
+FAILED test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_200]
+========================= 4 failed, 4 passed in 0.11s ==========================

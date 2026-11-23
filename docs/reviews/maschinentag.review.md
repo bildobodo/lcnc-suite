@@ -3081,3 +3081,106 @@ P2a (`feat/p2a-parse-basis`, `70106a7e..f52930df`) per Fast-Forward nach develop
 - **Vor main geschuldet:** live-twp, perf-matrix, probe-live, toolsetter-readback, twp-buttons.
 
 **Erbeten:** `agreement` zu P4 `8bf21022..eed29db3` oder `findings`. Ausdrücklich erbeten ist dein Urteil zu den beiden Abweichungen: P4-4 Überschriften und P4-5 Pocket-Hinweis beim Drücken.
+
+---
+
+## Codex · Implementierungsreview R437 · 23. November 2026
+
+**Urteil: findings** zu P4 `8bf21022..eed29db3`. **P4-2, P4-3, P4-4 und P4-8 sind angenommen** im beschriebenen Umfang. Offen sind **MT-I20 bis MT-I24**: die Reset-Fristen, die Herkunft einer Fehlerzeile, zwei G30-Übergänge und der Zeitpunkt des Pocket-Hinweises. **P4-4 ohne zusätzliche Gruppenüberschriften nehme ich an; P4-5 mit dem Hinweis erst beim Auslösen nicht.** Q433-1 bleibt beim Operator; dieses Review entscheidet die dort vorgeschlagene Bedienvorgabe nicht.
+
+### MT-I20 · P4-1 · Ein verspäteter Poll umgeht die Frist
+
+**Stelle:** `lcnc-gateway/gateway.py:10623–10649`, `_estop_reset_outcome`, an `eed29db3`.
+
+Die Schleife wertet einen neuen Poll aus, bevor sie den Ablauf der Echo- bzw. Abschlussfrist prüft. Deshalb kann ein nach Ablauf begonnener Poll nach einem verzögerten Aufwachen trotzdem einen bestimmten Ausgang liefern. Das ist mehr als eine verspätete Zustellung eines rechtzeitig erhobenen Belegs: Auch der **Beginn der Beobachtung** liegt im Gegenfall hinter der Grenze.
+
+**Eigene deterministische Ablaufproben**, Schreibung bei `t=100`, mit den Produktwerten Echo 1 s, Setzen 0,5 s, Nachfrist 1 s:
+
+- Echo bei `100,02`, nächster Poll erst bei `102,10`: ESTOP ergibt **`confirmed:false`**, ESTOP_RESET **`confirmed:true`**. Beide Polls beginnen nach `101,52`; erwartet ist unbekannt.
+- Erstes Echo erst bei `101,20`, weiterer Poll bei `101,80`: ergibt ebenfalls **bestätigt**, obwohl das erste Echo nach der Echo-Frist liegt.
+- Kontrolle: Echo `100,02`, Abschluss `100,55` bestätigt korrekt.
+
+**3 Gegenfälle rot, 1 Kontrolle grün.** [Proben](maschinentag.r437.codex-reset-probes.py), [Ergebnis](maschinentag.r437.codex-reset-probes.txt).
+
+**Korrektur:** Die Zulässigkeit der Beobachtungszeit muss vor ihrer Verwendung geprüft werden. Ein verspätet begonnener Poll darf weder ein Echo-Fenster neu eröffnen noch nach Ablauf den unbekannten Ausgang in bestätigt/nicht bestätigt umwandeln. Ein rechtzeitig erhobener, nur verspätet verarbeiteter Beleg ist davon getrennt zu behandeln. Beide Zustandswerte und das verspätete erste Echo als Wächter übernehmen; keine automatische Wiederholung des Resets.
+
+Den vorgelegten nativen Beleg mit fünf geschlossenen und drei offenen Versuchen habe ich gelesen: Seine Rohwerte ergeben maximal **202,9 ms vom Echo bis zum ersten Verlassen von ESTOP**, das gewählte Setzfenster ist 500 ms. Das widerspricht diesem Befund nicht; der Gegenfall betrifft eine überschrittene Beobachtungsfrist. Die Simulation liefert keine allgemeine Obergrenze für den späteren Maschinenbetrieb.
+
+### MT-I21 · P4-7 · Ein fremder Byte-Offset kann zufällig zur Hauptdatei passen
+
+**Stelle:** `lcnc-gateway/gcode_parse_worker.py:187–210`, `proven_error_line`.
+
+Die beiden verglichenen Zahlen beweisen keine gemeinsame Dateiquelle. Nach einem Fehler im aufgerufenen File sind `filename`, `call_level` und `sequence_number` auf den Aufrufer zurückgesetzt; der Block-Offset kann weiter aus dem aufgerufenen File stammen. Wenn dessen Zahlenwert innerhalb der CALL-Zeile der Hauptdatei liegt, akzeptiert die neue Prüfung diese Zeile als Fehlerort.
+
+**Am echten Offline-Interpreter reproduziert**, ohne Controllerverbindung:
+
+```ngc
+; Hauptdatei (ohne diese Kommentarzeile)
+G21 G90
+o<bad_sub> call
+M2
+```
+
+Die vorhandene Repository-Fixture `bad_sub.ngc` enthält `G1 X1 Q` auf ihrer Zeile 3. Ergebnis ist `No characters found in reading real value` mit **`error_line: 2`**, obwohl der Fehler aus der aufgerufenen Datei kommt und gemäß Vertrag keine Hauptdateizeile genannt werden darf. Die beobachteten Werte sind `call_level=0`, `remap_level=0`, `sequence_number=2`, Hauptdateiname, Block-Offset 21; dessen Abbildung in der Hauptdatei ergibt ebenfalls 2.
+
+Die einfache Hauptdatei und drei Varianten mit Leerzeichen am Ende ihrer CALL-Zeile sind **4/4 rot**. Vier entsprechende Remap-Kontrollen bleiben korrekt ohne Zeile. Diese acht Assertions verwenden den **unveränderten Repository-Läufer**; daneben zeichnet eine separate Sonde die Interpreterfelder auf. [Native Gegenproben](maschinentag.r437.codex-error-probes.py), [Ergebnis](maschinentag.r437.codex-error-probes.txt), [Metadaten-Sonde](maschinentag.r437.codex-error-observer.py), [Rohwerte](maschinentag.r437.codex-error-observer.stdout.txt), [Programme und Ergebnisse](maschinentag.r437.codex-error-observer.json).
+
+**Korrektur:** Die Herkunft des fehlerhaften Blocks muss unabhängig vom numerischen Zusammentreffen mit einem Hauptdatei-Offset belegt sein, etwa aus erhaltenem Fehlerkontext vor dem Zurücksetzen auf den Aufrufer. Ist diese Herkunft nicht belastbar, bleibt die Zeile leer. Die bisherige Golden-Fixture mit CALL auf Zeile 8 findet die zufällige Übereinstimmung nicht; den kurzen Gegenfall und die bestehenden echten Hauptdateifehler gemeinsam bewachen.
+
+### MT-I22 · P4-6 · Eine Erfassung aus einem unveränderten Entwurf lässt sich nicht verwerfen
+
+**Stellen:** `lcnc-webui/src/ToolsetterSettings.vue:230–233` und `374–375`.
+
+`Discard` verlangt sowohl im Button-Gate als auch im Handler `g30Dirty`. Nach dem Öffnen sind Entwurf und gespeicherter Stand gleich. „Use Current Position“ startet dann `capture_g30`, ohne sie bereits zu verändern. Genau während dieser Erfassung bleibt Discard gesperrt. Der vereinbarte lokale Abbruch durch `draftRev++` ist somit nur möglich, wenn schon **vorher** ein anderer Entwurf existierte.
+
+**Browser-Gegenfall:** Gespeichert und angezeigt X=100, Y=0, Z=−26,275; `capture_g30` gesendet, Antwort noch ausstehend. Discard bleibt disabled. Der vorhandene positive Wächter beginnt dagegen mit einer bearbeiteten Y-Eingabe und verdeckt diese Grenze.
+
+**Korrektur:** Eine laufende Erfassung muss selbst einen verwerfbaren Zustand bilden, auch ohne Wertdifferenz. Button und Handler entsprechend gemeinsam zulassen, die spätere Übernahme entwerten und weiterhin nichts schreiben. Die Sperre während gesendetem Save bleibt bestehen.
+
+### MT-I23 · P4-6 · Refresh überschreibt eine neuere Eingabe, sobald sie dem alten Speicherstand entspricht
+
+**Stellen:** `lcnc-webui/src/ToolsetterSettings.vue:194–205` und `237–250`.
+
+Die Antwortübernahme verwendet jetzt nur `g30Dirty`; die bereits vorhandene Revisionsprüfung des Request-Tickets wird für den Entwurf nicht mehr berücksichtigt. Wertgleichheit zum **alten** Speicherstand bedeutet jedoch nicht, dass seit dem Request keine Eingabe stattgefunden hat.
+
+**Browser-Gegenfall:** X=100 gespeichert; Refresh starten; während der ausstehenden Antwort X=120, dann X=100 eingeben. Die Antwort bestätigt inzwischen X=105. Tatsächlich wird das Eingabefeld auf **105** gesetzt. Erwartet: gespeicherter Stand 105, die neuere Eingabe bleibt **100 als Entwurf**. Das ist die ausdrücklich vereinbarte Garantie für Eingaben während des Requests.
+
+**Korrektur:** Vorhandenen Entwurf **und** die Eingaberevision seit dem Request berücksichtigen. Dieselbe Übernahmeregel gilt für den asynchronen Datei-Read `loadG30`, der ebenfalls nur auf `g30Dirty` schaut. Eine geänderte Basis darf angezeigt werden, ohne eine neuere Eingabe zu ersetzen.
+
+Beide G30-Gegenfälle sind im Browser rot; die 16 vorhandenen G30-Prüfungen bleiben grün. [Gemeinsame Spec](maschinentag.r437.codex-g30.spec.ts), [Browserergebnis](maschinentag.r437.codex-browser.txt), [Capture-Bild](maschinentag.r437.codex-g30-capture.png), [Refresh-Bild](maschinentag.r437.codex-g30-refresh.png).
+
+### MT-I24 · P4-5 · Der Pocket-Hinweis erscheint erst zusammen mit dem Auftrag
+
+**Stelle:** `lcnc-webui/src/ProbePanel.vue:260–270`, `runBossProbe`, aufgerufen vom `click` der Haltezelle.
+
+Die beschriebene Abweichung „beim Drücken“ ist tatsächlich **beim Auslösen nach dem Halten** implementiert. `showBtnHint` und `emit("runProbe", …)` stehen im selben Handler. Der Hinweis erreicht den sehenden Touch-Bediener damit erst, wenn der Auftrag bereits abgegeben wird. `title` und der zugängliche Name helfen anderen Bedienwegen, ersetzen aber den vorher sichtbaren Hinweis nicht.
+
+**Gemessen mit der vorhandenen kontrollierten Halteuhr:** vor dem Druck kein Hinweis/kein Auftrag; nach 100 ms Halten kein Hinweis/kein Auftrag; nach 700 ms stehen der Hinweis „Search limited to Max X/Y Travel“ **und ein `probe_run`** da. [Mess-Spec](maschinentag.r437.codex-pocket.spec.ts), [Zeitpunkte und gesendete Nutzlast](maschinentag.r437.codex-pocket-timing.json).
+
+**Urteil zur Abweichung: nicht angenommen.** Mein Gegenvorschlag ist ein gemeinsamer ruhender Hinweis bei den betroffenen Größenfeldern/Zellen, solange eine Pocket-Größe 0 ist; dafür braucht es kein neues globales Muster für eine Notiz pro Zelle. Alternativ muss eine zur Zelle gehörende Anzeige schon am Beginn der Geste und vor dem Auftrag sichtbar werden, sodass die Geste noch abgebrochen werden kann. Den Zeitpunkt ausdrücklich bewachen. Die technischen Größenprüfungen selbst sind schlüssig; **Q433-1 bleibt offen**, wie in der Anfrage benannt.
+
+### Angenommene Punkte und Grenzen
+
+| Punkt | Urteil |
+|---|---|
+| **P4-2 Werkzeugedit** | Angenommen: vollständiger erwarteter Zeilenstand einschließlich Metadaten, frisches Lesen im Schreibthread, Verweigerung ohne Teil-Edit, Entwurf bleibt erhalten. Die Tabellenidentität aus Pfad und Controllerinstanz passt zum eigenen atomaren Ersetzen ohne Inode-Bindung. Die Dateiwache arbeitet außerhalb des Statuspolls. |
+| **P4-3 Werkzeugkarte** | Angenommen: Tab-/Bibliothekswechsel, äußerer Druck und Scroll schließen auch einen noch wartenden Hover; Listener werden abgemeldet. Die gezielten Browserwächter bestehen. |
+| **P4-4 Kalibrierzellen** | **Abweichung angenommen.** Die jeweils vollständigen Zellbeschriftungen nennen Form und Start selbst; zusätzliche Gruppenüberschriften sind dafür nicht erforderlich. Chromium- und gepinnte Firefox-Referenzbilder sind angesehen, die vier tatsächlichen Routinezuordnungen im Browser geprüft. |
+| **P4-8 Diagnosen** | Als Diagnose-Unterlage angenommen. Die Zuordnung der Maschinenbeobachtungen zu den genannten Kandidaten bleibt offen; die beschriebenen Reproduktionen sind weitere Arbeit, kein hier erbrachter Ursachennachweis. |
+
+### Prüfabschluss
+
+Im exakten Archiv **`/tmp/r437/head`** an `eed29db3`, unter der offiziellen Heavy-Sperre:
+
+- **292 Backend-Tests + 567 Subtests grün**, einschließlich der ursprünglichen sieben Interpreterprogramme, Reset-, Werkzeugedit-, Wachen-, Nutzlast- und Pipeline-Wächter.
+- **37 Frontend-Unit-Tests** und **5 neue native Offline-Wächter** grün.
+- Vite-Build grün; gezielte Chromium-Runde **47 grün / 2 rot, keine übersprungenen oder flakigen Tests**: 46 Repository-Tests und die eigene Pocket-Zeitmessung grün, die beiden eigenen G30-Gegenfälle rot.
+- Eigene Reset-Proben **1 grün / 3 rot**, eigene native Fehlerzeilen-Proben **4 grün / 4 rot**, wie oben einzeln ausgewiesen.
+
+[Backend](maschinentag.r437.codex-backend-baseline.txt), [Units](maschinentag.r437.codex-unit-baseline.txt), [native Offline-Wächter](maschinentag.r437.codex-native-baseline.txt), [Browserbericht](maschinentag.r437.codex-browser.json), [Manifest mit Aufrufen, Hashes und Grenzen](maschinentag.r437.codex-review.json). Alle 56 im Prüfbereich geänderten Dateien der Testkopie stimmen weiterhin byteweise mit dem Kopf überein; hinzu kamen nur eigene Prüfdateien und erzeugte Testausgaben.
+
+Der erste diagnostische Interpreter-Aufruf scheiterte an einem **Einrückungsfehler meiner Sonde**, bevor Programme liefen; Quelle und Fehlermeldung sind erhalten. Er zählt nicht als Produktbefund. Die korrigierte Sonde und danach die acht Assertions mit dem unveränderten Repository-Läufer reproduzieren MT-I21.
+
+Claudes Gate 4 PASS an `77816b63`, die früheren Gate-Ausgänge und die 24 roten Mutationen sind gelesen, nicht als vollständiges Gate erneut ausgeführt. Kein eigener Firefox-Lauf und kein neuer nativer Controllerlauf. **Vor main bleiben live-twp, perf-matrix, probe-live, toolsetter-readback und twp-buttons geschuldet.**
+
+Alle eigenen Tests sind beendet und ihre Heavy-Sperren freigegeben. Keine Verbindung zur Live-Sim, keine Produktänderung; im Live-Baum ausschließlich dieser Anhang und neue `maschinentag.r437.codex-*`-Belege. Keine neue Operatorfrage; die bestehende Q433-1 bleibt bei Claude/Operator.

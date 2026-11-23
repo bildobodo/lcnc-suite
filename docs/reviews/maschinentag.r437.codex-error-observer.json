@@ -1,0 +1,77 @@
+{
+  "returncode": 0,
+  "cases": [
+    {
+      "name": "sub_0.ngc",
+      "program": "G21 G90\no<bad_sub> call\nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        2
+      ]
+    },
+    {
+      "name": "remap_0.ngc",
+      "program": "G21 G90\nM610\nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        null
+      ]
+    },
+    {
+      "name": "sub_30.ngc",
+      "program": "G21 G90\no<bad_sub> call                              \nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        2
+      ]
+    },
+    {
+      "name": "remap_30.ngc",
+      "program": "G21 G90\nM610                              \nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        null
+      ]
+    },
+    {
+      "name": "sub_80.ngc",
+      "program": "G21 G90\no<bad_sub> call                                                                                \nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        2
+      ]
+    },
+    {
+      "name": "remap_80.ngc",
+      "program": "G21 G90\nM610                                                                                \nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        null
+      ]
+    },
+    {
+      "name": "sub_200.ngc",
+      "program": "G21 G90\no<bad_sub> call                                                                                                                                                                                                        \nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        2
+      ]
+    },
+    {
+      "name": "remap_200.ngc",
+      "program": "G21 G90\nM610                                                                                                                                                                                                        \nM2\n",
+      "expected": null,
+      "actual": [
+        "No characters found in reading real value",
+        null
+      ]
+    }
+  ]
+}

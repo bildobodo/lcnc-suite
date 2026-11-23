@@ -1,0 +1,59 @@
+
+ RUN  v4.1.8 /tmp/r437/head/lcnc-webui
+
+ ✓ src/probeFields.test.ts > probeFields > a help text says what the value is in at most 120 characters (the LONG_HELP rule) 4ms
+ ✓ src/probeFields.test.ts > probeFields > labels are unique within a form 0ms
+ ✓ src/probeFields.test.ts > probeFields > a unit follows the machine's linear unit; counts and tool numbers have none 0ms
+ ✓ src/probeFields.test.ts > probeFields > the probing feeds carry the glossary's names in both forms 1ms
+ ✓ src/probeFields.test.ts > the Boss/Pocket size contract > a Round Boss needs its diameter, a Rect Boss X and Y 1ms
+ ✓ src/probeFields.test.ts > the Boss/Pocket size contract > a pocket at 0 runs and says its limited search 1ms
+ ✓ src/probeFields.test.ts > the Boss/Pocket size contract > an empty or invalid size is never 0 1ms
+ ✓ src/probeFields.test.ts > the Boss/Pocket size contract > no help promises a blind probe 0ms
+stderr | src/ws/bulkData.test.ts
+[messages] localStorage parse failed ReferenceError: localStorage is not defined
+    at loadStoredMessages (/tmp/r437/head/lcnc-webui/src/ws/statusStore.ts:249:17)
+    at /tmp/r437/head/lcnc-webui/src/ws/statusStore.ts:266:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///tmp/r437/head/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///tmp/r437/head/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///tmp/r437/head/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+    at /tmp/r437/head/lcnc-webui/src/ws/bulkData.ts:15:1
+    at VitestModuleEvaluator._runInlinedModule (file:///tmp/r437/head/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///tmp/r437/head/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///tmp/r437/head/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+
+ ✓ src/ws/bulkData.test.ts > bulkData frame handlers > viewer_init / tool_table_changed set their refs 1ms
+ ✓ src/ws/bulkData.test.ts > bulkData frame handlers > viewer_gcode empty-state clears preview and gcode text without fetching 0ms
+ ✓ src/ws/bulkData.test.ts > previewRefusal (remap refusal in preview, 2026-09-05) > derives from parse_refused and clears on a clean payload 1ms
+ ✓ src/ws/bulkData.test.ts > previewSchemaMismatch (P1) > null / missing payload → nothing to judge 0ms
+ ✓ src/ws/bulkData.test.ts > previewSchemaMismatch (P1) > matching stamp → no mismatch 0ms
+ ✓ src/ws/bulkData.test.ts > previewSchemaMismatch (P1) > legacy unstamped payload → { got: null } (bannered, never silently accepted) 0ms
+ ✓ src/ws/bulkData.test.ts > previewSchemaMismatch (P1) > different stamp → { got: n } in both directions 0ms
+ ✓ src/ws/bulkData.test.ts > previewSchemaMismatch (P1) > non-numeric stamp is treated as absent 0ms
+ ✓ src/ws/bulkData.test.ts > parseTloMismatch (W2 P4) > null on missing payload / rows / tool / live length 0ms
+ ✓ src/ws/bulkData.test.ts > parseTloMismatch (W2 P4) > matching length within eps → null 0ms
+ ✓ src/ws/bulkData.test.ts > parseTloMismatch (W2 P4) > re-measured length → mismatch with the live-defect numbers 0ms
+ ✓ src/ws/bulkData.test.ts > parseTloMismatch (W2 P4) > compares magnitudes (status ships |zoffset|) 0ms
+ ✓ src/ws/bulkData.test.ts > surface/comp-grid channels > applies decoded data via the sink and dedupes repeat versions 24ms
+ ✓ src/ws/bulkData.test.ts > surface/comp-grid channels > newer version aborts the in-flight older fetch and wins 5ms
+ ✓ src/ws/bulkData.test.ts > surface/comp-grid channels > per-channel errors: one channel's success cannot clear another's failure 13ms
+ ✓ src/ws/bulkData.test.ts > surface/comp-grid channels > resetBulkVersionsOnClose lets a re-ping of the same version refetch 12ms
+ ✓ src/ws/bulkData.test.ts > surface/comp-grid channels > failure resets the sentinel so the SAME version can retry 9ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > viewer_gcode_ready posts to the worker once per version and fetches gcode text 5ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > a payload being decoded is said from the post to its reply — a superseded reply keeps it (plan „Prüfung im Lauf“ 4) 1ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > THIS decode's failure is said with its file and version — never another channel's (VP188-02 E2, R191 rest B) 5ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > a verified tool basis re-decodes the payload on screen — this file AND version only (VP-I20, R58 VP-I24) 1ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > a return to the basis on screen drops the late reply of the other — A = the payload's own start (Codex R59 VP-I23) 1ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > a return to the basis on screen drops the late reply of the other — A = a verified basis already applied (Codex R59 VP-I23) 0ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > the published revision moves on ARRIVAL; the text revision follows when the text lands (UI-DI05) 9ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > the displayed text carries the fingerprint GET /gcode named for it (Codex R17 XZ-07) 18ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > stale worker reply is dropped; current version applies with markRaw 0ms
+ ✓ src/ws/bulkData.test.ts > preview worker channel > worker error sets the preview channel error and allows retry of the version 0ms
+ ✓ src/ws/bulkData.test.ts > previewParseError's line > names a proven line 0ms
+ ✓ src/ws/bulkData.test.ts > previewParseError's line > leaves out a line that is no line 0ms
+
+ Test Files  2 passed (2)
+      Tests  37 passed (37)
+   Start at  02:57:49
+   Duration  284ms (transform 118ms, setup 0ms, import 173ms, tests 115ms, environment 0ms)
+

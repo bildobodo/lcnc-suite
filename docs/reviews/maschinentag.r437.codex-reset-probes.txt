@@ -1,0 +1,57 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p4ui/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r437/head/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 4 items
+
+test_r437_codex_reset.py::test_control_poll_within_settle_and_late_window PASSED [ 25%]
+test_r437_codex_reset.py::test_deciding_poll_after_declared_late_window_is_unknown[1] FAILED [ 50%]
+test_r437_codex_reset.py::test_deciding_poll_after_declared_late_window_is_unknown[2] FAILED [ 75%]
+test_r437_codex_reset.py::test_first_echo_after_echo_deadline_is_unknown FAILED [100%]
+
+=================================== FAILURES ===================================
+_________ test_deciding_poll_after_declared_late_window_is_unknown[1] __________
+
+state = 1
+
+    @pytest.mark.parametrize('state',[linuxcnc.STATE_ESTOP,linuxcnc.STATE_ESTOP_RESET])
+    def test_deciding_poll_after_declared_late_window_is_unknown(state):
+        r=run_records([(100.02,linuxcnc.STATE_ESTOP),(102.1,state)])
+>       assert r['confirmed'] is None,r
+E       AssertionError: {'confirmed': False, 'error': 'Reset not confirmed — E-Stop still active', 'ok': False}
+E       assert False is None
+
+test_r437_codex_reset.py:28: AssertionError
+_________ test_deciding_poll_after_declared_late_window_is_unknown[2] __________
+
+state = 2
+
+    @pytest.mark.parametrize('state',[linuxcnc.STATE_ESTOP,linuxcnc.STATE_ESTOP_RESET])
+    def test_deciding_poll_after_declared_late_window_is_unknown(state):
+        r=run_records([(100.02,linuxcnc.STATE_ESTOP),(102.1,state)])
+>       assert r['confirmed'] is None,r
+E       AssertionError: {'confirmed': True, 'ok': True}
+E       assert True is None
+
+test_r437_codex_reset.py:28: AssertionError
+________________ test_first_echo_after_echo_deadline_is_unknown ________________
+
+    def test_first_echo_after_echo_deadline_is_unknown():
+        r=run_records([(101.2,linuxcnc.STATE_ESTOP),(101.8,linuxcnc.STATE_ESTOP_RESET)])
+>       assert r['confirmed'] is None,r
+E       AssertionError: {'confirmed': True, 'ok': True}
+E       assert True is None
+
+test_r437_codex_reset.py:33: AssertionError
+=========================== short test summary info ============================
+FAILED test_r437_codex_reset.py::test_deciding_poll_after_declared_late_window_is_unknown[1]
+FAILED test_r437_codex_reset.py::test_deciding_poll_after_declared_late_window_is_unknown[2]
+FAILED test_r437_codex_reset.py::test_first_echo_after_echo_deadline_is_unknown
+========================= 3 failed, 1 passed in 0.23s ==========================
+[GC] +66ms gen=2 duration=11.6ms collected=669 uncollectable=0
+[GC] +76ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +83ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +89ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +97ms gen=2 duration=8.0ms collected=0 uncollectable=0
+[GC] +106ms gen=2 duration=8.1ms collected=0 uncollectable=0

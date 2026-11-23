@@ -1,0 +1,91 @@
+{
+  "review": "R437",
+  "date": "2026-11-23",
+  "base": "8bf21022",
+  "head": "eed29db32227eb6e3f3ca518d62ecf42634d2dd6",
+  "review_document_before_sha256": "b3de0e1685917ca4599f0c2cda2c1b81fd5d6b77d5cb08160114e757697233ee",
+  "copy": "/tmp/r437/head",
+  "changed_files_match_head": {
+    "head": "eed29db32227eb6e3f3ca518d62ecf42634d2dd6",
+    "compared": 56,
+    "differences": []
+  },
+  "runs": [
+    {
+      "name": "backend baseline",
+      "passed": 292,
+      "subtests_passed": 567,
+      "exit": 0
+    },
+    {
+      "name": "reset counterexamples",
+      "passed": 1,
+      "failed": 3,
+      "exit": 1
+    },
+    {
+      "name": "error line native offline assertions",
+      "passed": 4,
+      "failed": 4,
+      "exit": 1
+    },
+    {
+      "name": "browser selected",
+      "repository_passed": 46,
+      "own_timing_probe_passed": 1,
+      "own_g30_failed": 2,
+      "skipped": 0,
+      "flaky": 0,
+      "exit": 1
+    },
+    {
+      "name": "native-stage new offline guards",
+      "passed": 5,
+      "exit": 0
+    },
+    {
+      "name": "frontend changed unit suites",
+      "passed": 37,
+      "exit": 0
+    }
+  ],
+  "notes": [
+    "No product source modified; no connection to the live simulator, no new native controller run; real gcode interpreter only in offline subprocesses.",
+    "All test/build runs in isolated archive under official scripts/test_support/heavy_lock.py. All finished.",
+    "Browser used private Vite preview on 4173 and fixture-owned mock on 4500; node_modules copied, not symlinked.",
+    "First diagnostic error observer runner had an IndentationError before executing programs. Initial script/stderr retained; corrected observer then succeeded. The separate 8 assertion tests use the unmodified repository runner.",
+    "Run scripts printing inner exit codes may themselves exit 0 despite expected failing counterexamples; the individual log/report and exit values above are authoritative.",
+    "Claude gate 4 PASS and native run2 read, not independently rerun. Native reset reported max echo-to-left 202.9 ms and 500 ms settle; not a universal latency guarantee.",
+    "P4-4 Chromium and pinned Firefox reference images inspected. No independent Firefox execution.",
+    "Operator Q433-1 remains pending; no direct question asked."
+  ],
+  "sha256": {
+    "maschinentag.r437.codex-archive-check.json": "f88ed77bd0223de7f1b2ff4a7ab5c6d884fcbe1acae7f7df68adef982b148d0c",
+    "maschinentag.r437.codex-backend-baseline.txt": "748d68bd446ebdac434f9761eb3a1cba3243e64b9ff81b8cdc2696afd62c869a",
+    "maschinentag.r437.codex-browser.json": "40312c0d88fc0916a9eb69572032a127421a73e7e993d0e4ed624cb170da5ef9",
+    "maschinentag.r437.codex-browser.txt": "ab6a0104f8d4c6490057984e9b884ccd7da18c45ed48b5dbc5687641da2249c4",
+    "maschinentag.r437.codex-build.txt": "e1c4419c2a906dd23530b778c0c87480f3cbc328095df7bca09f8363d76f07e6",
+    "maschinentag.r437.codex-error-observer-initial.py": "2c58dfbec7aaf4720567de0ad070620f5fbd8b22cbdc01e512f8b44c20c3ac96",
+    "maschinentag.r437.codex-error-observer-initial.stderr.txt": "dd7c3bb91640c132d85013cc10772bfa92b11374c9a227247523e52388dd4393",
+    "maschinentag.r437.codex-error-observer.json": "6ed415fd87f1a4add63a2de776f4846a06399b0a76e2aab94ac6d7c31208a0e4",
+    "maschinentag.r437.codex-error-observer.py": "1895e19ff901b1f79854bf8bd5906270b7888ef542db05ee07f941cb54506fc2",
+    "maschinentag.r437.codex-error-observer.stderr.txt": "b77f76713cce8e35d09bea5d970d6d755517992304644802af87bebb994dab7e",
+    "maschinentag.r437.codex-error-observer.stdout.txt": "48b729cd0085267f5e27062b569dd5fdc0bb89758a5059afd10a171dba14dced",
+    "maschinentag.r437.codex-error-probes.py": "40320309ab0f0d887367f5a7caca74daecf35eb285fbf318eaec35d7cee007b3",
+    "maschinentag.r437.codex-error-probes.txt": "9872f1ea59663ff2b36ef3239be848962dae44d193f739d75af1aa897dd488a8",
+    "maschinentag.r437.codex-g30-capture.png": "67668407f17e2b5b4e9c19ccbc758c8c86859445365474ed4fa9276cfb5ef937",
+    "maschinentag.r437.codex-g30-refresh.png": "9b8a5e3a73731478d6040e48198d0ec5b9e0831e0fa366aa859c0f57e5ea30fe",
+    "maschinentag.r437.codex-g30.spec.ts": "079c4050c47e46930f63700f8b0647fbf32cb7720da63133dac69cb952c2ab2f",
+    "maschinentag.r437.codex-native-baseline.txt": "743bde08fef87f22261e8d84a251026b521337b6bc8b3af6503e83e57c66d135",
+    "maschinentag.r437.codex-playwright.config.ts": "383d333ec46ab6d8177871a878d1f76674aebf7791d2a33390b07960856a0d89",
+    "maschinentag.r437.codex-pocket-timing.json": "2f3de0e5036e91eca5500c4a669efd35c480841e2a7a9ba1014bdeef0aa742cb",
+    "maschinentag.r437.codex-pocket.spec.ts": "20090cd9bd50fea2e53d9f666ab93e9e0b384cf4ed46c3a3311caff557c65fa9",
+    "maschinentag.r437.codex-reset-probes.py": "99b6279562ded73fdd7a47fad42695ebbfb762f15605c2480391da647e694a27",
+    "maschinentag.r437.codex-reset-probes.txt": "82168fb90e7fe027b309c65e3d8e1deeee9c3f07d8ccaa3fc2a6648ad7bfd29a",
+    "maschinentag.r437.codex-run-backend.sh": "1d76092c00322e8c9d0b34f3256266b7873b02ef95c2106798afd2950fa6aa28",
+    "maschinentag.r437.codex-run-browser.sh": "e67e3c1bc844275825003e34f5f758ed6bedb9a4a344b9c8d688f79e70a1ddc9",
+    "maschinentag.r437.codex-run-error-assertions.sh": "48027685f33620a64f9509c10059726feaefd558bd90b8f13ee02378603c12f1",
+    "maschinentag.r437.codex-run-final-offline.sh": "7832a86a8194755c4fa66ba8f45b150395850880b438a6ca69ae321644c0dac7",
+    "maschinentag.r437.codex-unit-baseline.txt": "ed5dacdc5d03d7dc4dce86d1bda05a7214fd111b96130312c40087630599f6b3"
+  }
+}

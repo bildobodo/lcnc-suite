@@ -1,0 +1,1885 @@
+{
+  "config": {
+    "configFile": "/tmp/r437/head/lcnc-webui/playwright.r437.config.ts",
+    "rootDir": "/tmp/r437/head/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "460740-1795398868574",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r437/head/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "460740-1795398868574",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r437/head/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r437/browser-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "g30.spec.ts",
+      "file": "g30.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1535,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:30.444Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-a49f1b59b1968ad5d063",
+          "file": "g30.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1726,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:32.102Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-2e82b5573a3e57948cf5",
+          "file": "g30.spec.ts",
+          "line": 84,
+          "column": 1
+        },
+        {
+          "title": "a save LinuxCNC did not confirm is never 'saved'",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1648,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:33.833Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-df768a159226a1653e63",
+          "file": "g30.spec.ts",
+          "line": 102,
+          "column": 1
+        },
+        {
+          "title": "machine frame only: under TCP, Use Current Position and Save are dimmed with the reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1515,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:35.485Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-1c379d03ccb7384efba4",
+          "file": "g30.spec.ts",
+          "line": 114,
+          "column": 1
+        },
+        {
+          "title": "a captured draft is dropped when the kinematics mode changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1747,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:37.004Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-07b12c76cf7eef50389d",
+          "file": "g30.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "a save's confirmation never replaces an entry typed while it was out",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2074,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:38.756Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-f89d7c954ca755706437",
+          "file": "g30.spec.ts",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "a capture answered after the frame changed takes nothing over",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1896,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:40.834Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-69957fdb5d5dd9d1e8fc",
+          "file": "g30.spec.ts",
+          "line": 150,
+          "column": 1
+        },
+        {
+          "title": "a capture answered after the draft was edited takes nothing over; a refresh keeps a newer entry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2062,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:42.734Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-5fcb22df9c5710cf4265",
+          "file": "g30.spec.ts",
+          "line": 161,
+          "column": 1
+        },
+        {
+          "title": "a late file read never overwrites a newer confirmed read",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1963,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:44.802Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-799ab01c0687cdc81aae",
+          "file": "g30.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "Use Current Position is dimmed while the machine moves, with the gateway's reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1578,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:46.770Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-b1bc77e5978cc3efe7f6",
+          "file": "g30.spec.ts",
+          "line": 193,
+          "column": 1
+        },
+        {
+          "title": "a file read answered after a reconnect supplies no basis; the reconnect reads G30 again",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3177,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:48.353Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-cd11568af7c98664671a",
+          "file": "g30.spec.ts",
+          "line": 209,
+          "column": 1
+        },
+        {
+          "title": "Discard puts the draft back to the stored values and writes nothing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1911,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:51.534Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-1af17447ec8180732a98",
+          "file": "g30.spec.ts",
+          "line": 256,
+          "column": 1
+        },
+        {
+          "title": "Discard waits for a sent save; the save's outcome is shown",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1947,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:53.450Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-212bb79a38bd1e07bc70",
+          "file": "g30.spec.ts",
+          "line": 268,
+          "column": 1
+        },
+        {
+          "title": "a save with no answer keeps Discard closed until it ends, then says it is not confirmed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1863,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:55.401Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-f14ad8394937bd9c2ac5",
+          "file": "g30.spec.ts",
+          "line": 283,
+          "column": 1
+        },
+        {
+          "title": "Discard while a capture is out: the capture takes nothing over",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1928,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:57.268Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-109dcb3e32d7ac43a551",
+          "file": "g30.spec.ts",
+          "line": 294,
+          "column": 1
+        },
+        {
+          "title": "Refresh keeps an entry typed BEFORE it (machine day F17)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1898,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:54:59.200Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-d1738d7c2e44cd821f2e",
+          "file": "g30.spec.ts",
+          "line": 309,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "probe-click.spec.ts",
+      "file": "probe-click.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Outside: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3045,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:01.140Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-96145fac9852dbf5827d",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3055,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:04.189Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-02ac4dccbc08e241c56a",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3034,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:07.249Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-3ce64984b8610d99e10f",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Angle: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3025,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:10.288Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-22d92654e9dd33765974",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:13.317Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-78091ea5f02833501689",
+          "file": "probe-click.spec.ts",
+          "line": 48,
+          "column": 3
+        },
+        {
+          "title": "Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3127,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:16.369Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-5f9f1043e2fdbb709e1b",
+          "file": "probe-click.spec.ts",
+          "line": 72,
+          "column": 1
+        },
+        {
+          "title": "z_surface: the job the button sends is the native stage's whole job",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3013,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:19.501Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-445445c6fd703b8d78f6",
+          "file": "probe-click.spec.ts",
+          "line": 105,
+          "column": 3
+        },
+        {
+          "title": "surface_scan: the job the button sends is the native stage's whole job",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2977,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:22.518Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-3a14d5cdeaffc817dae9",
+          "file": "probe-click.spec.ts",
+          "line": 105,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: \"Round hole — edge start\" is named for its start and sends probe_cal_round_pocket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3061,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:25.501Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-85611eb34bc55b3a3f49",
+          "file": "probe-click.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: \"Round boss — above centre\" is named for its start and sends probe_cal_round_boss",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:28.567Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-6aecf675372d59868208",
+          "file": "probe-click.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: \"Rect pocket — edge start\" is named for its start and sends probe_cal_square_pocket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3037,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:31.391Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-b4951e02b20b87c5b73c",
+          "file": "probe-click.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: \"Rect boss — above centre\" is named for its start and sends probe_cal_square_boss",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3042,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:34.433Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-d88414152aa392980cf8",
+          "file": "probe-click.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: a boss needs its size; a pocket at 0 says its limited search",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3203,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:37.482Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-0f6faffb22dc52da186a",
+          "file": "probe-click.spec.ts",
+          "line": 165,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r437-g30.codex.spec.ts",
+      "file": "r437-g30.codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R437 capture can be discarded even when its starting draft was clean",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3344,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeEnabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: 'Discard G30 draft', exact: true })\nExpected: enabled\nReceived: disabled\nTimeout:  1500ms\n\nCall log:\n\u001b[2m  - Expect \"toBeEnabled\" with timeout 1500ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Discard G30 draft', exact: true })\u001b[22m\n\u001b[2m    16 × locator resolved to <button disabled data-v-60d3a107=\"\" data-v-33d2e36b=\"\" class=\"b md danger\" data-control=\"g30Discard\" aria-label=\"Discard G30 draft\">Discard</button>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeEnabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: 'Discard G30 draft', exact: true })\nExpected: enabled\nReceived: disabled\nTimeout:  1500ms\n\nCall log:\n\u001b[2m  - Expect \"toBeEnabled\" with timeout 1500ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Discard G30 draft', exact: true })\u001b[22m\n\u001b[2m    16 × locator resolved to <button disabled data-v-60d3a107=\"\" data-v-33d2e36b=\"\" class=\"b md danger\" data-control=\"g30Discard\" aria-label=\"Discard G30 draft\">Discard</button>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n\n    at /tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts:78:25",
+                    "location": {
+                      "file": "/tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts",
+                      "column": 25,
+                      "line": 78
+                    },
+                    "snippet": "  76 |   await expect.poll(async () => (await sent()).map(c=>c.cmd)).toContain(\"capture_g30\");\n  77 |   const discard = page.getByRole(\"button\", {name:\"Discard G30 draft\",exact:true});\n> 78 |   await expect(discard).toBeEnabled({timeout:1500});\n     |                         ^\n  79 |   await discard.click();\n  80 |   await deliver(\"capture_g30\", {ok:true,confirmed:true,values:STORED,current:{X:10,Y:20,Z:-5},units:\"mm\"});\n  81 |   await expect.poll(() => values(page)).toEqual([\"100\", \"0\", \"-26.275\"]);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts",
+                        "column": 25,
+                        "line": 78
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeEnabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: 'Discard G30 draft', exact: true })\nExpected: enabled\nReceived: disabled\nTimeout:  1500ms\n\nCall log:\n\u001b[2m  - Expect \"toBeEnabled\" with timeout 1500ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Discard G30 draft', exact: true })\u001b[22m\n\u001b[2m    16 × locator resolved to <button disabled data-v-60d3a107=\"\" data-v-33d2e36b=\"\" class=\"b md danger\" data-control=\"g30Discard\" aria-label=\"Discard G30 draft\">Discard</button>\u001b[22m\n\u001b[2m       - unexpected value \"disabled\"\u001b[22m\n\n\n  76 |   await expect.poll(async () => (await sent()).map(c=>c.cmd)).toContain(\"capture_g30\");\n  77 |   const discard = page.getByRole(\"button\", {name:\"Discard G30 draft\",exact:true});\n> 78 |   await expect(discard).toBeEnabled({timeout:1500});\n     |                         ^\n  79 |   await discard.click();\n  80 |   await deliver(\"capture_g30\", {ok:true,confirmed:true,values:STORED,current:{X:10,Y:20,Z:-5},units:\"mm\"});\n  81 |   await expect.poll(() => values(page)).toEqual([\"100\", \"0\", \"-26.275\"]);\n    at /tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts:78:25"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:40.695Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r437/head/lcnc-webui/test-results/r437-g30.codex-R437-captur-d543e-ts-starting-draft-was-clean-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r437/head/lcnc-webui/test-results/r437-g30.codex-R437-captur-d543e-ts-starting-draft-was-clean-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r437/head/lcnc-webui/test-results/r437-g30.codex-R437-captur-d543e-ts-starting-draft-was-clean-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts",
+                    "column": 25,
+                    "line": 78
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "2b137279ca0c99ba808e-c0c04140ffafeb0d6149",
+          "file": "r437-g30.codex.spec.ts",
+          "line": 72,
+          "column": 1
+        },
+        {
+          "title": "R437 Refresh preserves a newer entry even when it equals the previous stored value",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3825,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('G30 X', { exact: true })\nExpected: \u001b[32m\"10\u001b[7m0\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"10\u001b[7m5\u001b[27m\"\u001b[39m\nTimeout:  1500ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" with timeout 1500ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('G30 X', { exact: true })\u001b[22m\n\u001b[2m    16 × locator resolved to <input readonly lang=\"en\" id=\"ffv-39\" type=\"text\" value=\"105\" inputmode=\"none\" data-v-33d2e36b=\"\" autocomplete=\"off\" aria-label=\"G30 X\" class=\"inputField\" name=\"toolsetterParam\" data-input-area=\"input-21\" aria-describedby=\"ffv-39-unit\" data-control=\"toolsetterParam\"/>\u001b[22m\n\u001b[2m       - unexpected value \"105\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('G30 X', { exact: true })\nExpected: \u001b[32m\"10\u001b[7m0\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"10\u001b[7m5\u001b[27m\"\u001b[39m\nTimeout:  1500ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" with timeout 1500ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('G30 X', { exact: true })\u001b[22m\n\u001b[2m    16 × locator resolved to <input readonly lang=\"en\" id=\"ffv-39\" type=\"text\" value=\"105\" inputmode=\"none\" data-v-33d2e36b=\"\" autocomplete=\"off\" aria-label=\"G30 X\" class=\"inputField\" name=\"toolsetterParam\" data-input-area=\"input-21\" aria-describedby=\"ffv-39-unit\" data-control=\"toolsetterParam\"/>\u001b[22m\n\u001b[2m       - unexpected value \"105\"\u001b[22m\n\n    at /tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts:93:33",
+                    "location": {
+                      "file": "/tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts",
+                      "column": 33,
+                      "line": 93
+                    },
+                    "snippet": "  91 |   await deliver(\"read_g30\", {ok:true,confirmed:true,values:{...STORED,X:105}});\n  92 |   await expect(storedLine(page)).toHaveText(/confirmed by LinuxCNC/);\n> 93 |   await expect(field(page,\"X\")).toHaveValue(\"100\",{timeout:1500});\n     |                                 ^\n  94 | });\n  95 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts",
+                        "column": 33,
+                        "line": 93
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('G30 X', { exact: true })\nExpected: \u001b[32m\"10\u001b[7m0\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"10\u001b[7m5\u001b[27m\"\u001b[39m\nTimeout:  1500ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" with timeout 1500ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('G30 X', { exact: true })\u001b[22m\n\u001b[2m    16 × locator resolved to <input readonly lang=\"en\" id=\"ffv-39\" type=\"text\" value=\"105\" inputmode=\"none\" data-v-33d2e36b=\"\" autocomplete=\"off\" aria-label=\"G30 X\" class=\"inputField\" name=\"toolsetterParam\" data-input-area=\"input-21\" aria-describedby=\"ffv-39-unit\" data-control=\"toolsetterParam\"/>\u001b[22m\n\u001b[2m       - unexpected value \"105\"\u001b[22m\n\n\n  91 |   await deliver(\"read_g30\", {ok:true,confirmed:true,values:{...STORED,X:105}});\n  92 |   await expect(storedLine(page)).toHaveText(/confirmed by LinuxCNC/);\n> 93 |   await expect(field(page,\"X\")).toHaveValue(\"100\",{timeout:1500});\n     |                                 ^\n  94 | });\n  95 |\n    at /tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts:93:33"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:44.594Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r437/head/lcnc-webui/test-results/r437-g30.codex-R437-Refres-8a3ca-s-the-previous-stored-value-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r437/head/lcnc-webui/test-results/r437-g30.codex-R437-Refres-8a3ca-s-the-previous-stored-value-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r437/head/lcnc-webui/test-results/r437-g30.codex-R437-Refres-8a3ca-s-the-previous-stored-value-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r437/head/lcnc-webui/e2e/r437-g30.codex.spec.ts",
+                    "column": 33,
+                    "line": 93
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "2b137279ca0c99ba808e-92291f9ae3fd9eab2303",
+          "file": "r437-g30.codex.spec.ts",
+          "line": 84,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r437-pocket.codex.spec.ts",
+      "file": "r437-pocket.codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R437 pocket hint timing before and after activation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2895,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R437_HINT_TIMING [{\"label\":\"before press\",\"hint\":[],\"commands\":[]},{\"label\":\"100 ms into hold\",\"hint\":[],\"commands\":[]},{\"label\":\"700 ms into hold\",\"hint\":[\"Search limited to Max X/Y Travel\"],\"commands\":[{\"cmd\":\"probe_run\",\"routine\":\"probe_round_pocket\",\"vars\":{\"3014\":99,\"3015\":50,\"3016\":200,\"3017\":1000,\"3018\":10,\"3019\":2,\"3020\":10,\"3021\":2,\"3022\":0,\"3023\":5,\"3024\":0.5,\"3025\":0,\"3026\":0,\"3027\":0,\"3028\":0,\"3029\":0,\"3030\":1,\"3031\":0,\"3032\":0,\"3033\":0,\"3034\":0,\"3035\":0},\"req_id\":\"cugtop-5\"}]}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:49.088Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "hint-timing",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJsYWJlbCI6ICJiZWZvcmUgcHJlc3MiLAogICAgImhpbnQiOiBbXSwKICAgICJjb21tYW5kcyI6IFtdCiAgfSwKICB7CiAgICAibGFiZWwiOiAiMTAwIG1zIGludG8gaG9sZCIsCiAgICAiaGludCI6IFtdLAogICAgImNvbW1hbmRzIjogW10KICB9LAogIHsKICAgICJsYWJlbCI6ICI3MDAgbXMgaW50byBob2xkIiwKICAgICJoaW50IjogWwogICAgICAiU2VhcmNoIGxpbWl0ZWQgdG8gTWF4IFgvWSBUcmF2ZWwiCiAgICBdLAogICAgImNvbW1hbmRzIjogWwogICAgICB7CiAgICAgICAgImNtZCI6ICJwcm9iZV9ydW4iLAogICAgICAgICJyb3V0aW5lIjogInByb2JlX3JvdW5kX3BvY2tldCIsCiAgICAgICAgInZhcnMiOiB7CiAgICAgICAgICAiMzAxNCI6IDk5LAogICAgICAgICAgIjMwMTUiOiA1MCwKICAgICAgICAgICIzMDE2IjogMjAwLAogICAgICAgICAgIjMwMTciOiAxMDAwLAogICAgICAgICAgIjMwMTgiOiAxMCwKICAgICAgICAgICIzMDE5IjogMiwKICAgICAgICAgICIzMDIwIjogMTAsCiAgICAgICAgICAiMzAyMSI6IDIsCiAgICAgICAgICAiMzAyMiI6IDAsCiAgICAgICAgICAiMzAyMyI6IDUsCiAgICAgICAgICAiMzAyNCI6IDAuNSwKICAgICAgICAgICIzMDI1IjogMCwKICAgICAgICAgICIzMDI2IjogMCwKICAgICAgICAgICIzMDI3IjogMCwKICAgICAgICAgICIzMDI4IjogMCwKICAgICAgICAgICIzMDI5IjogMCwKICAgICAgICAgICIzMDMwIjogMSwKICAgICAgICAgICIzMDMxIjogMCwKICAgICAgICAgICIzMDMyIjogMCwKICAgICAgICAgICIzMDMzIjogMCwKICAgICAgICAgICIzMDM0IjogMCwKICAgICAgICAgICIzMDM1IjogMAogICAgICAgIH0sCiAgICAgICAgInJlcV9pZCI6ICJjdWd0b3AtNSIKICAgICAgfQogICAgXQogIH0KXQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05ffaca1069bc3611284-6a046c9a07cae279f683",
+          "file": "r437-pocket.codex.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "setup-gates.spec.ts",
+      "file": "setup-gates.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2342,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:52.094Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-a4aa1f350e44e00ee0d6",
+          "file": "setup-gates.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1944,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:54.441Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-d7f1179e3af6a1f1528e",
+          "file": "setup-gates.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "E-Stop Reset not confirmed: said at the Reset button",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1311,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:56.390Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-3ec8f64d507f77644f45",
+          "file": "setup-gates.spec.ts",
+          "line": 110,
+          "column": 3
+        },
+        {
+          "title": "E-Stop Reset unknown: said at the Reset button",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1330,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:57.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-c54855bd8ed37b70cb9e",
+          "file": "setup-gates.spec.ts",
+          "line": 110,
+          "column": 3
+        },
+        {
+          "title": "E-Stop Reset no reply: said at the Reset button",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6681,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:55:59.041Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-9b91ad9fdc1122ef9386",
+          "file": "setup-gates.spec.ts",
+          "line": 110,
+          "column": 3
+        },
+        {
+          "title": "E-Stop Reset confirmed: said at the Reset button",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2039,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:05.726Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-88b27a0fdb4416a1f23b",
+          "file": "setup-gates.spec.ts",
+          "line": 110,
+          "column": 3
+        },
+        {
+          "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1613,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:07.771Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-fa3028da289416483b33",
+          "file": "setup-gates.spec.ts",
+          "line": 129,
+          "column": 1
+        },
+        {
+          "title": "the G30 read: open with the machine off, closed ON in AUTO with the reason (BG-13)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1501,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:09.389Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-0dc18ed0f7efe33c1b31",
+          "file": "setup-gates.spec.ts",
+          "line": 149,
+          "column": 1
+        },
+        {
+          "title": "the manual spindle unhomed where the machine declares it, MANUAL only (Q1)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1273,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:10.896Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-90a9224018ce720664e2",
+          "file": "setup-gates.spec.ts",
+          "line": 163,
+          "column": 1
+        },
+        {
+          "title": "Start by the shortcut waits for the program text like the button (one admission, BG-10)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2128,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:12.173Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a237f05b9d2909b5d62e-b09b5d659a2091a326a8",
+          "file": "setup-gates.spec.ts",
+          "line": 174,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "tool-edit.spec.ts",
+      "file": "tool-edit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a save sends the row the dialog opened on — not a newer read",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:14.311Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d465f7c2246990f568f-bd1d1840a767fbd972f7",
+          "file": "tool-edit.spec.ts",
+          "line": 33,
+          "column": 1
+        },
+        {
+          "title": "a conflict keeps the dialog, its draft and says why",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2188,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:16.526Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d465f7c2246990f568f-2c4574333215f2525c63",
+          "file": "tool-edit.spec.ts",
+          "line": 47,
+          "column": 1
+        },
+        {
+          "title": "a renumber sends the row it was opened on too",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2526,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:18.719Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d465f7c2246990f568f-af736711ae2832260c53",
+          "file": "tool-edit.spec.ts",
+          "line": 58,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "tool-preview.spec.ts",
+      "file": "tool-preview.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a hover card closes with its tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2540,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:21.256Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e4c637b6537cb5f3e31c-92df624e968db3b1e072",
+          "file": "tool-preview.spec.ts",
+          "line": 36,
+          "column": 1
+        },
+        {
+          "title": "a hover still waiting for its 300 ms never opens after the tab was left",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3711,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:23.801Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e4c637b6537cb5f3e31c-7a8292b001ae577ceb0f",
+          "file": "tool-preview.spec.ts",
+          "line": 44,
+          "column": 1
+        },
+        {
+          "title": "a tapped card closes on a press outside its row and on a scroll",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3293,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:27.516Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e4c637b6537cb5f3e31c-096a377288d448b133ff",
+          "file": "tool-preview.spec.ts",
+          "line": 57,
+          "column": 1
+        },
+        {
+          "title": "the tab alone closes the card (no scroll, no press, no hover)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2323,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:56:30.814Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e4c637b6537cb5f3e31c-6f62551cfcf40131f8ef",
+          "file": "tool-preview.spec.ts",
+          "line": 89,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-23T01:54:28.577Z",
+    "duration": 124611.842,
+    "expected": 47,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

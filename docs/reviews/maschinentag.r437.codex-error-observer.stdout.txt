@@ -1,0 +1,9 @@
+__OBS__{"seq": 2, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/sub_0.ngc", "offset": 21, "mapped": 2, "line": 2}
+__OBS__{"seq": 0, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/remap_0.ngc", "offset": 22, "mapped": 4, "line": null}
+__OBS__{"seq": 2, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/sub_30.ngc", "offset": 21, "mapped": 2, "line": 2}
+__OBS__{"seq": 0, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/remap_30.ngc", "offset": 22, "mapped": 2, "line": null}
+__OBS__{"seq": 2, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/sub_80.ngc", "offset": 21, "mapped": 2, "line": 2}
+__OBS__{"seq": 0, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/remap_80.ngc", "offset": 22, "mapped": 2, "line": null}
+__OBS__{"seq": 2, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/sub_200.ngc", "offset": 21, "mapped": 2, "line": 2}
+__OBS__{"seq": 0, "call": 0, "remap": 0, "filename": "/tmp/tmpaluuiy5q/remap_200.ngc", "offset": 22, "mapped": 2, "line": null}
+__RESULT__{"sub_0.ngc": ["No characters found in reading real value", 2], "remap_0.ngc": ["No characters found in reading real value", null], "sub_30.ngc": ["No characters found in reading real value", 2], "remap_30.ngc": ["No characters found in reading real value", null], "sub_80.ngc": ["No characters found in reading real value", 2], "remap_80.ngc": ["No characters found in reading real value", null], "sub_200.ngc": ["No characters found in reading real value", 2], "remap_200.ngc": ["No characters found in reading real value", null]}
