@@ -256,6 +256,13 @@ const bossRefusal = computed<Record<string, string | null>>(() =>
 const bossNote = computed<Record<string, string | null>>(() =>
   Object.fromEntries(bossGrid.map(op => [op.id, bossPocketNote(op.id, params.value as Record<string, unknown>)])));
 const bossLabel = (op: GridOp) => bossNote.value[op.id] ? `${op.description} — ${bossNote.value[op.id]}` : op.description;
+// The RESTING note under the size fields (Codex R437 MT-I24): while a
+// pocket's size is 0 its bounded search is said before any press — one line
+// per pocket shape; the boss cells say theirs through their dimmed state.
+const pocketNotes = computed(() => [
+  bossNote.value.rp ? `Round Pocket: ${bossNote.value.rp}` : null,
+  bossNote.value.xp ? `Rect Pocket: ${bossNote.value.xp}` : null,
+].filter((t): t is string => !!t));
 
 function runBossProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
@@ -837,6 +844,7 @@ function fmtR(key: string): string {
           <template #help>{{ f.help }}</template>
         </FormField>
       </div>
+      <div v-if="pocketNotes.length" class="settingDesc stack-micro"><span v-for="n in pocketNotes" :key="n">{{ n }}</span></div>
       </div>
     </template>
 
