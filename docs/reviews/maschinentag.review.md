@@ -3011,3 +3011,73 @@ P2a (`feat/p2a-parse-basis`, `70106a7e..f52930df`) per Fast-Forward nach develop
 - **Der Halt deckt nur die Toolsetter-Kante ab;** das Werkzeugmessen gehört zu P2b.
 - **Die Maschine bekommt P2a erst, wenn der Operator ein Update wünscht.**
 - **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+---
+
+## Claude · P4 gebaut · Anfrage R437 · 23. November 2026
+
+**Code:** `feat/p4-ui-fixes`, gebaut auf development `8bf21022` (P2a gemergt) und gepusht; Kopf `eed29db3`, Gate an `77816b63`. Gebaut nach dem P4-Plan v1 und v2, R433/R434, einschließlich der Bau-Präzisierung „Tabellenidentität ohne Inode“. Je Punkt ein eigener Commit; **P4-5 steht abtrennbar in `f27b126d`**, solange Q433-1 offen ist.
+
+### Je Punkt
+
+**P4-1 · E-Stop Reset mit beobachtetem Ausgang** (`6972db4a`, Fenster `87c574c8`)
+- **Ablauf:** Die Schreibung wird mit Serial, Zeit und Link gebucht (`_cmd_blocking(written=)`). Danach beobachtet der Handler den Controller über Polls desselben Links, die nach der Schreibung begonnen haben, mit `echo_serial_number ≥ serial` und Setzfenster.
+- **Ausgänge:** bestätigt / nicht bestätigt (nur mit gültiger ESTOP-Beobachtung bis zum Fensterende) / unbekannt.
+- **Vorrang:** E-Stop und Abort verdrängen das Warten.
+- **Seite:** Sie nennt den Ausgang am Reset-Knopf.
+- **Setzfenster nativ gemessen** (Profil `p4`, VM-Sim):
+  - 5 Resets mit geschlossener Kette bestätigt; ESTOP wurde höchstens 202 ms nach dem Echo verlassen.
+  - 3 Resets mit offen gehaltener Kette „nicht bestätigt“.
+  - 0,3 s verfehlte den doppelten Abstand, daher **`ESTOP_RESET_SETTLE_S` = 0,5 s**. Lauf 2: 4/4 PASS (`p4.native-run1.json`, `p4.native-run2.json`). Die LAN-Sim wurde beide Male belegt zurückgegeben.
+
+**P4-2 · Werkzeugedit mit erwartetem Zeilenstand** (`842871ef`, `41de629f`, `d28fc62b`, `d2518e13`)
+- **Mitgesendeter Stand:** `get_tool_table` nennt seine Tabelle (`{path, instance}`). `save_tool` und `renumber_tool` **verlangen** `expected`: Tabelle, T und die zurückgesendeten Felder einschließlich Metadaten.
+- **Prüfung beim Schreiber:** Das Gateway vergleicht im eigenen Thread der Schreibung mit einem frischen Lesen. Bei unbekanntem oder geändertem Stand verweigert es den ganzen Edit; das gilt auch, wenn sich die Tabelle zwischen dem Lesen des Edits und seiner Schreibung ändert.
+- **Seite:** Sie behält den Entwurf.
+- **Tabellenidentität ohne Inode:** Der eigene Schreiber ersetzt die Datei atomar.
+- **Dateiwache:** 1 Hz, abseits der Statusschleife. Die eigene Schreibung quittiert nur ihre eigene, danach gelesene Signatur.
+- **Native Harness:** Ihr `_set_tool_length` sendet jetzt `expected`.
+
+**P4-3 · Werkzeugkarte** (`3183884b`): Die Karte schließt mit ihrem Tab, mit dem Bibliotheksbrowser, bei einem Druck außerhalb ihrer Zeile und beim Scrollen. Das Schließen bricht auch den noch wartenden 300-ms-Hover ab.
+
+**P4-4 · Kalibrierzellen** (`663fa921`, `77816b63`)
+- **Beschriftung:** zweizeilig, Stück und Start: „Round hole / edge start“, „Round boss / above centre“, „Rect pocket / edge start“, „Rect boss / above centre“. Dieselben Worte stehen im `aria-label`.
+- **Abweichung vom Plan:** Die Überschriften „Round“ / „Rectangular“ entfallen, weil die Beschriftung die Form nennt. Die Zellen sind 84 px breit.
+  - Gemessen: Zwei Zeilen **und** die Überschriften passten in die gemeinsame Box nur mit 70-px-Zellen. Gate 1 zeigte das Überlaufen: 39 px am Desktop, 52 px bei Touch.
+  - So bleiben 7 px Reserve.
+- **Referenzbilder:** für Chromium und das gepinnte Firefox neu erzeugt und angesehen.
+- **Kompensationsschalter:** Er trug seinen Namen schon über sein Label; das „INPUT“ vom Maschinentag stammte vom Aufzeichner.
+
+**P4-5 · Größenvertrag Boss/Pocket** (`f27b126d`, eigener Commit; Q433-1 offen)
+- **Zulassung:** Round Boss verlangt einen Durchmesser, Rect Boss X **und** Y.
+- **Pockets bei 0:** Sie laufen und sagen den begrenzten Suchweg. Leer ist nie 0. Zelle und Auslösung lesen denselben Feldstand.
+- **Abweichung:** „Search limited to Max X/Y Travel“ steht im `title` und `aria-label` der Pocket-Zelle und wird **beim Drücken an der Zelle** gezeigt, nicht als ruhender Text. Für eine Notiz je Zelle gibt es kein globales Muster; das ist in `decisions.md` benannt, auch für den Operator.
+
+**P4-6 · G30 Discard** (`5e22e499`)
+- Discard setzt nur den Entwurf zurück und schreibt nichts.
+- Gesperrt ist es, solange ein **gesendetes** `set_g30` aussteht („Saving — wait for the answer“); dessen Ausgang bleibt sichtbar.
+- Während einer Erfassung bleibt es möglich und entwertet deren späte Übernahme.
+- Refresh behält einen Entwurf, der vorher oder währenddessen eingegeben wurde.
+
+**P4-7 · Fehlerzeile mit belegter Herkunft** (`0ac05949`)
+- **Gemessen am echten Interpreter (2.9.4):** Die von `parse()` gelieferte Nummer ist bei einem Lesefehler um eins zu groß und bei einem Ausführungsfehler die Zeile. Im aufgerufenen File liegt sie eins hinter der CALL-Zeile, in einem Remap ist sie 0 oder 1.
+- **Neue Regel:** Der Worker nennt nur eine belegte Zeile der Hauptdatei, sonst keine. Das Banner druckt nur eine positive Ganzzahl.
+- **Native Fälle:** `T97 M6` und `T97` allein ergeben die belegte Zeile 8; `T97 M600` ergibt **keine** Zeile, weil der Fehler aus dem Remap kommt (das „(LINE 0)“ der Maschine). Ein Ersatz über `main_line()` ist nicht nötig.
+- **Golden-Test:** rot gegen das alte `error_line = seq` (5 von 7 Programmen).
+
+**P4-8 · Diagnosen F4, F13, F21** (`c765aad2`, `p4.diagnoses.md`): nur Befunde, keine Korrekturen.
+
+### Belege
+
+- **Rot-Nachweise:** Mutationen **24/24 rot** (`p4.mutations.txt`). Im ersten Lauf blieben drei grün; jede zeigte einen zu schwachen Wächter, der geschärft und erneut rot geprüft wurde.
+- **Round-Gate 4 PASS** an `77816b63` (`p4.gate-round4.json`):
+  - lint, build, unit-light, Backend;
+  - volle Browser-Runde 1045/1045 mit Replay;
+  - Firefox-Kern 94/94 mit Replay.
+- **Frühere Gate-Runden** (als Belege committet):
+  - Runde 1 FAIL: Überlauf der Kalibrieransicht; Referenzbilder absichtlich geändert.
+  - Runde 2 FAIL: Der Test zum Schalternamen sendete keinen Antastauftrag (Replay-Prüfung), und das gepinnte Firefox hat eigene Referenzbilder.
+  - Runde 3 sauber abgebrochen, weil die Beschriftungskorrektur folgte.
+- **Vor main geschuldet:** live-twp, perf-matrix, probe-live, toolsetter-readback, twp-buttons.
+
+**Erbeten:** `agreement` zu P4 `8bf21022..eed29db3` oder `findings`. Ausdrücklich erbeten ist dein Urteil zu den beiden Abweichungen: P4-4 Überschriften und P4-5 Pocket-Hinweis beim Drücken.
