@@ -1,0 +1,144 @@
+{
+ "what": "P2b-1 acceptance (plan v4 'Vorher/Nachher-Lauf') on the VM sim: one real page (headless Chromium, llvmpipe, 6 cores), the simulation on, load -> run with M600 -> tool change (M61 Q99 G43) -> load",
+ "builds_by_the_taps_rule": {
+  "before": 6,
+  "after": 2
+ },
+ "body_sends": {
+  "before": 3,
+  "after": 1
+ },
+ "after_page_words": {
+  "built": 2,
+  "reused": 8,
+  "build_ms": [
+   18726,
+   18774
+  ],
+  "per_instance_gen": {
+   "st0e527z/97asd8in/1": 1,
+   "st0e527z/6tcwa8jj/1": 1
+  }
+ },
+ "late_windows_150ms": {
+  "before": [
+   7,
+   49
+  ],
+  "after": [
+   7,
+   35
+  ]
+ },
+ "settle_s": {
+  "before": {
+   "load1": 1795422169296177321,
+   "load1_s": 27.6,
+   "run": 1795422197035552669,
+   "run_s": 31.7,
+   "tool": 1795422275306374092,
+   "tool_s": 32.8,
+   "load2": 1795422308308541171,
+   "load2_s": 8.1
+  },
+  "after": {
+   "load1": 1795422387611320770,
+   "load1_s": 27.1,
+   "run": 1795422414956436577,
+   "run_s": 10.6,
+   "tool": 1795422472122794530,
+   "tool_s": 11.1,
+   "load2": 1795422483373537142,
+   "load2_s": 8.6
+  }
+ },
+ "limits": [
+  "the before tree has no per-instance word: its builds are the tap's rule (a request with the bodies builds one model per shard it runs on, collisionWorker.shardCount's formula with the page's cores and the request's triangles)",
+  "the late windows are counted per page over the whole window, not joined to the build phases; on the VM the page renders with llvmpipe",
+  "the machine measurement follows at the next visit (plan v4)"
+ ],
+ "before": {
+  "run": "20261123T092157-builds-before",
+  "commit": "244d93a37ffb8af857366c8c0e84464478c08f05",
+  "verdict": "PASS",
+  "restore": "complete",
+  "row": {
+   "case": "p2b-builds",
+   "status": "PASS",
+   "detail": "measured",
+   "pages": [
+    "s0oxszv6"
+   ],
+   "tap": {
+    "requests": 5,
+    "body_sends": 3,
+    "builds": 6,
+    "cores": 6
+   },
+   "marks": {
+    "load1": 1795422169296177321,
+    "load1_s": 27.6,
+    "run": 1795422197035552669,
+    "run_s": 31.7,
+    "tool": 1795422275306374092,
+    "tool_s": 32.8,
+    "load2": 1795422308308541171,
+    "load2_s": 8.1
+   },
+   "words": false,
+   "built": 0,
+   "reused": 0,
+   "build_ms": [],
+   "per_instance_gen": {},
+   "sweeps": 5,
+   "body_starts": 3,
+   "late_windows_150": 7,
+   "perf_rows": 49
+  }
+ },
+ "after": {
+  "run": "20261123T092535-builds-after",
+  "commit": "36ff2907b2efe66400b9d6b231e69bebb68d2485",
+  "verdict": "PASS",
+  "restore": "complete",
+  "row": {
+   "case": "p2b-builds",
+   "status": "PASS",
+   "detail": "one build per instance and model generation",
+   "pages": [
+    "st0e527z"
+   ],
+   "tap": {
+    "requests": 5,
+    "body_sends": 1,
+    "builds": 2,
+    "cores": 6
+   },
+   "marks": {
+    "load1": 1795422387611320770,
+    "load1_s": 27.1,
+    "run": 1795422414956436577,
+    "run_s": 10.6,
+    "tool": 1795422472122794530,
+    "tool_s": 11.1,
+    "load2": 1795422483373537142,
+    "load2_s": 8.6
+   },
+   "words": true,
+   "built": 2,
+   "reused": 8,
+   "build_ms": [
+    18726,
+    18774
+   ],
+   "per_instance_gen": {
+    "st0e527z/97asd8in/1": 1,
+    "st0e527z/6tcwa8jj/1": 1
+   },
+   "sweeps": 5,
+   "body_starts": 1,
+   "late_windows_150": 7,
+   "perf_rows": 35
+  }
+ }
+}

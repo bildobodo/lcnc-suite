@@ -2232,6 +2232,7 @@ def _builds_steps(ctx):
     try:
         line = proc.stdout.readline() if proc.stdout else ""
         if '"ready"' not in line:
+            ctx["report"]["p2b_builds_probe"] = line[:4000]
             raise Refused(f"p2b-builds: the page did not come up: {line[:300]}")
 
         def sequence():
@@ -2253,8 +2254,9 @@ def _builds_steps(ctx):
         _, window = _framed(ctx, c, "p2b-builds", sequence)
     finally:
         try:
-            if proc.stdin:
-                proc.stdin.close()
+            # communicate() closes the probe's stdin itself — its end is the
+            # probe's signal (a stdin closed here first made communicate()
+            # raise "I/O operation on closed file", the tap lost)
             out, err = proc.communicate(timeout=60)
             lines = [ln for ln in out.splitlines() if ln.startswith("{")]
             probe = json.loads(lines[-1]) if lines else {"errors": [err[-600:]]}
