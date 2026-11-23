@@ -1,0 +1,47 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p4ui/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r438/head/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 30 items
+
+test_estop_reset_outcome.py::TestTheOutcome::test_a_bounce_back_into_estop_inside_the_window_is_not_confirmed PASSED [  3%]
+test_estop_reset_outcome.py::TestTheOutcome::test_a_poll_begun_before_the_write_proves_nothing PASSED [  6%]
+test_estop_reset_outcome.py::TestTheOutcome::test_a_poll_in_flight_during_the_write_proves_nothing PASSED [ 10%]
+test_estop_reset_outcome.py::TestTheOutcome::test_a_write_without_its_serial_is_unknown PASSED [ 13%]
+test_estop_reset_outcome.py::TestTheOutcome::test_an_open_chain_is_not_confirmed PASSED [ 16%]
+test_estop_reset_outcome.py::TestTheOutcome::test_an_unread_task_state_at_the_window_end_is_unknown PASSED [ 20%]
+test_estop_reset_outcome.py::TestTheOutcome::test_another_link_is_unknown PASSED [ 23%]
+test_estop_reset_outcome.py::TestTheOutcome::test_no_echo_is_unknown_never_a_refusal PASSED [ 26%]
+test_estop_reset_outcome.py::TestTheOutcome::test_no_poll_after_the_window_is_unknown PASSED [ 30%]
+test_estop_reset_outcome.py::TestTheOutcome::test_the_task_left_estop_is_confirmed PASSED [ 33%]
+test_estop_reset_outcome.py::TestTheDeadlinesJudgeTheBegin::test_a_deciding_poll_begun_after_the_final_deadline_is_unknown 
+test_estop_reset_outcome.py::TestTheDeadlinesJudgeTheBegin::test_a_deciding_poll_begun_after_the_final_deadline_is_unknown PASSED [ 36%]
+test_estop_reset_outcome.py::TestTheDeadlinesJudgeTheBegin::test_a_first_echo_begun_after_the_echo_deadline_is_unknown PASSED [ 40%]
+test_estop_reset_outcome.py::TestTheDeadlinesJudgeTheBegin::test_control_a_poll_in_the_window_decides PASSED [ 43%]
+test_estop_reset_outcome.py::TestTheHandler::test_an_estop_from_another_client_displaces_the_wait PASSED [ 46%]
+test_estop_reset_outcome.py::TestTheHandler::test_confirmed_through_the_socket PASSED [ 50%]
+test_estop_reset_outcome.py::TestTheHandler::test_not_confirmed_through_the_socket PASSED [ 53%]
+test_estop_reset_outcome.py::TestTheHandler::test_the_reset_is_preemptable_not_a_stop PASSED [ 56%]
+test_error_line_golden.py::TestTheProvenErrorLine::test_each_program_names_only_its_proven_line 
+test_error_line_golden.py::TestTheProvenErrorLine::test_each_program_names_only_its_proven_line PASSED [ 60%]
+test_r437_codex_reset.py::test_control_poll_within_settle_and_late_window PASSED [ 63%]
+test_r437_codex_reset.py::test_deciding_poll_after_declared_late_window_is_unknown[1] PASSED [ 66%]
+test_r437_codex_reset.py::test_deciding_poll_after_declared_late_window_is_unknown[2] PASSED [ 70%]
+test_r437_codex_reset.py::test_first_echo_after_echo_deadline_is_unknown PASSED [ 73%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_0] PASSED [ 76%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_0] PASSED [ 80%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_30] PASSED [ 83%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_30] PASSED [ 86%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_80] PASSED [ 90%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_80] PASSED [ 93%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[sub_200] PASSED [ 96%]
+test_r437_codex_error_line.py::test_called_file_error_has_no_proven_main_line[remap_200] PASSED [100%]
+
+==================== 30 passed, 19 subtests passed in 9.88s ====================
+[GC] +9698ms gen=2 duration=10.1ms collected=2442 uncollectable=0
+[GC] +9706ms gen=2 duration=7.9ms collected=0 uncollectable=0
+[GC] +9713ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +9720ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +9726ms gen=2 duration=6.5ms collected=0 uncollectable=0
+[GC] +9733ms gen=2 duration=6.6ms collected=0 uncollectable=0

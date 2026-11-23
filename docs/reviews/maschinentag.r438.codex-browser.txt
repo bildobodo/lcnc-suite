@@ -1,0 +1,44 @@
+[WebServer] (node:696369) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 32 tests using 1 worker
+
+(node:696409) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:696409) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/g30.spec.ts:71:1 › the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis (1.5s)
+  ✓   2 [e2e] › e2e/g30.spec.ts:84:1 › Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed (1.7s)
+  ✓   3 [e2e] › e2e/g30.spec.ts:102:1 › a save LinuxCNC did not confirm is never 'saved' (1.7s)
+  ✓   4 [e2e] › e2e/g30.spec.ts:114:1 › machine frame only: under TCP, Use Current Position and Save are dimmed with the reason (1.5s)
+  ✓   5 [e2e] › e2e/g30.spec.ts:124:1 › a captured draft is dropped when the kinematics mode changes (1.8s)
+  ✓   6 [e2e] › e2e/g30.spec.ts:134:1 › a save's confirmation never replaces an entry typed while it was out (2.1s)
+  ✓   7 [e2e] › e2e/g30.spec.ts:150:1 › a capture answered after the frame changed takes nothing over (2.0s)
+  ✓   8 [e2e] › e2e/g30.spec.ts:161:1 › a capture answered after the draft was edited takes nothing over; a refresh keeps a newer entry (2.0s)
+  ✓   9 [e2e] › e2e/g30.spec.ts:179:1 › a late file read never overwrites a newer confirmed read (1.9s)
+  ✓  10 [e2e] › e2e/g30.spec.ts:193:1 › Use Current Position is dimmed while the machine moves, with the gateway's reason (1.6s)
+  ✓  11 [e2e] › e2e/g30.spec.ts:209:1 › a file read answered after a reconnect supplies no basis; the reconnect reads G30 again (3.1s)
+  ✓  12 [e2e] › e2e/g30.spec.ts:256:1 › Discard puts the draft back to the stored values and writes nothing (1.9s)
+  ✓  13 [e2e] › e2e/g30.spec.ts:268:1 › Discard waits for a sent save; the save's outcome is shown (1.9s)
+  ✓  14 [e2e] › e2e/g30.spec.ts:283:1 › a save with no answer keeps Discard closed until it ends, then says it is not confirmed (1.9s)
+  ✓  15 [e2e] › e2e/g30.spec.ts:294:1 › Discard while a capture is out: the capture takes nothing over (2.2s)
+  ✓  16 [e2e] › e2e/g30.spec.ts:312:1 › a capture from an unchanged draft can be discarded; it takes nothing over (2.1s)
+  ✓  17 [e2e] › e2e/g30.spec.ts:328:1 › Refresh keeps an entry made during it that equals the old stored value (2.0s)
+  ✓  18 [e2e] › e2e/g30.spec.ts:341:1 › the file read after a units change keeps an entry made during it that equals what was shown (2.7s)
+  ✓  19 [e2e] › e2e/g30.spec.ts:373:1 › Refresh keeps an entry typed BEFORE it (machine day F17) (2.1s)
+  ✓  20 [e2e] › e2e/probe-visual.spec.ts:48:1 › every procedure has its grid entry (5ms)
+  ✓  21 [e2e] › e2e/probe-visual.spec.ts:53:3 › Outside: the procedure's grid cells and its reference image (2.0s)
+  ✓  22 [e2e] › e2e/probe-visual.spec.ts:53:3 › Inside: the procedure's grid cells and its reference image (2.0s)
+  ✓  23 [e2e] › e2e/probe-visual.spec.ts:53:3 › Angle: the procedure's grid cells and its reference image (2.0s)
+  ✓  24 [e2e] › e2e/probe-visual.spec.ts:53:3 › Boss/Pocket: the procedure's grid cells and its reference image (2.1s)
+  ✓  25 [e2e] › e2e/probe-visual.spec.ts:53:3 › Ridge/Valley: the procedure's grid cells and its reference image (2.1s)
+  ✓  26 [e2e] › e2e/probe-visual.spec.ts:53:3 › Surface: the procedure's grid cells and its reference image (2.4s)
+  ✓  27 [e2e] › e2e/probe-visual.spec.ts:53:3 › Calibrate: the procedure's grid cells and its reference image (2.1s)
+  ✓  28 [e2e] › e2e/probe-visual.spec.ts:53:3 › Toolsetter: the procedure's grid cells and its reference image (2.0s)
+  ✓  29 [e2e] › e2e/probe-visual.spec.ts:102:1 › Boss/Pocket: a pocket at 0 says its limited search before any press (1.9s)
+  ✓  30 [e2e] › e2e/r437-g30.codex.spec.ts:72:1 › R437 capture can be discarded even when its starting draft was clean (1.7s)
+  ✓  31 [e2e] › e2e/r437-g30.codex.spec.ts:84:1 › R437 Refresh preserves a newer entry even when it equals the previous stored value (2.0s)
+R437_HINT_TIMING [{"label":"before press","hint":[],"commands":[]},{"label":"100 ms into hold","hint":[],"commands":[]},{"label":"700 ms into hold","hint":["Search limited to Max X/Y Travel"],"commands":[{"cmd":"probe_run","routine":"probe_round_pocket","vars":{"3014":99,"3015":50,"3016":200,"3017":1000,"3018":10,"3019":2,"3020":10,"3021":2,"3022":0,"3023":5,"3024":0.5,"3025":0,"3026":0,"3027":0,"3028":0,"3029":0,"3030":1,"3031":0,"3032":0,"3033":0,"3034":0,"3035":0},"req_id":"59xbl4-5"}]}]
+  ✓  32 [e2e] › e2e/r437-pocket.codex.spec.ts:5:1 › R437 pocket hint timing before and after activation (3.1s)
+
+  32 passed (1.1m)

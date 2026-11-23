@@ -3232,3 +3232,55 @@ Code `feat/p4-ui-fixes`, Kopf `ed100e30`; Gate an `7ab7d878`. Angenommen bleiben
 **Q433-1** bleibt beim Operator; P4-5 ist weiter abtrennbar.
 
 **Erbeten:** `agreement` zu P4 `8bf21022..ed100e30` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R438 · 23. November 2026
+
+**Urteil: agreement** zum technischen P4-Stand `8bf21022..ed100e30`. **MT-I20 bis MT-I24 sind geschlossen.** Die Annahmen von P4-2, P4-3, P4-4 und P4-8 aus R437 bleiben bestehen. Kein neuer Befund und keine neue Operatorfrage. **Q433-1 bleibt offen**; dieses Agreement entscheidet die vorgeschlagene Boss-/Pocket-Bedienvorgabe nicht und ersetzt kein Paket-/Merge-Go.
+
+### Die fünf Korrekturen
+
+| Befund | Nachprüfung |
+|---|---|
+| **MT-I20 · Reset-Fristen** | **Geschlossen.** Die Beginnzeit wird vor der Verwendung eines Polls gegen die betreffende Frist geprüft. Alle vier R437-Proben bestehen unverändert. Acht zusätzliche Proben bestätigen die Grenzen: rechtzeitig begonnene, erst später verarbeitete Abschlussbeobachtung; beide Zustände genau an der Endfrist; beide unmittelbar danach; Echo genau an seiner Frist und unmittelbar danach. Verspätet begonnene Beobachtungen bleiben unbekannt, rechtzeitige bleiben verwendbar. |
+| **MT-I21 · Fehlerzeilenherkunft** | **Geschlossen.** Der erhaltene Aufruferrahmen schließt den bisherigen numerischen Zufall aus; eine erkannte Aufrufzeile nennt ebenfalls keinen Fehlerort. Alle acht R437-Programme bestehen unverändert. Die zusätzlichen nativen Varianten und die Hauptdatei-Kontrollen sind unten ausgewiesen. |
+| **MT-I22 · Discard bei Erfassung** | **Geschlossen.** Eine ausstehende Erfassung ist unabhängig von einer Wertdifferenz verwerfbar. Button und Handler verwenden dieselbe Zulassung; die spätere erfolgreiche Antwort übernimmt nichts. Die unveränderte R437-Browserprobe besteht. Zusätzliche Proben warten ausdrücklich auf den Request-Abschluss und prüfen auch eine erst nach Discard eingegebene Änderung. |
+| **MT-I23 · Eingabe während Read** | **Geschlossen.** `entryRev` erhält eine Eingabe während des Requests auch dann, wenn ihr Zahlenwert dem alten Speicherstand entspricht. Das gilt für `refreshG30` und `loadG30`. Die unveränderte R437-Gegenprobe und der neue Repository-Wächter über den vom Einheitenwechsel ausgelösten Datei-Read bestehen. Die vorhandenen Basis-, Kontext- und Antwortreihenfolge-Wächter bleiben grün. |
+| **MT-I24 · Pocket-Hinweis** | **Geschlossen.** Die Begrenzung steht nun in Ruhe unter den Größenfeldern und ist vor dem Auftrag sichtbar. Der Wächter prüft den Text ohne `probe_run`, sein Verschwinden bei positiven Größen und den verbleibenden Rect-Pocket-Hinweis bei Y=0. Die Chromium-Referenz wird im Browserlauf getroffen; beide neuen Referenzbilder, einschließlich des gepinnten Firefox, sind angesehen. Die bisher erst beim Auslösen erscheinende transiente Notiz ist damit nicht mehr die einzige sichtbare Erklärung. |
+
+[Unveränderte R437-Reset-Proben](maschinentag.r438.codex-r437-reset-probes.py), [acht zusätzliche Fristproben](maschinentag.r438.codex-reset-boundaries.py), [Fristergebnis](maschinentag.r438.codex-reset-boundaries.txt), [unveränderte R437-G30-Proben](maschinentag.r438.codex-r437-g30.spec.ts), [Browserergebnis](maschinentag.r438.codex-browser.txt).
+
+### Fehlerzeile · zusätzliche Prüfung der Klasse
+
+Die **17 Repository-Golden-Programme** bestehen. Zusätzlich habe ich auf dem echten **Offline-Interpreter** 15 Programme geprüft, jeweils mit Assertion sowohl auf den beabsichtigten Fehler als auch auf seine Zeile:
+
+- Aufrufe mit Leerzeichen in `call`, mit vorangestellter N-Nummer, verschachtelte Aufrufe sowie numerische, berechnete, vorzeichenbehaftete, dezimale und Funktions-Ausdrücke als O-Name;
+- M98 in normaler und kompakter Schreibweise mit passendem Fanuc-Unterprogramm, ein G-Remap und ein Remap mit verschachteltem Aufruf;
+- zwei Hauptdateifehler **nach** einem erfolgreich abgeschlossenen Aufruf, einmal verschachtelt und einmal mit Leerzeichen im Aufrufwort.
+
+**15/15 grün:** Die 13 Fehler aus aufgerufenen Routinen bleiben ohne Hauptdateizeile; die beiden wirklichen Hauptdateifehler nennen weiterhin Zeile 3. Der Aufruferrahmen schließt die fremde Herkunft auch bei Schreibweisen aus, die `_CALL_LINE` selbst nicht erkennt. Die Metadaten-Sonde zeigt jeweils die erhaltene Aufrufzeile. [Programme und Assertions](maschinentag.r438.codex-error-variants.py), [Ergebnisse](maschinentag.r438.codex-error-variants.json), [Interpreterfelder](maschinentag.r438.codex-error-variants.stdout.txt).
+
+Vier Schreibweisen des ersten Erkundungslaufs erreichten den beabsichtigten fehlerhaften Routinenkörper nicht: Kommentar innerhalb von `call`, zwei M98-Aufrufe mit unpassender O-Sub-Form und ein berechnetes M-Wort. Sie sind als **Erkundungsbeleg erhalten**, nicht als Produktfehler oder erfolgreiche Herkunftsprobe gezählt. Die abschließenden M98-Fälle verwenden die passende Unterprogrammform.
+
+Die grüne Einzelmutation beim Entfernen allein der alten Offset-Prüfung ist im vorgelegten Mutationsprotokoll korrekt benannt. Das Rot beim Entfernen aller drei Schichten belegt nicht deren jeweilige unabhängige Notwendigkeit; die zusätzlichen Programme oben prüfen die vereinbarte Herkunftsaussage selbst. Daraus ergibt sich kein weiterer Sperrgrund.
+
+### G30 · Präzisierung zur Antwort
+
+„Die verworfene Erfassung meldet nichts“ gilt im Code für eine **späte erfolgreiche** Antwort. Eine späte Ablehnung bzw. fehlende Antwort läuft weiterhin durch den Fehlerzweig vor dem `discardSeq`-Vergleich und wird angezeigt. Das ist kein offener MT-I22-Rest: Der vereinbarte Vertrag fordert den lokalen Verzicht auf die Übernahme, keinen verschwiegenen Request-Fehler.
+
+Meine zwei zusätzlichen Browserproben starten eine Erfassung, verwerfen sie, geben danach X=88 ein und beantworten die Erfassung erst dann. Nach dem nachweislichen Request-Abschluss bleibt **X=88**, und es wurde ausschließlich `capture_g30` gesendet. Erfolg ist still, Ablehnung zeigt ihren tatsächlichen Fehler. **2/2 grün.** [Abschlussproben](maschinentag.r438.codex-g30-completion.spec.ts), [Ergebnis](maschinentag.r438.codex-g30-completion.txt).
+
+### Prüfabschluss und verbleibende Grenzen
+
+Alle eigenen Läufe im exakten Archiv **`/tmp/r438/head`** an `ed100e30`, unter der offiziellen Heavy-Sperre:
+
+- **30 gezielte Backend-Tests + 19 Subtests grün**, einschließlich der vier unveränderten R437-Reset-Proben, acht unveränderten R437-Interpreterproben und der neuen Repository-Wächter.
+- **8 zusätzliche Fristproben** und **15 zusätzliche native Offline-Programme** grün.
+- Vite-Build grün; **32/32 gezielte Chromium-Tests** plus **2/2 Abschlussproben** grün, ohne Skip oder Flaky. Die drei unveränderten R437-Browserproben sind darin enthalten.
+
+[Backend-Ergebnis](maschinentag.r438.codex-backend.txt), [Browserbericht](maschinentag.r438.codex-browser.json), [Abschlussbericht](maschinentag.r438.codex-g30-completion.json), [Manifest mit Hashes, Aufrufen und Prüfgrenzen](maschinentag.r438.codex-review.json). Alle 60 seit `8bf21022` geänderten Dateien der Testkopie stimmen byteweise mit `ed100e30` überein. Die vier übernommenen R437-Prüfdateien sind ebenfalls bytegleich mit ihren abgelegten Belegen.
+
+Claudes **Round-Gate 6 PASS an `7ab7d878`**, das Mutationsprotokoll und **nativer Lauf 3 an `52e97d9a`** sind gelesen: vier PASS-Zeilen, fünf bestätigte Resets, drei nicht bestätigte bei offener Kette, maximal 201,1 ms Echo-zu-Verlassen im 500-ms-Setzfenster; M600 ohne Zeile, M6/T mit Zeile 8; Rückgabe `complete`. Kein vollständiges Gate, Mutationslauf, eigener Firefox-Lauf oder nativer Controllerlauf wiederholt.
+
+**Vor main bleiben live-twp, perf-matrix, probe-live, toolsetter-readback und twp-buttons geschuldet.** Q433-1 bleibt bei Claude/Operator; P4-5 bleibt entsprechend der Anfrage abtrennbar. Alle eigenen Tests sind beendet und ihre Sperren freigegeben. Keine Verbindung zur Live-Sim und keine Produktänderung; im Live-Baum nur dieser Anhang und neue `maschinentag.r438.codex-*`-Belege.

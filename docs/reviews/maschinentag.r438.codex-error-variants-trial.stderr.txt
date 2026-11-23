@@ -1,0 +1,189 @@
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=1
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['bad_sub'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__	2	Unknown control command in o word	3
+gcode.parse feed=0 rapid=0 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['bad_sub'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 0->0 eps=0.00500 ship_abc=False
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['bad_sub'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=1
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['outer'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['outer'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	3
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		'O.... sub' subroutine must be called with 'O.... call'	2
+gcode.parse feed=0 rapid=0 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 0->0 eps=0.00500 ship_abc=False
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		'O.... sub' subroutine must be called with 'O.... call'	2
+gcode.parse feed=0 rapid=0 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 0->0 eps=0.00500 ship_abc=False
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__	2	Bad character '8' used	3
+gcode.parse feed=0 rapid=0 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 0->0 eps=0.00500 ship_abc=False
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	1
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": []}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__		No characters found in reading real value	1
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": []}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__	3	No characters found in reading real value	4
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['outer_good'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+__PARTIAL__	3	No characters found in reading real value	4
+gcode.parse feed=0 rapid=1 parse_ms=0
+__LIMITS__	{"source": "live", "limits": {"X": [-0.1, 685.0], "Y": [-0.1, 705.0], "Z": [-190.0, 0.1]}}
+limits axes=XYZ violations=0
+unmarked subs: ['good_sub'] — line highlight may be unreliable during their motion (add WEBUI_SUB markers)
+rdp feed 0->0 rapid 1->1 eps=0.00500 ship_abc=False
+line trust: 0/1 shipped points trust their line (marked subs: none)
+__TLO__	{"table_path": "/tmp/tmp8p3zsml4/tool.tbl", "table_mtime": 1795406600.2484758, "tlos": [], "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 0, "start_known": true, "tlo_start": [0.0, 0.0, 0.0], "start_mode": 490, "start_reason": null}
+__KINSSEED__	{"type": null, "frame": null}
+__WCSOFF__	[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+__TOOLSETTER__	{"routine": false, "writes": null}
+__PARAMS__	{"text": "", "g92": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}

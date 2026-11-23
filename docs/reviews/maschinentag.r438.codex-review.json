@@ -1,0 +1,92 @@
+{
+  "review": "R438",
+  "date": "2026-11-23",
+  "base": "8bf21022",
+  "previous_head": "eed29db3",
+  "head": "ed100e30618d7df98c2f045525b3b3236cbe5cd1",
+  "review_document_before_sha256": "961f998d9099bcce989012f3f0fa34f16517bad60e63903ef6badf0545578edc",
+  "copy": "/tmp/r438/head",
+  "archive_check": {
+    "head": "ed100e30618d7df98c2f045525b3b3236cbe5cd1",
+    "compared_changed_files": 60,
+    "differences": []
+  },
+  "unchanged_R437_probes": {
+    "r437-reset-probes.py": "99b6279562ded73fdd7a47fad42695ebbfb762f15605c2480391da647e694a27",
+    "r437-error-probes.py": "40320309ab0f0d887367f5a7caca74daecf35eb285fbf318eaec35d7cee007b3",
+    "r437-g30.spec.ts": "079c4050c47e46930f63700f8b0647fbf32cb7720da63133dac69cb952c2ab2f",
+    "r437-pocket.spec.ts": "20090cd9bd50fea2e53d9f666ab93e9e0b384cf4ed46c3a3311caff557c65fa9"
+  },
+  "results": {
+    "backend": {
+      "passed": 30,
+      "subtests_passed": 19
+    },
+    "extra_reset_boundaries": {
+      "passed": 8
+    },
+    "native_offline_variants": {
+      "passed": 15
+    },
+    "browser": {
+      "startTime": "2026-11-23T04:01:41.902Z",
+      "duration": 65469.54200000001,
+      "expected": 32,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "g30_completion": {
+      "startTime": "2026-11-23T04:05:19.843Z",
+      "duration": 5600.598,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "limits": [
+    "No product changes; no live simulator connection and no new native controller run. Offline interpreter only.",
+    "All executions used official heavy_lock.py in isolated archive; finished and released.",
+    "Browser used own Vite preview 4173 and fixture-owned mock 4500; real copy of node_modules from previous review copy.",
+    "Initial 17-case native exploration contained four programs that failed before the intended bad body (comment in CALL, wrong O-sub form for M98, computed M word). Retained as trial evidence, not product failures. Final 15-case run uses appropriate M98 program, asserts error kind and line for every case.",
+    "Discarded capture success is silent; late refusal still reported. Both preserve a newer draft. Silence is not the agreed MT-I22 requirement.",
+    "Claude round gate6 PASS, mutation record, native run3 PASS read; not rerun. Both updated browser references inspected; no own Firefox execution.",
+    "Q433-1 remains with operator; technical agreement does not decide it or authorize merge."
+  ],
+  "read_evidence": {
+    "p4.gate-round6.json": "5b373fb764f7da76f24111fd7cfbb29838cc43ce03d44267c58ad027bf6eb5ba",
+    "p4.native-run3.json": "c6b6d2c401f30c1a5c666b0ca0d42873d7fe423e55b51c605ec04b7d158a976a",
+    "p4.mutations.txt": "694e96e2c7307f769a881bfb1dd60cfb0973775afccdaedbb6280479b2e239c8"
+  },
+  "sha256": {
+    "maschinentag.r438.codex-archive-check.json": "dfa5c345d1bc928551cd34df374b226f52bc23167f8741a2abe55dc9b286b2be",
+    "maschinentag.r438.codex-backend.txt": "55c1c669c6a438fb8af4bf3941d3fca29bbf27a5ef1c9af39ae0271a4cc11b3c",
+    "maschinentag.r438.codex-browser.json": "3e69d1113f73bb765beafbc37b7540304392235b6e679a1974f59d740bcb61b2",
+    "maschinentag.r438.codex-browser.txt": "531bbf4fed226cbc5a7a91271fd466bf5f42715fca7db9296abc137fde030c9a",
+    "maschinentag.r438.codex-build.txt": "95876174d7db8d63a29fcced8473868eef0e695a6bf9fc8a7773de71fb78df3c",
+    "maschinentag.r438.codex-error-variants-trial.json": "8a7c630ae91b10610bcaa4015b77eea6f916340b762450215889028586ed1622",
+    "maschinentag.r438.codex-error-variants-trial.py": "a013a48ff9fc904d5f97d8b2fbbeea97d13201c8ad5efb08b1598486b4b34245",
+    "maschinentag.r438.codex-error-variants-trial.stderr.txt": "662de123ec66dc793dc8c57ff6969f243a42cf98ee08e98a96e827f1a7a20559",
+    "maschinentag.r438.codex-error-variants-trial.stdout.txt": "59c279cc7fb3109e837c89610c24fd7acbb4ac24b71561dd259bd2a0ec63036f",
+    "maschinentag.r438.codex-error-variants.json": "10b66973806eb2c96bfe77f48648b4972965199c32f358e274630a3ac8f78280",
+    "maschinentag.r438.codex-error-variants.py": "8531bd290021520e4bb6d1262047623e9115445d84769d5fb59fea0b11127e53",
+    "maschinentag.r438.codex-error-variants.stderr.txt": "210b07edafa2c0b6c1616bb2ebc53f6c3f421e136de6aa185ad988b6839d316c",
+    "maschinentag.r438.codex-error-variants.stdout.txt": "4cbe8d38dc3fcec857546e848fd2c1daf99c63828324306d88b97df6decbca4f",
+    "maschinentag.r438.codex-g30-completion.json": "773e62a04bfa2f3df3ccbfb6137d6cddb8fd6435913f954b2cad52891be4e1ea",
+    "maschinentag.r438.codex-g30-completion.spec.ts": "1ddb6f761dc4d361d8fcc31f56a56a0cd8d01e7bffa43a9d8b6828c7fb154b11",
+    "maschinentag.r438.codex-g30-completion.txt": "20d409bd37c965c218f6e3baeb8d3820cffde775bc0c91deea245b0cda87fc5c",
+    "maschinentag.r438.codex-playwright-extra.config.ts": "2bb0df87e68c279da61ccb65a7d73d292496611161474e77c6ce64bfda11aba2",
+    "maschinentag.r438.codex-playwright.config.ts": "48d8948dfdf64a19ba38a659147b669f4d78004e0f1c674303105b2e69148d85",
+    "maschinentag.r438.codex-r437-error-probes.py": "40320309ab0f0d887367f5a7caca74daecf35eb285fbf318eaec35d7cee007b3",
+    "maschinentag.r438.codex-r437-g30.spec.ts": "079c4050c47e46930f63700f8b0647fbf32cb7720da63133dac69cb952c2ab2f",
+    "maschinentag.r438.codex-r437-pocket.spec.ts": "20090cd9bd50fea2e53d9f666ab93e9e0b384cf4ed46c3a3311caff557c65fa9",
+    "maschinentag.r438.codex-r437-reset-probes.py": "99b6279562ded73fdd7a47fad42695ebbfb762f15605c2480391da647e694a27",
+    "maschinentag.r438.codex-reset-boundaries.py": "f9db5f21c9dfeea7889b1122145f9d6a62b718f48e6f0bd3cd500ed3c82f6683",
+    "maschinentag.r438.codex-reset-boundaries.txt": "7dc36f441d2092fe62b6776688f9762587417afd4cdf0f9fab9fe25b48b59e3f",
+    "maschinentag.r438.codex-run-completion.sh": "43cf276c4fb67b0d0d3580834a319f43400ac545ec39b3bfd35be61ebedba4c3",
+    "maschinentag.r438.codex-run-native-variants.sh": "76a74965c2fd6a030b6f6e014b75fa54d3d24b034c7f16c04e5507b3bb29fdd1",
+    "maschinentag.r438.codex-run-tests.sh": "cdc4fc1ab903ef32713d5a5e230df912dfb887af79ec0c8e8713710643454cae",
+    "maschinentag.r438.codex-run-variants.sh": "169d22d3a25a4a3099b900978b4c448b0de351c8c390db1a80f15580da7a4aff"
+  }
+}

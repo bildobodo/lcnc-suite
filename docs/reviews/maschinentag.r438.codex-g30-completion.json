@@ -1,0 +1,161 @@
+{
+  "config": {
+    "configFile": "/tmp/r438/head/lcnc-webui/playwright.r438-extra.config.ts",
+    "rootDir": "/tmp/r438/head/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "700660-1795406719840",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r438/head/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "700660-1795406719840",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r438/head/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r438/g30-completion-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r438-g30.codex.spec.ts",
+      "file": "r438-g30.codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R438 discarded capture preserves the draft through its success reply",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1930,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:05:21.455Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "after-reply",
+                      "contentType": "application/json",
+                      "body": "eyJyZXN1bHQiOiJzdWNjZXNzIiwidmFsdWVzIjpbIjg4IiwiMCIsIi0yNi4yNzUiXSwibm90ZXMiOltdfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0996d1073969e46fb093-d87087d364946294b89b",
+          "file": "r438-g30.codex.spec.ts",
+          "line": 73,
+          "column": 3
+        },
+        {
+          "title": "R438 discarded capture preserves the draft through its refusal reply",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1895,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:05:23.503Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "after-reply",
+                      "contentType": "application/json",
+                      "body": "eyJyZXN1bHQiOiJyZWZ1c2FsIiwidmFsdWVzIjpbIjg4IiwiMCIsIi0yNi4yNzUiXSwibm90ZXMiOlsiUjQzOCBjYXB0dXJlIHJlZnVzZWQiXX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0996d1073969e46fb093-7a456b02d8f230308827",
+          "file": "r438-g30.codex.spec.ts",
+          "line": 73,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-23T04:05:19.843Z",
+    "duration": 5600.598,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

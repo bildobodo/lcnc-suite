@@ -1,0 +1,136 @@
+{
+  "subs": {
+    "bad_sub.ngc": "o<bad_sub> sub\nG0 X0\nG1 X1 Q\no<bad_sub> endsub\nM2\n",
+    "good_sub.ngc": "o<good_sub> sub\nG0 X0\no<good_sub> endsub\nM2\n",
+    "m610_bad.ngc": "o<m610_bad> sub\nG0 X0\nG1 X1 Q\no<m610_bad> endsub\nM2\n",
+    "m611_good.ngc": "o<m611_good> sub\nG0 X0\no<m611_good> endsub\nM2\n",
+    "200.ngc": "O200\nG0 X0\nG1 X1 Q\nM99\n",
+    "outer.ngc": "o<outer> sub\no<bad_sub> call\no<outer> endsub\nM2\n",
+    "outer_good.ngc": "o<outer_good> sub\no<good_sub> call\no<outer_good> endsub\nM2\n",
+    "100.ngc": "o100 sub\nG0 X0\nG1 X1 Q\no100 endsub\nM2\n",
+    "g881_bad.ngc": "o<g881_bad> sub\nG0 X0\nG1 X1 Q\no<g881_bad> endsub\nM2\n",
+    "m612_bad.ngc": "o<m612_bad> sub\no<bad_sub> call\no<m612_bad> endsub\nM2\n"
+  },
+  "cases": [
+    {
+      "name": "spaced_call",
+      "program": "G21 G90\no<bad_sub> c a l l\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "line_number",
+      "program": "G21 G90\nN100o<bad_sub>call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "nested_external",
+      "program": "G21 G90\no<outer> call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "nested_spaced",
+      "program": "G21 G90\no<outer> c a l l\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "numeric_call",
+      "program": "G21 G90\no100 call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "computed_call",
+      "program": "G21 G90\no[100] call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "signed_call",
+      "program": "G21 G90\no+100 call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "decimal_call",
+      "program": "G21 G90\no100.0 call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "function_call",
+      "program": "G21 G90\noABS[-100] call\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "g_remap",
+      "program": "G21 G90\nG88.1\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "m_remap_nested",
+      "program": "G21 G90\nM612\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "after_nested",
+      "program": "G21 G90\no<outer_good> call\nG1 X1 Q\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": 3,
+      "expected": 3,
+      "reached_intended_error": true
+    },
+    {
+      "name": "after_spaced",
+      "program": "G21 G90\no<good_sub> c a l l\nG1 X1 Q\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": 3,
+      "expected": 3,
+      "reached_intended_error": true
+    },
+    {
+      "name": "m98_external",
+      "program": "G21 G90\nM98 P200\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    },
+    {
+      "name": "m98_external_compact",
+      "program": "G21 G90\nN100M98P200\nM2\n",
+      "error": "No characters found in reading real value",
+      "line": null,
+      "expected": null,
+      "reached_intended_error": true
+    }
+  ]
+}

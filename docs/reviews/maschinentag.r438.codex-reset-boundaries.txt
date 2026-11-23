@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-p4ui/lcnc-gateway/.venv/bin/python
+rootdir: /tmp/r438/head/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 8 items
+
+test_r438_codex_deadlines.py::test_timely_observation_processed_late_still_decides[1-False] PASSED [ 12%]
+test_r438_codex_deadlines.py::test_timely_observation_processed_late_still_decides[2-True] PASSED [ 25%]
+test_r438_codex_deadlines.py::test_final_deadline_inclusive[1-False] PASSED [ 37%]
+test_r438_codex_deadlines.py::test_final_deadline_inclusive[2-True] PASSED [ 50%]
+test_r438_codex_deadlines.py::test_immediately_after_final_deadline_cannot_decide[1] PASSED [ 62%]
+test_r438_codex_deadlines.py::test_immediately_after_final_deadline_cannot_decide[2] PASSED [ 75%]
+test_r438_codex_deadlines.py::test_echo_deadline_inclusive PASSED        [ 87%]
+test_r438_codex_deadlines.py::test_immediately_after_echo_deadline_cannot_open PASSED [100%]
+
+============================== 8 passed in 0.22s ===============================
+[GC] +54ms gen=2 duration=9.2ms collected=674 uncollectable=0
+[GC] +61ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +75ms gen=2 duration=13.6ms collected=0 uncollectable=0
+[GC] +83ms gen=2 duration=8.5ms collected=0 uncollectable=0
+[GC] +90ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +97ms gen=2 duration=6.4ms collected=0 uncollectable=0

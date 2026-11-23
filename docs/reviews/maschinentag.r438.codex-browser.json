@@ -1,0 +1,1203 @@
+{
+  "config": {
+    "configFile": "/tmp/r438/head/lcnc-webui/playwright.r438.config.ts",
+    "rootDir": "/tmp/r438/head/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "696341-1795406501899",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r438/head/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "696341-1795406501899",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r438/head/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r438/browser-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "g30.spec.ts",
+      "file": "g30.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1535,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:43.703Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-a49f1b59b1968ad5d063",
+          "file": "g30.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "Use Current Position fills the draft and writes nothing; Save is one set_g30 on its basis, shown only as confirmed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1692,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:45.350Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-2e82b5573a3e57948cf5",
+          "file": "g30.spec.ts",
+          "line": 84,
+          "column": 1
+        },
+        {
+          "title": "a save LinuxCNC did not confirm is never 'saved'",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1712,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:47.046Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-df768a159226a1653e63",
+          "file": "g30.spec.ts",
+          "line": 102,
+          "column": 1
+        },
+        {
+          "title": "machine frame only: under TCP, Use Current Position and Save are dimmed with the reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1513,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:48.762Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-1c379d03ccb7384efba4",
+          "file": "g30.spec.ts",
+          "line": 114,
+          "column": 1
+        },
+        {
+          "title": "a captured draft is dropped when the kinematics mode changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1813,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:50.279Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-07b12c76cf7eef50389d",
+          "file": "g30.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "a save's confirmation never replaces an entry typed while it was out",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2063,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:52.097Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-f89d7c954ca755706437",
+          "file": "g30.spec.ts",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "a capture answered after the frame changed takes nothing over",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1995,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:54.164Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-69957fdb5d5dd9d1e8fc",
+          "file": "g30.spec.ts",
+          "line": 150,
+          "column": 1
+        },
+        {
+          "title": "a capture answered after the draft was edited takes nothing over; a refresh keeps a newer entry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2044,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:56.164Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-5fcb22df9c5710cf4265",
+          "file": "g30.spec.ts",
+          "line": 161,
+          "column": 1
+        },
+        {
+          "title": "a late file read never overwrites a newer confirmed read",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1903,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:01:58.212Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-799ab01c0687cdc81aae",
+          "file": "g30.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "Use Current Position is dimmed while the machine moves, with the gateway's reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1644,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:00.119Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-b1bc77e5978cc3efe7f6",
+          "file": "g30.spec.ts",
+          "line": 193,
+          "column": 1
+        },
+        {
+          "title": "a file read answered after a reconnect supplies no basis; the reconnect reads G30 again",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3057,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:01.767Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-cd11568af7c98664671a",
+          "file": "g30.spec.ts",
+          "line": 209,
+          "column": 1
+        },
+        {
+          "title": "Discard puts the draft back to the stored values and writes nothing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1897,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:04.829Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-1af17447ec8180732a98",
+          "file": "g30.spec.ts",
+          "line": 256,
+          "column": 1
+        },
+        {
+          "title": "Discard waits for a sent save; the save's outcome is shown",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1928,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:06.730Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-212bb79a38bd1e07bc70",
+          "file": "g30.spec.ts",
+          "line": 268,
+          "column": 1
+        },
+        {
+          "title": "a save with no answer keeps Discard closed until it ends, then says it is not confirmed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1948,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:08.661Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-f14ad8394937bd9c2ac5",
+          "file": "g30.spec.ts",
+          "line": 283,
+          "column": 1
+        },
+        {
+          "title": "Discard while a capture is out: the capture takes nothing over",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2225,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:10.614Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-109dcb3e32d7ac43a551",
+          "file": "g30.spec.ts",
+          "line": 294,
+          "column": 1
+        },
+        {
+          "title": "a capture from an unchanged draft can be discarded; it takes nothing over",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2097,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:12.844Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-2352c47d647c0d55b4b4",
+          "file": "g30.spec.ts",
+          "line": 312,
+          "column": 1
+        },
+        {
+          "title": "Refresh keeps an entry made during it that equals the old stored value",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1995,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:14.945Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-4eada44e25d539e42208",
+          "file": "g30.spec.ts",
+          "line": 328,
+          "column": 1
+        },
+        {
+          "title": "the file read after a units change keeps an entry made during it that equals what was shown",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2736,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:16.945Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-ae8e99c9034e9b6eb4a9",
+          "file": "g30.spec.ts",
+          "line": 341,
+          "column": 1
+        },
+        {
+          "title": "Refresh keeps an entry typed BEFORE it (machine day F17)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2071,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:19.685Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a0a568cead1ee985bfe4-d1738d7c2e44cd821f2e",
+          "file": "g30.spec.ts",
+          "line": 373,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "probe-visual.spec.ts",
+      "file": "probe-visual.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "every procedure has its grid entry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:21.799Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-711338feeabe95c6e2ec",
+          "file": "probe-visual.spec.ts",
+          "line": 48,
+          "column": 1
+        },
+        {
+          "title": "Outside: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2032,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:21.807Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-7292b4596a6c65ba55c0",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Inside: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1995,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:23.844Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-be3e256a48c0ec09480c",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Angle: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:25.843Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-0f399723b4eb3c076033",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2078,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:27.894Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-55e4d6b9b64afb9d39bf",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Ridge/Valley: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2077,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:29.977Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-673d01e7ee845526a87d",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Surface: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2395,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:32.059Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-89a54c6be74011b1bcf9",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2081,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:34.459Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-3672749bccddbd102d6f",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Toolsetter: the procedure's grid cells and its reference image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2027,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:36.544Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-12fa5ec3581f3999868f",
+          "file": "probe-visual.spec.ts",
+          "line": 53,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: a pocket at 0 says its limited search before any press",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1870,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:38.576Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d571d254578210b6fcab-28c3fd1bcb92a749c4ae",
+          "file": "probe-visual.spec.ts",
+          "line": 102,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r437-g30.codex.spec.ts",
+      "file": "r437-g30.codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R437 capture can be discarded even when its starting draft was clean",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1749,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:40.456Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2b137279ca0c99ba808e-c0c04140ffafeb0d6149",
+          "file": "r437-g30.codex.spec.ts",
+          "line": 72,
+          "column": 1
+        },
+        {
+          "title": "R437 Refresh preserves a newer entry even when it equals the previous stored value",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2004,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:42.210Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2b137279ca0c99ba808e-92291f9ae3fd9eab2303",
+          "file": "r437-g30.codex.spec.ts",
+          "line": 84,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r437-pocket.codex.spec.ts",
+      "file": "r437-pocket.codex.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R437 pocket hint timing before and after activation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3098,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "R437_HINT_TIMING [{\"label\":\"before press\",\"hint\":[],\"commands\":[]},{\"label\":\"100 ms into hold\",\"hint\":[],\"commands\":[]},{\"label\":\"700 ms into hold\",\"hint\":[\"Search limited to Max X/Y Travel\"],\"commands\":[{\"cmd\":\"probe_run\",\"routine\":\"probe_round_pocket\",\"vars\":{\"3014\":99,\"3015\":50,\"3016\":200,\"3017\":1000,\"3018\":10,\"3019\":2,\"3020\":10,\"3021\":2,\"3022\":0,\"3023\":5,\"3024\":0.5,\"3025\":0,\"3026\":0,\"3027\":0,\"3028\":0,\"3029\":0,\"3030\":1,\"3031\":0,\"3032\":0,\"3033\":0,\"3034\":0,\"3035\":0},\"req_id\":\"59xbl4-5\"}]}]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T04:02:44.223Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "hint-timing",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJsYWJlbCI6ICJiZWZvcmUgcHJlc3MiLAogICAgImhpbnQiOiBbXSwKICAgICJjb21tYW5kcyI6IFtdCiAgfSwKICB7CiAgICAibGFiZWwiOiAiMTAwIG1zIGludG8gaG9sZCIsCiAgICAiaGludCI6IFtdLAogICAgImNvbW1hbmRzIjogW10KICB9LAogIHsKICAgICJsYWJlbCI6ICI3MDAgbXMgaW50byBob2xkIiwKICAgICJoaW50IjogWwogICAgICAiU2VhcmNoIGxpbWl0ZWQgdG8gTWF4IFgvWSBUcmF2ZWwiCiAgICBdLAogICAgImNvbW1hbmRzIjogWwogICAgICB7CiAgICAgICAgImNtZCI6ICJwcm9iZV9ydW4iLAogICAgICAgICJyb3V0aW5lIjogInByb2JlX3JvdW5kX3BvY2tldCIsCiAgICAgICAgInZhcnMiOiB7CiAgICAgICAgICAiMzAxNCI6IDk5LAogICAgICAgICAgIjMwMTUiOiA1MCwKICAgICAgICAgICIzMDE2IjogMjAwLAogICAgICAgICAgIjMwMTciOiAxMDAwLAogICAgICAgICAgIjMwMTgiOiAxMCwKICAgICAgICAgICIzMDE5IjogMiwKICAgICAgICAgICIzMDIwIjogMTAsCiAgICAgICAgICAiMzAyMSI6IDIsCiAgICAgICAgICAiMzAyMiI6IDAsCiAgICAgICAgICAiMzAyMyI6IDUsCiAgICAgICAgICAiMzAyNCI6IDAuNSwKICAgICAgICAgICIzMDI1IjogMCwKICAgICAgICAgICIzMDI2IjogMCwKICAgICAgICAgICIzMDI3IjogMCwKICAgICAgICAgICIzMDI4IjogMCwKICAgICAgICAgICIzMDI5IjogMCwKICAgICAgICAgICIzMDMwIjogMSwKICAgICAgICAgICIzMDMxIjogMCwKICAgICAgICAgICIzMDMyIjogMCwKICAgICAgICAgICIzMDMzIjogMCwKICAgICAgICAgICIzMDM0IjogMCwKICAgICAgICAgICIzMDM1IjogMAogICAgICAgIH0sCiAgICAgICAgInJlcV9pZCI6ICI1OXhibDQtNSIKICAgICAgfQogICAgXQogIH0KXQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05ffaca1069bc3611284-6a046c9a07cae279f683",
+          "file": "r437-pocket.codex.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-23T04:01:41.902Z",
+    "duration": 65469.54200000001,
+    "expected": 32,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
