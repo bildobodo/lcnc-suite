@@ -931,6 +931,64 @@ COMMAND_GATES: Dict[str, str] = {
     "simulate_probe_trip": "armed",
 }
 
+# The EFFECT of each command on a parse's inputs (P2b-3, plan v4 —
+# classification by effect, Codex R440 Rest B), for every command in
+# COMMAND_GATES (test_calc_lifetime_wiring holds the two lists together):
+#   input_action — writes a parse input (an MDI line, a parameter, the tool
+#     table, a switch to MDI/AUTO, a load or an unload): queued or in its
+#     handler it HOLDS a new idle parse; its writes' begin invalidates;
+#   drift_only — moves the machine or its tool, never a parse input file:
+#     the existing drift / doom / settle edges see its effect;
+#   none — neither.
+# The begin itself is decided by the WRITE (calc_lifetime.input_write_class
+# in _cmd_blocking, the file writers' own hook), never by this name: a
+# set_mode to MANUAL is held while queued and invalidates nothing.
+COMMAND_EFFECTS: Dict[str, str] = {
+    "arm": "none", "estop": "none", "estop_reset": "none", "shutdown": "none", "abort": "none",
+    "machine_on": "none", "machine_off": "none",
+    # a switch to MDI / AUTO synchs the parameters into the file (the write decides)
+    "set_mode": "input_action",
+    "jog_cont": "drift_only", "jog_incr": "drift_only", "jog_cont_multi": "drift_only",
+    "jog_incr_multi": "drift_only", "jog_stop": "none", "jog_stop_multi": "none",
+    "jog_change": "drift_only", "jog_lease_end": "none",
+    "home": "drift_only", "home_all": "drift_only", "unhome": "drift_only", "unhome_all": "drift_only",
+    # the AUTO exception: the running program's writes are the pinned parse's;
+    # the switch to AUTO before it is begun by its write (_cmd_blocking)
+    "cycle_start": "none", "auto_run": "none", "auto_step": "none",
+    "cycle_pause": "none", "cycle_resume": "none",
+    "mdi": "input_action", "run_macro": "input_action",
+    "spindle_forward": "none", "spindle_reverse": "none", "spindle_stop": "none",
+    "spindle_increase": "none", "spindle_decrease": "none",
+    "flood_on": "none", "flood_off": "none", "mist_on": "none", "mist_off": "none",
+    "set_feed_override": "none", "set_spindle_override": "none", "set_rapid_override": "none",
+    "set_max_velocity": "none", "set_block_delete": "none", "set_optional_stop": "none",
+    "tool_change": "input_action", "go_to_zero": "input_action", "set_kins_mode": "input_action",
+    "set_wcs": "input_action", "clear_wcs": "input_action", "touchoff": "input_action",
+    "twp_capture": "input_action", "set_params": "input_action",
+    "probe_run": "input_action", "surface_scan_run": "input_action",
+    "tool_measure": "input_action", "tool_unload_measure": "input_action",
+    # the confirming read synchs the parameters into the file (task_plan_synch)
+    "read_g30": "input_action", "capture_g30": "input_action", "set_g30": "input_action",
+    "save_tool": "input_action", "add_tool": "input_action", "delete_tool": "input_action",
+    "renumber_tool": "input_action",
+    "load_file": "input_action", "unload_file": "input_action",
+    # asks for a parse; writes no input
+    "reparse_preview": "none",
+    # the surface map's external Z offset is no parse input (a HAL shim after
+    # kinematics); its method switch reloads a map, never a parse file
+    "set_compensation": "none", "set_compensation_method": "none",
+    # a manual change mid-program: the tool's offset moves — the TLO edge
+    "confirm_tool_change": "drift_only",
+    "simulate_probe_trip": "none",
+}
+
+
+def command_effect(cmd: str) -> Optional[str]:
+    """The command's effect class (COMMAND_EFFECTS), None for one the
+    policy does not know (a read-only query, an unknown name)."""
+    return COMMAND_EFFECTS.get(cmd)
+
+
 # Read-only queries handled before the policy check — no machine-state gate.
 READ_ONLY_COMMANDS = frozenset({
     "get_tool_table", "get_probe_results", "get_comp_grid",

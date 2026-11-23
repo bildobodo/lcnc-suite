@@ -396,8 +396,10 @@ class NothingUnderTheLinkLockWrites(unittest.TestCase):
     from its arm. Every body under the lock calls only what is known to do
     no I/O — a new call there needs its review, and this list its entry."""
 
-    #: the calls a _link_lock body may make (each: reference assignments only)
-    ALLOWED = {"Link", "_clear_session_caches", "_arm_shutdown_deadline", "store"}
+    #: the calls a _link_lock body may make (each: reference assignments only;
+    #: `_actions.apply` — the action observers' marks, P2b-3: in-memory under
+    #: the ledger's own lock, which never calls out and never takes _link_lock)
+    ALLOWED = {"Link", "_clear_session_caches", "_arm_shutdown_deadline", "store", "_actions.apply"}
     #: what _clear_session_caches itself calls
     CLEAR_CALLS = {"_viewer_init_cache.clear", "_status_runtime.invalidate_var_file_path"}
 

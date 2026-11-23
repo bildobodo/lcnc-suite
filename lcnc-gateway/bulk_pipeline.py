@@ -131,6 +131,9 @@ class BulkPipeline:
         self._get_wcs_off_flat = get_wcs_off_flat or (lambda: None)
         # (live switchkins type, live plane frame [p,t1,t2]) for the parse
         # ctx — the fifth freshness input. Default (None, None): untracked
+        # the parse inputs' generation (P2b-3, calc_lifetime.Generation) — set by
+        # the gateway; None (a test's pipeline) publishes as before
+        self.generation: Optional[Any] = None
         # (non-switchable configs, tests) — the worker then seeds nothing
         # and the drift edge makes no claim.
         self._get_live_kins = get_live_kins or (lambda: (None, None))
@@ -488,6 +491,30 @@ class BulkPipeline:
     #: multiple of its idle time. Its duration never enters the history.
     _PINNED_TIMEOUT_FACTOR = 3.0
 
+    def _publish_in_generation(self, gen_at: Optional[tuple], apply: Callable[[], None],
+                               job: Optional[int], filepath: str, what: str) -> bool:
+        """Apply a parse's publication when the generation it read its inputs
+        under is still the current one (P2b-3) — else discard it, named
+        (`gcode.parse_discarded {why, gen_at_spawn, gen_now}`): an input write
+        began after its snapshot, or another program was loaded / unloaded.
+        A discard under the SAME program asks for the next parse
+        (reparse_pending; the restart waits for the actions' end, the
+        gateway's drift gate); under another program the load's own parse
+        or nothing follows. Without a generation (a test's pipeline) it
+        applies."""
+        if self.generation is None or gen_at is None:
+            apply()
+            return True
+        ok, now, why = self.generation.publish_if(gen_at, apply)
+        if ok:
+            return True
+        _trace.emit("gcode.parse_discarded", job=job, file=os.path.basename(filepath), what=what,
+                    why=why, gen_at_spawn=list(gen_at), gen_now=list(now))
+        if now[0] == gen_at[0]:
+            self.reparse_pending = True
+            self.reparse_pending_reason = f"discarded:{why}"
+        return False
+
     def _set_tool_basis(self, basis: Optional[dict]) -> None:
         if basis != self.tool_basis:
             self.tool_basis_rev += 1
@@ -723,6 +750,10 @@ class BulkPipeline:
         t_start = time.monotonic()
         _verify_path: Optional[str] = None
         _job: Optional[int] = None
+        # The generation this parse reads its inputs under (P2b-3): taken
+        # BEFORE its first input read — it publishes only while it is still
+        # the current one, decided at the publication under the same lock
+        _gen_at = self.generation.snapshot() if self.generation is not None else None
         # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is
         # running, we record the pre-parse mtime, so the poller's next tick still
         # sees a mismatch and re-parses the newest content rather than missing it.
@@ -1038,7 +1069,9 @@ class BulkPipeline:
                 # Verified at the actual offset: the published payload stays;
                 # only its tool basis moves to the start the worker seeded.
                 if self.basis_of(worker_tlo) is not None:
-                    self._set_tool_basis(self.basis_of(worker_tlo))
+                    if not self._publish_in_generation(_gen_at, lambda: self._set_tool_basis(self.basis_of(worker_tlo)),
+                                                       _job, filepath, "verify_same"):
+                        return
                     _trace.emit("gcode.reparse_verified_same", job=_job, file=os.path.basename(filepath),
                                 basis=self.tool_basis, version=self.preview_version,
                                 total_ms=round((time.monotonic() - t_start) * 1000, 1))
@@ -1076,54 +1109,66 @@ class BulkPipeline:
                 self.reparse_pending_reason = "file"
             # Publish metadata + bytes together before bumping the version so
             # GET /preview readers never see stale bytes under a new version.
-            self.published_source = _source_at_parse if _source_after == _source_at_parse else None
-            self.preview_pending = {"file": filepath}
-            self.preview_raw_len = len(stdout)
-            # Keep the raw copy ONLY when no gz exists: every real browser accepts
-            # gzip, so holding raw + gz resident (~22 MB on a heavy file) paid for a
-            # variant that was practically never served.
-            self.preview_bytes = None if preview_bytes_gz is not None else stdout
-            self.preview_bytes_gz = preview_bytes_gz
-            self.published_schema = worker_schema
-            self.published_tlo = worker_tlo
-            self._set_tool_basis(self.basis_of(worker_tlo))
-            self.published_rotary_seed = worker_rotary_seed
-            self.published_rotary_cmd = worker_rotary_cmd
-            self.published_limits = worker_limits
-            self.published_kins_seed = worker_kins_seed
-            self.published_wcs_off = worker_wcs_off
-            # never the verify parse's temp file: it is removed below, and a
-            # pinned parse copies this ctx (it compared against a file gone)
-            self.published_ctx = {k: v for k, v in ctx.items() if k != "verify_against"}
-            self.table_stale = None
-            # The run binding again at the publish: still the run in progress,
-            # with the same start and the same text (plan 1b) — else this
-            # payload has none.
-            if for_run is not None:
-                cur = self._get_run_basis() or {}
-                if (cur.get("run_id"), cur.get("ctx_digest"), cur.get("tool_basis_rev")) != (
-                        for_run["run_id"], for_run["ctx_digest"], for_run["tool_basis_rev"]) or (
-                        self.published_source is None or self.published_source != run_source) or (
-                        # this parse's own start moved the basis: not the run's start
-                        self.tool_basis_rev != for_run["tool_basis_rev"]):
-                    _trace.emit("gcode.run_binding_lost", level="warn", file=filepath,
-                                run_id=for_run["run_id"], now=cur.get("run_id"))
-                    for_run = None
-            self.published_origin = {
-                "version": self.preview_version + 1, "file": filepath,
-                "source": self.published_source, "reason": reason, "pinned": bool(pinned),
-                "for_run": for_run,
-                # the tool table the parse actually read (its __TLO__ meta)
-                "table": {"mtime": (worker_tlo or {}).get("table_mtime"),
-                          "rows": hashlib.sha256(json.dumps((worker_tlo or {}).get("tlos"),
-                                                            default=repr).encode()).hexdigest()[:16]},
-                "tool_basis_rev": self.tool_basis_rev,
-            }
-            self.published_params = worker_params if isinstance(worker_params, dict) else None
-            self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None
-            self.preview_version += 1
-            self.last_file = filepath
-            self.last_mtime = _mtime_at_parse
+            # ONE step under the generation's lock (P2b-3): the check and every
+            # published field, preview_version last — no await, no I/O inside
+            # (the table hash before it, the binding's trace after it).
+            _table_rows = hashlib.sha256(json.dumps((worker_tlo or {}).get("tlos"),
+                                                    default=repr).encode()).hexdigest()[:16]
+            _binding: Dict[str, Any] = {"for_run": for_run, "lost": None}
+
+            def _apply() -> None:
+                self.published_source = _source_at_parse if _source_after == _source_at_parse else None
+                self.preview_pending = {"file": filepath}
+                self.preview_raw_len = len(stdout)
+                # Keep the raw copy ONLY when no gz exists: every real browser accepts
+                # gzip, so holding raw + gz resident (~22 MB on a heavy file) paid for a
+                # variant that was practically never served.
+                self.preview_bytes = None if preview_bytes_gz is not None else stdout
+                self.preview_bytes_gz = preview_bytes_gz
+                self.published_schema = worker_schema
+                self.published_tlo = worker_tlo
+                self._set_tool_basis(self.basis_of(worker_tlo))
+                self.published_rotary_seed = worker_rotary_seed
+                self.published_rotary_cmd = worker_rotary_cmd
+                self.published_limits = worker_limits
+                self.published_kins_seed = worker_kins_seed
+                self.published_wcs_off = worker_wcs_off
+                # never the verify parse's temp file: it is removed below, and a
+                # pinned parse copies this ctx (it compared against a file gone)
+                self.published_ctx = {k: v for k, v in ctx.items() if k != "verify_against"}
+                self.table_stale = None
+                # The run binding again at the publish: still the run in progress,
+                # with the same start and the same text (plan 1b) — else this
+                # payload has none.
+                fr = _binding["for_run"]
+                if fr is not None:
+                    cur = self._get_run_basis() or {}
+                    if (cur.get("run_id"), cur.get("ctx_digest"), cur.get("tool_basis_rev")) != (
+                            fr["run_id"], fr["ctx_digest"], fr["tool_basis_rev"]) or (
+                            self.published_source is None or self.published_source != run_source) or (
+                            # this parse's own start moved the basis: not the run's start
+                            self.tool_basis_rev != fr["tool_basis_rev"]):
+                        _binding["lost"] = (fr["run_id"], cur.get("run_id"))
+                        _binding["for_run"] = fr = None
+                self.published_origin = {
+                    "version": self.preview_version + 1, "file": filepath,
+                    "source": self.published_source, "reason": reason, "pinned": bool(pinned),
+                    "for_run": fr,
+                    # the tool table the parse actually read (its __TLO__ meta)
+                    "table": {"mtime": (worker_tlo or {}).get("table_mtime"), "rows": _table_rows},
+                    "tool_basis_rev": self.tool_basis_rev,
+                }
+                self.published_params = worker_params if isinstance(worker_params, dict) else None
+                self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None
+                self.last_file = filepath
+                self.last_mtime = _mtime_at_parse
+                self.preview_version += 1
+            if not self._publish_in_generation(_gen_at, _apply, _job, filepath, "publish"):
+                return
+            for_run = _binding["for_run"]
+            if _binding["lost"] is not None:
+                _trace.emit("gcode.run_binding_lost", level="warn", file=filepath,
+                            run_id=_binding["lost"][0], now=_binding["lost"][1])
             if not niced:
                 # A niced parse (mid-run or a drift re-parse) is no estimate
                 # for the next normal one.

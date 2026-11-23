@@ -126,7 +126,7 @@ from gateway_util import (
     PROV_STAMPED,
 )
 from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
-from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, program_path_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import command_effect, gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, mdi_line_refusal, program_path_refusal, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -145,6 +145,7 @@ from jog_lease import LeaseTable as _LeaseTable, JOG_LEASE_DEAD, JOG_LEASE_FOREI
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
+from calc_lifetime import ActionLedger, Action as _Action, Generation, input_write_class
 from tool_store import ToolLibraryStore
 from tool_import import initial_z_offset
 from tool_files import list_entries as list_tool_files, resolve_entry as resolve_tool_file, EXTENSIONS as TOOL_LIBRARY_EXTENSIONS
@@ -2021,6 +2022,15 @@ async def _status_poller():
             _fe = preview_file_edge_action(
                 file_changed, _bulk.reparse_pending, _bulk.refresh_running,
                 _bulk.inflight, st.active_file, _cur_mtime)
+            if _fe == "schedule" and not file_changed and not _actions_quiet():
+                # A restart (reparse_pending: a discarded or cancelled parse,
+                # an operator Reparse) waits for the input actions' observed
+                # end and the debounce (P2b-3); a new file never waits
+                if not _bulk.reparse_wait_noted:
+                    _bulk.reparse_wait_noted = True
+                    _trace.emit("gcode.parse_waits_for_actions", why=_actions.busy() or "debounce",
+                                reason=_bulk.reparse_pending_reason)
+                _fe = None
             if _fe == "schedule" and not rotary_hold_settled(_bulk.rotary_hold, st.rotary_abc, _now):
                 # A parse spawned mid-jog seeds the moving pose and is doomed
                 # on the next tick (inflight_doomed_reason below): the START
@@ -2180,6 +2190,9 @@ async def _status_poller():
                     st.active_file, _bulk.refresh_running, _bulk.preview_available(),
                     st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,
                     time.monotonic() - _bulk.tlo_check_ts)
+                # P2b-3: no input action held or observed, all clients, and
+                # the debounce from its OBSERVED end
+                and _actions_quiet()
             ):
                 _bulk.tlo_check_ts = time.monotonic()
                 _drift = None
@@ -2287,16 +2300,15 @@ async def _status_poller():
                     _drift = _ts_reason
                     _trace.emit("gcode.reparse_toolsetter", version=_ts_basis_version)
                 if _drift:
-                    # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type",
-                    # "tlo:…") is the reason the trace and the operator's
-                    # banner carry — not the bare "drift" it used to be.
-                    _schedule_drift_refresh(st.active_file, _drift, _ts_reason)
+                    _drift_edge(st, st.active_file, _drift, _ts_reason)
             elif not st.active_file and (_bulk.last_file is not None
                                          or _bulk.preview_available()):
                 # Unload: one contract (clear_preview — it was dead code
                 # diverged from an inline copy here). The preview_available
                 # term keeps the branch reachable when the keys were cleared
                 # by something other than an unload.
+                _calc_gen.new_program("unload")   # P2b-3: a late parse end publishes nothing
+                _bulk.cancel_inflight("unload")
                 _bulk.clear_preview()
                 _bulk.reparse_pending = False
 
@@ -3387,6 +3399,7 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
         why = _write_admission_refusal(conn_key, tool_table=True)
         if why:
             raise HTTPException(status_code=409, detail=why)
+        _file_input_began("tool_table_file")   # right before the file is replaced (P2b-3)
         write_tool_table(tbl_path, tbl_tools)
 
     async def section():
@@ -3745,6 +3758,56 @@ class _StartClaim:
 _source_lock: Optional[asyncio.Lock] = None
 _source_claims: List[_StartClaim] = []
 
+# ---- The lifetime of a calculation (P2b-3, plan v4, Codex R439–R442) ----
+# The parse inputs' generation (program, inputs): every input write's BEGIN
+# bumps it in the write's own thread, right before the effect; a parse
+# publishes only from the generation it read its inputs under (bulk_pipeline,
+# under the same threading.Lock). The actions: an admitted input action
+# queued or in its handler HOLDS a new idle parse; its writes' observers own
+# it past the handler's return until the ONE completion decision ends them
+# (gateway_util.controller_done) or a named unknown outcome.
+_calc_gen = Generation()
+_bulk.generation = _calc_gen   # the publication checks it (bulk_pipeline)
+_actions = ActionLedger()
+# the action the running handler belongs to (set by the client's command
+# worker; asyncio.to_thread copies it into the write's thread)
+_current_action: contextvars.ContextVar[Optional[_Action]] = contextvars.ContextVar("p2b_action", default=None)
+_TASK_MODES = {"MODE_MDI": getattr(linuxcnc, "MODE_MDI", 3), "MODE_AUTO": getattr(linuxcnc, "MODE_AUTO", 2)}
+
+
+def _var_file_write_began(why: str) -> Callable[[str, Dict[str, Any]], Any]:
+    """The parameter file's writer with its begin (P2b-3): in the write's
+    thread, right before the file is replaced."""
+    def run(path: str, values: Dict[str, Any]) -> Any:
+        _file_input_began(why)
+        return _write_var_file_updates(path, values)
+    return run
+
+
+def _file_publish_began(dest_path: str) -> None:
+    """A program or macro file's publish or delete (P2b-3), in its thread
+    right before the file changes: a macro is a subroutine-path input — of
+    every program that calls it, simplified to always; a program is an
+    input when it is the file the published or the running parse reads.
+    Any other file reaches no parse."""
+    cp = canonical_path(dest_path)
+    mdir = _macro_folder_path()
+    if mdir and canonical_path(os.path.dirname(dest_path)) == canonical_path(mdir):
+        _file_input_began("macro_file")
+        return
+    parse_files = {canonical_path(f) for f in (_bulk.last_file, (_bulk.inflight or {}).get("file")) if f}
+    if cp in parse_files:
+        _file_input_began("program_file")
+
+
+def _file_input_began(why: str) -> None:
+    """A FILE writer's begin (P2b-3): in the write's thread, right before
+    the parse input file is replaced — the tool table, the parameter file,
+    the loaded program or a macro. The generation first, then the booking
+    (the effect is complete when the writer's call returns)."""
+    _calc_gen.began(why)
+    _actions.wrote_file(_current_action.get(), why)
+
 
 def _get_source_lock() -> asyncio.Lock:
     global _source_lock
@@ -3772,6 +3835,68 @@ def _release_after_poll(polled_at: float, polled_link: Optional["Link"]) -> None
     check of 7c16f5e9); otherwise _release_start_claims for that Link."""
     if polled_link is not None:
         _release_start_claims(polled_at, polled_link)
+        _observe_actions(polled_at, polled_link)
+
+
+def _observe_actions(polled_at: float, owner: "Link") -> None:
+    """The action observers' step after a poll of `owner` (P2b-3): the ONE
+    completion decision per live observer (controller_done — the start
+    claims' own), computed in locals and applied only while that Link is
+    still the published one (_link_lock, as the claims). An ended action is
+    traced with its outcome; a restart after partial / aborted / link_lost /
+    unknown reads the basis again or names it unknown: every MDI start booked
+    the toolsetter keys it may write as ASSUMED before its write
+    (_ts_mark_assumed), and the book's read-back confirms them (P2a)."""
+    if current_link() is not owner:
+        return
+    stat = owner.stat
+
+    def field(name: str) -> Any:
+        return getattr(stat, name, None)
+    fields = {"echo": field("echo_serial_number"), "state": field("state"), "interp_state": field("interp_state"),
+              "queued": field("queued_mdi_commands"), "exec_state": field("exec_state"), "task_mode": field("task_mode")}
+    consts = {n: getattr(linuxcnc, n, d) for n, d in (("RCS_DONE", 1), ("RCS_ERROR", 3), ("INTERP_IDLE", 1), ("EXEC_DONE", 2))}
+    decisions = _actions.decide(fields, polled_at, owner.seq, _CLAIM_ERROR_PROOF_S, controller_done, consts)
+    with _link_lock:      # the outcome only while the polled Link is published
+        if owner is not _link:
+            return
+        _actions.apply(decisions)
+    _trace_ended_actions()
+
+
+#: the debounce after an input action's observed end (the drift gate's 2 s)
+ACTION_QUIET_S = 2.0
+
+
+def _actions_quiet() -> bool:
+    """No input action held or observed (all clients) and ACTION_QUIET_S
+    since the last one's observed end — the idle parse's restart condition
+    (P2b-3). The handler's return is no end: its observers own the action."""
+    q = _actions.quiet_s()
+    return q is not None and q >= ACTION_QUIET_S
+
+
+def _release_action(action: Optional[_Action], how: str) -> None:
+    """An input action's queue ownership ends (P2b-3): its handler ended —
+    `ok` / `error` / `cancelled` — or its queued job was dropped (superseded
+    by a stop, the client gone). Its observers own it on."""
+    if action is None:
+        return
+    _actions.release(action, how)
+    _trace_ended_actions()
+
+
+def _handler_end(task: "asyncio.Task[Any]") -> str:
+    if task.cancelled():
+        return "cancelled"
+    return "error" if task.exception() is not None else "ok"
+
+
+def _trace_ended_actions() -> None:
+    for a in _actions.take_ended():
+        _trace.emit("action.ended", what=a.what, outcome=a.outcome, handler=a.handler,
+                    writes=sum(1 for o in a.observers if o.state != "refused"),
+                    held_ms=round(((a.end_t or a.t) - a.t) * 1000))
 
 
 def _release_start_claims(polled_at: Optional[float] = None,
@@ -3999,7 +4124,8 @@ class _WriteRefused(PermissionError):
 async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD_WAIT_TIMEOUT,
                         claim: Optional["_StartClaim"] = None,
                         admit: Optional[Callable[[], Optional[str]]] = None,
-                        written: Optional[Callable[[], None]] = None) -> int:
+                        written: Optional[Callable[[], None]] = None,
+                        began: Optional[Callable[[], Any]] = None) -> int:
     """Run one command on the Link `conn` + optional wait_complete() on a
     worker thread (package 2b: the admission, the write, the serial the claim
     books and every wait slice belong to `conn`; a write whose Link is no
@@ -4040,6 +4166,18 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     the shielded write completes, the cancel propagates after it); a refused
     or failed write books nothing.
 
+    The BEGIN of an input write (P2b-3, plan v4 — Codex R439/R440): a command
+    that changes a parse input BY ITS EFFECT (calc_lifetime.input_write_class:
+    every MDI line, a switch to MDI or AUTO — task synchs the parameters —,
+    the parameter synch, a tool table reload; never a switch to MANUAL)
+    gets a PENDING observer when its thread starts and bumps the generation
+    in the write's thread after the admission and the second Link check,
+    immediately before `cmd_fn(*args)` — then `began` (the caller's own),
+    then the write. A refusal before it drops the observer
+    (refused_before_write, nothing invalidated); a write that raises leaves
+    it pending — its effect unknown; a returned write books the serial the
+    NML buffer gave it. `written` keeps its job after the write.
+
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
 
     An MDI line LinuxCNC would not take as ONE command (a NUL, not UTF-8,
@@ -4061,6 +4199,8 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
             raise _WriteRefused(_why)
     cancel = threading.Event()
     args = command.args
+    in_class = input_write_class(command.name, args, _TASK_MODES)
+    in_action = _current_action.get() if in_class else None
     kind = _start_kind(command.name, args)
     if kind:
         # A start may write the toolsetter's values (M600 plan section 2,
@@ -4091,32 +4231,51 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
             run_basis["state"] = "unsent"   # no run
 
     def _run() -> int:
+        # an input write's observer, PENDING before the write (P2b-3)
+        obs = (_actions.begin(in_action, in_class, command.name,
+                              mode_target=(args[0] if command.name == "mode" and args and isinstance(args[0], int)
+                                           else None))
+               if in_class else None)
+
+        def _refused_before() -> None:
+            _unsent()
+            if obs is not None:
+                _actions.refused(obs)   # nothing written: nothing invalidated
         # The Link is current before the admission AND after it: a Link is
         # published once, so the admission (which reads the controller through
         # the published Link) read THIS one, and the write goes to it.
         if not _link_is_current(conn):
-            _unsent()
+            _refused_before()
             raise _WriteRefused(LINK_CHANGED)
         if admit is not None:
             try:
                 refused = admit()
             except BaseException:
-                _unsent()   # an admission that failed admitted nothing
+                _refused_before()   # an admission that failed admitted nothing
                 raise
             if refused:
-                _unsent()
+                _refused_before()
                 raise _WriteRefused(refused)
             if not _link_is_current(conn):
-                _unsent()
+                _refused_before()
                 raise _WriteRefused(LINK_CHANGED)
+        # the BEGIN: the last check passed, the effect is next (P2b-3)
+        if obs is not None:
+            _calc_gen.began(command.name)
+        if began is not None:
+            began()
         try:
             getattr(conn.cmd, command.name)(*args)
         except BaseException:
+            if obs is not None:
+                _actions.failed(obs)   # its effect is unknown — never "not written"
             if claim is not None:
                 claim.state = "unsent"   # nothing reached the controller
             if run_basis is not None:
                 run_basis["state"] = "unsent"   # no run
             raise
+        if obs is not None:
+            _actions.sent(obs, getattr(conn.cmd, "serial", None), conn.seq)
         if written is not None:
             written()
         if run_basis is not None:
@@ -5122,6 +5281,7 @@ def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key,
         conflict = check()
         if conflict:
             raise _ToolEditConflict(conflict)
+    _file_input_began("tool_table_file")   # right before the file is replaced (P2b-3)
     write_tool_table(tbl_path, tools)
 
 
@@ -6116,6 +6276,22 @@ def _ts_poll(st) -> Optional[str]:
     return reason
 
 
+def _drift_edge(st, active_file: str, drift: str, ts_reason: Optional[str]) -> str:
+    """An idle drift edge fired: "held" or "scheduled" (or "busy": a parse
+    runs). The 30 s hold for EVERY idle edge (P2b-2, Codex R439 answer 3):
+    owned by the one open confirmation — the read-back of the booking that
+    left the toolsetter basis assumed, its anchor; another edge firing again
+    and again never moves it; past it the edge parses, the basis named
+    assumed. The toolsetter's own reason is held in _ts_poll already."""
+    if drift != "toolsetter" and _ts_hold_reason(st) is not None:
+        _ts_hold_note(_ts_attempt_key(), "edge_held", drift)
+        return "held"
+    # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type", "tlo:…") is
+    # the reason the trace and the operator's banner carry — not the bare
+    # "drift" it used to be.
+    return "scheduled" if _schedule_drift_refresh(active_file, drift, ts_reason) else "busy"
+
+
 def _schedule_drift_refresh(active_file: str, drift: str, ts_reason: Optional[str]) -> bool:
     """Schedule the idle drift re-parse for `drift`. A toolsetter reason
     books its attempt (once per revision and program); when ANOTHER edge
@@ -6174,7 +6350,8 @@ def _ts_drift_reason() -> Optional[str]:
 
 
 def _ts_hold_note(key: tuple, kind: str, why: str) -> None:
-    """Trace the hold's `held` / `ended` once per attempt and kind."""
+    """Trace the hold's `held` / `ended` — and another edge it holds
+    (`edge_held`, P2b-2) — once per attempt and kind."""
     global _ts_hold_said
     said_key, kinds = _ts_hold_said
     if said_key != key:
@@ -6182,7 +6359,8 @@ def _ts_hold_note(key: tuple, kind: str, why: str) -> None:
     if kind in kinds:
         return
     _ts_hold_said = (key, kinds | {kind})
-    tag = "gcode.reparse_toolsetter_held" if kind == "held" else "gcode.reparse_toolsetter_hold_ended"
+    tag = {"held": "gcode.reparse_toolsetter_held", "edge_held": "gcode.reparse_edge_held"}.get(
+        kind, "gcode.reparse_toolsetter_hold_ended")
     _trace.emit(tag, why=why, version=key[0])
 
 
@@ -6320,7 +6498,7 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
         else:
             try:
                 async with _get_var_file_lock():
-                    await _var_file_thread(_write_var_file_updates, var_file, applied)
+                    await _var_file_thread(_var_file_write_began("var_file"), var_file, applied)
                     _status_runtime.mark_var_file_written(var_file)
                 persisted = True
             except Exception as e:  # noqa: BLE001 — the take-over stands; the file's failure is named
@@ -6483,11 +6661,15 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
     try:
         persisted, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed, admit=admit)
         if not mdi_ok:
+            _actions.stopped_short(_current_action.get())   # a chunk may be taken: partial (P2b-3)
             return {"ok": False, "error": admit() or "Parameters not taken over — nothing started",
                     "persisted": persisted, "mdi_set": False}
         await set_mode(linuxcnc.MODE_MDI, admit=admit)
+        # the CALL goes with wait=None: the reply comes long before the
+        # routine ends — its observer owns the action past this return (P2b-3)
         await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=None, admit=admit)
     except _WriteRefused as refused:
+        _actions.stopped_short(_current_action.get())   # after its chunks: partial (P2b-3)
         return {"ok": False, "error": str(refused)}
     _trace.emit("features.job", cmd=cmd, line=line)
     return {"ok": True, "persisted": persisted, "mdi_set": True, "line": line}
@@ -6604,6 +6786,8 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
     if cmd == "estop":
         await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP), wait=None)
         _settle_leases_ended_by(("estop", "abort"))   # written: every motion stops (MT-I08)
+        _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
+        _trace_ended_actions()
         _estop_hold = True
         _hal_send({"connected": False})  # hold via _estop_hold
         return {"ok": True}
@@ -6710,6 +6894,8 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
         # machine effects — E-Stop was already open to every client.
         await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None)
         _settle_leases_ended_by(("abort",))   # written: the jogs stop with it (MT-I08)
+        _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
+        _trace_ended_actions()
         return {"ok": True}
     return _UNHANDLED
 
@@ -7686,7 +7872,10 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
             # The open's own status settles it: task has handled the open
             # when the send returns, so the first wait slice answers
             # (sliced — never a GIL-held wait_complete).
-            rc = await _cmd_blocking(link(), op(linuxcnc.command.program_open, abs_path), wait=5)
+            # every load is a new program generation (A→B→A and the same
+            # path again too), begun right before the open (P2b-3)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.program_open, abs_path), wait=5,
+                                     began=lambda: _calc_gen.new_program("load"))
         finally:
             _status_runtime.end_program_change()
         if rc == getattr(linuxcnc, "RCS_ERROR", 3):
@@ -7708,7 +7897,13 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
         if not _status_runtime.begin_program_change():
             return {"ok": False, "error": "Load record not writable — nothing unloaded"}
         try:
-            rc_abort = await _cmd_blocking(link(), op(linuxcnc.command.abort))
+            # a new program generation right before the unload's first
+            # write; a parse still running is cancelled and nothing restarts
+            # it (P2b-3) — its late end publishes nothing
+            rc_abort = await _cmd_blocking(link(), op(linuxcnc.command.abort),
+                                           began=lambda: _calc_gen.new_program("unload"))
+            _bulk.cancel_inflight("unload")
+            _bulk.reparse_pending = False
             rc_reset = await _cmd_blocking(link(), op(linuxcnc.command.reset_interpreter))
             if _cmd_rc_failed(rc_abort) or _cmd_rc_failed(rc_reset):
                 # Refused or unanswered: the old program may still be
@@ -7757,6 +7952,8 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
         def admit() -> Optional[str]:
             return next((w for w in map(_feature_refusal, feats) if w), None) or _interp_idle_refusal()
         r = await _apply_probe_vars_detail(_features.merged_sets(sets), armed, admit=admit)
+        if not r.get("mdi_set"):
+            _actions.stopped_short(_current_action.get())   # not every chunk taken: partial (P2b-3)
         return {"ok": True, **r}
 
     # the routines as jobs (package 3): one function, a branch each
@@ -8966,7 +9163,7 @@ async def _ensure_prov_var_rows() -> None:
             missing = [k for k in keys if k not in have]
             if missing:
                 await _var_file_thread(
-                    _write_var_file_updates, path, {k: 0.0 for k in missing})
+                    _var_file_write_began("var_file_rows"), path, {k: 0.0 for k in missing})
                 _status_runtime.mark_var_file_written(path)
                 re_read = await _var_file_thread(_read_var_file, path, set(missing))
         if missing:
@@ -10386,6 +10583,7 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                     if refusal:
                         raise HTTPException(status_code=409, detail={"error": "refused", **(
                             refusal if isinstance(refusal, dict) else {"reason": refusal})})
+                _file_publish_began(dest_path)   # right before the file changes (P2b-3)
                 if replace:
                     os.replace(tmp, dest_path)
                     tmp = None  # published — don't unlink in finally
@@ -10979,6 +11177,7 @@ async def _macro_read_or_raise(state: Dict[str, Any], path: str) -> Tuple[bytes,
 
 def _unlink_renamed(path: str) -> None:
     """The old name of a renamed macro leaves (its own seam for the tests)."""
+    _file_publish_began(path)   # a macro name gone: a subroutine-path input (P2b-3)
     os.unlink(path)
 
 
@@ -11071,6 +11270,7 @@ async def delete_macro(name: str = Query(...), base: str = Query(...),
         refusal = gate()
         if refusal and refusal["kind"] != "taken":
             raise HTTPException(status_code=409, detail={"error": "refused", **refusal})
+        _file_publish_began(path)   # right before the file goes (P2b-3)
         os.unlink(path)
     async with _get_source_lock():
         # to its END under the lock, through a cancel (Codex R70 VP-I29)
@@ -12806,7 +13006,7 @@ async def ws_endpoint(ws: WebSocket):
             _set_phase(f"ws.worker.entry client#{client_id}")
             while True:
                 _set_phase(f"ws.worker.idle client#{client_id}")
-                _wmsg, _enq = await cmd_queue.get()
+                _wmsg, _enq, _wact = await cmd_queue.get()
                 _wcmd = _wmsg.get("cmd")
                 _wecho = _req_echo(_wmsg)
                 client.cmd_inflight = _wcmd
@@ -12821,9 +13021,16 @@ async def ws_endpoint(ws: WebSocket):
                 # killing this worker. asyncio.wait never propagates THIS
                 # task's cancel to the sub-task, so the disconnect path
                 # cancels it explicitly below.
+                # the handler runs in its action's context: its writes' begin
+                # hooks book their observers to it (P2b-3); its end — however
+                # it ends, a preemption and a disconnect too — ends the hold
+                _wctx = contextvars.copy_context()
+                _wctx.run(_current_action.set, _wact)
                 inflight = register_bg_task(asyncio.create_task(
-                    _execute_client_command(client_id, client, ws, _wmsg)))
+                    _execute_client_command(client_id, client, ws, _wmsg), context=_wctx))
                 inflight.add_done_callback(_retrieve_task_exc)
+                if _wact is not None:
+                    inflight.add_done_callback(lambda _t, _a=_wact: _release_action(_a, _handler_end(_t)))
                 client.cmd_inflight_task = inflight
                 try:
                     _set_phase(f"ws.worker.handle cmd={_wcmd} client#{client_id}")
@@ -13209,18 +13416,19 @@ async def ws_endpoint(ws: WebSocket):
                     _kept, _sup = [], []
                     while True:
                         try:
-                            _qm, _qt = cmd_queue.get_nowait()
+                            _qitem = cmd_queue.get_nowait()
                         except asyncio.QueueEmpty:
                             break
-                        (_kept if _qm.get("cmd") in _WS_NO_PREEMPT else _sup).append((_qm, _qt))
-                    for _qm, _qt in _kept:
-                        cmd_queue.put_nowait((_qm, _qt))
-                    for _qm, _qt in _sup:
+                        (_kept if _qitem[0].get("cmd") in _WS_NO_PREEMPT else _sup).append(_qitem)
+                    for _qitem in _kept:
+                        cmd_queue.put_nowait(_qitem)
+                    for _qm, _qt, _qa in _sup:
+                        _release_action(_qa, "superseded")   # never run: only its hold ends
                         await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
                                                 "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
                     if _sup:
                         _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
-                                    by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
+                                    by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _, _ in _sup])
                     _preempt_inflight(by=_rcmd, from_client=client_id)
                     # ... and ends this client's jog leases (P1b): a change it
                     # queued before the stop keeps its stop half (a stop is
@@ -13240,7 +13448,11 @@ async def ws_endpoint(ws: WebSocket):
                                             **_req_echo(msg)})
                     continue
                 _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
-                cmd_queue.put_nowait((msg, time.monotonic()))
+                # an admitted input action holds a new idle parse from here
+                # to its handler's end (P2b-3 queue ownership)
+                _qact = (_actions.hold(str(_rcmd), str(client_id))
+                         if command_effect(str(_rcmd)) == "input_action" else None)
+                cmd_queue.put_nowait((msg, time.monotonic(), _qact))
             except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
                 raise
             except Exception as _frame_e:  # noqa: BLE001 — answered and traced; the reader reads on
@@ -13311,9 +13523,10 @@ async def ws_endpoint(ws: WebSocket):
         _dropped = []
         while True:
             try:
-                _dm, _ = cmd_queue.get_nowait()
+                _dm, _, _da = cmd_queue.get_nowait()
             except asyncio.QueueEmpty:
                 break
+            _release_action(_da, "dropped")   # never run: only its hold ends
             _dropped.append(_dm.get("cmd"))
         if _dropped:
             _trace.emit("ws.command_dropped_on_disconnect", level="warn",

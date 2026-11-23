@@ -541,6 +541,22 @@ class TestHoldAndAttempt(_HoldBase):
         self.assertIsNone(gateway._ts_hold_reason(_St))
         self.assertEqual(self.tags("gcode.reparse_toolsetter_hold_ended")[-1]["why"], "cap")
 
+    def test_every_idle_edge_waits_for_the_one_confirmation(self):
+        """P2b-2 (Codex R439 answer 3, plan guard 7): another edge fires again
+        and again while the read-back is open — held, the anchor never moves,
+        nothing scheduled; past the bound it parses."""
+        self.probe_op()
+        anchor = gateway._ts_hold_anchor
+        with mock.patch.object(gateway, "_schedule_drift_refresh", return_value=True) as sched:
+            for _ in range(3):
+                self.assertEqual(gateway._drift_edge(_St, "/p.ngc", "wcsoff:G54:x", None), "held")
+            self.assertEqual(gateway._ts_hold_anchor, anchor, "another edge never moves the anchor")
+            sched.assert_not_called()
+            v, t0 = anchor
+            gateway._ts_hold_anchor = (v, t0 - gateway.TS_HOLD_MAX_S)     # 30 s since the booking
+            self.assertEqual(gateway._drift_edge(_St, "/p.ngc", "wcsoff:G54:x", None), "scheduled")
+        self.assertEqual([f["why"] for f in self.tags("gcode.reparse_edge_held")], ["wcsoff:G54:x"])
+
     def test_polls_never_move_the_anchor(self):
         self.probe_op()
         anchor = gateway._ts_hold_anchor

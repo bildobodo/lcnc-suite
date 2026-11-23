@@ -229,6 +229,8 @@ export function previewRefreshLabel(reason: string | null | undefined): string {
   if (r === "drift") return "machine state change";
   // M600 (plan section 2): the toolsetter values the routine reads changed
   if (r === "toolsetter") return "toolsetter values changed";
+  // P2b-3: a parse discarded because an input was written while it ran
+  if (r.startsWith("discarded:")) return "inputs written during the last parse";
   return r || "machine state change";
 }
 

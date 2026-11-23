@@ -355,7 +355,7 @@ RULES: tuple[Rule, ...] = (
           "lcnc-gateway/lcnc_trace.py"),
          "the status loop and the safety chain (lcnc_trace: every process's console and crash hooks)",
          live=("perf-matrix",)),
-    Rule(("lcnc-gateway/gcode_*.py", "lcnc-gateway/bulk_pipeline.py",
+    Rule(("lcnc-gateway/gcode_*.py", "lcnc-gateway/bulk_pipeline.py", "lcnc-gateway/calc_lifetime.py",
           "lcnc-gateway/native_*_probe.py"),
          "the parse and its native parity", live=("live-twp",)),
     Rule(("lcnc-gateway/macro_files.py",), "macro files", live=("macro-live",)),

@@ -6588,7 +6588,7 @@ def controller_done(fields: dict, obs: dict, polled_at: float, owner_seq: int, p
         return None, (None, None)
     seen = (obs.get("state") == "sent" and sent_t is not None and sent_t < polled_at
             and serial is not None and echo is not None)
-    if seen and done and echo >= serial:
+    if seen and done and echo is not None and serial is not None and echo >= serial:
         return "done", (since, proof_now)
     proof = ("error", owner_seq)
     if seen and err_quiet and echo == serial:

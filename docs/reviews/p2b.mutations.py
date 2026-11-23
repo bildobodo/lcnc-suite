@@ -31,6 +31,9 @@ def pw(spec, grep, at):
 
 GW = "lcnc-gateway/"
 CD = "test_controller_done.py::"
+CL = "test_calc_lifetime.py::"
+CG = "test_calc_lifetime_gateway.py::"
+CW = "test_calc_lifetime_wiring.py::"
 
 
 MUTS = {
@@ -62,7 +65,7 @@ MUTS = {
         [pw("e2e/collisions.viewer.spec.ts", "tool change re-checks on the resident model", "no bodies: the resident model")]),
     # ---- P2b-3 (Rest A, Codex R441): ONE completion decision
     "a_later_echo_ends_the_command": (GW + "gateway_util.py", [(
-        "    if seen and done and echo >= serial:\n        return \"done\", (since, proof_now)",
+        "    if seen and done and echo is not None and serial is not None and echo >= serial:\n        return \"done\", (since, proof_now)",
         "    if seen and (done or echo > serial):\n        return \"done\", (since, proof_now)")],
         [py(CD + "TestCodexR441Table::test_a_later_echo_still_reading_is_no_end", "AssertionError")]),
     "one_poll_proves_the_own_error": (GW + "gateway_util.py", [(
@@ -72,6 +75,58 @@ MUTS = {
     "a_later_error_is_ours": (GW + "gateway_util.py", [(
         "    if seen and err_quiet and echo == serial:", "    if seen and idle and state == rcs_error and echo >= serial:")],
         [py(CD + "TestCodexR441Table::test_a_later_error_even_quiet_is_not_the_own", "AssertionError")]),
+    # ---- P2b-3 rest (plan v4): the begin, the generation, the actions
+    "the_begin_after_the_write": (GW + "gateway.py", [(
+        "        if obs is not None:\n            _calc_gen.began(command.name)\n        if began is not None:\n            began()\n        try:\n            getattr(conn.cmd, command.name)(*args)",
+        "        if began is not None:\n            began()\n        try:\n            getattr(conn.cmd, command.name)(*args)\n            if obs is not None:\n                _calc_gen.began(command.name)")],
+        [py(CG + "TheBeginIsBeforeTheEffect::test_a_publication_during_a_blocked_write_is_discarded", "AssertionError")]),
+    "the_publication_ignores_the_generation": (GW + "calc_lifetime.py", [(
+        "            if now != snap:\n                return False, now, self._last_why", "            if False:\n                return False, now, self._last_why")],
+        [py(CL + "TestGeneration::test_a_publication_after_a_begin_is_discarded", "AssertionError")]),
+    "the_handler_return_ends_the_action": (GW + "calc_lifetime.py", [(
+        "        if a.outcome is not None or a.held or any(o.outcome is None for o in a.observers):",
+        "        if a.outcome is not None or a.held:")],
+        [py(CG + "TheObserverOwnsTheAction::test_the_handler_return_is_no_end_and_the_proof_is", "AssertionError")]),
+    "the_restart_ignores_the_actions": (GW + "gateway.py", [(
+        "    q = _actions.quiet_s()\n    return q is not None and q >= ACTION_QUIET_S", "    return True")],
+        [py(CG + "TheObserverOwnsTheAction::test_the_handler_return_is_no_end_and_the_proof_is", "AssertionError")]),
+    "a_manual_switch_invalidates": (GW + "calc_lifetime.py", [(
+        "        return \"mode\" if target in (m.get(\"MODE_MDI\", MODE_MDI), m.get(\"MODE_AUTO\", MODE_AUTO)) else None",
+        "        return \"mode\"")],
+        [py(CG + "TheModeSwitchByItsEffect::test_no_switch_and_manual_invalidate_nothing", "AssertionError")]),
+    "a_failed_write_is_unwritten": (GW + "gateway.py", [(
+        "                _actions.failed(obs)   # its effect is unknown", "                _actions.refused(obs)   # its effect is unknown")],
+        [py(CG + "TheBeginIsBeforeTheEffect::test_a_write_that_raised_keeps_its_observer_unknown", "AssertionError")]),
+    "abort_leaves_the_observers": (GW + "gateway.py", [(
+        "        _settle_leases_ended_by((\"abort\",))   # written: the jogs stop with it (MT-I08)\n        _actions.end_all(\"aborted\")",
+        "        _settle_leases_ended_by((\"abort\",))   # written: the jogs stop with it (MT-I08)\n        None")],
+        [py(CG + "TheObserverOwnsTheAction::test_abort_after_the_return_is_aborted", "AssertionError")]),
+    "a_relinked_command_is_done": (GW + "calc_lifetime.py", [(
+        "            elif how == \"relinked\":\n                how = \"link_lost\"", "            elif how == \"relinked\":\n                how = \"done\"")],
+        [py(CG + "TheObserverOwnsTheAction::test_a_lost_link_is_named", "AssertionError")]),
+    "a_handler_error_drops_the_observer": (GW + "calc_lifetime.py", [(
+        "            action.held = False\n            if action.handler is None:\n                action.handler = handler",
+        "            action.held = False\n            if handler == \"error\":\n                action.observers.clear()\n            if action.handler is None:\n                action.handler = handler")],
+        [py(CG + "TheObserverOwnsTheAction::test_a_handler_error_after_its_write_keeps_the_observer", "AssertionError")]),
+    "the_mode_target_unchecked": (GW + "calc_lifetime.py", [(
+        "                how = \"done\" if tm == o.mode_target else (\"unknown\" if tm is not None else None)", "                how = \"done\"")],
+        [py(CL + "TestActionOwnership::test_a_mode_switch_needs_its_target", "AssertionError")]),
+    "the_tool_file_begins_after": (GW + "gateway.py", [(
+        "    _file_input_began(\"tool_table_file\")   # right before the file is replaced (P2b-3)\n    write_tool_table(tbl_path, tools)",
+        "    write_tool_table(tbl_path, tools)\n    _file_input_began(\"tool_table_file\")")],
+        [py(CG + "TheFileWritersBegin::test_the_tool_table_begins_before_its_file_is_replaced", "AssertionError")]),
+    "a_command_unclassified": (GW + "command_policy.py", [(
+        "    \"simulate_probe_trip\": \"none\",\n}", "}")],
+        [py(CW + "TestEveryCommandHasAnEffect::test_the_two_lists_are_one", "AssertionError")]),
+    "the_unload_restarts_the_old_program": (GW + "bulk_pipeline.py", [(
+        "        if now[0] == gen_at[0]:\n            self.reparse_pending = True", "        if True:\n            self.reparse_pending = True")],
+        [py(CG + "TheUnload::test_an_unload_during_a_parse_publishes_nothing_and_restarts_nothing", "AssertionError")]),
+    "the_hold_only_for_the_toolsetter": (GW + "gateway.py", [(
+        "    if drift != \"toolsetter\" and _ts_hold_reason(st) is not None:", "    if False:")],
+        [py("test_toolsetter_basis.py::TestHoldAndAttempt::test_every_idle_edge_waits_for_the_one_confirmation", "AssertionError")]),
+    "a_stopped_handler_is_done": (GW + "calc_lifetime.py", [(
+        "    if handler not in (None, \"ok\"):\n        return \"partial\"", "    if handler not in (None, \"ok\", \"stopped\"):\n        return \"partial\"")],
+        [py(CL + "TestActionOwnership::test_a_handler_that_stops_short_after_a_write_is_partial", "AssertionError")]),
 }
 
 

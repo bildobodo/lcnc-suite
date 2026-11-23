@@ -272,6 +272,7 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewRefreshLabel("wcsoff:G54:x")).toBe("touch-off (G54 X)");
     expect(previewRefreshLabel("wcsoff:g92:z")).toBe("touch-off (g92 Z)");
     expect(previewRefreshLabel("rotary:AC")).toBe("rotary pose (AC)");
+    expect(previewRefreshLabel("discarded:mdi")).toBe("inputs written during the last parse");
     expect(previewRefreshLabel("kins:type")).toBe("kinematics mode change");
     expect(previewRefreshLabel("kins:frame")).toBe("plane change");
     expect(previewRefreshLabel("tlo:3")).toBe("tool length change");
