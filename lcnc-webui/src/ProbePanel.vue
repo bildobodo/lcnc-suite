@@ -172,6 +172,20 @@ const calAxis = ref(0); // 0=avg XY, 1=X only, 2=Y only
 const { autoZero: _fallbackAutoZero, ...PROBE_PARAMS } = PROBE_FALLBACK;
 const params = ref({ ...PROBE_PARAMS });
 
+// ─── P5 PROTOTYPE (renderings for the operator, never merged) ────────
+// The states the plan proposes, set from the test page:
+// window.__p5set({ cal: "pending", field: "draft" }).
+type P5Cal = "idle" | "pending" | "applied" | "applied_saved" | "discarded" | "failed" | "stale";
+type P5Field = "saved" | "draft" | "confirmed" | "refused";
+const p5 = ref<{ cal: P5Cal; field: P5Field }>({ cal: "idle", field: "confirmed" });
+(window as unknown as { __p5set?: (s: Partial<{ cal: P5Cal; field: P5Field }>) => void }).__p5set =
+  (st) => { p5.value = { ...p5.value, ...st }; };
+const p5Active = computed(() => (p5.value.cal === "applied" || p5.value.cal === "applied_saved") ? "0.0712" : "0.0677");
+const p5Machine = computed(() => p5.value.cal === "applied_saved"
+  ? "Saved — reaches the machine with the next probe" : "On the machine");
+const p5FieldState = (i: number) => i !== 1 ? null
+  : p5.value.field === "draft" ? "draft" : p5.value.field === "refused" ? "refused" : null;
+
 const autoZero = ref(false);
 const setRotation = computed({
   get: () => params.value.wcoRotation === 1,
@@ -1059,10 +1073,35 @@ function fmtR(key: string): string {
             <label><MachineRadio gate="probeParam" name="calAxis" :value="2" v-model.number="calAxis" /> Y Error</label>
           </div>
         </div>
-        <div class="resetRow">
-          <MachineBtn type="probeReset" @click="resetCal">Reset Calibration</MachineBtn>
-        </div>
       </div>
+      </div>
+      <!-- P5 PROTOTYPE: the calibration offset at the cells (W3) -->
+      <div class="stack-tight" data-p5="cal">
+        <div class="sub">Calibration Offset</div>
+        <div class="statusNote">
+          <span><span class="text-muted">Active</span> <strong class="mono">{{ p5Active }} {{ linearUnit }}</strong>
+            · <span class="text-muted">{{ p5Machine }}</span></span>
+          <MachineBtn type="probeReset" @click="resetCal">Reset</MachineBtn>
+        </div>
+        <div v-if="p5.cal === 'pending' || p5.cal === 'failed'" class="statusNote warn" role="status">
+          <span>New 0.0712 mm — was 0.0677 mm · Round hole Ø 20.000 mm, Avg XY, 05:12</span>
+          <div class="row-tight">
+            <MachineBtn type="dialogConfirm">Apply</MachineBtn>
+            <MachineBtn type="g30Discard">Discard</MachineBtn>
+          </div>
+        </div>
+        <div v-if="p5.cal === 'failed'" class="statusNote error" role="alert">
+          <span>Not applied — Not armed — press Arm. The active offset stays 0.0677 mm.</span>
+        </div>
+        <div v-if="p5.cal === 'applied' || p5.cal === 'applied_saved'" class="statusNote ok" role="status">
+          <span>Applied — 0.0712 mm is the active offset (was 0.0677 mm).</span>
+        </div>
+        <div v-if="p5.cal === 'discarded'" class="statusNote" role="status">
+          <span>Discarded — the active offset stays 0.0677 mm.</span>
+        </div>
+        <div v-if="p5.cal === 'stale'" class="statusNote warn" role="status">
+          <span>The result of the run at 05:03 is not offered — that run did not complete.</span>
+        </div>
       </div>
     </template>
 
@@ -1241,7 +1280,15 @@ function fmtR(key: string): string {
          probeFields.ts — design wave D4) -->
     <div class="formGrid">
       <div class="sub">Parameters</div>
-      <FormField v-for="f in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <div v-if="p5.field === 'refused'" class="statusNote error wide" role="alert" data-p5="line">
+        <span>Slow Feed not saved: Not armed — press Arm. The machine keeps 25.0.</span>
+      </div>
+      <div v-else class="settingDesc" data-p5="line">{{
+        p5.field === 'draft' ? 'Slow Feed not saved yet — the machine keeps 25.0'
+        : p5.field === 'saved' ? 'Saved — reaches the machine with the next probe'
+        : 'On the machine — written with the probe at 05:12' }}</div>
+      <FormField v-for="(f, i) in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)"
+                 :state="p5FieldState(i)" :error="p5FieldState(i) === 'refused' ? 'Not saved — press Arm' : null">
         <template #default="{ input }">
           <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
                         :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />

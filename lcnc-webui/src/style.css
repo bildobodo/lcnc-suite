@@ -849,6 +849,23 @@ input[type="range"]::-moz-range-thumb:hover {
   cursor: pointer;
 }
 
+/* W1 field states (P5 PROPOSAL — prototype for the operator's look, NOT
+   merged; operator 2026-11-21: one pattern for every form, saved NEUTRAL).
+   A field whose entry the server does not hold yet is a DRAFT: a 3 px amber
+   bar on its leading edge — the non-colour cue, the same bar as a checked
+   choice — and a faint amber tint. A field the server REFUSED keeps its
+   entry: a red bar and tint, the reason under it (FormField's error). A
+   saved field carries nothing. The controller's state is said ONCE per
+   section, never per field. */
+.formField.fs-draft .inputField {
+  box-shadow: inset 3px 0 0 var(--warn);
+  background: color-mix(in oklab, var(--warn) var(--tint-faint), var(--bg));
+}
+.formField.fs-refused .inputField {
+  box-shadow: inset 3px 0 0 var(--danger);
+  background: color-mix(in oklab, var(--danger) var(--tint-faint), var(--bg));
+}
+
 
 input[type="checkbox"] {
   cursor: pointer;

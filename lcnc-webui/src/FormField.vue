@@ -34,6 +34,9 @@ const props = defineProps<{
   /** Label, "?", field and unit in ONE row (a fixed section with room for
    *  one row: the rough sizes under a probe grid). */
   inline?: boolean;
+  /** W1 field state (P5 prototype): a draft the server does not hold yet,
+   *  or an entry it refused. Saved = no state (neutral). */
+  state?: "draft" | "refused" | null;
 }>();
 
 const slots = useSlots();
@@ -62,7 +65,7 @@ const groupAttrs = computed(() => ({
 </script>
 
 <template>
-  <div class="formField" :class="{ wide, inline }">
+  <div class="formField" :class="[{ wide, inline }, state ? `fs-${state}` : null]">
     <div class="formFieldHead">
       <span v-if="group" :id="labelId" class="formLabel">{{ label }}</span>
       <label v-else :id="labelId" :for="id" class="formLabel">{{ label }}</label>
