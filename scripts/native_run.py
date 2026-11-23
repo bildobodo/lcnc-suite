@@ -171,7 +171,7 @@ TS_DEADLINE = 240.0
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
 #: how long the latch step waits for the first frame after the continue
 LATCH_RESUME_WAIT_S = 10.0
-VARIANTS = ("latch-delayed", "jog-lease", "parse-basis", "p4")
+VARIANTS = ("latch-delayed", "jog-lease", "parse-basis", "p4", "p2b", "p2b-builds")
 #: P2a (machine day F24, 2026-11-21: one ~30 s full re-parse per probe op with
 #: unchanged values): a loaded program that runs the toolsetter routine
 #: (T1 M600 — `routine`), padded so its parse is felt; a warm-up probe op
@@ -2074,6 +2074,197 @@ def _parse_basis_steps(ctx):
     return rows
 
 
+# ── P2b (plan v4 "Nativ"): the lifetime of a calculation on the real task ──
+#: a program long enough that an unload lands inside its parse (the parse
+#: of PB_PADDING lines takes ~1-2 s on the VM; four times that)
+P2B_FILE, P2B_PADDING = "native_p2b.ngc", 80000
+#: after the parse's end: this long for a late spawn or publication
+P2B_AFTER_S = 6.0
+P2B_END_WAIT_S = 120.0
+
+
+def p2b_cases():
+    """P2b-3 on the real task (plan v4 guards 8 and 9): an unload while the
+    parse of a big program runs publishes nothing and starts nothing; with a
+    program loaded that runs the routine, `tool_measure` (the panel's job)
+    parses exactly once — after its action's observed end and the
+    read-back, the basis confirmed."""
+    def step(ctx):
+        with _admitted_sends(ctx["client"]):
+            return _p2b_steps(ctx)
+    return ("p2b", step)
+
+
+def _p2b_program(padding: int) -> str:
+    lines = ["G21 G90 G94", f"T{MEASURED_TOOL} M600", "G0 X10 Y10"]
+    lines += [f"G1 X{10 + (i % 2) * 50} Y{10 + (i % 400) * 0.25:.2f} F3000" for i in range(padding)]
+    return "\n".join(lines + ["M2"]) + "\n"
+
+
+def _job_routine(c, cmd, payload, declared=(), deadline=180.0):
+    """ONE feature job (`tool_measure` …) to its END, as _routine does for
+    an mdi: every tool change it raises served by the M6 helper."""
+    from test_support import tool_change as tc
+    changes = tc.ToolChanges(list(declared))
+
+    def bounds():
+        refusal = changes.precheck(c.status)
+        if refusal:
+            raise RuntimeError(f"{cmd}: {refusal}")
+        return len(c.errors), len(c.frames), time.monotonic()
+    reply, (seen, cursor, t0) = _when_free(c, cmd, before=bounds, **payload)
+    end = tc.RoutineEnd(require_busy=True, grace=SHORT_GRACE)
+    served = tc.serve(c, changes, end, deadline, cursor=cursor)
+    return {"reply": reply, "t0": t0, "served": served, "errors": [(k, x) for _, k, x in c.errors[seen:]]}
+
+
+def _p2b_steps(ctx):
+    c, rows = ctx["client"], ctx.setdefault("rows", [])
+    # (1) an unload while the parse of a big program runs (guard 9)
+    path = ctx["config"] / NC_FILES / P2B_FILE
+    path.write_text(_p2b_program(P2B_PADDING))
+
+    def unload_during():
+        t_ns = time.time_ns()
+        c.request("load_file", path=str(path))
+        job, end = None, time.monotonic() + 30.0
+        while job is None and time.monotonic() < end:
+            pr = (c.status or {}).get("preview_refresh") or {}
+            if pr.get("file") == path.name and isinstance(pr.get("job"), int):
+                job = pr["job"]
+            else:
+                time.sleep(0.02)
+        if job is None:
+            raise Refused("p2b-unload-during-parse: the load's parse was not seen running")
+        c.request("unload_file")
+        # the job's end in this gateway's trace, then a while for anything late
+        end = time.monotonic() + P2B_END_WAIT_S
+        while time.monotonic() < end:
+            ev = _gateway_events_since(ctx, t_ns)
+            if any(e.get("tag") in ("gcode.parse_cancelled", "gcode.parse_discarded", "gcode.publish")
+                   and e.get("job") == job for e in ev):
+                break
+            time.sleep(0.2)
+        time.sleep(P2B_AFTER_S)
+        return job
+    job, window = _framed(ctx, c, "p2b-unload-during-parse", unload_during)
+    rows.append(nc.eval_unload_during_parse("p2b-unload-during-parse", window, job))
+    ctx["report"]["p2b_unload_job"] = job
+
+    # (2) tool_measure with a program loaded that runs the routine (guard 8)
+    ts = {**_vars(c, TOOLSETTER_VARS), 3005: M600_SLOW}
+    _save_toolsetter(ctx, c, ts)
+    loaded = _load_program(ctx, c, PB_FILE, _pb_program(), timeout=PB_QUIET_MAX_S)
+    _pb_quiet(c, "p2b-tool-measure-before")
+
+    def owed_since(t_ns):
+        return lambda: nc.pb_owed(_gateway_events_since(ctx, t_ns))
+
+    def measure():
+        t_ns = time.time_ns()
+        r = _job_routine(c, "tool_measure", {"tool": MEASURED_TOOL}, declared=[MEASURED_TOOL])
+        return r, _pb_quiet(c, "p2b-tool-measure", owed_since(t_ns))
+    try:
+        (r, quiet_s), window = _framed(ctx, c, "p2b-tool-measure", measure)
+        rows.append(nc.eval_measure_parses_once("p2b-tool-measure", window, quiet_s))
+        ctx["report"]["p2b_tool_measure"] = {"reply": r.get("reply"), "errors": r.get("errors"), "quiet_s": quiet_s}
+    finally:
+        c.request("unload_file")
+    ctx["report"]["p2b_measure_file"] = loaded.name
+    return rows
+
+
+# ── P2b-1 acceptance (plan v4 "Vorher/Nachher-Lauf"): the model builds ─────
+#: the machine day's load sequence on the VM sim: load → run with M600 →
+#: tool change → load, a real page with the simulation on throughout
+BC_FILE = "native_builds.ngc"
+BC_PROGRAM = "\n".join(["G21 G90 G94", f"T{MEASURED_TOOL} M600", "G43", "G0 X100 Y100", "G0 Z-100",
+                         "G1 X200 F3000", "G1 Y200", "G0 Z-80", "M2"]) + "\n"
+BC_FIRST_S, BC_STEP_S, BC_QUIET_S = 600.0, 300.0, 6.0
+BC_KINDS = ("browser.collision.sweep_start", "browser.collision.sweep_done", "browser.collision.sweep_cancelled",
+            "browser.collision.sweep_failed", "browser.collision.model_built", "browser.collision.model_reused",
+            "browser.collision.entry_start", "browser.collision.entry_done")
+
+
+def _page_checks_settled(ctx, t_ns, timeout, case):
+    """The page's collision checks since wall `t_ns` have settled: at least
+    one finished, every started one ended, nothing new for BC_QUIET_S — from
+    THIS gateway's trace (the page's telemetry). Bounded."""
+    end, last_n, quiet_since = time.monotonic() + timeout, -1, None
+    while time.monotonic() < end:
+        ev = [e for e in _gateway_events_since(ctx, t_ns) if str(e.get("tag", "")).startswith("browser.collision.sweep")]
+        starts = {e.get("id") for e in ev if e.get("tag") == "browser.collision.sweep_start"}
+        ends = {e.get("id") for e in ev if e.get("tag") != "browser.collision.sweep_start"}
+        done = any(e.get("tag") == "browser.collision.sweep_done" for e in ev)
+        if len(ev) != last_n:
+            last_n, quiet_since = len(ev), time.monotonic()
+        elif done and starts <= ends and time.monotonic() - quiet_since >= BC_QUIET_S:
+            return round(time.monotonic() - (end - timeout), 1)
+        time.sleep(0.5)
+    raise Refused(f"{case}: the page's checks did not settle in {timeout:g} s")
+
+
+def builds_cases():
+    """P2b-1's before/after measure on the VM sim (plan v4): a real page with
+    the simulation on through load → run with M600 → tool change → load; the
+    model builds per instance and model generation (the page's own words —
+    the after tree) and by the tap's rule (a request with the bodies builds
+    one model per shard it runs on — both trees), the main-thread windows
+    late past 150 ms. Run once at the base commit and once at the head."""
+    def step(ctx):
+        with _admitted_sends(ctx["client"]):
+            return _builds_steps(ctx)
+    return ("p2b-builds", step)
+
+
+def _builds_steps(ctx):
+    c, rows = ctx["client"], ctx.setdefault("rows", [])
+    from test_support import tool_change as tc
+    _set_tool_length(c, PROBE_TOOL, PROBE_L0)
+    ts = {**_vars(c, TOOLSETTER_VARS), 3005: M600_SLOW}
+    _save_toolsetter(ctx, c, ts)
+    proc = subprocess.Popen(["node", str(HERE / "test_support" / "build_count_probe.mjs"), str(ctx["tree"]),
+                             "http://127.0.0.1:8000/"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, text=True)
+    marks, probe = {}, {}
+    try:
+        line = proc.stdout.readline() if proc.stdout else ""
+        if '"ready"' not in line:
+            raise Refused(f"p2b-builds: the page did not come up: {line[:300]}")
+
+        def sequence():
+            t_ns = marks["load1"] = time.time_ns()
+            _load_program(ctx, c, BC_FILE, BC_PROGRAM, timeout=PB_QUIET_MAX_S)
+            marks["load1_s"] = _page_checks_settled(ctx, t_ns, BC_FIRST_S, "p2b-builds.load")
+            t_ns = marks["run"] = time.time_ns()
+            changes = tc.ToolChanges([MEASURED_TOOL])
+            _, (cursor, _err) = _when_free(c, "cycle_start", before=lambda: (len(c.frames), len(c.errors)))
+            end = tc.RoutineEnd()
+            tc.serve(c, changes, lambda t, st: end(t, st), TS_DEADLINE, cursor=cursor)
+            marks["run_s"] = _page_checks_settled(ctx, t_ns, BC_STEP_S, "p2b-builds.run")
+            t_ns = marks["tool"] = time.time_ns()
+            _short(c, f"M61 Q{PROBE_TOOL} G43")
+            marks["tool_s"] = _page_checks_settled(ctx, t_ns, BC_STEP_S, "p2b-builds.tool")
+            t_ns = marks["load2"] = time.time_ns()
+            _load_program(ctx, c, BC_FILE, BC_PROGRAM + "(again)\n", timeout=PB_QUIET_MAX_S)
+            marks["load2_s"] = _page_checks_settled(ctx, t_ns, BC_STEP_S, "p2b-builds.load2")
+        _, window = _framed(ctx, c, "p2b-builds", sequence)
+    finally:
+        try:
+            if proc.stdin:
+                proc.stdin.close()
+            out, err = proc.communicate(timeout=60)
+            lines = [ln for ln in out.splitlines() if ln.startswith("{")]
+            probe = json.loads(lines[-1]) if lines else {"errors": [err[-600:]]}
+        except Exception as e:  # noqa: BLE001 - the probe's end is reported, the run goes on to its restore
+            proc.kill()
+            probe = {"errors": [f"the probe did not end: {e}"]}
+        c.request("unload_file")
+    ctx["report"]["p2b_builds"] = {"marks": marks, "probe_errors": probe.get("errors"), "cores": (probe.get("tap") or {}).get("cores")}
+    rows.append(nc.eval_build_count("p2b-builds", window, probe.get("tap"), marks))
+    return rows
+
+
 # ── Package G2 (Codex R326): the workpiece, the scan, the compensation ─────
 
 def parse_signals(text: str) -> dict:
@@ -3400,6 +3591,10 @@ def main(argv=None) -> int:
         steps = base + [home_cases(joints), jog_lease_cases()]
     elif a.variant == "parse-basis":
         steps = base + [home_cases(joints), parse_basis_cases()]
+    elif a.variant == "p2b-builds":
+        steps = base + [home_cases(joints), builds_cases()]
+    elif a.variant == "p2b":
+        steps = base + [home_cases(joints), p2b_cases()]
     elif a.variant == "p4":
         steps = base + [estop_reset_cases(), error_line_cases()]
     else:

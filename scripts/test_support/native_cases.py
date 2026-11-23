@@ -1906,6 +1906,129 @@ def eval_parse_basis(case: str, window: dict, ops: int, quiet_s=None) -> dict:
     return _row(case, "PASS", f"no toolsetter re-parse for {ops} probe ops with unchanged values", **measured)
 
 
+def eval_unload_during_parse(case: str, window: dict, job) -> dict:
+    """P2b-3 guard 9 on the real task: the load's parse (`job`) still ran
+    when the unload was written — superseded for `unload` — and then nothing
+    of it was published, and no parse started after the unload. A parse that
+    had already ended before the unload proves nothing (incomplete)."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    if window.get("losses"):
+        return _row(case, "incomplete", "the gateway lost trace records overlapping the window", losses=window["losses"])
+    ev = window.get("events") or []
+    sup = [i for i, e in enumerate(ev) if e.get("tag") == "gcode.reparse_superseded" and e.get("job") == job
+           and e.get("reason") == "unload"]
+    pubs = [e for e in ev if e.get("tag") == "gcode.publish" and e.get("job") == job]
+    ends = [e.get("tag") for e in ev if e.get("tag") in ("gcode.parse_cancelled", "gcode.parse_discarded")
+            and e.get("job") == job]
+    measured = {"job": job, "superseded": len(sup), "published": len(pubs), "ends": ends}
+    if pubs:
+        return _row(case, "FAIL", "the unloaded program's parse was published", **measured)
+    if not sup:
+        return _row(case, "incomplete", "the parse was not running at the unload (no supersede for it)", **measured)
+    later = _spawns(ev[sup[0]:])
+    measured["spawned_after"] = [(e.get("job"), e.get("reason")) for e in later]
+    if later:
+        return _row(case, "FAIL", f"{len(later)} parse(s) started after the unload", **measured)
+    if not ends:
+        return _row(case, "incomplete", "the parse's end is not in the window", **measured)
+    return _row(case, "PASS", "superseded by the unload, ended unpublished, nothing restarted", **measured)
+
+
+def eval_measure_parses_once(case: str, window: dict, quiet_s=None) -> dict:
+    """P2b-3 guard 8 on the real task: `tool_measure` with a program loaded
+    that runs the routine — exactly ONE drift parse in the window, started
+    after the job's action ended (`action.ended`, its observer's proof) and
+    after the read-back's terminal outcome; none while the action lived."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    if window.get("losses"):
+        return _row(case, "incomplete", "the gateway lost trace records overlapping the window", losses=window["losses"])
+    ev = window.get("events") or []
+    idx = {id(e): i for i, e in enumerate(ev)}
+    spawns = [e for e in _spawns(ev) if str(e.get("reason")) not in LOAD_REASONS]
+    ended = [e for e in ev if e.get("tag") == "action.ended" and e.get("what") == "tool_measure"]
+    outcomes = [e for e in ev if e.get("tag") == "toolsetter.read_back_outcome" and e.get("outcome") in PB_TERMINAL]
+    measured = {"parses": [(e.get("job"), e.get("reason")) for e in spawns],
+                "action": [e.get("outcome") for e in ended], "read_backs": [e.get("outcome") for e in outcomes],
+                "discarded": sum(1 for e in ev if e.get("tag") == "gcode.parse_discarded"), "quiet_s": quiet_s}
+    if not ended:
+        return _row(case, "incomplete", "the job's action end is not in the window", **measured)
+    first_end = idx[id(ended[0])]
+    early = [e for e in spawns if idx[id(e)] < first_end]
+    if early:
+        return _row(case, "FAIL", f"{len(early)} parse(s) while the action lived", **measured)
+    if outcomes and any(idx[id(e)] < idx[id(outcomes[-1])] for e in spawns):
+        return _row(case, "FAIL", "a parse before the read-back ended", **measured)
+    if len(spawns) != 1:
+        return _row(case, "FAIL", f"{len(spawns)} drift parses after the measure, not exactly one", **measured)
+    return _row(case, "PASS", "one parse, after the action's observed end and the read-back", **measured)
+
+
+#: the page's collision worker pool (collisionWorker.ts shardCount): at most
+#: MAX_SHARDS, the cores but two, never more model copies than SHARD_TRIANGLES
+BC_MAX_SHARDS, BC_SHARD_TRIANGLES = 8, 4_000_000
+
+
+def tap_builds(tap) -> dict:
+    """The builds by the tap's rule — the same for the before and the after
+    tree: a main request WITH the bodies builds one model on every shard it
+    runs on (collisionWorker.shardCount's formula), a side request one; a
+    request without the bodies builds none by this rule (a shard that lacks
+    the model gets them from the pool — the after tree's own words count
+    that)."""
+    reqs = (tap or {}).get("reqs") or []
+    cores = (tap or {}).get("cores")
+    sends, builds = 0, 0
+    for r in reqs:
+        if not r.get("bodies"):
+            continue
+        sends += 1
+        if r.get("side") or not isinstance(cores, int):
+            builds += 1
+            continue
+        k = min(BC_MAX_SHARDS, cores - 2, r.get("maxShards") or BC_MAX_SHARDS,
+                BC_SHARD_TRIANGLES // max(int(r.get("tris") or 1), 1))
+        builds += max(1, k)
+    return {"requests": len(reqs), "body_sends": sends, "builds": builds, "cores": cores}
+
+
+def eval_build_count(case: str, window: dict, tap, marks: dict) -> dict:
+    """P2b-1's measure (plan v4 "Vorher/Nachher-Lauf"): the builds by the
+    tap's rule (both trees), the page's own words where it has them (the
+    after tree: model_built / model_reused per instance and model
+    generation), the main-thread windows late past 150 ms
+    (browser.viewer.perf mt_late_max_ms), bound by page. A tree with the
+    words FAILs when one instance built one model generation twice; the
+    before tree is MEASURED (PASS: the record, the comparison is the report's)."""
+    if not window.get("framed"):
+        return _row(case, "incomplete", f"the trace window: {window.get('reason')}")
+    ev = window.get("events") or []
+    pages = {e.get("page") for e in ev if str(e.get("tag", "")).startswith("browser.collision.")}
+    built = [e for e in ev if e.get("tag") == "browser.collision.model_built"]
+    reused = [e for e in ev if e.get("tag") == "browser.collision.model_reused"]
+    per: dict = {}
+    for e in built:
+        key = f"{e.get('page')}/{e.get('instance')}/{e.get('model_gen')}"
+        per[key] = per.get(key, 0) + 1
+    late = [e for e in ev if e.get("tag") == "browser.viewer.perf" and (e.get("mt_late_max_ms") or 0) > 150]
+    measured = {"pages": sorted(str(p) for p in pages), "tap": tap_builds(tap), "marks": marks,
+                "words": bool(built or reused), "built": len(built), "reused": len(reused),
+                "build_ms": [e.get("ms") for e in built], "per_instance_gen": per,
+                "sweeps": sum(1 for e in ev if e.get("tag") == "browser.collision.sweep_start"),
+                "body_starts": sum(1 for e in ev if e.get("tag") == "browser.collision.sweep_start" and e.get("bodies")),
+                "late_windows_150": len(late), "perf_rows": sum(1 for e in ev if e.get("tag") == "browser.viewer.perf")}
+    if len(pages) != 1:
+        return _row(case, "incomplete", f"{len(pages)} pages in the window — the join needs one", **measured)
+    if not measured["sweeps"]:
+        return _row(case, "incomplete", "no collision check in the window", **measured)
+    twice = {k: n for k, n in per.items() if n > 1}
+    if twice:
+        return _row(case, "FAIL", "an instance built one model generation more than once", twice=twice, **measured)
+    return _row(case, "PASS", "measured" if not (built or reused) else "one build per instance and model generation",
+                **measured)
+
+
 def eval_parse_nice(case: str, window: dict) -> dict:
     """Every drift re-parse in the window ran niced (19, P2a-3): the
     `nice` its `gcode.spawn_start` asks for AND the priority the worker's
