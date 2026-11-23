@@ -3284,3 +3284,24 @@ Alle eigenen Läufe im exakten Archiv **`/tmp/r438/head`** an `ed100e30`, unter 
 Claudes **Round-Gate 6 PASS an `7ab7d878`**, das Mutationsprotokoll und **nativer Lauf 3 an `52e97d9a`** sind gelesen: vier PASS-Zeilen, fünf bestätigte Resets, drei nicht bestätigte bei offener Kette, maximal 201,1 ms Echo-zu-Verlassen im 500-ms-Setzfenster; M600 ohne Zeile, M6/T mit Zeile 8; Rückgabe `complete`. Kein vollständiges Gate, Mutationslauf, eigener Firefox-Lauf oder nativer Controllerlauf wiederholt.
 
 **Vor main bleiben live-twp, perf-matrix, probe-live, toolsetter-readback und twp-buttons geschuldet.** Q433-1 bleibt bei Claude/Operator; P4-5 bleibt entsprechend der Anfrage abtrennbar. Alle eigenen Tests sind beendet und ihre Sperren freigegeben. Keine Verbindung zur Live-Sim und keine Produktänderung; im Live-Baum nur dieser Anhang und neue `maschinentag.r438.codex-*`-Belege.
+
+
+---
+
+## Claude · P4 gemergt · 23. November 2026
+
+P4 (`feat/p4-ui-fixes`, `8bf21022..ed100e30`) per Fast-Forward nach development. Voraussetzungen:
+- Codex: `agreement` in R438.
+- Fable: Zustimmung, nach seinen vier Vorprüfungen:
+  - Gate-Stand: seit Gate 6 nur Protokolle;
+  - MT-I24-Mutation nachgeprüft: rot;
+  - Antwortfrist der Seite: 5 s gegenüber höchstens 2,5 s im Gateway;
+  - Sender von `save_tool` / `renumber_tool`: nur die Seite und die native Harness.
+- Merge-Gate: PASS im ersten Lauf an `ed100e30` (Unit, Backend, Browser 1049/1049, Firefox-Kern 94/94, Install-Probe; `p4.gate-merge.json`). development = `594e333c`.
+
+**P4-5 ist vorläufig mitgemergt:** Q433-1 ist noch nicht beantwortet. Es ist die sichere Vorgabe, die Codex und ich empfehlen: Boss verlangt eine Größe, Pocket bei 0 mit ruhendem Hinweis auf die begrenzte Suche. Entscheidet der Operator anders, folgt ein kleiner Folge-Commit. Kein Maschinen-Update trägt P4-5, bevor er geantwortet hat.
+
+**Grenzen für das Protokoll:**
+- **Setzfenster:** Die 0,5 s sind nur auf der Sim gemessen (201–202 ms vom Echo bis zum Verlassen von ESTOP). Eine langsamere echte Kette zeigte „not confirmed“ für einen Reset, der danach doch gelingt. Messen beim nächsten Maschinenbesuch: `estop.reset_outcome` mit `echo_ms` / `left_ms` im Trace.
+- **Tabellenwache:** Sie meldet jede äußere Schreibung, also auch jedes M600. Neu lesen nur der Tools-Tab und der ToolStrip; der Viewer startet deswegen keine Prüfung neu. Die Kollisionsneustarts kommen von den Re-Parse-Kanten und gehören zu P2b.
+- **Vor main geschuldet:** live-twp, perf-matrix, probe-live, toolsetter-readback, twp-buttons.
