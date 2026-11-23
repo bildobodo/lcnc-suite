@@ -53,3 +53,6 @@ examples/sim_config/probe-results-interptest.txt
 
 # Review handshake state (scripts/review_handshake.py)
 .review-handshake/
+
+# round-gate logs beside their record (docs/reviews/<topic>.gate-*.logs): local evidence, never committed — the record (.json) is
+docs/reviews/*.logs/
