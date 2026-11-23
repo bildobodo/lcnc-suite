@@ -340,7 +340,7 @@ def test_a_request_without_an_origin_of_this_run_is_a_finding(tmp_path, method, 
 # TS248-04 Rest A, keys and values" — each map with a wrong key and a wrong
 # value, refused against EACH example var file, naming its path; a valid form
 # of each passes (the replay keeps no second copy of the map rules)
-_RUN = {"line": 0, "file": "/a.ngc", "version": 1, "source": "s"}
+_RUN = {"line": 0, "file": "/a.ngc", "version": 1, "source": "s", "program_id": "e.1"}
 MAP_CASES = [
     ("mdi", {"text": "G0 X1", "vars": {"x3014": 1}}, "vars key 'x3014'"),
     ("mdi", {"text": "G0 X1", "vars": {"3014": "1"}}, "vars.#3014 must be a number"),
