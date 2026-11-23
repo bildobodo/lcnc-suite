@@ -118,6 +118,11 @@ class TestTheBeginIsAtEveryWriter(unittest.TestCase):
                      "inflight.add_done_callback(lambda _t, _a=_wact: _release_action(_a, _handler_end(_t)))"):
             self.assertEqual(SRC.count(site), 1, site)
 
+    def test_the_publication_reads_the_gateways_generation(self):
+        """The pipeline's gate is the gateway's ONE generation (a pipeline
+        without it publishes unchecked — a test's)."""
+        self.assertEqual(SRC.count("_bulk.generation = _calc_gen"), 1)
+
     def test_load_and_unload_begin_a_program_generation(self):
         self.assertIn('began=lambda: _program_began("load")', SRC)
         self.assertIn('began=lambda: _program_began("unload")', SRC)

@@ -140,5 +140,40 @@
    "late_windows_150": 7,
    "perf_rows": 35
   }
+ },
+ "p2b2_acceptance": {
+  "rule": "plan v4 P2b-2 'Abnahme': on the same load sequence no check cancelled by a drift parse that was already decided at its start; cancels by later input changes allowed and counted",
+  "clock": "the browser's own t_wall_ms for its events (the gateway stamps their receipt, batched every 2 s)",
+  "before": {
+   "checks": 5,
+   "cancelled": 1,
+   "the_cancel": "check 2 started 0.91 s after the load's publication, cancelled 3.2 s later by the toolsetter read-back's parse (job 2)"
+  },
+  "after": {
+   "checks": 5,
+   "cancelled": 1,
+   "cancelled_by_a_parse_decided_at_its_start": 0,
+   "the_cancel": "check 2 started 27.42 s, BEFORE the read-back's synch ended (28.58 s); that parse was decided at 30.61 s (2.03 s after the action's observed end) and published at 30.69 s - a later decision, allowed",
+   "waits": [
+    {
+     "after": "the run",
+     "check_waits": 100.91,
+     "decision": 101.33,
+     "start": 102.6,
+     "fallback": false
+    },
+    {
+     "after": "the tool change",
+     "check_waits": 111.76,
+     "decision": 113.14,
+     "start": 113.76,
+     "fallback": false
+    }
+   ]
+  },
+  "decision_after_action_end_s": {
+   "read-back synch -> toolsetter parse": 2.03,
+   "tool_measure (native p2b) -> table_mtime parse": 2.01
+  }
  }
 }

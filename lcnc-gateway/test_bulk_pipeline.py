@@ -1286,3 +1286,66 @@ class TestNicedOnlyARefresh(_NiceBase):
         self.parse("wcsoff:G54:z")
         done = [f for t, f in self.events if t == "gcode.worker_done"]
         self.assertEqual([f["nice_applied"] for f in done], [None, "19"])
+
+
+class TestGenerationAtThePublication(unittest.TestCase):
+    """P2b-3 through the real refresh_gcode_preview: the snapshot taken before
+    the parse's first input read, the publication under the generation's
+    lock — a begin while the worker runs leaves the published version alone,
+    names the discard and records the job's end; the verify path too."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.ini = os.path.join(self.tmp.name, "m.ini")
+        open(self.ini, "w").write("[EMC]\n")
+        self.ngc = os.path.join(self.tmp.name, "p.ngc")
+        open(self.ngc, "w").write("G0 X1\nM2\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run(self, begin_during: bool, stdout=b"\x81\xa4file\xc0", stderr=b"__SCHEMA__\t7\n"):
+        import lcnc_trace
+        from calc_lifetime import Generation
+        b = _pipeline(self.ini)
+        g = Generation()
+        b.generation = g
+
+        def worker(ctx_bytes, timeout):
+            if begin_during:
+                g.began("mdi")      # an input write begins while the worker runs
+            return (0, stdout, stderr)
+        b._run_gcode_worker_blocking = worker
+        events, real = [], lcnc_trace.emit
+
+        def rec(tag, level="info", msg="", **fields):
+            events.append((tag, dict(fields)))
+            return real(tag, level, msg, **fields)
+        lcnc_trace.emit = rec
+        try:
+            v0 = b.preview_version
+            b.job_seq = 41
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="wcsoff:G54:x", job=42))
+        finally:
+            lcnc_trace.emit = real
+        return b, v0, events
+
+    def test_a_begin_while_the_worker_runs_discards_the_publication(self):
+        b, v0, events = self._run(begin_during=True)
+        self.assertEqual(b.preview_version, v0, "nothing published")
+        self.assertFalse(b.preview_available())
+        disc = [f for t, f in events if t == "gcode.parse_discarded"]
+        self.assertEqual([(f["job"], f["why"], f["gen_at_spawn"], f["gen_now"]) for f in disc], [(42, "mdi", [0, 0], [0, 1])])
+        self.assertEqual(b.job_ends[42], {"why": "discarded"})
+        self.assertEqual((b.reparse_pending, b.reparse_pending_reason), (True, "discarded:mdi"))
+
+    def test_without_a_begin_it_publishes_and_records_the_version(self):
+        b, v0, _events = self._run(begin_during=False)
+        self.assertEqual(b.preview_version, v0 + 1)
+        self.assertEqual(b.job_ends[42], {"published": v0 + 1})
+
+    def test_the_verify_path_is_gated_too(self):
+        tlo = json.dumps({"start_known": True, "tlo_start": [0, 0, 5], "start_mode": "G43"})
+        b, v0, events = self._run(begin_during=True, stdout=b"", stderr=("__SAME__\n__TLO__\t" + tlo + "\n").encode())
+        self.assertIsNone(b.tool_basis, "the verified basis is not taken")
+        self.assertTrue(any(t == "gcode.parse_discarded" for t, _ in events))

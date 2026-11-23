@@ -151,6 +151,20 @@ MUTS = {
     "a_routine_is_an_mdi": (GW + "calc_lifetime.py", [(
         "        return \"routine\" if _ROUTINE_LINE.search(text) else \"mdi\"", "        return \"mdi\"")],
         [py(CL + "TestInputWriteClass::test_by_effect", "AssertionError")]),
+    # ---- P2b-3: the publication gate on its real path (refresh_gcode_preview)
+    "the_gateway_never_wires_the_generation": (GW + "gateway.py", [(
+        "_bulk.generation = _calc_gen   # the publication checks it (bulk_pipeline)", "None   # the publication checks it (bulk_pipeline)")],
+        [py(CW + "TestTheBeginIsAtEveryWriter::test_the_publication_reads_the_gateways_generation", "AssertionError")]),
+    "the_snapshot_at_the_publication": (GW + "bulk_pipeline.py", [(
+        "        ok, now, why = self.generation.publish_if(gen_at, apply)",
+        "        ok, now, why = self.generation.publish_if(self.generation.snapshot(), apply)")],
+        [py("test_bulk_pipeline.py::TestGenerationAtThePublication::test_a_begin_while_the_worker_runs_discards_the_publication",
+            "nothing published")]),
+    "the_verify_path_ungated": (GW + "bulk_pipeline.py", [(
+        "                    if not self._publish_in_generation(_gen_at, lambda: self._set_tool_basis(self.basis_of(worker_tlo)),",
+        "                    if not self._publish_in_generation(None, lambda: self._set_tool_basis(self.basis_of(worker_tlo)),")],
+        [py("test_bulk_pipeline.py::TestGenerationAtThePublication::test_the_verify_path_is_gated_too",
+            "the verified basis is not taken")]),
     # ---- P2b-2 (plan v4 variant 1): the idle check waits for the drift decision
     "the_decision_wait_never_falls_back": (V + "driftWait.ts", [(
         "    if (waited >= fallbackMs) {", "    if (false) {")],
