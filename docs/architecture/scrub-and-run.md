@@ -656,6 +656,55 @@ field, haus and kontur also by +4 feed points — the braking range's legs
 inside their M600's band (untrusted routine lines; plan parity-ef F) — and
 the 73 native payload fixtures in the stamp alone.
 
+**The lifetime of a calculation (P2b-3 / P2b-2, 2026-11-23, plan v4 agreed
+Codex R439–R442, `lcnc-gateway/calc_lifetime.py`)**: a parse used to be dropped
+only by `cancel_inflight` from the event loop, and its publication checked
+nothing — a parse ending between a write's admission and its return, or after
+an unload, published inputs the controller no longer held. Now:
+- *The generation.* `Generation` (program, inputs) lives under ONE
+  `threading.Lock`. Every input write BEGINS by bumping it — in its own write
+  thread, after its last admission and the second Link check, immediately
+  before the effect (`_cmd_blocking`, decided by the write's EFFECT:
+  `input_write_class` — every MDI line, a switch to MDI/AUTO (task synchs the
+  parameters), the synch, the table reload; never MANUAL, never a no-op
+  switch; a program start is the AUTO exception). The file writers begin right
+  before the file changes (tool table, parameter file via
+  `_var_file_write_began`, a program the published or running parse reads,
+  every macro publish/delete/rename). A load or unload is a new program
+  generation (`_program_began`). A parse snapshots the generation before its
+  first input read; its publication (and the verify path's basis) runs under
+  the same lock in one step — check, fields, `preview_version` last, no await,
+  no I/O — or is discarded (`gcode.parse_discarded {why, gen_at_spawn,
+  gen_now}`; under the same program `reparse_pending` "discarded:<why>"). A
+  running parse of an older generation is cancelled by the poll loop
+  (`inflight_outdated`, reason `generation`).
+- *The action.* An admitted `input_action` command (`command_policy.
+  COMMAND_EFFECTS`, every command of COMMAND_GATES classified) HOLDS a new
+  idle parse from its enqueue to its handler task's end — released on the
+  supersede by a stop, the disconnect drop and the task's end, however it
+  ends. Each input write gets an observer: PENDING before the write, the NML
+  buffer's serial booked after it, ended only by the start claims' completion
+  decision (`gateway_util.controller_done`) or a named outcome (aborted at
+  abort / E-Stop, link_lost, unknown past its class limit: routine 900 s, MDI
+  300 s, mode / synch / table 30 s; a mode switch ends on its echo and the
+  target mode). The handler's return is no end (a CALL with wait=None answers
+  ok long before the routine ends). The idle parse restarts only with no
+  action held or observed and 2 s since the OBSERVED end (`_actions_quiet`,
+  `_restart_wait`); a discarded parse's restart also waits for idle, and while
+  an unload settles no parse of the program starts (`_bulk.unloading`).
+- *The decision (P2b-2).* The gateway names its first drift decision after an
+  idle transition or an action's end (`drift_decision`: pending / none /
+  parse {job, published | why}); the page's idle check waits for it at most
+  3 s (one named fallback) and for a named parse until its publication is
+  adopted (`viewer/driftWait.ts`). Every idle edge waits for the one open
+  toolsetter confirmation (30 s from its anchor, `_drift_edge`).
+- Limits named: a load parse still running at Cycle Start is cancelled by the
+  switch's begin and restarted at once by the file edge (a new file never
+  waits) under the run at normal priority — before P2b the same parse ran on
+  and published under the run; measured decision times: an action's end →
+  decision 2.0 s, a probe op → its WCS edge 4.05 s (the read-back's own end in
+  between opens a newer decision, so the page's wait runs from there).
+
 **Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
 edge above used to be gated on "no parse running", so an edge raised
 DURING a parse (a touch-off while the rotary-drift parse from → Zero
