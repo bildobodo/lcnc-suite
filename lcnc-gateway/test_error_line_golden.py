@@ -34,6 +34,15 @@ PROGRAMS = {
     "in_a_sub_file": ("G21 G90\nG0 X0\nG0 Y0\nG0 Z0\nG1 X1 F100\nG1 X2\nG1 X3\no<bad_sub> call\nG1 X4\nM2\n", None),
     "in_a_remap": ("G21 G90\nG0 X0\nG0 Y0\nG0 Z0\nG1 X1 F100\nG1 X2\nG1 X3\nM610\nG1 X4\nM2\n", None),
     "in_an_inline_sub": ("G21 G90\nG0 X0\nO100 sub\nG1 X1 Q\nO100 endsub\nO100 call\nM2\n", None),
+    # Codex R437 MT-I21: a short main file whose CALL line holds, by number,
+    # the called file's failing offset — the caller's frame says the error
+    # may be the called routine's (no line); the remap controls stay lineless
+    **{f"called_file_short_{pad}": (f"G21 G90\no<bad_sub> call{' ' * pad}\nM2\n", None) for pad in (0, 30, 80, 200)},
+    **{f"remap_short_{pad}": (f"G21 G90\nM610{' ' * pad}\nM2\n", None) for pad in (0, 30, 80, 200)},
+    # a good call, then a bad one: the error is the second call's routine's
+    "after_a_good_call_a_bad_one": ("G21 G90\no<good_sub> call\no<bad_sub> call\nM2\n", None),
+    # a main-file error on the line right after a call still names its line
+    "the_line_after_a_call": ("G21 G90\no<good_sub> call\nG1 X1 F100 Q\nM2\n", 3),
 }
 SUBS = {
     "bad_sub.ngc": "o<bad_sub> sub\nG0 X0\nG1 X1 Q\no<bad_sub> endsub\nM2\n",

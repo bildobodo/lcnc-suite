@@ -53,6 +53,7 @@ Result shape (msgpack dict):
 import json
 import math
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -184,16 +185,39 @@ def _basis_to_machine(vals, unit_scale):
             for i, v in enumerate(vals)]
 
 
+#: a main-file line that hands execution to another routine — an o-word call
+#: or M98 (P4-7, Codex R437 MT-I21): an error reported there may be the
+#: called routine's, whatever the numbers say
+_CALL_LINE = re.compile(r"o\s*(<[^>]*>|\d+)\s*call\b|\bm\s*0*98(?![0-9])", re.I)
+_NGC_COMMENT = re.compile(r"\([^)]*\)|;.*$")
+
+
+def _main_line_text(canon, n: int) -> Optional[str]:
+    try:
+        with open(canon.main_file, "rb") as f:
+            lines = f.read().split(b"\n")
+    except OSError:
+        return None
+    return lines[n - 1].decode("utf-8", "replace") if 1 <= n <= len(lines) else None
+
+
 def proven_error_line(canon) -> Optional[int]:
-    """The MAIN file's line a parse error stands on — only where two
-    independent readings of the interpreter agree after the error (P4-7,
-    measured on the real interpreter 2026-11-22): its main context (no call,
-    no remap, the main file) at sequence number N ≥ 1, AND the failing
-    block's byte offset inside line N of the main file. An error inside a
-    called routine or a remap unwinds to the caller with the counter at the
-    call (or 0 in a remap) and the block's offset in ANOTHER file — the two
-    disagree, and no line is said; a frame left from an earlier call proves
-    nothing either way. None outside a parse's interpreter."""
+    """The MAIN file's line a parse error stands on — only where its origin
+    is proven (P4-7, measured on the real interpreter 2026-11-22/23):
+    1. the interpreter's main context (no call, no remap, the main file) at
+       sequence number N >= 1, AND the failing block's byte offset inside
+       line N of the main file;
+    2. N is not the line of the LAST call: after an error in a CALLED file
+       the interpreter unwinds to its caller — filename, call level and
+       sequence number the caller's, the block offset possibly the called
+       file's, which can fall inside the call line by number alone (Codex
+       R437 MT-I21: "G21 G90 / o<bad_sub> call / M2" named line 2). The
+       caller's frame (sub_context[0]) keeps the line it called from: equal
+       to N, the error may be the called routine's — no line;
+    3. line N is no call line (an o-word call, M98) — the minimum rule.
+    A frame an earlier call left behind names an earlier line and proves
+    nothing either way. Otherwise no line. None outside a parse's
+    interpreter."""
     t = gcode_canon.interp_this()
     if t is None or getattr(canon, "main_file", None) is None:
         return None
@@ -204,9 +228,16 @@ def proven_error_line(canon) -> Optional[int]:
         if not canon._is_main(t.filename):
             return None
         at = canon._byte_line(int(t.blocks[0].offset) + 1)
+        caller = t.sub_context[0]
+        called_from_here = canon._is_main(caller.filename) and int(caller.sequence_number) == n
     except (AttributeError, IndexError, TypeError, ValueError):
         return None
-    return n if at == n else None
+    if at != n or called_from_here:
+        return None
+    text = _main_line_text(canon, n)
+    if text is None or _CALL_LINE.search(_NGC_COMMENT.sub("", text)):
+        return None
+    return n
 
 
 def parse(ctx: dict) -> dict:
