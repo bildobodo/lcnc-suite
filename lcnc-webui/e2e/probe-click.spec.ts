@@ -158,15 +158,6 @@ for (const c of CAL_CELLS) {
   });
 }
 
-test("Surface: the compensation switch is named", async ({ page }) => {
-  // machine day 8.7b–d: a recorder named it "INPUT" — its accessible name
-  // is the label around it
-  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
-  const side = page.locator('.sidePane');
-  await side.getByRole('tab', { name: 'Probing', exact: true }).click();
-  await side.getByRole('tab', { name: 'Surface', exact: true }).click();
-  await expect(side.getByRole('checkbox', { name: 'Enable Compensation', exact: true })).toHaveCount(1);
-});
 
 // The Boss/Pocket size contract at the cells (P4-5, machine day F25, Codex
 // MT433-02): a boss needs its size — dimmed with the reason, nothing sent —

@@ -57,3 +57,15 @@ test("a chosen method is sent once and pending; the reported one stays checked, 
   await expect(cubic).toBeChecked();
   await expect(cubic).not.toHaveAttribute("aria-busy", "true");
 });
+
+// The compensation switch carries its name (machine day 8.7b–d, P4-4: a
+// recorder named it "INPUT") — its accessible name is the label around it.
+test("Surface: the compensation switch is named", async ({ page }) => {
+  // machine day 8.7b–d: a recorder named it "INPUT" — its accessible name
+  // is the label around it
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  const side = page.locator('.sidePane');
+  await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+  await side.getByRole('tab', { name: 'Surface', exact: true }).click();
+  await expect(side.getByRole('checkbox', { name: 'Enable Compensation', exact: true })).toHaveCount(1);
+});
