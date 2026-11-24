@@ -220,12 +220,13 @@ MUTS = {
             "a new session never takes an old session's reply")]),
     # ---- P2b-F1 scene (the pre-update check 2026-11-24): hidden is drawn as an unload
     "the_hidden_preview_stays_drawn": (S + "ThreeViewer.vue", [(
-        "    else _clearShownPreview();\n", "    else _refreshWantKey();\n")],
+        # (the function kept referenced: an unused one fails vue-tsc and the page is not built)
+        "    else _clearShownPreview();\n", "    else { _refreshWantKey(); void _clearShownPreview; }\n")],
         [pw("e2e/program-identity.spec.ts", "a run started before its preview",
             "case (c): nothing of A2 drawn through C's run"),
          pw("e2e/program-identity.spec.ts", "a new program at idle", "A2's path no longer rendered under C")]),
     "the_clear_keeps_the_old_payload": (S + "ThreeViewer.vue", [(
-        "  _applyGcodeNow(noPreview());\n", "  toolpath.release();\n")],
+        "  _applyGcodeNow(noPreview());\n", "  toolpath.release(); void noPreview;\n")],
         [pw("e2e/program-identity.spec.ts", "same path loaded again",
             "the same path reloaded: nothing of the old load drawn")]),
     "the_drawn_key_kept": (S + "ThreeViewer.vue", [(
