@@ -81,8 +81,9 @@ for (const vp of [DESKTOP, FULLHD, NARROW]) {
       expect(await sidewaysOverflow(side), name).toEqual([]);
     }
     // the pending candidate and its refusal: the same row, the same height
-    await put(STATES.pending!);
+    await put({ rec: REC, cand: { ...CAND, routine: "probe_cal_round_pocket", size: { d: 20 }, axis: 0 } });
     const row = side.locator('[data-cal="candidate"]');
+    await expect(row.locator('[data-cal="detail"]')).toHaveText("Round hole Ø 20 mm, Avg XY");
     const before = (await row.boundingBox())!;
     await ctl({ op: "replyFor", cmd: "cal_apply", reply: { ok: false, error: "not saved — OSError" } });
     await row.getByRole("button", { name: "Apply", exact: true }).click();
