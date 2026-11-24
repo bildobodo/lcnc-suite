@@ -43,3 +43,23 @@ Error: a call or a modal restore: the units not proven
 Error: a call or a modal restore: the units not proven
 2 failed
 # at fc3c17da: the whole spec 9/9 green (~/claude-work/p6/p6e/r463-spec.log)
+
+# R466 (Codex, MT-I34 rest: executable comments) - red at 0490a7ec, 2026-11-24
+# unit: programToolHeader.test.ts's R466 cases against 0490a7ec's scanner, in this worktree before the fix (the controls green there):
+     × R466 executable comment — semicolon Python: the unit not proven 5ms
+     × R466 executable comment — Python case and leading spaces: the unit not proven 1ms
+     × R466 executable comment — parenthesis Python assignment: the unit not proven 0ms
+     × R466 executable comment — Python file: the unit not proven 0ms
+     × R466 executable comment — Python reload: the unit not proven 0ms
+     × R466 executable comment — Python reload, a prefix, upper case, in parentheses with spaces: the unit not proven 1ms
+     × R466 executable comment — under block delete: the unit not proven 1ms
+     × R466: the first motion line's executable comment counts too 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { scan: { unit: 'mm', …(2) }, …(1) } to match object { scan: { unit: null, …(1) }, …(1) }
+AssertionError: expected null to be 'unproven' // Object.is equality
+      Tests  8 failed | 23 passed (31)
+# browser: the R466 case of program-header.viewer.spec (Codex's own probe) against a build of 0490a7ec, 1 worker, heavy lock:
+✘  1 [e2e] › e2e/program-header.viewer.spec.ts:227:1 › R466 Python comment: the card claims no proven header unit (13.6s)
+Error: an executable comment: the units not proven
+1 failed
+# at 50e8c8d0: the whole spec 10/10 green (~/claude-work/p6/p6e/r466-spec.log), unit 51/51
