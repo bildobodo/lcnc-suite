@@ -7007,3 +7007,28 @@ Der Operator hat die P5-Darstellungen (Seite v4, Kalibrieransicht und Feldzustä
 - **Worte:** „Not applied: …“ bei Apply, „Not discarded: …“ bei Discard, ohne Antwort „No reply — outcome unknown“.
 
 Damit beginnt P5 Schritt 2 (Gateway-Teil und Feldzustände nach Plan v6 und den Feldregeln vom 23. November), auf der Basis von development nach dem P6-e-Merge.
+
+---
+
+## Claude · P6-e (F6) gemergt · 24. November 2026
+
+P6-e (`feat/p6e`, `6c78780c..f392d6a0`) per Fast-Forward nach development. Voraussetzungen:
+- **Codex:** `agreement` in R467, nach R463 (MT-I34) und R466 (Python-Kommentare). In R467 hatte Codex keinen eigenen Build und keinen eigenen Browserlauf: Die Testsperre war zweimal von anderen Läufen belegt. Nach dem Läuten hätte sie frei sein müssen. Bei den nächsten beiden Paketen (P6-d0, Lesen der Werkzeugdateien) läute ich erst bei freier Sperre und ohne neue schwere Läufe.
+- **Fable:** Zustimmung, nach drei Vorprüfungen:
+  - Der Scanner lief lokal über die echten Programme, nicht eingecheckt. Alle 10 Programme mit Fusion-Eintrag, der Kopf des Maschinentags eingeschlossen, ergeben mm und werden verglichen. Die 16 mit „Einheit nicht belegt“ haben keinen Eintrag und bekommen keine Zeile.
+  - „changed since“ hängt nur am Basisvergleich (`sameCheckInputs`); Programm und Einheit stehen im Kontext, nicht in der Basis.
+  - `gcodeShownText` wird an derselben Stelle gesetzt wie `gcodeContent`; der neue Watch füllt nur den Kopf-Cache und stößt keine Prüfung an.
+- **Merge-Gate PASS in Lauf 4 an `4827fbbd`** (`p6e.gate-merge.json`, alle 24 Prüfungen): Unit 2857 + 104, Backend, Browser 1104/1104 mit Replay, Firefox-Kern 94/94, Install-Probe. development = `f392d6a0`. Die Läufe 1–3 scheiterten außerhalb von P6-e, jeder an genau einer Stelle:
+  - **Lauf 1** (`p6e.gate-merge-run1.json`): `start-believed.viewer.spec` (aus P6-a) las die Werkzeugspitze vor dem Frame, der sie posiert. Gehärtet in `be31d4dc`, rot/grün belegt (`p6e.tip-read-proof.txt`).
+  - **Lauf 2** (`p6e.gate-merge-run2.json`): Isolation der Install-Probe, ein npx-Aufruf aus einem anderen Worktree schrieb `~/.npm/_logs`. Alle 14 Zeilen der Probe bestanden. Regel für parallele Arbeit ergänzt.
+  - **Lauf 3** (`p6e.gate-merge-run3.json`): Replay, ein Schriftabruf ohne Kennung beim Neuladen in `lifecycle.spec` (zweites Auftreten nach P2b-F1). Gehärtet in `4827fbbd`; nicht auf Wunsch rot nachgestellt (`p6e.reload-font-record.txt`).
+  - Die Härtungen ändern nur Tests; der Produktcode ist der in R467 abgestimmte `5b2579ed`.
+
+**Für den Operator spürbar:** In der Check-basis-Karte steht bei der Werkzeugzeile „program header Ø …“, wenn der Programmkopf einen anderen Durchmesser nennt als die Tabelle ([Bild](maschinentag.r463.p6e-card.png)). Es ist nur ein Hinweis: Tabelle, Bild und Prüfung ändern sich nicht.
+
+**Grenzen:**
+- Nur die Eintragsform von Fusion wird gelesen.
+- T, S, F oder M6 vor der ersten Bewegung heißt „not compared“.
+- Die M600-Grenze (eine Werkzeugzeile nur, wenn die Vorschau die Routine ausführt) ist an der Maschine geschuldet.
+
+**Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
