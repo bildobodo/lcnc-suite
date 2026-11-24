@@ -238,6 +238,40 @@ MUTS = {
         "      _peak = held0 + d;\n\n      return true;\n")],
         [vt("src/viewer/toolpathController.test.ts", "the unload's empty payload leaves nothing",
             "the frame is drawn again")]),
+    # ---- P2b-F1 scene guards (Fable on R455): the way back, the whole canvas,
+    # the part frame, the run's playhead (every function kept referenced: vue-tsc)
+    "the_shown_again_not_drawn": (S + "ThreeViewer.vue", [
+        ("// Apply gcode preview when it arrives\nwatch(\n  () => viewerGcode.value,\n  (g) => {\n",
+         "// Apply gcode preview when it arrives\nlet _mutHidden: ViewerGcode | null = null;\n"
+         "watch(\n  () => viewerGcode.value,\n  (g, old) => {\n"),
+        ("    if (g) applyGcode(g);\n    else _clearShownPreview();\n",
+         "    if (g) { if (g !== _mutHidden) applyGcode(g); }\n"
+         "    else { _mutHidden = old ?? null; _clearShownPreview(); }\n")],
+        [pw("e2e/program-identity.spec.ts", "blink of its identity",
+            "shown again: drawn again, as before the blink")]),
+    "the_clear_keeps_the_rapids": (S + "ThreeViewer.vue", [
+        ("function applyGcode(g: ViewerGcode) {\n",
+         "let _mutLastG: ViewerGcode | null = null;\nfunction applyGcode(g: ViewerGcode) {\n  _mutLastG = g;\n"),
+        ("  _applyGcodeNow(noPreview());\n  drawnKey.value = null;\n",
+         "  _applyGcodeNow(_mutLastG ? { ..._mutLastG, feedPos: undefined, feed: [], feed_lines: [], feedOutside: undefined,\n"
+         "                               feedLod: undefined, feedBreaks: undefined, feedSrc: undefined, feedRoom: undefined }\n"
+         "                 : noPreview());\n  drawnKey.value = null;\n")],
+        [pw("e2e/program-identity.spec.ts", "pixel for pixel",
+            "the hidden canvas is the unloaded canvas, pixel for pixel")]),
+    "the_programmed_apply_supersedes_nothing": (S + "ThreeViewer.vue", [(
+        "  ++_pfReqId;  // invalidate any in-flight part-frame reply\n", "")],
+        [pw("e2e/bake-hold.viewer.spec.ts", "PROGRAMMED drawing",
+            "the old part-frame reply changed nothing of the programmed drawing")]),
+    "the_empty_payload_in_the_part_frame": (S + "ThreeViewer.vue", [(
+        "  _wantMode = _partFrameEligible(g) ? \"part\" : \"programmed\";\n",
+        "  _wantMode = _partFrameEligible(g) || g.file == null ? \"part\" : \"programmed\";\n")],
+        [pw("e2e/bake-hold.viewer.spec.ts", "a part-frame reply released while hidden",
+            "hidden: nothing of the part-frame path drawn")]),
+    "the_playhead_kept_with_its_track": (S + "viewer/runDisplay.ts", [(
+        "    watcher.reset();\n    runPlayhead.value = null;\n    runOffPath.value = false;\n",
+        "    watcher.reset();\n    runOffPath.value = false;\n")],
+        [vt("src/viewer/runDisplay.test.ts", "the run's playhead goes with its track",
+            "the old playhead is gone with its track")]),
     # ---- F1-4: the simulation switch's note
     "the_note_unreactive": (S + "DevicesSettings.vue", [(
         "  void settingsVersion.value;\n", "")],
