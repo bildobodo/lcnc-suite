@@ -1,0 +1,185 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "head": "a02b20c1821aa75f9f1050cc3bbb73dc302900fe",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser",
+    "firefox-core"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": [
+        "lcnc-webui/src/controlInventory.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "lcnc-webui/src/App.vue: central: every surface, every dialog or every connection depends on it"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/inventory/atoms.web.json: scripts and their tests ride the backend gate",
+        "scripts/inventory/functions.json: scripts and their tests ride the backend gate",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/src/App.vue",
+        "lcnc-webui/src/GcodePanel.vue",
+        "lcnc-webui/src/ScrubBar.vue",
+        "lcnc-webui/src/ThreeViewer.vue"
+      ],
+      "reasons": [
+        "lcnc-webui/src/App.vue: selects the Firefox core itself",
+        "the full browser run holds the core: lcnc-webui/src/App.vue: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/App.vue → dialogs (a core spec)",
+        "lcnc-webui/src/GcodePanel.vue → dialogs (a core spec)",
+        "lcnc-webui/src/ScrubBar.vue → dialogs (a core spec)",
+        "lcnc-webui/src/ThreeViewer.vue → dialogs (a core spec)",
+        "lcnc-webui/src/App.vue → layout (a core spec)",
+        "lcnc-webui/src/GcodePanel.vue → layout (a core spec)",
+        "lcnc-webui/src/ScrubBar.vue → layout (a core spec)",
+        "lcnc-webui/src/ThreeViewer.vue → layout (a core spec)",
+        "lcnc-webui/src/App.vue → strip-fit (a core spec)",
+        "lcnc-webui/src/GcodePanel.vue → strip-fit (a core spec)",
+        "lcnc-webui/src/ScrubBar.vue → strip-fit (a core spec)",
+        "lcnc-webui/src/ThreeViewer.vue → strip-fit (a core spec)",
+        "lcnc-webui/src/GcodePanel.vue → tabs (a core spec)",
+        "lcnc-webui/src/App.vue → visual (a core spec)",
+        "lcnc-webui/src/GcodePanel.vue → visual (a core spec)",
+        "lcnc-webui/src/ScrubBar.vue → visual (a core spec)",
+        "lcnc-webui/src/ThreeViewer.vue → visual (a core spec)"
+      ]
+    },
+    "live": {}
+  },
+  "heavy_lock_wait_s": 0.0,
+  "firefox": {
+    "pinned": "160.0",
+    "playwright": "Version 1.60.0",
+    "arch": "linux-aarch64",
+    "archive_sha256": "0fd9e4fd7ab97f7b1eec42f70e809080679498ebabd78fd692f0b94f9b6bf92f",
+    "binary": "/home/cnc/.cache/lcnc-suite/firefox/160.0-linux-aarch64/firefox/firefox",
+    "cache": "hit",
+    "newer": {
+      "status": "newer",
+      "latest": "160.0.1",
+      "pinned": "160.0"
+    },
+    "set": "required + build-up"
+  },
+  "verdict": "FAIL",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/session-31.scope",
+    "cpu_s": 817345,
+    "memory_peak_mb": 17870
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-p6b/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-p6b/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 5
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 18
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-p6b/docs/reviews/p6b.gate-round2.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-p6b/scripts/test_select/vitest_options_reporter.mjs",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 66,
+      "files": 179,
+      "tests": 2793,
+      "passed": 2793,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2793
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-p6b/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-p6b/scripts/test_suite.py offline --component backend --out-dir /home/cnc/lcnc-suite-p6b/docs/reviews/p6b.gate-round2.logs/backend --run-id backend-7bbe2862-0903-484a-ab3e-1e63a545b3af",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 267,
+      "run": "backend-7bbe2862-0903-484a-ab3e-1e63a545b3af"
+    },
+    {
+      "name": "ports-free",
+      "status": "FAIL",
+      "why": [
+        "port 4173 already serves something: a foreign server would be tested in place of this tree's"
+      ]
+    },
+    {
+      "name": "firefox-fetch",
+      "status": "PASS",
+      "seconds": 0.0,
+      "cache": "hit"
+    },
+    {
+      "name": "firefox-static",
+      "status": "PASS"
+    },
+    {
+      "name": "firefox-set",
+      "status": "PASS",
+      "tests": 94
+    },
+    {
+      "name": "firefox-ports-free",
+      "status": "FAIL",
+      "why": [
+        "port 4173 already serves something: a foreign server would be tested"
+      ]
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "coverage",
+      "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+    }
+  ],
+  "pending": []
+}
