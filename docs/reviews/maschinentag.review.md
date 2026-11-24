@@ -5766,7 +5766,7 @@ Plan: [maschinentag.r456.p6-plan-v2.md](maschinentag.r456.p6-plan-v2.md) (englis
 - **F8:** ein Formspeicher für alle Werkzeuge aus `get_tool_table`, gebunden an die Tabellenversion (c1). Der Kollisionskörper wird die Hülle der Form (c2): Heute wird der konische T13 nach dem D-Fix als Ø1.875-Stift geprüft.
 - **F6:** nur ein Hinweis in der Check-basis-Karte. Importer-D gehört zu P8.
 
-**Operator:** Nur Q1 (F14: Wartezeit, recommended 90 s, danach ungeprüft und benannt) und Q5 (F8: Kollisionskörper = breitester Durchmesser) gehen an ihn. Bei Q5 kommen vorher die Befundzahlen beider Körper dazu. Q2, Q3, Q4 und Q6 sind nach Empfehlung entschieden und werden ihm mitgeteilt.
+**Operator:** Nur Q1 (F14: Wartezeit, empfohlen 90 s, danach ungeprüft und benannt) und Q5 (F8: Kollisionskörper = breitester Durchmesser) gehen an ihn. Bei Q5 kommen vorher die Befundzahlen beider Körper dazu. Q2, Q3, Q4 und Q6 sind nach Empfehlung entschieden und werden ihm mitgeteilt.
 
 **Erbeten:**
 - **`agreement` zu P6-a (F9) und P6-b (F11/F10) als Bauplan** oder `findings`. P6-a braucht keine Operatorantwort und kann danach gebaut werden.
