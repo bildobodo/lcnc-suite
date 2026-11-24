@@ -6548,3 +6548,63 @@ Der heutige Binder löst das nicht allgemein: `_runBoundTrack` und `bindBeginnin
 **R5:** einverstanden mit einem benannten Hinweis auf die im Warten noch entstehende Vorschau. Das vorhandene Ergebnis bleibt an seiner alten Veröffentlichung kenntlich; es darf nicht als bereits abgeschlossener Check des bevorstehenden RFL gelesen werden. Keine neue Warteabhängigkeit von der Seite und keine versteckte Änderung des P2b-Fallbacks in diesem Paket.
 
 **Ergebnis für diese Runde:** G7 angenommen; Gateway-Warten und expliziter zweiter Zulassungsweg abgestimmt. P4 vor dem Bau der Seitenhälfte nach MT462-01 präzisieren. Gesamtrückmeldung `findings`.
+
+---
+
+## Claude · P6-e (F6) gebaut · Anfrage R463 · 24. November 2026
+
+Code: `feat/p6e`, `6c78780c..ebf47b93`; Round-Gate an `9977669d`, danach nur `docs/reviews` und `decisions.md`. Bild der Karte: [maschinentag.r463.p6e-card.png](maschinentag.r463.p6e-card.png).
+
+**Scanner** (`viewer/programToolHeader.ts`):
+- **Lesebereich:** `scanToolHeader` liest von Zeile 1 bis zur Zeile der ersten Bewegung, höchstens 500 Zeilen. Ein Eintrag ist `(T<n> D=<d>` am Zeilenanfang.
+- **Einheit:** nur ein literales G20/G21 in schlichtem Code.
+- **„Nicht belegt“:** O-Wort, Block Delete mit Code, alles für den Tokenizer Unlesbare (`#<g20>`, `[`, `=`), ein offener Kommentar, die 500-Zeilen-Grenze.
+- **Keins oder beide Einheitenwörter:** „nicht angegeben“ bzw. „nicht belegt“.
+
+**Vergleich** (`compareHeaderD`):
+- **Toleranz:** 0,001 mm, in die Maschineneinheit umgerechnet (dein R461).
+- **Doppelte Angaben:** nach der Spannweite aller Werte beurteilt.
+- **Fehlendes Tabellen-D:** bleibt unbekannt.
+
+**Worte** (`headerNote`):
+- Abweichung als warn: „program header Ø 1.875“, bei anderer Einheit mit beiden Werten.
+- Konflikt als warn: „… — not compared“.
+- Schlicht ohne Vergleich: „units not stated / not proven / machine units not read / no diameter in the table“.
+
+**Bindung (MT461-01):**
+- Der Prüfkontext trägt `program {id, version, source}` und die Einheit (`checkContext.ts:129`, aufgenommen in `ThreeViewer.vue:4085`). `source` ist das `origin.source` der Ankündigung.
+- `bulkData` gibt den bewiesenen Text als ein Objekt heraus (`gcodeShownText`).
+- `nextHeaderCache` / `headerOf` verbinden einen Text nur mit einem Kontext genau dieses Tripels. Der Cache hält nur gezeigte und ausstehende Kontexte.
+- Ein Watch ergänzt bei spätem Text den Kopf, ohne neuen Sweep.
+
+**Wächter:**
+- **Unit:** 18 Scanner-Tests, darunter:
+  - eine synthetische Kopie der Kopfform des Maschinentags;
+  - dein `o100 sub`-Fall;
+  - `/G20`, `#<g20>`, `G[20]`;
+  - die Grenzen 0,0009/0,0011 mm in allen Einheitenkombinationen;
+  - Duplikate in drei Reihenfolgen.
+- **Unit:** 9 Bindungstests (später Text in beiden Reihenfolgen, V→V+1 nach Version, Quelle und Programm, fehlgeschlagener Text, Cache).
+- **Browser** (`program-header.viewer.spec.ts`, liest das DOM der Karte), 7 Tests:
+  - Abweichung auf Desktop und Touch;
+  - Treffer neben abweichendem Werkzeug;
+  - unbelegte Einheit;
+  - Text bis nach dem Prüfende gehalten: Der Hinweis erscheint, Sweep- und Re-Check-Zähler bleiben unverändert;
+  - V→V+1 bei gehaltener V+1-Vorschau: Die Karte von V bleibt sauber, dann zeigt V+1 seinen Wert;
+  - Text passt nicht zur Ankündigung: kein Vergleich.
+- **Am alten Stand:** 6 von 7 rot (der siebte ist ein Negativwächter).
+- **Mutationen:** 10/10 rot an ihrer Regel.
+- **Round-Gate:** Browser 1101/1101 mit Replay, Firefox-Kern 94/94.
+
+**Zur Prüfung:**
+- **Unbelegte Einheit:** Gebaut ist die schlichte Zeile „… not compared“ (Regel E) statt gar keiner Zeile; keine Warnung, kein Vergleich.
+- **Grammatik über Regel E hinaus** (nach der Ausführungsreihenfolge von 2.9, nicht aus dem Quelltext):
+  - Die Zeile der ersten Bewegung wird mitgelesen.
+  - G80 ist keine Bewegung; G28, G30, G74 und nackte Achswörter sind es.
+  - G10, G43.1, G52 und G92 nehmen Achswörter, ohne den Scan zu beenden.
+  - Ein M-Code ist ein schlichtes Wort, auch remappt.
+- **M600-Grenze:** `T13 M600` bekommt eine Werkzeugzeile nur, wenn die Vorschau die Routine ausführt (Toolsetter-Werte verbürgt). Andernfalls gibt es keine Zeile und keinen Hinweis. Ein Testprogramm an der Maschine ist geschuldet.
+- **Nur Programmwerkzeug-Zeilen** tragen den Hinweis; gelesen wird nur die Eintragsform von Fusion.
+- **Reihenfolge:** P6-e ist vor P6-c2 gebaut; der Hinweis hängt an der Zeile, die die Karte zeigt.
+
+**Erbeten:** `agreement` zu P6-e `6c78780c..ebf47b93` oder `findings`.
