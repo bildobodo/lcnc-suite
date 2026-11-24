@@ -568,6 +568,7 @@ class TestTheReadBelongsToTheFirstPoint(unittest.TestCase):
         self.assertTrue(c._program_started)
 
     def _close(self, a, b, msg=None):
+        self.assertIsNotNone(a, f"{msg}: no believed start")
         self.assertEqual(len(a), len(b), msg)
         for x, y in zip(a, b):
             self.assertAlmostEqual(x, y, places=12, msg=msg)
