@@ -99,7 +99,9 @@ for (const vp of ["desktop", "touch-fullhd"] as const) {
       .toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 1.875", warn: true }]);
     // one fact, one place: once on the card, at the tool's row
     expect(((await card.textContent()) ?? "").split("program header").length - 1, "once on the card").toBe(1);
+    // for the operator: the card, and the page with it open
     await card.screenshot({ path: info.outputPath(`check-basis-card-${vp}.png`) });
+    await page.screenshot({ path: info.outputPath(`check-basis-page-${vp}.png`) });
   });
 }
 
