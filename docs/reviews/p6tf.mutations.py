@@ -14,6 +14,9 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+# the binaries themselves, never npx: it writes ~/.npm/_logs, and another tree's
+# gate compares the home in its install probe ("home:.npm changed")
+BIN = str(ROOT / "lcnc-webui/node_modules/.bin") + "/"
 G = "lcnc-gateway/"
 PROOF = G + "tool_proof.py"
 TABLE = G + "tool_table.py"
@@ -258,7 +261,7 @@ def run_guard(kind, args):
                            timeout=900)
         return r.returncode != 0, r.stdout + r.stderr, args[1]
     if kind == "vitest":
-        r = subprocess.run(["npx", "vitest", "run", args[0], "-t", args[1]], cwd=ROOT / "lcnc-webui",
+        r = subprocess.run([BIN + "vitest", "run", args[0], "-t", args[1]], cwd=ROOT / "lcnc-webui",
                            capture_output=True, text=True, timeout=900)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     if kind == "pw":
@@ -266,7 +269,7 @@ def run_guard(kind, args):
         if b.returncode != 0:
             return False, b.stdout + b.stderr, args[2]
         # never under a timeout: a killed runner orphans its web server (4173)
-        r = subprocess.run(["npx", "playwright", "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
+        r = subprocess.run([BIN + "playwright", "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
                            cwd=ROOT / "lcnc-webui", capture_output=True, text=True)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     raise SystemExit(f"unknown guard kind {kind}")
