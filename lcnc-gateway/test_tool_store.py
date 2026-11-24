@@ -49,6 +49,32 @@ class TestToolLibraryStore(unittest.TestCase):
         self.assertEqual(self.store.load(), first)
         self.assertIsNotNone(self.store._cache)
 
+    def test_a_write_in_the_same_mtime_is_no_cache_hit(self):
+        # P6 tool files read: an mtime alone repeats within the filesystem's
+        # timestamp tick — the cache is keyed by (inode, mtime_ns, size)
+        self.store.save({"1": {"type": "x"}})
+        self.assertEqual(self.store.load(), {"1": {"type": "x"}})
+        st = self.path.stat()
+        with open(self.path, "w") as f:      # in place: the same inode
+            f.write(json.dumps({"/ini-A": {"1": {"type": "endmill"}}}))
+        os.utime(self.path, ns=(st.st_atime_ns, st.st_mtime_ns))
+        self.assertEqual(self.path.stat().st_mtime_ns, st.st_mtime_ns)
+        self.assertEqual(self.store.load(), {"1": {"type": "endmill"}})
+
+    def test_a_strict_load_raises_never_the_cache(self):
+        from tool_store import ToolLibraryUnreadable
+        self.store.save({"1": {"type": "x"}})
+        self.assertEqual(self.store.load(True), {"1": {"type": "x"}})
+        st = self.path.stat()
+        self.path.write_text("{ bad json")
+        os.utime(self.path, ns=(st.st_atime_ns, st.st_mtime_ns))
+        with self.assertRaises(ToolLibraryUnreadable):
+            self.store.load(True)
+        self.assertEqual(self.store.load(), {"1": {"type": "x"}}, "the lenient read keeps its old behaviour")
+        self.path.write_text(json.dumps({"/ini-A": [1, 2]}))
+        with self.assertRaises(ToolLibraryUnreadable):
+            self.store.load(True)
+
     def test_corrupt_file_degrades_and_reports(self):
         self.path.write_text("{ bad json")
         events = []

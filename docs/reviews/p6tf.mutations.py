@@ -97,6 +97,12 @@ MUTS = {
         "        library = await asyncio.to_thread(_tool_lib_store.load)\n")],
         [py(TG + "TestTheReadReply::test_a_corrupt_library_is_no_read_never_cached_rows",
             "test_a_corrupt_library_is_no_read_never_cached_rows")]),
+    "the_library_cache_keyed_on_mtime": (G + "tool_store.py", [(
+        "            sig = (st.st_ino, st.st_mtime_ns, st.st_size)\n", "            sig = st.st_mtime\n")],
+        [py("test_tool_store.py::TestToolLibraryStore::test_a_write_in_the_same_mtime_is_no_cache_hit",
+            "test_a_write_in_the_same_mtime_is_no_cache_hit"),
+         py("test_tool_store.py::TestToolLibraryStore::test_a_strict_load_raises_never_the_cache",
+            "test_a_strict_load_raises_never_the_cache")]),
     "an_unreadable_changer_is_nonrandom": (GW, [(
         "        except ValueError:\n            scope = _TOOL_SCOPE_UNKNOWN\n",
         "        except ValueError:\n            scope = None\n")],

@@ -28,7 +28,10 @@ class ToolLibraryStore:
         self._path = path
         self._ini_key = ini_key
         self._on_error = on_error            # (event, level, exc) -> None
-        self._cache: Optional[Tuple[float, dict]] = None  # (mtime, data)
+        # (the file's signature, data): inode, mtime in ns and size — an mtime
+        # alone repeats within the filesystem's timestamp tick (ext4: a jiffy),
+        # and a write in that tick was served from the cache (P6 tool files read)
+        self._cache: Optional[Tuple[Tuple[int, int, int], dict]] = None
         self._seed_path = seed_path
         self._seed_cache = None
         # Guards _cache + the file RMW. Once the gateway offloads load()/save()
@@ -45,20 +48,21 @@ class ToolLibraryStore:
     def _load_all(self, strict: bool = False) -> dict:
         """Full tool_library.json (all INI configs), mtime-cached. Hot path:
         the status loop calls load() on every tool-number change per client.
-        mtime-keying catches both UI edits and external edits to the file.
+        Keyed by (inode, mtime_ns, size): catches UI edits and external edits.
         `strict`: a failed stat, read or parse raises ToolLibraryUnreadable
         instead of answering the last cached data or {}."""
         if not self._path.exists():
             self._cache = None
             return {}
         try:
-            mtime = self._path.stat().st_mtime
+            st = self._path.stat()
+            sig = (st.st_ino, st.st_mtime_ns, st.st_size)
         except OSError as e:
             self._emit("tool_lib.stat_failed", "warn", e)
             if strict:
                 raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
             return self._cache[1] if self._cache else {}
-        if self._cache is not None and self._cache[0] == mtime:
+        if self._cache is not None and self._cache[0] == sig:
             return self._cache[1]
         try:
             with open(self._path, "r") as f:
@@ -75,7 +79,7 @@ class ToolLibraryStore:
             return self._cache[1] if self._cache else {}
         if strict and not isinstance(data, dict):
             raise ToolLibraryUnreadable(f"top level is {type(data).__name__}, not an object")
-        self._cache = (mtime, data)
+        self._cache = (sig, data)
         return data
 
     def _save_all(self, all_data: dict) -> None:

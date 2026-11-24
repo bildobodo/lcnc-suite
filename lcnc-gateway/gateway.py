@@ -3362,7 +3362,7 @@ def get_tool_tbl_path() -> Optional[str]:
 # now that LinuxCNC shows what was written (or the bound ran out).
 
 #: the bound of the post-write wait — COOPERATIVE: checked between
-#: STAT.tool_table calls on the loop; one call can wait on the mmap's entry
+#: STAT.tool_table calls (each in a thread); one call can wait on the mmap's entry
 #: mutex with the GIL held (tooldata_mmap.cc: 10 s per entry before it goes
 #: on without it — an existing exposure the status loop shares), so this is
 #: no hard 2 s and no instant-cancel guarantee (Codex R465)
@@ -3499,6 +3499,11 @@ async def _reload_tool_table(data: bytes) -> _ToolWriteJob:
     return job
 
 
+def _tool_job_compare(job: _ToolWriteJob) -> Dict[str, Any]:
+    """Rule R of a job's written bytes against its controller's table NOW."""
+    return _tool_compare(job.scan, _stat_tool_table(job.link), None)
+
+
 async def _confirm_tool_write(job: _ToolWriteJob) -> None:
     """The write job's wait: STAT.tool_table every TOOL_RELOAD_POLL_S until
     rule R finds the WRITTEN bytes complete against it (LinuxCNC loaded
@@ -3529,7 +3534,10 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
                 job.outcome = "controller changed"
                 _trace.emit("tools.reload_controller_changed", level="warn", seq=job.seq)
                 return
-            proof = _tool_compare(job.scan, _stat_tool_table(job.link), None)
+            # the STAT read and the comparison off the loop: a table of
+            # 1000 tools is a few ms of Python per poll (the GIL is shared —
+            # the loop gets its switch interval, never a whole poll's stall)
+            proof = await asyncio.to_thread(_tool_job_compare, job)
             if proof["state"] == "complete":
                 job.outcome = "confirmed"
                 return
