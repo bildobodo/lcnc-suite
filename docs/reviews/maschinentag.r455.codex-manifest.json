@@ -1,0 +1,72 @@
+{
+  "review": "R455",
+  "verdict": "agreement",
+  "base": "389d73de",
+  "head": "5d71f190af03b793e4e180d82d6ce74dba03ced6",
+  "isolated_tree": "/tmp/r455/tree",
+  "doc_head": "305f8720176695c3c59ce0b15b1a3940ea830959",
+  "exit_codes": {
+    "unit": 0,
+    "build": 0,
+    "browser": 0
+  },
+  "frontend_tests": 79,
+  "browser": {
+    "startTime": "2026-11-24T01:27:20.057Z",
+    "duration": 42195.894,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "browser_run": "codex-r455-focused",
+  "replay": {
+    "verdict": "PASS",
+    "frames": 95,
+    "findings": 0
+  },
+  "heavy_lock": "shared heavy_lock.py, --who codex-r455-focused; released after runner exited",
+  "own_native_run": false,
+  "build": "Vite build, isolated copy",
+  "source_sha256": {
+    "lcnc-webui/src/ThreeViewer.vue": "f938121492c3052d3439cbcf0e8768efaa7e6a2b33b7a439cb40f739dcac4b53",
+    "lcnc-webui/src/viewer/runDisplay.ts": "253e96885cbd459f8d8b706937e6ff5180cfae514bfdb41e7dbafcad8c4eac59",
+    "lcnc-webui/src/viewer/toolpathController.test.ts": "60ff53ad4f09ec37c6bbc2730cc06b13b6aa3a60108b36b2b52670258feb3a35",
+    "lcnc-webui/e2e/program-identity.spec.ts": "2aa4a5566101b77aba31239d385b8034c8b81226c8b96c3d177b6443224e9564"
+  },
+  "artifacts": {
+    "maschinentag.r455.codex-frontend.txt": {
+      "sha256": "d57e062e973ec865ca261042c5a210f73d2811102e809ae05fdb41848b9921a7",
+      "bytes": 211
+    },
+    "maschinentag.r455.codex-build.txt": {
+      "sha256": "d8059fb1fa256bc9733ab8af974e5c072a34b836a89f5416a2da090269df216a",
+      "bytes": 2384
+    },
+    "maschinentag.r455.codex-browser.json": {
+      "sha256": "e275e0528f7614745bc5748fbce2f19819cabb065c3101f0adcc3240ea3b222a",
+      "bytes": 15881
+    },
+    "maschinentag.r455.codex-browser-console.txt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "maschinentag.r455.codex-replay.json": {
+      "sha256": "2bee77267681c5109595772fda1aee991619529996dd48bdd9d2ae9e4a82fbab",
+      "bytes": 49646
+    },
+    "maschinentag.r455.codex-probe.spec.ts": {
+      "sha256": "aca913cbb310d1d4be57d32da1d9f8bf0921b28b7b92e4084bf7db24492cc6ef",
+      "bytes": 11340
+    },
+    "maschinentag.r455.codex-run-focused.sh": {
+      "sha256": "a1f10bf07c8f0095fb1085c8a52e0527820b7ce6bc889b48e5875554561280d4",
+      "bytes": 799
+    },
+    "maschinentag.r455.codex-selection.json": {
+      "sha256": "e08d7bf213727a74f33aa234aeffbc5f9bd11dfee9c979e248b3e5a733339f6a",
+      "bytes": 35
+    }
+  },
+  "probe_note": "Two additional browser probes. Preparation copied from bake-hold.viewer.spec.ts at reviewed head; real XYZAC part-frame worker, existing held-reply seam. No product source edits."
+}
