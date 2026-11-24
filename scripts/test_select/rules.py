@@ -163,7 +163,7 @@ FULL_ONLY = {
 UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons", "strip-fit")
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer", "simulation-off.viewer",
           "rapids.viewer", "reach.viewer", "scenes.viewer", "scrub-start.viewer", "sim-panel.viewer",
-          "start-believed.viewer",
+          "start-believed.viewer", "program-header.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",

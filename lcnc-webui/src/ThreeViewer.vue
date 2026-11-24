@@ -62,7 +62,7 @@ import { bakeFollowsOffsets, bakeKey, pathBehind, type BakeMode } from "./viewer
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
-import { previewSchemaMismatch, parseTloMismatch, gcodeShownText, type ScrubTrack } from "./ws/bulkData";
+import { previewSchemaMismatch, parseTloMismatch, gcodeShownText, gcodeTextState, type ScrubTrack } from "./ws/bulkData";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
 import { findKey, heldBytes, indexAfter, displayLineAt, displayLineRuns, lineMark, retireView, runsOf, targetAt, targetKey, targetPos, targetWindow, tintAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
@@ -2405,6 +2405,11 @@ async function buildFromInit(init: ViewerInit) {
         // The checks during runs, in order (plan 3), and the result's range.
         getRunCheckLog: () => _colRunLog.slice(),
         getShownVersion: () => viewerGcode.value?.publishedVersion ?? null,
+        // P6-e: the proven text on the page (its identity and version), the
+        // text's state, and the publication of the check the bar shows
+        getHeaderText: () => ({ state: gcodeTextState.value,
+          proven: gcodeShownText.value ? { programId: gcodeShownText.value.programId, version: gcodeShownText.value.version } : null,
+          shownCheck: colShown.value?.context ? { ...colShown.value.context.program } : null }),
         getCollisionRequestMeta: () => (_colReqMeta ? { ..._colReqMeta } : null),
         getCollisionStopped: () => (collisionStopped.value ? { ...collisionStopped.value } : null),
         getCollisionHoldLog: () => _colHoldLog.slice(),

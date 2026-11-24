@@ -25,6 +25,7 @@ label, title or message follows this page. The CSS audit
 | The simulation's return to position 0 — the program's beginning (the timeline's ⏮) | **Back to start** | "Rewind", "Restart", "Go to start" |
 | Spindle direction | **Rev · Stop · Fwd** in this order (a preset: Rev · Off · Fwd) | FWD / REV |
 | The HAL browser (Settings tab) | **HAL** | "Halshow" |
+| The comments a CAM post writes at a program's start (its tool list, `(T13 D=1.875 …)`) | **program header** ("program header Ø 1.875" on the Check basis card) | "preamble", "program comment" |
 
 Abbreviations are written out in labels ("Retract Distance", "Spindle Zero
 Height", "Offset Direction", "Calibration Offset"). G-/M-codes, axis letters,

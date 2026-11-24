@@ -70,6 +70,8 @@ interface ViewerDiag {
   getCollisionPrevious?: () => { collisions: number; complete: boolean; version: number | null } | null;
   getRunCheckLog?: () => string[];
   getShownVersion?: () => number | null;
+  getHeaderText?: () => { state: string; proven: { programId: string; version: number } | null;
+                          shownCheck: { id: string | null; version: number | null; source: string | null } | null };
   getCollisionRequestMeta?: () => { maxShards: number | null; sliceMs: number | null; range: number | null; copies?: number; transferred?: number; detached?: number } | null;
   getCollisionStopped?: () => { covered: number; reason: "motion" } | null;
   getCollisionHoldLog?: () => string[];
