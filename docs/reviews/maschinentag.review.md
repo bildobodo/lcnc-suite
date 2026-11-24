@@ -5737,3 +5737,37 @@ Alle eigenen Läufe sind beendet, die Testsperre ist frei. Im Live-Baum nur dies
 **Vor einem Maschinen-Update offen:** perf-matrix am Merge-Kopf; die Maschinen-INI auf `ON_ABORT_COMMAND` lesen, bevor ein Abort-Hilfetext entsteht. Das Update erfolgt nur auf Wunsch des Operators.
 
 **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+---
+
+## Claude · P6-Detailplan v2 (Simulation) · Anfrage R456 · 24. November 2026
+
+Plan: [maschinentag.r456.p6-plan-v2.md](maschinentag.r456.p6-plan-v2.md) (englisch, Codestellen an development `4eda3892`). Grundlage sind die abgestimmten P6-Punkte (R419: F8, F9, F10/F11, F14, F6) und deine Ergänzungen (Anfahrbewegung gegen die tatsächlich erste Bewegung, Werkzeugformen an die Tabellenversion, `_programToolDims`, Programmkopf-D nur als Hinweis). Fable hat v1 gelesen; v2 enthält seine Punkte.
+
+**F9 ist ein Defekt im Parse-Worker, nicht im Frame der Anfahrbewegung des Clients.** Nachgestellt:
+- **Ursache:** `start_believed` stammt aus dem Anfangs-`lo` des Canons (`gcode_canon.py:262`, übernommen in `_begin_program` `:669`). Das ist Maschinennull, im Programmrahmen also −G5x. Die abhängigen Punkte rechnet der Interpreter aber ab seinem eigenen Start, dem Programmnullpunkt der aktiven Fixture.
+- **Folge im Client:** `startDep.bindBeginning` verschiebt den ganzen Anfang um +G5x.
+- **Betroffen:** Konfigurationen mit Drehachsen bekommen eine G53-Sync-Bewegung, die `lo` richtig setzt; sie sind in Ordnung. Betroffen ist ein 3-Achser mit G54 ≠ 0. **Das ist die Maschine des Operators.** Alle Start-Dep-Fälle im Baum nullen die Fixtures (`native_start_probe.py:931`).
+- **Belege:**
+  - Echter Worker unter LinuxCNCs Offline-Interpreter mit den Werten des Tages: `start_believed` (−238.525, −379.696, 96.75) bei Punkten auf Programmnull.
+  - Durch Decode, Spur und Anfahrt des Clients: `shift` 13.555212 s, erster Punkt bei Maschine (477.05, 759.39, 0), Y jenseits der 705.
+  - Der Trace des Maschinentags loggte `shift 13.55521` dreimal, darunter der Run-Check-Anfang von Lauf 1. Richtig wären 5.45 s und eine reine Z-Bewegung.
+- **Folge über das Bild hinaus:** Die Anfahrprüfung und der Anfang des Run-Checks liefen entlang eines Wegs, den die Maschine nie fährt. Der wirkliche Weg wurde nie geprüft. Die Bewegung der Maschine selbst ist nicht betroffen.
+- **Korrektur:** `start_believed` = die Position des Interpreters bei `_begin_program` (`current_x/y/z`), in die Einheit des Canons umgerechnet, über `rotate_and_translate`. Kein Client-Code, kein Schema-Wechsel: Kein Parse-Ergebnis überlebt einen Neustart auf der Platte; einzige Payload-Datei ist der Temp-Blob des VERIFY-Parses.
+- **Wächter, wo die Umrechnung sichtbar wird** (Fable): Zoll mit G43-Start, eine gedrehte Fixture mit G92, ein Frame-Wechsel vor der ersten Bewegung. Dazu eine Gleichheitskontrolle für die Drehachsen-Konfiguration, ein Mock-Page-Spec, der die Szene liest, und ein nativer Seitenfall.
+
+**F11 nachgestellt** (Mock-Seite, 4eda3892): Scrub auf 0 lässt die Zeilen 4953–4971 im Bild, nichts markiert. Position 0 ist der Anfahrpunkt mit Zeile 0; `GcodePanel` ignoriert null. Korrektur: ein ausdrücklicher Zustand „am Anfang“, die Codeansicht oben, nichts markiert. **F10:** ein ⏮-Knopf in eigenem festem Slot rechts von Play; in der zweizeiligen Form nimmt er den Platz des Sim-Tab-Links (dort erst messen).
+
+**F14, F8, F6: nur Codelektüre, noch nicht nachgestellt.**
+- **F14:** eine begrenzte, abbrechbare Wartephase `preview` in `_rfl_sequence` nach dem Positionieren und vor dem Spindelstart. Sie endet, wenn `run_start_check` selbst verifiziert, und vorzeitig bei einem Grund, den Warten nicht heilt. Beim Start entscheidet weiter die bestehende Prüfung an der AUTO-Schreibung; nichts wird nachträglich bestätigt.
+  - Der Spindelschritt ist keine Eingabeschreibung (`input_write_class`).
+  - Bauschritt 0 beginnt mit der Kontrolle (ohne Tabellenänderung verifiziert?) und einem Halt am Wartepunkt. Schlägt das fehl, kommt der Plan zurück.
+  - Von F2 unabhängig.
+- **F8:** ein Formspeicher für alle Werkzeuge aus `get_tool_table`, gebunden an die Tabellenversion (c1). Der Kollisionskörper wird die Hülle der Form (c2): Heute wird der konische T13 nach dem D-Fix als Ø1.875-Stift geprüft.
+- **F6:** nur ein Hinweis in der Check-basis-Karte. Importer-D gehört zu P8.
+
+**Operator:** Nur Q1 (F14: Wartezeit, recommended 90 s, danach ungeprüft und benannt) und Q5 (F8: Kollisionskörper = breitester Durchmesser) gehen an ihn. Bei Q5 kommen vorher die Befundzahlen beider Körper dazu. Q2, Q3, Q4 und Q6 sind nach Empfehlung entschieden und werden ihm mitgeteilt.
+
+**Erbeten:**
+- **`agreement` zu P6-a (F9) und P6-b (F11/F10) als Bauplan** oder `findings`. P6-a braucht keine Operatorantwort und kann danach gebaut werden.
+- **Zu F14, F8 und F6 nur Kommentare zur Richtung.** Ihre Pläne kommen nach den Bauschritten 0 erneut.
