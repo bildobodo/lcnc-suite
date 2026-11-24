@@ -1,0 +1,54 @@
+{
+  "review": "R457",
+  "verdict": "agreement for rule 1 plan only",
+  "base": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "isolation": "git archive at /tmp/r457/tree; dependency copy; temporary native INI/vars/tools; linuxcnc.command prohibited; no live controller or browser calls",
+  "variants": {
+    "old": "4eda3892 with the supplied spy/wrapper instrumentation",
+    "cand": "Claude f9b prototype, rule 1 only; no lo seeding"
+  },
+  "selection": {
+    "claude_or_prior_review_cases": 14,
+    "independent_cases": 7,
+    "native_results": 42,
+    "client_assertions": 42,
+    "client_observations_including_old": 84,
+    "live_positions": "P and P+(13,-17,7) mm; inch P+(.5,-.7,.3)"
+  },
+  "commands": [
+    "git archive 4eda3892 | tar -x -C /tmp/r457/tree",
+    "python3 -I /tmp/r457/tree/scripts/test_support/heavy_lock.py --who codex-r457-offline --wait 50 -- /home/cnc/lcnc-suite-p6/lcnc-gateway/.venv/bin/python /tmp/r457/run.py",
+    "node node_modules/vitest/vitest.mjs run src/viewer/codex-r457.test.ts --maxWorkers=1 (cwd /tmp/r457/tree/lcnc-webui, held same heavy lock)"
+  ],
+  "harness_notes": [
+    "First synthetic comp case put G55 and G41 in same block: interpreter refused it. G55 moved to own preceding block.",
+    "Initial client harness assumed G54 was a recorded used epoch. Fixed to the declared live fixture; then 42/42 pass.",
+    "Successful native results were reused after these harness corrections; only missing/invalid cases rerun.",
+    "cases.py serializes exactly the 21 selected cases; no private operator program copied into evidence."
+  ],
+  "limitations": [
+    "No independent full corpus/parity or visible/native-page run; build obligations retained.",
+    "Source order checked against local upstream 2.9.4 files; no assertion about Debian patch parity.",
+    "F9-L, F9-R and cutter queue beyond point 0 remain outside this approval."
+  ],
+  "source_sha256": {
+    "/home/cnc/claude-work/p6/f9b/f9b_probe.py": "4caf259c77b00389be0a6db73aa7c699445398e11dc73bcb67196c82d45dad43",
+    "/home/cnc/claude-work/p6/f9b/f9b_cases.py": "10c4014a14b732c8a1050c4e69b3146da092fffd75cd26c753c4dcf3e9ee14a7",
+    "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r457.p6a-plan-v3.md": "cf318a1dbd6d194ac117d36a1b5e353c36a844ebed8a1230756cafcd7781dae4",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_convert.cc": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/gcodemodule.cc": "044575ae9cf0d11288f195e281350dce49cc1fa58a6e5c5a2ee5460503b6aec0",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/rs274ngc_pre.cc": "22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_internal.cc": "66eaf111465152bedc6e9ffc29dbcc22644883ca874e5db7c5ed8185550007f8",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/rs274ngc/interp_execute.cc": "1f24f45bcca892845cb30a8ab55164ca7f1e549dc9c6536620ce9e2ab5fdc5c1"
+  },
+  "artifact_sha256": {
+    "maschinentag.r457.codex-native-observations.json": "4ed03769c58f208656c62a30d2b85bbe3673a68b838212e7a8392cf399eb3d3b",
+    "maschinentag.r457.codex-client-observations.json": "e3d802c00b380a381cc7d7ad7609ef59df3654e70df638b5b0458967f123459d",
+    "maschinentag.r457.codex-cases.py": "d804315059b455b8e6ed748005bf7d9db2a5566956fffdbd2164a15592ebd641",
+    "maschinentag.r457.codex-native-runner.py": "73a0389f5a03900d7d7b05d0e7883e6cc8d280e61524b673c18e404376b10963",
+    "maschinentag.r457.codex-client-probe.test.ts": "1b483cfe8f947c1dec8d84850d55dce018309f827f24ab2268e7b22320992450",
+    "maschinentag.r457.codex-checks.txt": "0221c833ddcd69e06efa8bd48cc7843f731a090a3bb260bbfbd06100e56960ee",
+    "maschinentag.r457.codex-initial-harness-errors.txt": "877a6fd98dd94824070454679cba7f4a39cc19b774896a1c8bb7dff87b2b5da3",
+    "maschinentag.r457.codex-native-probe.patch": "c3fe8531be1e09317ea77ee6d103a12aa041ff4b0cd96a6d14909b455936a0de"
+  }
+}

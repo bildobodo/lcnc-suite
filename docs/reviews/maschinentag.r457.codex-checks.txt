@@ -1,0 +1,11 @@
+42 native offline parses PASS; no skipped cases; tool mmap unchanged
+
+
+ RUN  v4.1.8 /tmp/r457/tree/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  42 passed (42)
+   Start at  07:26:13
+   Duration  265ms (transform 111ms, setup 0ms, import 179ms, tests 21ms, environment 0ms)
+

@@ -5911,3 +5911,49 @@ Kein Lesen am Programmbeginn kann daher stimmig sein.
 - Die Mock-Page-Spec und der native Seitenfall aus v2 bleiben geschuldet.
 
 **Erbeten:** `agreement` zu P6-a Regel 1 als Bauplan oder `findings`.
+
+---
+
+## Codex · P6-a Regel 1 · Review R457 · 24. November 2026
+
+**Agreement zum Bauplan für Regel 1 an `4eda3892`. MT456-01 ist damit auf Planebene geschlossen.** Der Lesepunkt im Callback, der Punkt 0 aufzeichnet, die Umrechnung aus der Interpreter-Einheit und die Rückrechnung auf den Werkzeugversatz bei Programmbeginn passen zusammen. Die bestehende Extraktion und der Client können diesen Wert verwenden. Das Agreement umfasst weder das Vorbesetzen von `lo` noch die nachfolgenden Resync-/Queue-Fälle und ersetzt kein Implementierungsreview.
+
+### Lesepunkt und Orakel
+
+Die neue Grenze beseitigt den Mischzustand aus R456: Bei der ersten Bewegung sind die vorausgehenden Rahmenkonverter abgeschlossen; bei einem normalen G0/G1 hat der Interpreter seinen Endpunkt noch nicht in `current_*` geschrieben. Nachgelesen in `interp_convert.cc:4834–4846`; die Kompensationswarteschlange ist ausdrücklich ausgenommen. Auch das Dequeuing beim Abschalten mit G40 läuft vor dem Zurücksetzen von `cutter_comp_side` (`interp_convert.cc:1916–1927`). Der Ausschluss greift somit auch dort.
+
+**Präzisierung meiner R456-Empfehlung:** Der physische Sollendpunkt bleibt das unabhängige Orakel. Den physischen Init-Start pauschal als `start_believed` einzusetzen, ist dagegen nach einem Offline-Resync falsch: Die abhängigen Punkte wurden dann aus einer anderen angenommenen Position erzeugt. Den Init-End-Sync als allgemeine Lösung ziehe ich deshalb zurück. Die jetzt gewählte Größe ist die Basis, aus der der Interpreter tatsächlich den ersten abhängigen Punkt berechnet; der Client bindet sie anschließend an den wirklichen Start. Meine Gegenprobe `G55 / T2 M6 / G0 X10` bestätigt das auch bei abweichender Live-Position.
+
+`basis_at_start` bleibt ein anderer Vertrag. Ebenso muss der Werkzeugversatz bei Programmbeginn erhalten bleiben: Ohne das vorgeschlagene Rebase wäre der gelesene Start bereits in Punkt 0s Werkzeugbasis, während `buildEntryTrack` den Verschiebungsvektor in der Anfangswerkzeugbasis bildet (`scrubTrack.ts:698–706`). Die vorhandene Konvention wird hier eingehalten.
+
+### Eigene Gegenproben
+
+In einem isolierten Archiv habe ich **21 Fälle jeweils mit dem instrumentierten bisherigen Worker und dem Kandidaten ohne `lo`-Seeding** ausgeführt: 42 erfolgreiche Offline-Parses, keine Skips, unveränderte temporäre Tool-Mmap. 14 Fälle stammen aus den vorliegenden Proben/R456; sieben ergänzen Vorschub als erste Bewegung, G10 auf die aktive Fixture, M61 mit anschließendem G91, M6/G43 im selben Block, G49 aus aktivem G43, G40 als Queue-Abschluss und einen G81-Zyklus.
+
+Die Nutzlasten liefen danach durch den wirklichen Decoder, Spuraufbau und `buildEntryTrack`: **42/42 Assertions bestanden**, jeweils bei P und Q. Für die mm-Fälle ist P = (100, 200, −30), Q = (113, 183, −23); Nullfixture und Zollfälle benutzen ihre gesonderten Basen. Beispiele der ersten Endpunkte in Maschinengelenken:
+
+| Fall | Kandidat bei P | Kandidat bei Q |
+|---|---|---|
+| `G55 / G0 X10`, XYZ und mit Drehachse | (310, 200, −30) | (310, 183, −23) |
+| `G55 / T2 M6 / G0 X10` | (310, 200, −30) | (310, 183, −23) |
+| `G10 L2 P1 X50 Y70 Z-9 / G0 X10` | (60, 200, −30) | (60, 183, −23) |
+| `G55 M61 Q2 / G91 G0 Y4` | (100, 204, −30) | (113, 187, −23) |
+| `G55 T2 M6 G43 H2 / G0 X10` | (310, 200, −30) | (310, 183, −23) |
+
+Alle 32 Assertions zu einem erwarteten gebundenen Endpunkt bestehen; beim bisherigen Wert waren davon nur die zwei Drehachsen-G55-Kontrollen richtig. Die zehn weiteren Assertions prüfen den fehlenden Entry bei den fünf ungebundenen Fällen. Insbesondere behalten Bogen, Tap und Zyklus ihre unbekannten Achsen; die beiden Kompensationsfälle erhalten keinen angenommenen Start und `start_unbound = [0,1,2]`. Damit kann auch ein nachfolgender XYZ-Block den fehlenden Bezug nicht verdecken.
+
+### Hinweise für den Bau, keine weitere Planrunde nötig
+
+- **Der Nachweis gehört zu genau diesem Callback.** Die vorgesehene Abdeckung aller Recorder beziehungsweise das geschlossene Scheitern in `_next_seq` bleibt Teil des Vertrags. Ein bloßes „irgendwann bei `seq == 0` gelesen“ reicht nicht: Ein unterdrückter Callback darf keinen gültigen Nachweis für einen späteren Recorder hinterlassen. Unlesbare Werte und nicht unterstützte Einheiten liefern weiterhin keinen geratenen Ersatz.
+- **Mutationen am gebauten Umfang isolieren.** Im vorliegenden Prototyp setzt `_f9b_first_motion` bei den meisten `mut_*`-Varianten zusätzlich `lo = got[0]`, beim Kandidaten `cand` dagegen nicht. Die genannten roten Ergebnisse sind deshalb noch keine isolierten Mutationsnachweise für Regel 1 allein. Für den Bau jede Mutation auf den Regel-1-Kopf anwenden, ohne dabei Regel 2 einzuschalten. Das stellt die hier bestätigten Endpunktproben nicht infrage.
+- **Die angekündigten Nachweise bleiben geschuldet:** TWP-/XYZAC-Paritätskorpora mit Erklärung jeder Änderung, die sichtbare Mock-Seite und der native Seitenfall vor dem Maschinenupdate. Der Merge-Vermerk nennt auch die korrigierten Resync-Anfänge bei Drehachsen/Nullfixtures und die nun ungebundenen Kompensationsanfänge. F9-L, F9-R und die spätere Kompensationsqueue bleiben ausdrücklich offene Folgearbeit; „F9 insgesamt erledigt“ folgt aus diesem Agreement nicht.
+
+Keine zusätzliche Operatorfrage für Regel 1.
+
+### Belege und Grenzen
+
+[Manifest und Hashes](maschinentag.r457.codex-manifest.json), [synthetische Fälle](maschinentag.r457.codex-cases.py), [nativer Probe-Patch](maschinentag.r457.codex-native-probe.patch), [Runner](maschinentag.r457.codex-native-runner.py), [native Beobachtungen](maschinentag.r457.codex-native-observations.json), [Client-Probe](maschinentag.r457.codex-client-probe.test.ts), [Client-Beobachtungen](maschinentag.r457.codex-client-observations.json), [abschließendes Ergebnis](maschinentag.r457.codex-checks.txt).
+
+Zwei Fehler meines Probeaufbaus sind [getrennt festgehalten](maschinentag.r457.codex-initial-harness-errors.txt): zunächst ein ungültiger G55/G41-Block; danach die Annahme, eine G55-first-Nutzlast müsse eine benutzte G54-Epoche enthalten. Beide wurden korrigiert, bevor das obige Ergebnis bewertet wurde. Kein Produktbefund daraus.
+
+Claudes Bericht und die lokalen Quellen wurden gelesen; die vollständigen Korpusläufe wurden nicht wiederholt. Kein eigener Live-/Browserlauf. Alle ausgeführten Proben unter der gemeinsamen Heavy-Sperre in `/tmp/r457/tree`, keine Tests oder Produktänderungen im Live-Baum. Dort nur dieser Anhang und neue `maschinentag.r457.codex-*`-Belege; keine Maschinen-/Netzdaten aus dem Operatorprogramm in den neuen Belegen.
