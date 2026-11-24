@@ -1,0 +1,635 @@
+{
+ "_doc": "P2b-F1 scene: native cases on the VM's real LinuxCNC with a real page (Chromium headless 1920x1080, simulation switched on by the probe's check 3) at fea4c2b7 (fix/p2b-f1-scene), driven by ~/claude-work/p2bf/native/p2bf_native.py (the P2b check's page driver, sampled every 100 ms from each load to the adoption of its own preview after the run), extended by the CANVAS verdict (the pre-update check 2026-11-24 found A2's path drawn under C's run while the page text was right). Verdicts per case: foreign_samples = samples naming the big program while showing A2's code or version (the gate); scene_foreign_samples = samples naming the big program that DRAW (getPathBox) or HOLD (getPathMemory cpu total) a path while none of its own is shown; green_px_run = the palette's path colour (|dr|+|dg|+|db| < 40) counted inside the viewer canvas of full-page shots at 2 s and 10 s of the run; green_px_control = the same count before the load (the previous program's path: the counter sees a path) and after the adoption (the program's own path); words_in_run, adopted, parse_under_run as before (b's load parse began before the start and publishes in the run under its own identity). Result: (a)/(b)/(c) 0 scene-foreign samples; C's run 0/0 px against 323 px before its load and 9768 after its adoption. The LAN sim taken and given back: restore and restore-post 'complete'.",
+ "run": "20261124T014715-scene-fix",
+ "commit": "fea4c2b79af0efa42a355c53c4251b4c2c09d18f",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "page": {
+  "ready": {
+   "t": 1795481269848,
+   "check3": {
+    "checkedBefore": false,
+    "simTabBefore": 0,
+    "noteBefore": 0,
+    "savedMs": 386,
+    "simTabMs": 390,
+    "noteAfterSaved": 0,
+    "simTabAfterSaved": 1,
+    "noteAfterReopen": 0
+   }
+  },
+  "a": {
+   "file": "pw_big_a.ngc",
+   "digest": "64bad98f7c34",
+   "a2_version": null,
+   "load_reply": {
+    "type": "reply",
+    "cmd": "load_file",
+    "ok": true,
+    "path": "/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_a.ngc",
+    "program_id": "ecb684b3.1"
+   },
+   "refresh_at_load": {
+    "reason": "file",
+    "file": "pw_big_a.ngc",
+    "program_id": "ecb684b3.1",
+    "phase": "starting",
+    "first": true,
+    "expected_ms": null,
+    "started_ms": null,
+    "job": 1,
+    "queued": false,
+    "superseded": 0
+   },
+   "published_before_start": false,
+   "start_reply": {
+    "type": "reply",
+    "cmd": "cycle_start",
+    "ok": true,
+    "toolsetter": {
+     "digest": "5e6ab986d401d3fe",
+     "set_up": false,
+     "synced": false
+    }
+   },
+   "published_during_run": false,
+   "preview_wait_in_run": null,
+   "refresh_in_run": [
+    {
+     "t": 0.21,
+     "job": 1,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    }
+   ],
+   "abort_reply": {
+    "type": "reply",
+    "cmd": "abort",
+    "ok": true
+   },
+   "published_after_abort_s": 6.41,
+   "own_version": 1795481257,
+   "samples": 434,
+   "t": {
+    "load": 1795481270.3057032,
+    "start": 1795481270.3258073,
+    "abort": 1795481305.4699442
+   },
+   "verdict": {
+    "foreign_samples": 0,
+    "foreign_first": [],
+    "words_in_run": true,
+    "words_sample": {
+     "t": 1795481289670,
+     "file": "pw_big_a.ngc",
+     "code": [],
+     "shown": null,
+     "path": false,
+     "held": 0,
+     "note": "Text and preview after the run",
+     "hud": "Preview after the run",
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:18 \u00b7 PREVIEW AFTER THE RUN"
+    },
+    "adopted": true,
+    "last_sample": {
+     "t": 1795481316163,
+     "file": "pw_big_a.ngc",
+     "code": [
+      "1(p2bcheck a)",
+      "2G21 G90 G94 G17 G64"
+     ],
+     "shown": 1795481257,
+     "path": true,
+     "held": 25000543,
+     "note": null,
+     "hud": null,
+     "banner": "IDLE"
+    },
+    "parse_under_run": [],
+    "scene_foreign_samples": 0,
+    "scene_foreign_first": [],
+    "scene_samples": 434,
+    "green_px_run": [
+     0,
+     0
+    ],
+    "green_px_control": {
+     "a-before-load": 0,
+     "a-after": 9723
+    }
+   },
+   "shots": [
+    {
+     "name": "a-before-load",
+     "t": 1795481270176,
+     "green_px": 0,
+     "scene": {
+      "path": false,
+      "held": 0,
+      "drawn": null
+     },
+     "banner": "IDLE",
+     "hud": null
+    },
+    {
+     "name": "a-run-2s",
+     "t": 1795481274896,
+     "green_px": 0,
+     "scene": {
+      "path": false,
+      "held": 0,
+      "drawn": null
+     },
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:01 \u00b7 PREVIEW AFTER THE RUN",
+     "hud": "Preview after the run"
+    },
+    {
+     "name": "a-run-10s",
+     "t": 1795481282821,
+     "green_px": 0,
+     "scene": {
+      "path": false,
+      "held": 0,
+      "drawn": null
+     },
+     "banner": "RUNNING \u00b7 PW_BIG_A.NGC \u00b7 00:09 \u00b7 PREVIEW AFTER THE RUN",
+     "hud": "Preview after the run"
+    },
+    {
+     "name": "a-after",
+     "t": 1795481316110,
+     "green_px": 9723,
+     "scene": {
+      "path": true,
+      "held": 25000543,
+      "drawn": "[\"/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_a.ngc\",1795481257,\"programmed\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0],\"\"]"
+     },
+     "banner": "IDLE",
+     "hud": null
+    }
+   ]
+  },
+  "b_A_version": 1795481258,
+  "b": {
+   "file": "pw_big_b.ngc",
+   "digest": "47763ddfe639",
+   "a2_version": 1795481258,
+   "load_reply": {
+    "type": "reply",
+    "cmd": "load_file",
+    "ok": true,
+    "path": "/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_b.ngc",
+    "program_id": "ecb684b3.3"
+   },
+   "refresh_at_load": {
+    "reason": "file",
+    "file": "pw_big_b.ngc",
+    "program_id": "ecb684b3.3",
+    "phase": "starting",
+    "first": true,
+    "expected_ms": null,
+    "started_ms": null,
+    "job": 4,
+    "queued": false,
+    "superseded": 1
+   },
+   "published_before_start": false,
+   "start_reply": {
+    "type": "reply",
+    "cmd": "cycle_start",
+    "ok": true,
+    "toolsetter": {
+     "digest": "5e6ab986d401d3fe",
+     "set_up": false,
+     "synced": false
+    }
+   },
+   "published_during_run": true,
+   "preview_wait_in_run": null,
+   "refresh_in_run": [
+    {
+     "t": 0.05,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.15,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.25,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.35,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 0.45,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 1.86,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    },
+    {
+     "t": 1.96,
+     "job": 4,
+     "reason": "file",
+     "phase": "running",
+     "first": true
+    }
+   ],
+   "abort_reply": {
+    "type": "reply",
+    "cmd": "abort",
+    "ok": true
+   },
+   "published_after_abort_s": 0.02,
+   "own_version": 1795481259,
+   "samples": 340,
+   "t": {
+    "load": 1795481321.0656402,
+    "start": 1795481321.085751,
+    "abort": 1795481356.2047243
+   },
+   "verdict": {
+    "foreign_samples": 0,
+    "foreign_first": [],
+    "words_in_run": "published in the run (case b)",
+    "words_sample": {
+     "t": 1795481342116,
+     "file": "pw_big_b.ngc",
+     "code": [
+      "3785G53 G1 X388.0",
+      "3786G53 G1 X388.5"
+     ],
+     "shown": 1795481259,
+     "path": true,
+     "held": 25000543,
+     "note": null,
+     "hud": null,
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:20"
+    },
+    "adopted": true,
+    "last_sample": {
+     "t": 1795481360416,
+     "file": "pw_big_b.ngc",
+     "code": [
+      "6454G53 G1 X120.5",
+      "6455G53 G1 X121.0"
+     ],
+     "shown": 1795481259,
+     "path": true,
+     "held": 25000543,
+     "note": null,
+     "hud": null,
+     "banner": "IDLE"
+    },
+    "parse_under_run": [
+     {
+      "t": 0.55,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.65,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.75,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.85,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 0.95,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.06,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.16,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.26,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.36,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.46,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.56,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.66,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.76,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.86,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     },
+     {
+      "t": 1.96,
+      "job": 4,
+      "reason": "file",
+      "phase": "running",
+      "first": true
+     }
+    ],
+    "scene_foreign_samples": 0,
+    "scene_foreign_first": [],
+    "scene_samples": 340,
+    "green_px_run": [
+     0,
+     9675
+    ],
+    "green_px_control": {
+     "b-before-load": 320,
+     "b-after": 9629
+    }
+   },
+   "shots": [
+    {
+     "name": "b-before-load",
+     "t": 1795481320901,
+     "green_px": 320,
+     "scene": {
+      "path": true,
+      "held": 8401,
+      "drawn": "[\"/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_small.ngc\",1795481258,\"programmed\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0],\"1:0,0,0,0,0,0,0,|\"]"
+     },
+     "banner": "IDLE",
+     "hud": null
+    },
+    {
+     "name": "b-run-2s",
+     "t": 1795481329091,
+     "green_px": 0,
+     "scene": {
+      "path": false,
+      "held": 0,
+      "drawn": null
+     },
+     "banner": "RE-PARSING \u00b7 PROGRAM LOAD \u00b7 PW_BIG_B.NGC",
+     "hud": "Preview loading"
+    },
+    {
+     "name": "b-run-10s",
+     "t": 1795481334411,
+     "green_px": 9675,
+     "scene": {
+      "path": true,
+      "held": 25000543,
+      "drawn": "[\"/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_b.ngc\",1795481259,\"programmed\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0],\"1:0,0,0,0,0,0,0,|\"]"
+     },
+     "banner": "RUNNING \u00b7 PW_BIG_B.NGC \u00b7 00:09",
+     "hud": null
+    },
+    {
+     "name": "b-after",
+     "t": 1795481360414,
+     "green_px": 9629,
+     "scene": {
+      "path": true,
+      "held": 25000543,
+      "drawn": "[\"/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_b.ngc\",1795481259,\"programmed\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0],\"1:0,0,0,0,0,0,0,|\"]"
+     },
+     "banner": "IDLE",
+     "hud": null
+    }
+   ]
+  },
+  "c_task_mode_before": 3,
+  "c_A2_version": 1795481260,
+  "c": {
+   "file": "pw_big_c.ngc",
+   "digest": "2fe523a3d046",
+   "a2_version": 1795481260,
+   "load_reply": {
+    "type": "reply",
+    "cmd": "load_file",
+    "ok": true,
+    "path": "/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_c.ngc",
+    "program_id": "ecb684b3.5"
+   },
+   "refresh_at_load": {
+    "reason": "file",
+    "file": "pw_big_c.ngc",
+    "program_id": "ecb684b3.5",
+    "phase": "starting",
+    "first": true,
+    "expected_ms": null,
+    "started_ms": null,
+    "job": 6,
+    "queued": false,
+    "superseded": 1
+   },
+   "published_before_start": false,
+   "start_reply": {
+    "type": "reply",
+    "cmd": "cycle_start",
+    "ok": true,
+    "toolsetter": {
+     "digest": "5e6ab986d401d3fe",
+     "set_up": false,
+     "synced": false
+    }
+   },
+   "published_during_run": false,
+   "preview_wait_in_run": null,
+   "refresh_in_run": [],
+   "abort_reply": {
+    "type": "reply",
+    "cmd": "abort",
+    "ok": true
+   },
+   "published_after_abort_s": 4.69,
+   "own_version": 1795481261,
+   "samples": 408,
+   "t": {
+    "load": 1795481367.2509801,
+    "start": 1795481367.2711992,
+    "abort": 1795481402.3457353
+   },
+   "verdict": {
+    "foreign_samples": 0,
+    "foreign_first": [],
+    "words_in_run": true,
+    "words_sample": {
+     "t": 1795481386904,
+     "file": "pw_big_c.ngc",
+     "code": [],
+     "shown": null,
+     "path": false,
+     "held": 0,
+     "note": "Text and preview after the run",
+     "hud": "Preview after the run",
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:19 \u00b7 PREVIEW AFTER THE RUN"
+    },
+    "adopted": true,
+    "last_sample": {
+     "t": 1795481411300,
+     "file": "pw_big_c.ngc",
+     "code": [
+      "1(p2bcheck c)",
+      "2G21 G90 G94 G17 G64"
+     ],
+     "shown": 1795481261,
+     "path": true,
+     "held": 25000543,
+     "note": null,
+     "hud": null,
+     "banner": "IDLE"
+    },
+    "parse_under_run": [],
+    "scene_foreign_samples": 0,
+    "scene_foreign_first": [],
+    "scene_samples": 408,
+    "green_px_run": [
+     0,
+     0
+    ],
+    "green_px_control": {
+     "c-before-load": 323,
+     "c-after": 9768
+    }
+   },
+   "shots": [
+    {
+     "name": "c-before-load",
+     "t": 1795481367112,
+     "green_px": 323,
+     "scene": {
+      "path": true,
+      "held": 7627,
+      "drawn": "[\"/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_small2.ngc\",1795481260,\"programmed\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0],\"1:0,0,0,0,0,0,0,|\"]"
+     },
+     "banner": "IDLE",
+     "hud": null
+    },
+    {
+     "name": "c-run-2s",
+     "t": 1795481371931,
+     "green_px": 0,
+     "scene": {
+      "path": false,
+      "held": 0,
+      "drawn": null
+     },
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:01 \u00b7 PREVIEW AFTER THE RUN",
+     "hud": "Preview after the run"
+    },
+    {
+     "name": "c-run-10s",
+     "t": 1795481380335,
+     "green_px": 0,
+     "scene": {
+      "path": false,
+      "held": 0,
+      "drawn": null
+     },
+     "banner": "RUNNING \u00b7 PW_BIG_C.NGC \u00b7 00:09 \u00b7 PREVIEW AFTER THE RUN",
+     "hud": "Preview after the run"
+    },
+    {
+     "name": "c-after",
+     "t": 1795481411211,
+     "green_px": 9768,
+     "scene": {
+      "path": true,
+      "held": 25000543,
+      "drawn": "[\"/home/cnc/claude-work/p2bf/native/runs/20261124T014715-scene-fix/configs/sim/nc_files/pw_big_c.ngc\",1795481261,\"programmed\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0],\"1:0,0,0,0,0,0,0,|\"]"
+     },
+     "banner": "IDLE",
+     "hud": null
+    }
+   ]
+  },
+  "probe_end": {
+   "errors": []
+  }
+ },
+ "steps": [
+  "tree",
+  "copy",
+  "start",
+  "connect",
+  "p2bf-page"
+ ]
+}
