@@ -144,7 +144,7 @@ test("the Sim tab goes with the focus elsewhere: it stays there", async ({ page,
 // Codex R339 SS-I05 rest: the TIMELINE leaves with the simulation too, and it
 // is not in the tab list — a focus on one of its controls comes to the side
 // pane's navigation, never body (where the next arrow jogs).
-for (const control of ["Open the Sim tab", "Playback speed"] as const) {
+for (const control of ["Open the Sim tab", "Playback speed", "Back to start"] as const) {
   test(`the timeline goes with the focus on "${control}": the focus to the navigation, an arrow never jogs`, async ({ page, context }) => {
     test.setTimeout(90_000);
     await prepare(page, context, `/bar-${control.length}.ngc`, 7500 + control.length, true);
@@ -181,12 +181,13 @@ test("switched off during a press on the timeline: the work stops at once, the b
 
 // Codex R340: the timeline still standing under a press must not START the
 // mode the switch just ended — neither by another control nor by the click
-// of the press itself.
-test("the timeline held under a press starts nothing after the switch went off: Play by key, Play's own click", async ({ page, context }) => {
+// of the press itself. Back to start (P6-b F10) enters by Play's rules.
+for (const [name, version] of [["Play", 7701], ["Back to start", 7702]] as const) test(`the timeline held under a press starts nothing after the switch went off: ${name} by key, ${name}'s own click`, async ({ page, context }) => {
   test.setTimeout(90_000);
-  await prepare(page, context, "/held.ngc", 7701, true);
+  await prepare(page, context, `/held-${version}.ngc`, version, true);
   const bar = page.locator(".scrubBar");
-  const play = bar.getByTitle("Play the program through the machine model", { exact: true });
+  const play = name === "Play" ? bar.getByTitle("Play the program through the machine model", { exact: true })
+    : bar.getByRole("button", { name: "Back to start", exact: true });
   await expect(play).toBeEnabled();
   // (1) a press on the link holds the bar; Play by key meanwhile
   const link = bar.getByLabel("Open the Sim tab", { exact: true });
@@ -219,12 +220,13 @@ test("the timeline held under a press starts nothing after the switch went off: 
 // Codex R341: closing a held control drops its focus (Play's explained
 // wrapper replaces the button) — the focus comes to the navigation at the
 // switch, and stays there once the bar leaves; an arrow never jogs.
-test("a held Play closed by the switch: its focus to the navigation at once, and after the bar leaves", async ({ page, context }) => {
+for (const [name, version] of [["Play", 7801], ["Back to start", 7803]] as const) test(`a held ${name} closed by the switch: its focus to the navigation at once, and after the bar leaves`, async ({ page, context }) => {
   test.setTimeout(90_000);
-  await prepare(page, context, "/heldfocus.ngc", 7801, true);
+  await prepare(page, context, `/heldfocus-${version}.ngc`, version, true);
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: true } } } });
   const bar = page.locator(".scrubBar");
-  const play = bar.getByTitle("Play the program through the machine model", { exact: true });
+  const play = name === "Play" ? bar.getByTitle("Play the program through the machine model", { exact: true })
+    : bar.getByRole("button", { name: "Back to start", exact: true });
   const p = (await play.boundingBox())!;
   await page.mouse.move(p.x + p.width / 2, p.y + p.height / 2);
   await page.mouse.down();

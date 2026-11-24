@@ -37,7 +37,7 @@ import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsedAs, NO_VALUE } from "./format";
-import { Play, Pause, Square, SquareArrowOutUpRight } from "lucide-vue-next";
+import { Play, Pause, SkipBack, Square, SquareArrowOutUpRight } from "lucide-vue-next";
 import MachineSelect from "./MachineSelect.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -117,7 +117,18 @@ const emit = defineEmits<{
   // `tlo`/`tool`: the sample's tool offset + tool number (schema 8) —
   // ThreeViewer's phase 3 subtracts the offset the joints were lifted
   // with, and the marker follows the tool; null = live.
-  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
+  // `start`: the simulation stands at the program's BEGINNING — position 0
+  // of a track with an entry move, nothing run (P6-b F11): a new number per
+  // arrival there and per Back to start, so a return at an unchanged
+  // position still brings the code view to its top; null = not there. Never
+  // a line number: a null `displayLine` alone also means an untrusted line,
+  // a sub's or the end without M2.
+  // `back`: Back to start where position 0 is a FIRST POINT (a track
+  // without an entry move — no start state there; Codex R458 MT-I32): a
+  // new number per press, held while the position stays on that point —
+  // the press itself, never a line: the code view brings the first point's
+  // line (the gated `displayLine`) back into view; null = no such press.
+  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null, start: number | null, back: number | null): void;
   /** A finding navigated to (limit or collision); `onRapid`: its sample is
    *  a rapid, `run`: its section in BASE-track segments (null = on the
    *  entry move) — the viewer shows that section of a hidden layer
@@ -220,6 +231,22 @@ const curSubName = ref<string | null>(null);
 const curViaCall = ref(false);
 const curDispLine = ref<number | null>(null);
 const curAtEnd = ref(false);
+// The start state (P6-b F11): position 0 of a track WITH an entry move is
+// the program's beginning — the machine where it stands, nothing run; the
+// code view shows the program's top with nothing marked. A track without
+// one keeps its first point and that point's line. `_startSeq` numbers the
+// arrivals: a re-pose AT the start (an offset edge, a rebuilt entry move)
+// keeps the number — a hand-scrolled code view stays where it is — while
+// Back to start always takes a new one (`_startAsked`). Where position 0 is
+// a first point (no entry move, no start state) the press travels as its
+// own number (`_back`, Codex R458 MT-I32): neither the position nor the line
+// changes there, and the code scrolled away by hand must come back to that
+// line — never the top, never a line the trust gate holds back.
+let _startSeq = 0;
+let _atStartShown = false;
+let _startAsked = false;
+let _backSeq = 0;
+let _back: number | null = null;
 // W5: the unique program-end line (M2/M30 text scan) — what the playhead
 // displays when pinned at the track's terminal vertex.
 const endLine = computed(() => programEndLine(gcodeContent.value));
@@ -285,9 +312,20 @@ function applyPos() {
         g5x: _ew.g5x, g92: _ew.g92, rotationDeg: _ew.rotationDeg,
         a: _joints[_ai] as number })
     : null;
+  // the start: index 0 of the ENTRY track (its entry point, line 0) — never
+  // the end, never another point whose line does not show
+  const atStart = !curAtEnd.value && t === entryTrack.value && _sample.index === 0;
+  const start = atStart ? (_atStartShown && !_startAsked ? _startSeq : ++_startSeq) : null;
+  // Back to start on a FIRST point (a track without an entry move): a new
+  // number per press, kept while the position stays there
+  const atFirstPoint = !curAtEnd.value && t !== entryTrack.value && _sample.index === 0;
+  if (!atFirstPoint) _back = null;
+  else if (_startAsked) _back = ++_backSeq;
+  _atStartShown = atStart;
+  _startAsked = false;
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
        curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane,
-       _sample.tlo ? [..._sample.tlo.xyz] : null, _sample.tlo?.tool ?? null);
+       _sample.tlo ? [..._sample.tlo.xyz] : null, _sample.tlo?.tool ?? null, start, _back);
 }
 
 /** ---------- explicit mode entry / exit ---------- */
@@ -352,7 +390,9 @@ function exitSim() {
   // program changes, and REBUILT from the new pose when the machine moves
   // (the joint watcher below) — the base result keeps its own identity, so
   // keeping the entry track no longer costs a re-sweep on re-entry.
-  emit("pose", null, null, null, null, null, null, null, null);
+  emit("pose", null, null, null, null, null, null, null, null, null, null);
+  _atStartShown = false;   // the next entry arrives at the start anew
+  _back = null;
   subExecState.value = null;
 }
 
@@ -469,6 +509,25 @@ function togglePlay() {
   playing.value = true;
   lastT = performance.now();
   raf = requestAnimationFrame(tick);
+}
+
+/** Back to start (P6-b F10): the simulation's position 0 — the program's
+ *  beginning, F11's start state. Play's entry rules (enterSim: the device's
+ *  switch, the machine off, no run — a refusal does nothing); playback
+ *  stops, no finding is shown, and the code view returns to its top even
+ *  when the position already stood at 0 (a scroll by hand meanwhile): the
+ *  return takes a new start number, an unchanged sPos would swallow it — on
+ *  a track without an entry move a new `back` number (its first point's
+ *  line comes back into view, marked; Codex R458 MT-I32). */
+function backToStart() {
+  if (!enterSim()) return;
+  playing.value = false;
+  cancelAnimationFrame(raf);
+  navSel.value = null;   // the operator took the position over
+  emit("manual-scrub");
+  _startAsked = true;
+  sPos.value = 0;
+  applyPos();
 }
 
 /** A drag on the timeline PAUSES playback (operator, 2026-09-12: it used to
@@ -1315,12 +1374,13 @@ onUnmounted(releaseSim);
 </script>
 
 <template>
-  <!-- ONE row (operator 2026-10-05, 2026-10-29): Sim, play, the speed, the
-       timeline with its marks, the check's coverage (100 % once done), the time,
-       the Sim tab link. Nothing here changes its width with the content, so
-       the bar never folds; the findings and the check's detail are in the
-       side pane's Simulation tab. A bar under 620 px takes two rows — by
-       the bar's width, never by content. -->
+  <!-- ONE row (operator 2026-10-05, 2026-10-29): Sim, back to start, play,
+       the speed, the timeline with its marks, the check's coverage (100 %
+       once done), the time, the Sim tab link. Nothing here changes its width
+       with the content, so the bar never folds; the findings and the check's
+       detail are in the side pane's Simulation tab. A bar under 620 px takes
+       two rows — by the bar's width, never by content — and there Back to
+       start takes the link's room (the side pane reaches the Sim tab). -->
   <div v-if="visible" class="scrubBar overlay-card denseArea">
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
@@ -1329,6 +1389,16 @@ onUnmounted(releaseSim);
                      :disabled="!simulationOn || (!simMode && !machineOff)"
                      help="Poses the 3D model along the program. Machine must be OFF; machine controls lock until you exit." />
 
+      <!-- Back to start (P6-b F10): its own fixed slot LEFT of Play (a
+           player's skip back; the speed stays directly beside Play — operator
+           2026-10-29/31), Play's gate and reason — the simulation's
+           position 0, the program's top in the code view. -->
+      <MachineBtn type="scrub" class="iconBtn" :disabled="!simulationOn || (!simMode && !machineOff)"
+                  :reason="!simulationOn ? DEVICE_SIM_OFF : undefined"
+                  aria-label="Back to start" title="Back to start"
+                  @click="backToStart">
+        <SkipBack :size="14" />
+      </MachineBtn>
       <MachineBtn type="scrub" class="iconBtn" :disabled="!simulationOn || (!simMode && !machineOff)"
                   :reason="!simulationOn ? DEVICE_SIM_OFF : undefined"
                   :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
@@ -1339,8 +1409,8 @@ onUnmounted(releaseSim);
       <MachineSelect gate="simSpeed" v-model="speedChoice" name="scrubSpeed" aria-label="Playback speed" class="speedSelect">
         <option v-for="v in SIM_SPEEDS" :key="v" v-memo="[v]" :value="String(v)">×{{ v }}</option>
       </MachineSelect>
-      <!-- the narrow form's line break (CSS below): Sim, Play, the speed and
-           the link above; the timeline, the coverage and the time below -->
+      <!-- the narrow form's line break (CSS below): Sim, Back to start, Play
+           and the speed above; the timeline, the coverage and the time below -->
       <span class="rowBreak" aria-hidden="true"></span>
       <div ref="sliderWrap" class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
@@ -1491,19 +1561,23 @@ onUnmounted(releaseSim);
    read as two lines. */
 .posSlot { flex: none; white-space: nowrap; }
 /* A bar under 620 px takes TWO rows — the timeline kept ~90 px in one
-   (the fixed items take ~405 px; at 620 one row leaves the timeline ~200):
-   Sim, Play, the speed and the link above; the timeline, the coverage and
-   the time below, as low as the timeline itself. Never a third, and no
+   (the fixed items take ~450 px; at 620 one row leaves the timeline ~160):
+   Sim, Back to start, Play and the speed above; the timeline, the coverage
+   and the time below, as low as the timeline itself. Never a third, and no
    button in the second: a portrait viewer at 150 % holds the DRO card above
    the bottom column only so (layout.spec — TWP's six DRO rows). The bar is a
-   dense area, its two symbol buttons take the compact touch floor in width
-   too (36 px, the strip's), and the gaps --gap-tight: the first row then
-   holds 249 of 256 px there. After the base rules. */
+   dense area, its symbol buttons take the compact touch floor in width too
+   (36 px, the strip's), and the gaps --gap-tight. Measured there (P6-b,
+   portrait 150 %, a 255 px row): Sim, Play, the speed and the link took
+   252 px; Back to start beside the link needs 292 — the link went to a
+   third row. So Back to start takes the link's room in the two-row form
+   (252 px); the Sim tab stays in the side pane's navigation. After the
+   base rules. */
 .rowBreak { display: none; }
 html.touch-device .scrubBar.denseArea .scrubRow .iconBtn.b { min-width: var(--touch-target-compact); }
 @container (max-width: 620px) {
   .scrubRow { flex-wrap: wrap; gap: var(--gap-tight); }
-  .simTabLink { order: 1; margin-left: auto; }
+  .simTabLink { display: none; }
   .rowBreak { display: block; order: 2; flex: 0 0 100%; height: 0; }
   .sliderWrap, .checkSlot, .posSlot { order: 3; }
   .posRest { display: none; }

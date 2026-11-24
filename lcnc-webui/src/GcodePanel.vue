@@ -92,6 +92,17 @@ const props = defineProps<{
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
   scrubLine?: number | null;
+  // The simulation at the program's beginning (P6-b F11): a new number per
+  // arrival there (and per Back to start) — the view snaps to the program's
+  // top with nothing marked; null = not there. A null scrubLine alone keeps
+  // its meaning (an untrusted line, a sub's, the end): the view stays.
+  scrubStart?: number | null;
+  // Back to start where position 0 is a FIRST point (a track without an
+  // entry move — Codex R458 MT-I32): a new number per press. It brings the
+  // scrub line (the first point's, marked) back into view at once — the
+  // code scrolled away by hand at an unchanged position and line; a scrub
+  // line held back (no trust) shows nothing, never the top.
+  scrubBack?: number | null;
   // Lines flagged by the viewer's collision sweep (stage 3) — danger-tinted
   // line numbers (soft-limit violations are warn-tinted; a line with both
   // reads danger), the same colours as the scrub bar's timeline marks.
@@ -373,13 +384,19 @@ watch(codeViewerRef, (el, old) => {
 // the followed row at once.
 const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
   const h = codeViewerRef.value?.clientHeight ?? 0;
-  if (h === viewH.value) return;
+  const was = viewH.value;
+  if (h === was) return;
   viewH.value = h;
   if (!(h > 0)) return;
   // the newest line: the one waiting for its step, else the one followed
   const row = _waitRow != null && _rowsStill(_waitRows) ? _waitRow
     : _followedRow != null && _rowsStill(_followedRows) ? _followedRow : null;
   if (row != null) scrollToRow(row, true);
+  // the simulation at the program's beginning: the view that COMES BACK
+  // (from no height: a hidden tab) shows the top — a hidden pane's scroll is
+  // not the one it shows again; a height change of a shown view keeps a
+  // scroll by hand
+  else if (!(was > 0) && props.scrubStart != null && !editing.value) showProgramStart();
 }) : null;
 onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).
@@ -577,8 +594,27 @@ function scrollToLine(line: number) {
 watch(() => props.currentLine, (newLine) => {
   if (newLine != null) scrollToLine(newLine);
 });
-watch(() => props.scrubLine, (newLine) => {
-  if (newLine != null && !editing.value) scrollToLine(newLine);
+// The scrub line and Back to start on a first point, decided in ONE place
+// (both change in one flush when the press comes from another line): a press
+// brings the line back into view at once (a snap — the code scrolled away by
+// hand, or a line followed elsewhere); a new line alone is followed in steps.
+watch([() => props.scrubLine, () => props.scrubBack], ([line, back], [oldLine, oldBack]) => {
+  if (line == null || editing.value) return;
+  if (back != null && back !== oldBack) scrollToRow(rowForMain(line, expansion.value), true);
+  else if (line !== oldLine) scrollToLine(line);
+});
+/** The simulation at the program's beginning (P6-b F11): the program's top,
+ *  nothing marked — a SNAP in one place (no highlight to step from, no band;
+ *  no line followed, so the next line snaps too and a resize keeps the top). */
+function showProgramStart() {
+  stopGlide();
+  _followedRow = null;
+  _followedRows = null;
+  setScroll(0);
+}
+// a new number per arrival: a return at an unchanged position comes back too
+watch(() => props.scrubStart, (start) => {
+  if (start != null && !editing.value) showProgramStart();
 });
 // The indented sub view follows its own executing line (W5).
 watch(subActiveLine, (ln) => {

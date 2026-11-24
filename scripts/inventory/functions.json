@@ -566,7 +566,7 @@
     "setting:macroBar.bar": "readable"
    }}},
   {"id": "F-SIM", "area": "ansicht", "name": "Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab",
-   "atoms": ["control:ScrubBar.vue|*=5", "control:SimPanel.vue|*=5", "status:drift_decision"]},
+   "atoms": ["control:ScrubBar.vue|*=6", "control:SimPanel.vue|*=5", "status:drift_decision"]},
   {"id": "F-VIEW", "area": "ansicht", "name": "3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise",
    "atoms": ["control:ThreeViewer.vue|MachineBtn:viewPreset|*=2",
              "control:ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=emit('open-settings', 'viewer')",

@@ -777,7 +777,7 @@ test("stepping through the findings never changes the bar: the same box, the sam
     // Layout px (CSS zoom aside): the bar, the timeline, the bar's content box.
     const bar = () => page.locator(".scrubBar").evaluate(el => {
       const b = el as HTMLElement, cs = getComputedStyle(b);
-      const slider = b.querySelector(".sliderWrap") as HTMLElement, play = b.querySelector("button") as HTMLElement;
+      const slider = b.querySelector(".sliderWrap") as HTMLElement, play = b.querySelector('button[title^="Play"], button[title^="Pause"]') as HTMLElement;
       // the bar's two-row form: under 620 px of its own width (a container query)
       return { w: b.offsetWidth, h: b.offsetHeight, slider: slider.offsetWidth,
         content: b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), narrow: b.offsetWidth < 620,
@@ -1699,6 +1699,8 @@ test("the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab
   const order = await row.evaluate(el => [...el.querySelectorAll("button, select, input")].map(c => c.getAttribute("aria-label") ?? c.getAttribute("title") ?? c.tagName));
   const speedAt = order.indexOf("Playback speed");
   expect(order[speedAt - 1], `the control before the speed is Play: ${JSON.stringify(order)}`).toMatch(/^(Play|Pause)/);
+  // Back to start (P6-b F10) on Play's other side: a player's skip back
+  expect(order[speedAt - 2], `and before Play, Back to start: ${JSON.stringify(order)}`).toBe("Back to start");
   // the speed only beside Play (operator 2026-10-31): the Sim tab, open here, has none
   await expect(page.locator(".simPanel")).toBeVisible();
   await expect(page.locator(".simPanel select"), "the Sim tab's one select is its list filter").toHaveCount(1);
@@ -1721,22 +1723,25 @@ test("the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab
 // 2026-10-31: Play read 26 px beside the 28 px select) — live and dimmed
 // (a dimmed button sits in its .btnTip wrapper), desktop and touch.
 for (const vp of ["desktop", "touch-landscape"] as const) {
-  test(`the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (${vp})`, async ({ page, context }) => {
+  test(`the scrub bar: Back to start, Play and the Sim tab link as tall as the speed select, live and dimmed (${vp})`, async ({ page, context }) => {
     await prepare(page, context, vp, PREVIEW, false);
     const heights = () => page.locator(".viewerPane .scrubBar").evaluate(bar => {
       const h = (e: Element | null) => (e ? Math.round(e.getBoundingClientRect().height * 2) / 2 : -1);
-      const play = bar.querySelector("button") as HTMLButtonElement;
-      return { play: h(play), link: h(bar.querySelector('button[aria-label="Open the Sim tab"]')), select: h(bar.querySelector("select")),
+      const play = bar.querySelector('button[title^="Play"]') as HTMLButtonElement;
+      return { play: h(play), back: h(bar.querySelector('button[aria-label="Back to start"]')),
+               link: h(bar.querySelector('button[aria-label="Open the Sim tab"]')), select: h(bar.querySelector("select")),
                disabled: play.disabled };
     });
     const live = await heights();
     expect(live.disabled, "the machine off: Play live").toBe(false);
     expect(live.play, `Play: ${JSON.stringify(live)}`).toBe(live.select);
+    expect(live.back, `Back to start: ${JSON.stringify(live)}`).toBe(live.select);
     expect(live.link, `the link: ${JSON.stringify(live)}`).toBe(live.select);
     await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
     await expect.poll(async () => (await heights()).disabled, { message: "the machine on: Play dimmed" }).toBe(true);
     const dim = await heights();
     expect(dim.play, `Play dimmed: ${JSON.stringify(dim)}`).toBe(dim.select);
+    expect(dim.back, `Back to start dimmed: ${JSON.stringify(dim)}`).toBe(dim.select);
     expect(dim.link, `the link: ${JSON.stringify(dim)}`).toBe(dim.select);
   });
 }
@@ -1918,18 +1923,21 @@ for (const theme of ["light", "dark", "hc-light", "hc-dark"] as const) {
   });
 }
 
-test("a portrait viewer: two rows — Sim, Play, the speed and the link above, the timeline with the coverage and the time below", async ({ page, context }) => {
+// P6-b F10: Back to start takes the link's room in the two-row form (beside
+// the link it went to a third row at 150 %); the side pane reaches the Sim tab.
+test("a portrait viewer: two rows — Sim, Back to start, Play and the speed above, the timeline with the coverage and the time below", async ({ page, context }) => {
   await prepare(page, context, "touch-portrait", PREVIEW, false);
   const g = await page.evaluate(() => {
     const bar = document.querySelector(".viewerPane .scrubBar")!, r = (s: string) => bar.querySelector(s)!.getBoundingClientRect();
-    return { bar: bar.getBoundingClientRect(), slider: r(".sliderWrap"), play: r("button"), speed: r("select"), link: r('[aria-label="Open the Sim tab"]'),
-             time: r(".posSlot") };
+    return { bar: bar.getBoundingClientRect(), slider: r(".sliderWrap"), play: r('button[title^="Play"]'), speed: r("select"), back: r('[aria-label="Back to start"]'),
+             link: r('[aria-label="Open the Sim tab"]'), time: r(".posSlot") };
   });
   const mid = (b: { top: number; height: number }) => b.top + b.height / 2;
   expect(g.bar.width, "the bar is narrow here").toBeLessThan(620);
   expect(Math.abs(mid(g.speed) - mid(g.play)), "the speed in Play's row").toBeLessThan(4);
   expect(g.slider.top, "the timeline below the controls").toBeGreaterThanOrEqual(g.play.bottom);
-  expect(Math.abs(mid(g.link) - mid(g.play)), "the link in Play's row").toBeLessThan(4);
+  expect(Math.abs(mid(g.back) - mid(g.play)), "Back to start in Play's row").toBeLessThan(4);
+  expect(g.link.width, "the link's room is Back to start's").toBe(0);
   expect(Math.abs(mid(g.time) - mid(g.slider)), "the time in the timeline's row").toBeLessThan(12);
   expect(g.slider.width, "the timeline keeps most of its row").toBeGreaterThan(g.bar.width * 0.55);
 });
@@ -1947,7 +1955,7 @@ for (const [seconds, label] of [[116, "2 min"], [21600, "6 h"], [108000, "30 h"]
     await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
     await settleLayout(page);
     const g = await page.locator(".viewerPane .scrubBar").evaluate(el => {
-      const b = el as HTMLElement, slider = b.querySelector(".sliderWrap") as HTMLElement, play = b.querySelector("button") as HTMLElement;
+      const b = el as HTMLElement, slider = b.querySelector(".sliderWrap") as HTMLElement, play = b.querySelector('button[title^="Play"], button[title^="Pause"]') as HTMLElement;
       const pos = b.querySelector(".posSlot") as HTMLElement;
       return { w: b.offsetWidth, slider: slider.offsetWidth, below: slider.offsetTop >= play.offsetTop + play.offsetHeight,
                rows: new Set([...b.querySelectorAll(".scrubRow > *")].filter(e => (e as HTMLElement).offsetHeight > 0)

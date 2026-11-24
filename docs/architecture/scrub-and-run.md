@@ -28,6 +28,51 @@ a plain number names the tool — `T+7`, `T7.0`; a sign, a function or an
 expression, `T-3`, `TABS[-7]`, `T#<n>`, is unknown, Codex R249 FH-07) — a change line has no
 motion, so its mark sits at the next line with one; info-blue ● marks +
 the "T13 in 2:41" countdown.
+**The beginning and Back to start (P6-b F11/F10, machine day 2026-11-21,
+plan maschinentag.r456.p6-plan-v2, agreed by Codex R456)**: position 0 of a
+track WITH an entry move is the program's beginning — the machine where it
+stands, nothing run (operator Q3: "the top, nothing marked"). The entry
+point's line is 0, its display line null, and a null alone meant "keep the
+view": the scrub fully left left the code on the line the drag passed last
+("~line 5000"). The start is now its own state: `applyPos` sends a start
+NUMBER with the pose (index 0 of the entry track, never the end) — a new
+one per arrival and per Back to start, the same one for a re-pose there (an
+offset edge, a rebuilt entry move) — through ThreeViewer's `scrub-start`
+and App to GcodePanel, which snaps to the program's top with nothing marked
+and no band. App passes it under the text/preview identity ALONE
+(`gcodeLinesBound`, Codex R458 MT-I33): the start maps no motion to a line
+— it is the top of the text on screen — so a distrust of the motion's lines
+as a whole (`lines_untrusted`: a sub's or a remap's numbers among them)
+does not hold it back (it did: the model and the timeline returned, the code
+stayed mid-program); the scrub LINE keeps the trust gate
+(`linesUntrusted || !gcodeLinesBound`), and a text that is not the
+preview's publication gets no start. Never a sentinel line number: a null
+line keeps its meanings (an untrusted point, a sub's, the end without M2,
+leaving the simulation — the view stays). A track without an entry move
+(the machine on the first point) keeps index 0 = the first point and its
+line, marked — no start state, never the top. Back to start there sends its
+own press number (`back` with the pose, ThreeViewer `scrub-back`, passed by
+App as it is; Codex R458 MT-I32: neither the position nor the line changes
+at a press at 0, so nothing reached the code view and a scroll by hand
+stayed): a new number per press, held while the position stays on that
+point. GcodePanel decides the line and the press in ONE watcher (both
+change in one flush when the press comes from another line): a press snaps
+the scrub line's row back into view, marked; a new line alone is followed
+in steps. A first point whose line the trust gate holds back shows nothing
+on a press — the view stays: no jump to line 1, no mark without trust (the
+case the agreed rules leave; named to Codex). Back to start (⏮, its own fixed slot directly left of Play — the
+speed stays directly beside Play) enters by
+Play's rules (`enterSim`: the device's switch, the machine off, no run — a
+refused entry does nothing, dimmed with Play in a run), stops playback,
+clears the finding selection, emits `manual-scrub` and takes a new start
+number even at 0 — on a track without an entry move a new press number —
+(the code scrolled away by hand comes back). In the
+two-row form it takes the Sim tab link's room (measured: beside the link it
+needs 292 px of a 255 px row at 150 % portrait). Guards:
+`scrub-start.viewer.spec` (every frame after the action at the top — a
+snap; Codex R458's probe cases: the no-entry press at 0, the start under
+global line distrust, the counter-controls), mutations
+`docs/reviews/p6b.mutations.txt`.
 **Phase 2 (run-time display)**: the bar stays visible during a REAL run
 as a read-only surface — every control is dead via the existing gating,
 a RUNNING chip marks the mode, the playhead follows `motion_line` on the

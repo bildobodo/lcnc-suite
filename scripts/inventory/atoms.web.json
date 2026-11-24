@@ -1061,6 +1061,9 @@
      "id": "control:SafetyStrip.vue|MachineBtn:machineOn|@click=isEnabled ? emit('machineOff') : emit('machineOn')"
     },
     {
+     "id": "control:ScrubBar.vue|MachineBtn:scrub|@click=backToStart"
+    },
+    {
      "id": "control:ScrubBar.vue|MachineBtn:scrub|@click=emit('open-sim-tab')"
     },
     {
