@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1197 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1198 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -465,7 +465,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab** `F-SIM` | 3D-Ansicht › Zeitleiste, Tab „Sim“ | 11 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab** `F-SIM` | 3D-Ansicht › Zeitleiste, Tab „Sim“ | 12 | 0 | 0 | Aussagen noch nicht formuliert |
 | **3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise** `F-VIEW` | 3D-Ansicht, 3D-Ansicht › Würfel | 6 | 0 | 0 | Aussagen noch nicht formuliert |
 | **3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD** `F-VIEWSET` | Einstellungen | 31 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Kamerabild (Bild im Bild) und Überlagerung** `F-CAMERA` | 3D-Ansicht, 3D-Ansicht › Kamerabild, Einstellungen | 29 | 0 | 0 | Aussagen noch nicht formuliert |

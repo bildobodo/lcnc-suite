@@ -92,6 +92,11 @@ const props = defineProps<{
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
   scrubLine?: number | null;
+  // The simulation at the program's beginning (P6-b F11): a new number per
+  // arrival there (and per Back to start) — the view snaps to the program's
+  // top with nothing marked; null = not there. A null scrubLine alone keeps
+  // its meaning (an untrusted line, a sub's, the end): the view stays.
+  scrubStart?: number | null;
   // Lines flagged by the viewer's collision sweep (stage 3) — danger-tinted
   // line numbers (soft-limit violations are warn-tinted; a line with both
   // reads danger), the same colours as the scrub bar's timeline marks.
@@ -380,6 +385,9 @@ const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
   const row = _waitRow != null && _rowsStill(_waitRows) ? _waitRow
     : _followedRow != null && _rowsStill(_followedRows) ? _followedRow : null;
   if (row != null) scrollToRow(row, true);
+  // the simulation at the program's beginning: the view that comes back
+  // shows the top (a hidden pane's scroll is not the one it shows again)
+  else if (props.scrubStart != null && !editing.value) showProgramStart();
 }) : null;
 onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).
@@ -579,6 +587,19 @@ watch(() => props.currentLine, (newLine) => {
 });
 watch(() => props.scrubLine, (newLine) => {
   if (newLine != null && !editing.value) scrollToLine(newLine);
+});
+/** The simulation at the program's beginning (P6-b F11): the program's top,
+ *  nothing marked — a SNAP in one place (no highlight to step from, no band;
+ *  no line followed, so the next line snaps too and a resize keeps the top). */
+function showProgramStart() {
+  stopGlide();
+  _followedRow = null;
+  _followedRows = null;
+  setScroll(0);
+}
+// a new number per arrival: a return at an unchanged position comes back too
+watch(() => props.scrubStart, (start) => {
+  if (start != null && !editing.value) showProgramStart();
 });
 // The indented sub view follows its own executing line (W5).
 watch(subActiveLine, (ln) => {

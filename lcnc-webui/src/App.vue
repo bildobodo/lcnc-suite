@@ -800,6 +800,9 @@ const softLimitStatus = computed(() => {
 });
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
+// The simulation at the program's beginning (P6-b F11): the viewer's start
+// number, a new one per arrival there; null = not there.
+const scrubStart = ref<number | null>(null);
 // Source lines with collision hits from the viewer's sweep (null = none run).
 // the code panel's collision mark per line (a query, step 4 package 2 plan 4.2)
 const collisionLines = shallowRef<CollisionLineQuery | null>(null);
@@ -2360,6 +2363,7 @@ watch(viewerGcode, (newGcode) => {
           @open-settings="openSettingsTab"
           @open-sim-tab="requestTab('sim')"
           @scrub-line="scrubLine = $event"
+          @scrub-start="scrubStart = $event"
           @collision-lines="collisionLines = $event"
         />
       </div>
@@ -2395,6 +2399,7 @@ watch(viewerGcode, (newGcode) => {
               :subView="gcodeLinesBound ? subExecState : null"
               :linesUntrustedReason="linesUntrustedReason"
               :scrubLine="linesUntrusted || !gcodeLinesBound ? null : scrubLine"
+              :scrubStart="linesUntrusted || !gcodeLinesBound ? null : scrubStart"
               :collisionLines="gcodeLinesBound ? collisionLines : null"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"

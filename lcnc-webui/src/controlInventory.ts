@@ -409,6 +409,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
   // ── ScrubBar.vue ──
   "ScrubBar.vue|MachineBtn:scrub|@click=togglePlay":
     ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
+  "ScrubBar.vue|MachineBtn:scrub|@click=backToStart":
+    ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
   "ScrubBar.vue|MachineSlider:scrubPos|@input=onScrubInput v-model=sPos":
     ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
   "ScrubBar.vue|MachineToggle:simToggle|v-model=simToggleModel":

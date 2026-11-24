@@ -22,6 +22,7 @@ label, title or message follows this page. The CSS audit
 | The boundary itself | **Soft limit** | — |
 | A machine body contact found by the sweep | **Collision(s)** ("2 collisions", "No collision so far") | "clash" |
 | An unbound key or gamepad button | **None** | "Unassigned" |
+| The simulation's return to position 0 — the program's beginning (the timeline's ⏮) | **Back to start** | "Rewind", "Restart", "Go to start" |
 | Spindle direction | **Rev · Stop · Fwd** in this order (a preset: Rev · Off · Fwd) | FWD / REV |
 | The HAL browser (Settings tab) | **HAL** | "Halshow" |
 
