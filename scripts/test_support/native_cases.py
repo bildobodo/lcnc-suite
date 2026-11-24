@@ -71,6 +71,13 @@ REPORT_CASES: dict = {
     "p4": (
         'estop-reset', 'error-line-m600', 'error-line-m6', 'error-line-t',
     ),
+    # P5: the probe calibration's candidate on the real task — the run, Apply,
+    # an abort and an error in the measurement, the old routine beside it
+    "p5": (
+        'home-all', 'home-joint-0', 'home-joint-1', 'home-joint-2', 'cal-none', 'cal-reset', 'cal-candidate',
+        'cal-candidate.counter-0.02', 'cal-apply', 'cal-old-routine', 'cal-error', 'cal-abort', 'cal-units',
+        'cal-restore',
+    ),
 }
 
 #: the jog lease's native case (P1b): the gateway's validity (jog_lease.py
@@ -2203,3 +2210,83 @@ def eval_error_line(case: str, window: dict, at: int, tool: int) -> dict:
     if str(line) == str(at):
         return _row(case, "PASS", f"line {at} (proven); parse() said {e.get('seq')}", line=at, **measured)
     return _row(case, "FAIL", f"line {line} named — the tool word is on line {at}", line=line, **measured)
+
+
+# ---- P5: the probe calibration's candidate -------------------------------
+CAL_TOL = 0.01          # mm: the probing feed's servo lag at F100, both sides
+
+
+def eval_cal_candidate(case: str, state, run, value: float, held, plant: float, events, tol: float = CAL_TOL) -> dict:
+    """The complete run: the candidate of exactly this run with the measured
+    value (the gauge's own error, within `tol`); nothing moved — the record's
+    value is still `held[0]`, the interpreter's #3032 still the planted one —
+    and the gateway's trace shows the run opened, its result and its clean
+    end, its values sent without #3032."""
+    measured = {"state": state, "held": held, "plant": plant}
+    cand = (state or {}).get("cal_candidate")
+    if not isinstance(cand, dict):
+        return _row(case, "FAIL", "no candidate", **measured)
+    if cand.get("run") != run or cand.get("state") != "pending":
+        return _row(case, "FAIL", f"run {cand.get('run')} {cand.get('state')} ({cand.get('why')}) — {run} pending expected",
+                    **measured)
+    if not _finite(cand.get("value")) or abs(cand["value"] - value) > tol:
+        return _row(case, "FAIL", f"value {cand.get('value')}, {value} ± {tol} expected", **measured)
+    rec = (state or {}).get("probe_calibration") or {}
+    if rec.get("value") != held:
+        return _row(case, "FAIL", f"the active offset moved: {rec.get('value')}, {held} before", **measured)
+    tags = [e.get("tag") for e in events]
+    missing = [t for t in ("cal.run_opened", "cal.result", "cal.run_ended") if t not in tags]
+    if missing:
+        return _row(case, "FAIL", f"not in the gateway's trace: {missing}", **measured)
+    sent = [e for e in events if e.get("tag") == "probe.set_vars"]
+    if not sent or any("3032" in (e.get("vars") or {}) for e in sent):
+        return _row(case, "FAIL", "the values sent carry #3032, or none were sent", **measured)
+    return _row(case, "PASS", f"run {run}: {cand['value']} offered, the active offset and #3032 unchanged", **measured)
+
+
+def eval_cal_number(case: str, read, want: float, what: str, tol: float = SAME) -> dict:
+    """One number of the interpreter (or the parameter file) after a step."""
+    if not _finite(read):
+        return _row(case, "incomplete", f"{what} not read", read=read, want=want)
+    if abs(read - want) > tol:
+        return _row(case, "FAIL", f"{what} is {read}, {want} expected", read=read, want=want)
+    return _row(case, "PASS", f"{what} = {read}", read=read, want=want)
+
+
+def eval_cal_applied(case: str, reply, state, value: float) -> dict:
+    """Apply: ok, the machine took it and the file has it — by the reply AND
+    by the status (the record's value, its machine outcome, the candidate)."""
+    measured = {"reply": reply, "state": state}
+    rec, cand = (state or {}).get("probe_calibration") or {}, (state or {}).get("cal_candidate") or {}
+    if not isinstance(reply, dict) or reply.get("ok") is not True:
+        return _row(case, "FAIL", f"not applied: {reply}", **measured)
+    got = ((reply.get("machine") or {}).get("outcome"), (rec.get("machine") or {}).get("outcome"), cand.get("state"))
+    if got != ("taken", "taken", "applied") or rec.get("value") != value:
+        return _row(case, "FAIL", f"reply / record / candidate {got}, value {rec.get('value')} — taken, taken, applied, "
+                                  f"{value} expected", **measured)
+    return _row(case, "PASS", f"{value} active, on the machine and in the file", **measured)
+
+
+def eval_cal_not_offered(case: str, state, run, why: str) -> dict:
+    """A run that ended otherwise: its candidate stale for exactly this reason."""
+    cand = (state or {}).get("cal_candidate") or {}
+    if (cand.get("run"), cand.get("state"), cand.get("why")) != (run, "stale", why):
+        return _row(case, "FAIL", f"run {cand.get('run')} {cand.get('state')} ({cand.get('why')}) — {run} stale ({why}) "
+                                  "expected", state=state)
+    return _row(case, "PASS", f"run {run} not offered: {why}", state=state)
+
+
+def eval_cal_old(case: str, old, new, errors, booked, tol: float = CAL_TOL) -> dict:
+    """The routine as upstream has it, at the same place under #3032 = 0: the
+    value it leaves in #3032 is the one the new form offered; the gateway
+    warns, forwards nothing as a candidate and books #3032 unknown."""
+    measured = {"old": old, "new": new, "booked": booked, "errors": [list(e) for e in errors]}
+    if not _finite(old, new):
+        return _row(case, "incomplete", "a value not read", **measured)
+    if abs(old - new) > tol:
+        return _row(case, "FAIL", f"upstream {old}, the suite's {new}", **measured)
+    if not any("Calibration routine is not the suite's" in str(t) for _k, t in errors):
+        return _row(case, "FAIL", "no warning for the old routine", **measured)
+    if (booked or {}).get("outcome") != "unknown":
+        return _row(case, "FAIL", f"#3032 booked {booked} — unknown expected", **measured)
+    return _row(case, "PASS", f"both {new} ± {tol}, warned, #3032 unknown", **measured)

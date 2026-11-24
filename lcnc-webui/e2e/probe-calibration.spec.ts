@@ -124,7 +124,7 @@ for (const vp of [DESKTOP, FULLHD, NARROW]) {
     await ctl({ op: "replyFor", cmd: "save_settings", reply: "silent" });
     await enter("60");
     await expect(field).toHaveClass(/fs-draft/);
-    expect(await measure()).toEqual(base);
+    expect(await measure(), "the draft keeps every cell's size").toEqual(base);
     // the state is part of the field's description, not a text on screen
     const described = await slow.evaluate(e => (e.getAttribute("aria-describedby") ?? "").split(" ")
       .map(id => document.getElementById(id)?.textContent ?? "").join(" | "));
@@ -140,7 +140,7 @@ for (const vp of [DESKTOP, FULLHD, NARROW]) {
     // the server holds it: neutral
     await ctl({ op: "raw", frame: { type: "settings_changed", settings: { probe: { slowFr: 61 } } } });
     await expect(field).not.toHaveClass(/fs-/);
-    expect(await measure()).toEqual(base);
+    expect(await measure(), "saved keeps every cell's size").toEqual(base);
   });
 }
 
@@ -149,7 +149,7 @@ test("disarmed: Apply, Discard, Reset and the fields are closed and say why on a
   await put(STATES.pending!, false);
   for (const name of ["Apply", "Discard", "Reset Calibration"]) {
     const b = side.getByRole("button", { name, exact: true });
-    await expect(b, name).toBeDisabled();
+    await expect(b, `${name} is closed while disarmed`).toBeDisabled();
     await b.scrollIntoViewIfNeeded();
     const box = (await b.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -187,7 +187,7 @@ test("Apply names its run and value; the outcome is the status', not the reply",
   await row.getByRole("button", { name: "Apply", exact: true }).click();
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "cal_apply")).toEqual(
     [expect.objectContaining({ cmd: "cal_apply", run: 12, value: 0.0712 })]);
-  await expect(row).toBeVisible();
+  await expect(row, "the candidate stays until the status says otherwise").toBeVisible();
   await expect(row.locator('[data-cal="detail"]')).toContainText("Rect pocket");
   await put(STATES.applied!);
   await expect(row).toHaveCount(0);

@@ -395,7 +395,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 86 | 7 | 7 | 0 |
-| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 7 | 7 | 0 |
+| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 8 | 8 | 0 |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 3 | 3 | 0 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
@@ -422,6 +422,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `probe-click.spec.ts` — ${form.sub}: a held probe button sends its routine with the panel's numbers (je: Calibrate)
 - **S2 (Wirkung):** Eine Kalibrierung liefert nur einen Kandidaten: der aktive Offset und #3032 bleiben unverändert, bis Apply ihn übernimmt. Angeboten wird er erst mit dem Ergebnis desselben Laufs und einem sauberen Ende. — gilt für: alle
   - Beleg: gateway: `test_cal_runs.py` — test_a_complete_run_offers_its_value; gateway: `test_cal_gateway.py` — test_calibrate_then_abort_leaves_controller_and_record; gateway: `test_cal_routines.py` — test_each_routine_computes_what_upstream_did_and_leaves_3032
+- **S2b (Wirkung):** Auf echtem LinuxCNC bietet die Kalibrierung am Werkstück der 3-Achs-Sim den erwarteten Wert an (± 0,01 mm), lässt Datensatz und #3032 unverändert, misst wie die Upstream-Routine, und Apply schreibt ihn in Interpreter und Parameterdatei; Abbruch, Fehler und fremde Programmeinheit ändern nichts. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — cal-candidate; native: `native_run.py` — cal-apply; native: `native_run.py` — cal-old-routine; native: `native_run.py` — cal-abort; native: `native_run.py` — cal-error; native: `native_run.py` — cal-units
 - **S3 (Ablehnung):** Ein Lauf, der abgebrochen wird, mit einem Fehler endet, nicht startet, kein Ergebnis meldet oder dessen Verbindung wechselt, liefert keinen Kandidaten; eine späte oder doppelte Meldung wird nie zu einem. — gilt für: alle
   - Beleg: gateway: `test_cal_gateway.py` — test_abort_in_the_retract_gives_no_candidate; gateway: `test_cal_runs.py` — test_run_a_s_late_message_never_becomes_run_b_s; gateway: `test_cal_runs.py` — test_a_link_change_in_the_run_is_not_offered; browser: `probe-calibration.spec.ts` — an aborted run offers nothing: its reason, no buttons
 - **S4 (Ablehnung):** Apply, Discard und Reset brauchen Arm; ohne Arm sind sie inaktiv und nennen den Grund beim Antippen. Die Schreibung prüft Arm, Verbindung, Schalter, Revision und Link am Commit. — gilt für: alle

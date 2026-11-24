@@ -30,6 +30,10 @@ class TransportLost(RuntimeError):
 UNNAMED_REPLIES = ("hello", "arm", "safety_trip_ack")
 
 
+#: the calibration state a status envelope carries on a change (P5)
+PROBE_STATE = ("probe_calibration", "cal_candidate", "probe_booking")
+
+
 class SimulatorClient:
     def __init__(self, token, session="test-suite-live-twp", auto_confirm=True, on_status=None, keep=None):
         self.token = token
@@ -66,6 +70,10 @@ class SimulatorClient:
         # frame and on each change — what the form's machine line projects
         self.toolsetter_booking = None
         self.booking_history: list = []   # (monotonic s, booking) on each arrival
+        # the calibration record, its candidate and the probe booking (P5):
+        # on a connection's first frame and on each change — null is a value
+        self.probe_state: dict = {}
+        self.probe_history: list = []     # (monotonic s, the whole state) on each arrival
         # the unacknowledged trip rides every status frame's envelope while
         # it waits (sparse: absent = none) — kept per frame (step 3)
         self.safety_trip = None
@@ -184,6 +192,9 @@ class SimulatorClient:
             if isinstance(msg.get("toolsetter_booking"), dict):
                 self.toolsetter_booking = msg["toolsetter_booking"]
                 self.booking_history.append((now, msg["toolsetter_booking"]))
+            if any(k in msg for k in PROBE_STATE):
+                self.probe_state = {**self.probe_state, **{k: msg[k] for k in PROBE_STATE if k in msg}}
+                self.probe_history.append((now, self.probe_state))
             if isinstance(msg.get("probe_results"), dict):
                 self.probe_results.update(msg["probe_results"])
             if self.on_status:

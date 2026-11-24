@@ -554,6 +554,32 @@ describe("timing stats", () => {
   });
 });
 
+describe("the calibration record, its candidate and the probe booking (P5)", () => {
+  const frame = (extra: Record<string, unknown>) => {
+    handleStatusMessage({ type: "status", data: { tool_number: 1 }, ...extra });
+    flushRaf();
+    return status.value!;
+  };
+  it("are carried across frames that do not repeat them, each on its own", () => {
+    frame({ probe_calibration: { value: 0.2, unit: "mm" }, cal_candidate: { run: 1 }, probe_booking: { version: 1, keys: {} } });
+    const st = frame({ cal_candidate: { run: 2 } });
+    expect(st.probe_calibration).toEqual({ value: 0.2, unit: "mm" });
+    expect((st.cal_candidate as { run: number }).run).toBe(2);
+    expect(frame({}).probe_booking).toEqual({ version: 1, keys: {} });
+  });
+  it("a candidate that ended is null, not the last one", () => {
+    frame({ cal_candidate: { run: 1 } });
+    expect(frame({ cal_candidate: null }).cal_candidate).toBeNull();
+    expect(frame({}).cal_candidate).toBeNull();
+  });
+  it("belong to their connection", () => {
+    frame({ probe_calibration: { value: 0.2, unit: "mm" }, cal_candidate: { run: 1 } });
+    resetOnClose();
+    const st = frame({});
+    expect([st.probe_calibration ?? null, st.cal_candidate ?? null]).toEqual([null, null]);
+  });
+});
+
 describe("the toolsetter booking (P2, Codex R308–R309 FI308-04)", () => {
   const booking = { version: 3, keys: { "3102": { value: -179, origin: "applied" } } };
   it("is carried across frames that do not repeat it", () => {

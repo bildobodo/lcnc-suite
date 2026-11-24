@@ -26,6 +26,7 @@ from probe_book import ProbeBook  # noqa: E402
 from settings_store import SettingsStore  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
+DECLARED = gateway._declared_linear_unit      # (the fixture replaces it)
 CAL = {"3014": 99, "3015": 20, "3033": 20, "3036": 0}
 ROUTINE = "probe_cal_round_pocket"
 
@@ -704,6 +705,20 @@ class TestTheUnits(_Base):
         self.assertIn("switch to G21", r["error"])
         self.assertFalse(any(m.startswith("O<") for m in self.cmd.mdis()))
         self.assertIsNone(gateway._cal.run)
+
+    def test_a_declared_unit_is_never_a_default(self):
+        for raw, want in (("mm", "mm"), ("metric", "mm"), ("inch", "in"), ("IN ", "in"), ("imperial", "in"),
+                          (None, None), ("", None), ("furlong", None)):
+            class Ini:
+                def __init__(self, _path):
+                    pass
+
+                def find(self, section, option, raw=raw):
+                    return raw if (section, option) == ("TRAJ", "LINEAR_UNITS") else None
+            with unittest.mock.patch.object(linuxcnc, "ini", Ini):
+                self.assertEqual(DECLARED(), want, raw)
+        self.stat.ini_filename = ""
+        self.assertIsNone(DECLARED())
 
     def test_an_inch_machine_asks_for_g20(self):
         self.unit = "in"

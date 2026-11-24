@@ -171,7 +171,22 @@ TS_DEADLINE = 240.0
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
 #: how long the latch step waits for the first frame after the continue
 LATCH_RESUME_WAIT_S = 10.0
-VARIANTS = ("latch-delayed", "jog-lease", "parse-basis", "p4", "p2b", "p2b-builds")
+VARIANTS = ("latch-delayed", "jog-lease", "parse-basis", "p4", "p2b", "p2b-builds", "p5")
+#: P5: the rect-boss calibration over the 3-axis sim's workpiece — a solid
+#: 80 × 80 mm body (nc.SURFACE: the component's window is ± 40 mm of the
+#: CONTROL POINT, so a side is touched at 510 / 590 whatever the tip's
+#: diameter). Named 80 wide, the routine measures 80 − D and its error is
+#: D / 2 of the probe tool's table diameter.
+CAL_ROUTINE, CAL_WIDTH = "probe_cal_square_boss", 2 * nc.SURFACE["half"]
+CAL_VARS = {3014: 99, 3015: 100, 3016: 400, 3017: 2500, 3018: 20, 3019: 2, 3020: 15, 3021: 2, 3022: 8, 3023: 10,
+            3024: 0.5, 3025: 0, 3026: 0, 3027: 0, 3028: 0, 3029: 0, 3030: 1, 3031: 0, 3033: 0,
+            3034: CAL_WIDTH, 3035: CAL_WIDTH, 3036: 0}
+CAL_OVER, CAL_MISS = 5.0, 40.0          # mm over the body's top: inside, beyond #3020
+CAL_PLANT = 0.123                       # a foreign #3032 the run must leave alone
+CAL_DEADLINE = 240.0
+#: the routine as upstream has it — the bundle before P5 (development)
+CAL_BEFORE = "6c78780c"
+CAL_OLD_NAME = "p5_old_square_boss"
 #: P2a (machine day F24, 2026-11-21: one ~30 s full re-parse per probe op with
 #: unchanged values): a loaded program that runs the toolsetter routine
 #: (T1 M600 — `routine`), padded so its parse is felt; a warm-up probe op
@@ -944,6 +959,183 @@ def error_line_cases():
         _when_free(c, "unload_file")
         return rows
     return ("error-line", step)
+
+
+# ── P5: the probe calibration's candidate ────────────────────────────────
+def _probe_state(c, pred, timeout, what) -> dict:
+    """The calibration state as received, once `pred` holds of it."""
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        st = c.probe_state
+        if st and pred(st):
+            return st
+        time.sleep(0.05)
+    raise Refused(f"{what}: not within {timeout} s — the state is {c.probe_state}")
+
+
+def _tool_d(c, tool):
+    row = next((t for t in c.request("get_tool_table")["tools"] if t.get("T") == tool), None)
+    d = None if row is None else row.get("D")
+    if not nc._finite(d) or d <= 0:
+        raise Refused(f"T{tool} has no diameter in the table: {d}")
+    return float(d)
+
+
+def calibration_cases():
+    """P5 on the real task: without a record a job that reads #3032 is
+    refused; Reset sets 0; a calibration of the workpiece offers its
+    candidate and moves neither the record nor a planted #3032; Apply stores
+    it and writes it (read back from the interpreter and the parameter
+    file); the routine as upstream has it measures the same; an error and an
+    abort in the measurement offer nothing and change nothing — and the next
+    calibration still starts; a program unit the form is not in refuses
+    before any write. Every request under its admission."""
+    def step(ctx):
+        with _admitted_sends(ctx["client"]):
+            return _calibration_steps(ctx)
+    return ("calibration", step)
+
+
+def _calibration_steps(ctx):
+    c, rows = ctx["client"], ctx.setdefault("rows", [])
+    _set_tool_length(c, PROBE_TOOL, PROBE_L0)
+    for line in ("G21", "G90", "G94", "G54", "G92.1", "G10 L2 P1 X0 Y0 Z0 R0"):
+        _short(c, line)
+    _probe_tool(c)
+    diameter = _tool_d(c, PROBE_TOOL)
+    expected = diameter / 2
+    names = {str(k): v for k, v in CAL_VARS.items()}
+    boss = {k: v for k, v in names.items() if k not in ("3036",)}
+    first = _vars(c, sorted(CAL_VARS) + [3032])
+    ctx["report"]["calibration"] = {"diameter": diameter, "expected": expected, "first": {str(k): v for k, v in first.items()}}
+    top = nc.SURFACE["c"]                      # the body's height at its centre (dx = dy = 0)
+
+    def over(mm):
+        _to(c, nc.SURFACE["cx"], nc.SURFACE["cy"], top + PROBE_L0 + mm)
+        _short(c, f"G43 H{PROBE_TOOL}")
+        _override_free(c)
+
+    def start(case, over_mm, wait=True):
+        """(reply, the routine's end) of one calibration from `over_mm`."""
+        over(over_mm)
+        if not wait:
+            return _when_free(c, "probe_run", routine=CAL_ROUTINE, vars=names), None
+        r = _probe_job(c, case, "probe_run", {"routine": CAL_ROUTINE, "vars": names}, deadline=CAL_DEADLINE)
+        return r["reply"], r
+
+    def offset():
+        return _vars(c, [3032])[3032]
+
+    def file_offset():
+        text = (ctx["config"] / "xyz3" / "sim.var").read_text()
+        row = next((line.split() for line in text.splitlines() if line.startswith("3032")), None)
+        return float(row[1]) if row else None
+    failure = None
+    try:
+        # no record yet (a fresh copy): a job that reads #3032 is refused by name
+        over(CAL_OVER)
+        rows.append(nc.eval_refusal_reply("cal-none", _refused(c, "probe_run", routine="probe_rect_boss", vars=boss),
+                                          "No calibration offset — calibrate or Reset"))
+        reply = _when_free(c, "cal_reset")
+        st = _probe_state(c, lambda s: (s.get("probe_calibration") or {}).get("value") == 0, 5, "cal-reset")
+        rows.append(nc.combine("cal-reset", {
+            "reply": nc.eval_cal_number("reply", 0.0 if reply.get("ok") else None, 0.0, "the reply"),
+            "machine": nc._row("machine", "PASS" if st["probe_calibration"]["machine"]["outcome"] == "taken" else "FAIL",
+                               str(st["probe_calibration"]["machine"])),
+            "interpreter": nc.eval_cal_number("interpreter", offset(), 0.0, "#3032")}))
+        # a foreign value in the interpreter: the run must leave it alone
+        _short(c, f"#3032={CAL_PLANT:.6f}")
+        _probe_state(c, lambda s: ((s.get("probe_booking") or {}).get("keys") or {}).get("3032", {}).get("outcome") == "unknown",
+                     5, "the plant's booking")
+        (reply, r), frame = _framed(ctx, c, "cal-candidate", lambda: start("cal-candidate", CAL_OVER))
+        if r["error"]:
+            rows += [nc.eval_wait_failed("cal-candidate", r["error"]), r["start"]]
+            raise Refused(f"cal-candidate: {r['error']}")
+        st = _probe_state(c, lambda s: (s.get("cal_candidate") or {}).get("run") == reply["run"], 10, "the candidate")
+        # (the trace window closed at the routine's end: the run's end is the
+        # poller's, so its records are read from a second mark after it)
+        _v, frame2 = _framed(ctx, c, "cal-candidate.end", lambda: time.sleep(0.5))
+        events = frame.get("events", []) + frame2.get("events", [])
+        if not any(e.get("tag") == "cal.run_ended" for e in events):
+            events += [e for e in _trace_events(ctx, lambda e: e.get("tag") == "cal.run_ended" and e.get("run") == reply["run"])]
+        hit = nc.eval_cal_candidate("candidate", st, reply["run"], expected, 0.0, CAL_PLANT, events)
+        rows.append(nc.combine("cal-candidate", {
+            "candidate": hit, "interpreter": nc.eval_cal_number("interpreter", offset(), CAL_PLANT, "#3032"),
+            "errors": nc._row("errors", "PASS" if not r["errors"] else "FAIL", str(r["errors"]))}))
+        rows.append(nc.counter("cal-candidate.counter-0.02",
+                               nc.eval_cal_candidate("candidate", st, reply["run"], expected + 0.02, 0.0, CAL_PLANT, events), hit))
+        value = round(float(st["cal_candidate"]["value"]), 6)
+        reply = _when_free(c, "cal_apply", run=st["cal_candidate"]["run"], value=value)
+        st = _probe_state(c, lambda s: (s.get("cal_candidate") or {}).get("state") == "applied", 5, "cal-apply")
+        rows.append(nc.combine("cal-apply", {
+            "applied": nc.eval_cal_applied("applied", reply, st, value),
+            "interpreter": nc.eval_cal_number("interpreter", offset(), value, "#3032"),
+            "file": nc.eval_cal_number("file", file_offset(), value, "the parameter file's 3032")}))
+        # the routine as upstream has it, at the same place under #3032 = 0
+        _old_routine(ctx, CAL_OLD_NAME)
+        _plant(c, {**{k: float(v) for k, v in CAL_VARS.items()}, 3032: 0.0})
+        over(CAL_OVER)
+        r = _probe_job(c, "cal-old-routine", "mdi", {"text": f"o<{CAL_OLD_NAME}> call"}, deadline=CAL_DEADLINE)
+        if r["error"]:
+            rows += [nc.eval_wait_failed("cal-old-routine", r["error"]), r["start"]]
+            raise Refused(f"cal-old-routine: {r['error']}")
+        booked = ((c.probe_state.get("probe_booking") or {}).get("keys") or {}).get("3032")
+        rows.append(nc.eval_cal_old("cal-old-routine", offset(), value, r["errors"], booked))
+        # an error in the measurement: no contact in reach — nothing offered, nothing changed
+        _plant(c, {3032: CAL_PLANT})
+        reply, r = start("cal-error", CAL_MISS)
+        st = _probe_state(c, lambda s: (s.get("cal_candidate") or {}).get("run") == reply["run"], 10, "cal-error")
+        rows.append(nc.combine("cal-error", {
+            "state": nc.eval_cal_not_offered("state", st, reply["run"], "the run ended with an error"),
+            "record": nc.eval_cal_number("record", (st.get("probe_calibration") or {}).get("value"), value, "the record"),
+            "interpreter": nc.eval_cal_number("interpreter", offset(), CAL_PLANT, "#3032")}))
+        _override_free(c)
+        # …and the next calibration starts (the error left standing is no dead
+        # end); aborted in the measurement: nothing offered, nothing changed
+        reply, _r = start("cal-abort", CAL_OVER, wait=False)
+        _wait(c, lambda s: s.get("interp_state") != 1, 10, "the calibration running")
+        time.sleep(4.0)
+        c.request("abort")
+        st = _probe_state(c, lambda s: (s.get("cal_candidate") or {}).get("run") == reply["run"], 10, "cal-abort")
+        if not _standstill(c, STAND_S):
+            raise Refused("cal-abort: no standstill after the abort")
+        rows.append(nc.combine("cal-abort", {
+            "state": nc.eval_cal_not_offered("state", st, reply["run"], "the run was aborted"),
+            "record": nc.eval_cal_number("record", (st.get("probe_calibration") or {}).get("value"), value, "the record"),
+            "interpreter": nc.eval_cal_number("interpreter", offset(), CAL_PLANT, "#3032")}))
+        _override_free(c)
+        # the program unit the form is not in: refused before any write
+        _short(c, "G20")
+        try:
+            err, frame = _framed(ctx, c, "cal-units", lambda: _refused(c, "probe_run", routine=CAL_ROUTINE, vars=names))
+        finally:
+            _short(c, "G21")
+        rows.append(nc.combine("cal-units", {
+            "reply": nc.eval_refusal_reply("reply", err, "Probing values are in mm — the interpreter is in inch (G20): "
+                                                         "switch to G21"),
+            "window": nc.eval_no_job_window("window", frame)}))
+    except Exception as e:  # noqa: BLE001 — the restore first, then the step ends with its rows
+        failure = e
+    f = _finish(c, [("units", lambda: _short(c, "G21")), ("override", lambda: _override_free(c)),
+                    # straight up first: an abort may leave the tip beside the body, below its top
+                    ("up", lambda: _to(c, *c.status["joint_pos"][:2], JOG_START[2])),
+                    ("values", lambda: _plant(c, first))])
+    rows.append({"case": "cal-restore", "status": "FAIL" if f["stopped"] or f["errors"] else "PASS",
+                 "detail": str(f["stopped"] or f["errors"] or f"done {f['done']}")})
+    if failure is not None:
+        raise StepFailed(rows, f"{type(failure).__name__}: {failure}") from failure
+    return rows
+
+
+def _old_routine(ctx, name: str) -> None:
+    """The calibration routine as upstream has it (the bundle before P5),
+    under a name of its own in the copy's program folder — the interpreter
+    finds it there; no bundled file is touched."""
+    text = subprocess.run(["git", "-C", str(HERE), "show", f"{CAL_BEFORE}:subroutines/probe_basic/{CAL_ROUTINE}.ngc"],
+                          capture_output=True, text=True, check=True).stdout
+    if text.count(f"o<{CAL_ROUTINE}>") != 2 or "calibration_offset_3032" not in text:
+        raise Refused(f"{CAL_BEFORE}: not the upstream form of {CAL_ROUTINE}")
+    (ctx["config"] / NC_FILES / f"{name}.ngc").write_text(text.replace(f"o<{CAL_ROUTINE}>", f"o<{name}>"))
 
 
 def plateau_cases():
@@ -3631,6 +3823,8 @@ def main(argv=None) -> int:
         steps = base + [home_cases(joints), p2b_cases()]
     elif a.variant == "p4":
         steps = base + [estop_reset_cases(), error_line_cases()]
+    elif a.variant == "p5":
+        steps = base + [home_cases(joints), calibration_cases()]
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
                         io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),

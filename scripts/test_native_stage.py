@@ -8575,3 +8575,74 @@ def test_the_measure_row_says_only_what_its_run_shows():
     assert row["status"] == "PASS" and "no read-back ran" in row["detail"]
     rb = {"tag": "toolsetter.read_back_outcome", "outcome": "confirmed"}
     assert "read-back's end" in nc.eval_measure_parses_once("m", _w([act, rb, spawn]))["detail"]
+
+
+# ---- P5: the probe calibration's candidate ----
+def _cal_state(**over):
+    cand = {"run": 1, "state": "pending", "value": 1.5, "why": None, **over.pop("cand", {})}
+    rec = {"value": 0.0, "machine": {"outcome": "taken"}, **over.pop("rec", {})}
+    return {"probe_calibration": rec, "cal_candidate": cand, "probe_booking": {"version": 1, "keys": {}}}
+
+
+CAL_EVENTS = [{"tag": "probe.set_vars", "vars": {"3014": 99.0}}, {"tag": "cal.run_opened"}, {"tag": "cal.result"},
+              {"tag": "cal.run_ended"}]
+
+
+def test_the_p5_variant_is_wired():
+    assert "p5" in nr.VARIANTS
+    assert set(nc.REPORT_CASES["p5"]) >= {"cal-none", "cal-reset", "cal-candidate", "cal-candidate.counter-0.02", "cal-apply",
+                                          "cal-old-routine", "cal-error", "cal-abort", "cal-units", "cal-restore"}
+    src = (HERE / "native_run.py").read_text()
+    assert "steps = base + [home_cases(joints), calibration_cases()]" in src
+    # exactly the calibration purpose's numbers: every one, and never #3032
+    assert set(nr.CAL_VARS) == (set(range(3014, 3036)) - {3032}) | {3036}
+    text = (HERE.parent / "lcnc-gateway" / "features.py").read_text()
+    assert '_PROBE_VARS = _span(3014, 3035) - {OFFSET_VAR}' in text and '"calibration": _PROBE_VARS | {3036}' in text
+
+
+def test_the_cal_candidate_judge():
+    judge = lambda st, value=1.5, events=CAL_EVENTS: nc.eval_cal_candidate("c", st, 1, value, 0.0, 0.123, events)  # noqa: E731
+    assert judge(_cal_state())["status"] == "PASS"
+    assert judge(_cal_state(cand={"value": 1.515}))["status"] == "FAIL", "past the tolerance"
+    assert judge(_cal_state(), value=1.52)["status"] == "FAIL"
+    for name, state in (("no candidate", {**_cal_state(), "cal_candidate": None}), ("another run", _cal_state(cand={"run": 2})),
+                     ("not offered", _cal_state(cand={"state": "stale", "why": "x"})),
+                     ("the record moved", _cal_state(rec={"value": 1.5}))):
+        assert judge(state)["status"] == "FAIL", name
+    assert judge(_cal_state(), events=CAL_EVENTS[:-1])["status"] == "FAIL", "no proven end"
+    assert judge(_cal_state(), events=[{"tag": "probe.set_vars", "vars": {"3032": 0.0}}, *CAL_EVENTS[1:]])["status"] == "FAIL"
+    assert judge(_cal_state(), events=CAL_EVENTS[1:])["status"] == "FAIL", "no values seen is no proof of none"
+
+
+def test_the_cal_apply_old_and_not_offered_judges():
+    ok = {"ok": True, "machine": {"outcome": "taken"}}
+    st = _cal_state(cand={"state": "applied"}, rec={"value": 1.5})
+    assert nc.eval_cal_applied("a", ok, st, 1.5)["status"] == "PASS"
+    assert nc.eval_cal_applied("a", {"ok": True, "machine": {"outcome": "saved_write_unknown"}}, st, 1.5)["status"] == "FAIL"
+    assert nc.eval_cal_applied("a", ok, _cal_state(cand={"state": "pending"}, rec={"value": 1.5}), 1.5)["status"] == "FAIL"
+    assert nc.eval_cal_applied("a", {"ok": False, "error": "x"}, st, 1.5)["status"] == "FAIL"
+    stale = _cal_state(cand={"state": "stale", "why": "the run was aborted"})
+    assert nc.eval_cal_not_offered("n", stale, 1, "the run was aborted")["status"] == "PASS"
+    assert nc.eval_cal_not_offered("n", stale, 1, "the run ended with an error")["status"] == "FAIL"
+    assert nc.eval_cal_not_offered("n", _cal_state(), 1, "the run was aborted")["status"] == "FAIL"
+    warned = [(12, "Calibration routine is not the suite's — no result offered")]
+    unknown = {"outcome": "unknown", "value": None}
+    assert nc.eval_cal_old("o", 1.501, 1.5, warned, unknown)["status"] == "PASS"
+    assert nc.eval_cal_old("o", 1.52, 1.5, warned, unknown)["status"] == "FAIL"
+    assert nc.eval_cal_old("o", 1.5, 1.5, [], unknown)["status"] == "FAIL", "no warning"
+    assert nc.eval_cal_old("o", 1.5, 1.5, warned, {"outcome": "applied"})["status"] == "FAIL", "#3032 not unknown"
+    assert nc.eval_cal_old("o", None, 1.5, warned, unknown)["status"] == "incomplete"
+    assert nc.eval_cal_number("n", 0.123, 0.123, "#3032")["status"] == "PASS"
+    assert nc.eval_cal_number("n", 0.2, 0.123, "#3032")["status"] == "FAIL"
+    assert nc.eval_cal_number("n", None, 0.123, "#3032")["status"] == "incomplete"
+
+
+def test_the_client_keeps_the_calibration_state_as_it_changes():
+    from test_support.live_session import SimulatorClient
+    c = SimulatorClient("t")
+    c.take({"type": "status", "data": {}, "probe_calibration": {"value": 0}, "cal_candidate": None, "probe_booking": {}})
+    c.take({"type": "status_delta", "data": {}})
+    assert c.probe_state["probe_calibration"] == {"value": 0} and c.probe_state["cal_candidate"] is None
+    c.take({"type": "status_delta", "data": {}, "cal_candidate": {"run": 1}})
+    assert c.probe_state["cal_candidate"] == {"run": 1} and c.probe_state["probe_calibration"] == {"value": 0}
+    assert len(c.probe_history) == 2
