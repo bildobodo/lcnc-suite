@@ -1179,7 +1179,8 @@ test("a run from line without a preview: the Sim tab names it; the publication t
   test.setTimeout(150_000);
   const file = "/rfl-nopreview.ngc";
   await prepare(page, context, { file, version: 4361, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0], publish: false });
-  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  // the load is the run's (its identity before the start, as the gateway's): only its preview is missing
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1, program_id: loadOf(file).id } });
   await expect(page.locator(".simPanel .emptyState").first(), "no preview").toBeVisible();
   const named = page.locator(".simPanel .emptyState", { hasText: "not checked" });
   await ctl({ op: "quiet", on: true });
