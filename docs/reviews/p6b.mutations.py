@@ -117,7 +117,7 @@ MUTS = {
     "start_without_the_identity": (S + "App.vue", [(
         '              :scrubStart="gcodeLinesBound ? scrubStart : null"\n',
         '              :scrubStart="scrubStart"\n')],
-        [pw("counter-controls (Codex R458)", "entering at the start keeps the view")]),
+        [pw(r"counter-controls \(Codex R458\)", "entering at the start keeps the view")]),
     # (d) the no-entry press jumps to line 1 instead of the first point's line
     "no_entry_return_to_line_1": (S + "GcodePanel.vue", [(
         "  if (back != null && back !== oldBack) scrollToRow(rowForMain(line, expansion.value), true);\n",
@@ -127,7 +127,7 @@ MUTS = {
     "untrusted_first_point_to_the_top": (S + "GcodePanel.vue", [(
         "  if (line == null || editing.value) return;\n  if (back != null && back !== oldBack)",
         "  if (line == null || editing.value) { if (line == null && back != null && back !== oldBack) showProgramStart(); return; }\n  if (back != null && back !== oldBack)")],
-        [pw("counter-controls (Codex R458)", "Back to start keeps the view (no line 1, nothing marked)")]),
+        [pw(r"counter-controls \(Codex R458\)", "Back to start keeps the view (no line 1, nothing marked)")]),
 }
 
 
