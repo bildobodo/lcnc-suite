@@ -159,11 +159,11 @@ FULL_ONLY = {
 # Every rendered surface: what any component change can move or recolour.
 UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons", "strip-fit")
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer", "simulation-off.viewer",
-          "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer",
+          "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer", "scrub-start.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
-           "sim-panel.viewer", "strip-actions", "program-identity")
+           "sim-panel.viewer", "scrub-start.viewer", "strip-actions", "program-identity")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read", "tool-preview", "tool-edit")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
