@@ -13,6 +13,7 @@ agreed at Codex R204): who may write, checked where the write happens.
 import os
 import shutil
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -25,6 +26,7 @@ from fastapi import HTTPException  # noqa: E402
 from command_policy import COMMAND_GATES, NOT_ARMED, evaluate_permissions, permission_reasons  # noqa: E402
 from ws_fanout import ClientState  # noqa: E402
 from test_button_gates import _Handlers, _payload, _run, state, running  # noqa: E402
+from tool_io_fixture import load_into, nonrandom  # noqa: E402
 
 
 class _Pending:
@@ -278,9 +280,10 @@ class TestToolTableWriters(_Admission):
             p.start()
             self.addCleanup(p.stop)
 
-        async def _reload():
+        async def _reload(_data):
             self.writes.append("reload")
-        p = mock.patch.object(gateway, "_reload_tool_table_and_bump", _reload)
+            return types.SimpleNamespace(task=None)   # a write job with nothing to wait for
+        p = mock.patch.object(gateway, "_reload_tool_table", _reload)
         p.start()
         self.addCleanup(p.stop)
 
@@ -482,16 +485,20 @@ class TestWsToolEditAdmittedAtTheWrite(_Admission):
         p = mock.patch.object(gateway, "write_tool_table", lambda *a: writes.append(a))
         p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(gateway, "parse_tool_table", lambda _p, _strict=False: [{"T": 1, "P": 1, "Z": 0.0, "D": 3.0, "remark": ""}])
-        p.start()
-        self.addCleanup(p.stop)
-        p = mock.patch.object(gateway, "get_tool_tbl_path", lambda: "/tmp/bg-unused.tbl")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tbl = os.path.join(tmp.name, "tool.tbl")
+        with open(tbl, "w") as f:
+            f.write("T1 P1 D3 ;\n")
+        load_into(current().stat, tbl)     # LinuxCNC holds it: the basis is proven (MT-TF1)
+        nonrandom(self)
+        p = mock.patch.object(gateway, "get_tool_tbl_path", lambda: tbl)
         p.start()
         self.addCleanup(p.stop)
         gateway._reader_get = {"tool_change": True}.get   # fresh: a request now
         gateway._shared_status = _payload(tool_change_requested=False)   # the snapshot did not know
         from tool_expect_fixture import row_expect
-        exp = row_expect("/tmp/bg-unused.tbl", [{"T": 1, "P": 1, "Z": 0.0, "D": 3.0, "remark": ""}], {}, 1)
+        exp = row_expect(tbl, [{"T": 1, "P": 1, "X": 0.0, "Y": 0.0, "Z": 0.0, "D": 3.0, "remark": ""}], {}, 1)
         r = _run(gateway.handle_command({"cmd": "save_tool", "tool_number": 1, "z_offset": 1.5, "expected": exp},
                                         True, self.writer.conn_key))     # the connection (BG-23)
         self.assertFalse(r["ok"], r)

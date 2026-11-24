@@ -1,0 +1,652 @@
+"""Tool files read in the gateway (P6, plan maschinentag.r465 v4 §4–§9,
+Codex R465): get_tool_table's rule-R reply, the post-write job and its wait
+OUTSIDE _cmd_lock (MT465-01) — bound to its write, preempted or simply not
+in the way of a stop, on the WS path and the REAL REST import — and MT-TF1:
+an edit's basis must be `complete` at its read AND in its write thread;
+the Q465-1 switch. The real tool.tbl and tool_library.json in a temporary
+folder; LinuxCNC's table is the fake STAT's, loaded by the test (or a fake
+io, tool_io_fixture) when the test says so."""
+import asyncio
+import io
+import json
+import os
+import tempfile
+import time
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import fake_linuxcnc
+
+linuxcnc = fake_linuxcnc.install()
+import gateway  # noqa: E402
+import tool_proof  # noqa: E402
+from fastapi import UploadFile  # noqa: E402
+from link_fixture import current, use  # noqa: E402
+from test_button_gates import _payload  # noqa: E402
+from test_button_gates_b import _Admission  # noqa: E402
+from tool_expect_fixture import row_expect  # noqa: E402
+from tool_io_fixture import entry, load_into, loaded_table, nonrandom, table_of  # noqa: E402
+from tool_store import ToolLibraryStore  # noqa: E402
+from tool_table import parse_tool_table  # noqa: E402
+from ws_fanout import ClientState  # noqa: E402
+
+TABLE = ("T1 P1 Z50 D6 ; first\n"
+         "T2 P2 Z47.690467 D6 ; second\n"
+         "T3 P3 Z22 D4 ; third\n")
+LIBRARY = {"1": {"type": "flat"}, "2": {"type": "ball"}}
+
+
+class _Io:
+    """The command channel: load_tool_table RECORDED, LinuxCNC's table
+    loaded from the file only when `immediate` (a fake io that takes the
+    command at once) — else the test shows it when it wants (show())."""
+
+    def __init__(self, stat, path: Path, immediate=True):
+        self.stat, self.path, self.immediate, self.loads = stat, path, immediate, 0
+
+    def load_tool_table(self):
+        self.loads += 1
+        if self.immediate:
+            self.show()
+
+    def show(self):
+        load_into(self.stat, self.path)
+
+    def __getattr__(self, _name):
+        return lambda *a, **k: None
+
+
+class _Tools(_Admission):
+
+    def setUp(self):
+        super().setUp()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+        self.table = self.dir / "tool.tbl"
+        self.table.write_text(TABLE)
+        self.store = ToolLibraryStore(self.dir / "tool_library.json", lambda: "/cfg/machine.ini")
+        self.store.save(json.loads(json.dumps(LIBRARY)))
+        nonrandom(self)
+        current().stat.tool_in_spindle = 0
+        load_into(current().stat, self.table)          # LinuxCNC loaded the file
+        self.io = _Io(current().stat, self.table)
+        use(self, cmd=self.io)
+        self.replies = []
+        self.events = []
+
+        async def reply(_ws, m):
+            self.replies.append(m)
+        for p in (patch.object(gateway, "get_tool_tbl_path", lambda: str(self.table)),
+                  patch.object(gateway, "_tool_lib_store", self.store),
+                  patch.object(gateway, "ws_send_json", reply),
+                  patch.object(gateway._trace, "emit", lambda ev, *a, **k: self.events.append((ev, k)))):
+            p.start()
+            self.addCleanup(p.stop)
+        gateway._cmd_lock = None
+        gateway._shared_status = _payload()
+
+    def library(self):
+        return json.loads(json.dumps(self.store.load()))
+
+    def expect(self, tool):
+        return row_expect(str(self.table), parse_tool_table(str(self.table)), self.library(), tool)
+
+    def read(self):
+        gateway._cmd_lock = None
+        return asyncio.run(gateway.handle_command({"cmd": "get_tool_table"}, False))
+
+    def send(self, msg):
+        """One WS command through the client's command path, to its reply."""
+        gateway._cmd_lock = None
+        self.replies.clear()
+        asyncio.run(gateway._execute_client_command(901, self.writer, None, dict(msg)))
+        return self.replies[-1]
+
+    def event_names(self):
+        return [e for e, _k in self.events]
+
+
+# ---- get_tool_table: the reply ---------------------------------------------
+
+class TestTheReadReply(_Tools):
+
+    def test_a_complete_read(self):
+        r = self.read()
+        self.assertTrue(r["ok"], r)
+        self.assertEqual([t["T"] for t in r["tools"]], [1, 2, 3])
+        p = r["proof"]
+        self.assertEqual((p["state"], p["proven"], p["attempts"], p["why"]), ("complete", [1, 2, 3], 1, None))
+        self.assertEqual(r["unread"], [])
+        self.assertEqual(r["rev"]["table"], tool_proof.content_rev(self.table.read_bytes()))
+        self.assertEqual(r["rev"]["library"], tool_proof.library_rev(LIBRARY))
+        self.assertEqual(r["version"], gateway._tool_table_version)
+        self.assertEqual(r["table"], gateway._tool_table_identity(str(self.table)))
+
+    def test_partial_after_the_attempts_with_the_tools_named(self):
+        current().stat.tool_table = table_of([entry(1, Z=50, D=6), entry(2, Z=47.690467, D=6),
+                                              entry(3, Z=23, D=4), entry(4, Z=1)])
+        slept = []
+
+        async def sleep(s):
+            slept.append(s)
+        with patch.object(gateway.asyncio, "sleep", sleep):
+            r = self.read()
+        p = r["proof"]
+        self.assertTrue(r["ok"], "partial is no error: the rows go out")
+        self.assertEqual((p["state"], p["attempts"], p["proven"]), ("partial", 3, [1, 2]))
+        self.assertEqual((p["differs"], p["missing"]), ([{"T": 3, "fields": ["Z"]}], [4]))
+        self.assertEqual(slept, [gateway.TOOL_READ_RETRY_S] * 2)
+        self.assertEqual([t["T"] for t in r["tools"]], [1, 2, 3], "the file's rows, named in the proof")
+        self.assertIn("tools.read_partial", self.event_names())
+
+    def test_a_read_partial_at_first_complete_at_the_second_attempt(self):
+        good = current().stat.tool_table
+        current().stat.tool_table = table_of([entry(1, Z=50, D=6)])
+        calls = []
+        real = gateway._tool_files_attempt
+
+        def attempt(*a):
+            calls.append(1)
+            if len(calls) == 2:
+                current().stat.tool_table = good
+            return real(*a)
+        with patch.object(gateway, "_tool_files_attempt", attempt):
+            r = self.read()
+        self.assertEqual((r["proof"]["state"], r["proof"]["attempts"]), ("complete", 2))
+
+    def test_an_empty_controller_table_is_not_read_never_no_tools(self):
+        current().stat.tool_table = ()
+        self.table.write_text("")
+        r = self.read()
+        self.assertTrue(r["ok"])
+        self.assertEqual((r["tools"], r["proof"]["state"], r["proof"]["why"]),
+                         ([], "unchecked", tool_proof.NOT_READ))
+
+    def test_a_random_changer_reads_unchecked_with_its_rows(self):
+        with patch.object(gateway, "_tool_table_scope", lambda: tool_proof.SCOPE_RANDOM):
+            r = self.read()
+        self.assertEqual((r["proof"]["state"], r["proof"]["why"]), ("unchecked", tool_proof.SCOPE_RANDOM))
+        self.assertEqual(len(r["tools"]), 3)
+
+    def test_unread_lines_carry_their_t_or_none(self):
+        self.table.write_text(TABLE + "T7 P7 E1 ;\nT P8 Z1 ;\n")
+        r = self.read()
+        self.assertEqual(r["unread"], [{"line": 4, "T": 7}, {"line": 5, "T": None}])
+        self.assertEqual(r["proof"]["state"], "partial")
+
+    def test_a_corrupt_library_is_no_read_never_cached_rows(self):
+        self.assertTrue(self.read()["ok"])            # the library cached by a good read
+        (self.dir / "tool_library.json").write_text("{not json")
+        r = self.read()
+        self.assertEqual(r["ok"], False)
+        self.assertIn("Tool library not JSON", r["error"])
+        self.assertNotIn("tools", r)
+
+    def test_the_file_gone_is_no_read(self):
+        self.table.unlink()
+        r = self.read()
+        self.assertEqual(r["ok"], False)
+        self.assertIn("Tool table not read", r["error"])
+
+    def test_a_metadata_only_save_changes_only_the_library_rev(self):
+        a = self.read()
+        self.store.save({**LIBRARY, "3": {"type": "drill"}})
+        b = self.read()
+        self.assertEqual(a["rev"]["table"], b["rev"]["table"])
+        self.assertNotEqual(a["rev"]["library"], b["rev"]["library"])
+
+    def test_an_in_place_rewrite_of_the_same_size_is_a_new_table_rev(self):
+        a = self.read()
+        with open(self.table, "r+b") as f:     # in place, like io: the same inode and size
+            data = f.read()
+            f.seek(0)
+            f.write(data.replace(b"Z22 D4", b"Z23 D4"))
+        b = self.read()
+        self.assertNotEqual(a["rev"]["table"], b["rev"]["table"])
+
+    def test_a_file_changed_under_the_read_proves_nothing(self):
+        real_fstat = os.fstat
+        n = []
+
+        def fstat(fd):
+            st = real_fstat(fd)
+            n.append(1)
+            if len(n) % 2 == 0:        # the second fstat of each attempt: the file moved on
+                return os.stat_result((st.st_mode, st.st_ino, st.st_dev, st.st_nlink, st.st_uid, st.st_gid,
+                                       st.st_size + 1, st.st_atime, st.st_mtime, st.st_ctime))
+            return st
+
+        async def sleep(_s):
+            pass
+        with patch.object(gateway.os, "fstat", fstat), patch.object(gateway.asyncio, "sleep", sleep):
+            r = self.read()
+        self.assertEqual((r["proof"]["state"], r["proof"]["proven"], r["proof"]["why"]),
+                         ("partial", [], tool_proof.CHANGED))
+
+
+class TestGW1TheReadSeesAWritersAfterState(_Tools):
+    """Regression (variant A, Codex R465): a writer section stalled between
+    its table write and its library write — the read, under _cmd_lock like
+    the section, gets the after-state only; also when the writer's handler is
+    cancelled twice while stalled."""
+
+    def case(self, cancels):
+        async def run():
+            stall, release = asyncio.Event(), asyncio.Event()
+            real_save = gateway.save_tool_library
+
+            def save(library, **k):
+                fut.get_loop().call_soon_threadsafe(stall.set)
+                asyncio.run_coroutine_threadsafe(release.wait(), fut.get_loop()).result(5)
+                real_save(library, **k)
+            fut = asyncio.get_running_loop().create_future()
+            with patch.object(gateway, "save_tool_library", save):
+                writer = asyncio.ensure_future(gateway.handle_command(
+                    {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "flutes": 3,
+                     "expected": self.expect(1)}, True, self.writer.conn_key))
+                await stall.wait()
+                reader = asyncio.ensure_future(gateway.handle_command({"cmd": "get_tool_table"}, False))
+                for _ in range(cancels):
+                    writer.cancel()
+                    await asyncio.sleep(0.01)
+                await asyncio.sleep(0.05)
+                self.assertFalse(reader.done(), "the read waits behind the section")
+                release.set()
+                r = await reader
+                try:
+                    await writer
+                except asyncio.CancelledError:
+                    pass
+            return r
+        gateway._cmd_lock = None
+        r = asyncio.run(run())
+        t1 = next(t for t in r["tools"] if t["T"] == 1)
+        self.assertEqual((t1["Z"], t1["flutes"]), (49.0, 3), "the new table WITH its new library")
+        self.assertEqual(r["proof"]["state"], "complete")
+
+    def test_the_read_waits_for_the_section(self):
+        self.case(0)
+
+    def test_two_cancels_of_the_writer_too(self):
+        self.case(2)
+
+
+# ---- the post-write job (MT465-01) -----------------------------------------
+
+class TestThePostWriteWait(_Tools):
+
+    def test_the_reply_follows_linuxcnc_showing_the_write(self):
+        self.io.immediate = False
+        polls = []
+        real = gateway._stat_tool_table
+
+        def stat_table(owner=None):
+            if owner is not None:                  # the job's polls (the basis reads pass no owner)
+                polls.append(gateway._get_cmd_lock().locked())
+                if polls.count(False) == 3:
+                    self.io.show()                 # io took the reload: LinuxCNC shows the rows
+            return real(owner)
+        v0 = gateway._tool_table_version
+        with patch.object(gateway, "_stat_tool_table", stat_table), \
+                patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.001):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertEqual((r["ok"], r["reload"]), (True, "confirmed"), r)
+        self.assertGreaterEqual(polls.count(False), 3,
+                                "the reply waited for LinuxCNC with _cmd_lock FREE (the wait is outside it)")
+        self.assertEqual(self.io.loads, 1)
+        self.assertEqual(gateway._tool_table_version - v0, 1, "ONE ping, at the job's end")
+        self.assertEqual(self.read()["proof"]["attempts"], 1, "the read after an edit is complete at once")
+
+    def test_the_bound_ends_it_unconfirmed_and_traced(self):
+        self.io.immediate = False
+        v0 = gateway._tool_table_version
+        t0 = time.monotonic()
+        with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 0.05), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.005):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertLess(time.monotonic() - t0, 2.0)
+        self.assertEqual((r["ok"], r["reload"]), (True, "unconfirmed"))
+        ev = dict(self.events)["tools.reload_unconfirmed"]
+        self.assertEqual(ev["differs"], [1])
+        self.assertEqual(gateway._tool_table_version - v0, 1)
+
+    def test_a_newer_write_supersedes_an_old_wait_which_writes_nothing_back(self):
+        self.io.immediate = False
+
+        async def run():
+            gateway._cmd_lock = None
+            with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 5.0), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002):
+                first = asyncio.ensure_future(gateway.handle_command(
+                    {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)},
+                    True, self.writer.conn_key))
+                while gateway._tool_write_seq == seq0:
+                    await asyncio.sleep(0.001)
+                job1_seq = gateway._tool_write_seq
+                await asyncio.sleep(0.02)
+                self.assertFalse(first.done(), "job 1 waits: LinuxCNC does not show it")
+                self.io.show()                     # LinuxCNC loads job 1's table …
+                self.io.immediate = True           # … and the next one at once
+                v_mid = gateway._tool_table_version
+                second = await gateway.handle_command(
+                    {"cmd": "save_tool", "tool_number": 2, "z_offset": 40.0, "expected": self.expect(2)},
+                    True, self.writer.conn_key)
+                r1 = await first
+                return job1_seq, v_mid, r1, second
+        seq0 = gateway._tool_write_seq
+        v0 = gateway._tool_table_version
+        # job 1's polls (the job reads its own Link: `owner`) see nothing
+        # while it is the newest job — job 2 must be what ends it
+        real = gateway._stat_tool_table
+
+        def stat_table(owner=None):
+            return None if owner is not None and gateway._tool_write_seq == seq0 + 1 else real(owner)
+        with patch.object(gateway, "_stat_tool_table", stat_table):
+            job1_seq, v_mid, r1, r2 = asyncio.run(run())
+        self.assertEqual(r2["reload"], "confirmed")
+        self.assertEqual(r1["reload"], "superseded", "bound to ITS write: a newer job ends it")
+        self.assertEqual(gateway._tool_write_seq, job1_seq + 1)
+        self.assertEqual(gateway._tool_table_version - v0, 1, "the old job published nothing")
+        self.assertEqual(v_mid, v0)
+        rows = {t["T"]: t for t in parse_tool_table(str(self.table))}
+        self.assertEqual((rows[1]["Z"], rows[2]["Z"]), (49.0, 40.0), "the newer edit stands")
+        self.assertEqual(self.io.loads, 2, "no reload replayed by a wait")
+
+    def test_another_controller_ends_the_wait(self):
+        self.io.immediate = False
+
+        async def run():
+            gateway._cmd_lock = None
+            with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 5.0), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002):
+                t = asyncio.ensure_future(gateway.handle_command(
+                    {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)},
+                    True, self.writer.conn_key))
+                while gateway._tool_write_seq == seq0:
+                    await asyncio.sleep(0.001)
+                await asyncio.sleep(0.01)
+                use(self, cmd=self.io)             # a NEW Link (a reconnect)
+                return await t
+        seq0 = gateway._tool_write_seq
+        r = asyncio.run(run())
+        self.assertEqual(r["reload"], "controller changed")
+
+    def test_no_reload_sent_ends_the_job_at_once(self):
+        with patch.object(gateway, "_cmd_now", lambda: None):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertEqual(r["reload"], "reload not sent")
+        self.assertIn("tools.reload_not_sent", self.event_names())
+
+
+class TestTheWaitIsNotInAStopsWay(_Tools):
+    """MT465-01 (Codex R465's probe, on the built code): during the wait
+    _cmd_lock is FREE; the unchanged _preempt_inflight with an abort / E-Stop
+    from ANOTHER client: the WS edit's handler is a victim and still answers
+    its committed write ok; the REST import is no victim — and needs not be:
+    the stop's own command enters the lock at once in both. Nothing half:
+    the table, the reload and the library are written; the job goes on and
+    pings when LinuxCNC shows the table."""
+
+    def setUp(self):
+        super().setUp()
+        self.io.immediate = False
+        self.other = ClientState(ip="b", ws=None, armed=True)
+        gateway._clients[902] = self.other
+        for p in (patch.object(gateway, "TOOL_RELOAD_WAIT_S", 5.0),
+                  patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002),
+                  patch.object(gateway, "_hal_send", lambda *_a, **_k: None),
+                  patch.object(gateway, "_estop_hold", gateway._estop_hold)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    async def until_waiting(self, seq0):
+        t0 = time.monotonic()
+        while gateway._tool_write_seq == seq0 or gateway._get_cmd_lock().locked():
+            if time.monotonic() - t0 > 5:
+                raise AssertionError("the write never reached its wait")
+            await asyncio.sleep(0.001)
+
+    async def stop_from_the_other_client(self, by):
+        """What the other client's reader and worker do with a stop: the
+        fan-out, then the stop's own command under _cmd_lock."""
+        victims = gateway._preempt_inflight(by, 902)
+        t0 = time.monotonic()
+        r = await asyncio.wait_for(gateway.handle_command({"cmd": by}, True, self.other.conn_key), 1.0)
+        return victims, r, time.monotonic() - t0
+
+    def check_nothing_half(self, z_of_t1):
+        rows = {t["T"]: t for t in parse_tool_table(str(self.table))}
+        self.assertEqual(rows[1]["Z"], z_of_t1, "the table written")
+        self.assertEqual(self.io.loads, 1, "the reload sent")
+
+    def ws_case(self, by):
+        async def run():
+            gateway._cmd_lock = None
+            seq0 = gateway._tool_write_seq
+            msg = {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "flutes": 4, "expected": self.expect(1)}
+            task = asyncio.ensure_future(gateway._execute_client_command(901, self.writer, None, msg))
+            self.writer.cmd_inflight, self.writer.cmd_inflight_task = "save_tool", task
+            self.writer.cmd_inflight_since_mono = time.monotonic()
+            await self.until_waiting(seq0)
+            job = next(iter(t for t in gateway._bg_tasks if not t.done() and
+                            getattr(t.get_coro(), "__name__", "") == "_confirm_tool_write"))
+            lock_free = not gateway._get_cmd_lock().locked()
+            victims, stop_reply, stop_s = await self.stop_from_the_other_client(by)
+            await task
+            still_waiting = not job.done()
+            v_before = gateway._tool_table_version
+            self.io.show()                         # LinuxCNC loads it now: the job confirms and pings
+            await job
+            return lock_free, victims, stop_reply, stop_s, still_waiting, gateway._tool_table_version - v_before
+        lock_free, victims, stop_reply, stop_s, still_waiting, pinged = asyncio.run(run())
+        self.assertTrue(lock_free, "the wait holds no _cmd_lock")
+        self.assertEqual(victims, 1, "the WS handler in its wait is preempted")
+        self.assertTrue(stop_reply["ok"], stop_reply)
+        self.assertLess(stop_s, 0.5, "the stop entered the lock at once")
+        r = self.replies[-1]
+        self.assertEqual((r["ok"], r["reload"]), (True, "not awaited"), "a committed write answers ok")
+        self.assertTrue(still_waiting, "the job goes on past the preemption")
+        self.assertEqual(pinged, 1, "and pings when LinuxCNC shows the table")
+        self.check_nothing_half(49.0)
+        self.assertEqual(self.library()["1"].get("flutes"), 4, "the library written")
+
+    def test_a_ws_edit_abort_from_another_client(self):
+        self.ws_case("abort")
+
+    def test_a_ws_edit_e_stop_from_another_client(self):
+        self.ws_case("estop")
+
+    def rest_case(self, by):
+        raw = json.dumps({"data": [{"type": "flat end mill", "post-process": {"number": 1},
+                                    "geometry": {"DC": 6, "OAL": 60, "LB": 45}, "description": "imported"}]}).encode()
+
+        async def run():
+            gateway._cmd_lock = None
+            seq0 = gateway._tool_write_seq
+            req = asyncio.ensure_future(gateway.apply_tool_library_import(
+                UploadFile(file=io.BytesIO(raw), filename="tools.json"), x_conn_key=self.writer.conn_key))
+            await self.until_waiting(seq0)
+            lock_free = not gateway._get_cmd_lock().locked()
+            victims, stop_reply, stop_s = await self.stop_from_the_other_client(by)
+            waiting = not req.done()
+            self.io.show()
+            r = await req
+            return lock_free, victims, stop_reply, stop_s, waiting, r
+        with patch.object(gateway, "get_ini_config", lambda: {"linear_units": "mm"}):
+            lock_free, victims, stop_reply, stop_s, waiting, r = asyncio.run(run())
+        self.assertTrue(lock_free, "the import's wait holds no _cmd_lock")
+        self.assertEqual(victims, 0, "the REST import is no WS command: _preempt_inflight does not reach it …")
+        self.assertTrue(stop_reply["ok"], stop_reply)
+        self.assertLess(stop_s, 0.5, "… and needs not: the stop entered the lock at once")
+        self.assertTrue(waiting, "the import's request still waited for LinuxCNC")
+        self.assertEqual(r["ok"], True)
+        rows = parse_tool_table(str(self.table))
+        self.assertEqual([t["T"] for t in rows], [1])
+        self.assertEqual(self.io.loads, 1)
+        self.assertEqual(self.library()["1"]["oal"], 60, "the library written")
+
+    def test_a_rest_import_abort_from_another_client(self):
+        self.rest_case("abort")
+
+    def test_a_rest_import_e_stop_from_another_client(self):
+        self.rest_case("estop")
+
+
+# ---- MT-TF1: the edit's basis ----------------------------------------------
+
+class TestMTTF1TheBasisMustBeComplete(_Tools):
+
+    EDITS = {
+        "save_tool": lambda s: {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": s.expect(1)},
+        "add_tool": lambda s: {"cmd": "add_tool", "tool_number": 7, "z_offset": 1.0},
+        "delete_tool": lambda s: {"cmd": "delete_tool", "tool_number": 3},
+        "renumber_tool": lambda s: {"cmd": "renumber_tool", "old_tool_number": 1, "tool_number": 9,
+                                    "expected": s.expect(1)},
+    }
+
+    def refused(self, msg, why):
+        before, lib = self.table.read_bytes(), self.library()
+        r = self.send(msg)
+        self.assertEqual((r["ok"], r["error"]), (False, why), r)
+        self.assertEqual(self.table.read_bytes(), before, "nothing written")
+        self.assertEqual(self.io.loads, 0, "no reload — never a repair by load_tool_table")
+        self.assertEqual(self.library(), lib)
+
+    def test_a_clean_prefix_is_refused_at_the_basis_read(self):
+        # a paused io: T1, T2 whole and the last line gone — the strict parse
+        # passes, the rewrite would lose T3
+        self.table.write_text(TABLE.rsplit("T3", 1)[0])
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                self.refused(make(self), tool_proof.EDIT_NOT_CONFIRMED)
+
+    def test_the_basis_changed_in_the_write_thread_is_refused_there(self):
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                self.table.write_text(TABLE)
+                load_into(current().stat, self.table)
+                msg = make(self)
+                real = gateway._write_admission_refusal
+
+                def admit(*a, **k):
+                    # io between the basis read and the write: memory first,
+                    # the file truncated to a prefix (its save paused)
+                    current().stat.tool_table = loaded_table(TABLE.replace("Z22 D4", "Z21 D4"))
+                    with open(self.table, "r+b") as f:
+                        f.truncate(len(TABLE.split("T3")[0]))
+                    return real(*a, **k)
+                before_lib = self.library()
+                with patch.object(gateway, "_write_admission_refusal", admit):
+                    r = self.send(msg)
+                self.assertEqual((r["ok"], r["error"]), (False, tool_proof.EDIT_NOT_CONFIRMED), r)
+                self.assertEqual(self.table.read_text(), TABLE.split("T3")[0], "nothing written")
+                self.assertEqual((self.io.loads, self.library()), (0, before_lib))
+
+    def test_an_early_check_alone_is_not_the_admission(self):
+        # the basis read admitted, the write thread's re-read refused: the
+        # second check is its own (a stub basis read cannot open the write)
+        calls = []
+        real = gateway._tool_edit_basis
+
+        def basis(path):
+            calls.append(1)
+            if len(calls) == 2:
+                current().stat.tool_table = table_of([entry(1, Z=1)])
+            return real(path)
+        with patch.object(gateway, "_tool_edit_basis", basis):
+            self.refused(self.EDITS["save_tool"](self), tool_proof.EDIT_NOT_CONFIRMED)
+        self.assertEqual(len(calls), 2, "the basis read AND the write thread's")
+
+    def test_an_add_or_delete_compares_its_base_in_the_write_thread(self):
+        # io measured T2 between the basis read and the write (memory and
+        # file whole: complete) — a rewrite from the older read would put the
+        # old length back
+        for cmd in ("add_tool", "delete_tool"):
+            with self.subTest(cmd):
+                self.table.write_text(TABLE)
+                load_into(current().stat, self.table)
+                real = gateway._write_admission_refusal
+
+                def admit(*a, **k):
+                    measured = TABLE.replace("Z47.690467", "Z47.5")
+                    self.table.write_text(measured)
+                    load_into(current().stat, self.table)
+                    return real(*a, **k)
+                with patch.object(gateway, "_write_admission_refusal", admit):
+                    r = self.send(self.EDITS[cmd](self))
+                self.assertEqual((r["ok"], r.get("conflict"), r.get("fields")), (False, True, ["table"]), r)
+                self.assertIn("Z47.5", self.table.read_text(), "io's write stands")
+                self.assertEqual(self.io.loads, 0)
+
+    def test_an_unread_controller_refuses_with_its_reason(self):
+        current().stat.tool_table = ()
+        self.refused(self.EDITS["save_tool"](self), tool_proof.edit_unchecked(tool_proof.NOT_READ))
+
+    def test_a_complete_basis_edits(self):
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                self.table.write_text(TABLE)
+                load_into(current().stat, self.table)
+                self.store.save(json.loads(json.dumps(LIBRARY)))
+                r = self.send(make(self))
+                self.assertEqual((r["ok"], r["reload"]), (True, "confirmed"), r)
+
+
+class TestQ4651TheSwitchPoint(_Tools):
+    """Q465-1 (operator, pending): ONE switch, tool_proof.UNCHECKED_EDITS_BLOCKED.
+    Default: an edit on a random changer / a tool database is refused with
+    its reason, the read stays possible; switched off, it edits as before."""
+
+    def setUp(self):
+        super().setUp()
+        p = patch.object(gateway, "_tool_table_scope", lambda: tool_proof.SCOPE_RANDOM)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_blocked_by_default_reading_stays(self):
+        r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertEqual((r["ok"], r["error"]), (False, "Table not checked (random tool changer) — nothing written"))
+        self.assertEqual(self.io.loads, 0)
+        self.assertEqual(self.read()["proof"]["state"], "unchecked")
+
+    def test_switched_off_it_edits(self):
+        with patch.object(tool_proof, "UNCHECKED_EDITS_BLOCKED", False):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertEqual((r["ok"], r["reload"]), (True, "not checked"), r)
+        self.assertEqual({t["T"]: t["Z"] for t in parse_tool_table(str(self.table))}[1], 49.0)
+
+
+class TestTheScopeFromTheIni(unittest.TestCase):
+
+    def scope(self, values):
+        class Ini:
+            def __init__(self, _path):
+                pass
+
+            def find(self, section, key):
+                return values.get((section, key))
+        gateway._tool_scope_cache = None
+        with patch.dict(os.environ, {"LCNC_INI_FILE": "/cfg/m.ini"}), \
+                patch.object(gateway.linuxcnc, "ini", Ini), \
+                patch.object(gateway._trace, "emit", lambda *a, **k: None):
+            try:
+                return gateway._tool_table_scope()
+            finally:
+                gateway._tool_scope_cache = None
+
+    def test_the_scopes(self):
+        self.assertIsNone(self.scope({}))
+        self.assertIsNone(self.scope({("EMCIO", "RANDOM_TOOLCHANGER"): "0"}))
+        self.assertEqual(self.scope({("EMCIO", "RANDOM_TOOLCHANGER"): "1"}), tool_proof.SCOPE_RANDOM)
+        self.assertEqual(self.scope({("EMCIO", "RANDOM_TOOLCHANGER"): "yes"}), tool_proof.SCOPE_UNKNOWN,
+                         "a value that does not read is never nonrandom")
+        self.assertEqual(self.scope({("EMCIO", "DB_PROGRAM"): "db.py"}), tool_proof.SCOPE_DATABASE)
+        self.assertEqual(self.scope({("EMCIO", "DB_PROGRAM"): ""}), tool_proof.SCOPE_DATABASE)
+
+    def test_no_ini_is_unknown(self):
+        gateway._tool_scope_cache = None
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(gateway._tool_table_scope(), tool_proof.SCOPE_UNKNOWN)
+
+
+if __name__ == "__main__":
+    unittest.main()

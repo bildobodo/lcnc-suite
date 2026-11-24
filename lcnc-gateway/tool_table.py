@@ -105,36 +105,65 @@ def tool_visual_metadata(meta: dict) -> dict:
     ) if k in meta}
 
 
-def parse_tool_table(path: str, strict: bool = False) -> list:
-    """Parse a LinuxCNC tool.tbl file → list of dicts (T, P, X, Y, Z, D always
-    — 0 when absent — and every other field the line carries, plus `remark`).
+def unread_line_tool(data: str) -> Optional[int]:
+    """The tool number an UNREAD line names (P6 "tool files read", Codex
+    R461): set only when the line's data part has exactly ONE token `T`
+    and a whole number — else None, and such a line is never attached to a
+    tool (a cut `T1` + `3 P13` must not become T1)."""
+    found = [tok[1:] for tok in data.split(" ") if tok[:1] in ("T", "t") and _INT_RE.match(tok[1:])]
+    return int(found[0].split(".")[0]) if len(found) == 1 else None
 
-    A blank line and a comment line (`;` or `#` first) are no tool. A line
-    `parse_tool_line` does not read whole is left out — LinuxCNC skips it
-    only when it carries an unknown letter and may read it otherwise (a cut
-    value) — or, with `strict`, raises ToolTableUnreadable naming it: every
-    path that reads the table to write it back reads strictly, so a line it
-    would drop stops the write."""
+
+def parse_tool_table_bytes(data: bytes, strict: bool = False, unread: Optional[list] = None) -> list:
+    """Parse a LinuxCNC tool.tbl's BYTES → list of dicts (T, P, X, Y, Z, D
+    always — 0 when absent — and every other field the line carries, plus
+    `remark`). THE parser: the file read (parse_tool_table) and rule R's read
+    of one byte snapshot (tool_proof) take the same lines (P6 "tool files
+    read").
+
+    Lines end at `\\n`, `\\r\\n` or `\\r` (as a text-mode read took them);
+    each line is UTF-8. A blank line and a comment line (`;` or `#` first)
+    are no tool. A line `parse_tool_line` does not read whole — or that is
+    not UTF-8 — is left out (LinuxCNC skips it only when it carries an
+    unknown letter and may read it otherwise: a cut value), listed in
+    `unread` as {line, T} (T: unread_line_tool), or, with `strict`, raises
+    ToolTableUnreadable naming it: every path that reads the table to write
+    it back reads strictly, so a line it would drop stops the write."""
     tools = []
-    with open(path, "r") as f:
-        for n, raw in enumerate(f, 1):
-            line = raw.strip()
-            if not line or line.startswith(";") or line.startswith("#"):
-                continue
-            data, _, remark = line.partition(";")
-            try:
-                fields = parse_tool_line(data.strip())
-            except ToolTableUnreadable as e:
-                if strict:
-                    raise ToolTableUnreadable(f"Tool table line {n} not understood ({e}): {line}") from None
-                continue
-            tool = {"T": fields.pop("T"), "P": fields.pop("P"),
-                    "X": fields.pop("X", 0.0), "Y": fields.pop("Y", 0.0),
-                    "Z": fields.pop("Z", 0.0), "D": fields.pop("D", 0.0)}
-            tool.update(fields)
-            tool["remark"] = remark.strip()
-            tools.append(tool)
+    for n, raw_b in enumerate(data.replace(b"\r\n", b"\n").replace(b"\r", b"\n").split(b"\n"), 1):
+        try:
+            raw = raw_b.decode("utf-8")
+            why = None
+        except UnicodeDecodeError:
+            raw = raw_b.decode("utf-8", errors="replace")
+            why = "not UTF-8"
+        line = raw.strip()
+        if not line or line.startswith(";") or line.startswith("#"):
+            continue
+        part, _, remark = line.partition(";")
+        try:
+            if why is not None:
+                raise ToolTableUnreadable(why)
+            fields = parse_tool_line(part.strip())
+        except ToolTableUnreadable as e:
+            if strict:
+                raise ToolTableUnreadable(f"Tool table line {n} not understood ({e}): {line}") from None
+            if unread is not None:
+                unread.append({"line": n, "T": unread_line_tool(part.strip())})
+            continue
+        tool = {"T": fields.pop("T"), "P": fields.pop("P"),
+                "X": fields.pop("X", 0.0), "Y": fields.pop("Y", 0.0),
+                "Z": fields.pop("Z", 0.0), "D": fields.pop("D", 0.0)}
+        tool.update(fields)
+        tool["remark"] = remark.strip()
+        tools.append(tool)
     return tools
+
+
+def parse_tool_table(path: str, strict: bool = False) -> list:
+    """Parse a LinuxCNC tool.tbl file (parse_tool_table_bytes of its bytes)."""
+    with open(path, "rb") as f:
+        return parse_tool_table_bytes(f.read(), strict)
 
 
 def _num(v: float, fixed: str) -> str:
@@ -145,8 +174,10 @@ def _num(v: float, fixed: str) -> str:
     return text if float(text) == v else format(v, "+")
 
 
-def write_tool_table(path: str, tools: list):
-    """Write tools to a LinuxCNC tool.tbl file atomically."""
+def write_tool_table(path: str, tools: list) -> bytes:
+    """Write tools to a LinuxCNC tool.tbl file atomically; the bytes written
+    (what LinuxCNC is then asked to load — the post-write wait proves them
+    against its table, P6 "tool files read")."""
     lines = [";Tool  Pocket Z Offset     Diameter     Remark\n"]
     for t in sorted(tools, key=lambda x: x["T"]):
         tn = t["T"]
@@ -166,7 +197,9 @@ def write_tool_table(path: str, tools: list):
         if remark:
             line += f"   ; {remark}"
         lines.append(line + "\n")
-    atomic_write_bytes(path, "".join(lines).encode("utf-8"))
+    data = "".join(lines).encode("utf-8")
+    atomic_write_bytes(path, data)
+    return data
 
 
 def _merge_tool_data(tbl_tools: list, library: dict) -> list:

@@ -15,6 +15,12 @@ from typing import Callable, Optional, Tuple
 from gateway_util import atomic_write_bytes
 
 
+class ToolLibraryUnreadable(ValueError):
+    """The tool library could not be read (strict read, P6 "tool files
+    read"): a reader that names it instead of showing cached or empty
+    metadata as the library."""
+
+
 class ToolLibraryStore:
     def __init__(self, path, ini_key: Callable[[], str],
                  on_error: Optional[Callable[[str, str, Exception], None]] = None,
@@ -36,10 +42,12 @@ class ToolLibraryStore:
         if self._on_error is not None:
             self._on_error(event, level, e)
 
-    def _load_all(self) -> dict:
+    def _load_all(self, strict: bool = False) -> dict:
         """Full tool_library.json (all INI configs), mtime-cached. Hot path:
         the status loop calls load() on every tool-number change per client.
-        mtime-keying catches both UI edits and external edits to the file."""
+        mtime-keying catches both UI edits and external edits to the file.
+        `strict`: a failed stat, read or parse raises ToolLibraryUnreadable
+        instead of answering the last cached data or {}."""
         if not self._path.exists():
             self._cache = None
             return {}
@@ -47,6 +55,8 @@ class ToolLibraryStore:
             mtime = self._path.stat().st_mtime
         except OSError as e:
             self._emit("tool_lib.stat_failed", "warn", e)
+            if strict:
+                raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
             return self._cache[1] if self._cache else {}
         if self._cache is not None and self._cache[0] == mtime:
             return self._cache[1]
@@ -55,10 +65,16 @@ class ToolLibraryStore:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             self._emit("tool_lib.corrupt", "error", e)
+            if strict:
+                raise ToolLibraryUnreadable(f"not JSON (line {e.lineno})") from None
             return self._cache[1] if self._cache else {}
         except OSError as e:
             self._emit("tool_lib.read_failed", "warn", e)
+            if strict:
+                raise ToolLibraryUnreadable(f"not read ({e.strerror})") from None
             return self._cache[1] if self._cache else {}
+        if strict and not isinstance(data, dict):
+            raise ToolLibraryUnreadable(f"top level is {type(data).__name__}, not an object")
         self._cache = (mtime, data)
         return data
 
@@ -66,19 +82,24 @@ class ToolLibraryStore:
         atomic_write_bytes(str(self._path), json.dumps(all_data, indent=2).encode("utf-8"))
         self._cache = None  # invalidate; next read re-loads with fresh mtime
 
-    def load(self) -> dict:
+    def load(self, strict: bool = False) -> dict:
         """Tool metadata for the current INI config.
 
         Migrates the old flat format (top-level keys that look like tool numbers)
         by wrapping it under the current INI key once. Lock-guarded so a
-        concurrent save() (different executor thread) can't tear the cache."""
+        concurrent save() (different executor thread) can't tear the cache.
+        `strict` (the Tools tab's read, P6 "tool files read"): an unreadable
+        file, a section or a seed that is not an object raise
+        ToolLibraryUnreadable — never the cached rows or {} as the library."""
         with self._lock:
-            all_data = self._load_all()
+            all_data = self._load_all(strict)
             ini = self._ini_key()
             if all_data and not any(k.startswith("/") for k in all_data) and any(k.isdigit() for k in all_data):
                 all_data = {ini: all_data}
                 self._save_all(all_data)
             if ini in all_data:
+                if strict and not isinstance(all_data[ini], dict):
+                    raise ToolLibraryUnreadable(f"section is {type(all_data[ini]).__name__}, not an object")
                 return all_data[ini]  # An explicitly saved empty table stays empty.
             # Fresh example installations carry geometry beside their tool.tbl.
             # Never overlay a saved library, including legacy flat libraries.
@@ -95,6 +116,8 @@ class ToolLibraryStore:
                 return self._seed_cache[1]
             except (OSError, ValueError) as e:
                 self._emit('tool_lib.seed_failed', 'warn', e)
+                if strict:
+                    raise ToolLibraryUnreadable(f"seed not read ({e})") from None
                 return {}
 
     def save(self, library: dict, *, ini_key: Optional[str] = None) -> None:

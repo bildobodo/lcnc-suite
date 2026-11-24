@@ -183,7 +183,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
                   patch.object(gateway, "_tool_table_version", 10),
                   patch.object(gateway, "_tool_meta_dirty", False),
                   patch.object(gateway, "write_tool_table", side_effect=AssertionError("table write")),
-                  patch.object(gateway, "_reload_tool_table_and_bump", side_effect=AssertionError("NML reload"))]:
+                  patch.object(gateway, "_reload_tool_table", side_effect=AssertionError("NML reload"))]:
             p.start()
             self.addCleanup(p.stop)
 

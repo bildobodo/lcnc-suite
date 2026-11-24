@@ -1568,7 +1568,8 @@ class TestToolPersistenceLock(unittest.TestCase):
         seen = {}
         orig_w, orig_s = gateway.write_tool_table, gateway.save_tool_library
         # Spy: record whether _cmd_lock is held at the moment each file is written.
-        gateway.write_tool_table = lambda p, t: seen.__setitem__("table", gateway._cmd_lock.locked())
+        # (the writer answers the bytes it wrote — the write job's input)
+        gateway.write_tool_table = lambda p, t: (seen.__setitem__("table", gateway._cmd_lock.locked()), b"")[1]
         gateway.save_tool_library = lambda lib: seen.__setitem__("lib", gateway._cmd_lock.locked())
         connect_fake(self)
         current().stat.interp_state = linuxcnc.INTERP_IDLE
