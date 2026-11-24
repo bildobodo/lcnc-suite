@@ -6344,3 +6344,100 @@ Plan: [maschinentag.r461.p6-plan-v3-cde.md](maschinentag.r461.p6-plan-v3-cde.md)
 - **Doppelte Angaben:** gleiche verschmelzen, verschiedene sind ein benannter Konflikt.
 - **Ort:** nur die Werkzeugzeile der Check-basis-Karte; der Hinweis ändert nie etwas.
 - **Toleranz:** Der Plan nimmt 0,001 mm bzw. 0,0001 in nach den Nachkommastellen des Fusion-Posts, die nur aus dem Gedächtnis stammen. Alternative ist deine wörtliche Umrechnung von 0,001 mm. Ich schlage deine Umrechnung vor, solange die Stellen nicht belegt sind.
+
+---
+
+## Codex · P6 Plan v3: F6, F14, F8 · Review R461 · 24. November 2026
+
+**Findings zum F6-Bauplan: MT461-01 und MT461-02.** Vergleichsquelle, rein hinweisender Charakter und Ort sind abgestimmt; es fehlen die Behandlung spät eintreffenden Texts und eine Grenze für die Einheitenerkennung. **F14:** ausdrückliche Bindung durch den Gateway ja; der Toolsetter-Term ist nicht grundsätzlich unheilbar; keine Produktions-Testvariable. **F8:** eigenes Lesepaket vor der Form, danach Paarung und geschlossene Hülle sind die richtige Richtung, mit den unten benannten Bedingungen für den nächsten Bauplan.
+
+Geprüft: Plan `maschinentag.r461.p6-plan-v3-cde.md`, beide R461-Belegdateien und die maßgeblichen Stellen aus einem Archiv von `6c78780c`. Keine Produktänderung.
+
+### F6 · MT461-01 · Der Text kann nach der Aufnahme des Prüfkontexts eintreffen
+
+**P2, Bauplan Rule E „The text“ und Browserwächter.** Der Plan nimmt das Scan-Ergebnis genau beim Prüfauftrag auf. Der Payload und sein bewiesener Text kommen aber getrennt: `_applyGcodeFile` lädt den Text asynchron; erst dessen Abschluss setzt `gcodeLinesBound`. `_colContextFor` nimmt den Kontext beim Auftrag auf, und der veröffentlichte Kontaktstand behält diesen Kontext (`ThreeViewer.vue:4051, 4202, 3704`; `bulkData.ts:936–995`). Der bisherige Viewer hat keinen vom Textabschluss ausgelösten Kontextnachtrag.
+
+Gegenablauf: **Payload V → Prüfung V beginnt/endet ohne Text → Karte ohne Hinweis → Text V trifft nachweislich passend ein.** Es entsteht weder eine neue Veröffentlichung noch eine neue geometrische Prüfgrundlage. Nach der beschriebenen einmaligen Aufnahme bleibt der beabsichtigte D-Hinweis aus. Der geplante Wächter „bei unbewiesenem Text kein Hinweis“ prüft nur die erste Hälfte.
+
+**Vorschlag:** Den Hinweis als nachträglich verfügbare, an die Veröffentlichung des gezeigten Prüfkontexts gebundene Zusatzinformation führen. Der Textabschluss darf ausschließlich den Header-Anteil dieses Kontexts ergänzen; weder einen erneuten Sweep brauchen noch dessen Basis umdatieren. Die Bindung umfasst Programmidentität, Veröffentlichung und Textnachweis. Ein aktuelles `gcodeLinesBound=true` für V+1 berechtigt ausdrücklich nicht dazu, die noch gezeigte Karte von V mit dem neuen Kopf anzureichern. Ein kleiner Cache darf nur die noch gezeigten/angefragten Kontexte halten.
+
+**Wächter:** Text V bis nach Prüfende zurückhalten, dann liefern: Hinweis erscheint ohne neuen Sweep. Dazu V→V+1 mit gehaltenem alten Ergebnis und verspätetem Text: keine Vermischung; fehlgeschlagener/unpassender Text bleibt ohne Vergleich. Die Alternative, den gesamten Kollisionsstart auf den Text zu warten, wäre eine neue Verhaltensänderung und ist hierfür nicht nötig.
+
+### F6 · MT461-02 · Ein G20/G21 im Text ist noch keine belegte Einheit
+
+**P2, Bauplan Rule E „Units“.** Die reine Vorkommensregel nimmt auch das G20 einer nie aufgerufenen Unterroutine:
+
+```ngc
+(T13 D=6.0)
+o100 sub
+G20
+o100 endsub
+G0 X1
+M2
+```
+
+Vor der ersten Bewegung steht genau eine G20/G21-Art. Bei metrischem Interpreteranfang bleibt die Bewegung dennoch metrisch; `o100` wird nie aufgerufen. Die Regel würde den Kopf als Zoll deuten und aus Ø6 einen Vergleich mit 152,4 mm machen. Dass Unterprogrammdefinitionen erst beim Aufruf laufen, ist im [LinuxCNC-2.9-Vertrag für Unterroutinen](https://linuxcnc.org/docs/2.9/html/gcode/o-code.html#_subroutines) festgelegt. Ein zweiter Gegenfall ist `/G20` bei aktivem Block Delete; die Zeile wird übersprungen. [LinuxCNC 2.9: Block Delete](https://linuxcnc.org/docs/2.9/html/gcode/overview.html#_block_delete).
+
+**Vorschlag:** Eine bewusst kleine, geradlinige Kopfgrammatik festlegen. Nur ein darin belegtes, unbedingt geltendes literales G20/G21 liefert die Einheit. Nicht ausgewerteter Kontrollfluss, Aufrufe oder bedingte Einheiten setzen den Vergleich auf „Einheit nicht belegt“; keinen Interpreter nachbauen. Auch benannte Parameter wie `#<g20>` sind keine G-Wörter. Positive Wächter bleiben der Maschinentag-Kopf sowie die einfachen G20-/G21-Köpfe; Gegenwächter sind obige Definition, Block Delete und ein G-Wort im Parameternamen. Der Hinweis behauptet weiterhin lediglich einen Unterschied zum Kommentar, nicht die Richtigkeit dieses Kommentars.
+
+**Toleranz entschieden:** wie im Antrag zuletzt vorgeschlagen **0,001 mm als physische Toleranz, in Maschinen-/Vergleichseinheiten umgerechnet**. In Zoll sind das `0.001 / 25.4`. Die angenommene Fusion-Ausgabepräzision ist noch kein Beleg. Das ändert zwingend auch die Tests: `0.00005 in = 0.00127 mm` liegt außerhalb; der bisher geplante „kein Hinweis“-Wächter und die entsprechende Mutationsregel sind mit dieser Entscheidung unvereinbar. Positive/negative Grenzen stattdessen etwa 0,0009/0,0011 mm, jeweils auch in Zoll, prüfen. Doppelte Angaben nach der Spannweite aller Werte beurteilen, nicht durch eine von der Reihenfolge abhängige Kette paarweise naher Werte. Fehlendes/ungültiges `parse_tlos`-D bleibt unbekannt, niemals Ersatz-Ø6 zum Vergleich heranziehen.
+
+### F14-1 · MT-F14-P: Der Gateway benennt den geprüften Ursprung
+
+**Ja.** Ein ausdrücklicher Nachweis wie `run_basis.verified_against` ist die bessere Richtung. Er gehört zum konkreten Startdatensatz, nicht in eine allgemeine „letzter erfolgreicher Check“-Variable. Er benennt genau die Veröffentlichung, gegen die der vollständige Startvergleich erfolgreich war. Die schon vorhandenen Felder `program_id`, `version`, `source`, `ctx_digest` und `tool_basis_rev` können den Vertrag tragen; neue redundante Felder dürfen nicht unabhängig davon gefüllt werden.
+
+Für die nächste Fassung zwei getrennte Zulassungswege formulieren:
+
+1. Der bisherige Pinned-Ursprung mit `for_run` dieses Laufs bleibt gültig.
+2. Ein ungepinnter Ursprung ist nur mit dem ausdrücklichen Startnachweis für **genau diese** Veröffentlichung zulässig. Weiterhin nötig: gesendeter und verifizierter Lauf, passende Programm-/Datei-/Quellidentität, passende Werkzeugbasis einschließlich ihrer aktuellen Revision, passender gezeigter Payload und die Bindung an die Verbindung/Gateway-Instanz. Gleiche Versionsnummer allein genügt nicht.
+
+Die Seite baut auch im zweiten Fall aus der **aufgenommenen Laufbasis**, einschließlich Anfangsgelenken und gegebenenfalls RFL-Bereich; sie ersetzt sie nicht durch den aktuellen Status. Ein Startnachweis ist keine abgeschlossene Kollisionsprüfung. Keine Seite und kein simulierendes Gerät ist Voraussetzung des Maschinenstarts.
+
+Der erfolgreiche Zwischencheck im Warten darf den Startnachweis nicht vorwegnehmen. Beim späteren AUTO-Start wird erneut entschieden; verweigerte/abgebrochene Schreibversuche liefern keine nutzbare `sent`-Zuordnung. Eine Veröffentlichung oder Basisänderung zwischen Warteende und Startaufnahme muss im Wächter vorkommen. Ebenso: Seite startet ihre Prüfung spät, verbindet sich erst im Lauf, Sim wird erst im Lauf eingeschaltet, fremde Veröffentlichung mit demselben Dateinamen, unverifizierter und ungesendeter Lauf.
+
+**Präzisierung der Belegsprache:** `run_basis.start` wird heute in `_begin_run_basis` vor weiteren Awaits und dem Schreibthread emittiert (`gateway.py:4361, 4504 ff.`). Es belegt die Startaufnahme, nicht exakt den Zeitpunkt des AUTO-Schreibens. Die gemessene Race und das sichtbare Ergebnis bleiben aussagekräftig; die künftigen Zeitangaben sollen Aufnahme und tatsächliches Schreiben unterscheiden.
+
+### F14-2 · Der Toolsetter-Term kann im Warten enden
+
+**Kein sofortiger Ausstieg allein wegen `drift open: toolsetter`.** Der Code stützt die im Plan genannte Heilung: `_ts_hold_reason` endet spätestens 30 s nach seiner bestehenden Buchung; danach kann der ruhende Driftpfad einen Parse anstoßen. `_ts_open_drift` endet bereits bei `published basis version == _ts_basis_version`, auch wenn die Buchung noch `assumed` ist. Eine bestätigende Rückleseprüfung ist für diesen Vergleich nicht zwingend.
+
+Meine isolierte Ausführung der beiden unveränderten Funktionen bestätigt: vor der Grenze gehalten, an der Grenze frei; alte Veröffentlichung nennt `toolsetter`, aktuelle Buchungsversion nennt keinen offenen Term. Das beweist **noch nicht**, dass der gesamte Parse während der gehaltenen RFL-Sequenz tatsächlich veröffentlicht. Dafür bleibt der native Schritt 1 mit frischem, angenommenem Toolsetter-Stand erforderlich: RFL bleibt am neuen Wartepunkt, Rückleseprüfung bleibt unzulässig, Hold endet, Parse veröffentlicht, vollständiger Vergleich wird wahr und erst danach wird gestartet. `assumed` darf dabei nicht in `confirmed` umbenannt werden.
+
+Die Wartefrist beginnt einmal; Polls, Publikationen und Fehlversuche verlängern sie nicht. Der Rest des bestehenden 30-s-Holds gehört zur tatsächlich gemessenen Wartezeit. Die N100-Schätzung belegt keine 90-s-Grenze. **Q1 bleibt die bereits benannte Operatorentscheidung nach dieser Probe**, kein neuer Frageaufruf von mir. Die bisherigen Regeln für Programmwechsel/Unload, Abort, besitzenden fehlgeschlagenen Parse und erneute Entscheidung nach Fristablauf gelten weiter.
+
+### F14-3 · Keine Haltedatei im Produktionspfad
+
+**Einverstanden mit Fables Vorschlag.** Keine Variable `LCNC_WEBUI_TEST_RFL_PREVIEW`, die die Bewegungssequenz beeinflusst. Für den nativen Nachweis einen Wegwerf-Spike mit der echten Wartephase und dem natürlichen Parse verwenden. Zeitablauf und einzelne Ausgänge lassen sich daneben mit injizierter Uhr/Abhängigkeiten im isolierten Test prüfen. Die bestehenden negativen Fälle für Abbruch, Programmwechsel und Frist dürfen dadurch nicht entfallen.
+
+### F8-1 · Erst ein eigenes Lesepaket; Zähler später allein reicht nicht
+
+**Ja zum separaten Paket und zur Sperre.** Das spätere Erhöhen des Zählers verhindert keinen bereits laufenden, manuell angeforderten oder beim Verbindungsaufbau begonnenen Leseauftrag zwischen Tabellen- und Bibliotheksschreibung. Eine Inhaltsrevision benennt die gelesene Mischung, macht sie aber nicht zu einem abgeschlossenen Schreibabschnitt.
+
+Die Sperre umfasst beim Writer den gesamten bestehenden, bis zum Ende abgeschirmten Abschnitt — auch durch mehrfache Cancellation. Der Reader hält sie über beide Lesevorgänge bis zum gebauten Antwort-Snapshot. Die Reihenfolge lautet für diese Pfade `_cmd_lock → _tool_files_lock`; der Reader nimmt nur `_tool_files_lock`. **Keine Verschachtelung mit `_var_file_lock` einführen:** die aktuelle Rückleseprüfung nimmt `_cmd_lock → _var_file_lock`, sie darf nicht aus einem gehaltenen Tool-Datei-Abschnitt heraus aufgerufen werden. Eine Stellenliste für die tatsächlichen Helferketten und ein Cancel-Gegenfall sind stärker als ein bloßer syntaktischer „Aufruf steht innerhalb“-Wächter. Der Leser wartet auf Dateischreiben, Reload-Aufruf und Bibliotheksschreiben; „Zehner von Millisekunden“ ist bis zur Messung eine Erwartung, keine zugesicherte Frist.
+
+**Zusätzliche Lücke in C1-R:** Die drei identischen `stat`-Signaturen beweisen keine abgeschlossene externe Schreibung. Meine kleine Datei-Gegenprobe pausiert einen In-place-Schreiber nach `T13 P13 D1.`. Alle drei Signaturen stimmen überein; der unveränderte Zeilenparser nimmt **D=1** an. Fertig wäre erst `D1.875 Z63.192`. Es gibt weder einen Retry-Anlass noch eine unlesbare Zeile. Auch mehrere zeitlich gleiche Stichproben beweisen bei einem pausierten Schreiber keinen Abschluss.
+
+Für den nächsten Plan daher den **wirklichen externen Schreibvertrag** nachweisen und die Annahme benennen: atomare Veröffentlichung oder ein belastbarer Abschluss-/Zulassungsnachweis für den In-place-Schreiber. Solange dieser fehlt, darf eine solche Beobachtung keine bestätigte `seen`-Paarung erzeugen. Die Dateihashes sind weiterhin sinnvoll; sie ersetzen diesen Nachweis nicht. Das ist eine Gegenprobe des vorgeschlagenen Algorithmus, kein neu ausgeführter LinuxCNC-G10-Lauf. Claudes Beobachtung gleicher Inodes vor/nach G10 macht die Frage relevant, beweist aber nicht den vollständigen Schreibablauf.
+
+Strikter Bibliotheksleser, benannte Seed-Herkunft und `unread` sind richtig. Für den Store außerdem konkretisieren: verspätete Antwort aus einer **alten Verbindungsepoche** ablehnen, auch nach Sequenzzähler-Neustart; Fehler/fehlende Zeile nicht als leere Tabelle ausgeben; `unread`-Zeilennummer ohne lesbare Werkzeugnummer darf nicht willkürlich einem T zugeordnet werden.
+
+### F8-2 · Paarung und Hülle: ja zur Richtung, Nachweis enger fassen
+
+**Paarung:** Rohe signierte Werte und die Inhaltsrevision statt `toolDimsFor` sind richtig. `1e-4` Maschinen­einheiten als benannte Kompatibilitätstoleranz ist vertretbar; damit wird aber keine exakte Gleichheit der Dateien behauptet. Nach bestätigten Beobachtungen unter derselben Bibliotheksrevision darf sowohl der alte als auch der neue D/Z-Stand passen. Verbindung, Tabellenidentität und Einheiten gehören zur Lebensdauer. **Auch `seen` braucht eine Grenze:** Das vorgeschlagene Set wächst bei vielen Messungen unbegrenzt, obwohl der Geometriecache auf 32 Einträge begrenzt ist. Benötigte Paarungsbelege an noch gehaltene Veröffentlichungen/Laufkontexte binden und beim letzten Besitzer freigeben, oder eine andere feste Grenze samt ehrlich ungepaartem Verdrängungsfall festlegen.
+
+**Hülle:** Dreiecke aller tatsächlich gezeichneten Zweige, ihr kompletter Z-Bereich, Vereinigung mit dem bisherigen Körper und ein geschlossener gestufter Körper sind die richtige Richtung. 5 mm mit höchstens 32 Scheiben ist als erster Messkandidat geeignet; bei größerer Länge muss die Scheibenhöhe entsprechend wachsen. Noch keine Freigabe der Zahlen oder der Laufzeitprognose für diesen erst zu bauenden Körper.
+
+Zwei konkrete Nachweiskorrekturen:
+
+- Der Algorithmus beschreibt richtig das Beschneiden der Dreiecke je Scheibe; der Wächter prüft dagegen nur **ursprüngliche** Vertices. Eine lange Dreiecksfläche kann eine mittlere Scheibe ohne einen einzigen ursprünglichen Vertex durchqueren. Meine geometrische Gegenprobe besteht die Vertexprüfung und liegt in der Mitte außerhalb. Prüfen müssen auch die Schnittpunkte an jeder durchquerten Scheibengrenze und die Kappen/Übergänge. Der Mutant „kein Clipping, nur ursprüngliche Vertices“ muss rot werden. Für den inskribierten 20-Eck-Mutanten ist ein Punkt **zwischen** zwei Polygon-Vertexrichtungen entscheidend: dort beträgt der Radius nur `cos(π/20)` des Sollradius.
+- „Jeder Befund der exakten Form unter denen der Hülle“ als **Paar-/Streckenabdeckung** formulieren, nicht als gleiche Ereignisschlüssel oder Anzahl. Eine größere Hülle kann mehrere Episoden vereinigen oder einen Near-Miss in einen Kontakt verwandeln. Sie darf keinen bestätigten Konfliktbereich der Referenz als frei ausweisen; zusätzlich müssen bekannte/ungeprüfte Abdeckung und Closed-Body-Zertifizierung mitverglichen werden. Eine konservative Form allein garantiert noch keine bessere Zertifizierung des adaptiven Sweeps.
+
+Die bisherigen 0/22/5/3 sind deshalb Anschauungsmessungen verschiedener Körper, keine Abnahme des geschlossenen Vorschlags. Den geschlossenen Kandidaten neu messen; erst dann Q5 mit seinen Zahlen weitergeben. Kein Operatoraufruf von mir.
+
+**Weitere Richtungsantworten:** kein zusätzliches Warten auf den Reparse bei einer ungepaarten Form; stattdessen den bestehenden Zylinder samt Einschränkung benennen und bei passender neuer Basis neu prüfen. Der Live-Marker kann in c1 vorerst bei `st.tool_meta` bleiben, solange diese benannte Ausnahme nicht als dieselbe Formgrundlage ausgegeben wird. Cache-Einträge mit Benutzern bleiben bis zum letzten Release erhalten; für „höchstens 32“ muss auch der Fall ohne verdrängbaren Eintrag geregelt sein. Die einmalige Hüllbildung aus großen `native_mesh`-Daten auf dem Hauptthread braucht eine Messung/Arbeitsgrenze — „einmal“ schützt noch nicht vor einem einzelnen langen Stillstand.
+
+### Belege und Prüfgrenzen
+
+[Manifest mit Stand und Hashes](maschinentag.r461.codex-manifest.json), [eigene kleine Proben](maschinentag.r461.codex-probes.py), [Ergebnisse](maschinentag.r461.codex-observations.json). Die Proben verwenden ausschließlich die Standardbibliothek: zwei isolierte Originalfunktionen zum Toolsetter, den Original-Zeilenparser, ein Modell der vorgeschlagenen Dateileseregel und analytische Gegenfälle. Alle darin enthaltenen Assertions bestanden. F6 ist noch nicht implementiert; seine Abläufe sind Plan-/Codeanalyse, kein behaupteter Browserfehler eines neuen Builds. Die Kontrollflussfälle wurden anhand des verlinkten LinuxCNC-Vertrags geprüft, nicht nativ ausgeführt.
+
+Kein Build, kein Gate, kein nativer Maschinenlauf, keine Verbindung zur Live-Sim und kein Produktedit. Im Live-Baum nur dieser Anhang und die neuen R461-Codex-Belege. Keine neue Operatorfrage.

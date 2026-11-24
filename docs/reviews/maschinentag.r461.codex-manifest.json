@@ -1,0 +1,45 @@
+{
+  "review": "R461",
+  "commit": "6c78780c3c2eba279356fb47662695f270b6bd61",
+  "source": "git archive into /tmp/r461/tree; no checkout in live tree",
+  "plan_inputs": {
+    "docs/reviews/maschinentag.r461.p6-plan-v3-cde.md": "6e3ade2db1d43c8949c2b640932b6a8e21fdb8f050714db4c0f9b8e645e4b72a",
+    "docs/reviews/maschinentag.r461.p6d-step0-6c78780c.json": "00f90f4a3d569c2eb9924168e89c0b7a9d6aef9c989c7390228313485bf75b1e",
+    "docs/reviews/maschinentag.r461.p6-native-6c78780c.json": "6a3ab7a103d409c9552b1783a8d65aed907567dd956637ad0e25dbcf95d2819c"
+  },
+  "code_read": {
+    "lcnc-gateway/gateway.py": "1a81809becac7522f37b58ed790b613d8923e32b751e260f3f200e52c48cd10f",
+    "lcnc-gateway/bulk_pipeline.py": "eb0391492e4dca416b11fc0983c83140fdf3c5b1d1b13f897fa7e4b215217b69",
+    "lcnc-gateway/tool_table.py": "773aa78e5faa80aef65cbca9ce4021e65683eaceaeb6d1e1c7b950a6bf1e7c39",
+    "lcnc-webui/src/ThreeViewer.vue": "d146d54d58b448221bac17307625a58ec46df63bae4cb81e01650bab673299b9",
+    "lcnc-webui/src/runBasis.ts": "800c00f2b2f9b1556dff974fcc5c0a65eefc6a1b1e99937c88d1491bb660504c",
+    "lcnc-webui/src/viewer/checkBasis.ts": "f6500bbb3f90a5f5e97583ce5200343a204fc66ded713a41381f3b70815b156f",
+    "lcnc-webui/src/viewer/checkContext.ts": "b494255ddebbb0d78819d5053d6dea6b0668b63d74e794b3c0009faf34dc25ed",
+    "lcnc-webui/src/ws/bulkData.ts": "576f53bdb84992e928a7fedb3519d3568de4284453385f8daadc8d5d0989cbf3"
+  },
+  "probes": {
+    "command": "python3 -I /tmp/r461/probes.py",
+    "exit": 0,
+    "scope": "stdlib; two extracted gateway functions and actual line parser; model of proposed read rule; analytic geometry and static F6 cases",
+    "native": false,
+    "browser": false,
+    "gate": false,
+    "live_connection": false
+  },
+  "external_references": [
+    "https://linuxcnc.org/docs/2.9/html/gcode/o-code.html#_subroutines",
+    "https://linuxcnc.org/docs/2.9/html/gcode/overview.html#_block_delete"
+  ],
+  "evidence": {
+    "maschinentag.r461.codex-probes.py": "ef6c826410042bc5cdd0b237485371d05d40a9cfc4c761042662f1e363dd5ce3",
+    "maschinentag.r461.codex-observations.json": "c005fc17158abf88461320dd37b40f4fbb38bcebdc7e116058b3fbea67c61680"
+  },
+  "review_append": {
+    "file": "docs/reviews/maschinentag.review.md",
+    "starts_line": 6347,
+    "previous_bytes": 753187,
+    "previous_sha256": "241f9394d2aa6a0546f09c544cf4c163d38ad41be9546d817063e45f3d3513a5",
+    "append_sha256": "95e4e6e28d2f73c6a4b65a241ca628e3b028a2e12cfb937aab01f218198b08a6",
+    "append_only_verified": true
+  }
+}

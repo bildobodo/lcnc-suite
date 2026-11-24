@@ -1,0 +1,66 @@
+{
+  "source_commit": "6c78780c3c2eba279356fb47662695f270b6bd61",
+  "source_sha256": "1a81809becac7522f37b58ed790b613d8923e32b751e260f3f200e52c48cd10f",
+  "method": "isolated head functions + literal read-rule model + analytic counterexamples; no native/browser/gate run",
+  "toolsetter": {
+    "before_cap": "read_back",
+    "old_publication": "toolsetter",
+    "at_cap": null,
+    "current_publication_still_assumed": null
+  },
+  "coherent_read_counterexample": {
+    "rule_accepts": true,
+    "bytes": "T13 P13 D1.",
+    "actual_head_line_parser": {
+      "T": 13,
+      "P": 13,
+      "D": 1.0
+    },
+    "fd_before": [
+      77474494,
+      1795525558592627864,
+      11
+    ],
+    "fd_after": [
+      77474494,
+      1795525558592627864,
+      11
+    ],
+    "path_after": [
+      77474494,
+      1795525558592627864,
+      11
+    ],
+    "writer_has_finished": false,
+    "complete_expected": "T13 P13 D1.875 Z63.192\n"
+  },
+  "hull_guard_counterexample": {
+    "original_vertices_pass": true,
+    "edge_midpoint": [
+      4,
+      0,
+      5
+    ],
+    "edge_midpoint_inside": false,
+    "inscribed20_radius_at_edge_midangle": 0.9876883405951378,
+    "required_circle_radius": 1.0
+  },
+  "f6": {
+    "late_text_order": [
+      "preview V adopted; text V pending",
+      "check(V) captures context: no proven text, no header",
+      "check(V) finishes, card shows captured context",
+      "text V arrives; gcodeLinesBound becomes true; no new check input"
+    ],
+    "unit_counterexample": "(T13 D=6.0)\no100 sub\nG20\no100 endsub\nG0 X1\nM2\n",
+    "unit_counterexample_prestate": "metric interpreter; o100 never called",
+    "syntactic_unit_rule": "in",
+    "executed_unit_at_move": "mm",
+    "block_delete_counterexample": "(T13 D=6.0)\n/G20\nG0 X1\nM2\n",
+    "block_delete_prestate": "metric interpreter, block delete enabled",
+    "native_executed": false,
+    "tolerance_mm": 0.001,
+    "tolerance_in": 3.9370078740157485e-05,
+    "old_rounding_guard_difference_mm": 0.00127
+  }
+}
