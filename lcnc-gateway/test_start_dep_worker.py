@@ -856,10 +856,20 @@ class TestAFixtureTranslationMovesNoBelievedStart(unittest.TestCase):
     unknown starts and `start_unbound` stay — except where a program WRITES
     the fixture of its first point absolutely before it (G10 L2): that frame
     does not move, so the start in it moves by D on the written axes. Before
-    (the canon's initial `lo`) `start_believed` moved by −D in 263 cases."""
+    (the canon's initial `lo`) `start_believed` moved by −D in 390 of the 445
+    cases and otherwise in 6 more."""
 
-    # case → the written axes' expected move (+D on each axis the G10 L2 names)
-    WRITTEN = {"r133_g55_before_first": (100.0, 200.0, 0.0), "cx_g10_active": (100.0, 200.0, 0.0)}
+    # case → the written axes' expected move (+D on each axis the G10 L2 names):
+    # `G10 L2 P2 X5 Y6 Z7` / G55, an inline sub's `G10 L2 P1 X1 Y2 Z3`, a
+    # remap body's line `G10 L2 P1 X0`, Codex R457's `G10 L2 P1 X50 Y70 Z-9`
+    WRITTEN = {"r133_g55_before_first": (100.0, 200.0, 0.0), "r133_inline_explicit_write": (100.0, 200.0, 0.0),
+               "r107_body_g92_numbered_like_explicit": (100.0, 0.0, 0.0), "cx_g10_active": (100.0, 200.0, 0.0)}
+    # translation variances that are no start's (alike before and after
+    # P6-a, measured): an arc's tessellation (its segment count follows the
+    # machine-frame radius) and an absolute `G10 L2 P1 X0` after an unknown
+    # start (the moves after it change shape under D)
+    VARIES = {"e_arc_dep": {"feed_dep"}, "r108_explicit_alone": {"rapid_ustart"},
+              "r109_py_explicit_alone": {"rapid_ustart"}, "r109_py_line4_explicit_alone": {"rapid_ustart"}}
 
     def test_every_case(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -876,7 +886,7 @@ class TestAFixtureTranslationMovesNoBelievedStart(unittest.TestCase):
             if "skip" in a:
                 raise unittest.SkipTest(a["skip"])
             for f in ("parse_error", "start_unbound", "rapid_dep", "feed_dep", "rapid_ustart", "start_dep_unavailable"):
-                if a.get(f) != b.get(f):
+                if a.get(f) != b.get(f) and f not in self.VARIES.get(c, ()):
                     bad.append((c, f, a.get(f), b.get(f)))
             sa, sb = a.get("start_believed"), b.get("start_believed")
             if (sa is None) != (sb is None):

@@ -95,6 +95,9 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read('readFileSync(new URL("../../scripts/test_fixtures/start_dep_payloads/e_single.msgpack"', 2,
              ("scripts/test_fixtures/start_dep_payloads/**",))),
     _E + "reach.viewer.spec.ts": (_MODEL_JSON, Read(_MODEL_ROUTE, 1, _MODEL5)),
+    _E + "start-believed.viewer.spec.ts": (
+        Read("readFileSync(new URL(`../../scripts/test_fixtures/start_dep_payloads/", 1,
+             ("scripts/test_fixtures/start_dep_payloads/**",)),),
     _E + "simulation-off.viewer.spec.ts": (_MODEL_JSON, Read(_MODEL_ROUTE, 1, _MODEL5)),
     _E + "toolsetter.viewer.spec.ts": (_MODEL_JSON, Read(_MODEL_ROUTE, 4, _MODEL5)),
     _E + "sim-panel.viewer.spec.ts": (
@@ -159,7 +162,7 @@ FULL_ONLY = {
 # Every rendered surface: what any component change can move or recolour.
 UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons", "strip-fit")
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer", "simulation-off.viewer",
-          "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer",
+          "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer", "start-believed.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
