@@ -1,0 +1,4 @@
+codex-r465-hull: waiting for the heavy lock — round_gate round 92841e18 (pid 232005, since 2026-11-24T16:09:52)
+
+Exit 4 after 50-second lock wait: no hull performance code executed.
+The --geometry-only run contains no timings and did execute successfully.

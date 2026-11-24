@@ -1,0 +1,23 @@
+{
+  "review": "R465",
+  "independent_containment": {
+    "control": {
+      "slabs": 32,
+      "failed": 0
+    },
+    "vertices_mutant": {
+      "slabs": 32,
+      "failed": 28
+    },
+    "inscribed_mutant": {
+      "slabs": 32,
+      "failed": 32
+    }
+  },
+  "timings": [],
+  "limits": [
+    "Original scratch closedHull with only the optional union with the old pin disabled; this isolates the drawn-shape cost.",
+    "No page/worker pool or N100 measurement; synchronous CPU build in Node on this VM.",
+    "80k facets of one closed cylinder; within the importer limits. Geometry construction excluded from the timings."
+  ]
+}

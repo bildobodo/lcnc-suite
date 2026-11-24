@@ -1,0 +1,96 @@
+{
+  "review": "R465",
+  "base": "6c78780c",
+  "preemption": [
+    {
+      "registered_as_ws": false,
+      "preempted_victims": 0,
+      "wait_cancelled": false,
+      "stop_reached_lock": false
+    },
+    {
+      "registered_as_ws": true,
+      "preempted_victims": 1,
+      "wait_cancelled": true,
+      "stop_reached_lock": true
+    }
+  ],
+  "rule_R_real_checkpoints": [
+    {
+      "name": "fresh",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "io-unloaded",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "m61",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "io-loaded",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "edit-on",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "edit-loaded",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "edit-off",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "edit-estop",
+      "complete": true,
+      "proven": 52
+    },
+    {
+      "name": "end",
+      "complete": true,
+      "proven": 52
+    }
+  ],
+  "indistinguishable_partial": {
+    "bytes": "T1 P1 D6\n",
+    "complete": false,
+    "proven": [
+      1
+    ],
+    "states": [
+      "writer paused at this prefix",
+      "writer closed this incomplete file; no write active"
+    ]
+  },
+  "rounding_cut": {
+    "correct_io_token": "D+1.000001",
+    "cut": "D+1.00000",
+    "memory": 1.00000051,
+    "proven": [
+      1
+    ],
+    "complete": false
+  },
+  "hashes": {
+    "/tmp/r465/src/lcnc-gateway/gateway.py": "1a81809becac7522f37b58ed790b613d8923e32b751e260f3f200e52c48cd10f",
+    "/tmp/r465/src/lcnc-gateway/tool_table.py": "773aa78e5faa80aef65cbca9ce4021e65683eaceaeb6d1e1c7b950a6bf1e7c39",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/toolfile/run2-checkpoints.json": "3fede48a2822910c54b0b9272083c22007582317ea1f9e149ed78e2d8b899ce8",
+    "/tmp/r465/probes/rule_check.py": "faed97cfa990b9aeed226e949b2ae44093e76c6625fe1c13f81f19162cc93db8"
+  },
+  "limits": [
+    "HTTP wait is the proposed new section, modelled with Events; _preempt_inflight is original source.",
+    "No native run; stored checkpoints are reevaluated."
+  ],
+  "status": "PASS"
+}

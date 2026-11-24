@@ -1,0 +1,874 @@
+{
+  "review": "R465",
+  "base": "6c78780c3c2eba279356fb47662695f270b6bd61",
+  "scratch_head": "63fba7f5",
+  "source_hashes": {
+    "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r465.p6c-plan-v4.md": "5e61a9617473775c45b289739485c6c439ce5ae42506820b32c89f50b54ba608",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/hull/p6probe.f8hull.ts": "c03ab96df96cb3f12bb9700012342e9194bc27a64efecbd77b8616a260189bc9",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/hull/p6probe.f8hull2.test.ts": "22a76e30ef20e6957ea1d120a364f4bf65a875f546db79fa50fdc775e641b762",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/hull/f8-hull2-snap.json": "de298a4ae031f83f46d3dc099a2a8d489920652b5fbf176fc405218b07ee7bd1",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/hull/f8-counts2-snap.json": "58290def7f5a270467d310903c2b94a9c4ae47a06b937ebccb37651c6cf3116d",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/toolfile/run2-checkpoints.json": "3fede48a2822910c54b0b9272083c22007582317ea1f9e149ed78e2d8b899ce8",
+    "/home/cnc/lcnc-suite-p6f8/scratch/p6f8/toolfile/toolfile-evidence.json": "3bb3b6388dcd542aa471018b8eecd95836857d4e2c384082d28fd77c0d96636b"
+  },
+  "stored_hull_summary": {
+    "inputs": 45,
+    "allPass": true,
+    "caught": {
+      "verticesOnly": 31,
+      "inscribed": 45,
+      "noPinUnion": 26,
+      "zFromZero": 32,
+      "zToVisLen": 22
+    }
+  },
+  "stored_counts": [
+    {
+      "program": "P1 tapered relief",
+      "points": 2809,
+      "tool": "T13 tapered (D 1.875, 3.7°, R1, LCF 47, shank Ø8, OAL 100)",
+      "body": "pin",
+      "extent": {
+        "R": 0.9375,
+        "z0": 0,
+        "z1": 83.19
+      },
+      "counts": {
+        "collisions": 0,
+        "entryCollisions": 0,
+        "nearMisses": 0,
+        "possible": 0,
+        "startsIn": false
+      },
+      "by": {},
+      "result": {
+        "samples": 20264,
+        "coarsened": false,
+        "uncertified": null,
+        "truncated": null,
+        "notes": [],
+        "open": [],
+        "staticContacts": [],
+        "pairs": 8,
+        "prescreened": 0,
+        "incompleteFrom": null
+      },
+      "toolBody": {
+        "facets": 80,
+        "components": 1,
+        "insideClosed": true
+      },
+      "ms": {
+        "warm": 1092.5,
+        "repeats": [
+          1041,
+          988.5,
+          987.2
+        ],
+        "median": 988.5
+      },
+      "stableAcrossRepeats": true,
+      "gaps": 0,
+      "twinGaps": 0,
+      "stretches": {
+        "episodes": 0,
+        "touches": 0,
+        "twinEpisodes": 117,
+        "twinTouches": 117
+      }
+    },
+    {
+      "program": "P1 tapered relief",
+      "points": 2809,
+      "tool": "T13 tapered (D 1.875, 3.7°, R1, LCF 47, shank Ø8, OAL 100)",
+      "body": "closed hull (20 slabs of 5.00)",
+      "extent": {
+        "R": 4,
+        "z0": -1.220703097715159e-06,
+        "z1": 100,
+        "slabs": [
+          1.261,
+          1.584,
+          1.908,
+          2.231,
+          2.554,
+          2.878,
+          3.201,
+          3.524,
+          3.848,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "bridged": [],
+        "buildMs": 6.76
+      },
+      "counts": {
+        "collisions": 0,
+        "entryCollisions": 0,
+        "nearMisses": 3,
+        "possible": 0,
+        "startsIn": false
+      },
+      "by": {
+        "clampA×tool near feed": 2,
+        "clampA×tool near rapid": 1
+      },
+      "result": {
+        "samples": 21439,
+        "coarsened": false,
+        "uncertified": null,
+        "truncated": null,
+        "notes": [],
+        "open": [],
+        "staticContacts": [],
+        "pairs": 8,
+        "prescreened": 0,
+        "incompleteFrom": null
+      },
+      "toolBody": {
+        "facets": 800,
+        "components": 1,
+        "insideClosed": true
+      },
+      "ms": {
+        "warm": 2793.7,
+        "repeats": [
+          2744.6,
+          2725.5,
+          2832.4
+        ],
+        "median": 2744.6
+      },
+      "stableAcrossRepeats": true,
+      "gaps": 0,
+      "twinGaps": 0,
+      "stretches": {
+        "episodes": 3,
+        "touches": 0,
+        "twinEpisodes": 120,
+        "twinTouches": 117
+      }
+    },
+    {
+      "program": "P1 tapered relief",
+      "points": 2809,
+      "tool": "T13 tapered (D 1.875, 3.7°, R1, LCF 47, shank Ø8, OAL 100)",
+      "body": "drawn (reference)",
+      "extent": {
+        "R": 4,
+        "zmin": -4.798393954063419e-21,
+        "zmax": 100
+      },
+      "counts": {
+        "collisions": 0,
+        "entryCollisions": 0,
+        "nearMisses": 3,
+        "possible": 0,
+        "startsIn": false
+      },
+      "by": {
+        "clampA×tool near feed": 2,
+        "clampA×tool near rapid": 1
+      },
+      "result": {
+        "samples": 21105,
+        "coarsened": false,
+        "uncertified": null,
+        "truncated": null,
+        "notes": [],
+        "open": [],
+        "staticContacts": [],
+        "pairs": 8,
+        "prescreened": 0,
+        "incompleteFrom": null
+      },
+      "toolBody": {
+        "facets": 1440,
+        "components": 1,
+        "insideClosed": true
+      },
+      "ms": {
+        "warm": 23900.9,
+        "repeats": [],
+        "median": null
+      },
+      "stableAcrossRepeats": true,
+      "gaps": 0,
+      "twinGaps": 0,
+      "stretches": {
+        "episodes": 3,
+        "touches": 0,
+        "twinEpisodes": 120,
+        "twinTouches": 117
+      }
+    },
+    {
+      "program": "P1 tapered relief",
+      "coverage": [
+        {
+          "program": "P1 tapered relief",
+          "body": "pin",
+          "shownEpisodes": {
+            "refStretches": 3,
+            "refLen": 65.842,
+            "missed": 3,
+            "uncoveredLen": 65.8422,
+            "examples": [
+              {
+                "pair": "clampA×tool",
+                "a": 33.0205,
+                "b": 57.1241,
+                "uncovered": 24.1036
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 179.3154,
+                "b": 198.728,
+                "uncovered": 19.4126
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 243.7598,
+                "b": 266.0858,
+                "uncovered": 22.326
+              }
+            ]
+          },
+          "shownTouches": {
+            "refStretches": 0,
+            "refLen": 0,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinEpisodes": {
+            "refStretches": 120,
+            "refLen": 12776.964,
+            "missed": 3,
+            "uncoveredLen": 65.8422,
+            "examples": [
+              {
+                "pair": "clampA×tool",
+                "a": 33.0205,
+                "b": 57.1241,
+                "uncovered": 24.1036
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 179.3154,
+                "b": 198.728,
+                "uncovered": 19.4126
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 243.7598,
+                "b": 266.0858,
+                "uncovered": 22.326
+              }
+            ]
+          },
+          "twinTouches": {
+            "refStretches": 117,
+            "refLen": 12243.272,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "extraOverRef": {
+            "episodes": 0,
+            "touches": 0
+          },
+          "gaps": {
+            "body": 0,
+            "ref": 0
+          },
+          "truncated": null,
+          "refTruncated": null,
+          "open": [],
+          "refOpen": [],
+          "notes": [],
+          "refNotes": []
+        },
+        {
+          "program": "P1 tapered relief",
+          "body": "closed hull (20 slabs of 5.00)",
+          "shownEpisodes": {
+            "refStretches": 3,
+            "refLen": 65.842,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "shownTouches": {
+            "refStretches": 0,
+            "refLen": 0,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinEpisodes": {
+            "refStretches": 120,
+            "refLen": 12776.964,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinTouches": {
+            "refStretches": 117,
+            "refLen": 12243.272,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "extraOverRef": {
+            "episodes": 3.0415,
+            "touches": 0
+          },
+          "gaps": {
+            "body": 0,
+            "ref": 0
+          },
+          "truncated": null,
+          "refTruncated": null,
+          "open": [],
+          "refOpen": [],
+          "notes": [],
+          "refNotes": []
+        },
+        {
+          "program": "P1 tapered relief",
+          "body": "closed hull (20 slabs of 5.00) ⊇ pin",
+          "shownEpisodes": {
+            "refStretches": 0,
+            "refLen": 0,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "shownTouches": {
+            "refStretches": 0,
+            "refLen": 0,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinEpisodes": {
+            "refStretches": 117,
+            "refLen": 12701.959,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinTouches": {
+            "refStretches": 117,
+            "refLen": 12243.272,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          }
+        }
+      ]
+    },
+    {
+      "program": "P1 tapered relief, T13 with the old table D 8",
+      "points": 2809,
+      "tool": "T13 tapered, table D 8 (before the machine-day edit)",
+      "body": "pin",
+      "extent": {
+        "R": 4,
+        "z0": 0,
+        "z1": 83.19
+      },
+      "counts": {
+        "collisions": 6,
+        "entryCollisions": 0,
+        "nearMisses": 16,
+        "possible": 0,
+        "startsIn": false
+      },
+      "by": {
+        "clampA×tool collision feed": 3,
+        "clampA×tool collision rapid": 2,
+        "clampA×tool near rapid": 4,
+        "clampA×tool near feed": 4,
+        "clampB×tool near feed": 4,
+        "clampB×tool near rapid": 4,
+        "clampB×tool collision feed": 1
+      },
+      "result": {
+        "samples": 21598,
+        "coarsened": false,
+        "uncertified": null,
+        "truncated": null,
+        "notes": [],
+        "open": [],
+        "staticContacts": [],
+        "pairs": 8,
+        "prescreened": 0,
+        "incompleteFrom": null
+      },
+      "toolBody": {
+        "facets": 80,
+        "components": 1,
+        "insideClosed": true
+      },
+      "ms": {
+        "warm": 1142.9,
+        "repeats": [
+          1120.8,
+          1122.3,
+          1142.2
+        ],
+        "median": 1122.3
+      },
+      "stableAcrossRepeats": true,
+      "gaps": 0,
+      "twinGaps": 0,
+      "stretches": {
+        "episodes": 22,
+        "touches": 6,
+        "twinEpisodes": 139,
+        "twinTouches": 123
+      }
+    },
+    {
+      "program": "P1 tapered relief, T13 with the old table D 8",
+      "points": 2809,
+      "tool": "T13 tapered, table D 8 (before the machine-day edit)",
+      "body": "closed hull (20 slabs of 5.00)",
+      "extent": {
+        "R": 7.039353847503662,
+        "z0": -1.220703097715159e-06,
+        "z1": 100,
+        "slabs": [
+          4.323,
+          4.647,
+          4.97,
+          5.293,
+          5.617,
+          5.94,
+          6.263,
+          6.587,
+          6.91,
+          7.039,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "bridged": [],
+        "buildMs": 2.2
+      },
+      "counts": {
+        "collisions": 12,
+        "entryCollisions": 0,
+        "nearMisses": 16,
+        "possible": 0,
+        "startsIn": false
+      },
+      "by": {
+        "clampA×tool collision feed": 5,
+        "clampA×tool collision rapid": 3,
+        "clampA×tool near rapid": 4,
+        "clampA×tool near feed": 4,
+        "clampB×tool near feed": 4,
+        "clampB×tool near rapid": 4,
+        "clampB×tool collision feed": 3,
+        "clampB×tool collision rapid": 1
+      },
+      "result": {
+        "samples": 23147,
+        "coarsened": false,
+        "uncertified": null,
+        "truncated": null,
+        "notes": [],
+        "open": [],
+        "staticContacts": [],
+        "pairs": 8,
+        "prescreened": 0,
+        "incompleteFrom": null
+      },
+      "toolBody": {
+        "facets": 880,
+        "components": 1,
+        "insideClosed": true
+      },
+      "ms": {
+        "warm": 3239.4,
+        "repeats": [
+          3230.2,
+          3195.3,
+          3201.9
+        ],
+        "median": 3201.9
+      },
+      "stableAcrossRepeats": true,
+      "gaps": 0,
+      "twinGaps": 0,
+      "stretches": {
+        "episodes": 28,
+        "touches": 12,
+        "twinEpisodes": 145,
+        "twinTouches": 129
+      }
+    },
+    {
+      "program": "P1 tapered relief, T13 with the old table D 8",
+      "points": 2809,
+      "tool": "T13 tapered, table D 8 (before the machine-day edit)",
+      "body": "drawn (reference)",
+      "extent": {
+        "R": 7.039353847503662,
+        "zmin": -1.8752884612247602e-16,
+        "zmax": 100
+      },
+      "counts": {
+        "collisions": 10,
+        "entryCollisions": 0,
+        "nearMisses": 17,
+        "possible": 0,
+        "startsIn": false
+      },
+      "by": {
+        "clampA×tool collision feed": 4,
+        "clampA×tool collision rapid": 3,
+        "clampA×tool near rapid": 4,
+        "clampA×tool near feed": 5,
+        "clampB×tool near feed": 4,
+        "clampB×tool near rapid": 4,
+        "clampB×tool collision feed": 2,
+        "clampB×tool collision rapid": 1
+      },
+      "result": {
+        "samples": 22767,
+        "coarsened": false,
+        "uncertified": null,
+        "truncated": null,
+        "notes": [],
+        "open": [],
+        "staticContacts": [],
+        "pairs": 8,
+        "prescreened": 0,
+        "incompleteFrom": null
+      },
+      "toolBody": {
+        "facets": 1440,
+        "components": 1,
+        "insideClosed": true
+      },
+      "ms": {
+        "warm": 23019.4,
+        "repeats": [],
+        "median": null
+      },
+      "stableAcrossRepeats": true,
+      "gaps": 0,
+      "twinGaps": 0,
+      "stretches": {
+        "episodes": 27,
+        "touches": 10,
+        "twinEpisodes": 144,
+        "twinTouches": 127
+      }
+    },
+    {
+      "program": "P1 tapered relief, T13 with the old table D 8",
+      "coverage": [
+        {
+          "program": "P1 tapered relief, T13 with the old table D 8",
+          "body": "pin",
+          "shownEpisodes": {
+            "refStretches": 27,
+            "refLen": 736.056,
+            "missed": 27,
+            "uncoveredLen": 150.0308,
+            "examples": [
+              {
+                "pair": "clampA×tool",
+                "a": 28.9655,
+                "b": 61.0035,
+                "uncovered": 1.5353
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 174.463,
+                "b": 205.2688,
+                "uncovered": 0.6515
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 239.3819,
+                "b": 270.8378,
+                "uncovered": 1.4722
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 384.9577,
+                "b": 414.9162,
+                "uncovered": 0.3467
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 449.6792,
+                "b": 480.3815,
+                "uncovered": 1.7001
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 595.3322,
+                "b": 624.7333,
+                "uncovered": 1.0229
+              }
+            ]
+          },
+          "shownTouches": {
+            "refStretches": 10,
+            "refLen": 244.174,
+            "missed": 10,
+            "uncoveredLen": 109.178,
+            "examples": [
+              {
+                "pair": "clampA×tool",
+                "a": 31.3336,
+                "b": 58.6666,
+                "uncovered": 2.1552
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 177.0308,
+                "b": 202.803,
+                "uncovered": 1.511
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 241.7577,
+                "b": 268.2773,
+                "uncovered": 2.848
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 387.6944,
+                "b": 412.1039,
+                "uncovered": 2.5363
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 452.3947,
+                "b": 477.6998,
+                "uncovered": 5.2972
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 598.871,
+                "b": 620.4251,
+                "uncovered": 21.5541
+              }
+            ]
+          },
+          "twinEpisodes": {
+            "refStretches": 144,
+            "refLen": 13447.069,
+            "missed": 27,
+            "uncoveredLen": 150.0308,
+            "examples": [
+              {
+                "pair": "clampA×tool",
+                "a": 28.9655,
+                "b": 61.0035,
+                "uncovered": 1.5353
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 174.463,
+                "b": 205.2688,
+                "uncovered": 0.6515
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 239.3819,
+                "b": 270.8378,
+                "uncovered": 1.4722
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 384.9577,
+                "b": 414.9162,
+                "uncovered": 0.3467
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 449.6792,
+                "b": 480.3815,
+                "uncovered": 1.7001
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 595.3322,
+                "b": 624.7333,
+                "uncovered": 1.0229
+              }
+            ]
+          },
+          "twinTouches": {
+            "refStretches": 127,
+            "refLen": 12487.446,
+            "missed": 10,
+            "uncoveredLen": 109.178,
+            "examples": [
+              {
+                "pair": "clampA×tool",
+                "a": 31.3336,
+                "b": 58.6666,
+                "uncovered": 2.1552
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 177.0308,
+                "b": 202.803,
+                "uncovered": 1.511
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 241.7577,
+                "b": 268.2773,
+                "uncovered": 2.848
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 387.6944,
+                "b": 412.1039,
+                "uncovered": 2.5363
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 452.3947,
+                "b": 477.6998,
+                "uncovered": 5.2972
+              },
+              {
+                "pair": "clampA×tool",
+                "a": 598.871,
+                "b": 620.4251,
+                "uncovered": 21.5541
+              }
+            ]
+          },
+          "extraOverRef": {
+            "episodes": 0,
+            "touches": 0
+          },
+          "gaps": {
+            "body": 0,
+            "ref": 0
+          },
+          "truncated": null,
+          "refTruncated": null,
+          "open": [],
+          "refOpen": [],
+          "notes": [],
+          "refNotes": []
+        },
+        {
+          "program": "P1 tapered relief, T13 with the old table D 8",
+          "body": "closed hull (20 slabs of 5.00)",
+          "shownEpisodes": {
+            "refStretches": 27,
+            "refLen": 736.056,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "shownTouches": {
+            "refStretches": 10,
+            "refLen": 244.174,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinEpisodes": {
+            "refStretches": 144,
+            "refLen": 13447.069,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinTouches": {
+            "refStretches": 127,
+            "refLen": 12487.446,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "extraOverRef": {
+            "episodes": 43.5862,
+            "touches": 50.9011
+          },
+          "gaps": {
+            "body": 0,
+            "ref": 0
+          },
+          "truncated": null,
+          "refTruncated": null,
+          "open": [],
+          "refOpen": [],
+          "notes": [],
+          "refNotes": []
+        },
+        {
+          "program": "P1 tapered relief, T13 with the old table D 8",
+          "body": "closed hull (20 slabs of 5.00) ⊇ pin",
+          "shownEpisodes": {
+            "refStretches": 22,
+            "refLen": 575.025,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "shownTouches": {
+            "refStretches": 6,
+            "refLen": 134.972,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinEpisodes": {
+            "refStretches": 139,
+            "refLen": 13276.871,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          },
+          "twinTouches": {
+            "refStretches": 123,
+            "refLen": 12378.244,
+            "missed": 0,
+            "uncoveredLen": 0,
+            "examples": []
+          }
+        }
+      ]
+    }
+  ],
+  "performance_probe": {
+    "status": "NOT RUN",
+    "reason": "shared heavy lock held by round_gate round 92841e18",
+    "exit": 4,
+    "wait_s": 50
+  },
+  "isolation": "Original gateway function by AST, rule-R and geometry helper copies in /tmp; no gateway import, live access, product edit, or full test suite."
+}
