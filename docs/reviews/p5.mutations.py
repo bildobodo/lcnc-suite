@@ -17,7 +17,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 # binaries directly, npm with its own cache
 BIN = ROOT / "lcnc-webui/node_modules/.bin"
 CACHE = pathlib.Path.home() / "claude-work/p5/npm-cache"
-ENV = {**os.environ, "npm_config_cache": str(CACHE), "npm_config_logs_dir": str(CACHE / "_logs"),
+ENV = {**os.environ, "PATH": f"{BIN}:{os.environ['PATH']}", "npm_config_cache": str(CACHE), "npm_config_logs_dir": str(CACHE / "_logs"),
        "npm_config_update_notifier": "false"}
 G, W, S, N = "lcnc-gateway/", "lcnc-webui/", "lcnc-webui/src/", "subroutines/probe_basic/"
 
@@ -289,7 +289,7 @@ def run_guard(kind, args):
         return r.returncode != 0, r.stdout + r.stderr, args[1]
     if kind == "pw":
         r = subprocess.run([str(BIN / "playwright"), "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
-                           cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=1800)
+                           cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=1800, env=ENV)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     raise SystemExit(f"unknown guard kind {kind}")
 
