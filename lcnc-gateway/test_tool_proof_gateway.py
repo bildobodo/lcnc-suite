@@ -292,9 +292,9 @@ class TestThePostWriteWait(_Tools):
         with patch.object(gateway, "_stat_tool_table", stat_table), \
                 patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.001):
             r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
-        self.assertEqual((r["ok"], r["reload"]), (True, "confirmed"), r)
         self.assertGreaterEqual(polls.count(False), 3,
                                 "the reply waited for LinuxCNC with _cmd_lock FREE (the wait is outside it)")
+        self.assertEqual((r["ok"], r["reload"]), (True, "confirmed"), r)
         self.assertEqual(self.io.loads, 1)
         self.assertEqual(gateway._tool_table_version - v0, 1, "ONE ping, at the job's end")
         self.assertEqual(self.read()["proof"]["attempts"], 1, "the read after an edit is complete at once")
@@ -399,10 +399,16 @@ class TestTheWaitIsNotInAStopsWay(_Tools):
             self.addCleanup(p.stop)
 
     async def until_waiting(self, seq0):
+        """The write booked its job (its section wrote the table and sent the
+        reload); then up to 0.5 s for its section to end — the lock's state
+        after that is the test's to judge."""
         t0 = time.monotonic()
-        while gateway._tool_write_seq == seq0 or gateway._get_cmd_lock().locked():
+        while gateway._tool_write_seq == seq0:
             if time.monotonic() - t0 > 5:
-                raise AssertionError("the write never reached its wait")
+                raise AssertionError("the write never booked its job")
+            await asyncio.sleep(0.001)
+        t0 = time.monotonic()
+        while gateway._get_cmd_lock().locked() and time.monotonic() - t0 < 0.5:
             await asyncio.sleep(0.001)
 
     async def stop_from_the_other_client(self, by):
@@ -430,8 +436,13 @@ class TestTheWaitIsNotInAStopsWay(_Tools):
             job = next(iter(t for t in gateway._bg_tasks if not t.done() and
                             getattr(t.get_coro(), "__name__", "") == "_confirm_tool_write"))
             lock_free = not gateway._get_cmd_lock().locked()
+            self.assertTrue(lock_free, "the wait holds no _cmd_lock")
             victims, stop_reply, stop_s = await self.stop_from_the_other_client(by)
-            await task
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            self.assertFalse(task.cancelled(), "a committed write answers ok — never 'Preempted'")
             still_waiting = not job.done()
             v_before = gateway._tool_table_version
             self.io.show()                         # LinuxCNC loads it now: the job confirms and pings
@@ -466,6 +477,7 @@ class TestTheWaitIsNotInAStopsWay(_Tools):
                 UploadFile(file=io.BytesIO(raw), filename="tools.json"), x_conn_key=self.writer.conn_key))
             await self.until_waiting(seq0)
             lock_free = not gateway._get_cmd_lock().locked()
+            self.assertTrue(lock_free, "the import's wait holds no _cmd_lock")
             victims, stop_reply, stop_s = await self.stop_from_the_other_client(by)
             waiting = not req.done()
             self.io.show()
@@ -503,10 +515,10 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
                                     "expected": s.expect(1)},
     }
 
-    def refused(self, msg, why):
+    def refused(self, msg, why, what="refused"):
         before, lib = self.table.read_bytes(), self.library()
         r = self.send(msg)
-        self.assertEqual((r["ok"], r["error"]), (False, why), r)
+        self.assertEqual((r["ok"], r.get("error")), (False, why), f"{what}: {r}")
         self.assertEqual(self.table.read_bytes(), before, "nothing written")
         self.assertEqual(self.io.loads, 0, "no reload — never a repair by load_tool_table")
         self.assertEqual(self.library(), lib)
@@ -520,6 +532,11 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
                 self.refused(make(self), tool_proof.EDIT_NOT_CONFIRMED)
 
     def test_the_basis_changed_in_the_write_thread_is_refused_there(self):
+        # io between the edit's basis read and its write, at the moment only
+        # rule R sees: its memory already holds T3's new length (tooldata_put),
+        # the file not yet truncated — the file still EQUALS the edit's base,
+        # so the base compare passes; a rewrite would put T3's old length back
+        # and the reload would make LinuxCNC forget the new one
         for cmd, make in self.EDITS.items():
             with self.subTest(cmd):
                 self.table.write_text(TABLE)
@@ -528,18 +545,36 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
                 real = gateway._write_admission_refusal
 
                 def admit(*a, **k):
-                    # io between the basis read and the write: memory first,
-                    # the file truncated to a prefix (its save paused)
                     current().stat.tool_table = loaded_table(TABLE.replace("Z22 D4", "Z21 D4"))
-                    with open(self.table, "r+b") as f:
-                        f.truncate(len(TABLE.split("T3")[0]))
                     return real(*a, **k)
                 before_lib = self.library()
                 with patch.object(gateway, "_write_admission_refusal", admit):
                     r = self.send(msg)
-                self.assertEqual((r["ok"], r["error"]), (False, tool_proof.EDIT_NOT_CONFIRMED), r)
-                self.assertEqual(self.table.read_text(), TABLE.split("T3")[0], "nothing written")
+                self.assertEqual((r["ok"], r.get("error")), (False, tool_proof.EDIT_NOT_CONFIRMED),
+                                 f"old file, new memory: refused in the write thread — {r}")
+                self.assertEqual(self.table.read_text(), TABLE, "nothing written")
                 self.assertEqual((self.io.loads, self.library()), (0, before_lib))
+
+    def test_a_paused_save_in_the_write_thread_writes_nothing(self):
+        # the save already truncated the file to a clean prefix: refused too
+        # (here the base compare would see it as well)
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                self.table.write_text(TABLE)
+                load_into(current().stat, self.table)
+                msg = make(self)
+                real = gateway._write_admission_refusal
+
+                def admit(*a, **k):
+                    current().stat.tool_table = loaded_table(TABLE.replace("Z22 D4", "Z21 D4"))
+                    with open(self.table, "r+b") as f:
+                        f.truncate(len(TABLE.split("T3")[0]))
+                    return real(*a, **k)
+                with patch.object(gateway, "_write_admission_refusal", admit):
+                    r = self.send(msg)
+                self.assertFalse(r["ok"], r)
+                self.assertEqual(self.table.read_text(), TABLE.split("T3")[0], "nothing written")
+                self.assertEqual(self.io.loads, 0)
 
     def test_an_early_check_alone_is_not_the_admission(self):
         # the basis read admitted, the write thread's re-read refused: the
@@ -553,7 +588,8 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
                 current().stat.tool_table = table_of([entry(1, Z=1)])
             return real(path)
         with patch.object(gateway, "_tool_edit_basis", basis):
-            self.refused(self.EDITS["save_tool"](self), tool_proof.EDIT_NOT_CONFIRMED)
+            self.refused(self.EDITS["save_tool"](self), tool_proof.EDIT_NOT_CONFIRMED,
+                         "the write thread's own admission")
         self.assertEqual(len(calls), 2, "the basis read AND the write thread's")
 
     def test_an_add_or_delete_compares_its_base_in_the_write_thread(self):

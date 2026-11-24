@@ -97,13 +97,14 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
   await serve({ ok: true, tools: [], proof: { ...PROOF, state: "partial", missing: [5], why: "file incomplete or differs from LinuxCNC" } });
   await expect(empty, "a partial read without rows is not 'No tools'").toHaveText("Tool table not confirmed.");
 
+  await serve({ ok: true, tools: [], proof: { ...PROOF, state: "unchecked", why: "controller not read" } });
+  await expect(empty).toHaveText("Tool table not checked.");
+
   await serve({ ok: true, tools: [TOOL], proof: { ...PROOF, state: "unchecked", why: "random tool changer" } });
   await expect(state).toContainText("Not checked against LinuxCNC — random tool changer.");
   await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();
 
-  await serve({ ok: true, tools: [], proof: { ...PROOF, state: "unchecked", why: "controller not read" } });
-  await expect(empty).toHaveText("Tool table not checked.");
-
+  // a failed read right after a read WITH rows: the rows go, the table is not "empty"
   await serve({ ok: false, error: "Tool library not JSON (line 1) — check tool_library.json" });
   await expect(tab.getByRole("alert").filter({ hasText: "Tool library not JSON" })).toBeVisible();
   await expect(empty, "a failed read shows no rows, never an empty table").toHaveText("Tool table not read.");
