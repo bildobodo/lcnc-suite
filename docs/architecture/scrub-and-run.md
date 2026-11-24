@@ -919,7 +919,50 @@ worker ships per stream a PREFIX of masks, time bases (1 rapid, 2 G94 at F, 3
 a feed it cannot time) and F (`*_dep`, `*_dep_basis`, `*_dep_f`), anchors RDP
 at every change, gives dependent axes no limit verdict (NaN), and ships
 `start_believed` (the first point's epoch, shifted with the tool basis like a
-point before the first TLO row — verify and `normalizeToToolBasis`); a first
+point before the first TLO row — verify and `normalizeToToolBasis`).
+**The believed start** (P6-a, machine-day F9, plan
+`docs/reviews/maschinentag.r457.p6a-plan-v3.md`, Codex R456/R457, rule 1) is
+the interpreter's position `current_*` READ IN THE CALLBACK THAT RECORDS THE
+PROGRAM'S FIRST POINT (`gcode_canon._start_read`): at a motion callback every
+converter of the blocks before has returned (frame, unit, offset — the
+interpreter's re-expression AND the canon's applied offsets) and the
+interpreter has not yet written the move's end (interp_convert.cc
+convert_straight 4835 → 4838), so it is what the point's unaddressed axes are
+made of — also after the offline resync an M6 / M61 / G10 L0 / probe makes
+(`refresh_actual_position`: gcodemodule's last endpoint, zero before any).
+Divided into the canon's inch as gcodemodule divides a coordinate (mm only,
+`USE_LENGTH_UNITS`), through the canon's own `rotate_and_translate` (the
+point's epoch), re-based from the tool offset in effect to the one at the
+program's begin (`_start_tlo`, `startTlo` in `buildEntryTrack`). Read at the
+top of each motion entry gcodemodule calls (`straight_traverse`,
+`straight_feed` = `straight_probe`, `rigid_tap` after `_enter`; `arc_feed`
+after `_ensure_reads` + `_phase`, before its segment count reads `lo`) while
+no point is recorded; the read lives only while its callback runs
+(`_start_proof`, cleared in `finally`) and only `_next_seq` at the first point
+turns it into `start_lo` — no read there (the cutter-compensation queue:
+`cutter_comp_side` and radius > 0, the callback runs inside a later block; no
+interpreter words; a unit gcodemodule does not convert, CM; a non-finite
+value; a recorder no handler covers) is no `start_believed` and
+`start_unbound` X, Y, Z — never a guess, never the canon's `lo`. Never the
+canon's initial `lo` (machine zero, not program zero: the whole active fixture
+off on every config without the rotary sync initcode — the machine day's
+`G53 G0 Z0` entry ran to 2 × G54 diagonally, 13.555 s instead of 5.4515 s) and
+never a read at the program's begin (there the interpreter may already be in a
+frame the canon has not been told, R456 MT456-01, or its position still be
+reset before the first motion). `lo` itself is not seeded. OPEN (own
+package, with a visible-layer proof): F9-L — the canon's `lo` before point 0
+is still machine zero, so an UNKNOWN first point (a tool change at a
+TOOL_CHANGE_POSITION, a turned frame) starts its block at machine 0 and an
+axis that block never commands counts as known at its end; F9-R — a resync
+AFTER the first point (a frame, offset or unit change since the last motion,
+then M6 / M61 / G10 L0 / probe; `T1 M6 G43 H1` in one block) moves the
+interpreter where the canon's `lo` is not; the comp queue beyond point 0
+(`_dep_step` reads the later block's words). Guards: `test_start_dep_worker.py`
+(`TestTheReadBelongsToTheFirstPoint`, `TestTheBelievedStartUnderFixtures`,
+the metamorphic `TestAFixtureTranslationMovesNoBelievedStart`), the native
+payloads under non-zero fixtures in `startDepPayloads.test.ts` (live at the
+believed start AND away from it), `e2e/start-believed.viewer.spec.ts` (the
+scene's tool tip at the entry's end), `docs/reviews/p6a.mutations.py`. A first
 G1 is a zero-length endpoint with its feed basis like a first G0 — kept by the
 track with no mask after it too (VP-I85). Client: the
 BASE track breaks the segments into points 1..K (K = after the last mask; no
