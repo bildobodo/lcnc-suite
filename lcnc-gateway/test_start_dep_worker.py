@@ -13,12 +13,14 @@ from the position or written from it while an axis depends on the start or is
 unknown is the preview's guess: every axis unknown to the end."""
 import ast
 import hashlib
+import importlib.util
 import json
 import math
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import types
 import unittest
 from unittest import mock
@@ -834,6 +836,84 @@ class TestTheBelievedStartUnderFixtures(unittest.TestCase):
                         ("f9_g53z_rotary", [0.0, 0.0, 0.0]), ("g43_start_g55_rot", [-200.0, -200.0, 20.0]),
                         ("g28_first_g55_rot", _G55), ("e_g53_rdp", [0.0, 0.0, 0.0])):
             self.believed(c, want)
+
+
+# The payloads P6-a added (scripts/test_fixtures/start_dep_payloads/): the
+# client's startDepPayloads.test.ts and the page's start-believed.viewer.spec
+# take them through the decode, the entry track and the scene — they prove
+# only what the worker under test writes.
+BELIEVED_START_PAYLOADS = ("g55_first", "g55_first_rot", "mday_head", "m6_after_g55", "m6_after_g55_rot",
+                           "m6_first_g43_zero", "inch_g43_g55", "g20_g55", "g43_line_then_x", "g43h_g55_move",
+                           "py_motion_first_bound", "comp_first_g55", "comp_next_xyz_g55")
+_PAYLOADS = ROOT / "scripts" / "test_fixtures" / "start_dep_payloads"
+
+
+def _generator():
+    """scripts/gen_start_dep_payloads.py, loaded from its file: its own
+    `write_payload` writes each case here — the step that made the committed
+    payloads, never a second route that could drift from it."""
+    spec = importlib.util.spec_from_file_location("gen_start_dep_payloads", ROOT / "scripts" / "gen_start_dep_payloads.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _payload_difference(committed, fresh):
+    """The top-level fields two encoded payloads differ in, each with both
+    values (a buffer by its length), the believed start first: what the stale
+    fixture would still claim."""
+    import msgspec
+    a, b = msgspec.msgpack.decode(committed), msgspec.msgpack.decode(fresh)
+
+    def show(v):
+        return f"<{len(v)} bytes>" if isinstance(v, bytes) else repr(v)[:120]
+    keys = sorted(set(a) | set(b), key=lambda k: (k != "start_believed", k))
+    diff = [f"{k}: {show(a.get(k))} -> {show(b.get(k))}" for k in keys if a.get(k) != b.get(k)]
+    return "; ".join(diff) or "the same fields, encoded differently"
+
+
+class TestTheBelievedStartPayloadsAreFresh(unittest.TestCase):
+    """The 13 payloads P6-a added, regenerated from the CURRENT worker and
+    compared with the committed bytes (Codex R459: "aus dem jeweils geprüften
+    Worker erzeugen und vergleichen"). A change of what the parse writes —
+    the believed start's generation in gcode_canon.py, the worker, a case's
+    data in native_start_probe.py — fails here until the payloads are
+    regenerated (scripts/gen_start_dep_payloads.py) and the diff reviewed;
+    before, the client and page guards kept passing on the old bytes.
+
+    Bytes, not a digest of the decoded payload: the encoding has nothing that
+    varies between runs (no time, no path — the probe's temporary directory
+    never reaches it, `file` is fixed; Codex R459 regenerated these 13
+    byte-equal in another tree, and 38 of the 39 committed payloads are
+    byte-equal at P6-a's head), and bytes are what the client guards read.
+    The fixtures were written on the VM (aarch64); another architecture's
+    native interpreter may round a last bit differently and fail here — that
+    is a real difference of the payload, not a stale fixture, to be read from
+    the named fields.
+
+    Out of scope: `e_m600_return.msgpack`, older than P6-a, differs from what
+    its case writes today — a known data remnant (Codex R459), not this
+    package's; the other 25 older payloads are not guarded here."""
+
+    def test_each_payload_is_what_the_worker_under_test_writes(self):
+        gen = _generator()
+        self.assertEqual([c for c in BELIEVED_START_PAYLOADS if c not in gen.CASES], [],
+                         "a guarded payload the generator no longer writes")
+        stale = []
+        with tempfile.TemporaryDirectory(prefix="start-dep-fresh-") as tmp:
+            for case in BELIEVED_START_PAYLOADS:
+                dest = Path(tmp) / f"{case}.msgpack"
+                result = gen.write_payload(case, dest)    # a failed run raises: no payload is never "fresh"
+                if "skip" in result:
+                    raise unittest.SkipTest(result["skip"])
+                committed, fresh = (_PAYLOADS / f"{case}.msgpack").read_bytes(), dest.read_bytes()
+                if committed != fresh:
+                    stale.append(f"{case}: {_payload_difference(committed, fresh)}")
+        if stale:
+            self.fail(f"{len(stale)} of {len(BELIEVED_START_PAYLOADS)} committed payloads are not what this worker "
+                      "writes — regenerate (scripts/gen_start_dep_payloads.py) and review the diff:\n"
+                      + "\n".join(stale))
 
 
 def _shifted(case):

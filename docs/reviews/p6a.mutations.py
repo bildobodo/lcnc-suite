@@ -14,6 +14,11 @@ under the heavy lock (the page is rebuilt from the restored tree afterwards).
 M1 is 4eda3892's rule exactly (`start_lo` = the canon's `lo` at the program's
 begin): its red guards are the red-at-the-base proof.
 
+M14–M15 (Codex R459, the freshness guard): a changed start value generation
+with the committed payloads LEFT AS THEY ARE — only the pytest guard runs, no
+fixture is regenerated — must make
+TestTheBelievedStartPayloadsAreFresh red (M14 = M3's change, M15 = M1's).
+
   python3 -I docs/reviews/p6a.mutations.py [name ...]
 """
 import json
@@ -26,6 +31,7 @@ CANON = "lcnc-gateway/gcode_canon.py"
 FIX = ROOT / "scripts/test_fixtures/start_dep_payloads"
 NAT = "test_start_dep_worker.py::TestTheBelievedStartUnderFixtures::"
 UNIT = "test_start_dep_worker.py::TestTheReadBelongsToTheFirstPoint::"
+FRESH = "test_start_dep_worker.py::TestTheBelievedStartPayloadsAreFresh::"
 VT = "src/viewer/startDepPayloads.test.ts"
 
 
@@ -156,6 +162,17 @@ MUTS = {
         "                pass\n")],
         [py(UNIT + "test_the_first_point_s_own_callback_reads", "feed: no believed start"),
          py(NAT + "test_a_frame_change_before_the_first_motion", "cx_feed_g55")]),
+    # M14: M3's change (no re-base to the begin's tool offset), the payloads
+    # not regenerated: the freshness guard names the stale believed start
+    "m14_stale_payloads_no_rebase": (CANON, [(REBASE, "        return (lx, ly, lz)\n")],
+        [py(FRESH + "test_each_payload_is_what_the_worker_under_test_writes",
+            "g43_line_then_x: start_believed: [0.0, 0.0, 0.0] -> ")]),
+    # M15: M1's change (4eda3892's rule), the payloads not regenerated
+    "m15_stale_payloads_base_rule": (CANON, [
+        (TAKE, TAKE_OLD),
+        (BEGIN, BEGIN + "            self.start_lo = tuple(float(v) for v in self.lo)\n")],
+        [py(FRESH + "test_each_payload_is_what_the_worker_under_test_writes",
+            "mday_head: start_believed: [0.0, 0.0, 0.0] -> ")]),
 }
 
 

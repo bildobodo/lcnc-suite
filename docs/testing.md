@@ -1009,7 +1009,13 @@ day's G54, an inch machine, a turned G54 with a stored G92) and rotary twins
 (`_rot`). `scripts/gen_start_dep_payloads.py` writes their payloads for
 `startDepPayloads.test.ts` (the first endpoint in machine joints at the
 believed start AND away from it) and `e2e/start-believed.viewer.spec.ts` (the
-scene's tool tip at the entry move's end). The parity corpora offline, before
+scene's tool tip at the entry move's end);
+`test_start_dep_worker.TestTheBelievedStartPayloadsAreFresh` writes P6-a's 13
+of them again through the generator's own `write_payload` and compares the
+bytes with the committed files (~1 s; Codex R459) — a change of what the parse
+writes fails there until the payloads are regenerated and the diff reviewed.
+The older `e_m600_return.msgpack` is a known stale remnant, outside that
+guard. The parity corpora offline, before
 and after a change: `docs/reviews/p6a.parity.py run <tree> <out>` /
 `compare` (the profile's own INI, synthetic STAT — no live gate).
 

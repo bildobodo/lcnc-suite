@@ -10,7 +10,13 @@ the sweep: the program's beginning bound to a start
 (docs/reviews/parity-ef.plan.md E, E10 Nr. 15/16/18).
 
     lcnc-gateway/.venv/bin/python scripts/gen_start_dep_payloads.py
+
+lcnc-gateway/test_start_dep_worker.py (TestTheBelievedStartPayloadsAreFresh)
+writes the P6-a cases through `write_payload` from the worker under test and
+compares them with the committed bytes (Codex R459): a change of the parse's
+output fails there until the payloads are regenerated here.
 """
+import json
 import os
 import subprocess
 import sys
@@ -33,16 +39,34 @@ CASES = ("e_g53_rdp", "e_single", "e_g91", "e_g43_fixture", "e_time_a", "e_time_
          "comp_first_g55", "comp_next_xyz_g55")
 
 
-def main():
-    OUT.mkdir(parents=True, exist_ok=True)
+def write_payload(case, dest):
+    """`case`'s payload as the worker of THIS tree writes it, into `dest`:
+    native_start_probe.py in a fresh process (the interpreter keeps state
+    between parses in one). Returns the probe's result line — {"skip": reason}
+    without LinuxCNC's native modules; a failed run or no payload raises."""
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
+    p = subprocess.run([sys.executable, str(GATEWAY / "native_start_probe.py"), case, str(dest)],
+                       capture_output=True, text=True, cwd=GATEWAY, env=env, timeout=120)
+    lines = [ln for ln in p.stdout.splitlines() if ln.startswith("{")]
+    if p.returncode != 0 or not lines:
+        raise RuntimeError(f"{case}: rc={p.returncode} {p.stdout[-300:]} {p.stderr[-600:]}")
+    result = json.loads(lines[-1])
+    if "skip" not in result and not Path(dest).exists():
+        raise RuntimeError(f"{case}: no payload written")
+    return result
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
     for case in CASES:
         dest = OUT / f"{case}.msgpack"
-        p = subprocess.run([sys.executable, str(GATEWAY / "native_start_probe.py"), case, str(dest)],
-                           capture_output=True, text=True, cwd=GATEWAY, env=env, timeout=120)
-        if p.returncode != 0 or not dest.exists() or '"skip"' in p.stdout:
-            sys.exit(f"{case}: rc={p.returncode} {p.stdout[-300:]} {p.stderr[-600:]}")
+        try:
+            result = write_payload(case, dest)
+        except RuntimeError as e:
+            sys.exit(str(e))
+        if "skip" in result:
+            sys.exit(f"{case}: {result['skip']}")
         print(f"{case}: {dest.stat().st_size} bytes")
 
 

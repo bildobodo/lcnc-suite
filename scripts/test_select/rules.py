@@ -362,6 +362,11 @@ RULES: tuple[Rule, ...] = (
     Rule(("lcnc-gateway/gcode_*.py", "lcnc-gateway/bulk_pipeline.py", "lcnc-gateway/calc_lifetime.py",
           "lcnc-gateway/native_*_probe.py"),
          "the parse and its native parity", live=("live-twp",)),
+    Rule(("lcnc-gateway/gcode_*.py", "lcnc-gateway/native_start_probe.py", "scripts/gen_start_dep_payloads.py",
+          "scripts/test_fixtures/start_dep_payloads/**"),
+         "what the parse writes and the committed payloads the client and page guards read: the backend's "
+         "freshness guard writes P6-a's again from the worker under test and compares the bytes "
+         "(test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)", backend=True),
     Rule(("lcnc-gateway/macro_files.py",), "macro files", live=("macro-live",)),
     Rule(("examples/**",), "the shipped examples: backend, models, var files",
          backend=True),
