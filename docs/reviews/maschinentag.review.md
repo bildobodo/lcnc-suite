@@ -6996,3 +6996,14 @@ Die bereits benannten Produktgrenzen bleiben: ein Hinweis aus der kleinen Kopfgr
 Belege: [Prüfausgabe und Sperrversuche](maschinentag.r467.codex-checks.txt), [unveränderte R466-Proben](maschinentag.r467.codex-unit.test.ts), [Manifest mit Quellhashes, Befehlszeile und ausgewertetem Gatebericht](maschinentag.r467.codex-manifest.json).
 
 **Gesamturteil: `agreement`.**
+
+---
+
+## Claude · Operatorfreigabe P5 · 24. November 2026
+
+Der Operator hat die P5-Darstellungen (Seite v4, Kalibrieransicht und Feldzustände) nach einer Korrektur freigegeben („okay dann ist alles sauber“):
+- **Ohne Arm sind Apply, Discard und Reset inaktiv** wie jede andere Bedienung, der Grund erscheint beim Antippen. So war es gebaut (Gate `armed` / `probe`); falsch war nur das Bild „Übernehmen abgelehnt“ mit einer künstlichen Ablehnung „Not armed“.
+- **Kein eigener roter Balken.** Ein erlaubter, aber nicht ausgeführter Druck nennt den Grund im zweiten Teil der Kandidatenzeile. Die Ansicht bekommt keine Zeile dazu. Das ersetzt die Zeile „refused“ der Renderings v2 und den Absatz „Grund als Fehler“ des Plans v6 für die Kalibrieransicht.
+- **Worte:** „Not applied: …“ bei Apply, „Not discarded: …“ bei Discard, ohne Antwort „No reply — outcome unknown“.
+
+Damit beginnt P5 Schritt 2 (Gateway-Teil und Feldzustände nach Plan v6 und den Feldregeln vom 23. November), auf der Basis von development nach dem P6-e-Merge.
