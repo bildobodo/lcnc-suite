@@ -102,9 +102,16 @@ test("sliding off, a scroll-cancel and a hidden page cancel the hold; the next h
     await touch(cdp, "touchStart", [p]);
     await page.clock.runFor(150);
     await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, zero: false }, permission_reasons: { zero: "Machine off" } } });
-    // the status applies in an animation frame (statusStore) — on this clock too
-    await expect.poll(async () => { await page.clock.runFor(20); return page.locator("[data-btn-hint]").textContent(); })
-      .toBe("Unavailable — Machine off");
+    // the status applies in an animation frame (statusStore) — on this clock too.
+    // The read must not WAIT for the hint: a locator read waits for its
+    // element, and while it waits nothing advances the page clock — a status
+    // that reached the page after the first step never got its frame (merge
+    // gate 2026-11-24, 1 of 1073 under load). Each poll steps the clock, then
+    // reads what is there.
+    await expect.poll(async () => {
+      await page.clock.runFor(20);
+      return page.evaluate(() => document.querySelector("[data-btn-hint]")?.textContent ?? null);
+    }).toBe("Unavailable — Machine off");
     await page.clock.runFor(500);
     await touch(cdp, "touchEnd", []);
   });

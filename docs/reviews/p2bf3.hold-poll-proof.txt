@@ -1,0 +1,9 @@
+touch-hold.spec "sliding off …": merge gate run 1 at 79d8227f failed 1 of 1073 (p2bf3.gate-merge-run1.json):
+expect.poll timed out on "Unavailable — Machine off" while the page snapshot showed that hint.
+Cause: the poll read the hint with locator.textContent(), which WAITS for its element; while it waits nothing
+advances the page clock (holdClock), so a status frame that reached the page after the poll's first
+runFor(20) never got its animation frame. Fix: step the clock, then read without waiting (page.evaluate).
+Proof (2026-11-24, heavy lock, Chromium, playwright.config.ts, -g "sliding off"), the status_delta sent 300 ms late:
+  old read + late frame : 1 failed   (the gate's failure reproduced)
+  new read + late frame : 1 passed
+  new read, as committed: 8/8 passed (--repeat-each=8)
