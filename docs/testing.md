@@ -996,6 +996,23 @@ the same blind spot). Pass `{ ...track, wcs: track.wcsEpoch }` with the
 `epochTerms` from `epochTermsFor`, and keep an obstacle on the rotated path
 as the control that goes red without them.
 
+## The believed start under fixtures that are not zero (P6-a)
+
+`lcnc-gateway/native_start_probe.py` runs ONE case per process against the
+real worker and LinuxCNC's offline interpreter (synthetic STAT). `--list`
+prints every case's name; `START_PROBE_SHIFT=dx,dy,dz` moves every fixture
+row G54…G59.3 by the same D (the metamorphic run,
+`test_start_dep_worker.TestAFixtureTranslationMovesNoBelievedStart`, every
+case twice, ~15 s on 4 threads). The cases from `plain` on carry fixtures
+that are not zero (Codex's G54 100 200 −30 / G55 300 400 −60, the machine
+day's G54, an inch machine, a turned G54 with a stored G92) and rotary twins
+(`_rot`). `scripts/gen_start_dep_payloads.py` writes their payloads for
+`startDepPayloads.test.ts` (the first endpoint in machine joints at the
+believed start AND away from it) and `e2e/start-believed.viewer.spec.ts` (the
+scene's tool tip at the entry move's end). The parity corpora offline, before
+and after a change: `docs/reviews/p6a.parity.py run <tree> <out>` /
+`compare` (the profile's own INI, synthetic STAT — no live gate).
+
 ## Live TWP setup
 
 Use **6 Axis TWP XYZABC**, the 45-degree gantry installed by the suite.

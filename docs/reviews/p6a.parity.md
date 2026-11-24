@@ -43,7 +43,11 @@ G49, Z + 200. That is the position the first point is made of (the plan's
 Before, the rotary sync's `lo` (the init-end position) stood there. **Nothing
 visible changes**: no axis depends on the start at the first point (all three
 commanded), so no point is shifted by Δ and no beginning is bound; every
-other field is byte-identical. This is the F9-R0 shape of the plan's triage
+other field is byte-identical. The client reads the value only behind a
+dependent beginning: `buildScrubTrack` keeps `startBelieved` only with
+`depEnd > 0` (scrubTrack.ts:343) and `bindBeginning` returns the base track
+at K = 0 (startDep.ts:92); the gateway's verify (VP-I20) compares it between
+two parses of the same worker. This is the F9-R0 shape of the plan's triage
 (the resync before the first point — rule 1's), not F9-R.
 
 **XYZAC — unchanged.** `G53 G0 Z0` first, then `T1 M600`: the rotary sync
