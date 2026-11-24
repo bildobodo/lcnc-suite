@@ -1,0 +1,13 @@
+[2m[WebServer] [22m(node:3815904) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:3815939) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3815939) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/start-believed.viewer.spec.ts:85:1 › the machine day's head on a 3-axis machine with G54 ≠ 0: Z up alone to machine 0, the beginning's true time (2.8s)
+  ✓  2 [e2e] › e2e/start-believed.viewer.spec.ts:95:1 › G55 before an X-only first move (Codex R456 MT456-01): only X moves, to G55 X10 (2.4s)
+
+  2 passed (6.1s)

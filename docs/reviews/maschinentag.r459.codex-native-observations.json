@@ -1,0 +1,2640 @@
+{
+  "plain": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        30.0
+      ],
+      [
+        10.0,
+        10.0,
+        30.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1,
+      2
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      1.4142135381698608
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      3,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "98709508d9cbdf635e8aba51c1b5081ea99bac71a2b10c11d24555e14aa0bd06",
+    "digest_without_stats": "dc2518ddc8da8ad9a8258469b9b0932c74e06c7a35ad1ce76be86cc7b0cc2ab1"
+  },
+  "g55_first": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      22.203603744506836
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "a85234fee1e2b60f81f08b8dedb114858f9b7d36f3eb9109033ed5c21871d316",
+    "digest_without_stats": "1e12e38f1142dcac67d03b7aa298bf24c9e27030b9626af29d19dce5cb291d4b"
+  },
+  "g55_rotary": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      22.203603744506836
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "d5bbf01153f2ced59fda66ea0a572a4c60c8aa2bdebcb1e24a3a73897e363229",
+    "digest_without_stats": "04c2027f8eb297339bb51c9820089378c3c3f7f7e7a10ad99e8fe2b22e659ea7"
+  },
+  "g55_with_move": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1,
+      2
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      22.203603744506836
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "4dea19be85b1c700522183bec518d3fd108c7ddd1349fe628e6cf2998c49360f",
+    "digest_without_stats": "18bbcf777e7a0e8ebf4943fea450aef1bb5d58015b39627eb2892c3273c1a0b4"
+  },
+  "g20_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        25.399999618530273,
+        -200.0,
+        30.0
+      ],
+      [
+        25.399999618530273,
+        25.399999618530273,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1,
+      2
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      22.73876953125
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.000000000000007
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "695acce64cd0d9eb47dc564e3a301044eb769f97a054549e651e1a131511d0b7",
+    "digest_without_stats": "50b9ce5ecefbe3cd76afd9f715b59a4a56304eb676432011461bbc1d51e0cc66"
+  },
+  "m6_after_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        2,
+        2
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        0.0,
+        2
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ],
+      [
+        2,
+        0.0,
+        0.0,
+        80.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      2.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "7549ece0494e2e97b828fa59e2e911fa6575e849559e0d558992e1bcdc39e841",
+    "digest_without_stats": "c9b094ba70de5b96b6933e3b73d2521c1db4d52232a0f1028748aa28d754ce4b"
+  },
+  "m6_after_g55_rot": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        2,
+        2
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        0.0,
+        2
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ],
+      [
+        2,
+        0.0,
+        0.0,
+        80.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      2.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "50db85faa4d7952ea441767de653c03045b100c60d375f0c6159d407df627092",
+    "digest_without_stats": "c4b42598083f0a1e7e2bcda3c50b197be7b827e9993e3b8fdd69640bca905afc"
+  },
+  "m6_first_g43_zero": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        1,
+        2
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        10.0,
+        0.0
+      ],
+      [
+        10.0,
+        10.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        10.0,
+        2
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ],
+      [
+        2,
+        0.0,
+        0.0,
+        80.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      4,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "start_mode": 430,
+      "start_reason": null
+    },
+    "digest_without_start": "abbf9c64c46234989f6a1f3865511167c90ac07a0a7841a29ba8c33e21b146be",
+    "digest_without_stats": "5515dbc476c69f782d9b18cdcd43bbdcf14a44b2de62808a83cecff7eefb1862"
+  },
+  "inch_g43_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        1.0,
+        -2.0,
+        0.5
+      ],
+      [
+        1.0,
+        1.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.5
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.3041381239891052
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      -2.0,
+      -1.9999999999999996,
+      0.5
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.5
+      ],
+      "start_mode": 430,
+      "start_reason": null
+    },
+    "digest_without_start": "0a5759378e28fe7ce6481016ca3f34dcc8c531819d2c6e3754162e584c09b678",
+    "digest_without_stats": "9d51ef07c9605078296a64917054f2e43470ce5cbc6acbc57101890483f72a02"
+  },
+  "g43_line_then_x": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        -10.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        10.0,
+        -1
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      2,
+      4
+    ],
+    "rapid_tcum": [
+      0.0,
+      2.2360680103302
+    ],
+    "rapid_brk": [
+      0,
+      0
+    ],
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "811073cf92656291d606293bdbb047ac906197b7000ed46d85559ee712e1f8c5",
+    "digest_without_stats": "06ece445878a7e663cb744970a5e4fe61f3c299ec5d00f9253a7019330db3492"
+  },
+  "py_motion_first_bound": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      0,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": null
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      0,
+      2
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      2.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [
+      "python remap reads: bound mover; every axis: none"
+    ],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "1ed48eba937a8901079b9cbda5747554f7848ed162a2123401abc8e1a34af4f6",
+    "digest_without_stats": "8ceed289198e73e3c1086112d690ddeb4a3e6dec8e62b6ed585ecdd1af392507"
+  },
+  "comp_next_xyz_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [
+      1
+    ],
+    "feed_cline": null,
+    "rapid_lineok": [
+      0,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [
+      4
+    ],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [
+      [
+        47.87868118286133,
+        52.12131881713867,
+        -1.0
+      ]
+    ],
+    "rapid": [
+      [
+        7.8786797523498535,
+        12.121320724487305,
+        30.0
+      ],
+      [
+        50.0,
+        50.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [
+      0
+    ],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      6
+    ],
+    "rapid_seq": [
+      1,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.3162277638912201
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [
+      2
+    ],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [
+      38.703487396240234
+    ],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      2
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      100.0
+    ],
+    "start_believed": null,
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": [
+      0,
+      1,
+      2
+    ],
+    "feed_lines_all": [
+      4
+    ],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "330ec5a896d3404086961d03ab675128eca549496dded836942712ebb154aebc",
+    "digest_without_stats": "71a390c95180b8e360eba6e9e42ce47a6b284d06f5cc0f2c28143f5672baa312"
+  },
+  "arc_first_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      0,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        -190.0,
+        -200.0,
+        30.0
+      ],
+      [
+        -190.0,
+        -200.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      4,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      2,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      100.0,
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": [
+      0,
+      1
+    ],
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "8aa3c75e1fe2dec35e44382c95265a5f2356be671c0361483bdeadd092070d45",
+    "digest_without_stats": "8c04c2b16a75a12b203e38b25546ed22307da0ec55d1f98c16d990aff74e650a"
+  },
+  "tap_first_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      0,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        -300.0,
+        -400.0,
+        60.0
+      ],
+      [
+        10.0,
+        -200.0,
+        30.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": null,
+    "rapid_dep_basis": null,
+    "feed_dep_f": null,
+    "rapid_dep_f": null,
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": [
+      0,
+      1,
+      2
+    ],
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "cc6b1b1d0391dc29abb8271ef889309cdec293ba5722455e02189172072809d7",
+    "digest_without_stats": "ef96e49c28e8c81e8134e9c755b882755fadac10d2786626c5d94d8ac3bd4734"
+  },
+  "cx_feed_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      0
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1
+    ],
+    "rapid_seq": [
+      1
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      2
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      100.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "d4890e78da86f71a4498fe194b9af3468af0ffb60a9d539be1484b143c29c651",
+    "digest_without_stats": "bd2c40c97d84ba57ea1068b3006bf6ffbac3519c8fe0d530d2667432d9087438"
+  },
+  "cx_g10_active": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        130.0,
+        -21.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2
+    ],
+    "rapid_seq": [
+      1
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      50.0,
+      130.0,
+      -21.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "24994de85b0ea68840c821d32405507dba3fb2e3cdda2970df7f2aee6e13ecc8",
+    "digest_without_stats": "a28cdce82e62ad678b521096eda1a686a8e04dc55a1d23913d9d38f12e97bf74"
+  },
+  "cx_m61_g91": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        4.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2
+    ],
+    "rapid_seq": [
+      1
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      7
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "e276eb972c5af5382b0d56a2a0441803aa23ffa2055c53dd858b80351e96a79f",
+    "digest_without_stats": "0c3d8d4417e68428196aaf2fdf6d59fe299b94d27dcb2802b8441584a5c93897"
+  },
+  "cx_m6_g43": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        1,
+        2
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        0.0,
+        2
+      ],
+      [
+        0,
+        0.0,
+        0.0,
+        20.0,
+        2
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ],
+      [
+        2,
+        0.0,
+        0.0,
+        20.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2
+    ],
+    "rapid_seq": [
+      2
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": [
+      0
+    ],
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      19.999999999999996
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "b6fa600591c45c36a40874ae70dde3fb7931dd9974439093fc6c4e6ed4ace316",
+    "digest_without_stats": "d84d4e3e3dc2e179450e65df95dbff3c25f50f993cb721e2abf3b4e5dc3f052d"
+  },
+  "cx_g49_before": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        0.0,
+        -1
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1
+    ],
+    "rapid_seq": [
+      2
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": [
+      0
+    ],
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      6
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      20.000000000000004
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "start_mode": 430,
+      "start_reason": null
+    },
+    "digest_without_start": "4a097e941fde4430b59ff490fff219e82bde44d7341cebe8fab1db77ecf9bbcd",
+    "digest_without_stats": "3a41c1e34430cdd53b051b667870e4527791f08567710c0949a4d6a5ed01f6f5"
+  },
+  "cx_comp_g40": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [
+      1
+    ],
+    "feed_cline": null,
+    "rapid_lineok": [
+      0
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [
+      3
+    ],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [
+      [
+        50.0,
+        50.0,
+        -1.0
+      ]
+    ],
+    "rapid": [
+      [
+        7.8786797523498535,
+        12.121320724487305,
+        30.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [
+      0
+    ],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2
+    ],
+    "rapid_seq": [
+      1
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [
+      2
+    ],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [
+      38.745323181152344
+    ],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      2
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      100.0
+    ],
+    "start_believed": null,
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": [
+      0,
+      1,
+      2
+    ],
+    "feed_lines_all": [
+      3
+    ],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "056cbfcc57a3bf4b32171b13f5c0ed94cc81eb6d1ea9503c553a03cb40e9112d",
+    "digest_without_stats": "daaceff697c5791403bf9e4646d3f05acf92cdc3320cefca9b05fca2f559f24d"
+  },
+  "cx_cycle_g55": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "feed_lineok": [],
+    "feed_cline": null,
+    "rapid_lineok": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "rapid_cline": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        -200.0,
+        -200.0,
+        35.0
+      ],
+      [
+        10.0,
+        10.0,
+        35.0
+      ],
+      [
+        10.0,
+        10.0,
+        -20.0
+      ],
+      [
+        10.0,
+        10.0,
+        35.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      -200.0,
+      -200.0,
+      30.0
+    ],
+    "position_read_lines": null,
+    "start_dep_unavailable": null,
+    "start_writes_untracked": null,
+    "start_unbound": [
+      0,
+      1,
+      2
+    ],
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "b6d5f69098323f675b0d5ba67099b83f7383b98da9b611ffbb3bb49e43448aa3",
+    "digest_without_stats": "a1c3fb738bf42ec02f6901285ac996f792424fff8163025ef2d4fa5790936709"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "cases": [
+    {
+      "case": "plain",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "g55_first",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "g55_rotary",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "g55_with_move",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "g20_g55",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "m6_after_g55",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "m6_after_g55_rot",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "m6_first_g43_zero",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "inch_g43_g55",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "g43_line_then_x",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "py_motion_first_bound",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "comp_next_xyz_g55",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "arc_first_g55",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "tap_first_g55",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_feed_g55",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_g10_active",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_m61_g91",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_m6_g43",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_g49_before",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_comp_g40",
+      "differing_fields": [],
+      "equal_with_start_tolerance_1e-9": true
+    },
+    {
+      "case": "cx_cycle_g55",
+      "differing_fields": [
+        "start_believed"
+      ],
+      "equal_with_start_tolerance_1e-9": true
+    }
+  ],
+  "max_start_delta": 7.105427357601002e-15,
+  "all_other_judged_fields_equal": true
+}

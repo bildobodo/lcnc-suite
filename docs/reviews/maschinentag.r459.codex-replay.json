@@ -1,0 +1,291 @@
+{
+  "verdict": "PASS",
+  "run": "3815889-1795513760860",
+  "logs": 1,
+  "connections": {
+    "infra": 3,
+    "test": 2
+  },
+  "http": {
+    "with origin": 50
+  },
+  "frames": 12,
+  "frames_by_class": {
+    "test": 12
+  },
+  "commands": {
+    "get_tool_table": 4,
+    "heartbeat": 4,
+    "hello": 2,
+    "tab_visibility": 2
+  },
+  "attempts": 2,
+  "per_attempt": {
+    "start-believed.viewer.spec.ts \u203a G55 before an X-only first move (Codex R456 MT456-01): only X moves, to G55 X10 [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "start-believed.viewer.spec.ts \u203a the machine day's head on a 3-axis machine with G54 \u2260 0: Z up alone to machine 0, the beginning's true time [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    }
+  },
+  "attempt_list": [
+    {
+      "name": "start-believed.viewer.spec.ts \u203a G55 before an X-only first move (Codex R456 MT456-01): only X moves, to G55 X10 [retry 0]",
+      "test": "e333a8fea0e4e6eb48ab-246d8e4097e7fa8bc243",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "3a27389b-9df6-482e-845a-9ae22f83c217",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "start-believed.viewer.spec.ts \u203a the machine day's head on a 3-axis machine with G54 \u2260 0: Z up alone to machine 0, the beginning's true time [retry 0]",
+      "test": "e333a8fea0e4e6eb48ab-551376c7010d1e3d7527",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "3a27389b-9df6-482e-845a-9ae22f83c217",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    }
+  ],
+  "no_cookie": [],
+  "per_attempt_expected": {},
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+    "coverage against the inventory (step 5c)"
+  ],
+  "http_paths": {
+    "requests": 56,
+    "contexts": 2,
+    "classes": {
+      "replaced": 4,
+      "served": 42,
+      "fallback": 8,
+      "closing": 2
+    },
+    "routes": {
+      "GET /": {
+        "served": 2
+      },
+      "GET /g30": {
+        "closing": 1,
+        "fallback": 6
+      },
+      "GET /gcode": {
+        "replaced": 2
+      },
+      "GET /macros": {
+        "served": 2
+      },
+      "GET /preview": {
+        "replaced": 2
+      },
+      "GET /settings": {
+        "served": 2
+      },
+      "GET /subfile": {
+        "fallback": 1
+      },
+      "POST /telemetry": {
+        "closing": 1,
+        "fallback": 1
+      }
+    },
+    "fallback_paths": {
+      "GET /g30": 6,
+      "POST /telemetry": 1,
+      "GET /subfile": 1
+    },
+    "idless_covered_by_synthetic_hops": 0,
+    "ws_handshakes_joined": 0,
+    "per_attempt": {
+      "start-believed.viewer.spec.ts \u203a G55 before an X-only first move (Codex R456 MT456-01): only X moves, to G55 X10 [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 3
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "closing",
+          "transport": "none",
+          "status": null,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "start-believed.viewer.spec.ts \u203a the machine day's head on a 3-axis machine with G54 \u2260 0: Z up alone to machine 0, the beginning's true time [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "closing",
+          "transport": "none",
+          "status": null,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 3
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /subfile",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ]
+    },
+    "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+    "findings": []
+  }
+}

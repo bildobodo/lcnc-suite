@@ -1,0 +1,54 @@
+{
+  "review": "R459",
+  "base": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "head": "fd72067656a51a701ea1f1dd6d2de82327fb6c84",
+  "isolated_tree": "/tmp/r459/tree",
+  "native_python": "/home/cnc/lcnc-suite-p6a/lcnc-gateway/.venv/bin/python",
+  "case_source": "docs/reviews/maschinentag.r457.codex-cases.py",
+  "case_source_sha256": "d804315059b455b8e6ed748005bf7d9db2a5566956fffdbd2164a15592ebd641",
+  "product_unchanged": {
+    "lcnc-gateway/gcode_canon.py": "12af92e4cfd53df18579ffe4d45c6a1f84b606773e9a9e540d6114af6e4b4e9c",
+    "lcnc-gateway/gcode_parse_worker.py": "f3f80fed598dd273ee8d755cf41011a7e0c05b8df63c9f5327a07a16b42f9d59",
+    "lcnc-webui/src/viewer/scrubTrack.ts": "e7409854b10803f08a4796d4a84d3aebd1b631d2578f06cd0b5167e5fab97576"
+  },
+  "evidence": {
+    "maschinentag.r459.codex-native-tests.txt": "954054fe19d82fae1b32ae446a5d468e79e226e906637a094b4ffe2834b91e76",
+    "maschinentag.r459.codex-native-runner.py": "aa338830094c655cce27fc2bce65029ab48a549ce005202cabe4da08f67043ea",
+    "maschinentag.r459.codex-native-observations.json": "e884cbfd1f3ab0a7224dc4809d34157656ae24e5566e141027b3dda339b63678",
+    "maschinentag.r459.codex-plan-comparison.json": "538df8792930f1a72928ae6e6a0eeb484bf0e43e54d92752fb3a27aba87c5636",
+    "maschinentag.r459.codex-freshness.json": "a1ee319960ea21a7830edd945b63b91fb4267b63e0d27935a0e27f3f8102f275",
+    "maschinentag.r459.codex-client-tests.txt": "cbf27e5d1bbdb531a1ac698a6b5329497c34e8f49b341438847958a1732a5a26",
+    "maschinentag.r459.codex-client-observations.json": "102b7a6399e2ac8edeb194184956f1f63812d01490e975fd87650eb621484aab",
+    "maschinentag.r459.codex-client-runner.py": "03a544276ce05c36e68496f2139998aa76f69f423afb3f83b73d492cb8242bcd",
+    "maschinentag.r459.codex-build.txt": "c76e41dc4ea862746ec1e14385d10fc3ac336332e4ebd3184a33db5bbf303e05",
+    "maschinentag.r459.codex-browser.txt": "522a9f64c34c9f11cfa61e3a1593e1f5ffc3ca3ba60dbce9e2f1fe6fa964097f",
+    "maschinentag.r459.codex-browser-report.json": "0451b6b93dad42e784ddc989ac220948e653058576d4bae7695d39f59e55d1f8",
+    "maschinentag.r459.codex-worker-proof.json": "77904dd73215d754824e425205da515c4a80f1b655721ff5cb22e6449a315839",
+    "maschinentag.r459.codex-replay.json": "0bd21aed19a57d52da02924fcdeefae2b8d2b581fd46842d54a04cfc94edf04b",
+    "maschinentag.r459.codex-client-probe.test.ts": "9c49061b78269cf9d2b435be0a931be700d1d90d1625a3829fc98232febf839e",
+    "maschinentag.r459.codex-config.ts": "b3f21c77293be4ab394cbf03954db57a0eb8683cb5ac5359bb8a4352d962f268",
+    "maschinentag.r459.codex-native-probe.patch": "aafb76478a00755b14c775c4991b9463d65e883802bd6db38d1f15551151d1c6"
+  },
+  "preparation": [
+    "git archive fd720676 into /tmp/r459/tree",
+    "Copied case_source byte-identically to /tmp/r459/cases.py; META written to /tmp/r459/out/meta.json",
+    "Copied native_start_probe.py to codex_r459_native_probe.py beside it; only change is native-probe.patch (fixture data, no canon monkeypatch)",
+    "Copied node_modules into isolated tree; no dependency symlink to live tree"
+  ],
+  "results": {
+    "targeted_native_tests": 17,
+    "independent_native_parses": 21,
+    "independent_client_checks": 42,
+    "existing_client_checks": 55,
+    "fresh_fixtures_equal": 13,
+    "browser_pass": 2,
+    "worker_errors": 0,
+    "replay_frames": 12,
+    "replay_findings": 0
+  },
+  "limits": [
+    "No own live LinuxCNC or Firefox run",
+    "Full gate, metamorphic corpus and parity corpora were read, not rerun",
+    "No parser timing comparison; integration measurement remains due"
+  ]
+}

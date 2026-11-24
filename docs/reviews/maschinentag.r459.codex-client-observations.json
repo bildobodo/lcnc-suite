@@ -1,0 +1,1076 @@
+[
+  {
+    "name": "plain",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      100,
+      200,
+      0
+    ],
+    "want": [
+      100,
+      200,
+      0
+    ]
+  },
+  {
+    "name": "plain",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      113,
+      183,
+      0
+    ],
+    "want": [
+      113,
+      183,
+      0
+    ]
+  },
+  {
+    "name": "g55_first",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g55_first",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "g55_rotary",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g55_rotary",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "g55_with_move",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g55_with_move",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "g20_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30.000000000000007
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      325.3999996185303,
+      200,
+      -30
+    ],
+    "want": [
+      325.4,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g20_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30.000000000000007
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      325.3999996185303,
+      183,
+      -23
+    ],
+    "want": [
+      325.4,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "m6_after_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "m6_after_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "m6_after_g55_rot",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "m6_after_g55_rot",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "m6_first_g43_zero",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      0,
+      0,
+      0
+    ],
+    "joint": [
+      10,
+      10,
+      0
+    ],
+    "want": [
+      10,
+      10,
+      0
+    ]
+  },
+  {
+    "name": "m6_first_g43_zero",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      13,
+      -17,
+      7
+    ],
+    "joint": [
+      10,
+      10,
+      7
+    ],
+    "want": [
+      10,
+      10,
+      7
+    ]
+  },
+  {
+    "name": "inch_g43_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -2,
+      -1.9999999999999996,
+      0.5
+    ],
+    "unbound": null,
+    "live": [
+      2,
+      3,
+      -1
+    ],
+    "joint": [
+      5,
+      3,
+      -1
+    ],
+    "want": [
+      5,
+      3,
+      -1
+    ]
+  },
+  {
+    "name": "inch_g43_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -2,
+      -1.9999999999999996,
+      0.5
+    ],
+    "unbound": null,
+    "live": [
+      2.5,
+      2.3,
+      -0.7
+    ],
+    "joint": [
+      5,
+      2.299999952316284,
+      -0.699999988079071
+    ],
+    "want": [
+      5,
+      2.3,
+      -0.7
+    ]
+  },
+  {
+    "name": "g43_line_then_x",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      110,
+      200,
+      -30
+    ],
+    "want": [
+      110,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g43_line_then_x",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      110,
+      183,
+      -23
+    ],
+    "want": [
+      110,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "py_motion_first_bound",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      110,
+      200,
+      -30
+    ],
+    "want": [
+      110,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "py_motion_first_bound",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      110,
+      183,
+      -23
+    ],
+    "want": [
+      110,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "comp_next_xyz_g55",
+    "mode": "head",
+    "away": false,
+    "believed": null,
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      -30
+    ]
+  },
+  {
+    "name": "comp_next_xyz_g55",
+    "mode": "head",
+    "away": true,
+    "believed": null,
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      -23
+    ]
+  },
+  {
+    "name": "arc_first_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": [
+      0,
+      1
+    ],
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      -30
+    ]
+  },
+  {
+    "name": "arc_first_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": [
+      0,
+      1
+    ],
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      -23
+    ]
+  },
+  {
+    "name": "tap_first_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": null,
+    "want": [
+      100,
+      200,
+      null
+    ]
+  },
+  {
+    "name": "tap_first_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": null,
+    "want": [
+      113,
+      183,
+      null
+    ]
+  },
+  {
+    "name": "cx_feed_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "cx_feed_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "cx_g10_active",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      50,
+      130,
+      -21
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      60,
+      200,
+      -30
+    ],
+    "want": [
+      60,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "cx_g10_active",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      50,
+      130,
+      -21
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      60,
+      183,
+      -23
+    ],
+    "want": [
+      60,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "cx_m61_g91",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      100,
+      204,
+      -30
+    ],
+    "want": [
+      100,
+      204,
+      -30
+    ]
+  },
+  {
+    "name": "cx_m61_g91",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      0
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      113,
+      187,
+      -23
+    ],
+    "want": [
+      113,
+      187,
+      -23
+    ]
+  },
+  {
+    "name": "cx_m6_g43",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      0,
+      0,
+      19.999999999999996
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "cx_m6_g43",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      0,
+      0,
+      19.999999999999996
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "cx_g49_before",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      20.000000000000004
+    ],
+    "unbound": null,
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": [
+      310,
+      200,
+      -30
+    ],
+    "want": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "cx_g49_before",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      20.000000000000004
+    ],
+    "unbound": null,
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": [
+      310,
+      183,
+      -23
+    ],
+    "want": [
+      310,
+      183,
+      -23
+    ]
+  },
+  {
+    "name": "cx_comp_g40",
+    "mode": "head",
+    "away": false,
+    "believed": null,
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      -30
+    ]
+  },
+  {
+    "name": "cx_comp_g40",
+    "mode": "head",
+    "away": true,
+    "believed": null,
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      -23
+    ]
+  },
+  {
+    "name": "cx_cycle_g55",
+    "mode": "head",
+    "away": false,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      100,
+      200,
+      -30
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "name": "cx_cycle_g55",
+    "mode": "head",
+    "away": true,
+    "believed": [
+      -200,
+      -200,
+      30
+    ],
+    "unbound": [
+      0,
+      1,
+      2
+    ],
+    "live": [
+      113,
+      183,
+      -23
+    ],
+    "joint": null,
+    "want": [
+      null,
+      null,
+      null
+    ]
+  }
+]

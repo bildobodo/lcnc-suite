@@ -1,0 +1,10 @@
+--- native_start_probe.py
++++ codex_r459_native_probe.py
+@@ -967,6 +967,7 @@
+     # every case's name (the metamorphic run, test_start_dep_worker)
+     print(json.dumps(sorted(CASES)))
+     sys.exit(0)
++exec(Path('/tmp/r459/cases.py').read_text())
+ program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
+ inch = units == "in"
+ ini = work / "machine.ini"

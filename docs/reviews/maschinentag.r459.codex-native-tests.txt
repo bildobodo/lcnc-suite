@@ -1,0 +1,22 @@
+test_a_callback_that_records_nothing_leaves_no_read (test_start_dep_worker.TestTheReadBelongsToTheFirstPoint.test_a_callback_that_records_nothing_leaves_no_read) ... ok
+test_a_recorder_no_handler_covers_finds_no_read (test_start_dep_worker.TestTheReadBelongsToTheFirstPoint.test_a_recorder_no_handler_covers_finds_no_read) ... ok
+test_every_recorder_is_named (test_start_dep_worker.TestTheReadBelongsToTheFirstPoint.test_every_recorder_is_named) ... ok
+test_no_read_is_no_believed_start (test_start_dep_worker.TestTheReadBelongsToTheFirstPoint.test_no_read_is_no_believed_start) ... ok
+test_the_first_point_s_own_callback_reads (test_start_dep_worker.TestTheReadBelongsToTheFirstPoint.test_the_first_point_s_own_callback_reads) ... ok
+test_the_interpreter_s_unit_and_the_start_tool_basis (test_start_dep_worker.TestTheReadBelongsToTheFirstPoint.test_the_interpreter_s_unit_and_the_start_tool_basis) ... ok
+test_a_frame_change_before_the_first_motion (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_a_frame_change_before_the_first_motion) ... ok
+test_a_python_remap_s_motion_first_is_read_after_the_begin (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_a_python_remap_s_motion_first_is_read_after_the_begin) ... ok
+test_equal_where_it_was_right (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_equal_where_it_was_right) ... ok
+test_no_interpreter_words_ship_no_believed_start (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_no_interpreter_words_ship_no_believed_start) ... ok
+test_the_comp_queue_gives_no_read (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_the_comp_queue_gives_no_read) ... ok
+test_the_interpreter_s_unit (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_the_interpreter_s_unit) ... ok
+test_the_m600_case_with_g54_z_10 (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_the_m600_case_with_g54_z_10) ... ok
+test_the_machine_day_s_head (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_the_machine_day_s_head) ... ok
+test_the_offline_resync_before_the_first_motion (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_the_offline_resync_before_the_first_motion) ... ok
+test_the_tool_offset_before_the_first_point_is_re_based (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_the_tool_offset_before_the_first_point_is_re_based) ... ok
+test_unbound_stays_unbound (test_start_dep_worker.TestTheBelievedStartUnderFixtures.test_unbound_stays_unbound) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 4.895s
+
+OK
