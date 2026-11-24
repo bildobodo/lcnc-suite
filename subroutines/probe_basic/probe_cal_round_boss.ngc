@@ -35,9 +35,9 @@ o<probe_cal_round_boss> sub
   #<workspace_y> = #[5202 + [20 * #5220]]
   #<workspace_z> = #[5203 + [20 * #5220]]
   
-  (clear current probe calibration offset)
-  #3032 = 0
-  (DEBUG, EVAL[vcp.getWidget{"calibration_offset_3032"}.setValue{#3032}])
+  (LCNC Suite: the run token, carried by the result line. The active offset)
+  (#3032 stays untouched, the XY probing calls below take 0 instead of it)
+  #1014 = #1
 
   (Probe Tool Safety Check)
   o100 if [#5400 NE #<probe_tool_number>]
@@ -71,7 +71,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_x_plus" to Probe x+ side of Workpiece)
-  o<probe_x_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_x_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<x_plus_probed> = #5061
 
@@ -90,7 +90,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_x_minus" to Probe x- side of Workpiece)
-  o<probe_x_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_x_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<x_minus_probed> = #5061
 
@@ -117,7 +117,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_y_plus" to Probe y+ side of Workpiece)
-  o<probe_y_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_y_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<y_plus_probed> = #5062
 
@@ -136,7 +136,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_y_minus" to Probe y- side of Workpiece)
-  o<probe_y_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_y_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<y_minus_probed> = #5062
 
@@ -166,7 +166,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_x_plus" to Probe x+ side of Workpiece)
-  o<probe_x_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_x_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<x_plus_probed> = #5061
 
@@ -184,7 +184,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_x_minus" to Probe x- side of Workpiece)
-  o<probe_x_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_x_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<x_minus_probed> = #5061
 
@@ -224,7 +224,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_y_plus" to Probe y+ side of Workpiece)
-  o<probe_y_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_y_plus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<y_plus_probed> = #5062
 
@@ -242,7 +242,7 @@ o<probe_cal_round_boss> sub
   G38.3 Z-[#<z_probe_stack>]
 
   (Call sub "probe_y_minus" to Probe y- side of Workpiece)
-  o<probe_y_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][#3032]
+  o<probe_y_minus> call [#3014][#3015][#3016][#3017][#3018][#3019][0]
 
   #<y_minus_probed> = #5062
 
@@ -299,15 +299,15 @@ o<probe_cal_round_boss> sub
   #<new_avg_cal_offset> = [[#<new_x_cal_offset> + #<new_y_cal_offset>] / 2]
 
   o150 if [#<sq_cal_axis> EQ 0]
-      #3032 = [ABS[#<new_avg_cal_offset>]]
-      (DEBUG, EVAL[vcp.getWidget{"calibration_offset_3032"}.setValue{#3032}])
+      #1013 = [ABS[#<new_avg_cal_offset>]]
   o150 else if [#<sq_cal_axis> EQ 1]
-      #3032 = [ABS[#<new_x_cal_offset>]]
-      (DEBUG, EVAL[vcp.getWidget{"calibration_offset_3032"}.setValue{#3032}])
+      #1013 = [ABS[#<new_x_cal_offset>]]
   o150 else
-      #3032 = [ABS[#<new_y_cal_offset>]]
-      (DEBUG, EVAL[vcp.getWidget{"calibration_offset_3032"}.setValue{#3032}])
+      #1013 = [ABS[#<new_y_cal_offset>]]
   o150 endif
+
+  (LCNC Suite: the result with its run token, consumed by the gateway)
+  (DEBUG, LCNC_CAL_CANDIDATE run=#1014 value=#1013 axis=#3036)
 
   #<x_zero> = [#<x_center_probed> + #<workspace_x>]
 

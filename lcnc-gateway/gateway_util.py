@@ -4865,10 +4865,13 @@ class RemapEnv:
     are followed into their files; cycles end as "nothing new".
     `RemapEnv.unknown()` (no INI read) answers None for every word."""
 
-    def __init__(self, remap_lines, search_dirs, max_read=262144):
+    def __init__(self, remap_lines, search_dirs, max_read=262144, keys=None):
         self.known = remap_lines is not None
         self.dirs = list(search_dirs or ())
         self.max_read = max_read
+        # the parameter numbers whose writes the bodies are read for — part
+        # of every cached result of this instance (P5: the probe's too)
+        self.keys = frozenset(TOOLSETTER_BASIS_KEYS if keys is None else keys)
         self.remaps = {}
         for raw in remap_lines or ():
             parts = str(raw or "").split()
@@ -5266,7 +5269,7 @@ class RemapEnv:
                 k = None if tgt is None else nc_int(tgt)
                 if k is None or k < 0:
                     return None
-                if k in TOOLSETTER_BASIS_KEYS:
+                if k in self.keys:
                     writes.add(k)
             has_p = any(w == "P" for w, _ in words)
             for letter, v in words:
@@ -6203,7 +6206,13 @@ TOOLSETTER_ORIGINS = ("applied", "read", "assumed", "unknown")
 
 
 def toolsetter_assigned_keys(text, env: "RemapEnv") -> Optional[frozenset]:
-    """The toolsetter keys a program or an MDI line may write: every
+    """The toolsetter keys a program or an MDI line may write
+    (param_assigned_keys over TOOLSETTER_BASIS_KEYS); None: any."""
+    return param_assigned_keys(text, env, TOOLSETTER_BASIS_KEYS)
+
+
+def param_assigned_keys(text, env: "RemapEnv", keys) -> Optional[frozenset]:
+    """The parameters of `keys` a program or an MDI line may write: every
     parameter setting's target read the interpreter's way (nc_block_norm —
     `#3 0 0 9=`, `#+3009=`, `#3009.0=` are #3009). None when it may write
     any: a target the text does not settle (`##1=`, `#[3000+9]=`,
@@ -6213,15 +6222,20 @@ def toolsetter_assigned_keys(text, env: "RemapEnv") -> Optional[frozenset]:
     `foreign`). A setting it did not recognise never proves "writes
     nothing" (Codex R105 VP-I59). A word of a remapped code adds what its
     body may write (`env`, the configured REMAPs — RemapEnv; Codex R106: an
-    M200 whose body writes #3009 was "writes nothing"). Pure but for the
-    body files `env` reads."""
+    M200 whose body writes #3009 was "writes nothing"); an `env` not read for
+    every key asked proves nothing about them (P5: its bodies were never
+    looked at for the others) — None. Pure but for the body files `env`
+    reads."""
+    want = frozenset(keys)
+    if not want <= env.keys:
+        return None
     _, mode = position_write_lines(text or "")
     if mode == "foreign":
         return None
     body, _reach = env.text_effect(text or "")
     if body is None:
         return None
-    keys = set(body)
+    out = set(body & want)
     for raw in (text or "").splitlines():
         if "=" not in raw:
             continue
@@ -6237,9 +6251,9 @@ def toolsetter_assigned_keys(text, env: "RemapEnv") -> Optional[frozenset]:
             k = None if tgt is None else nc_int(tgt)
             if k is None or k < 0:
                 return None
-            if k in TOOLSETTER_BASIS_KEYS:
-                keys.add(k)
-    return frozenset(keys)
+            if k in want:
+                out.add(k)
+    return frozenset(out)
 
 
 def toolsetter_basis_view(basis: dict) -> dict:
