@@ -8,9 +8,13 @@
 // Play returns there by a tap — also when the position already stood at 0
 // and the code was scrolled away by hand. A null line elsewhere (an
 // untrusted point, leaving the simulation) keeps the view where it is; a
-// track without an entry move marks its first line at 0. ⏮ sits directly
-// LEFT of Play (a player's skip back; the speed stays directly beside Play,
-// operator 2026-10-29/31) and enters the simulation by Play's own rules:
+// track without an entry move marks its first line at 0 — and Back to start
+// there brings that line back into view, marked, at an unchanged position
+// and line (Codex R458 MT-I32). The start maps no motion to a line: with the
+// motion's lines distrusted as a whole the top still shows, a text that is
+// not the preview's publication gets no scroll (Codex R458 MT-I33). ⏮ sits
+// directly LEFT of Play (a player's skip back; the speed stays directly
+// beside Play, operator 2026-10-29/31) and enters the simulation by Play's own rules:
 // never in a run, never refused entry. Every form of the bar keeps its rows
 // inside it; in the two-row form ⏮ takes the Sim tab link's room (measured:
 // the link beside it went to a third row). A real touch tap acts like a click
@@ -27,9 +31,12 @@ import { fulfillPreview, publishFile, routeText } from "./programFixture";
 const N = 6000;
 const FEED = Array.from({ length: N - 1 }, (_, i) => [i % 100, Math.floor(i / 100), -1]);
 const LINEOK = new Uint8Array(FEED.map((_, i) => (i >= 2400 && i < 3600 ? 0 : 1)));
-// `head` comment lines after the first: the first move's line is head + 2
-const preview = (file: string, head = 0) => Buffer.from(encode({ file, preview_schema: 11, feed: FEED,
-  feed_lines: FEED.map((_, i) => i + 2 + head), feed_seq: FEED.map((_, i) => i + 2), feed_lineok: LINEOK,
+// `head` comment lines after the first: the first move's line is head + 2;
+// `untrusted`: the motion's lines distrusted as a whole (`lines_untrusted`,
+// a sub's or a remap's numbers among them) with no per-point trust channel
+const preview = (file: string, head = 0, untrusted = false) => Buffer.from(encode({ file, preview_schema: 11, feed: FEED,
+  feed_lines: FEED.map((_, i) => i + 2 + head), feed_seq: FEED.map((_, i) => i + 2),
+  ...(untrusted ? { lines_untrusted: true } : { feed_lineok: LINEOK }),
   feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 0.5)).buffer) }));
 const textOf = (head = 0) => ["(long)", ...Array.from({ length: head }, (_, i) => `(head ${i + 1})`),
   ...Array.from({ length: N - 1 }, (_, i) => `G1 X${i % 100} Y${Math.floor(i / 100)} Z-1 F1000`), "M2"].join("\n");
@@ -39,9 +46,9 @@ const ZERO = [0, 0, 0, 0, 0, 0, 0, 0, 0];
  *  point (an entry move) — or ON it (`atFirst`: no entry move). Motion as
  *  the operator sees it (no reduced motion): a glide would show. */
 async function prepare(page: Page, context: BrowserContext, vp: string,
-                       o: { atFirst?: boolean; version?: number; zoom?: number; head?: number } = {}) {
+                       o: { atFirst?: boolean; version?: number; zoom?: number; head?: number; untrusted?: boolean } = {}) {
   const file = `/start-${o.version ?? 7300}.ngc`;
-  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview(file, o.head) }));
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview(file, o.head, o.untrusted) }));
   await routeText(context, textOf(o.head));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -110,6 +117,16 @@ async function atLine(page: Page, frac: number, line?: number): Promise<View> {
   }, { message: `a line followed at ${line ?? frac}`, timeout: 10_000 }).toBe(true);
   return codeView(page);
 }
+/** The first point's line of the no-entry program (line 302: 300 comment
+ *  lines before it) marked and in view, no band — past the first view, so
+ *  never the program's top. */
+async function firstLineInView(page: Page, what: string) {
+  await expect.poll(async () => { const v = await codeView(page); return v.active != null && v.first! <= 302 && 302 <= v.last! && !v.band ? v.active : null; },
+    { message: `${what}: the first point's line marked and in view` }).toBe("302");
+  expect((await codeView(page)).scrollTop, `${what}: not the program's top`).toBeGreaterThan(0);
+}
+/** Two frames drawn: what an action changed in the view has been painted. */
+const twoFrames = (page: Page) => page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
 /** Every frame from the action until the code view's top: the start is a
  *  SNAP — the first frame after it already shows line 1 at scroll 0, nothing
  *  marked, no band (a glide or a band on the way is red). */
@@ -246,11 +263,7 @@ test("counter-controls: a null line in the middle and leaving the simulation kee
 test("counter-control: a track without an entry move marks its first line at 0, in view", async ({ page, context }) => {
   test.setTimeout(90_000);
   await prepare(page, context, "desktop", { atFirst: true, version: 7310, head: 300 });
-  const first = async (what: string) => {
-    await expect.poll(async () => { const v = await codeView(page); return v.active != null && v.first! <= 302 && 302 <= v.last! && !v.band ? v.active : null; },
-      { message: `${what}: the first point's line marked and in view` }).toBe("302");
-    expect((await codeView(page)).scrollTop, `${what}: not the program's top`).toBeGreaterThan(0);
-  };
+  const first = (what: string) => firstLineInView(page, what);
   await simOn(page).check();
   await first("position 0");
   await expect(page.locator(".simPanel .simLine")).toHaveText(/^L302\b/);
@@ -260,6 +273,117 @@ test("counter-control: a track without an entry move marks its first line at 0, 
   await atLine(page, 0.83);
   await backBtn(page).click();
   await first("Back to start");
+});
+
+// Codex R458 probe (MT-I32): a track without an entry move (the machine on
+// the first point, line 302). At position 0 the code scrolled away by hand,
+// then Back to start: neither the position nor the line changes — the press
+// itself must bring the marked first line back into view (never the top,
+// never an invented entry), on every press.
+for (const vp of ["desktop", "touch-fullhd"]) {
+  test(`${vp}: without an entry move, Back to start at 0 after a scroll by hand brings the marked first line back — on every press (Codex R458 probe)`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await prepare(page, context, vp, { atFirst: true, version: 8490, head: 300 });
+    await simOn(page).check();
+    await firstLineInView(page, "position 0");
+    for (const press of ["Back to start at 0", "Back to start again at 0"]) {
+      await scrollAway(page, `${press}, before`);
+      expect(Number(await slider(page).inputValue()), `${press}: the position still at 0`).toBe(0);
+      await backBtn(page).click();
+      await firstLineInView(page, press);
+      expect(Number(await slider(page).inputValue()), `${press}: the timeline at 0`).toBe(0);
+    }
+  });
+}
+
+// Codex R458 probe: with an entry move, Back to start again at 0 after a
+// scroll by hand and during playback — the top at once, playback stopped.
+test("with an entry move: Back to start again at 0 after a scroll by hand and during playback — the top, playback stopped (Codex R458 probe)", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, "desktop", { version: 8491 });
+  await simOn(page).check();
+  await scrollAway(page, "at 0");
+  await framesTo(page, () => backBtn(page).click(), "Back to start at 0");
+  const play = bar(page).getByTitle("Play the program through the machine model", { exact: true });
+  await play.click();
+  await expect.poll(async () => Number(await slider(page).inputValue()), { message: "playback moves the position" }).toBeGreaterThan(0);
+  await framesTo(page, () => backBtn(page).click(), "Back to start during playback");
+  await expect(play, "playback stopped: Play again").toBeVisible();
+  await twoFrames(page);
+  expect(Number(await slider(page).inputValue()), "playback stopped: the position stays at 0").toBe(0);
+});
+
+// Codex R458 probe (MT-I33): the motion's lines distrusted as a whole
+// (`lines_untrusted`, no per-point trust) while the text and the preview are
+// ONE publication. The start maps no motion to a line — it is the top of the
+// text on screen — so the program's top shows by the timeline and by Back to
+// start (again at 0 after a scroll by hand); nothing is marked anywhere, and
+// an ordinary null in the middle keeps the view.
+for (const vp of ["desktop", "touch-fullhd"]) {
+  test(`${vp}: the lines untrusted as a whole — timeline → 0 and Back to start show the program's top; a null in the middle keeps the view (Codex R458 probe)`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await prepare(page, context, vp, { version: 8492, untrusted: true });
+    await simOn(page).check();
+    await expect(page.locator(".simPanel .simLine"), "at the start").toHaveText("entry");
+    await scrubTo(page, 0.83);
+    await expect(page.locator(".simPanel .simLine"), "the middle: no line").toHaveText("···");
+    await scrollAway(page, "the middle");
+    const away = await codeView(page);
+    expect(away.active, "the middle: nothing marked").toBeNull();
+    // an ordinary null in the middle: the view stays
+    const was = await bar(page).locator(".posSlot").innerText();
+    await scrubTo(page, 0.6);
+    await expect(bar(page).locator(".posSlot"), "the position moved").not.toHaveText(was, { useInnerText: true });
+    await twoFrames(page);
+    expect(await codeView(page), "a null in the middle keeps the view").toEqual(away);
+    // the timeline to 0
+    await framesTo(page, () => scrubTo(page, 0), "timeline → 0, lines untrusted");
+    // Back to start from the middle, the code scrolled away by hand
+    await scrubTo(page, 0.83);
+    await scrollAway(page, "the middle again");
+    await framesTo(page, () => backBtn(page).click(), "Back to start, lines untrusted");
+    // and again at 0
+    await scrollAway(page, "at 0");
+    await framesTo(page, () => backBtn(page).click(), "Back to start again at 0, lines untrusted");
+  });
+}
+
+// Counter-controls (Codex R458): (1) no entry move and the lines untrusted —
+// the first point's line is not shown, so Back to start keeps the view: no
+// jump to line 1, nothing marked; (2) a text that is not the preview's
+// publication (the next publication's text held back, the old text still on
+// screen) gets no scroll from the start: entering at 0 and Back to start keep
+// a scroll by hand.
+test("counter-controls (Codex R458): no entry move with the lines untrusted, and a text not the preview's publication — the start keeps the view", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  // (1) no entry move, the lines untrusted
+  await prepare(page, context, "desktop", { atFirst: true, version: 8493, head: 300, untrusted: true });
+  await simOn(page).check();
+  await expect(page.locator(".simPanel .simLine"), "the first point: no trusted line").toHaveText("···");
+  await scrollAway(page, "no entry move, lines untrusted");
+  const away1 = await codeView(page);
+  await backBtn(page).click();
+  await twoFrames(page);
+  expect(Number(await slider(page).inputValue()), "no entry move: the timeline at 0").toBe(0);
+  expect(await codeView(page), "no entry move, lines untrusted: Back to start keeps the view (no line 1, nothing marked)").toEqual(away1);
+  // (2) the text on screen not the preview's publication
+  await prepare(page, context, "desktop", { version: 8494 });
+  await context.route(/\/gcode(\?|$)/, () => { /* held: the next publication's text never arrives */ });
+  const asked = page.waitForRequest(r => /\/gcode\?/.test(r.url()) && new URL(r.url()).searchParams.get("v") === "8495");
+  await publishFile("/start-8494.ngc", 8495);
+  await asked;
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getShownVersion!()), { message: "the new preview shown" }).toBe(8495);
+  await expect(page.locator(".codeViewer .codeLine").first(), "the old text still on screen").toBeVisible();
+  await scrollAway(page, "the text not the preview's");
+  const away2 = await codeView(page);
+  await simOn(page).check();
+  await expect(page.locator(".simPanel .simLine"), "at the start").toHaveText("entry");
+  await twoFrames(page);
+  expect(await codeView(page), "the text not the preview's: entering at the start keeps the view").toEqual(away2);
+  await backBtn(page).click();
+  await twoFrames(page);
+  expect(Number(await slider(page).inputValue()), "the timeline at 0").toBe(0);
+  expect(await codeView(page), "the text not the preview's: Back to start keeps the view").toEqual(away2);
 });
 
 // Play's entry rules: ⏮ is dimmed with Play in a run and with the machine
