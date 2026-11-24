@@ -1,0 +1,59 @@
+
+ RUN  v4.1.8 /tmp/r463/tree/lcnc-webui
+
+stdout | src/viewer/r463.codex.test.ts > R463 independent header grammar probes > M72 can restore the initial units: the lexical G20 is not proof
+R463 M72 {"scan":{"unit":"in","unitWhy":null,"entries":[{"tool":13,"raw":"6","value":6}]},"comparison":{"kind":"mismatch","raw":"6","headerUnit":"in","inMachine":152.39999999999998},"note":{"text":"program header Ø 6 in (152.400 mm)","warn":true}}
+
+stdout | src/viewer/r463.codex.test.ts > R463 independent header grammar probes > a Fanuc call is control flow even without an O-word in the scanned prefix
+R463 M98 {"scan":{"unit":"mm","unitWhy":null,"entries":[{"tool":13,"raw":"6","value":6}]},"comparison":{"kind":"match"}}
+
+ ❯ src/viewer/r463.codex.test.ts (3 tests | 2 failed) 5ms
+     × M72 can restore the initial units: the lexical G20 is not proof 2ms
+     × a Fanuc call is control flow even without an O-word in the scanned prefix 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r463.codex.test.ts > R463 independent header grammar probes > M72 can restore the initial units: the lexical G20 is not proof
+AssertionError: expected 'in' to be null
+
+- Expected:
+null
+
++ Received:
+"in"
+
+ ❯ src/viewer/r463.codex.test.ts:13:20
+     11|     const c = compareHeaderD(s, 13, 6, 'mm');
+     12|     console.log('R463 M72', JSON.stringify({scan:s, comparison:c, note…
+     13|     expect(s.unit).toBeNull();
+       |                    ^
+     14|     expect(c).toMatchObject({kind:'notCompared',why:'unitsNotProven'});
+     15|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r463.codex.test.ts > R463 independent header grammar probes > a Fanuc call is control flow even without an O-word in the scanned prefix
+AssertionError: expected 'mm' to be null
+
+- Expected:
+null
+
++ Received:
+"mm"
+
+ ❯ src/viewer/r463.codex.test.ts:20:20
+     18|     const s=scanToolHeader(text);
+     19|     console.log('R463 M98',JSON.stringify({scan:s,comparison:compareHe…
+     20|     expect(s.unit).toBeNull();
+       |                    ^
+     21|   });
+     22| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  2 failed | 39 passed (41)
+   Start at  15:48:44
+   Duration  444ms (transform 112ms, setup 0ms, import 239ms, tests 35ms, environment 0ms)
+

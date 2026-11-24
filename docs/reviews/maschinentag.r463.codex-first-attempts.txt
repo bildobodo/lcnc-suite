@@ -1,0 +1,111 @@
+=== native ===
+Traceback (most recent call last):
+  File "/tmp/r463/native.py", line 46, in <module>
+    assert len(canon.moves)==1,(name,canon.moves)
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: ('modal_only', [{'line': 2, 'length_units': 2, 'canon_x_inches': 0.0, 'x_mm': 0.0}, {'line': 4, 'length_units': 2, 'canon_x_inches': 0.03937007874015748, 'x_mm': 0.9999999999999999}])
+
+
+=== unit ===
+
+ RUN  v4.1.8 /tmp/r463/tree/lcnc-webui
+
+stdout | src/viewer/r463.codex.test.ts > R463 independent header grammar probes > M72 can restore the initial units: the lexical G20 is not proof
+R463 M72 {"scan":{"unit":"in","unitWhy":null,"entries":[{"tool":13,"raw":"6","value":6}]},"comparison":{"kind":"mismatch","raw":"6","headerUnit":"in","inMachine":152.39999999999998},"note":{"text":"program header Ø 6 in (152.400 mm)","warn":true}}
+
+ ❯ src/viewer/r463.codex.test.ts (5 tests | 4 failed) 5ms
+     × M72 can restore the initial units: the lexical G20 is not proof 2ms
+     × a Fanuc call is control flow even without an O-word in the scanned prefix 0ms
+     × G0 alone selects a mode, it does not end the header before G21 0ms
+     × G1 F100 alone selects a mode/rate, not a move 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r463.codex.test.ts > R463 independent header grammar probes > M72 can restore the initial units: the lexical G20 is not proof
+AssertionError: expected 'in' to be null
+
+- Expected:
+null
+
++ Received:
+"in"
+
+ ❯ src/viewer/r463.codex.test.ts:13:20
+     11|     const c = compareHeaderD(s, 13, 6, 'mm');
+     12|     console.log('R463 M72', JSON.stringify({scan:s, comparison:c, note…
+     13|     expect(s.unit).toBeNull();
+       |                    ^
+     14|     expect(c).toMatchObject({kind:'notCompared',why:'unitsNotProven'});
+     15|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/viewer/r463.codex.test.ts > R463 independent header grammar probes > a Fanuc call is control flow even without an O-word in the scanned prefix
+AssertionError: expected 'mm' to be null
+
+- Expected:
+null
+
++ Received:
+"mm"
+
+ ❯ src/viewer/r463.codex.test.ts:17:70
+     15|   });
+     16|   it('a Fanuc call is control flow even without an O-word in the scann…
+     17|     expect(scanToolHeader(program('G21', 'M98 P100', 'G0 X1')).unit).t…
+       |                                                                      ^
+     18|   });
+     19|   it('G0 alone selects a mode, it does not end the header before G21',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/viewer/r463.codex.test.ts > R463 independent header grammar probes > G0 alone selects a mode, it does not end the header before G21
+AssertionError: expected null to be 'mm' // Object.is equality
+
+- Expected:
+"mm"
+
++ Received:
+null
+
+ ❯ src/viewer/r463.codex.test.ts:20:61
+     18|   });
+     19|   it('G0 alone selects a mode, it does not end the header before G21',…
+     20|     expect(scanToolHeader(program('G0', 'G21', 'X1')).unit).toBe('mm');
+       |                                                             ^
+     21|   });
+     22|   it('G1 F100 alone selects a mode/rate, not a move', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/viewer/r463.codex.test.ts > R463 independent header grammar probes > G1 F100 alone selects a mode/rate, not a move
+AssertionError: expected null to be 'mm' // Object.is equality
+
+- Expected:
+"mm"
+
++ Received:
+null
+
+ ❯ src/viewer/r463.codex.test.ts:23:66
+     21|   });
+     22|   it('G1 F100 alone selects a mode/rate, not a move', () => {
+     23|     expect(scanToolHeader(program('G1 F100', 'G21', 'X1')).unit).toBe(…
+       |                                                                  ^
+     24|   });
+     25| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  4 failed | 39 passed (43)
+   Start at  15:47:26
+   Duration  466ms (transform 115ms, setup 0ms, import 251ms, tests 43ms, environment 0ms)
+
+
+
+=== browser ===
+[WebServer] /bin/sh: 1: vite: not found
+Error: Process from config.webServer was not able to start. Exit code: 127
+

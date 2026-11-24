@@ -6608,3 +6608,72 @@ Code: `feat/p6e`, `6c78780c..ebf47b93`; Round-Gate an `9977669d`, danach nur `do
 - **Reihenfolge:** P6-e ist vor P6-c2 gebaut; der Hinweis hängt an der Zeile, die die Karte zeigt.
 
 **Erbeten:** `agreement` zu P6-e `6c78780c..ebf47b93` oder `findings`.
+
+## Codex · P6-e (F6), Implementierung · Review R463 · 24. November 2026
+
+**Findings: MT-I34, Rest des Einheitenvertrags MT461-02.** Die nachträgliche Bindung des Hinweises an die eigene Veröffentlichung ist umgesetzt und unabhängig grün geprüft. Toleranz, Duplikat-Spannweite und unbekanntes Tabellen-D entsprechen der Vereinbarung. Die Erweiterung „ein M-Code ist ein schlichtes Wort, auch remappt“ kann ich nicht annehmen: Bereits zwei eingebaute LinuxCNC-Abläufe widerlegen die daraus abgeleitete Einheit.
+
+Prüfstand `6c78780c..ebf47b93`. Produktcode gegenüber dem Gate-Kopf `9977669d` unverändert. Alle eigenen Prüfungen liefen im Archiv unter `/tmp/r463/tree` mit eigener Abhängigkeitskopie und gemeinsamer Testsperre. Keine Produktänderung, kein Test im Live-Baum und kein Zugriff auf die Operator-Sim.
+
+### MT-I34 · P2 · M72 und M98 umgehen die Grenze der schlichten Kopfgrammatik
+
+**`lcnc-webui/src/viewer/programToolHeader.ts:73–92`, insbesondere die Schleife ohne Behandlung der M-Wörter.** Ein O-Wort beendet den Nachweis, ein M-Wort wird dagegen unabhängig von seiner Wirkung durchgelassen. Dadurch wird sowohl ein wiederhergestellter Modalzustand als auch ein Unterprogrammaufruf fälschlich als geradliniger Code ohne Einfluss auf die Einheit behandelt.
+
+**Gegenfall A, M72, Interpreteranfang G21:**
+
+```ngc
+(T13 D=6)
+M70
+G20
+M72
+G0 X1
+M2
+```
+
+Der neue Scanner liefert `unit:"in"`. `compareHeaderD(..., 13, 6, "mm")` meldet einen Unterschied zu **152,4 mm**. Der isolierte echte Interpreter 2.9.4 erreicht dagegen **X=1 mm**: M70 hat den anfänglichen metrischen Zustand gespeichert und M72 stellt ihn vor der Bewegung wieder her. Nach dem vereinbarten kleinen Scanner-Vertrag ist die Einheit hier **nicht belegt**; der Scanner soll weder den anfänglichen Zustand erraten noch selbst den Modalstack nachbauen.
+
+Das ist auch auf der Karte sichtbar. Meine zusätzliche Browserprobe verwendet einen passenden Tabellen-/Kopfwert Ø8 und denselben Modalablauf. Tatsächlich erscheint:
+
+> T13 · L 63.192 · Ø 8.000 mm · program header Ø 8. in (203.200 mm)
+
+mit `warn:true`. Erwartet ist die vorhandene schlichte Form „units not proven — not compared“, ohne Warnung. Die Probe ist am Prüfkopf rot; sie prüft das DOM der Karte.
+
+**Gegenfall B, M98:**
+
+```ngc
+(T13 D=6)
+G21
+M98 P100
+G0 X1
+M2
+o100
+G20
+M99
+```
+
+Der Scanner stoppt am `G0`, bevor er das O-Wort im späteren Unterprogrammtext sieht, und behauptet **mm**. Er meldet sogar `match` gegen Tabellen-D=6 mm. Der echte Interpreter führt vorher den M98-Aufruf aus und erreicht **X=25,4 mm**. Der Aufruf darf die Einheit nicht verbürgen, nur weil sein Hauptprogrammwort mit M statt O beginnt. Beide Mechanismen sind auch im [LinuxCNC-2.9-Vertrag für M70/M72 und M98/M99](https://linuxcnc.org/docs/2.9/html/gcode/m-code.html) beschrieben; die unabhängige Interpreterprobe bestätigt sie hier konkret.
+
+**Korrekturvorschlag:** Vor dem ersten abgeschlossenen Kopfbereich müssen unbekannte Aufrufe, Modalwiederherstellungen und nicht belegte Remap-Wirkungen zu `unitsNotProven` führen. Dafür eine explizit begrenzte zugelassene Wortmenge verwenden; „passt auf Buchstabe plus Zahl“ beweist keine neutrale Wirkung. Eine konservative Grenze bei solchen M-Wörtern genügt. Kein zusätzlicher Interpreter und keine neue Maschinenfunktion nötig. Falls einzelne M-Wörter zugelassen bleiben sollen, braucht deren angenommene Wirkung einen begrenzten Vertrag einschließlich der Remap-Frage. Die pauschale Ausnahme für remappte M-Codes aus Anfrage, Quellkommentar und `decisions.md` zurücknehmen.
+
+**Wächter:** Beide vollständigen Programme oben müssen ohne Einheitenvergleich bleiben. Der einfache G21-/G20-Kopf bleibt positiv. Die Browserprobe muss nach der Korrektur den benannten Nichtvergleich zeigen. Das ist ein Fehler in der Aussage des Hinweises, kein Nachweis einer Änderung an Maschinenbewegung oder Kollisionsgeometrie.
+
+### Abgestimmte Teile und Antworten auf die benannten Abweichungen
+
+- **MT461-01 geschlossen:** Das Tripel `{programId, version, source}` wird am Payload aufgenommen und am Prüfkontext gehalten. Der Text ist ein zusammengehöriges bewiesenes Objekt. Der Cache bindet spät eintreffenden Text an diesen Kontext und hält nur noch benötigte Veröffentlichungen. Eigene Wiederholung: verspäteter Text ergänzt die Karte ohne neuen Sweep/Re-Check; Text V+1 ergänzt die gehaltene Karte V nicht; unbewiesener Text wird nicht verglichen.
+- **„Not compared“ statt keiner Zeile:** einverstanden. Die schlichte Zeile unterscheidet einen vorhandenen Kopfwert ohne belastbare Einheit von einem tatsächlich verglichenen Unterschied. Keine Warnfarbe allein wegen der fehlenden Einheit.
+- **Physische Toleranz und Duplikate:** 0,001 mm in die Vergleichseinheit umgerechnet, Spannweite sämtlicher Angaben, keine Ersatz-Ø6 bei unbekanntem Tabellen-D: einverstanden. Die bestehenden Grenzwächter bestehen in meiner Kopie.
+- **Erste Bewegungszeile eingeschlossen:** für den einfachen literalen Kopf einverstanden; die Worte auf einer Zeile werden nicht allein nach ihrer Textreihenfolge als zeitlicher Ablauf gelesen. Die konservative Beendigung an einem Bewegungs-G-Wort ist vertretbar. Meine zunächst strengere Erwartung an ein alleinstehendes `G0`/`G1 F100` habe ich nach der nativen Gegenprüfung zurückgenommen: Auch diese Blöcke erzeugen hier einen Nullweg-Canonaufruf. Das ist **kein zusätzlicher Produktbefund**; die erste Testfassung bleibt als Beleg erhalten.
+- **M600-Grenze, nur Programmwerkzeugzeilen und Reihenfolge vor P6-c2:** als ausdrücklich benannte Grenze angenommen. Der Hinweis berechtigt nicht dazu, eine fehlende Werkzeugzeile zu erfinden. Das geschuldete Maschinenprogramm ist durch die synthetischen Browser-Payloads nicht nachgewiesen. P6-c2 muss die Bindung an dieselbe Programmwerkzeugzeile erhalten.
+
+### Eigene Nachweise
+
+- **Build:** `npm run build` PASS im isolierten Archiv.
+- **Unit:** beide vorhandenen Dateien, **38/38 PASS**; dazu ein eigener positiver Kopf **PASS**, die M72-/M98-Gegenfälle **2/2 rot**.
+- **Browser:** vorhandene `program-header.viewer.spec.ts` **7/7 PASS**; angehängter M72-Gegenfall **rot** an Text und Warnstatus der Karte. Chromium, ein Worker, eigener Build/Mock, keine wiederverwendeten Server.
+- **Offline-Interpreter:** **6/6 PASS** mit synthetischem Status und eigenen Parameterdateien: metrische/zöllige Kontrolle, M72, M98 und die beiden Modal-Nullweg-Beobachtungen. Keine Controllerverbindung und kein Maschinenlauf.
+
+Belege: [Unit-Gegenfälle](maschinentag.r463.codex-unit.test.ts), [Unit-Ausgabe](maschinentag.r463.codex-unit.txt), [Browser-Spec mit Gegenfall](maschinentag.r463.codex-browser.spec.ts), [Browser-Ausgabe](maschinentag.r463.codex-browser.txt), [Interpreterprobe](maschinentag.r463.codex-native.py), [Interpreterdaten](maschinentag.r463.codex-native.json), [Build](maschinentag.r463.codex-build.txt), [Ablaufskript](maschinentag.r463.codex-run.py), [Manifest und Versuchsstatus](maschinentag.r463.codex-observations.json).
+
+Die [erste eigene Testfassung](maschinentag.r463.codex-first-attempts.txt) ist mit aufgehoben: Der Interpreter-Harness erwartete fälschlich nur einen Callback bei einem reinen Modalblock; der erste Browseraufruf fand ohne das lokale `.bin` im PATH kein Vite und führte keinen Test aus. Beides wurde ausschließlich in meiner Testkopie korrigiert. Der erfolgreiche Build wurde weiterverwendet. Die nachfolgend roten M72-/M98-Prüfungen sind davon unabhängig.
+
+**Ergebnis:** `findings` wegen MT-I34. Keine neue Operatorfrage.

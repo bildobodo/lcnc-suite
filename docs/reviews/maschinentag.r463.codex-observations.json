@@ -1,0 +1,80 @@
+{
+  "first": [
+    {
+      "step": "native",
+      "exit": 1
+    },
+    {
+      "step": "unit",
+      "exit": 1
+    },
+    {
+      "step": "build",
+      "exit": 0
+    },
+    {
+      "step": "browser",
+      "exit": 1
+    }
+  ],
+  "first_diagnostics": {
+    "native": "Review harness expected one canon callback for a bare modal G0; actual zero-distance callback plus later motion. Fixed the observation/assertion, no product code changed.",
+    "unit": "38 existing tests passed, one control passed, M72 and M98 counterexamples failed; two additional conservative modal-stop expectations failed and were withdrawn after inspecting native callbacks.",
+    "browser": "No tests ran: direct node invocation omitted node_modules/.bin from PATH, so vite was not found. Added the isolated binary directory to PATH; reused successful build."
+  },
+  "final": [
+    {
+      "step": "native",
+      "exit": 0
+    },
+    {
+      "step": "unit",
+      "exit": 1
+    },
+    {
+      "step": "browser",
+      "exit": 1
+    }
+  ],
+  "unit_counts": {
+    "existing_pass": 38,
+    "independent_control_pass": 1,
+    "independent_counterexamples_fail": 2
+  },
+  "browser_counts": {
+    "existing_pass": 7,
+    "independent_counterexample_fail": 1
+  },
+  "offline_interpreter_cases": 6,
+  "native_package": "linuxcnc-uspace 1:2.9.4-2+deb13u1",
+  "scope": "Exact head archive in /tmp/r463/tree, copied node_modules, shared heavy lock; offline interpreter with synthetic status and private parameter files, no controller or Sim connection.",
+  "head": "ebf47b93f37088a0af2de186b345daec1782a3eb",
+  "source_sha256": {
+    "CLAUDE.md": "03f279777d1d3eed6d3e755700782fef03e8fcf110d24ee41a04cf387cd2b7c4",
+    "docs/architecture/frontend-modules.md": "38e16c1ddf82f5b292f602197d20a78b096e6f2d54b2876fc853cf2f4820d994",
+    "docs/decisions.md": "038b5b79f3d3364c027b9985cb89cbdc01845e6ba8a74de346d85276de5d464e",
+    "docs/testing.md": "a135458d8fab67d6f747e1d51c190ded827b3dd5ee6717802aa9ed6859de4efa",
+    "docs/ui-glossary.md": "33895434609564468bec93878105a8df4cc0c24f721f01218f3218e8df5bb302",
+    "lcnc-webui/e2e/program-header.viewer.spec.ts": "8054deac0ef593637ada4fd4d79dc0201ea814659bfd753d556d6dc7f77f472d",
+    "lcnc-webui/src/ScrubBar.vue": "d836a602f51622d355a20f7b7d5fcf8bcb89ab48a5d4cb9ef8c4fb42bb21ae12",
+    "lcnc-webui/src/ThreeViewer.vue": "7c44cf41544a1869a84887e6f63ac231069940a1011fb41d1017860399945c6a",
+    "lcnc-webui/src/shims.d.ts": "db225d02258fdb6fa13019534139b0a3c2e50267fb7ebfb1560d922eba24fa60",
+    "lcnc-webui/src/viewer/checkContext.test.ts": "81281409bcab421be7f5a0224a2a683e27d1e0a9e9aa40fef45e688c35ee268d",
+    "lcnc-webui/src/viewer/checkContext.ts": "89fe2e92b229e3ab64d85987f2d005c9b4b4bed0cdad1276fe46cdc966cbe6fa",
+    "lcnc-webui/src/viewer/programToolHeader.test.ts": "b0711103c94f67200b1b2e843b9488b43cf8b19ce192bb2c6d2df191dcaa5768",
+    "lcnc-webui/src/viewer/programToolHeader.ts": "5bb723afd2cca7d8a6a07cc0a5b4b54e5fc7a461499102e6e34d88912498e5e2",
+    "lcnc-webui/src/ws/bulkData.ts": "c2593db47c16d40470d9357dc31fa71651b0ed517450bc47c7f661a16a7c6efc",
+    "scripts/test_select/rules.py": "936b53067c397ed656fc1fddaf4bc61965bda258c312a633ecdbfafbb5fffb14"
+  },
+  "evidence_sha256": {
+    "unit.test.ts": "87c99769e96a0000edac683e780861c4a080eeea7605789bdc9d3499c359d2d2",
+    "native.py": "b758f9730d37acb97b89f5aaec0c0f4c59239678618cc84b86851864b57177e0",
+    "native.json": "d7b659661a3801efc4326202bf96629dee56f98f48d5ae5543030de60cce1eb9",
+    "unit.txt": "0700226f1f230381bafadc7abfb61d45c30fe842977f812baabb07fa32b39a14",
+    "browser.txt": "2b5b65131436b103ab5a97034afbd5c8670684c47f39467dda27dddf28a435de",
+    "build.txt": "7dbf23a208f7c44560003abcc6997229e806fc0a964bfdb0bbaa12f836e59ec5",
+    "browser.spec.ts": "77e74332a2014470cd5bb35e2917e826265d4aaa5ab577d95330a0366be6551b",
+    "run.py": "da1752b0c5fac6db8487bbc23dd714c86efebee34d26a454d769da4be4085b50"
+  },
+  "reference": "https://linuxcnc.org/docs/2.9/html/gcode/m-code.html"
+}

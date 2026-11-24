@@ -1,0 +1,64 @@
+[WebServer] (node:202873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:202914) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:202914) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/program-header.viewer.spec.ts:92:3 › desktop: a header diameter that differs from the table's is named at the tool's row, in warn (3.1s)
+  ✓  2 [e2e] › e2e/program-header.viewer.spec.ts:92:3 › touch-fullhd: a header diameter that differs from the table's is named at the tool's row, in warn (2.9s)
+  ✓  3 [e2e] › e2e/program-header.viewer.spec.ts:108:1 › a header that matches the table adds nothing; the other tool's difference is named at its own row (2.7s)
+  ✓  4 [e2e] › e2e/program-header.viewer.spec.ts:120:1 › an unproven unit (a sub definition's G20) compares nothing: the header named, not compared, no warn (2.8s)
+  ✓  5 [e2e] › e2e/program-header.viewer.spec.ts:133:1 › text delivered after the check ended: the hint joins that check's card without a new sweep (2.9s)
+  ✓  6 [e2e] › e2e/program-header.viewer.spec.ts:157:1 › V → V+1: V+1's text never enriches V's card; V+1's own check shows its header (4.0s)
+  ✓  7 [e2e] › e2e/program-header.viewer.spec.ts:189:1 › a text without its proof (other bytes than announced) compares nothing (2.8s)
+  ✘  8 [e2e] › e2e/program-header.viewer.spec.ts:202:1 › R463: a modal restore must not turn a matching metric header into an inch warning (12.6s)
+
+
+  1) [e2e] › e2e/program-header.viewer.spec.ts:202:1 › R463: a modal restore must not turn a matching metric header into an inch warning 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 2[39m
+    [31m+ Received  + 2[39m
+
+    [2m  Array [[22m
+    [2m    Object {[22m
+    [32m-     "text": "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared",[39m
+    [32m-     "warn": false,[39m
+    [31m+     "text": "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8. in (203.200 mm)",[39m
+    [31m+     "warn": true,[39m
+    [2m    },[22m
+    [2m  ][22m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      207 |   await checked(page,6701);
+      208 |   await cardRows(page);
+    > 209 |   await expect.poll(() => toolRows(page)).toEqual([
+          |                                           ^
+      210 |     {text:"T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared",warn:false}
+      211 |   ]);
+      212 | });
+        at /tmp/r463/tree/lcnc-webui/e2e/program-header.viewer.spec.ts:209:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R463-7f7ee-header-into-an-inch-warning-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/program-header.viewer-R463-7f7ee-header-into-an-inch-warning-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R463-7f7ee-header-into-an-inch-warning-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/program-header.viewer-R463-7f7ee-header-into-an-inch-warning-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/program-header.viewer.spec.ts:202:1 › R463: a modal restore must not turn a matching metric header into an inch warning 
+  7 passed (36.8s)
