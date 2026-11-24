@@ -19,7 +19,7 @@ import { PROBE_COMMON_FIELDS, PROBE_HINT_FIELDS, CAL_ROUND_FIELD, CAL_RECT_FIELD
          bossPocketRefusal, bossPocketNote } from "./probeFields";
 import { showBtnHint } from "./btnHint";
 import { status, request } from "./lcncWs";
-import { calOffsetView } from "./calibrationView";
+import { calOffsetView, type CalRefusal } from "./calibrationView";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
@@ -310,7 +310,7 @@ function resetCal() {
 // ─── Calibration offset and candidate (P5, W3; operator 2026-11-23 O-2/O-4) ──
 // The gateway's record and candidate — the same on every client. This
 // client's refusal of Apply stays where it began (the block), for its run.
-const calRefusal = ref<{ run: number; why: string } | null>(null);
+const calRefusal = ref<CalRefusal | null>(null);
 const calView = computed(() => calOffsetView(status.value?.probe_calibration ?? null, params.value.calOffset,
   status.value?.cal_candidate ?? null, props.linearUnit, calRefusal.value));
 async function calDecide(kind: "cal_apply" | "cal_discard") {
@@ -318,8 +318,8 @@ async function calDecide(kind: "cal_apply" | "cal_discard") {
   if (note?.kind !== "pending") return;
   calRefusal.value = null;
   const r = await request(kind === "cal_apply" ? { cmd: kind, run: note.run, value: note.value } : { cmd: kind, run: note.run });
-  if (!r) calRefusal.value = { run: note.run, why: "no reply — outcome unknown" };
-  else if (r.ok === false) calRefusal.value = { run: note.run, why: typeof r.error === "string" ? r.error : "refused" };
+  if (!r) calRefusal.value = { run: note.run, kind, why: null };
+  else if (r.ok === false) calRefusal.value = { run: note.run, kind, why: typeof r.error === "string" ? r.error : "refused" };
 }
 
 // ─── Surface map ──────────────────────────────────────────────────
@@ -1081,14 +1081,16 @@ function fmtR(key: string): string {
           <MachineBtn type="probeReset" aria-label="Reset Calibration" @click="resetCal">Reset</MachineBtn>
         </div>
         <div v-if="calView.note?.kind === 'pending'" class="statusNote warn" role="status" data-cal="candidate">
-          <span>{{ calView.note.lead }}<span class="calDot" aria-hidden="true"> · </span><span class="calPart">{{ calView.note.detail }}</span></span>
+          <!-- one row in every case (operator 2026-11-24): an Apply the gateway
+               could not carry out says so in the row's second part, never in a
+               bar of its own; "not armed" never gets here — the buttons are
+               closed by their gate and say it on a press -->
+          <span>{{ calView.note.lead }}<span class="calDot" aria-hidden="true"> · </span><span class="calPart"
+            :class="{ 'text-danger': calView.refusal }" data-cal="detail">{{ calView.refusal ?? calView.note.detail }}</span></span>
           <div class="row-tight">
             <MachineBtn type="calApply" @click="calDecide('cal_apply')">Apply</MachineBtn>
             <MachineBtn type="calDiscard" @click="calDecide('cal_discard')">Discard</MachineBtn>
           </div>
-        </div>
-        <div v-if="calView.refusal" class="statusNote error" role="alert" data-cal="refusal">
-          <span>{{ calView.refusal }}</span>
         </div>
         <div v-if="calView.note && calView.note.kind !== 'pending'" class="statusNote" data-cal="outcome"
              :class="{ ok: calView.note.kind === 'applied', warn: calView.note.kind === 'stale' }" role="status">

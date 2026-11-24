@@ -78,6 +78,16 @@ function sizeText(size: CalCandidate["size"], unit: string): string | null {
   return null;
 }
 
+/** This client's Apply / Discard that was not carried out: `why` from the
+ *  gateway's answer, null = no answer. */
+export interface CalRefusal { run: number; kind: "cal_apply" | "cal_discard"; why: string | null }
+/** Its words name the act that failed; without an answer nothing is claimed
+ *  about the outcome — the status says which state the candidate is in. */
+export function refusalText(r: CalRefusal): string {
+  if (r.why === null) return "No reply — outcome unknown";
+  return `${r.kind === "cal_apply" ? "Not applied" : "Not discarded"}: ${r.why}`;
+}
+
 /** The block's view (texts: the UI's "state — consequence" form, ≤ 60
  *  characters, no value said twice — operator 2026-11-23). `active` is the
  *  gateway's record — `null` before it sent one (an older gateway): then the
@@ -86,7 +96,7 @@ function sizeText(size: CalCandidate["size"], unit: string): string | null {
  *  run (a reply, shown where it began). */
 export function calOffsetView(active: ProbeCalibration | null, formValue: number,
                               candidate: CalCandidate | null, unit: string,
-                              refusal: { run: number; why: string } | null = null): CalOffsetView {
+                              refusal: CalRefusal | null = null): CalOffsetView {
   const u = active?.unit ?? unit;
   const value = active === null ? fmtQty(formValue, unit)
     : active.state === "none" || active.value === null ? "not set"
@@ -103,7 +113,7 @@ export function calOffsetView(active: ProbeCalibration | null, formValue: number
     const lead = `Candidate ${fmtQty(candidate.value, u)}`;
     const detail = `${basis}, ${AXIS_NAMES[candidate.axis] ?? NO_VALUE}`;
     note = { kind: "pending", run: candidate.run, value: candidate.value, lead, detail, text: `${lead} · ${detail}` };
-    if (refusal && refusal.run === candidate.run) refused = `Not applied — ${refusal.why}`;
+    if (refusal && refusal.run === candidate.run) refused = refusalText(refusal);
   } else if (candidate?.state === "applied") {
     // the Active line already holds the new value; the note says where it
     // went, once — the line then says no machine state of its own

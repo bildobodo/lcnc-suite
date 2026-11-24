@@ -39,11 +39,15 @@ describe("calOffsetView (P5, W3)", () => {
     expect(v.refusal).toBeNull();
   });
 
-  it("a refusal is shown only for the run it was given for", () => {
-    expect(calOffsetView(active, 0, cand(), "mm", { run: 12, why: "Not armed — press Arm" }).refusal)
-      .toBe("Not applied — Not armed — press Arm");
-    expect(calOffsetView(active, 0, cand({ run: 13 }), "mm", { run: 12, why: "x" }).refusal).toBeNull();
-    expect(calOffsetView(active, 0, cand({ state: "applied" }), "mm", { run: 12, why: "x" }).refusal).toBeNull();
+  it("a refusal is shown only for the run it was given for, and names the act that failed", () => {
+    const apply = (run = 12, why: string | null = "the save failed") => ({ run, kind: "cal_apply" as const, why });
+    expect(calOffsetView(active, 0, cand(), "mm", apply()).refusal).toBe("Not applied: the save failed");
+    expect(calOffsetView(active, 0, cand(), "mm", { run: 12, kind: "cal_discard", why: "the save failed" }).refusal)
+      .toBe("Not discarded: the save failed");
+    expect(calOffsetView(active, 0, cand(), "mm", apply(12, null)).refusal, "no answer claims no outcome")
+      .toBe("No reply — outcome unknown");
+    expect(calOffsetView(active, 0, cand({ run: 13 }), "mm", apply()).refusal).toBeNull();
+    expect(calOffsetView(active, 0, cand({ state: "applied" }), "mm", apply()).refusal).toBeNull();
   });
 
   it("applied: the note says where it went, once; the Active line holds the value without a second machine word", () => {
