@@ -24,6 +24,21 @@ def pw(grep, at, spec=SPEC):
 
 
 START = "desktop: the start"
+# Back to start's and Play's buttons as the template writes them (the
+# position mutation swaps the two)
+BACK_BTN = ("      <MachineBtn type=\"scrub\" class=\"iconBtn\" :disabled=\"!simulationOn || (!simMode && !machineOff)\"\n"
+            "                  :reason=\"!simulationOn ? DEVICE_SIM_OFF : undefined\"\n"
+            "                  aria-label=\"Back to start\" title=\"Back to start\"\n"
+            "                  @click=\"backToStart\">\n"
+            "        <SkipBack :size=\"14\" />\n"
+            "      </MachineBtn>\n")
+PLAY_BTN = ("      <MachineBtn type=\"scrub\" class=\"iconBtn\" :disabled=\"!simulationOn || (!simMode && !machineOff)\"\n"
+            "                  :reason=\"!simulationOn ? DEVICE_SIM_OFF : undefined\"\n"
+            "                  :title=\"playing ? 'Pause playback' : 'Play the program through the machine model'\"\n"
+            "                  @click=\"togglePlay\">\n"
+            "        <Pause v-if=\"playing\" :size=\"14\" />\n"
+            "        <Play v-else :size=\"14\" />\n"
+            "      </MachineBtn>\n")
 MUTS = {
     # ---- F11: the start state, explicit, ScrubBar -> ThreeViewer -> App -> GcodePanel
     "the_panel_ignores_the_start": (S + "GcodePanel.vue", [(
@@ -77,6 +92,11 @@ MUTS = {
         "function backToStart() {\n  if (!enterSim()) return;\n",
         "function backToStart() {\n  if (!enterSim()) simMode.value = true;\n")],
         [pw("never begins a simulation in a run", "an entry refused: no simulation")]),
+    # (P6-b round 2, the coordinator 2026-11-24: Back to start LEFT of Play,
+    # the speed directly beside Play) - the order as first built
+    "back_right_of_play": (S + "ScrubBar.vue", [(
+        BACK_BTN + PLAY_BTN, PLAY_BTN + BACK_BTN)],
+        [pw("every bar form", "Back to start directly left of Play")]),
     "the_link_beside_back": (S + "ScrubBar.vue", [(
         "  .simTabLink { display: none; }\n", "  .simTabLink { order: 1; margin-left: auto; }\n")],
         [pw("every bar form", "the link only in one row")]),

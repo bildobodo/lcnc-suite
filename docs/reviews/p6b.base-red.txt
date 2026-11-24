@@ -10,7 +10,7 @@ Run A (the spec as committed in 7adf4795, all nine tests, 3 workers): 9 failed.
   portrait 100 % / 150 %: the two-row bar ...  red at "Back to start shown"                         (F10)
   every bar form ...                           red at "Back to start right of Play" (desktop: the old row, no button) (F10)
 
-Run B (the final spec as at 64765f4e: the no-entry program's first move on line 302, the wheel's scroll at rest, the height-change step):
+Run B (the spec exactly as committed in 64765f4e - before the frame sampler's fix 96646954 and the move of Back to start left of Play - with the no-entry program's first move on line 302, the wheel's scroll at rest, the height-change step):
   desktop: the start ...                       red at "middle → 0 (timeline): the program's top"   (F11)
   counter-controls: a null line ...            red at "Sim on again: the program's top"; the counter-control steps before it GREEN
   counter-control: a track without an entry .. "position 0" and "back at 0 (timeline)" GREEN (line 302 marked and in view, not the top); red: no "Back to start" (F10)
