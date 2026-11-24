@@ -123,9 +123,17 @@ def run_guard(kind, args):
     raise SystemExit(f"unknown guard kind {kind}")
 
 
+FLAG = pathlib.Path.home() / "claude-work/live-tier/codex-review.flag"
+
+
 def main(names):
     out = {}
-    for name in names or list(MUTS):
+    todo = names or list(MUTS)
+    for k, name in enumerate(todo):
+        if FLAG.exists():
+            # a Codex review is under way: no heavy series beside it - stop, name what is left
+            print(json.dumps({"stopped": "codex review flag", "left": todo[k:]}), flush=True)
+            return 7
         path, reps, guards = MUTS[name]
         f = ROOT / path
         orig = f.read_bytes()
