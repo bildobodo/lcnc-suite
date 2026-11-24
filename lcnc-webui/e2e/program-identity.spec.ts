@@ -6,8 +6,10 @@
 // simulation on and off; for a new program, the same path loaded again,
 // A→B→A, late answers of the old load and a reconnect.
 import { test, expect, type Page } from "./test";
+import { encode } from "@msgpack/msgpack";
 import { ctl, MOCK } from "./ctl";
-import { announcement, fulfillText, loadStatus, newLoad, type Load } from "./programFixture";
+import { withLimitRuns } from "./limitRuns";
+import { announcement, fulfillPreview, fulfillText, loadStatus, newLoad, type Load } from "./programFixture";
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
@@ -133,6 +135,68 @@ async function pathPixels(page: Page): Promise<number> {
   }, [png, want] as const);
 }
 
+// ── The viewer canvas as rendered (Fable on R455: hidden ≡ unloaded) ──
+/** One fixed camera for every shot: whatever a program load or an unload does
+ *  to the view, the comparison reads the scene, not the framing. */
+const POSE = { position: [60, -160, 140], target: [60, 30, 0] };
+/** The viewer's own canvas as rendered, at the fixed pose: the DOM overlays
+ *  over it (the DRO card, the HUD's notes — "Preview waits…" differs between
+ *  hidden and unloaded by design —, the ViewCube, the quick buttons, the
+ *  scrub bar) are hidden for the shot, so only the 3D scene is compared. */
+async function viewerShot(page: Page): Promise<Buffer> {
+  await page.evaluate(p => window.__viewerDiag!.setCameraPose!(p.position, p.target), POSE);
+  await page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+  return page.locator(".viewerHost canvas").first().screenshot({
+    style: ".viewerWrapper > :not(.viewerHost) { visibility: hidden !important; }" });
+}
+/** Pixels that differ between two shots (any channel, decoded in the page). */
+async function pixelDiff(page: Page, a: Buffer, b: Buffer): Promise<number> {
+  return page.evaluate(async ([x, y]) => {
+    const px = async (b64: string) => {
+      const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
+      const cv = new OffscreenCanvas(img.width, img.height), ctx = cv.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      return ctx.getImageData(0, 0, img.width, img.height).data;
+    };
+    const [p, q] = [await px(x), await px(y)];
+    if (p.length !== q.length) return Number.POSITIVE_INFINITY;
+    let n = 0;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i] !== q[i] || p[i + 1] !== q[i + 1] || p[i + 2] !== q[i + 2] || p[i + 3] !== q[i + 3]) n++;
+    }
+    return n;
+  }, [a.toString("base64"), b.toString("base64")] as const);
+}
+/** Pixels of a palette role's colour in a shot (pathPixels' measure). */
+async function rolePixels(page: Page, png: Buffer, role: "feed" | "rapid" | "limit"): Promise<number> {
+  return page.evaluate(async ([b64, r]) => {
+    const css = (window.__viewerDiag!.getPalette!().resolved as Record<string, string>)[r]!;
+    const one = new OffscreenCanvas(1, 1).getContext("2d")!;
+    one.fillStyle = css;
+    one.fillRect(0, 0, 1, 1);
+    const c = one.getImageData(0, 0, 1, 1).data;
+    const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
+    const cv = new OffscreenCanvas(img.width, img.height), ctx = cv.getContext("2d")!;
+    ctx.drawImage(img, 0, 0);
+    const px = ctx.getImageData(0, 0, img.width, img.height).data;
+    let n = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (Math.abs(px[i]! - c[0]!) + Math.abs(px[i + 1]! - c[1]!) + Math.abs(px[i + 2]! - c[2]!) < 40) n++;
+    }
+    return n;
+  }, [png.toString("base64"), role] as const);
+}
+/** A program with every drawn class on screen: the feed, a long rapid and the
+ *  limit overlay on it (rapids.viewer.spec's shape — the mock's default
+ *  preview has a 5 mm rapid and no flags). */
+const FEED_ALL = Array.from({ length: 10 }, (_, i) => [i * 10, i % 2 ? 60 : 0, 0]);
+const PREVIEW_ALL = Buffer.from(encode(withLimitRuns({ file: "/a2.ngc", preview_schema: 11, feed: FEED_ALL,
+  feed_lines: FEED_ALL.map((_, i) => i + 3), feed_seq: FEED_ALL.map((_, i) => i + 3),
+  feed_outside: new Uint8Array(FEED_ALL.length),
+  rapid: [[90, 60, 0], [90, 60, 20], [0, 60, 20], [150, 60, 20]], rapid_lines: [13, 14, 15, 16], rapid_seq: [13, 14, 15, 16],
+  rapid_outside: new Uint8Array([0, 0, 0, 1]),
+  violations: [{ line: 16, axis: "X", value: 150, limit: 100, kind: "max" }], violations_total: 1 })));
+
 test("a new program at idle: A2's path and code never show under C; Start stays open, Edit closed", async ({ page }) => {
   await ready(page);
   const a2 = newLoad("/a2.ngc", A2);
@@ -233,6 +297,80 @@ test("the same path loaded again and A→B→A are new loads: an old publication
   await expect(page.locator(".fileName")).not.toHaveText("c.ngc");
   await expect.poll(async () => ({ ...(await scene(page)), drawn: "-" }), "hidden: the scene an unload leaves")
     .toEqual({ ...asHidden, drawn: "-" });
+});
+
+// Fable on R455 (1): hiding is destructive now (hidden is drawn as an
+// unload), so the way back is guarded too: when the status names the SAME
+// load again, the gate exposes its held payload again (bulkData
+// `_exposeGcode`: a held payload is shown whenever its identity is the
+// active one) and the viewer must DRAW it again — from the payload it holds,
+// nothing fetched. The blink is driven here by the status itself: the
+// gateway as built never follows a null program_id with the same id
+// (gateway_util LoadedProgram: a pending change ends in `_adopt_pending` — a
+// new generation — or in `abandon_change`, which clears `loaded_gen`; a
+// refused open is unconfirmed, never the old load again), so this pins the
+// page's half of the gate's contract, not a reproduced gateway sequence.
+test("the same load shown again after a blink of its identity: drawn again, as before", async ({ page }) => {
+  await ready(page);
+  const a2 = newLoad("/a2.ngc", A2);
+  await show(a2, 900);
+  await expect.poll(() => shown(page)).toBe(900);
+  await expect.poll(async () => { const s = await scene(page); return s.box != null && (s.gpu ?? 0) > 0; },
+                    { message: "the positive control: the path drawn and uploaded" }).toBe(true);
+  await expect.poll(() => pathPixels(page), "the positive control: the path rendered").toBeGreaterThan(50);
+  const before = await scene(page);
+  expect(before.drawn, "a key vouches for the drawn path").not.toBeNull();
+  const previews: string[] = [];
+  page.on("request", r => { if (/\/preview\?/.test(r.url())) previews.push(r.url()); });
+  // the blink: no program proven for a moment — the load itself unchanged
+  await ctl({ op: "status_delta", data: { program_id: null } });
+  await expect.poll(() => shown(page)).toBeNull();
+  expect(await scene(page), "the blink hid the path (the return's positive control)").toEqual(NOTHING_DRAWN);
+  await expect.poll(() => pathPixels(page), "the blink: the path no longer rendered").toBeLessThan(5);
+  // the same load with the same identity again
+  await ctl({ op: "status_delta", data: loadStatus(a2) });
+  await expect.poll(() => shown(page)).toBe(900);
+  await expect.poll(() => scene(page), { message: "shown again: drawn again, as before the blink" }).toEqual(before);
+  await expect.poll(() => pathPixels(page), "shown again: the path rendered again").toBeGreaterThan(50);
+  expect(previews, "drawn from the held payload: nothing fetched").toEqual([]);
+});
+
+// Fable on R455 (2): hidden is drawn AS an unload — the whole viewer canvas
+// as rendered, not only the path's green: the rapids, the limit overlay, a
+// tint or mark anything leaves behind. The reference is a REAL unload frame
+// from a drawn program (what an unload leaves of a drawn program — residue
+// both would leave is not hidden by starting from a cleared scene); then the
+// program is drawn again and hidden by another load. The comparison is
+// pixel-exact: the same state rendered twice is pixel-identical here (the
+// determinism control), so any differing pixel is a difference of the scene.
+test("hidden is drawn as an unload: the viewer canvas pixel for pixel", async ({ page }) => {
+  await ready(page);
+  await page.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: PREVIEW_ALL }));
+  const drawnOnce = async (load: Load, version: number) => {
+    await show(load, version);
+    await expect.poll(() => shown(page)).toBe(version);
+    await expect.poll(async () => { const s = await scene(page); return s.box != null && (s.gpu ?? 0) > 0 && s.limitLine > 0; },
+                      { message: "the program drawn, uploaded and its limit named" }).toBe(true);
+  };
+  await drawnOnce(newLoad("/a2.ngc", A2), 950);
+  const drawn = await viewerShot(page);
+  expect(await pixelDiff(page, drawn, await viewerShot(page)), "the determinism control: the same state twice").toBe(0);
+  for (const role of ["feed", "rapid", "limit"] as const)
+    expect(await rolePixels(page, drawn, role), `the positive control: the ${role} on screen`).toBeGreaterThan(20);
+  // the reference: a real unload of the drawn program (the gateway's empty frame)
+  await ctl({ op: "status_delta", data: { active_file: null, program_id: null } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode", data: { file: null, feed: [], feed_lines: [], rapid: [] } } });
+  await expect.poll(async () => (await scene(page)).box, "unloaded").toBeNull();
+  expect(await shown(page)).toBeNull();
+  const unloaded = await viewerShot(page);
+  expect(await pixelDiff(page, drawn, unloaded), "the positive control: the comparison sees the drawn program")
+    .toBeGreaterThan(500);
+  // drawn again, then hidden: another program active, none of its own shown
+  await drawnOnce(newLoad("/a2.ngc", A2), 951);
+  await ctl({ op: "status_delta", data: loadStatus(newLoad("/c.ngc", C)) });
+  await expect.poll(() => shown(page)).toBeNull();
+  await expect.poll(async () => pixelDiff(page, await viewerShot(page), unloaded),
+                    { message: "the hidden canvas is the unloaded canvas, pixel for pixel" }).toBe(0);
 });
 
 test("late answers of the old load — text and decode — never show under the new one", async ({ page }) => {

@@ -3,7 +3,7 @@ import { encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
-import { fulfillPreview, loadOf, publishFile, routeText } from "./programFixture";
+import { announcement, fulfillPreview, loadOf, loadStatus, newLoad, publishFile, routeText } from "./programFixture";
 
 // VP188-02 E2 (plan basiswechsel-last Fassung 4, Codex R193/R194): while the
 // gateway re-parses the loaded program, an offset change does not re-bake
@@ -37,14 +37,18 @@ function payload(o: { abc?: boolean; frames?: number[][] } = {}) {
 
 async function prepare(page: Page, context: BrowserContext, o: {
   bad?: number[]; stall?: number[]; abc?: boolean; frames?: number[][];
+  /** Versions served without the abc channel: drawn in the PROGRAMMED display. */
+  plain?: number[];
   /** The fixture table to send with the live offsets (a machine's G54 row
    *  equals its live G54) — the mock's own (setAxes: G54 = 10.123 …) does not. */
   table?: boolean;
 } = {}) {
   const body = payload(o);
+  const plainBody = payload({ ...o, abc: false });
   await context.route(/\/preview(\?|$)/, r => {
     const v = Number(new URL(r.request().url()).searchParams.get("v"));
     if (o.stall?.includes(v)) return;           // never answered: that version stays out
+    if (o.plain?.includes(v)) return fulfillPreview(r, { contentType: "application/octet-stream", body: plainBody });
     if (o.bad?.includes(v)) return fulfillPreview(r, { contentType: "application/octet-stream", body: Buffer.from([0xc1, 0xc1]) });
     return fulfillPreview(r, { contentType: "application/octet-stream", body });
   });
@@ -740,3 +744,97 @@ test("E1: the re-parse line's help names the collision check", async ({ page, co
   await parse(null);
 });
 
+
+// ── P2b-F1 scene: a part-frame reply still out never draws a hidden preview ──
+// Codex R455 probe (docs/reviews/maschinentag.r455.codex-probe.spec.ts, its
+// two cases adopted here as product guards): on the real XYZAC model the
+// part-frame worker's reply arrives late; the identity changes meanwhile (a
+// new load of the same path, none of its publications yet). Hidden is drawn
+// as an unload (ThreeViewer `_clearShownPreview`): the reply drawn after the
+// hide draws nothing — superseded by the clear's programmed apply
+// (`++_pfReqId`: the empty payload has no abc, `displayDecision` says
+// "programmed") and, while hidden, by `_pfOnReply`'s own `if (!g) return` —
+// and an old reply never replaces the new load's own drawing, in the part
+// frame (its own request supersedes it) or in the programmed display (the
+// third case: there only the programmed apply's `++_pfReqId` supersedes it).
+const sceneNow = (page: Page) => page.evaluate(() => {
+  const d = window.__viewerDiag!;
+  const m = d.getPathMemory!();
+  return { box: d.getPathBox!(), cpu: m.cpu.total, gpu: m.gpu.total,
+           drawn: d.getPathBasis!().drawn, shown: d.getShownVersion!() };
+});
+const emptyScene = { box: null, cpu: 0, gpu: 0, drawn: null, shown: null };
+/** A re-bake asked for in the part frame, its reply kept out. */
+async function pendingOldReply(page: Page) {
+  await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(true));
+  await sendZ(-10);
+  await replyKept(page);
+  expect((await basis(page)).mode, "the positive control: drawn in the part frame").toBe("part");
+}
+/** Another load of the same path, none of its publications yet: hidden. */
+async function hiddenLoad(page: Page) {
+  const next = newLoad(FILE);
+  await ctl({ op: "status_delta", data: loadStatus(next) });
+  await expect.poll(() => sceneNow(page), { message: "hidden: nothing of the part-frame path drawn" }).toEqual(emptyScene);
+  return next;
+}
+const twoFrames = (page: Page) =>
+  page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+
+test("Codex R455: a part-frame reply released while hidden draws nothing; the load's own publication draws", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  expect((await sceneNow(page)).box, "the positive control: the path drawn").not.toBeNull();
+  await pendingOldReply(page);
+  const next = await hiddenLoad(page);
+  const count = await page.evaluate(() => {
+    window.__viewerDiag!.holdPartFrameReplies!(false);
+    return window.__viewerDiag!.releasePartFrameReplies!();
+  });
+  expect(count, "the held reply was out").toBeGreaterThan(0);
+  await sendZ(-20);
+  // an offset change while hidden: no re-bake may draw (its debounce is 300 ms)
+  await page.waitForTimeout(500);
+  expect(await sceneNow(page), "the released reply drew nothing of the hidden preview").toEqual(emptyScene);
+  await ctl({ op: "raw", frame: announcement(next, 200) });
+  await waitDrawn(page);
+  await expect.poll(async () => (await sceneNow(page)).shown).toBe(200);
+  expect((await sceneNow(page)).box, "its own publication drawn").not.toBeNull();
+});
+
+test("Codex R455: an old part-frame reply never replaces the new load's own drawing", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  await pendingOldReply(page);
+  const next = await hiddenLoad(page);
+  await sendZ(-25);
+  await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(false));
+  await ctl({ op: "raw", frame: announcement(next, 201) });
+  await waitDrawn(page);
+  await expect.poll(async () => (await sceneNow(page)).shown).toBe(201);
+  const before = await sceneNow(page);
+  expect(before.box, "the new load's own path drawn").not.toBeNull();
+  const count = await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());
+  expect(count, "the old reply was out").toBeGreaterThan(0);
+  await twoFrames(page);
+  expect(await sceneNow(page), "the old part-frame reply changed nothing of the new drawing").toEqual(before);
+});
+
+test("an old part-frame reply never replaces the new load's PROGRAMMED drawing", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context, { plain: [202] });
+  await pendingOldReply(page);
+  const next = await hiddenLoad(page);
+  await sendZ(-25);
+  await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(false));
+  await ctl({ op: "raw", frame: announcement(next, 202) });
+  await waitDrawn(page);
+  await expect.poll(async () => (await sceneNow(page)).shown).toBe(202);
+  expect((await basis(page)).mode, "the positive control: the new load drawn programmed").toBe("programmed");
+  const before = await sceneNow(page);
+  expect(before.box, "the new load's own path drawn").not.toBeNull();
+  const count = await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());
+  expect(count, "the old reply was out").toBeGreaterThan(0);
+  await twoFrames(page);
+  expect(await sceneNow(page), "the old part-frame reply changed nothing of the programmed drawing").toEqual(before);
+});

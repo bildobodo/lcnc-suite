@@ -205,7 +205,11 @@ export function useRunDisplay(): void {
     publishSubExec(t, i, disp.subName);
   });
   // Another program (or the same one re-parsed, or none shown): the watcher
-  // starts over — the old track's playhead goes with it (P2b-F1 scene).
+  // starts over — the old track's playhead goes with it (P2b-F1 scene). A
+  // mid-run pinned re-parse lands here too: the next running status
+  // re-derives the playhead on the NEW track (the watcher re-attaches), and
+  // its reader (_startRunCheck) takes only a playhead of the shown track
+  // (runDisplay.test.ts).
   watch(track, () => {
     watcher.reset();
     runPlayhead.value = null;

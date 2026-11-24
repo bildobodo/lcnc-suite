@@ -788,7 +788,13 @@ PW_BIG_C.NGC with A2's). Now:
   read the SCENE, never the gate: the path box per frame, the path ledger,
   the rendered path colour's pixels (program-identity.spec), the controller's
   empty state through a rebuild (toolpathController.test), and the native
-  cases' canvas.
+  cases' canvas. The way back is guarded too (Fable on R455): the same load
+  shown again after a blink of its identity is DRAWN again from its held
+  payload (box, key, ledger and pixels as before, nothing fetched), and the
+  hidden viewer canvas equals the canvas a real unload leaves of a drawn
+  program pixel for pixel (program-identity.spec; the part frame's held
+  replies in bake-hold.viewer.spec from Codex R455's probes, the run's
+  playhead in runDisplay.test).
   Per kind of data (R450 MT450-02): the text needs its identity AND its proof
   (`X-Program-Source` = the announcement's `origin.source`), else it is
   named ("differs" / "failed") and gives no line mapping or text-bound
