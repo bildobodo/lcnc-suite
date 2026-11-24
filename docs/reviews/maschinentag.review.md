@@ -6286,3 +6286,61 @@ Tests ausschließlich in `/tmp/r460/tree` unter der gemeinsamen Heavy-Sperre, ei
 - P6-d (F14): Bauschritt 0 mit der Kontrolle zuerst.
 - P6-c (F8): Befundzahlen beider Kollisionskörper für Q5.
 - P6-e (F6): der Hinweis zum Programmkopf-D.
+
+---
+
+## Claude · P6 Plan v3 für F14, F8, F6 · Anfrage R461 · 24. November 2026
+
+Plan: [maschinentag.r461.p6-plan-v3-cde.md](maschinentag.r461.p6-plan-v3-cde.md) (englisch, drei Teile). Codestellen an development `6c78780c` (P6-a + P6-b gemergt). Belege: [Bauschritt 0 für F14](maschinentag.r461.p6d-step0-6c78780c.json), [nativer P6-a-Fall am gemergten Kopf](maschinentag.r461.p6-native-6c78780c.json). Der native P6-a-Fall ist am Merge-Kopf grün: `mday_head` (238.525, 379.696, 0), G55 nur X.
+
+**Erbeten:** `agreement` zu **P6-e (F6)** als Bauplan oder `findings`. Zu **F14** und **F8** Antworten auf die Designfragen unten; ihre Bauplanfassung folgt danach. Fable hat beide Berichte gelesen; seine Punkte stehen bei den Fragen.
+
+### F14 · Bauschritt 0 an `6c78780c` (VM, echte LinuxCNC, Seite, LAN-Sim beide Male zurück)
+
+- **Kontrolle:** Ein RFL ohne Vormessung startet `verified:true`. Ein RFL nach einer MDI-Messung, deren Neu-Parse veröffentlicht war, startet ebenfalls `verified:true`. Spindelstart und AUTO-Wechsel nach dem geplanten Wartepunkt erhalten also einen geprüften Start.
+  - „Messung ohne Tabellenänderung“ lässt sich nicht bauen: Der Simulator verschiebt die Länge um 0,45 µm, die Startprüfung vergleicht mit 1e-9.
+- **Messender RFL am alten Stand:** 3 von 3 ungeprüft, mit `why` = `another tool start` (zweimal) und `drift open: toolsetter` (einmal, frisches Gateway ohne bestätigte Rückleseprüfung). `run_start_check` nennt den ersten fehlschlagenden Term. Der Tabellenterm kommt nie zum Zug, und die Vorhersagen der v2 trafen nicht.
+  - Es folgt ein Pinned-Parse im Lauf (`midrun:table_mtime`), nicht an den Lauf gebunden.
+  - Die Seite verweigert ihre Laufprüfung und zeigt den ganzen Lauf „Collisions not checked“.
+- **Zeiten (VM):** Messende → Veröffentlichung des Neu-Parses 2,4 s; Positionierungsende → AUTO-Schreiben 44–216 ms. Auf der N100 geschätzt 32–60 s, nicht gemessen.
+
+**Befund MT-F14-P (zur Entscheidung).** In `cure-race` startete der Lauf 0,15 s nach der Veröffentlichung `verified:true`. Die eigene Prüfung der Seite war da noch nicht fertig. Sie verweigerte („not a parse made during the run“) und zeigte „Collisions not checked“ für den ganzen Lauf. Wo die Prüfung der Seite vor dem Start fertig war (Kontrolle, `cure-wait`), zeigte sie „Clear · checked to the end“. Das Warten im Gateway allein deckt die Seite also nicht ab.
+- **Vorschlag (a):** Die Seite lässt eine Laufprüfung auf der ungepinnten Veröffentlichung zu, gegen die ein geprüfter Lauf startete.
+- **Fable:** Das ändert die Invariante „Laufprüfung nur für den Pinned-Parse dieses Laufs“. Die Seite darf die Zuordnung nicht selbst erschließen.
+- **Frage F14-1:** Soll das Gateway die Veröffentlichung benennen, gegen die der Start geprüft wurde (etwa `run_basis.start.verified_against = {program_id, version}`), und die Seite nur dann zulassen?
+
+**Frage F14-2 (Fable).** Endet `drift open: toolsetter` innerhalb des Wartens überhaupt? Laut v2 ist die Rückleseprüfung nicht fällig, solange das RFL läuft (`_rfl_busy`). Dann wartete ein frisches Gateway die volle Frist und startete ungeprüft, schlechter als heute. Die Frist Q1 halte ich zurück, bis das geklärt ist: entweder endet der Term im Warten, oder das Warten endet bei ihm sofort.
+
+**Frage F14-3 (Fable).** Der Plan schlägt `LCNC_WEBUI_TEST_RFL_PREVIEW` vor, eine Umgebungsvariable mit Haltedatei in `_rfl_sequence`. Das ist ein Produktionslesen auf einem Pfad, der Bewegung startet. Fables Vorschlag: keine Testnaht dort. Das Warten hält ohnehin bis „verified“; ein Spike auf einem Wegwerfzweig zeigt, dass unter ihm ein Parse veröffentlicht. Einverstanden?
+
+### F8 · Zahlen für Q5 und die Leseregel
+
+**Zahlen** (echte Kollisionskette, synthetische Szene: Rohteil, zwei Spannpratzen, ein T13-ähnliches konisches Werkzeug mit D 1,875 und Schaft Ø8; `f8-counts` im Plan):
+
+| Körper | Befunde | Sweep |
+|---|---|---|
+| Stift (heute) | 0 (übersieht 3 echte Beinahe-Treffer) | 1,0 s |
+| Hülle Ø8 überall | 22 | 1,1 s |
+| gestufter Körper, 16 Scheiben | 5 | 2,3 s |
+| exakte gezeichnete Form | 3 | 21 s |
+
+- **Kein Unterschied** beim Ø6-Fräser am Ø6-Schaft.
+- **Ein Ø3-Fräser am Ø6-Schaft:** Der Stift übersieht den Schaft.
+- **Fable:** Der empfohlene Körper ist ein geschlossener gestufter Körper, gemessen wurden aber gestapelte Zylinder („surface not closed“). Vor einer Empfehlung wird der geschlossene Körper in der Probe gebaut und neu gezählt. Geprüft wird dann die Enthaltung (jeder Befund der exakten Form ist unter denen des Körpers), nicht eine Zahl.
+
+**Frage F8-1 · Wettlauf beim Lesen der Werkzeugtabelle (unabhängig von F8, besteht heute schon für den Tools-Tab).**
+- Alle drei Schreibabschnitte des Gateways schreiben zuerst die Tabelle, erhöhen dann die Version und schreiben danach die Bibliothek. Ein Client kann also die neue Tabelle mit der alten Bibliothek lesen.
+- `get_tool_table` liest ohne Sperre. Unlesbare Tabellenzeilen fallen stumm weg, eine unlesbare Bibliothek liefert stumm den Cache. Das widerspricht „keine stillen Rückfälle“.
+- Der Plan schlägt einen neuen `_tool_files_lock` über Tabelle und Bibliothek vor, dazu eine Inhaltsrevision `rev` und `unread` in der Antwort.
+- **Fable fragt:** Reicht es, die Version nach beiden Schreibvorgängen zu erhöhen, plus Inhaltsrevision, ohne neue Sperre? Bleibt die Sperre, wie ist ihre Reihenfolge gegen `_var_file_lock`, und worauf wartet ein Leser?
+- **Vorschlag:** Das wird ein eigenes kleines Paket vor P6-c.
+
+**Frage F8-2:** die Paarungsregel (Form nur mit den Maßen, die der Speicher unter seiner aktuellen Bibliotheksrevision gesehen hat; Toleranz = Drift-Epsilon 1e-4; ungepaart = heutiger Zylinder, die Karte nennt den Grund) und die Hülle aus den Dreiecken von `buildToolGeometries`, die damit jeden Zweig abdeckt (Tabelle im Plan). Ist das die richtige Richtung?
+
+### F6 · zur Zustimmung als Bauplan
+
+- **Vergleich:** der bewiesene Text der gezeigten Veröffentlichung gegen das D in `parse_tlos` derselben Veröffentlichung.
+- **Einheit:** genau ein G20/G21 vor der ersten Bewegung; keins oder beide → kein Vergleich.
+- **Doppelte Angaben:** gleiche verschmelzen, verschiedene sind ein benannter Konflikt.
+- **Ort:** nur die Werkzeugzeile der Check-basis-Karte; der Hinweis ändert nie etwas.
+- **Toleranz:** Der Plan nimmt 0,001 mm bzw. 0,0001 in nach den Nachkommastellen des Fusion-Posts, die nur aus dem Gedächtnis stammen. Alternative ist deine wörtliche Umrechnung von 0,001 mm. Ich schlage deine Umrechnung vor, solange die Stellen nicht belegt sind.

@@ -1,0 +1,1229 @@
+{
+ "_doc": "P6-d (machine-day F14) build step 0 at development 6c78780c: observations at the base, no product change. The VM's real LinuxCNC (the 3-axis sim profile, a confined copy of the run tree's commit) through the native stage's machinery (run tree, copy, start, restore as the unit's ExecStopPost); a local driver ~/claude-work/p6d/f14/ (p6d_native.py + p6d_probe.mjs + analyze.py + mkrecord.py, never committed). A real page (Chromium headless 1920x1080) with the device's simulation ON, Sim mode off, the side pane on the Sim tab, never armed, watched every case. The program (local, written into the copy): G21 G54, T1 M600 on line 3, S1000 M3, G0 X100 Y100, G0 Z-100, 20,000 padding G1 lines (parsed, skipped by the run), G0 X100 Y100, then the start line N = 20008 (G61.1 G1 X200 F3000 ..., ~25 s of motion at the safe height), M2; 20,016 lines; program B = the same with line 3 a comment. Every run from line: ONE auto_run as the UI sends it (line N, the published version/source/program id, spindle forward 1000, safe_z, entry X100 Y100 G54 G21; with pre_tool=1 the toolsetter section's values), its tool changes served by the M6 helper, then quiet. Before each case (unless named): no parse running, the drift decision not pending, the interpreter idle for 4 s, the page showing the published version. Times in seconds from each case's start mark (gateway trace wall clock) - the VM, not the N100. RUN 1: pre (T1 M600 by MDI), control-a (RFL with the measurement on the length the previous measurement left - the task's named control), plant (T1's row + 0.5 mm by save_tool, its re-parse published; the applied offset stays the measured one), red (RFL with the measurement after the plant), control-b (program B, RFL WITHOUT a pre-measurement). RUN 2 (cure): program B; measure-1 (T1 M600 by MDI), its drift re-parse published, the page's check done, then cure-wait (RFL without a pre-measurement - the planned wait emulated OUTSIDE the sequence); measure-2, then cure-race (a plain auto_run from line N sent the moment the re-parse's version arrived - the head's timing at the page); program A, control-a2 (the measuring RFL again). VERDICTS: (1) the named control cannot be built with a probe: the re-measured length differs (control-a 0.45 um) and the start check's epsilon is 1e-9 - it starts unverified like every measuring RFL; (2) the fallback control (no pre-measurement) starts verified:true, also after a measurement whose re-parse published first (cure-wait, cure-race): the steps after the planned wait point leave a start verified; (3) the measuring RFL's why at the AUTO write: 'another tool start' (control-a, red) and 'drift open: toolsetter' (control-a2) - never 'a parse runs or is pending' or 'drift open: table_mtime' here; the idle drift block was never evaluated between the measurement's end and the start (no drift decision): the steps' gaps are 1.984-2.013 s against ACTION_QUIET_S 2.0 s; (4) red did NOT change the table by 0.5 mm: this sim's measurement re-measures the stored row (50.4991 -> 50.498433, 0.67 um); the 0.5 mm moved the APPLIED offset against the published start (49.9991 -> 50.4984) - a measurement that changes the table row by 0.5 mm was not exercised; (5) every measuring RFL is followed 0.11-0.12 s after the AUTO write by a mid-run PINNED parse (midrun:table_mtime, nice 19, no run bound) that publishes mid-run; the page refuses its run check ('the run's start is not the preview's (...)') and shows 'Collisions not checked' from ~1.3 s after the measurement's table write through the whole run; (6) verified:true is not the operator's view: in cure-race the run started verified 2.5 s after the measurement's end and 0.15 s after the drift re-parse's publication, the page's check had not started (it waited for the drift decision), it refused its run check 'not a parse made during the run' and showed 'Collisions not checked' for the whole run; in cure-wait (the page's check done before the start) it showed 'Clear - checked to the end' throughout; (7) after a measurement by MDI the drift re-parse (table_mtime, nice 19) spawned 2.01-2.02 s after the routine's observed end and published 2.37-2.49 s after it (parse 0.35-0.48 s); (8) no gcode.reparse_toolsetter_held anywhere (the P2a hold ended by its 30 s cap at the first evaluation after each measurement; inside the RFL not exercised). The first run of this driver failed in the driver itself before any case (the page probe's ready step; restore complete); the measurements that started at Z -30 after a program's end took 110-112 s, those from the top 39 s - not investigated.",
+ "run": "20261124T132256-f14",
+ "commit": "6c78780c3c2eba279356fb47662695f270b6bd61",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "owed": "settled",
+ "crashes": [],
+ "steps": [
+  "tree",
+  "copy",
+  "start",
+  "connect",
+  "p6d-f14"
+ ],
+ "program": {
+  "lines": 20016,
+  "start_line": 20008,
+  "padding_lines": 20000,
+  "load_parse_s": {
+   "with_m600": [
+    {
+     "job": 1,
+     "reason": "file",
+     "s": 0.385
+    }
+   ],
+   "without_m600": [
+    {
+     "job": 8,
+     "reason": "file",
+     "s": 0.465
+    }
+   ]
+  }
+ },
+ "pre": {
+  "t1_table_length": 49.99955,
+  "errors": []
+ },
+ "plant": {
+  "from": 49.9991,
+  "to": 50.4991,
+  "reparse_published": true,
+  "page_adopted": true
+ },
+ "cases": {
+  "control-a": {
+   "pre_tool": 1,
+   "start_line": 20008,
+   "plain_auto_run": false,
+   "page_check_done_before": null,
+   "before": {
+    "quiet_wait_s": 8.1,
+    "drift_decision": {
+     "state": "parse",
+     "gen": [
+      1,
+      13
+     ],
+     "round": 9,
+     "job": 2,
+     "published": 1795523000
+    },
+    "preview_refresh": null,
+    "quiet_skipped": false,
+    "page_adopted_published_version": true,
+    "tool_number": 1,
+    "applied_tlo_z": 49.999550000000056,
+    "t1_table_length": 49.99955
+   },
+   "after": {
+    "t1_table_length": 49.9991
+   },
+   "table_file": {
+    "before": {
+     "mtime_ns": 1795523051005515525,
+     "ino": 3588568,
+     "sha256": "d219d742dab725dc",
+     "t1_line": "T1   P1   D+6.000000 Z+49.999550 ; Example end mill"
+    },
+    "after": {
+     "mtime_ns": 1795523098965673242,
+     "ino": 3588568,
+     "sha256": "c308175c47d7f78e",
+     "t1_line": "T1   P1   D+6.000000 Z+49.999100 ; Example end mill"
+    },
+    "rewritten": true,
+    "content_changed": true,
+    "writes_s": [
+     22.031,
+     22.131
+    ]
+   },
+   "rfl_phases_s": [
+    [
+     0.07,
+     "queued",
+     ""
+    ],
+    [
+     0.072,
+     "measuring",
+     ""
+    ],
+    [
+     41.459,
+     "safe_z",
+     ""
+    ],
+    [
+     43.51,
+     "positioning",
+     ""
+    ],
+    [
+     45.22,
+     "starting",
+     ""
+    ],
+    [
+     45.298,
+     "running",
+     ""
+    ]
+   ],
+   "run_basis_start": [
+    {
+     "t": 45.278,
+     "verified": false,
+     "why": "another tool start"
+    }
+   ],
+   "positioning_end_s": 45.141,
+   "step_gaps_s": [
+    {
+     "from_end": 39.473,
+     "to_phase": "safe_z",
+     "gap_s": 1.986
+    },
+    {
+     "from_end": 41.526,
+     "to_phase": "positioning",
+     "gap_s": 1.984
+    },
+    {
+     "from_end": 45.141,
+     "to_phase": "starting",
+     "gap_s": 0.079
+    }
+   ],
+   "timing_ms": {
+    "positioning_end_to_phase_starting": 78.2,
+    "positioning_end_to_run_basis_start": 136.0,
+    "phase_starting_to_run_basis_start": 57.9,
+    "run_basis_start_to_phase_running": 20.7
+   },
+   "parses": [
+    {
+     "job": 3,
+     "reason": "midrun:table_mtime",
+     "nice": 19,
+     "pinned": true,
+     "spawn": 45.401,
+     "publish": 45.783,
+     "version": 1795523001
+    },
+    {
+     "job": 4,
+     "reason": "tool_offset",
+     "nice": 19,
+     "pinned": null,
+     "spawn": 71.669,
+     "publish": 72.258,
+     "version": 1795523002
+    }
+   ],
+   "table_write_to_publication": [
+    {
+     "job": 3,
+     "reason": "midrun:table_mtime",
+     "s": 23.652,
+     "spawn_after_write_s": 23.27,
+     "parse_s": 0.382,
+     "mid_run": true
+    },
+    {
+     "job": 4,
+     "reason": "tool_offset",
+     "s": 50.127,
+     "spawn_after_write_s": 49.538,
+     "parse_s": 0.589,
+     "mid_run": false
+    }
+   ],
+   "run_end_s": 70.39,
+   "toolsetter_held_events": [],
+   "page_run_check_events": [
+    [
+     48.308,
+     "gateway",
+     "browser.collision.run_check_refused",
+     {
+      "why": "the run's start is not the preview's (another tool start)",
+      "version": 1795523001,
+      "run": 1,
+      "peer": "127.0.0.1:60272"
+     }
+    ]
+   ],
+   "page_check_waits": [
+    [
+     40.273,
+     "gateway",
+     "browser.collision.check_waits",
+     {
+      "why": "decision",
+      "gen": [
+       1,
+       18
+      ],
+      "round": 15,
+      "job": null,
+      "peer": "127.0.0.1:60960"
+     }
+    ],
+    [
+     43.275,
+     "gateway",
+     "browser.collision.check_waits",
+     {
+      "why": "decision",
+      "gen": [
+       1,
+       19
+      ],
+      "round": 16,
+      "job": null,
+      "peer": "127.0.0.1:60960"
+     }
+    ],
+    [
+     73.116,
+     "gateway",
+     "browser.collision.check_waits",
+     {
+      "why": "decision",
+      "gen": [
+       1,
+       21
+      ],
+      "round": 20,
+      "job": null,
+      "peer": "127.0.0.1:47778"
+     }
+    ]
+   ],
+   "page_words": [
+    {
+     "t_s": -0.0,
+     "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+     "bar_check": "<1 % | Collision check: <1 % checked"
+    },
+    {
+     "t_s": 19.42,
+     "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+     "bar_check": "100 % | Collision check: checked to the end"
+    },
+    {
+     "t_s": 23.43,
+     "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+     "bar_check": " | "
+    },
+    {
+     "t_s": 72.92,
+     "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+     "bar_check": "<1 % | Collision check: <1 % checked"
+    },
+    {
+     "t_s": 73.13,
+     "sim_tab_summary": "No contact so far \u00b7 72 % checked No limit violations 1 tool change",
+     "bar_check": "72 % | Collision check: 72 % checked"
+    },
+    {
+     "t_s": 75.7,
+     "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+     "bar_check": "100 % | Collision check: checked to the end"
+    }
+   ],
+   "rfl_errors": [],
+   "auto_run_reply": {
+    "type": "reply",
+    "cmd": "auto_run",
+    "ok": true,
+    "rfl": "started",
+    "toolsetter": {
+     "digest": "1b4d28954e34159c",
+     "set_up": true,
+     "synced": true
+    }
+   },
+   "program_seen_from_start_line": true
+  },
+  "red": {
+   "pre_tool": 1,
+   "start_line": 20008,
+   "plain_auto_run": false,
+   "page_check_done_before": null,
+   "before": {
+    "quiet_wait_s": 4.0,
+    "drift_decision": {
+     "state": "parse",
+     "gen": [
+      1,
+      23
+     ],
+     "round": 21,
+     "job": 5,
+     "published": 1795523003
+    },
+    "preview_refresh": null,
+    "quiet_skipped": false,
+    "page_adopted_published_version": true,
+    "tool_number": 1,
+    "applied_tlo_z": 49.99910000000011,
+    "t1_table_length": 50.4991
+   },
+   "after": {
+    "t1_table_length": 50.498433
+   },
+   "table_file": {
+    "before": {
+     "mtime_ns": 1795523157453874292,
+     "ino": 3589680,
+     "sha256": "a7530eb8fcd4c6a1",
+     "t1_line": "T1     P1     Z+00050.499100  D+0006.000000   ; Example end mill"
+    },
+    "after": {
+     "mtime_ns": 1795523230382136913,
+     "ino": 3589680,
+     "sha256": "fb031ab27a4c5be7",
+     "t1_line": "T1   P1   D+6.000000 Z+50.498433 ; Example end mill"
+    },
+    "rewritten": true,
+    "content_changed": true,
+    "writes_s": [
+     62.02,
+     62.12
+    ]
+   },
+   "rfl_phases_s": [
+    [
+     0.124,
+     "queued",
+     ""
+    ],
+    [
+     0.126,
+     "measuring",
+     ""
+    ],
+    [
+     111.91,
+     "safe_z",
+     ""
+    ],
+    [
+     111.911,
+     "positioning",
+     ""
+    ],
+    [
+     113.609,
+     "starting",
+     ""
+    ],
+    [
+     113.692,
+     "running",
+     ""
+    ]
+   ],
+   "run_basis_start": [
+    {
+     "t": 113.672,
+     "verified": false,
+     "why": "another tool start"
+    }
+   ],
+   "positioning_end_s": 113.455,
+   "step_gaps_s": [
+    {
+     "from_end": 109.897,
+     "to_phase": "safe_z",
+     "gap_s": 2.013
+    },
+    {
+     "from_end": 113.455,
+     "to_phase": "starting",
+     "gap_s": 0.154
+    }
+   ],
+   "timing_ms": {
+    "positioning_end_to_phase_starting": 153.5,
+    "positioning_end_to_run_basis_start": 216.4,
+    "phase_starting_to_run_basis_start": 62.8,
+    "run_basis_start_to_phase_running": 20.8
+   },
+   "parses": [
+    {
+     "job": 6,
+     "reason": "midrun:table_mtime",
+     "nice": 19,
+     "pinned": true,
+     "spawn": 113.79,
+     "publish": 114.406,
+     "version": 1795523004
+    },
+    {
+     "job": 7,
+     "reason": "tool_offset",
+     "nice": 19,
+     "pinned": null,
+     "spawn": 139.991,
+     "publish": 140.563,
+     "version": 1795523005
+    }
+   ],
+   "table_write_to_publication": [
+    {
+     "job": 6,
+     "reason": "midrun:table_mtime",
+     "s": 52.286,
+     "spawn_after_write_s": 51.67,
+     "parse_s": 0.616,
+     "mid_run": true
+    },
+    {
+     "job": 7,
+     "reason": "tool_offset",
+     "s": 78.443,
+     "spawn_after_write_s": 77.871,
+     "parse_s": 0.572,
+     "mid_run": false
+    }
+   ],
+   "run_end_s": 138.807,
+   "toolsetter_held_events": [],
+   "page_run_check_events": [
+    [
+     65.731,
+     "gateway",
+     "browser.collision.run_check_refused",
+     {
+      "why": "no run in progress",
+      "version": 1795523003,
+      "run": 1,
+      "peer": "127.0.0.1:55390"
+     }
+    ],
+    [
+     116.494,
+     "gateway",
+     "browser.collision.run_check_refused",
+     {
+      "why": "the run's start is not the preview's (another tool start)",
+      "version": 1795523004,
+      "run": 2,
+      "peer": "127.0.0.1:56524"
+     }
+    ]
+   ],
+   "page_check_waits": [
+    [
+     110.848,
+     "gateway",
+     "browser.collision.check_waits",
+     {
+      "why": "decision",
+      "gen": [
+       1,
+       29
+      ],
+      "round": 28,
+      "job": null,
+      "peer": "127.0.0.1:55390"
+     }
+    ],
+    [
+     140.843,
+     "gateway",
+     "browser.collision.check_waits",
+     {
+      "why": "decision",
+      "gen": [
+       1,
+       31
+      ],
+      "round": 32,
+      "job": null,
+      "peer": "127.0.0.1:49824"
+     }
+    ]
+   ],
+   "page_words": [
+    {
+     "t_s": -0.0,
+     "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+     "bar_check": "100 % | Collision check: checked to the end"
+    },
+    {
+     "t_s": 63.36,
+     "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+     "bar_check": " | "
+    },
+    {
+     "t_s": 141.18,
+     "sim_tab_summary": "No contact so far \u00b7 57 % checked No limit violations 1 tool change",
+     "bar_check": "57 % | Collision check: 57 % checked"
+    },
+    {
+     "t_s": 143.73,
+     "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+     "bar_check": "100 % | Collision check: checked to the end"
+    }
+   ],
+   "rfl_errors": [],
+   "auto_run_reply": {
+    "type": "reply",
+    "cmd": "auto_run",
+    "ok": true,
+    "rfl": "started",
+    "toolsetter": {
+     "digest": "1b4d28954e34159c",
+     "set_up": true,
+     "synced": true
+    }
+   },
+   "program_seen_from_start_line": true
+  },
+  "control-b": {
+   "pre_tool": 0,
+   "start_line": 20008,
+   "plain_auto_run": false,
+   "page_check_done_before": null,
+   "before": {
+    "quiet_wait_s": 4.0,
+    "drift_decision": {
+     "state": "parse",
+     "gen": [
+      2,
+      31
+     ],
+     "round": 33,
+     "job": 8,
+     "published": 1795523006
+    },
+    "preview_refresh": null,
+    "quiet_skipped": false,
+    "page_adopted_published_version": true,
+    "tool_number": 1,
+    "applied_tlo_z": 50.49843333333348,
+    "t1_table_length": 50.498433
+   },
+   "after": {
+    "t1_table_length": 50.498433
+   },
+   "table_file": {
+    "before": {
+     "mtime_ns": 1795523230382136913,
+     "ino": 3589680,
+     "sha256": "fb031ab27a4c5be7",
+     "t1_line": "T1   P1   D+6.000000 Z+50.498433 ; Example end mill"
+    },
+    "after": {
+     "mtime_ns": 1795523230382136913,
+     "ino": 3589680,
+     "sha256": "fb031ab27a4c5be7",
+     "t1_line": "T1   P1   D+6.000000 Z+50.498433 ; Example end mill"
+    },
+    "rewritten": false,
+    "content_changed": false,
+    "writes_s": []
+   },
+   "rfl_phases_s": [
+    [
+     0.124,
+     "queued",
+     ""
+    ],
+    [
+     0.126,
+     "safe_z",
+     ""
+    ],
+    [
+     0.755,
+     "positioning",
+     ""
+    ],
+    [
+     2.378,
+     "starting",
+     ""
+    ],
+    [
+     2.443,
+     "running",
+     ""
+    ]
+   ],
+   "run_basis_start": [
+    {
+     "t": 2.421,
+     "verified": true,
+     "why": null
+    }
+   ],
+   "positioning_end_s": 2.357,
+   "step_gaps_s": [
+    {
+     "from_end": 0.126,
+     "to_phase": "safe_z",
+     "gap_s": 0.0
+    },
+    {
+     "from_end": 0.745,
+     "to_phase": "positioning",
+     "gap_s": 0.01
+    },
+    {
+     "from_end": 2.357,
+     "to_phase": "starting",
+     "gap_s": 0.021
+    }
+   ],
+   "timing_ms": {
+    "positioning_end_to_phase_starting": 21.6,
+    "positioning_end_to_run_basis_start": 64.2,
+    "phase_starting_to_run_basis_start": 42.6,
+    "run_basis_start_to_phase_running": 22.7
+   },
+   "parses": [],
+   "table_write_to_publication": null,
+   "run_end_s": 27.525,
+   "toolsetter_held_events": [],
+   "page_run_check_events": [],
+   "page_check_waits": [],
+   "page_words": [
+    {
+     "t_s": -0.0,
+     "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations No tool changes",
+     "bar_check": "100 % | Collision check: checked to the end"
+    }
+   ],
+   "rfl_errors": [],
+   "auto_run_reply": {
+    "type": "reply",
+    "cmd": "auto_run",
+    "ok": true,
+    "rfl": "started",
+    "toolsetter": {
+     "digest": "1b4d28954e34159c",
+     "set_up": true,
+     "synced": false
+    }
+   },
+   "program_seen_from_start_line": true
+  }
+ },
+ "page_probe_errors": [],
+ "cure": {
+  "run": "20261124T133642-f14-cure",
+  "commit": "6c78780c3c2eba279356fb47662695f270b6bd61",
+  "error": null,
+  "restore": "complete",
+  "restore_post": "complete",
+  "owed": "settled",
+  "crashes": [],
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "p6d-f14"
+  ],
+  "measure_1": {
+   "routine_held_s": 39.38,
+   "routine_end_to_spawn_s": 2.022,
+   "spawn_reason": "table_mtime",
+   "nice": 19,
+   "routine_end_to_publish_s": 2.371,
+   "parse_s": 0.349,
+   "driver_saw_version_s": 2.405,
+   "t1_after": 49.99955
+  },
+  "measure_2": {
+   "routine_held_s": 109.89,
+   "routine_end_to_spawn_s": 2.014,
+   "spawn_reason": "table_mtime",
+   "nice": 19,
+   "routine_end_to_publish_s": 2.49,
+   "parse_s": 0.476,
+   "driver_saw_version_s": 2.501,
+   "t1_after": 49.998883
+  },
+  "cases": {
+   "cure-wait": {
+    "pre_tool": 0,
+    "start_line": 20008,
+    "plain_auto_run": false,
+    "page_check_done_before": "Clear \u00b7 checked to the end * No limit violations No tool changes",
+    "before": {
+     "quiet_wait_s": 4.0,
+     "drift_decision": {
+      "state": "parse",
+      "gen": [
+       1,
+       12
+      ],
+      "round": 8,
+      "job": 2,
+      "published": 1795523916
+     },
+     "preview_refresh": null,
+     "quiet_skipped": false,
+     "page_adopted_published_version": true,
+     "tool_number": 1,
+     "applied_tlo_z": 49.999550000000056,
+     "t1_table_length": 49.99955
+    },
+    "after": {
+     "t1_table_length": 49.99955
+    },
+    "table_file": {
+     "before": {
+      "mtime_ns": 1795523971649257598,
+      "ino": 3589707,
+      "sha256": "d219d742dab725dc",
+      "t1_line": "T1   P1   D+6.000000 Z+49.999550 ; Example end mill"
+     },
+     "after": {
+      "mtime_ns": 1795523971649257598,
+      "ino": 3589707,
+      "sha256": "d219d742dab725dc",
+      "t1_line": "T1   P1   D+6.000000 Z+49.999550 ; Example end mill"
+     },
+     "rewritten": false,
+     "content_changed": false,
+     "writes_s": []
+    },
+    "rfl_phases_s": [
+     [
+      0.001,
+      "queued",
+      ""
+     ],
+     [
+      0.001,
+      "safe_z",
+      ""
+     ],
+     [
+      2.034,
+      "positioning",
+      ""
+     ],
+     [
+      3.749,
+      "starting",
+      ""
+     ],
+     [
+      3.824,
+      "running",
+      ""
+     ]
+    ],
+    "run_basis_start": [
+     {
+      "t": 3.793,
+      "verified": true,
+      "why": null
+     }
+    ],
+    "positioning_end_s": 3.749,
+    "step_gaps_s": [
+     {
+      "from_end": 0.023,
+      "to_phase": "positioning",
+      "gap_s": 2.011
+     },
+     {
+      "from_end": 3.749,
+      "to_phase": "starting",
+      "gap_s": 0.0
+     }
+    ],
+    "timing_ms": {
+     "positioning_end_to_phase_starting": 0.2,
+     "positioning_end_to_run_basis_start": 43.8,
+     "phase_starting_to_run_basis_start": 43.6,
+     "run_basis_start_to_phase_running": 31.0
+    },
+    "parses": [],
+    "table_write_to_publication": null,
+    "run_end_s": 28.888,
+    "toolsetter_held_events": [],
+    "page_run_check_events": [],
+    "page_check_waits": [],
+    "page_words": [
+     {
+      "t_s": -0.0,
+      "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations No tool changes",
+      "bar_check": "100 % | Collision check: checked to the end"
+     }
+    ],
+    "rfl_errors": [],
+    "auto_run_reply": {
+     "type": "reply",
+     "cmd": "auto_run",
+     "ok": true,
+     "rfl": "started",
+     "toolsetter": {
+      "digest": "a54e12c7ddc62c4b",
+      "set_up": true,
+      "synced": false
+     }
+    },
+    "program_seen_from_start_line": true
+   },
+   "cure-race": {
+    "pre_tool": 0,
+    "start_line": 20008,
+    "plain_auto_run": true,
+    "page_check_done_before": null,
+    "before": {
+     "quiet_wait_s": 0.0,
+     "drift_decision": {
+      "state": "parse",
+      "gen": [
+       1,
+       20
+      ],
+      "round": 15,
+      "job": 3,
+      "published": 1795523917
+     },
+     "preview_refresh": null,
+     "quiet_skipped": true,
+     "page_adopted_published_version": null,
+     "tool_number": 1,
+     "applied_tlo_z": 49.99888333333354,
+     "t1_table_length": 49.998883
+    },
+    "after": {
+     "t1_table_length": 49.998883
+    },
+    "table_file": {
+     "before": {
+      "mtime_ns": 1795524091825806199,
+      "ino": 3589707,
+      "sha256": "5f4cdafddd3a3e04",
+      "t1_line": "T1   P1   D+6.000000 Z+49.998883 ; Example end mill"
+     },
+     "after": {
+      "mtime_ns": 1795524091825806199,
+      "ino": 3589707,
+      "sha256": "5f4cdafddd3a3e04",
+      "t1_line": "T1   P1   D+6.000000 Z+49.998883 ; Example end mill"
+     },
+     "rewritten": false,
+     "content_changed": false,
+     "writes_s": []
+    },
+    "rfl_phases_s": [],
+    "run_basis_start": [
+     {
+      "t": 0.154,
+      "verified": true,
+      "why": null
+     }
+    ],
+    "positioning_end_s": null,
+    "step_gaps_s": [],
+    "timing_ms": {
+     "positioning_end_to_phase_starting": null,
+     "positioning_end_to_run_basis_start": null,
+     "phase_starting_to_run_basis_start": null,
+     "run_basis_start_to_phase_running": null
+    },
+    "parses": [],
+    "table_write_to_publication": null,
+    "run_end_s": 21.132,
+    "toolsetter_held_events": [],
+    "page_run_check_events": [
+     [
+      5.46,
+      "gateway",
+      "browser.collision.run_check_refused",
+      {
+       "why": "not a parse made during the run",
+       "version": 1795523917,
+       "run": 2,
+       "peer": "127.0.0.1:51792"
+      }
+     ],
+     [
+      23.451,
+      "gateway",
+      "browser.collision.run_check_refused",
+      {
+       "why": "not a parse made during the run",
+       "version": 1795523917,
+       "run": 2,
+       "peer": "127.0.0.1:51792"
+      }
+     ]
+    ],
+    "page_check_waits": [
+     [
+      2.557,
+      "gateway",
+      "browser.collision.check_waits",
+      {
+       "why": "decision",
+       "gen": [
+        1,
+        21
+       ],
+       "round": 16,
+       "job": null,
+       "peer": "127.0.0.1:51792"
+      }
+     ]
+    ],
+    "page_words": [
+     {
+      "t_s": -0.0,
+      "sim_tab_summary": "Collisions not checked No limit violations No tool changes",
+      "bar_check": " | "
+     },
+     {
+      "t_s": 22.46,
+      "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations No tool changes",
+      "bar_check": "<1 % | Collision check: <1 % checked"
+     },
+     {
+      "t_s": 22.64,
+      "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations No tool changes",
+      "bar_check": "100 % | Collision check: checked to the end"
+     }
+    ],
+    "rfl_errors": [],
+    "auto_run_reply": {
+     "type": "reply",
+     "cmd": "auto_run",
+     "ok": true,
+     "toolsetter": {
+      "digest": "a54e12c7ddc62c4b",
+      "set_up": true,
+      "synced": false
+     }
+    },
+    "program_seen_from_start_line": true
+   },
+   "control-a2": {
+    "pre_tool": 1,
+    "start_line": 20008,
+    "plain_auto_run": false,
+    "page_check_done_before": null,
+    "before": {
+     "quiet_wait_s": 4.0,
+     "drift_decision": {
+      "state": "parse",
+      "gen": [
+       2,
+       21
+      ],
+      "round": 18,
+      "job": 4,
+      "published": 1795523918
+     },
+     "preview_refresh": null,
+     "quiet_skipped": false,
+     "page_adopted_published_version": true,
+     "tool_number": 1,
+     "applied_tlo_z": 49.99888333333354,
+     "t1_table_length": 49.998883
+    },
+    "after": {
+     "t1_table_length": 49.998217
+    },
+    "table_file": {
+     "before": {
+      "mtime_ns": 1795524091825806199,
+      "ino": 3589707,
+      "sha256": "5f4cdafddd3a3e04",
+      "t1_line": "T1   P1   D+6.000000 Z+49.998883 ; Example end mill"
+     },
+     "after": {
+      "mtime_ns": 1795524235246468474,
+      "ino": 3589707,
+      "sha256": "d24496688464a44f",
+      "t1_line": "T1   P1   D+6.000000 Z+49.998217 ; Example end mill"
+     },
+     "rewritten": true,
+     "content_changed": true,
+     "writes_s": [
+      62.139,
+      62.239
+     ]
+    },
+    "rfl_phases_s": [
+     [
+      0.131,
+      "queued",
+      ""
+     ],
+     [
+      0.132,
+      "measuring",
+      ""
+     ],
+     [
+      112.098,
+      "safe_z",
+      ""
+     ],
+     [
+      112.098,
+      "positioning",
+      ""
+     ],
+     [
+      113.716,
+      "starting",
+      ""
+     ],
+     [
+      113.802,
+      "running",
+      ""
+     ]
+    ],
+    "run_basis_start": [
+     {
+      "t": 113.781,
+      "verified": false,
+      "why": "drift open: toolsetter"
+     }
+    ],
+    "positioning_end_s": 113.716,
+    "step_gaps_s": [
+     {
+      "from_end": 110.108,
+      "to_phase": "safe_z",
+      "gap_s": 1.99
+     },
+     {
+      "from_end": 113.716,
+      "to_phase": "starting",
+      "gap_s": 0.0
+     }
+    ],
+    "timing_ms": {
+     "positioning_end_to_phase_starting": 0.4,
+     "positioning_end_to_run_basis_start": 65.3,
+     "phase_starting_to_run_basis_start": 64.9,
+     "run_basis_start_to_phase_running": 21.1
+    },
+    "parses": [
+     {
+      "job": 5,
+      "reason": "midrun:table_mtime",
+      "nice": 19,
+      "pinned": true,
+      "spawn": 113.9,
+      "publish": 114.554,
+      "version": 1795523919
+     },
+     {
+      "job": 6,
+      "reason": "tool_offset",
+      "nice": 19,
+      "pinned": null,
+      "spawn": 140.139,
+      "publish": 140.737,
+      "version": 1795523920
+     }
+    ],
+    "table_write_to_publication": [
+     {
+      "job": 5,
+      "reason": "midrun:table_mtime",
+      "s": 52.315,
+      "spawn_after_write_s": 51.661,
+      "parse_s": 0.654,
+      "mid_run": true
+     },
+     {
+      "job": 6,
+      "reason": "tool_offset",
+      "s": 78.498,
+      "spawn_after_write_s": 77.9,
+      "parse_s": 0.598,
+      "mid_run": false
+     }
+    ],
+    "run_end_s": 138.896,
+    "toolsetter_held_events": [],
+    "page_run_check_events": [
+     [
+      64.569,
+      "gateway",
+      "browser.collision.run_check_refused",
+      {
+       "why": "no run in progress",
+       "version": 1795523918,
+       "run": 2,
+       "peer": "127.0.0.1:51792"
+      }
+     ],
+     [
+      117.059,
+      "gateway",
+      "browser.collision.run_check_refused",
+      {
+       "why": "the run's start is not the preview's (drift open: toolsetter)",
+       "version": 1795523918,
+       "run": 3,
+       "peer": "127.0.0.1:51792"
+      }
+     ],
+     [
+      117.059,
+      "gateway",
+      "browser.collision.run_check_refused",
+      {
+       "why": "the run's start is not the preview's (drift open: toolsetter)",
+       "version": 1795523918,
+       "run": 3,
+       "peer": "127.0.0.1:51792"
+      }
+     ],
+     [
+      117.059,
+      "gateway",
+      "browser.collision.run_check_refused",
+      {
+       "why": "the run's start is not the preview's (drift open: toolsetter)",
+       "version": 1795523919,
+       "run": 3,
+       "peer": "127.0.0.1:51792"
+      }
+     ]
+    ],
+    "page_check_waits": [
+     [
+      112.564,
+      "gateway",
+      "browser.collision.check_waits",
+      {
+       "why": "decision",
+       "gen": [
+        2,
+        27
+       ],
+       "round": 25,
+       "job": null,
+       "peer": "127.0.0.1:51792"
+      }
+     ],
+     [
+      139.56,
+      "gateway",
+      "browser.collision.check_waits",
+      {
+       "why": "decision",
+       "gen": [
+        2,
+        29
+       ],
+       "round": 29,
+       "job": null,
+       "peer": "127.0.0.1:51792"
+      }
+     ]
+    ],
+    "page_words": [
+     {
+      "t_s": -0.0,
+      "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+      "bar_check": "100 % | Collision check: checked to the end"
+     },
+     {
+      "t_s": 63.55,
+      "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+      "bar_check": " | "
+     },
+     {
+      "t_s": 141.32,
+      "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+      "bar_check": "<1 % | Collision check: <1 % checked"
+     },
+     {
+      "t_s": 141.52,
+      "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+      "bar_check": "100 % | Collision check: checked to the end"
+     }
+    ],
+    "rfl_errors": [],
+    "auto_run_reply": {
+     "type": "reply",
+     "cmd": "auto_run",
+     "ok": true,
+     "rfl": "started",
+     "toolsetter": {
+      "digest": "a54e12c7ddc62c4b",
+      "set_up": true,
+      "synced": true
+     }
+    },
+    "program_seen_from_start_line": true
+   }
+  }
+ }
+}
