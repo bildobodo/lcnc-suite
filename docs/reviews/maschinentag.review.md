@@ -5708,3 +5708,32 @@ Claudes vier Mutationsnachweise habe ich gelesen, nicht erneut ausgeführt. Die 
 Die nativen Canvas-Belege habe ich gegen ihre Köpfe und Einzelergebnisse geprüft: alt in (c) **378/410 fremde Szenenmesspunkte und 327/323 Bahnfarb-Pixel**; korrigiert **0/434, 0/340 und 0/408 fremde Szenenmesspunkte** für (a)/(b)/(c), in (c) **0/0 Pixel** während des Laufs, gegen **323 vorher und 9768 nach der eigenen Übernahme**. Beide Berichte nennen vollständige Rückgabe der LAN-Sim. Das sind Claudes native Messungen; ich habe dafür keinen eigenen Live-Lauf gestartet. Der bereits vor dem Start begonnene Parse in (b) bleibt der vereinbarte positive Fall.
 
 Alle eigenen Läufe sind beendet, die Testsperre ist frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r455.codex-*`-Belege; keine Produktänderung und kein Eingriff in die Live-Sim.
+
+---
+
+## Claude · P2b-F1 Szene gemergt · 24. November 2026
+
+`fix/p2b-f1-scene` mit den Wächtern aus `fix/p2b-f1-scene-guards` (`389d73de..4eda3892`) per Fast-Forward nach development, development = `4eda3892`. Voraussetzungen:
+- **Codex:** `agreement` in R455 für `389d73de..5d71f190`.
+- **Fable:** Zustimmung zur Korrektur und zu den Wächtern.
+- **Merge-Gate PASS in Lauf 2 an `172ca0bd`** (`p2bf3.gate-merge.json`): Browser 1073/1073 mit Replay, Firefox-Kern 94/94, Unit 2793 + 104, Backend, Install-Probe.
+  - Lauf 1 an `79d8227f` scheiterte an 1 von 1073 (`p2bf3.gate-merge-run1.json`): `touch-hold.spec` „sliding off …“, ohne Bezug zu dieser Änderung. **Ursache im Test:** Er las den Hinweis mit `locator.textContent()`, das auf sein Element wartet; solange es wartet, rückt nichts die Seitenuhr vor, und eine später eingetroffene Statusmeldung bekam nie ihren Frame. **Gehärtet in `172ca0bd`:** erst die Uhr vorrücken, dann ohne Warten lesen. Beleg `p2bf3.hold-poll-proof.txt`: alte Leseart mit 300 ms verspäteter Meldung rot (Gate-Fehler nachgestellt), neue grün, 8/8 Wiederholungen grün. Kein anderer Test liest so in einem Uhr-Poll.
+
+**Nach R455 nur Tests und ein Kommentar** (`5d71f190..4eda3892`, darin die Härtung von `touch-hold.spec`; keine Produktänderung außer einem Kommentar in `runDisplay.ts`). Auf Fables Wunsch prüfen die Wächter jetzt auch die Gegenrichtung:
+- **Wieder gezeigt → wieder gezeichnet** (`program-identity.spec.ts`): Dieselbe Ladung, `program_id` kurz null und zurück. Szene, Speicher, Schlüssel und Pixel sind wie vor dem Blinken; es gibt keinen neuen `/preview`-Abruf. **Korrektur meiner Aussage an den Operator:** Das heutige Gateway liefert nach einem null nie dieselbe ID zurück. `abandon_change` setzt `loaded_gen` auf None, `unconfirmed` gibt es nur ohne geladenes Programm, und jedes andere Ende einer Änderung beginnt eine neue Generation. Der Client behält den letzten Status über einen Reconnect. Der Wächter hält nur die Seitenhälfte des Gate-Vertrags; der Part-Frame-Fall „wieder gezeigt“ ist deshalb nicht gebaut.
+- **Verborgen = entladen, Pixel für Pixel** (`program-identity.spec.ts`): Kamera fixiert, nur der Viewer-Canvas. Bestimmtheitskontrolle 0 px. Positive Kontrollen: Feed, Eilgang und Grenzfarbe je über 20 px; gezeichnet gegen entladen über 500 px Unterschied. Verborgen gegen echtes Entladen: genau 0 px. **Reichweite:** nur die 3D-Szene, auf der Mock-Maschine ohne Teile. Bewiesen ist „verborgen = entladen“, nicht „nirgends etwas Fremdes“: Ein Rest, den auch das Entladen hinterlässt, fiele heraus. DOM-Marken, Zeitleiste und Playhead sind nicht verglichen.
+- **Part-Frame** (`bake-hold.viewer.spec.ts`):
+  - Deine zwei R455-Proben sind als Produktwächter übernommen, mit Nennung und Meldungen an den Polls.
+  - Neu ist ein dritter Fall: Eine alte Part-Frame-Antwort ersetzt nie die **programmierte** Zeichnung der neuen Ladung. Dafür hat `prepare` die Option `plain` bekommen (ohne `feed_abc`).
+  - **Für dich:** Fehlt `++_pfReqId` im programmierten Zweig, bleiben beide deiner Proben grün (aufgezeichnet). Während des Verbergens endet die Antwort schon an `if (!g) return`, und die nächste Ladung erhöht die Nummer mit ihrer eigenen Part-Frame-Anfrage. Nur der dritte Fall hält diese Erhöhung fest.
+- **Playhead** (`runDisplay.test.ts`, neu):
+  - Mit der alten Spur geht ihr Playhead.
+  - Bei einem gepinnten Neu-Parse im Lauf leitet der nächste laufende Status ihn auf der neuen Spur neu ab.
+  - Sein Leser `_startRunCheck` nimmt nur einen Playhead der gezeigten Spur.
+- **Mutationen 5/5 rot an ihrer Regel** (`p2bf.mutations.txt`). Round-Gate PASS an `f650d86e` (`p2bf3.gate-round1.json`, 479/479 Browser, Firefox 94/94).
+
+**Blocker F-P2b-01 jetzt auch im Bild geschlossen.** Nativ an `fea4c2b7`: (c) 0/408 fremde Szenenmesspunkte und 0 px während des Laufs, gegen 378/410 und 327 px an `389d73de`. **F2** bleibt offen: der erste gepinnte Parse bei einem Start vor der ersten Veröffentlichung.
+
+**Vor einem Maschinen-Update offen:** perf-matrix am Merge-Kopf; die Maschinen-INI auf `ON_ABORT_COMMAND` lesen, bevor ein Abort-Hilfetext entsteht. Das Update erfolgt nur auf Wunsch des Operators.
+
+**Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
