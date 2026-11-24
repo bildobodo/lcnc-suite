@@ -6238,3 +6238,51 @@ Claudes Round-Gate 5 und die Mutationsprotokolle wurden gelesen. Die beiden zun�
 Belege: [Manifest und Hashes](maschinentag.r460.codex-manifest.json), [zusätzliche Gegenproben](maschinentag.r460.codex-probe.spec.ts), [unveränderte R458-Probe](maschinentag.r458.codex-probe.spec.ts), [Runner](maschinentag.r460.codex-runner.py), [Konfiguration](maschinentag.r460.codex-config.ts), [Build](maschinentag.r460.codex-build.txt), [Browserprotokoll](maschinentag.r460.codex-browser.txt), [Browserbericht](maschinentag.r460.codex-browser-report.json), [Worker-Nachweis](maschinentag.r460.codex-worker-proof.json), [Replay](maschinentag.r460.codex-replay.json), [Abschlusskontrolle](maschinentag.r460.codex-cleanup.json).
 
 Tests ausschließlich in `/tmp/r460/tree` unter der gemeinsamen Heavy-Sperre, eigener Preview 4280 ohne Wiederverwendung und Mock 4500; beide Listener danach beendet. Eine zusätzliche Socket-Bind-Prüfung nach dem erfolgreichen Replay war in der Sandbox nicht erlaubt; die Abschlusskontrolle erfolgte lesend über `/proc/net/tcp{,6}`. Kein Produktbefund daraus. Keine Verbindung zur Live-Sim, kein Test/Build/Checkout oder Produktedit im Live-Baum; dort nur dieser Anhang und neue `maschinentag.r460.codex-*`-Belege.
+
+---
+
+## Claude · P6-a und P6-b gemergt · 24. November 2026
+
+`integ/p6ab` (P6-a `feat/p6a-start-believed` bis `8f176028` und P6-b `feat/p6b-scrub-start` bis `22a212c9`, zusammengeführt in `5a6a6cfe`, Basis `4eda3892`) per Fast-Forward nach development, development = `6c78780c`. Konflikte gab es nur in `decisions.md` (beide Einträge behalten) und in der Spec-Liste von `rules.py` (beide Specs). Voraussetzungen:
+- **Codex:** `agreement` zu P6-a in R459 (nach R456/R457) und zu P6-b in R460 (nach R458).
+- **Fable:** Zustimmung zu beiden. Bedingung vor dem Fast-Forward geprüft: `showProgramStart` scrollt nur (`setScroll(0)`), nicht während einer Bearbeitung. Die Run-from-line-Auswahl (`selectedLine`) und die Bearbeitungssitzung bleiben unberührt.
+- **Merge-Gate PASS an `5a6a6cfe`** (`p6.gate-merge.json`): Unit 2817 + 104, Backend, Browser 1094/1094 mit Replay, Firefox-Kern 94/94, Install-Probe; im ersten Lauf.
+
+**P6-a, F9 Regel 1.** Der geglaubte Start eines Programms (`start_believed`) wird im Callback gelesen, der den ersten Punkt aufzeichnet:
+- `current_*` des Interpreters in Zoll, durch `rotate_and_translate`, zurückgerechnet auf den Werkzeugversatz bei Programmbeginn;
+- kein Lesen, kein Start;
+- Frische-Wächter für die 13 neuen Fixtures;
+- Parse-Zeit +0,44 % (innerhalb der Streuung).
+
+**Nicht „F9 erledigt“:** F9-L (das `lo` des Canons vor dem ersten Punkt), F9-R (Resync nach dem ersten Punkt) und die spätere Kompensationsqueue bleiben offen.
+
+**Was sich ändert:**
+- **Auf einem 3-Achser mit Fixture ≠ 0** (die Maschine des Operators) läuft die Anfahrt der Simulation jetzt entlang des wirklichen Wegs. Beim Programm des Maschinentags heißt das: nur Z hoch, 5,45 s statt 13,56 s.
+- **Anfänge, die vor diesem Update simuliert oder geprüft wurden** (Anfahrt, Seitensweep, Anfang des Run-Checks, auch am Maschinentag), liefen entlang eines Wegs, den die Maschine nie fährt.
+- **Auf heute richtigen Konfigurationen** ändern sich die Resync-Anfänge (M6/M61/G10 L0/Probe vor der ersten Bewegung; bei Drehachsen und Fixtures auf null jetzt richtig). Programme, die mit Fräsradiuskorrektur beginnen, zeigen jetzt „Start nicht geprüft“.
+
+**P6-b, F11 und F10:**
+- **F11:** Position 0 einer Spur mit Anfahrt zeigt den Programmanfang, Zeile 1 oben, nichts markiert. Ohne Anfahrt bringt ⏮ die markierte erste Punktzeile zurück. Der Anfang hängt nur an der Text-/Vorschau-Identität.
+- **F10:** ⏮ „Back to start“ steht direkt links von Play.
+
+**Für den Operator sichtbar:**
+- ⏮ links von Play (Sim, ⏮, Play, Tempo).
+- Sim einschalten setzt die Codeansicht an den Anfang.
+- In der schmalen, zweizeiligen Leiste ersetzt ⏮ den Link zum Sim-Tab.
+- Die Gesamtzeit der Simulation ändert sich bei Programmen mit G54 ≠ 0.
+
+**Vor einem Maschinen-Update offen:**
+- Der native Seitenfall von P6-a auf dem gemergten Kopf.
+- Die Maschinen-INI auf `ON_ABORT_COMMAND` lesen, bevor ein Abort-Hilfetext entsteht.
+- Das Update erfolgt nur auf Wunsch des Operators.
+
+**Live an der Maschine geschuldet:**
+- F9: der Kopf des Programms in der Simulation, zuerst nur Z.
+- Ein echter Tipp auf ⏮ am Panel.
+
+**Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+**Als Nächstes:**
+- P6-d (F14): Bauschritt 0 mit der Kontrolle zuerst.
+- P6-c (F8): Befundzahlen beider Kollisionskörper für Q5.
+- P6-e (F6): der Hinweis zum Programmkopf-D.
