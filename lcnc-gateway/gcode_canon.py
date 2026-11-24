@@ -143,7 +143,29 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # (canon units / s, like `feed`), 3 a feed whose time the start changes in
     # a way this cannot say (G93, G95, no F).
     dep: frozenset[int] = frozenset()
+    # The believed start (`start_believed` on the wire; P6-a, machine-day F9,
+    # plan docs/reviews/maschinentag.r457.p6a-plan-v3.md, Codex R456/R457):
+    # the interpreter's position in the callback that records the program's
+    # FIRST point — the position every dependent axis of that point is made
+    # of (an axis a block leaves out keeps `current_*`). Not the canon's
+    # initial `lo` (machine zero, not program zero: the whole fixture off on
+    # every config without a rotary sync initcode), and not a read at the
+    # program's begin: there the interpreter may already be in a frame, unit
+    # or offset the canon has not been told yet, or its position may still be
+    # reset by an M6 / M61 / G10 L0 / probe before the first motion. In the
+    # canon frame of that point (its offsets: the epoch `_next_seq` stamps)
+    # and re-based to the tool offset at the program's begin (`_start_tlo`,
+    # the start tool basis the client binds in). None — no believed start,
+    # X, Y, Z unbound — wherever that callback gives no read.
     start_lo = None
+    _start_tlo = (0.0, 0.0, 0.0)
+    # The read of the motion callback now running, while no point is
+    # recorded yet: set at the handler's top, gone when it returns — only
+    # `_next_seq` at the first point turns it into `start_lo`, so a callback
+    # that records nothing (suppressed, a zero-segment arc, an initcode)
+    # leaves no read for a later one, and a recorder no handler covers finds
+    # none (fail closed).
+    _start_proof = None
     start_kins_type: Optional[int] = 0
     _block_moves = 0
     _internal_move = False
@@ -654,8 +676,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # sync initcode leaves first_move already True; this is a no-op.
             self.first_move = True
             # X, Y, Z stand where the machine stands (parity-ef plan E): the
-            # believed start (the interpreter's, program zero of the fixture
-            # in effect, in this basis) ships along — the client's Δ.
+            # believed start ships along — the client's Δ — read at the
+            # first point (`_start_read`), in the tool basis of HERE.
             # Without the interpreter's words (the module missing — the
             # worker says so, `gcode.interp_state_unavailable`) no block can
             # be told to command an axis: X, Y, Z are unknown from the start
@@ -666,7 +688,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 # never the assumed start as a known path (Codex R132 VP-I80)
                 self._to_stale((0, 1, 2))
                 self.start_dep_unavailable = "interpreter"
-            self.start_lo = tuple(float(v) for v in self.lo)
+            self._start_tlo = (self.xo, self.yo, self.zo)
             if self.read_from_start:
                 # a text out of order that may read the position somewhere:
                 # no line says when (plan E4)
@@ -903,10 +925,73 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             if basis != self._last_wcs_basis:
                 self._last_wcs_basis = basis
                 self.wcs_events.append((self.seq, idx, basis))
-        if self.seq == 0 and self.start_unbound is None:
-            self.start_unbound = tuple(a for a in (0, 1, 2) if a in self.stale)
+        if self.seq == 0:
+            # The program's first point: the believed start is THIS
+            # callback's read (`_start_proof`) — or none. No read, no start a
+            # live pose could be bound by: X, Y, Z unbound (the comp queue,
+            # no interpreter words, a unit gcodemodule does not convert, a
+            # recorder no handler covers).
+            self.start_lo, self._start_proof = self._start_proof, None
+            if self.start_unbound is None:
+                self.start_unbound = ((0, 1, 2) if self.start_lo is None
+                                      else tuple(a for a in (0, 1, 2) if a in self.stale))
         self.seq += 1
         return self.seq
+
+    # The interpreter's length unit → what gcodemodule divides a coordinate by
+    # before it calls the canon (gcodemodule.cc USE_LENGTH_UNITS: `metric = u
+    # == CANON_UNITS_MM`; STRAIGHT_TRAVERSE / _FEED / ARC_FEED: `if(metric) x
+    # /= 25.4`): CANON_UNITS_INCHES 1, CANON_UNITS_MM 2. CANON_UNITS_CM (3)
+    # is passed on unconverted — no inch frame to read it into: no read.
+    _CANON_UNIT_DIV = {1: 1.0, 2: 25.4}
+
+    def _start_read(self):
+        """The believed start as THIS motion callback sees it (Codex R457:
+        the read belongs to the callback that records point 0). Called at a
+        motion handler's top while no point is recorded, after the handler's
+        begin decision (`_enter` / `_ensure_reads` + `_phase`: a Python
+        remap's motion may be the program's first callback) and before
+        anything in it reads `lo`.
+
+        At a motion callback every converter of the blocks before it has
+        returned and the interpreter has not yet written this move's end
+        (LinuxCNC 2.9.4 interp_convert.cc, convert_straight: STRAIGHT_TRAVERSE
+        4835 → current_* 4838; convert_arc2: ARC_FEED 605 → 607; convert_home:
+        2582 → 2586), so `current_*` is the start this move's unaddressed axes keep
+        — in the frame, unit and offsets this callback's segment is stamped
+        with. Carried into the canon frame the way the point is (the unit as
+        gcodemodule divides it, the canon's own rotate_and_translate), then
+        re-based from the tool offset in effect to the one at the program's
+        begin (`tool_offset` re-expresses `lo` by the difference): the start
+        tool basis the client binds the start in (scrubTrack buildEntryTrack
+        `startTlo`).
+
+        None: the program has not begun, no interpreter words, a callback of
+        the cutter-compensation queue (interp_convert.cc convert_straight
+        4812: `cutter_comp_side && cutter_comp_radius > 0` — the move is
+        queued, its callback runs inside a LATER block whose `current_*` is
+        already past it; G40 dequeues before it clears the side, 1915–1926),
+        a length unit gcodemodule does not convert, an unreadable or
+        non-finite value. Never a guess."""
+        if not self._program_started:
+            return None
+        t = self.interp()
+        if t is None:
+            return None
+        try:
+            if int(t.cutter_comp_side) and float(t.cutter_comp_radius) > 0.0:
+                return None
+            d = self._CANON_UNIT_DIV.get(int(t.length_units))
+            if d is None:
+                return None
+            x, y, z = float(t.current_x) / d, float(t.current_y) / d, float(t.current_z) / d
+        except Exception:
+            return None
+        if not (math.isfinite(x) and math.isfinite(y) and math.isfinite(z)):
+            return None
+        lx, ly, lz = self.rotate_and_translate(x, y, z, 0, 0, 0, 0, 0, 0)[:3]
+        sx, sy, sz = self._start_tlo
+        return (lx + (self.xo - sx), ly + (self.yo - sy), lz + (self.zo - sz))
 
     def _position_write(self, line, target, axes):
         """A value written from the position while `axes` are stale: the
@@ -1166,10 +1251,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):  # pyright: ignore[reportIncompatibleMethodOverride]
         self._enter()
         if self.suppress > 0: return
-        dp = self._dep_step("traverse") if self._program_line() else None
-        seq0 = self.seq
-        self._straight_traverse(x, y, z, a, b, c, u, v, w)
-        self._dep_note(dp, seq0, (1, 0.0))
+        try:
+            if self.seq == 0:
+                self._start_proof = self._start_read()
+            dp = self._dep_step("traverse") if self._program_line() else None
+            seq0 = self.seq
+            self._straight_traverse(x, y, z, a, b, c, u, v, w)
+            self._dep_note(dp, seq0, (1, 0.0))
+        finally:
+            self._start_proof = None      # this callback's read is never a later one's
 
     def _straight_traverse(self, x, y, z, a, b, c, u, v, w):
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
@@ -1207,45 +1297,55 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_feed(self, x, y, z, a, b, c, u, v, w):  # pyright: ignore[reportIncompatibleMethodOverride]
         self._enter()
         if self.suppress > 0: return
-        dp = self._dep_step("feed") if self._program_line() else None
-        seq0 = self.seq
-        basis = self._feed_basis()
-        l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
-        if self.stale:
-            self.first_move = False
-            self._unknown_move(l)
-        elif self.first_move and self._program_line():
-            # The program's first move is a feed: its start is the machine's
-            # (parity-ef plan E) — the same zero-length unknown-start endpoint
-            # as a first rapid, its time basis the feed's (`dep_time`). It
-            # used to be a feed segment from the believed start, program zero.
-            self.first_move = False
-            seq = self._next_seq()
-            self.rapid.append((self.lineno, l, l, (self.xo, self.yo, self.zo), seq))
-            self.unknown_start.append(seq)
-            self.lo = l
-        else:
-            self.first_move = False
-            self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
-            self.lo = l
-        self._dep_note(dp, seq0, basis)
+        try:
+            if self.seq == 0:
+                self._start_proof = self._start_read()
+            dp = self._dep_step("feed") if self._program_line() else None
+            seq0 = self.seq
+            basis = self._feed_basis()
+            l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
+            if self.stale:
+                self.first_move = False
+                self._unknown_move(l)
+            elif self.first_move and self._program_line():
+                # The program's first move is a feed: its start is the machine's
+                # (parity-ef plan E) — the same zero-length unknown-start endpoint
+                # as a first rapid, its time basis the feed's (`dep_time`). It
+                # used to be a feed segment from the believed start, program zero.
+                self.first_move = False
+                seq = self._next_seq()
+                self.rapid.append((self.lineno, l, l, (self.xo, self.yo, self.zo), seq))
+                self.unknown_start.append(seq)
+                self.lo = l
+            else:
+                self.first_move = False
+                self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
+                self.lo = l
+            self._dep_note(dp, seq0, basis)
+        finally:
+            self._start_proof = None
 
     straight_probe = straight_feed
 
     def rigid_tap(self, x, y, z):
         self._enter()
         if self.suppress > 0: return
-        self.first_move = False
-        if self._program_line():
-            self._dep_step("other")
-        if self.stale:
-            self._unknown_move(self.lo)   # a tap ends where it began
-            return
-        l = self.rotate_and_translate(x, y, z, 0, 0, 0, 0, 0, 0)[:3]
-        l += (self.lo[3], self.lo[4], self.lo[5],
-              self.lo[6], self.lo[7], self.lo[8])
-        self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
-        self.feed.append((self.lineno, l, self.lo, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
+        try:
+            if self.seq == 0:
+                self._start_proof = self._start_read()
+            self.first_move = False
+            if self._program_line():
+                self._dep_step("other")
+            if self.stale:
+                self._unknown_move(self.lo)   # a tap ends where it began
+                return
+            l = self.rotate_and_translate(x, y, z, 0, 0, 0, 0, 0, 0)[:3]
+            l += (self.lo[3], self.lo[4], self.lo[5],
+                  self.lo[6], self.lo[7], self.lo[8])
+            self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
+            self.feed.append((self.lineno, l, self.lo, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
+        finally:
+            self._start_proof = None
 
     def straight_arcsegments(self, segs):
         self._enter()
@@ -1272,27 +1372,38 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.lo = lo
 
     def arc_feed(self, x1, y1, cx, cy, rot, z1, a, b, c, u, v, w):
-        # Pick a per-arc segment count that keeps chord error below _ARC_EPS.
-        # Active plane decides which two coordinates form the arc circle:
-        # plane 1 = XY, 2 = XZ, 3 = YZ. cx/cy are in those active-plane axes.
-        if self.plane == 1:
-            r_dx, r_dy = self.lo[0] - cx, self.lo[1] - cy
-        elif self.plane == 2:
-            r_dx, r_dy = self.lo[0] - cx, self.lo[2] - cy
-        else:
-            r_dx, r_dy = self.lo[1] - cx, self.lo[2] - cy
-        radius = math.hypot(r_dx, r_dy)
-        if radius > _ARC_EPS:
-            ratio = max(-1.0, 1.0 - _ARC_EPS / radius)
-            seg_angle = 2.0 * math.acos(ratio)
-            if seg_angle > 0.0:
-                n = int(math.ceil(2.0 * math.pi / seg_angle))
-                self.arcdivision = max(_ARC_MIN_SEGS, min(_ARC_MAX_SEGS, n))
+        # The arc's own callback (gcodemodule ARC_FEED): its segments are
+        # recorded below, through straight_arcsegments — the read belongs
+        # here, after the begin decision and before the segment count reads
+        # `lo` (straight_arcsegments' _enter repeats both steps: idempotent).
+        self._ensure_reads()
+        self._phase()
+        try:
+            if self.seq == 0:
+                self._start_proof = self._start_read()
+            # Pick a per-arc segment count that keeps chord error below _ARC_EPS.
+            # Active plane decides which two coordinates form the arc circle:
+            # plane 1 = XY, 2 = XZ, 3 = YZ. cx/cy are in those active-plane axes.
+            if self.plane == 1:
+                r_dx, r_dy = self.lo[0] - cx, self.lo[1] - cy
+            elif self.plane == 2:
+                r_dx, r_dy = self.lo[0] - cx, self.lo[2] - cy
             else:
-                self.arcdivision = _ARC_MAX_SEGS
-        else:
-            self.arcdivision = _ARC_MIN_SEGS
-        super().arc_feed(x1, y1, cx, cy, rot, z1, a, b, c, u, v, w)
+                r_dx, r_dy = self.lo[1] - cx, self.lo[2] - cy
+            radius = math.hypot(r_dx, r_dy)
+            if radius > _ARC_EPS:
+                ratio = max(-1.0, 1.0 - _ARC_EPS / radius)
+                seg_angle = 2.0 * math.acos(ratio)
+                if seg_angle > 0.0:
+                    n = int(math.ceil(2.0 * math.pi / seg_angle))
+                    self.arcdivision = max(_ARC_MIN_SEGS, min(_ARC_MAX_SEGS, n))
+                else:
+                    self.arcdivision = _ARC_MAX_SEGS
+            else:
+                self.arcdivision = _ARC_MIN_SEGS
+            super().arc_feed(x1, y1, cx, cy, rot, z1, a, b, c, u, v, w)
+        finally:
+            self._start_proof = None
 
 
 def apply_var_patches(path: str, patches: Dict[str, str]) -> None:
