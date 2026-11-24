@@ -1,0 +1,19 @@
+P6-b guards at the base 4eda3892 (the page built from `git archive 4eda3892`, the spec copied in; mock page, Chromium).
+
+Run A (the spec as committed in 7adf4795, all nine tests, 3 workers): 9 failed.
+  desktop: the start ...                       red at "middle → 0 (timeline): the program's top"   (F11: the view stays at 4953..4971)
+  touch-fullhd: the start ...                  red at "middle → 0 (timeline): the program's top"   (F11)
+  Back to start with the Sim tab open ...      red: no "Back to start" button (click timeout)      (F10)
+  counter-controls: a null line ...            the untrusted stretch and leaving the simulation GREEN; red at "Sim on again: the program's top" (F11)
+  counter-control: a track without an entry .. position 0 and back at 0 by the timeline GREEN (line 2 marked); red: no "Back to start" (F10)
+  Back to start never begins a simulation ...  red at "in a run Back to start is dimmed like Play" (no button, F10)
+  portrait 100 % / 150 %: the two-row bar ...  red at "Back to start shown"                         (F10)
+  every bar form ...                           red at "Back to start right of Play" (desktop: the old row, no button) (F10)
+
+Run B (the final spec as at 64765f4e: the no-entry program's first move on line 302, the wheel's scroll at rest, the height-change step):
+  desktop: the start ...                       red at "middle → 0 (timeline): the program's top"   (F11)
+  counter-controls: a null line ...            red at "Sim on again: the program's top"; the counter-control steps before it GREEN
+  counter-control: a track without an entry .. "position 0" and "back at 0 (timeline)" GREEN (line 302 marked and in view, not the top); red: no "Back to start" (F10)
+
+The counter-controls hold at the base (today's behaviour kept); every red is F11's view or F10's missing button.
+Logs: ~/claude-work/p6/p6b/base-4eda3892-scrub-start.log (A); B: ~/claude-work/p6/p6b/base-4eda3892-scrub-start-runB.log.
