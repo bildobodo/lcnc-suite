@@ -493,6 +493,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const runBasis = ref({ runId: 1, start: { jointsWhy: opts.why ?? null } }), previewOrigin = ref({}), status = ref({ data: {} });
   const runPlayhead = ref(null), viewerInit = ref(opts.noInit ? null : { axes: ["X", "Y", "Z"] });
   const simulationOn = ref(!opts.simOff);   // this device runs the simulation (settings split package 2)
+  const _colNotChecked = () => false;   // a run from line 0 (P6-d0: else nothing starts)
   const collisionRun = ref(null), collisionRunSide = ref(null), collisionRunSideState = ref(null), collisionEntry = ref(null);
   const collisionBusy = ref(false), collisionResumable = ref(false), collisionResult = ref(null), collisionTrack = ref(null);
   const collisionPartial = ref(null), collisionPartialTrack = ref(null), collisionSideFirst = ref(null), collisionProgress = ref(0);
