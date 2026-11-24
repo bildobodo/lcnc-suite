@@ -1,0 +1,3639 @@
+{
+ "_doc": "P6-d (machine-day F14) native step-1 SPIKE at 65a8b419 = development 6c78780c + the THROWAWAY wait phase (branch feat/p6d14, local, not for merge): phase `preview` in _rfl_sequence after the positioning and before the spindle start, exit on the start check itself (_start_verdict, the one call _begin_run_basis uses too), bound 90 s from one deadline, a wake on each publication, no lock held; run_basis carries verified_against (a projection of its own fields, only when verified); `run_basis.written` traces the AUTO write itself (run_basis.start is the start's RECORD, emitted before further awaits and the write thread). NO test variable. The page code is 6c78780c's (unchanged). The VM's real LinuxCNC, the 3-axis sim profile in a confined copy of the run tree, through the native stage's machinery; a local driver ~/claude-work/p6d/f14/ (spike_native.py, spike_drive.sh, spike_analyze.py, spike_record.py; step 0's p6d_probe.mjs = a real headless Chromium page with the device's simulation ON on the Sim tab, never armed). Program A = step 0's (T1 M600 on line 3, 20,000 padding lines, start line N 20008, ~25 s of motion), B = A without the M600, C = a 3-line program. Every RFL is ONE auto_run as the dialog sends it (line N, version/source/program id, spindle forward 1000, safe_z, entry X100 Y100 G54 G21, pre_tool=1 with the section's values). Times in seconds from each case's start mark; page telemetry by the browser's own clock; *_rel_write_s relative to run_basis.written. RUN 1: a1 (FAST values #3006 3000 #3005 200), a2 (step 0's values), confirm (MDI G54 - a NO-OP: the basis had been confirmed by the read-back at the load already; bookings identical before and after), b (confirmed basis: #3014 read at the load, the other keys applied by a2 with the same values, b applying them again), c (in the wait: load_file of B, then A's text changed on disk), d (Abort in the wait), e (program B, no pre-measurement). FINDING of run 1: load_file has no AUTO pre-step (BG-03); a load from MDI/MANUAL leaves the task there and the read-back CONFIRMED the basis 1.7 s after the publication, before a1 - so run 1's a1/a2 ran on a CONFIRMED basis whose values the apply changed. RUN 2 (assumed): prep = program C run in AUTO, A loaded FROM AUTO (no read-back is due there), so the basis stayed ASSUMED (#3014 from the file, never read back) through a1 (fast), a1b (fast) and a2 (step 0's values).",
+ "runs": {
+  "run1": {
+   "run": "20261124T142722-spike",
+   "commit": "65a8b4195294c6228a7db7d3b17183f8bb745ee7",
+   "error": null,
+   "restore": "complete",
+   "restore_post": "complete",
+   "owed": "settled",
+   "crashes": [],
+   "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "spike-f14"
+   ],
+   "case_errors": {},
+   "values": {
+    "base": {
+     "3004": 2000.0,
+     "3005": 20.0,
+     "3006": 500.0,
+     "3007": 180.0,
+     "3009": 3.0,
+     "3010": 180.0,
+     "3013": 0.0,
+     "3100": 10.0,
+     "3101": 10.0,
+     "3102": -180.0,
+     "3103": 1.0,
+     "3104": 2.0,
+     "3105": 0.0,
+     "3106": 1.0,
+     "3107": 5.0,
+     "3108": 0.0,
+     "3109": 0.0,
+     "3110": 0.0,
+     "3111": 0.0,
+     "3112": 0.0,
+     "3113": 0.0,
+     "3114": 0.0,
+     "3115": 0.0
+    },
+    "fast": {
+     "3006": 3000.0,
+     "3005": 200.0
+    }
+   },
+   "booking_at_connect": {
+    "version": 1,
+    "by_origin": {
+     "assumed": [
+      3004,
+      3005,
+      3006,
+      3007,
+      3009,
+      3010,
+      3013,
+      3014,
+      3100,
+      3101,
+      3102,
+      3103,
+      3104,
+      3105,
+      3106,
+      3107,
+      3108,
+      3109,
+      3110,
+      3111,
+      3112,
+      3113,
+      3114,
+      3115
+     ]
+    }
+   },
+   "cases": {
+    "a1": {
+     "phases": [
+      [
+       0.068,
+       "queued",
+       ""
+      ],
+      [
+       0.069,
+       "measuring",
+       ""
+      ],
+      [
+       10.299,
+       "safe_z",
+       ""
+      ],
+      [
+       12.337,
+       "positioning",
+       ""
+      ],
+      [
+       13.973,
+       "preview",
+       ""
+      ],
+      [
+       16.443,
+       "starting",
+       ""
+      ],
+      [
+       16.516,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 13.973,
+      "end": 16.368,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 2.395,
+      "polls": 4,
+      "version_at_start": 1795526866,
+      "version_at_end": 1795526867,
+      "whys": [
+       [
+        13.974,
+        1,
+        "drift open: toolsetter"
+       ],
+       [
+        16.013,
+        3,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": {
+      "t": 16.495,
+      "verified": true,
+      "why": null,
+      "version": 1795526867,
+      "tool_basis_rev": 2,
+      "ts_version": 6,
+      "verified_against": {
+       "program_id": "e3f0fa38.1",
+       "version": 1795526867,
+       "ctx_digest": "d21a8d468ad5da7a2013753cc5a2928db1e9f60ada38d376532499ab1d24e2af",
+       "tool_basis_rev": 2
+      }
+     },
+     "run_basis_written": {
+      "t": 16.516,
+      "run_id": 1,
+      "version_now": 1795526867,
+      "tool_basis_rev_now": 2,
+      "ts_version_now": 6,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": 10.23,
+      "apply_anchor_to_wait_start": 13.908,
+      "positioning_end_to_wait_start": 0.0,
+      "wait": 2.395,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": null,
+      "wait_start_to_hold_end": null,
+      "publications_in_wait": [
+       {
+        "job": 3,
+        "reason": "table_mtime",
+        "nice": 19,
+        "pinned": null,
+        "spawn": 15.984,
+        "publish": 16.344,
+        "version": 1795526867
+       }
+      ],
+      "last_publish_to_wait_end": 0.024,
+      "wait_end_to_phase_starting": 0.075,
+      "wait_end_to_record": 0.127,
+      "record_to_write_ms": 20.6,
+      "write_to_phase_running_ms": 0.3,
+      "last_publish_to_write": 0.172
+     },
+     "bookings": [
+      [
+       0.001,
+       "assumed",
+       3,
+       15
+      ],
+      [
+       0.034,
+       "applied",
+       4,
+       15
+      ],
+      [
+       0.034,
+       "assumed",
+       5,
+       8
+      ],
+      [
+       0.066,
+       "applied",
+       6,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [
+      [
+       15.983,
+       "gateway",
+       "gcode.reparse_toolsetter_masked",
+       {
+        "by": "table_mtime",
+        "version": 6
+       }
+      ]
+     ],
+     "parses": [
+      {
+       "job": 3,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 15.984,
+       "publish": 16.344,
+       "version": 1795526867
+      }
+     ],
+     "decisions": [
+      [
+       15.983,
+       "parse",
+       3,
+       16
+      ],
+      [
+       42.235,
+       "none",
+       null,
+       18
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [
+      [
+       0.811,
+       "not a parse made during the run"
+      ],
+      [
+       1.723,
+       "not a parse made during the run"
+      ],
+      [
+       25.48,
+       "not a parse made during the run"
+      ]
+     ],
+     "page_check_waits_rel_write_s": [
+      [
+       -7.45,
+       "decision"
+      ],
+      [
+       -5.79,
+       "decision"
+      ],
+      [
+       -1.685,
+       "decision"
+      ]
+     ],
+     "page_sweep_starts_rel_write_s": [
+      26.126
+     ],
+     "booking_before": {
+      "version": 2,
+      "by_origin": {
+       "read": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3014,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 6,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      50.0,
+      49.995217
+     ],
+     "flag": [],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 0.8,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 42.66,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 42.86,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       9.065,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         14
+        ],
+        "round": 13,
+        "job": null,
+        "peer": "127.0.0.1:42444"
+       }
+      ],
+      [
+       10.725,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         15
+        ],
+        "round": 14,
+        "job": null,
+        "peer": "127.0.0.1:42444"
+       }
+      ],
+      [
+       14.83,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         16
+        ],
+        "round": 16,
+        "job": null,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       17.326,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526867,
+        "run": 1,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       18.238,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526867,
+        "run": 1,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       41.995,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526867,
+        "run": 1,
+        "peer": "127.0.0.1:38218"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": true,
+      "spindle_on": true,
+      "n": 1206
+     },
+     "action_in_wait": {},
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "d431365c5065c5ad",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1 P1 Z50 D6 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.995217 ; Example end mill"
+     }
+    },
+    "a2": {
+     "phases": [
+      [
+       0.111,
+       "queued",
+       ""
+      ],
+      [
+       0.112,
+       "measuring",
+       ""
+      ],
+      [
+       112.01,
+       "safe_z",
+       ""
+      ],
+      [
+       112.015,
+       "positioning",
+       ""
+      ],
+      [
+       113.562,
+       "preview",
+       ""
+      ],
+      [
+       116.442,
+       "starting",
+       ""
+      ],
+      [
+       116.513,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 113.562,
+      "end": 116.373,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 2.811,
+      "polls": 4,
+      "version_at_start": 1795526867,
+      "version_at_end": 1795526868,
+      "whys": [
+       [
+        113.563,
+        1,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": {
+      "t": 116.489,
+      "verified": true,
+      "why": null,
+      "version": 1795526868,
+      "tool_basis_rev": 3,
+      "ts_version": 10,
+      "verified_against": {
+       "program_id": "e3f0fa38.1",
+       "version": 1795526868,
+       "ctx_digest": "23e202a4b5279d089e6949f424f90effd9591113d17aa1ae73605c4bfb5e27a6",
+       "tool_basis_rev": 3
+      }
+     },
+     "run_basis_written": {
+      "t": 116.512,
+      "run_id": 2,
+      "version_now": 1795526868,
+      "tool_basis_rev_now": 3,
+      "ts_version_now": 10,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": 111.898,
+      "apply_anchor_to_wait_start": 113.453,
+      "positioning_end_to_wait_start": null,
+      "wait": 2.811,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": null,
+      "wait_start_to_hold_end": null,
+      "publications_in_wait": [
+       {
+        "job": 5,
+        "reason": "table_mtime",
+        "nice": 19,
+        "pinned": null,
+        "spawn": 115.6,
+        "publish": 116.365,
+        "version": 1795526868
+       }
+      ],
+      "last_publish_to_wait_end": 0.008,
+      "wait_end_to_phase_starting": 0.069,
+      "wait_end_to_record": 0.116,
+      "record_to_write_ms": 23.2,
+      "write_to_phase_running_ms": 0.2,
+      "last_publish_to_write": 0.147
+     },
+     "bookings": [
+      [
+       0.043,
+       "assumed",
+       7,
+       15
+      ],
+      [
+       0.076,
+       "applied",
+       8,
+       15
+      ],
+      [
+       0.076,
+       "assumed",
+       9,
+       8
+      ],
+      [
+       0.11,
+       "applied",
+       10,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [
+      [
+       112.015,
+       "gateway",
+       "gcode.reparse_toolsetter_masked",
+       {
+        "by": "table_mtime",
+        "version": 10
+       }
+      ]
+     ],
+     "parses": [
+      {
+       "job": 5,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 115.6,
+       "publish": 116.365,
+       "version": 1795526868
+      }
+     ],
+     "decisions": [
+      [
+       112.015,
+       "parse",
+       4,
+       25
+      ],
+      [
+       115.599,
+       "parse",
+       5,
+       27
+      ],
+      [
+       141.859,
+       "none",
+       null,
+       29
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [
+      [
+       -52.896,
+       "no run in progress"
+      ],
+      [
+       -3.51,
+       "no run in progress"
+      ],
+      [
+       -2.505,
+       "no run in progress"
+      ],
+      [
+       2.23,
+       "not a parse made during the run"
+      ],
+      [
+       2.635,
+       "not a parse made during the run"
+      ]
+     ],
+     "page_check_waits_rel_write_s": [
+      [
+       -5.915,
+       "decision"
+      ],
+      [
+       -1.689,
+       "decision"
+      ]
+     ],
+     "page_sweep_starts_rel_write_s": [
+      25.851
+     ],
+     "booking_before": {
+      "version": 6,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 10,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.995217,
+      49.99455
+     ],
+     "flag": [],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 63.29,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 142.51,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 142.7,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       63.616,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526867,
+        "run": 1,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       110.597,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         23
+        ],
+        "round": 25,
+        "job": null,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       113.002,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526867,
+        "run": 1,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       114.007,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526867,
+        "run": 1,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       114.823,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         24
+        ],
+        "round": 27,
+        "job": null,
+        "peer": "127.0.0.1:38218"
+       }
+      ],
+      [
+       118.742,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526868,
+        "run": 2,
+        "peer": "127.0.0.1:43894"
+       }
+      ],
+      [
+       119.147,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526868,
+        "run": 2,
+        "peer": "127.0.0.1:43894"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "artifact": "driver serve stopped at the measurement's end (previous run's AUTO frames); not the run's frames - see phases / run_basis.written for the start",
+      "raw": {
+       "auto": true,
+       "spindle_on": false,
+       "n": 3184
+      }
+     },
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "2397a51f75acea08",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.995217 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.994550 ; Example end mill"
+     },
+     "near_tie": "job 4 (table_mtime) scheduled 2.004 s after the #3116 step's observed end, in the gap before the positioning; refused at its begin (gcode.parse_refused_at_begin why: running - the positioning MDI had started); the wait's first poll said 'a parse runs or is pending'; job 5 (table_mtime) scheduled after the positioning's quiet window, published, verified"
+    },
+    "b": {
+     "phases": [
+      [
+       0.075,
+       "queued",
+       ""
+      ],
+      [
+       0.076,
+       "measuring",
+       ""
+      ],
+      [
+       108.466,
+       "safe_z",
+       ""
+      ],
+      [
+       108.466,
+       "positioning",
+       ""
+      ],
+      [
+       110.027,
+       "preview",
+       ""
+      ],
+      [
+       112.722,
+       "starting",
+       ""
+      ],
+      [
+       112.809,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 110.027,
+      "end": 112.643,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 2.616,
+      "polls": 4,
+      "version_at_start": 1795526868,
+      "version_at_end": 1795526869,
+      "whys": [
+       [
+        110.028,
+        1,
+        "another tool start"
+       ],
+       [
+        112.077,
+        3,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": {
+      "t": 112.786,
+      "verified": true,
+      "why": null,
+      "version": 1795526869,
+      "tool_basis_rev": 4,
+      "ts_version": 14,
+      "verified_against": {
+       "program_id": "e3f0fa38.1",
+       "version": 1795526869,
+       "ctx_digest": "b22d5a17ff73df06169c5b5a698394047a41ec46a8535c0f5559116876e9c3c3",
+       "tool_basis_rev": 4
+      }
+     },
+     "run_basis_written": {
+      "t": 112.809,
+      "run_id": 3,
+      "version_now": 1795526869,
+      "tool_basis_rev_now": 4,
+      "ts_version_now": 14,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": 108.39,
+      "apply_anchor_to_wait_start": 109.959,
+      "positioning_end_to_wait_start": 0.002,
+      "wait": 2.616,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": null,
+      "wait_start_to_hold_end": null,
+      "publications_in_wait": [
+       {
+        "job": 6,
+        "reason": "table_mtime",
+        "nice": 19,
+        "pinned": null,
+        "spawn": 112.051,
+        "publish": 112.606,
+        "version": 1795526869
+       }
+      ],
+      "last_publish_to_wait_end": 0.037,
+      "wait_end_to_phase_starting": 0.079,
+      "wait_end_to_record": 0.143,
+      "record_to_write_ms": 22.4,
+      "write_to_phase_running_ms": 0.2,
+      "last_publish_to_write": 0.203
+     },
+     "bookings": [
+      [
+       0.002,
+       "assumed",
+       11,
+       15
+      ],
+      [
+       0.037,
+       "applied",
+       12,
+       15
+      ],
+      [
+       0.037,
+       "assumed",
+       13,
+       8
+      ],
+      [
+       0.069,
+       "applied",
+       14,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [],
+     "parses": [
+      {
+       "job": 6,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 112.051,
+       "publish": 112.606,
+       "version": 1795526869
+      }
+     ],
+     "decisions": [
+      [
+       112.05,
+       "parse",
+       6,
+       40
+      ],
+      [
+       138.254,
+       "none",
+       null,
+       42
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [
+      [
+       -52.587,
+       "no run in progress"
+      ],
+      [
+       1.722,
+       "not a parse made during the run"
+      ],
+      [
+       2.128,
+       "not a parse made during the run"
+      ],
+      [
+       25.852,
+       "not a parse made during the run"
+      ]
+     ],
+     "page_check_waits_rel_write_s": [
+      [
+       -5.75,
+       "decision"
+      ],
+      [
+       -2.335,
+       "decision"
+      ]
+     ],
+     "page_sweep_starts_rel_write_s": [
+      26.327
+     ],
+     "booking_before": {
+      "version": 10,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 14,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.99455,
+      49.993883
+     ],
+     "flag": [],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 59.98,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 139.2,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 139.41,
+       "sim_tab_summary": "No contact so far \u00b7 70 % checked No limit violations 1 tool change",
+       "bar_check": "70 % | Collision check: 70 % checked"
+      },
+      {
+       "t_s": 139.6,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       60.222,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526868,
+        "run": 2,
+        "peer": "127.0.0.1:43894"
+       }
+      ],
+      [
+       107.059,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         35
+        ],
+        "round": 38,
+        "job": null,
+        "peer": "127.0.0.1:43894"
+       }
+      ],
+      [
+       110.474,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         36
+        ],
+        "round": 40,
+        "job": null,
+        "peer": "127.0.0.1:43894"
+       }
+      ],
+      [
+       114.531,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526869,
+        "run": 3,
+        "peer": "127.0.0.1:49050"
+       }
+      ],
+      [
+       114.937,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526869,
+        "run": 3,
+        "peer": "127.0.0.1:49050"
+       }
+      ],
+      [
+       138.661,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795526869,
+        "run": 3,
+        "peer": "127.0.0.1:49050"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": true,
+      "spindle_on": true,
+      "n": 3969
+     },
+     "action_in_wait": {},
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "2397a51f75acea08",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.994550 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.993883 ; Example end mill"
+     }
+    },
+    "c": {
+     "phases": [
+      [
+       0.075,
+       "queued",
+       ""
+      ],
+      [
+       0.076,
+       "measuring",
+       ""
+      ],
+      [
+       20.775,
+       "safe_z",
+       ""
+      ],
+      [
+       20.777,
+       "positioning",
+       ""
+      ],
+      [
+       22.309,
+       "preview",
+       ""
+      ],
+      [
+       23.339,
+       "program_changed",
+       "the program text changed on disk \u2014 confirm Run from line again"
+      ]
+     ],
+     "wait": {
+      "start": 22.309,
+      "end": 23.339,
+      "exit": "program_changed",
+      "why": "the program text changed on disk",
+      "waited_s": 1.03,
+      "polls": 2,
+      "version_at_start": 1795526869,
+      "version_at_end": 1795526869,
+      "whys": [
+       [
+        22.312,
+        1,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": null,
+     "run_basis_written": null,
+     "timing_s": {
+      "measurement": 20.699,
+      "apply_anchor_to_wait_start": 22.237,
+      "positioning_end_to_wait_start": null,
+      "wait": 1.03,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": null,
+      "wait_start_to_hold_end": null,
+      "publications_in_wait": [],
+      "last_publish_to_wait_end": null,
+      "wait_end_to_phase_starting": null,
+      "wait_end_to_record": null,
+      "record_to_write_ms": null,
+      "write_to_phase_running_ms": null,
+      "last_publish_to_write": null
+     },
+     "bookings": [
+      [
+       0.003,
+       "assumed",
+       15,
+       15
+      ],
+      [
+       0.034,
+       "applied",
+       16,
+       15
+      ],
+      [
+       0.035,
+       "assumed",
+       17,
+       8
+      ],
+      [
+       0.071,
+       "applied",
+       18,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [
+      [
+       20.757,
+       "gateway",
+       "gcode.reparse_toolsetter_masked",
+       {
+        "by": "table_mtime",
+        "version": 18
+       }
+      ]
+     ],
+     "parses": [
+      {
+       "job": 7,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 20.758,
+       "publish": null,
+       "version": null
+      },
+      {
+       "job": 8,
+       "reason": "discarded:mdi",
+       "nice": 0,
+       "pinned": null,
+       "spawn": 25.712,
+       "publish": 26.208,
+       "version": 1795526870
+      }
+     ],
+     "decisions": [
+      [
+       20.757,
+       "parse",
+       7,
+       50
+      ],
+      [
+       25.711,
+       "parse",
+       8,
+       53
+      ]
+     ],
+     "booking_before": {
+      "version": 14,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 18,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.993883,
+      49.99005
+     ],
+     "flag": [
+      [
+       25.695,
+       "gateway",
+       "rfl.flag_cleared",
+       {}
+      ]
+     ],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 12.23,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 27.06,
+       "sim_tab_summary": "No contact so far \u00b7 5 % checked No limit violations 1 tool change",
+       "bar_check": "5 % | Collision check: 5 % checked"
+      },
+      {
+       "t_s": 27.26,
+       "sim_tab_summary": "No contact so far \u00b7 96 % checked No limit violations 1 tool change",
+       "bar_check": "96 % | Collision check: 96 % checked"
+      },
+      {
+       "t_s": 27.46,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       12.484,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526869,
+        "run": 3,
+        "peer": "127.0.0.1:49050"
+       }
+      ],
+      [
+       19.441,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         46
+        ],
+        "round": 50,
+        "job": null,
+        "peer": "127.0.0.1:49050"
+       }
+      ],
+      [
+       22.118,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526869,
+        "run": 3,
+        "peer": "127.0.0.1:49050"
+       }
+      ],
+      [
+       22.905,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         47
+        ],
+        "round": 52,
+        "job": null,
+        "peer": "127.0.0.1:49050"
+       }
+      ],
+      [
+       24.109,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         1,
+         48
+        ],
+        "round": 53,
+        "job": null,
+        "peer": "127.0.0.1:49050"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": false,
+      "spindle_on": false,
+      "n": 673
+     },
+     "action_in_wait": {
+      "action": {
+       "load_refused": "Refused: load_file refused: Run from line is starting \u2014 abort it first",
+       "edit_wall_ns": 1795527284415805036
+      }
+     },
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "d431365c5065c5ad",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.993883 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.990050 ; Example end mill"
+     },
+     "near_tie": "job 7 (table_mtime) spawned 2.007 s after the #3116 step's end, superseded by generation 42 ms later (the positioning MDI); the wait's first poll said 'a parse runs or is pending'"
+    },
+    "d": {
+     "phases": [
+      [
+       0.074,
+       "queued",
+       ""
+      ],
+      [
+       0.076,
+       "measuring",
+       ""
+      ],
+      [
+       15.138,
+       "safe_z",
+       ""
+      ],
+      [
+       15.139,
+       "positioning",
+       ""
+      ],
+      [
+       17.19,
+       "preview",
+       ""
+      ],
+      [
+       17.223,
+       "aborted",
+       "aborted"
+      ]
+     ],
+     "wait": {
+      "start": 17.19,
+      "end": 17.223,
+      "exit": "aborted",
+      "why": "a parse runs or is pending",
+      "waited_s": 0.033,
+      "polls": 1,
+      "version_at_start": 1795526871,
+      "version_at_end": 1795526871,
+      "whys": [
+       [
+        17.191,
+        1,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": null,
+     "run_basis_written": null,
+     "timing_s": {
+      "measurement": 15.063,
+      "apply_anchor_to_wait_start": 17.119,
+      "positioning_end_to_wait_start": 2.015,
+      "wait": 0.033,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": null,
+      "wait_start_to_hold_end": null,
+      "publications_in_wait": [],
+      "last_publish_to_wait_end": null,
+      "wait_end_to_phase_starting": null,
+      "wait_end_to_record": null,
+      "record_to_write_ms": null,
+      "write_to_phase_running_ms": null,
+      "last_publish_to_write": null
+     },
+     "bookings": [
+      [
+       0.003,
+       "assumed",
+       19,
+       15
+      ],
+      [
+       0.038,
+       "applied",
+       20,
+       15
+      ],
+      [
+       0.038,
+       "assumed",
+       21,
+       8
+      ],
+      [
+       0.071,
+       "applied",
+       22,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [],
+     "parses": [
+      {
+       "job": 10,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 17.187,
+       "publish": null,
+       "version": null
+      },
+      {
+       "job": 11,
+       "reason": "discarded:mdi",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 19.641,
+       "publish": 20.138,
+       "version": 1795526872
+      }
+     ],
+     "decisions": [
+      [
+       17.186,
+       "parse",
+       10,
+       61
+      ],
+      [
+       19.64,
+       "parse",
+       11,
+       62
+      ]
+     ],
+     "booking_before": {
+      "version": 18,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 22,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.99005,
+      49.986217
+     ],
+     "flag": [
+      [
+       17.222,
+       "gateway",
+       "rfl.cancelled",
+       {
+        "by": "abort",
+        "from_client": 0
+       }
+      ],
+      [
+       19.591,
+       "gateway",
+       "rfl.flag_cleared",
+       {}
+      ]
+     ],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 9.22,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 21.04,
+       "sim_tab_summary": "No contact so far \u00b7 53 % checked No limit violations 1 tool change",
+       "bar_check": "53 % | Collision check: 53 % checked"
+      },
+      {
+       "t_s": 21.24,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       9.594,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795526871,
+        "run": 3,
+        "peer": "127.0.0.1:39900"
+       }
+      ],
+      [
+       13.862,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         53
+        ],
+        "round": 60,
+        "job": null,
+        "peer": "127.0.0.1:39900"
+       }
+      ],
+      [
+       15.58,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         54
+        ],
+        "round": 61,
+        "job": null,
+        "peer": "127.0.0.1:39900"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": false,
+      "spindle_on": false,
+      "n": 497
+     },
+     "action_in_wait": {
+      "action": {
+       "abort_sent_wall_ns": 1795527314680769911,
+       "reply": {
+        "type": "reply",
+        "cmd": "abort",
+        "ok": true
+       }
+      }
+     },
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "d431365c5065c5ad",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.990050 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.986217 ; Example end mill"
+     }
+    },
+    "e": {
+     "phases": [
+      [
+       0.001,
+       "queued",
+       ""
+      ],
+      [
+       0.002,
+       "safe_z",
+       ""
+      ],
+      [
+       0.002,
+       "positioning",
+       ""
+      ],
+      [
+       2.06,
+       "preview",
+       ""
+      ],
+      [
+       2.146,
+       "starting",
+       ""
+      ],
+      [
+       2.252,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 2.06,
+      "end": 2.061,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 0.001,
+      "polls": 1,
+      "version_at_start": 1795526873,
+      "version_at_end": 1795526873,
+      "whys": []
+     },
+     "run_basis_start": {
+      "t": 2.215,
+      "verified": true,
+      "why": null,
+      "version": 1795526873,
+      "tool_basis_rev": 6,
+      "ts_version": 22,
+      "verified_against": {
+       "program_id": "e3f0fa38.3",
+       "version": 1795526873,
+       "ctx_digest": "eb686283f5419281bd08ce8393b621ee6fb23e1851f2699bca6fc77f79613a48",
+       "tool_basis_rev": 6
+      }
+     },
+     "run_basis_written": {
+      "t": 2.252,
+      "run_id": 4,
+      "version_now": 1795526873,
+      "tool_basis_rev_now": 6,
+      "ts_version_now": 22,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": null,
+      "apply_anchor_to_wait_start": null,
+      "positioning_end_to_wait_start": 1.999,
+      "wait": 0.001,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": null,
+      "wait_start_to_hold_end": null,
+      "publications_in_wait": [],
+      "last_publish_to_wait_end": null,
+      "wait_end_to_phase_starting": 0.085,
+      "wait_end_to_record": 0.154,
+      "record_to_write_ms": 37.5,
+      "write_to_phase_running_ms": 0.2,
+      "last_publish_to_write": null
+     },
+     "bookings": [],
+     "read_backs": [],
+     "hold": [],
+     "parses": [],
+     "decisions": [
+      [
+       2.148,
+       "none",
+       null,
+       64
+      ],
+      [
+       28.394,
+       "none",
+       null,
+       66
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [],
+     "page_check_waits_rel_write_s": [],
+     "page_sweep_starts_rel_write_s": [],
+     "booking_before": {
+      "version": 22,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 22,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.986217,
+      49.986217
+     ],
+     "flag": [],
+     "pre_tool": 0,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations No tool changes",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [],
+     "frames_after_send": {
+      "auto": true,
+      "spindle_on": true,
+      "n": 783
+     },
+     "action_in_wait": {},
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "d431365c5065c5ad",
+       "set_up": true,
+       "synced": false
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.986217 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.986217 ; Example end mill"
+     }
+    }
+   },
+   "extra": {
+    "confirm": {
+     "booking_before": {
+      "version": 10,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 10,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "read": [
+        3014
+       ]
+      }
+     },
+     "confirmed": true,
+     "confirm_s": 2.09,
+     "version_before": 1795526868,
+     "version_after": 1795526868,
+     "quiet": {
+      "waited_s": 4.1,
+      "drift_decision": {
+       "state": "none",
+       "gen": [
+        1,
+        29
+       ],
+       "round": 30
+      },
+      "preview_refresh": null,
+      "version": 1795526868,
+      "page_shown": 1795526868,
+      "page_adopted": true
+     }
+    }
+   },
+   "page_probe_errors": []
+  },
+  "run2_assumed": {
+   "run": "20261124T143737-spike-assumed",
+   "commit": "65a8b4195294c6228a7db7d3b17183f8bb745ee7",
+   "error": null,
+   "restore": "complete",
+   "restore_post": "complete",
+   "owed": "settled",
+   "crashes": [],
+   "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "spike-f14"
+   ],
+   "case_errors": {},
+   "values": {
+    "base": {
+     "3004": 2000.0,
+     "3005": 20.0,
+     "3006": 500.0,
+     "3007": 180.0,
+     "3009": 3.0,
+     "3010": 180.0,
+     "3013": 0.0,
+     "3100": 10.0,
+     "3101": 10.0,
+     "3102": -180.0,
+     "3103": 1.0,
+     "3104": 2.0,
+     "3105": 0.0,
+     "3106": 1.0,
+     "3107": 5.0,
+     "3108": 0.0,
+     "3109": 0.0,
+     "3110": 0.0,
+     "3111": 0.0,
+     "3112": 0.0,
+     "3113": 0.0,
+     "3114": 0.0,
+     "3115": 0.0
+    },
+    "fast": {
+     "3006": 3000.0,
+     "3005": 200.0
+    }
+   },
+   "booking_at_connect": {
+    "version": 1,
+    "by_origin": {
+     "assumed": [
+      3004,
+      3005,
+      3006,
+      3007,
+      3009,
+      3010,
+      3013,
+      3014,
+      3100,
+      3101,
+      3102,
+      3103,
+      3104,
+      3105,
+      3106,
+      3107,
+      3108,
+      3109,
+      3110,
+      3111,
+      3112,
+      3113,
+      3114,
+      3115
+     ]
+    }
+   },
+   "cases": {
+    "a1": {
+     "phases": [
+      [
+       0.136,
+       "queued",
+       ""
+      ],
+      [
+       0.137,
+       "measuring",
+       ""
+      ],
+      [
+       15.411,
+       "safe_z",
+       ""
+      ],
+      [
+       17.444,
+       "positioning",
+       ""
+      ],
+      [
+       19.489,
+       "preview",
+       ""
+      ],
+      [
+       32.171,
+       "starting",
+       ""
+      ],
+      [
+       32.247,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 19.489,
+      "end": 32.096,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 12.607,
+      "polls": 14,
+      "version_at_start": 1795527501,
+      "version_at_end": 1795527502,
+      "whys": [
+       [
+        19.49,
+        1,
+        "drift open: toolsetter"
+       ],
+       [
+        31.686,
+        13,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": {
+      "t": 32.225,
+      "verified": true,
+      "why": null,
+      "version": 1795527502,
+      "tool_basis_rev": 2,
+      "ts_version": 3,
+      "verified_against": {
+       "program_id": "34b441f7.2",
+       "version": 1795527502,
+       "ctx_digest": "38ef63e80401fe49ef99c2454a2c63d133745fd23ee94fb4d084d6083828ab0f",
+       "tool_basis_rev": 2
+      }
+     },
+     "run_basis_written": {
+      "t": 32.246,
+      "run_id": 2,
+      "version_now": 1795527502,
+      "tool_basis_rev_now": 2,
+      "ts_version_now": 3,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": 15.274,
+      "apply_anchor_to_wait_start": 19.358,
+      "positioning_end_to_wait_start": 1.99,
+      "wait": 12.607,
+      "held_first_in_case": 19.502,
+      "anchor_to_hold_end": 31.468,
+      "wait_start_to_hold_end": 12.111,
+      "publications_in_wait": [
+       {
+        "job": 3,
+        "reason": "table_mtime",
+        "nice": 19,
+        "pinned": null,
+        "spawn": 31.603,
+        "publish": 32.054,
+        "version": 1795527502
+       }
+      ],
+      "last_publish_to_wait_end": 0.042,
+      "wait_end_to_phase_starting": 0.075,
+      "wait_end_to_record": 0.129,
+      "record_to_write_ms": 21.0,
+      "write_to_phase_running_ms": 0.5,
+      "last_publish_to_write": 0.192
+     },
+     "bookings": [
+      [
+       0.097,
+       "applied",
+       2,
+       15
+      ],
+      [
+       0.132,
+       "applied",
+       3,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [
+      [
+       19.502,
+       "gateway",
+       "gcode.reparse_toolsetter_held",
+       {
+        "why": "read_back",
+        "version": 3
+       }
+      ],
+      [
+       19.502,
+       "gateway",
+       "gcode.reparse_edge_held",
+       {
+        "why": "table_mtime",
+        "version": 3
+       }
+      ],
+      [
+       31.6,
+       "gateway",
+       "gcode.reparse_toolsetter_hold_ended",
+       {
+        "why": "cap",
+        "version": 3
+       }
+      ],
+      [
+       31.6,
+       "gateway",
+       "gcode.reparse_toolsetter_masked",
+       {
+        "by": "table_mtime",
+        "version": 3
+       }
+      ]
+     ],
+     "parses": [
+      {
+       "job": 3,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 31.603,
+       "publish": 32.054,
+       "version": 1795527502
+      }
+     ],
+     "decisions": [
+      [
+       31.6,
+       "parse",
+       3,
+       18
+      ],
+      [
+       57.865,
+       "none",
+       null,
+       20
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [
+      [
+       -26.755,
+       "no run in progress"
+      ],
+      [
+       0.731,
+       "not a parse made during the run"
+      ]
+     ],
+     "page_check_waits_rel_write_s": [
+      [
+       -18.341,
+       "decision"
+      ],
+      [
+       -16.372,
+       "decision"
+      ],
+      [
+       -14.343,
+       "decision"
+      ],
+      [
+       25.534,
+       "decision"
+      ]
+     ],
+     "page_sweep_starts_rel_write_s": [
+      -10.922,
+      26.021
+     ],
+     "booking_before": {
+      "version": 1,
+      "by_origin": {
+       "assumed": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3014,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 3,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "assumed": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      50.0,
+      49.995217
+     ],
+     "flag": [],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 5.2,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 21.41,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 21.6,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 32.95,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 58.44,
+       "sim_tab_summary": "No contact so far \u00b7 75 % checked No limit violations 1 tool change",
+       "bar_check": "75 % | Collision check: 75 % checked"
+      },
+      {
+       "t_s": 58.64,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       5.491,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795527501,
+        "run": 1,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       13.905,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         15
+        ],
+        "round": 16,
+        "job": null,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       15.874,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         16
+        ],
+        "round": 17,
+        "job": null,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       17.903,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         17
+        ],
+        "round": 18,
+        "job": null,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       32.977,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795527502,
+        "run": 2,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       57.78,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         18
+        ],
+        "round": 20,
+        "job": null,
+        "peer": "127.0.0.1:41282"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": true,
+      "spindle_on": true,
+      "n": 1668
+     },
+     "action_in_wait": {},
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "6777e5360e04a22a",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1 P1 Z50 D6 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.995217 ; Example end mill"
+     }
+    },
+    "a1b": {
+     "phases": [
+      [
+       0.125,
+       "queued",
+       ""
+      ],
+      [
+       0.126,
+       "measuring",
+       ""
+      ],
+      [
+       21.462,
+       "safe_z",
+       ""
+      ],
+      [
+       21.462,
+       "positioning",
+       ""
+      ],
+      [
+       22.999,
+       "preview",
+       ""
+      ],
+      [
+       31.819,
+       "starting",
+       ""
+      ],
+      [
+       31.901,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 22.999,
+      "end": 31.746,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 8.747,
+      "polls": 10,
+      "version_at_start": 1795527502,
+      "version_at_end": 1795527503,
+      "whys": [
+       [
+        23.0,
+        1,
+        "drift open: toolsetter"
+       ],
+       [
+        31.175,
+        9,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": {
+      "t": 31.878,
+      "verified": true,
+      "why": null,
+      "version": 1795527503,
+      "tool_basis_rev": 3,
+      "ts_version": 7,
+      "verified_against": {
+       "program_id": "34b441f7.2",
+       "version": 1795527503,
+       "ctx_digest": "1edf6e76e1daf837bdadac0bb107daa80f85a202ebc46d138f541eca7954d474",
+       "tool_basis_rev": 3
+      }
+     },
+     "run_basis_written": {
+      "t": 31.899,
+      "run_id": 3,
+      "version_now": 1795527503,
+      "tool_basis_rev_now": 3,
+      "ts_version_now": 7,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": 21.335,
+      "apply_anchor_to_wait_start": 22.876,
+      "positioning_end_to_wait_start": 0.006,
+      "wait": 8.747,
+      "held_first_in_case": 25.022,
+      "anchor_to_hold_end": 30.942,
+      "wait_start_to_hold_end": 8.067,
+      "publications_in_wait": [
+       {
+        "job": 4,
+        "reason": "table_mtime",
+        "nice": 19,
+        "pinned": null,
+        "spawn": 31.068,
+        "publish": 31.729,
+        "version": 1795527503
+       }
+      ],
+      "last_publish_to_wait_end": 0.017,
+      "wait_end_to_phase_starting": 0.073,
+      "wait_end_to_record": 0.132,
+      "record_to_write_ms": 21.2,
+      "write_to_phase_running_ms": 1.9,
+      "last_publish_to_write": 0.17
+     },
+     "bookings": [
+      [
+       0.057,
+       "assumed",
+       4,
+       15
+      ],
+      [
+       0.09,
+       "applied",
+       5,
+       15
+      ],
+      [
+       0.09,
+       "assumed",
+       6,
+       8
+      ],
+      [
+       0.123,
+       "applied",
+       7,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [
+      [
+       25.022,
+       "gateway",
+       "gcode.reparse_toolsetter_held",
+       {
+        "why": "read_back",
+        "version": 7
+       }
+      ],
+      [
+       25.022,
+       "gateway",
+       "gcode.reparse_edge_held",
+       {
+        "why": "table_mtime",
+        "version": 7
+       }
+      ],
+      [
+       31.065,
+       "gateway",
+       "gcode.reparse_toolsetter_hold_ended",
+       {
+        "why": "cap",
+        "version": 7
+       }
+      ],
+      [
+       31.066,
+       "gateway",
+       "gcode.reparse_toolsetter_masked",
+       {
+        "by": "table_mtime",
+        "version": 7
+       }
+      ]
+     ],
+     "parses": [
+      {
+       "job": 4,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 31.068,
+       "publish": 31.729,
+       "version": 1795527503
+      }
+     ],
+     "decisions": [
+      [
+       31.066,
+       "parse",
+       4,
+       29
+      ],
+      [
+       57.334,
+       "none",
+       null,
+       31
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [
+      [
+       -19.306,
+       "no run in progress"
+      ],
+      [
+       1.127,
+       "not a parse made during the run"
+      ]
+     ],
+     "page_check_waits_rel_write_s": [
+      [
+       -11.804,
+       "decision"
+      ],
+      [
+       -8.389,
+       "decision"
+      ]
+     ],
+     "page_sweep_starts_rel_write_s": [
+      -4.979,
+      25.893
+     ],
+     "booking_before": {
+      "version": 3,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "assumed": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 7,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "assumed": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.995217,
+      49.991383
+     ],
+     "flag": [],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 12.21,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 27.03,
+       "sim_tab_summary": "No contact so far \u00b7 37 % checked No limit violations 1 tool change",
+       "bar_check": "37 % | Collision check: 37 % checked"
+      },
+      {
+       "t_s": 27.23,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 33.02,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 57.92,
+       "sim_tab_summary": "No contact so far \u00b7 <1 % checked No limit violations 1 tool change",
+       "bar_check": "<1 % | Collision check: <1 % checked"
+      },
+      {
+       "t_s": 58.12,
+       "sim_tab_summary": "No contact so far \u00b7 76 % checked No limit violations 1 tool change",
+       "bar_check": "76 % | Collision check: 76 % checked"
+      },
+      {
+       "t_s": 58.31,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       12.594,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795527502,
+        "run": 2,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       20.096,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         24
+        ],
+        "round": 27,
+        "job": null,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       23.511,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         25
+        ],
+        "round": 29,
+        "job": null,
+        "peer": "127.0.0.1:41282"
+       }
+      ],
+      [
+       33.027,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795527503,
+        "run": 3,
+        "peer": "127.0.0.1:47702"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": true,
+      "spindle_on": true,
+      "n": 1645
+     },
+     "action_in_wait": {},
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "6777e5360e04a22a",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.995217 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.991383 ; Example end mill"
+     }
+    },
+    "a2": {
+     "phases": [
+      [
+       0.136,
+       "queued",
+       ""
+      ],
+      [
+       0.139,
+       "measuring",
+       ""
+      ],
+      [
+       111.946,
+       "safe_z",
+       ""
+      ],
+      [
+       111.946,
+       "positioning",
+       ""
+      ],
+      [
+       113.487,
+       "preview",
+       ""
+      ],
+      [
+       116.123,
+       "starting",
+       ""
+      ],
+      [
+       116.206,
+       "running",
+       ""
+      ]
+     ],
+     "wait": {
+      "start": 113.487,
+      "end": 116.057,
+      "exit": "verified",
+      "why": null,
+      "waited_s": 2.57,
+      "polls": 4,
+      "version_at_start": 1795527503,
+      "version_at_end": 1795527504,
+      "whys": [
+       [
+        113.487,
+        1,
+        "drift open: toolsetter"
+       ],
+       [
+        115.538,
+        3,
+        "a parse runs or is pending"
+       ]
+      ]
+     },
+     "run_basis_start": {
+      "t": 116.185,
+      "verified": true,
+      "why": null,
+      "version": 1795527504,
+      "tool_basis_rev": 4,
+      "ts_version": 11,
+      "verified_against": {
+       "program_id": "34b441f7.2",
+       "version": 1795527504,
+       "ctx_digest": "99aadcad4e0c52c0bcbddfee54a154efff0bae0233527d575489c37e88ff974c",
+       "tool_basis_rev": 4
+      }
+     },
+     "run_basis_written": {
+      "t": 116.206,
+      "run_id": 4,
+      "version_now": 1795527504,
+      "tool_basis_rev_now": 4,
+      "ts_version_now": 11,
+      "refresh_running": false,
+      "reparse_pending": false
+     },
+     "timing_s": {
+      "measurement": 111.807,
+      "apply_anchor_to_wait_start": 113.352,
+      "positioning_end_to_wait_start": 0.008,
+      "wait": 2.57,
+      "held_first_in_case": null,
+      "anchor_to_hold_end": 115.361,
+      "wait_start_to_hold_end": 2.009,
+      "publications_in_wait": [
+       {
+        "job": 5,
+        "reason": "table_mtime",
+        "nice": 19,
+        "pinned": null,
+        "spawn": 115.497,
+        "publish": 116.033,
+        "version": 1795527504
+       }
+      ],
+      "last_publish_to_wait_end": 0.024,
+      "wait_end_to_phase_starting": 0.066,
+      "wait_end_to_record": 0.128,
+      "record_to_write_ms": 20.6,
+      "write_to_phase_running_ms": 0.2,
+      "last_publish_to_write": 0.173
+     },
+     "bookings": [
+      [
+       0.067,
+       "assumed",
+       8,
+       15
+      ],
+      [
+       0.1,
+       "applied",
+       9,
+       15
+      ],
+      [
+       0.1,
+       "assumed",
+       10,
+       8
+      ],
+      [
+       0.135,
+       "applied",
+       11,
+       8
+      ]
+     ],
+     "read_backs": [],
+     "hold": [
+      [
+       115.495,
+       "gateway",
+       "gcode.reparse_toolsetter_hold_ended",
+       {
+        "why": "cap",
+        "version": 11
+       }
+      ],
+      [
+       115.496,
+       "gateway",
+       "gcode.reparse_toolsetter_masked",
+       {
+        "by": "table_mtime",
+        "version": 11
+       }
+      ]
+     ],
+     "parses": [
+      {
+       "job": 5,
+       "reason": "table_mtime",
+       "nice": 19,
+       "pinned": null,
+       "spawn": 115.497,
+       "publish": 116.033,
+       "version": 1795527504
+      }
+     ],
+     "decisions": [
+      [
+       115.496,
+       "parse",
+       5,
+       40
+      ],
+      [
+       141.709,
+       "none",
+       null,
+       42
+      ]
+     ],
+     "page_run_check_refused_rel_write_s": [
+      [
+       -52.606,
+       "no run in progress"
+      ],
+      [
+       3.897,
+       "not a parse made during the run"
+      ]
+     ],
+     "page_check_waits_rel_write_s": [
+      [
+       -5.821,
+       "decision"
+      ],
+      [
+       -2.321,
+       "decision"
+      ],
+      [
+       0.491,
+       "decision"
+      ]
+     ],
+     "page_sweep_starts_rel_write_s": [
+      25.911
+     ],
+     "booking_before": {
+      "version": 7,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "assumed": [
+        3014
+       ]
+      }
+     },
+     "booking_after": {
+      "version": 11,
+      "by_origin": {
+       "applied": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ],
+       "assumed": [
+        3014
+       ]
+      }
+     },
+     "t1": [
+      49.991383,
+      49.990717
+     ],
+     "flag": [],
+     "pre_tool": 1,
+     "start_line": 20008,
+     "page_words": [
+      {
+       "t_s": -0.0,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      },
+      {
+       "t_s": 63.34,
+       "sim_tab_summary": "Collisions not checked No limit violations 1 tool change",
+       "bar_check": " | "
+      },
+      {
+       "t_s": 142.32,
+       "sim_tab_summary": "Clear \u00b7 checked to the end * No limit violations 1 tool change",
+       "bar_check": "100 % | Collision check: checked to the end"
+      }
+     ],
+     "page_events": [
+      [
+       63.6,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "no run in progress",
+        "version": 1795527503,
+        "run": 3,
+        "peer": "127.0.0.1:47702"
+       }
+      ],
+      [
+       110.385,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         32
+        ],
+        "round": 38,
+        "job": null,
+        "peer": "127.0.0.1:47702"
+       }
+      ],
+      [
+       113.885,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         33
+        ],
+        "round": 40,
+        "job": null,
+        "peer": "127.0.0.1:47702"
+       }
+      ],
+      [
+       116.697,
+       "gateway",
+       "browser.collision.check_waits",
+       {
+        "why": "decision",
+        "gen": [
+         2,
+         34
+        ],
+        "round": 41,
+        "job": null,
+        "peer": "127.0.0.1:36292"
+       }
+      ],
+      [
+       120.103,
+       "gateway",
+       "browser.collision.run_check_refused",
+       {
+        "why": "not a parse made during the run",
+        "version": 1795527504,
+        "run": 4,
+        "peer": "127.0.0.1:36292"
+       }
+      ]
+     ],
+     "frames_after_send": {
+      "auto": true,
+      "spindle_on": true,
+      "n": 4064
+     },
+     "action_in_wait": {},
+     "reply": {
+      "ok": true,
+      "rfl": "started",
+      "toolsetter": {
+       "digest": "3181f1ca488a123c",
+       "set_up": true,
+       "synced": true
+      }
+     },
+     "table_t1_line": {
+      "before": "T1   P1   D+6.000000 Z+49.991383 ; Example end mill",
+      "after": "T1   P1   D+6.000000 Z+49.990717 ; Example end mill"
+     }
+    }
+   },
+   "extra": {
+    "prep": {
+     "booking_before": {
+      "version": 1,
+      "by_origin": {
+       "assumed": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3014,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ]
+      }
+     },
+     "reply": {
+      "type": "reply",
+      "cmd": "auto_run",
+      "ok": true,
+      "toolsetter": {
+       "digest": "b3b73c300626904f",
+       "set_up": false,
+       "synced": false
+      }
+     },
+     "task_mode_after": 2,
+     "task_mode_after_load_a": 2,
+     "booking_after_load_a": {
+      "version": 1,
+      "by_origin": {
+       "assumed": [
+        3004,
+        3005,
+        3006,
+        3007,
+        3009,
+        3010,
+        3013,
+        3014,
+        3100,
+        3101,
+        3102,
+        3103,
+        3104,
+        3105,
+        3106,
+        3107,
+        3108,
+        3109,
+        3110,
+        3111,
+        3112,
+        3113,
+        3114,
+        3115
+       ]
+      }
+     }
+    }
+   },
+   "page_probe_errors": []
+  }
+ },
+ "unit_tests": {
+  "file": "lcnc-gateway/test_rfl_preview_wait.py",
+  "result": "10 passed",
+  "harness": "test_rfl_guard.py 32 passed with the wait stubbed in _SeqHarness"
+ },
+ "mutations": [
+  "M2 exit on any answer but 'a parse runs or is pending': RED rc=1         # failed polls never move the bound (one deadline from the start); FAILED test_rfl_preview_wait.py::TestPreviewWait::test_bound_starts_once - As...",
+  "M5 no binding check in the wait: RED rc=1 FAILED test_rfl_preview_wait.py::TestPreviewWait::test_another_program_loaded_ends_it",
+  "M6 early end not bound to this load: RED rc=1 ",
+  "M6b early end not bound to a later round: RED rc=1 ",
+  "M7 early end on cancelled/discarded too: RED rc=1 ",
+  "M9 the bound restarts with each poll: RED rc=124 ",
+  "M8 the wait under _cmd_lock: RED rc=124 ",
+  "U8 two text hashes per poll: RED rc=1 FAILED test_rfl_preview_wait.py::TestPreviewWait::test_one_text_hash_per_poll"
+ ]
+}
