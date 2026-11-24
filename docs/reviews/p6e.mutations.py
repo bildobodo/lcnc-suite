@@ -53,6 +53,12 @@ MUTS = {
         "    if (letter === \"O\") return { kind: \"plain\", units: [], motion: false };\n")],
         [vt(UT_HDR, "a sub DEFINITION's G20 is no unit"),
          pw("an unproven unit", "the header named, not compared")]),
+    # (3b) code the grammar cannot read is skipped instead of refused: the G20
+    # inside a parameter name `#<g20>` is taken as a G-word
+    "unreadable_code_skipped": (HDR, [(
+        "    if (!m || m.index !== at) return { kind: \"unproven\" };\n",
+        "    if (!m || m.index !== at) { WORD.lastIndex = at + 1; continue; }\n")],
+        [vt(UT_HDR, "a G-word inside a parameter name is no G-word")]),
     # (4) a block-delete line's G20 counts
     "block_delete_runs": (HDR, [(
         "  if (del) return { kind: \"unproven\" };\n", "")],
