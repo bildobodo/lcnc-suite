@@ -31,8 +31,14 @@ test.beforeEach(async () => {
 });
 
 test("reload while armed requests armed-resume with the same session id", async ({ page }) => {
+  // The label font is the page's last start-up request, from the text worker,
+  // after the armed page: a reload that lands on it releases the paused
+  // request without its id (browser-replay red in two merge gates, 2026-11-23
+  // and -24). Reload once it is answered — the signal, never a wait.
+  const font = page.waitForResponse(r => /\/Inter-Regular-.*\.woff$/.test(new URL(r.url()).pathname));
   await page.goto(MOCK);
   await expectArmed(page);
+  await font;
   const session = await page.evaluate(() => sessionStorage.getItem("lcnc-session-id"));
   expect(session).toBeTruthy();
 

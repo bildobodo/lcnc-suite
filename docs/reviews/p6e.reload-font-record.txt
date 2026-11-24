@@ -1,0 +1,16 @@
+lifecycle.spec "reload while armed requests armed-resume with the same session id": browser-replay red in two merge gates
+(P2b-F1 run 1, 2026-11-23; P6-e run 3 at be31d4dc, p6e.gate-merge-run3.json: everything else PASS) -
+"GET /static/Inter-Regular-*.woff reached the mock without an id".
+Read from the run's logs: the mock got that font 16 ms AFTER the reload's GET /, the browser's record holds no request for
+it. It is the OLD page's label font, fetched by the text worker after the page is armed; a request the worker issues while
+its page navigates away is outside Playwright's interception, so it reaches the mock without the recorder's header.
+Fix: the spec waits for the font's answer (page.waitForResponse, registered before goto) before it reloads - no request of
+the old page is left to land in the navigation.
+Measured (2026-11-24, heavy lock, Chromium, one worker, the record's dirs on):
+  old spec,   --repeat-each=15: 15 passed, the font asked for before the reload in  2 of 15 attempts (the reload races it)
+  fixed spec, --repeat-each=15: 15 passed, the font answered WITH its id before the reload in 15 of 15
+NOT reproduced red on demand: holding the font's route open (5x), and reloading right at its request event (40x), both gave
+no id-less contact - at those moments Playwright already holds the request. The window is the few ms of the navigation itself.
+Runs 2 and 3 of the P6-e merge gate at be31d4dc: run 2 failed only the install probe's isolation (an npx call of another
+worktree wrote ~/.npm/_logs during the probe, 14/14 rows PASS), run 3 only this replay finding (and coverage, which refuses
+a red replay); both had 1104/1104 browser and 94/94 Firefox tests.
