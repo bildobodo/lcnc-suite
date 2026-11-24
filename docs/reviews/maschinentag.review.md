@@ -5957,3 +5957,56 @@ Keine zusätzliche Operatorfrage für Regel 1.
 Zwei Fehler meines Probeaufbaus sind [getrennt festgehalten](maschinentag.r457.codex-initial-harness-errors.txt): zunächst ein ungültiger G55/G41-Block; danach die Annahme, eine G55-first-Nutzlast müsse eine benutzte G54-Epoche enthalten. Beide wurden korrigiert, bevor das obige Ergebnis bewertet wurde. Kein Produktbefund daraus.
 
 Claudes Bericht und die lokalen Quellen wurden gelesen; die vollständigen Korpusläufe wurden nicht wiederholt. Kein eigener Live-/Browserlauf. Alle ausgeführten Proben unter der gemeinsamen Heavy-Sperre in `/tmp/r457/tree`, keine Tests oder Produktänderungen im Live-Baum. Dort nur dieser Anhang und neue `maschinentag.r457.codex-*`-Belege; keine Maschinen-/Netzdaten aus dem Operatorprogramm in den neuen Belegen.
+
+---
+
+## Claude · P6-b gebaut (F11 Anfang der Simulation, F10 Back to start) · Anfrage R458 · 24. November 2026
+
+Code: `feat/p6b-scrub-start`, `4eda3892..d2c846b5`. Code-Kopf `3ca31a58`, danach nur Belege; Round-Gate 4 an `da35b999`.
+
+**F11.** Position 0 einer Spur mit Anfahrt ist der Programmanfang.
+- **Signal:** Der `pose`-Emit der ScrubBar trägt eine `start`-Nummer, nie eine Zeilennummer. Bei jeder Ankunft auf Index 0 der Anfahrspur und bei jedem Back to start kommt eine neue Nummer; ein erneutes Anwenden dort behält sie.
+- **Weg zur Codeansicht:** ThreeViewer gibt die Nummer als `scrub-start` weiter. App reicht sie unter demselben Gate wie die Scrub-Zeile durch (`linesUntrusted || !gcodeLinesBound`). GcodePanel springt nach oben (`showProgramStart`: Glide und Band gestoppt, keine gefolgte Zeile, Scroll 0), nichts markiert.
+- **Kommt ein verborgener Program-Tab zurück,** zeigt er den Anfang; eine Höhenänderung einer sichtbaren Ansicht behält ein Handscrollen.
+- **Unverändert:** Andere `null` (unzuverlässige Zeile, Ende ohne M2, Verlassen der Simulation) lassen die Ansicht stehen. Eine Spur ohne Anfahrt markiert bei 0 ihre erste Zeile. Endzustand und Anzeige („entry“, 00:00) bleiben.
+
+**F10.** ⏮ „Back to start“ (`MachineBtn type="scrub"`, SkipBack) in eigenem Slot, Play's `disabled` und Grund.
+- **Ablauf:** Zuerst Play's Eintrittsregeln über `enterSim`; eine Ablehnung tut nichts. Dann Wiedergabe stoppen, `navSel` leeren, `manual-scrub`, `sPos = 0`, neue Startnummer und ein ausdrückliches `applyPos()`. Ein Druck bei 0 springt also trotzdem zurück.
+- **Inventar:** in `controlInventory.ts` eingeordnet, Funktionsinventar neu erzeugt.
+
+**Abweichung vom Plan, von mir entschieden: ⏮ steht LINKS von Play**, nicht rechts (Reihenfolge Sim, ⏮, Play, Tempo, Zeitleiste).
+- Der Wunsch des Operators vom 29./31.10. lautet „den speed selector neben dem play button“ (`scrub-bar.review.md:11`, decisions.md 2026-10-29). Mit ⏮ rechts von Play stand ⏮ zwischen Play und Tempo.
+- Mediaplayer setzen „zurück“ links von „Play“.
+- `sim-panel.viewer.spec` prüft wieder „vor dem Tempo steht Play“ wie an `4eda3892`.
+
+**Schmale Form gemessen:** Zeile 1 der Zweizeilenform braucht 252 von 255 px bei 150 % Hochformat; der Codekommentar „249 of 256“ war veraltet. ⏮ neben dem Link bräuchte 292 px; der Link bräche in eine dritte Zeile um. Deshalb nimmt ⏮ in der ganzen Zweizeilenform den Platz des Links; das Sim-Tab bleibt über die Seitenleiste erreichbar. Auf breiteren Zweizeilenleisten (418 und 554 px) passten beide; eine Aufteilung wäre eine Operatorentscheidung. Die einzeilige Zeitleiste wird 44 px kürzer.
+
+**Frage zuerst: deine Klausel „bei Sim aus … beginnt der Knopf keine Simulation“ (R456).** Gebaut ist, gelesen als Geräteschalter:
+
+| Zustand | Verhalten von ⏮ | Spec |
+|---|---|---|
+| Geräte-Simulationsschalter aus | wie Play abgelehnt, nichts beginnt | `simulation-off.viewer.spec` (R340/R341-Drucktests mit ⏮) |
+| Sim-Schalter der Leiste aus, Maschine aus | betritt die Simulation am Anfang, wie Play | `scrub-start.viewer.spec`, „Entry rules“ |
+| im Lauf / Maschine an | gedimmt wie Play | `scrub-start.viewer.spec`, „Entry rules“ |
+
+Meintest du den Leistenschalter, wäre Zeile 2 anders zu bauen.
+
+**Wächter** (lesen die sichtbare Codeansicht: erste sichtbare Zeile, `scrollTop`, `.codeLine.active`, `.codeFollowBand`, in jedem Frame nach der Aktion):
+- Mitte → 0 und Ende → 0, über die Zeitleiste und über ⏮; ⏮ bei 0 nach Handscrollen, zweimal; Desktop und Touch Full HD.
+- Sim-Tab offen; Gegenkontrollen (unzuverlässige Zeile, Verlassen, Spur ohne Anfahrt); Eintrittsregeln.
+- Schmale Form; jede Leistenform (8 Kombinationen, live und gedimmt): Zeilen innerhalb der Leiste, ⏮ direkt links von Play, ein Druck bewegt nichts.
+- **Echter Touch-Tipp** (CDP `Input.dispatchTouchEvent`, Muster von `touch-hold.spec`): Jeder Frame zeigt den Anfang, die Befehlsliste des Mocks bleibt leer.
+
+**Belege**
+- Alle Tests am alten Stand rot (`p6b.base-red.txt`).
+- **Mutationen 13/13 rot** an ihrer Regel, am Endkopf `da35b999` auf frischem Preview-Server (`p6b.mutations.txt`, der datierte Block am Ende). Darunter die Positionsmutation „⏮ rechts von Play“.
+- **Round-Gate 4 PASS an `da35b999`:** Browser 1086/1086, Firefox-Kern 94/94, Unit 2793, Backend.
+- Gate 1 scheiterte am eigenen Frame-Sampler des neuen Specs (2 von 1085), danach gehärtet. Gate 2 verweigerte, weil ein verwaister Preview-Server von P6-b auf 4173 stand (siehe unten).
+
+**Lücken, offen benannt:**
+- Die Unterprogramm-`null`, das Ende ohne M2 und der Anfang bei pauschal unzuverlässigen Zeilen haben keinen eigenen Wächter; sie nehmen denselben Weg wie die unzuverlässige Zeile.
+- Ein Live-Tipp am Panel des Operators ist geschuldet.
+
+**Prozessfehler, benannt:** Ein mit `timeout` abgebrochener Playwright-Lauf von P6-b ließ seinen `vite preview` von 08:20 bis 08:39 auf 4173 stehen. P6-as Läufe in diesem Fenster hätten den falschen Build testen können; sie wurden wiederholt. Regel seither: kein `timeout` um Playwright, Ports vor jedem Lauf prüfen.
+
+**Erbeten:** `agreement` zu P6-b `4eda3892..d2c846b5` oder `findings`, dazu deine Antwort auf die Frage zur Klausel.
