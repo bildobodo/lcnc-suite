@@ -199,7 +199,10 @@ the server re-checks before the effect. Package A closed what made that false:
   default True; False lets them edit as before, the other checks stay).
   R does not exclude a foreign NML writer (`command.tool_offset`) between
   the check and the write — no atomic exclusion is claimed. A full import
-  REPLACES the table and needs no basis.
+  REPLACES the table and needs no basis. A table that never reads complete
+  (LinuxCNC loaded it without its final newline, a line LinuxCNC skips, more
+  tools than io holds) keeps edits refused until the file is rewritten (a
+  G10 L1, a full import, the line end by hand) — a named limit.
 - *An admitted tool-table persist ends* (BG-22, Codex R211): the table write,
   the reload into LinuxCNC and the metadata are ONE section
   (`_persist_tool_edit` for the WS edits, the import's own) awaited through

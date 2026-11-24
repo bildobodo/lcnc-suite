@@ -28,6 +28,8 @@ export interface ToolTableProof {
   duplicates: number[];
   why: string | null;
   attempts?: number;
+  /** the bytes end in a line end (false: the file ends inside a line) */
+  ends_newline?: boolean;
 }
 /** A line the gateway did not read: its number and the tool it names (a
  *  single whole T token), else null. */
@@ -78,7 +80,8 @@ function readProof(p: unknown): ToolTableProof | null {
     : [];
   return { state: q.state, proven: q.proven, differs, missing: q.missing, extra: q.extra,
            duplicates: isNums(q.duplicates) ? q.duplicates : [], why: typeof q.why === "string" ? q.why : null,
-           attempts: typeof q.attempts === "number" ? q.attempts : undefined };
+           attempts: typeof q.attempts === "number" ? q.attempts : undefined,
+           ends_newline: typeof q.ends_newline === "boolean" ? q.ends_newline : undefined };
 }
 
 function readUnread(u: unknown): UnreadLine[] {
@@ -96,6 +99,7 @@ export function partialNote(proof: ToolTableProof, unread: UnreadLine[]): string
   if (proof.extra.length) parts.push(`${names(proof.extra, t)} not in LinuxCNC`);
   if (proof.duplicates.length) parts.push(`${names(proof.duplicates, t)} twice`);
   if (unread.length) parts.push(`${unread.length === 1 ? "line" : "lines"} ${names(unread.map(u => u.line), String)} not read`);
+  if (proof.ends_newline === false) parts.push("the last line has no line end");
   if (!parts.length && proof.why === "file changed while read") parts.push("it changed while read");
   return `File incomplete or differs from LinuxCNC${parts.length ? " — " + parts.join("; ") : ""}.`;
 }

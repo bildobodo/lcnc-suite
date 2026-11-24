@@ -219,7 +219,11 @@ onMounted(() => {
 });
 watch(connected, (val) => {
   if (!val) { connectionClosed(); return; }
+  // connected: no "Not connected" while the read waits its delay — the tab
+  // says it is loading (a mount used to queue its read, answered at once)
   reads.opened();
+  loading.value = true;
+  tableError.value = null;
   setTimeout(fetchTools, FETCH_DELAY_MS);
 });
 

@@ -131,6 +131,27 @@ class TestTF1EveryCutIsNotComplete(unittest.TestCase):
                          ("partial", [1], [2], DIFFERS))
 
 
+class TestAPermanentPartial(unittest.TestCase):
+    """A named limit: a table that never reads complete keeps every edit
+    refused (MT-TF1) — "read again" does not resolve it; a rewrite of the file
+    does (a G10 L1: io saves it whole; a full import; a line end added by
+    hand). The cases: LinuxCNC loaded a file without its final newline, a
+    line LinuxCNC skips (unread here), more tools than io holds."""
+
+    def test_a_loaded_table_without_its_final_newline_stays_partial(self):
+        mem = {1: {"D": 6.0}, 2: {"D": 4.0}}
+        _r, _u, proof = prove(b"T1 P1 D6 ;\nT2 P2 D4 ;", table(mem), None)
+        self.assertEqual((proof["state"], proof["proven"], proof["ends_newline"]), ("partial", [1, 2], False))
+        self.assertEqual(edit_basis_refusal(proof), EDIT_NOT_CONFIRMED)
+        self.assertEqual(prove(b"T1 P1 D6 ;\nT2 P2 D4 ;\n", table(mem), None)[2]["state"], "complete",
+                         "the way out: the file rewritten with its line end")
+
+    def test_more_tools_than_io_holds_stay_partial(self):
+        # io loads at most CANON_POCKETS_MAX - 1 (1000) home entries
+        _r, _u, proof = prove(b"T1 P1 ;\nT2 P2 ;\n", table({1: {}}), None)
+        self.assertEqual((proof["state"], proof["extra"]), ("partial", [2]))
+
+
 class TestTF2OldFileNewMemory(unittest.TestCase):
 
     def test_the_changed_tool_differs(self):

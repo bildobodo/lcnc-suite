@@ -106,6 +106,10 @@ describe("store point 2: an error or a missing reply never shows as an empty tab
       expect(toolTableView<Row>(reply({ proof: bad })).kind).toBe("unchecked");
     }
   });
+  it("a missing line end at the file's end is named (it alone keeps a read partial)", () => {
+    expect(partialNote(proof({ state: "partial", proven: [1, 3], ends_newline: false }), []))
+      .toBe("File incomplete or differs from LinuxCNC — the last line has no line end.");
+  });
   it("a note caps the names it lists", () => {
     const missing = Array.from({ length: NOTE_NAMES_MAX + 3 }, (_v, i) => i + 10);
     const note = partialNote(proof({ state: "partial", proven: [], missing }), []);
