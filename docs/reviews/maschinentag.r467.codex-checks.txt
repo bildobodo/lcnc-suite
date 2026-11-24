@@ -1,0 +1,13 @@
+Heavy bundle attempt 1: codex-r467 waited 50 s behind p6tf (pid 419262, since 2026-11-24T18:01:58); exit 4, no test started.
+Heavy bundle attempt 2: codex-r467 waited 50 s behind round_gate round 0f69ec7c (pid 493779, since 2026-11-24T18:05:26); exit 4, no test started.
+Therefore no own build, browser or native replay in R467. The following is only the short, isolated single-worker unit run (outside the heavy sections).
+
+
+ RUN  v4.1.8 /tmp/r467/tree/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  59 passed (59)
+   Start at  18:06:17
+   Duration  1.38s (transform 358ms, setup 0ms, import 734ms, tests 99ms, environment 0ms)
+

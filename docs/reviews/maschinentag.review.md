@@ -6977,3 +6977,22 @@ Code: `feat/p6e`, `0490a7ec..5b2579ed`. Round-Gate 3 an `79050b1e`: Browser 1104
 - **Mutationen 18/18 rot an ihrer Regel.** Neu: Python-Form ignoriert; nur Kleinschreibung erkannt; nur Klammerform erkannt; Bewegungszeile nicht geprüft.
 
 **Erbeten:** `agreement` zu P6-e `6c78780c..5b2579ed` oder `findings`.
+
+
+## Codex · P6-e nach R466 · Review R467 · 24. November 2026
+
+**Agreement zu P6-e `6c78780c..5b2579ed`. MT-I34 einschließlich des Kommentarrests geschlossen.** Keine weiteren Befunde aus dieser Nachprüfung; keine neue Operatorentscheidung erforderlich.
+
+Die Produktkorrektur `50e8c8d0` prüft die Kommentare vor ihrem Entfernen. `readLine` verwirft den Einheitenbeleg bei `cut.exec` bereits vor dem Leerzeilen- und Bewegungsfall. Damit greifen `py,`, `pyrun,` und das Präfix `pyreload` sowohl in Klammer- als auch Semikolonkommentaren, nach führendem Leerraum und unabhängig von der Großschreibung. Die erste Bewegungszeile und Block-Delete sind eingeschlossen. Das entspricht den in R466 nachgewiesenen Python-Eintrittsformen von `Interp::convert_comment`; der Scanner führt sie nicht aus.
+
+Die positiven Grenzen bleiben erhalten: gewöhnliche Kopfkommentare und die Durchmessereinträge bleiben lesbar; `py ,`, `python,` und ein `msg,`-Kommentar sind keine dieser Python-Formen. Ein ausführbarer Kommentar erst nach dem begrenzten Kopf verändert dessen Ergebnis nicht. Die Wort-Positivliste aus R466 bleibt wirksam. Die zuvor geprüfte Bindung an Programm, veröffentlichte Version und Textquelle, die Ergänzung eines verspäteten Texts sowie Vergleich und Kartenverdrahtung sind seit R466 unverändert; den Gesamtdiff habe ich dazu erneut abgeglichen.
+
+**Eigene Prüfung:** Archiv von `5b2579ed` in `/tmp/r467/tree`, kopierte Abhängigkeiten, ein Worker: **59/59 Unit-Tests grün** — 51 aus `programToolHeader.test.ts` und `checkContext.test.ts` plus die acht **bytegleich übernommenen** R466-Gegenproben und Kontrollen. Insbesondere werden die früher falschen `match`-Ergebnisse nun `notCompared / unitsNotProven`. Kein Produktedit und keine Controllerverbindung.
+
+**Ausführungsgrenze und vorgelegte Belege:** Zwei Versuche für den gemeinsamen schweren Prüfblock endeten nach jeweils 50 s mit Exit 4 an der belegten Sperre (`p6tf`, danach `round_gate round 0f69ec7c`). Eigener Build, Browserlauf und erneute native Probe wurden deshalb in dieser Runde **nicht ausgeführt**. Die oben genannten kurzen Unit-Prüfungen liefen anschließend separat. Den vorhandenen Gatebericht habe ich geprüft: PASS an `79050b1e`, uncommitted 0, keine offenen Schritte; Build, 2857 Unit-Tests, Backend, 1104/1104 Browserfälle samt Replay und 94/94 Firefox-Kern samt Replay bestanden. Zwischen diesem Stand und `5b2579ed` kommt ausschließlich die Gate-JSON hinzu. Die übernommene Browserprobe wartet ausdrücklich auf die belegte Textversion und verlangt den neutralen Zusatz „units not proven — not compared“. Die 18 roten Mutationen sind im vorgelegten letzten Belegblock an ihrer jeweiligen Aussage dokumentiert; ich habe sie nicht erneut ausgeführt.
+
+Die bereits benannten Produktgrenzen bleiben: ein Hinweis aus der kleinen Kopfgrammatik, keine Verifikation der Richtigkeit des CAM-Kommentars und keine Änderung an Werkzeugtabelle oder Kollisionsgeometrie. Die native Probe aus R466 belegt weiter die Ursache; der dort noch ausstehende Blick auf das tatsächliche Maschinenprogramm wird mit diesem Agreement nicht als erledigt verbucht.
+
+Belege: [Prüfausgabe und Sperrversuche](maschinentag.r467.codex-checks.txt), [unveränderte R466-Proben](maschinentag.r467.codex-unit.test.ts), [Manifest mit Quellhashes, Befehlszeile und ausgewertetem Gatebericht](maschinentag.r467.codex-manifest.json).
+
+**Gesamturteil: `agreement`.**

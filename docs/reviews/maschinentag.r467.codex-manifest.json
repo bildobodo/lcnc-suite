@@ -1,0 +1,152 @@
+{
+  "base": "6c78780c",
+  "head": "5b2579edf80df5026e26f7ebcadd33b819858cbb",
+  "isolated_copy": "/tmp/r467/tree",
+  "own_checks": [
+    {
+      "name": "targeted-light-unit",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "src/viewer/programToolHeader.test.ts",
+        "src/viewer/checkContext.test.ts",
+        "src/viewer/r467.codex.test.ts",
+        "--maxWorkers=1"
+      ],
+      "returncode": 0,
+      "seconds": 1.8873439519666135,
+      "cwd": "/tmp/r467/tree/lcnc-webui"
+    }
+  ],
+  "old_probe_unchanged": true,
+  "source_sha256": {
+    "lcnc-webui/src/viewer/programToolHeader.ts": "2de25b520b5acaebf6b67c2c8ec4bd00644f596dd55bb4d32e18b7c9eac5b810",
+    "lcnc-webui/src/viewer/checkContext.ts": "89fe2e92b229e3ab64d85987f2d005c9b4b4bed0cdad1276fe46cdc966cbe6fa",
+    "lcnc-webui/src/ws/bulkData.ts": "c2593db47c16d40470d9357dc31fa71651b0ed517450bc47c7f661a16a7c6efc",
+    "lcnc-webui/src/ThreeViewer.vue": "7c44cf41544a1869a84887e6f63ac231069940a1011fb41d1017860399945c6a",
+    "lcnc-webui/src/ScrubBar.vue": "d836a602f51622d355a20f7b7d5fcf8bcb89ab48a5d4cb9ef8c4fb42bb21ae12"
+  },
+  "not_executed_here": [
+    "build",
+    "browser",
+    "native"
+  ],
+  "gate_reviewed": {
+    "path": "/home/cnc/lcnc-suite-p6e/docs/reviews/p6e.gate-round3.json",
+    "sha256": "ee05b11623ab57a206460387a413d8b34a1f6790913eaba6e0ad7f7f369aa4cd",
+    "head": "79050b1e5d8bd94cfeacf1e0dc53458f7d24c14c",
+    "base": "6c78780c3c2eba279356fb47662695f270b6bd61",
+    "verdict": "PASS",
+    "uncommitted": 0,
+    "pending": [],
+    "checks": [
+      {
+        "name": "build",
+        "command": "npm run build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 17
+      },
+      {
+        "name": "unit-light",
+        "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-p6e/docs/reviews/p6e.gate-round3.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-p6e/scripts/test_select/vitest_options_reporter.mjs",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 68,
+        "files": 180,
+        "tests": 2857,
+        "passed": 2857,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 2857
+      },
+      {
+        "name": "backend",
+        "command": "/home/cnc/lcnc-suite-p6e/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-p6e/scripts/test_suite.py offline --component backend --out-dir /home/cnc/lcnc-suite-p6e/docs/reviews/p6e.gate-round3.logs/backend --run-id backend-4820dc2f-1970-4a66-8536-27f8d518772d",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 283,
+        "run": "backend-4820dc2f-1970-4a66-8536-27f8d518772d"
+      },
+      {
+        "name": "browser-full",
+        "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 1948,
+        "tests": 1104,
+        "passed": 1104,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-replay",
+        "status": "PASS",
+        "report": "replay.json",
+        "frames": 10865,
+        "attempts": 1104,
+        "http": {
+          "aborted": 2,
+          "rewritten": 3,
+          "replaced": 4326,
+          "fetched": 5,
+          "fetch-fallback": 1,
+          "fetch-unknown": 1,
+          "other-server": 35,
+          "redirect-chain": 1,
+          "served": 18300,
+          "fallback": 3738,
+          "redirect-hop": 2,
+          "closing": 617,
+          "held": 6,
+          "aborted-early": 32
+        },
+        "outside": [
+          "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+          "the gates and the handlers (admission, effect)",
+          "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+          "coverage against the inventory (step 5c)"
+        ]
+      },
+      {
+        "name": "firefox-core",
+        "command": "npx playwright test -c playwright.firefox.config.ts --forbid-only --trace off --reporter=line,json --output /home/cnc/lcnc-suite-p6e/docs/reviews/p6e.gate-round3.logs/test-results",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 113,
+        "tests": 94,
+        "passed": 94,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "firefox-replay",
+        "status": "PASS",
+        "report": "firefox-replay.json",
+        "frames": 561,
+        "attempts": 94,
+        "http": {
+          "replaced": 23,
+          "ws-handshake": 93,
+          "other-server": 41,
+          "served": 1343,
+          "fallback": 308
+        },
+        "outside": [
+          "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+          "the gates and the handlers (admission, effect)",
+          "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+          "coverage against the inventory (step 5c)"
+        ],
+        "seconds": 0.0
+      }
+    ]
+  },
+  "gate_to_head_changed_paths": [
+    "docs/reviews/p6e.gate-round3.json"
+  ],
+  "scope": "Review only; no product edits, no controller connection, no live-tree builds/tests."
+}
