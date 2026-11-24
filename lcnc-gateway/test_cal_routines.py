@@ -7,7 +7,12 @@ with the argument [0] exactly what the upstream form computed with #3032 = 0.
 report no contact, so the XY / Z probing subroutines are replaced by stubs
 earlier on SUBROUTINE_PATH that put known edges into #5061 / #5062 and report
 their offset argument — the routines' own lines run unchanged. What a probe
-input does is the native stage's `p5` run."""
+input does is the native stage's `p5` run.
+
+Every run has a HOME of its own: `rs274` creates LinuxCNC's tool-data file
+`$HOME/.tool.mmap` anew, and a LinuxCNC running on this machine maps that very
+file — the first runs (2026-11-24) replaced the live sim's tool table with the
+test's one tool."""
 import os
 import re
 import shutil
@@ -81,8 +86,11 @@ class TestOnTheInterpreter(unittest.TestCase):
                        f"[TRAJ]\nLINEAR_UNITS = mm\n[EMCIO]\nTOOL_TABLE = {d / 'tool.tbl'}\n")
         ngc = d / "run.ngc"
         ngc.write_text(f"G21 G90\n#<_n> = 0\nT99 M6\nG0 X0 Y0 Z0\no<{routine}> call {token}\n(DEBUG, END)\nM2\n")
+        home = d / "home"
+        home.mkdir()
         out = subprocess.run([RS274, "-g", "-i", str(ini), "-v", str(var), "-t", str(d / "tool.tbl"), str(ngc)],
-                             capture_output=True, text=True, timeout=60, cwd=d)
+                             capture_output=True, text=True, timeout=60, cwd=d, env={**os.environ, "HOME": str(home)})
+        self.assertTrue((home / ".tool.mmap").exists(), "the tool data went to the run's own HOME, never the operator's")
         msgs = re.findall(r'MESSAGE\("(.*)"\)', out.stdout)
         after = next(line.split()[1] for line in var.read_text().splitlines() if line.startswith("3032"))
         return msgs, float(after), out.stdout + out.stderr
