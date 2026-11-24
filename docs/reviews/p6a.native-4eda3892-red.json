@@ -1,0 +1,149 @@
+{
+ "_doc": "P6-a (machine-day F9) native page case on the VM's real LinuxCNC (the 3-axis sim profile, a confined copy of the run tree's commit, Chromium headless 1920x1080, the device's simulation switched on by the probe), driven by ~/claude-work/p6a/native/p6a_native.py + p6a_probe.mjs (local): every joint homed, G54 written in the copy only (G10 L2 P1 X238.525 Y379.696 Z-96.75, the machine day's), the machine at the G54 origin under G49, the machine day's head shape loaded (G53 G0 Z0. / T1 M600 / G54 / G0 X120. Y80. / G43 Z15. H1 / G1 ...), the machine OFF; the page enters the simulation, the page's OWN entry track is read from its collision worker's side request (the Worker tapped and forwarded), the scrub put at the entry's end (cum[1], the slider's step grid set to 'any') and the SCENE read: the tool tip in the machine frame (__viewerDiag.getToolTip), the scrub pose, the bar's time. Verdict: the tip ends the entry straight above where the machine stands (X/Y unchanged, Z = 0). The toolsetter section was NOT pinned (_save_toolsetter refused the probe-tool key #3014: KeyError, a driver error) \u2014 both runs ran with the fresh copy's unset section, the same state; the bar's totals compare between the two runs only. RED at 4eda3892: the tip at 2 x G54 in X and Y (the diagonal entry), the bar 04:19.",
+ "run": "20261124T083522-base",
+ "commit": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "owed": "settled",
+ "crashes": [],
+ "page": {
+  "verdict": {
+   "tip": [
+    477.04999389648424,
+    759.3920144042967,
+    -5.684341886080802e-14
+   ],
+   "want": [
+    238.525,
+    379.696,
+    0.0
+   ],
+   "entry_end_straight_above": false,
+   "bar": "00:04/04:19"
+  },
+  "status_before": {
+   "g5x_index": 1,
+   "g5x_offset": [
+    238.525,
+    379.696,
+    -96.75,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "joint_pos": [
+    238.52500000000006,
+    379.69599999999997,
+    -96.74999999999999,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "tool_offset": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "tool_number": 0
+  },
+  "toolsetter_error": "KeyError: 3014",
+  "preview_origin_file": "/home/cnc/claude-work/p6a/native/runs/20261124T083522-base/configs/sim/nc_files/p6a_head.ngc",
+  "sim": {
+   "tip": [
+    477.04999389648424,
+    759.3920144042967,
+    -5.684341886080802e-14
+   ],
+   "pose": {
+    "joints": [
+     477.04999389648424,
+     759.3920144042967,
+     -5.684341886080802e-14
+    ],
+    "tlo": null,
+    "tool": null,
+    "cum": 4.58719730377197,
+    "line": 3
+   },
+   "bar": "00:04/04:19",
+   "entry_end_cum": 4.587197303771973,
+   "error": null,
+   "side_track_head": {
+    "cum": [
+     0,
+     4.587197303771973,
+     4.587197303771973,
+     4.587197303771973,
+     112.20337677001953,
+     112.20337677001953,
+     112.20337677001953,
+     113.90042877197266
+    ],
+    "pos": [
+     5.684341886080802e-14,
+     -5.684341886080802e-14,
+     1.1084466677857563e-10,
+     238.52499389648438,
+     379.6960144042969,
+     96.75,
+     238.52499389648438,
+     379.6960144042969,
+     96.75,
+     238.52499389648438,
+     379.6960144042969,
+     96.75,
+     -238.52499389648438,
+     -379.6960144042969,
+     96.75,
+     -238.52499389648438,
+     -379.6960144042969,
+     96.75,
+     -238.52499389648438,
+     -379.6960144042969,
+     96.75,
+     -228.52499389648438,
+     -369.6960144042969,
+     96.75
+    ],
+    "lines": [
+     0,
+     3,
+     241,
+     241,
+     247,
+     248,
+     284,
+     308
+    ]
+   }
+  },
+  "probe_errors": []
+ },
+ "steps": [
+  "tree",
+  "copy",
+  "start",
+  "connect",
+  "p6a-page"
+ ]
+}
