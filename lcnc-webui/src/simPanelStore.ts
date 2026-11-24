@@ -135,6 +135,7 @@ export function claimSimActions(a: SimActions): () => void {
     _owner = null;
     _actions = null;
     simView.available = false;
+    simView.notChecked = null;
     simView.timeForm = 0;
     simView.counts = { clash: 0, limit: 0, tool: 0 };
     simView.window = { before: 0, after: 0 };

@@ -85,6 +85,16 @@ MUTS = {
     "the_bar_speaks_for_the_run": (S + "ScrubBar.vue", [(
         "  if (props.collisionRunNotChecked) return null;\n  const r = shownResult.value;\n", "  const r = shownResult.value;\n")],
         [vt(UT_WORDS, "a run the check does not cover overrides every result branch")]),
+    # ---- what the operator SEES names it: words in the slot, nothing moves; without a track too
+    "the_slot_shows_no_words": (S + "ScrubBar.vue", [(
+        '<span class="notCheckedWords">not checked</span>', "")],
+        [pw("desktop: the bar's slot", "the bar's words, no coverage figure")]),
+    "the_words_move_the_bar": (S + "ScrubBar.vue", [(
+        "width: min-content; white-space: normal; line-height: 1.1;", "line-height: 1.1;")],
+        [pw("desktop: the bar's slot", "its box as in a run from 0")]),
+    "without_a_track_nothing_is_named": (S + "SimPanel.vue", [(
+        '      <div v-if="simView.notChecked" class="emptyState"><span class="text-warn">{{ notCheckedCard }}</span></div>\n', "")],
+        [pw("a run from line without a preview", "without a preview: the Sim tab")]),
     # ---- the lock-out is the COLLISION check's only: the program's marks stay
     # (a) every timeline mark goes with the check
     "the_marks_go_with_the_check": (S + "ScrubBar.vue", [(

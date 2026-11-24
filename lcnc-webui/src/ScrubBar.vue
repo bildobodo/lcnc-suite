@@ -1478,10 +1478,11 @@ onUnmounted(releaseSim);
       <!-- The coverage and the time in FIXED slots: the timeline is the
            one flexible item, so it never moves. The time's is as wide as the
            program's widest readout (its hidden .alt, one per figure). -->
-      <!-- a run the check does not cover (P6-d0): the slot's own glyph, its
-           words in the name — the timeline keeps its box -->
+      <!-- a run the check does not cover (P6-d0): "not checked" in two lines
+           inside the slot's own width — the timeline keeps its box —, in the
+           two-row form (its second row as low as the timeline) the glyph -->
       <span class="val-slot checkSlot val-status mono" :class="{ 'text-warn': checkHalt || notChecked }" :title="checkPctTitle"
-            :role="notChecked ? 'img' : undefined" :aria-label="notChecked ? checkPctTitle : undefined">{{ checkPct }}<Ban v-if="notChecked" :size="10" class="checkGlyph" aria-hidden="true" /><Pause v-else-if="checkHalt === 'paused'" :size="10" class="checkGlyph" aria-hidden="true" /><Square v-else-if="checkHalt === 'stopped'" :size="10" class="checkGlyph" aria-hidden="true" /></span>
+            :role="notChecked ? 'img' : undefined" :aria-label="notChecked ? checkPctTitle : undefined">{{ checkPct }}<template v-if="notChecked"><span class="notCheckedWords">not checked</span><Ban :size="10" class="checkGlyph notCheckedGlyph" aria-hidden="true" /></template><Pause v-else-if="checkHalt === 'paused'" :size="10" class="checkGlyph" aria-hidden="true" /><Square v-else-if="checkHalt === 'stopped'" :size="10" class="checkGlyph" aria-hidden="true" /></span>
       <span class="posSlot val-status mono" :class="{ muted: !simMode && !running }" :title="posTitle"><span class="stable-width"><span><span>{{ posNow }}<span class="posRest">{{ posRest }}</span></span></span><span v-for="(w, i) in posWidest" :key="i" class="alt" aria-hidden="true"><span>{{ w.now }}<span class="posRest">{{ w.rest }}</span></span></span></span></span>
       <MachineBtn type="scrub" class="iconBtn simTabLink" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
         <SquareArrowOutUpRight :size="14" />
@@ -1512,6 +1513,10 @@ onUnmounted(releaseSim);
    done, empty where nothing was checked. */
 .checkSlot { --slot-w: calc(5ch + 10px + var(--gap-micro)); white-space: nowrap; }
 .checkGlyph { margin-left: var(--gap-micro); vertical-align: baseline; }
+/* "not checked" (P6-d0): its two words under each other, as wide as the
+   longer one — inside the slot's width and the row's height. */
+.notCheckedWords { display: inline-block; width: min-content; white-space: normal; line-height: 1.1; vertical-align: middle; }
+.notCheckedGlyph { display: none; }
 .sliderWrap {
   flex: 1;
   min-width: 0;
@@ -1610,5 +1615,7 @@ html.touch-device .scrubBar.denseArea .scrubRow .iconBtn.b { min-width: var(--to
   .rowBreak { display: block; order: 2; flex: 0 0 100%; height: 0; }
   .sliderWrap, .checkSlot, .posSlot { order: 3; }
   .posRest { display: none; }
+  .notCheckedWords { display: none; }
+  .notCheckedGlyph { display: inline-block; }
 }
 </style>

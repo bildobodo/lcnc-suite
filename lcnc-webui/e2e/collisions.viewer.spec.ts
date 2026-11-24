@@ -21,6 +21,8 @@ async function prepare(page: Page, context: BrowserContext, o: {
   before?: () => Promise<unknown>;
   /** The program's text (default: ten G1 lines) and the viewport (default: desktop). */
   text?: string; viewport?: string;
+  /** false: nothing is published (the caller does) — no preview, the Sim tab open. */
+  publish?: boolean;
 }) {
   const preview = Buffer.from(encode({ file: o.file, preview_schema: 11, feed: o.feed,
     feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
@@ -37,6 +39,7 @@ async function prepare(page: Page, context: BrowserContext, o: {
     g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     rotation_xy: 0, is_enabled: false, enabled: false } });
   if (o.before) await o.before();
+  if (o.publish === false) { await openSimTab(page); return; }
   await publishFile(o.file, o.version);
   // The findings live in the side pane's Simulation tab, its list on the collisions.
   await simShow(page, "clash");
@@ -895,7 +898,7 @@ async function expectNotChecked(page: Page, line: number | null, what: string) {
   await expect(sumClash(page), `${what}: the summary`).toHaveAttribute("aria-label", `Not checked · ${NOT_CHECKED(line)}`);
   const slot = page.locator(".scrubBar .checkSlot");
   await expect(slot, `${what}: the bar's coverage slot`).toHaveAttribute("aria-label", `Collision check: not checked · ${NOT_CHECKED(line)}`);
-  await expect(slot, `${what}: no coverage figure`).toHaveText("");
+  await expect(slot, `${what}: the bar's words, no coverage figure`).toHaveText("not checked");
   await expect(page.locator(".simPanel .checkRow .checkState"), `${what}: the check row`).toHaveText("Not checked");
   await expect(page.locator(".simPanel .checkRow .progressTrack"), `${what}: no progress of a check`).toHaveCount(0);
   await expect(clashRows(page), `${what}: no collision row`).toHaveCount(0);
@@ -1127,6 +1130,76 @@ test("a run from line keeps the program's tool-change and limit marks and the ru
   await expect(page.locator(".codeLine.violation .lineNumber")).toHaveText(["8"]);
   await expect(page.locator(".codeLine.active .lineNumber")).toHaveText(["7"]);
   await expect(page.locator(".codeLine.collision")).toHaveCount(0);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// The bar's coverage slot says it in words an operator sees (touch has no
+// title), inside the slot: no box of the bar moves. The two-row form (a
+// narrow bar) has no room for two lines — there the glyph.
+for (const viewport of ["desktop", "touch-fullhd", "touch-portrait"] as const) {
+  test(`${viewport}: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464)`, async ({ page, context }) => {
+    test.setTimeout(150_000);
+    const file = `/rfl-slot-${viewport}.ngc`;
+    await prepare(page, context, { file, version: 4351, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0], viewport });
+    await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+    await expect(page.locator(".scrubBar .checkSlot"), "the idle check is done").toHaveText("100 %", { timeout: 60_000 });
+    const boxes = () => page.evaluate(() => Object.fromEntries([".scrubBar", ".scrubBar .sliderWrap", ".scrubBar .checkSlot", ".scrubBar .posSlot"]
+      .map(q => { const r = document.querySelector(q)!.getBoundingClientRect(); return [q, [r.x, r.y, r.width, r.height].map(v => Math.round(v * 10) / 10)]; })));
+    await ctl({ op: "quiet", on: true });
+    // a run from 0 first: the bar as a run shows it — then the same run frame from line 7
+    const at = { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] };
+    await enterRun(file, { run_id: 15, start_line: 0, version: 4351 }, 7, at);
+    await expect(simLine(page)).toHaveText(/L7/);
+    const from0 = await boxes();
+    await enterRun(file, { run_id: 16, start_line: 7, version: 4351 }, 7, at);
+    await expectNotChecked(page, 7, "the run from line 7");
+    const narrow = viewport === "touch-portrait";
+    const words = page.locator(".scrubBar .notCheckedWords"), glyph = page.locator(".scrubBar .notCheckedGlyph");
+    await (narrow ? expect(glyph, "the two-row form: the glyph") : expect(words, "the words, on screen")).toBeVisible();
+    await (narrow ? expect(words) : expect(glyph)).toBeHidden();
+    const now = await boxes();
+    for (const q of [".scrubBar", ".scrubBar .sliderWrap", ".scrubBar .posSlot"]) expect(now[q], `${q}: its box as in a run from 0`).toEqual(from0[q]);
+    expect([now[".scrubBar .checkSlot"]![0], now[".scrubBar .checkSlot"]![2]], "the slot: its place and width").toEqual(
+      [from0[".scrubBar .checkSlot"]![0], from0[".scrubBar .checkSlot"]![2]]);
+    // whole inside the bar: nothing of it cut
+    const inside = await (narrow ? glyph : words).evaluate(el => {
+      const r = el.getBoundingClientRect(), b = el.closest(".scrubBar")!.getBoundingClientRect(), sl = el.closest(".checkSlot")!.getBoundingClientRect();
+      return r.left >= sl.left - 0.5 && r.right <= sl.right + 0.5 && r.top >= b.top && r.bottom <= b.bottom && el.scrollWidth <= el.clientWidth + 1;
+    });
+    expect(inside, "inside the slot and the bar").toBe(true);
+    await ctl({ op: "quiet", on: false });
+    await ctl({ op: "reset" });
+  });
+}
+
+// The state belongs to the run, not to a track (Codex R464): without a preview
+// the Sim tab says it, and a preview that arrives during the run starts no check.
+test("a run from line without a preview: the Sim tab names it; the publication that arrives in the run lifts nothing (P6-d0, Codex R464)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/rfl-nopreview.ngc";
+  await prepare(page, context, { file, version: 4361, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0], publish: false });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  await expect(page.locator(".simPanel .emptyState").first(), "no preview").toBeVisible();
+  const named = page.locator(".simPanel .emptyState", { hasText: "not checked" });
+  await ctl({ op: "quiet", on: true });
+  const at = { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] };
+  await enterRun(file, { run_id: 17, start_line: 0, verified: false, why: "no preview" }, 7, at);
+  await expect(page.locator(".statusBanner"), "the run from 0 is on screen").toContainText(/RUNNING/i);
+  await expect(named, "a run from 0: nothing of the kind").toHaveCount(0);
+  await enterRun(file, { run_id: 18, start_line: 7, verified: false, why: "no preview" }, 7, at);
+  await expect(named, "without a preview: the Sim tab").toHaveText("This run is not checked (run from line 7).");
+  expect(await activity(page)).toMatchObject(IDLE_ACTIVITY);
+  const { starts } = await activity(page);
+  await publishFile(file, 4361);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getShownVersion!()), { timeout: 15_000 }).toBe(4361);
+  await simShow(page, "clash");
+  await expectNotChecked(page, 7, "the preview arrived in the run");
+  expect((await activity(page)).starts, "no check began").toBe(starts);
+  // the run ends: the idle check of that preview
+  await ctl({ op: "status_delta", data: { interp_state: 1, task_mode: 1, motion_line: 0 } });
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 30_000 }).toBe(starts + 1);
+  await expect(clashRows(page).first(), "its findings").toBeVisible({ timeout: 60_000 });
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });

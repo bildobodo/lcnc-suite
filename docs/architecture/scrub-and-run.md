@@ -443,12 +443,17 @@ reconnect (the record and the frame come back the same) or the simulation
 switched on mid-run lift nothing. ScrubBar's `collisionRunNotChecked` prop
 overrides every result branch (the result, the contact view, the summary,
 the card, the earlier verdict — a lagging busy flag and "No moving pairs"
-included): the coverage slot shows the warn ⊘ glyph (`Ban`) in its fixed
-width — the timeline keeps its box — named "Collision check: not checked ·
-run from line 7"; the Sim tab's check row "Not checked" (warn), its summary
-"Not checked · run from line 7" / "· start line not proven", the "?" "Run
-from line 7: not checked for collisions — the check covers a run from the
-program's beginning only.", the card "This run is not checked (…)." Words
+included): the coverage slot says "not checked" in warn, its two words under
+each other inside the slot's own width — no box of the bar moves — and is
+named "Collision check: not checked · run from line 7"; the two-row form (a
+bar under 620 px, its second row as low as the timeline) shows the ⊘ glyph
+(`Ban`) instead. The Sim tab's check row "Not checked" (warn), its summary
+"Not checked · run from line 7" / "· start line not proven" (the short forms
+keep "Not checked"), the "?" "Run from line 7: not checked for collisions —
+the check covers a run from the program's beginning only.", the card "This
+run is not checked (…)."; without a track (no preview, or the active
+program's still loading) the tab has no summary and the bar is not there:
+the tab says "This run is not checked (…)." under its empty state. Words
 never say the lines before N "were not run" (the skim may move). The lock-out
 is the run's COLLISION check only: the program text, the running line, the
 tool-change and limit marks and rows stay. With the simulation off this
@@ -461,7 +466,9 @@ paused step keeps N, an unverified record names the line),
 `collisions.viewer.spec` "P6-d0" (a pinned parse for a run from line 7 /
 an unproven line / the control from 0; a finished Clear through pause, the
 simulation off and on and a reconnect; a running check's late replies; a
-parked check's settled rotary; the marks that stay); mutations
+parked check's settled rotary; the marks that stay; the slot's words with
+every box of the bar unmoved at desktop, touch Full HD and portrait; a run
+without a preview and the publication that arrives in it); mutations
 `docs/reviews/p6d0.mutations.txt`.
 
 **M600 in the preview (collision plan step 3, Codex R102–R104, plan

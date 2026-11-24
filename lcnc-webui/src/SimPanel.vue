@@ -71,7 +71,7 @@ const sumClash = computed(() => {
       // a run the check does not cover (P6-d0): said, never an earlier verdict
       : simView.notChecked ? `Not checked · ${simView.notChecked}`
       : simView.previous ? `Earlier preview: ${simView.previous}` : "Collisions not checked",
-    short: !sw || sw.state === "nopairs" ? NO_VALUE : sw.short,
+    short: sw ? (sw.state === "nopairs" ? NO_VALUE : sw.short) : simView.notChecked ? "Not checked" : NO_VALUE,
     tone: sw?.tone ?? (simView.notChecked ? "warn" : "muted"),
   };
 });
@@ -603,7 +603,11 @@ function onRootKey(e: KeyboardEvent) {
 
 <template>
   <div ref="root" class="simPanel stack-controls" tabindex="-1" @keydown="onRootKey">
-    <div v-if="!simView.available" class="emptyState">{{ previewWaitView.sim ?? "Load a program to simulate it." }}</div>
+    <template v-if="!simView.available">
+      <div class="emptyState">{{ previewWaitView.sim ?? "Load a program to simulate it." }}</div>
+      <!-- the run's state, not a track's: said without a preview too (P6-d0, Codex R464) -->
+      <div v-if="simView.notChecked" class="emptyState"><span class="text-warn">{{ notCheckedCard }}</span></div>
+    </template>
     <template v-else>
       <!-- ONE row: where the simulation (or the run) stands. Sim, Play and
            the speed are the viewer's bar's (operator 2026-10-31: the speed
