@@ -218,6 +218,25 @@ MUTS = {
         "  sessionProgramId.value = null;\n")],
         [pw("e2e/program-identity.spec.ts", "a session opened after the own reload",
             "a new session never takes an old session's reply")]),
+    # ---- P2b-F1 scene (the pre-update check 2026-11-24): hidden is drawn as an unload
+    "the_hidden_preview_stays_drawn": (S + "ThreeViewer.vue", [(
+        "    else _clearShownPreview();\n", "    else _refreshWantKey();\n")],
+        [pw("e2e/program-identity.spec.ts", "a run started before its preview",
+            "case (c): nothing of A2 drawn through C's run"),
+         pw("e2e/program-identity.spec.ts", "a new program at idle", "A2's path no longer rendered under C")]),
+    "the_clear_keeps_the_old_payload": (S + "ThreeViewer.vue", [(
+        "  _applyGcodeNow(noPreview());\n", "  toolpath.release();\n")],
+        [pw("e2e/program-identity.spec.ts", "same path loaded again",
+            "the same path reloaded: nothing of the old load drawn")]),
+    "the_drawn_key_kept": (S + "ThreeViewer.vue", [(
+        "  _applyGcodeNow(noPreview());\n  drawnKey.value = null;\n", "  _applyGcodeNow(noPreview());\n")],
+        [pw("e2e/program-identity.spec.ts", "same path loaded again",
+            "the same path reloaded: nothing of the old load drawn")]),
+    "the_empty_apply_without_a_frame": (S + "viewer/toolpathController.ts", [(
+        "      _peak = held0 + d;\n\n      deps.requestRender();\n      return true;\n",
+        "      _peak = held0 + d;\n\n      return true;\n")],
+        [vt("src/viewer/toolpathController.test.ts", "the unload's empty payload leaves nothing",
+            "the frame is drawn again")]),
     # ---- F1-4: the simulation switch's note
     "the_note_unreactive": (S + "DevicesSettings.vue", [(
         "  void settingsVersion.value;\n", "")],

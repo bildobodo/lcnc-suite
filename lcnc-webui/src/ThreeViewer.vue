@@ -5617,7 +5617,8 @@ const noPreview = (): ViewerGcode => ({ file: null, feed: [], feed_lines: [], ra
  *  overlay go through the unload's empty payload — the controller keeps
  *  THAT, never the old one, for a rebuild (a line-mode or LOD change) —, a
  *  part-frame reply or a bake still out draws nothing, no key vouches for a
- *  drawn path, and the frame is drawn again (the viewer renders on demand).
+ *  drawn path, and the frame is drawn again (the viewer renders on demand —
+ *  the controller's apply asks for it).
  *  The collision result goes with the viewerGcode watcher below; the run's
  *  line with its track (runDisplay); the program's own publication draws
  *  again. */
@@ -5626,7 +5627,6 @@ function _clearShownPreview() {
   _applyGcodeNow(noPreview());
   drawnKey.value = null;
   _refreshWantKey();
-  requestRender();
 }
 
 // Apply gcode preview when it arrives

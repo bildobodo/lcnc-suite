@@ -370,7 +370,9 @@ describe("overflow / visibility / colours", () => {
     expect(cc.pathWorldBox(), "the positive control: a path is drawn").not.toBeNull();
     expect(cc.pathMemory().cpu.overlay, "and its limit overlay").toBeGreaterThan(0);
     expect([overflow.value, count.value]).toEqual([true, 2]);
+    deps.requestRender.mockClear();
     cc.apply(ctx, { file: null, feed: [], feed_lines: [], rapid: [] } as any);
+    expect(deps.requestRender, "the frame is drawn again (the viewer renders on demand)").toHaveBeenCalled();
     const empty = () => ({ box: cc.pathWorldBox(), cpu: cc.pathMemory().cpu.total, segs: cc.feedSegs + cc.rapidSegs,
                            chunks: cc.chunks, drawn: ctx.workRotGroup.children.length,
                            overflow: overflow.value, count: count.value });
