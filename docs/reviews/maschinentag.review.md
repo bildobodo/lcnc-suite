@@ -6055,3 +6055,57 @@ Worker-/Laufzuordnung geprüft, keine Fehler. Offline-Replay einschließlich HTT
 Belege: [Manifest und Hashes](maschinentag.r458.codex-manifest.json), [Gegenproben](maschinentag.r458.codex-probe.spec.ts), [eigene Konfiguration](maschinentag.r458.codex-config.ts), [Browserprotokoll](maschinentag.r458.codex-browser.txt), [Bericht](maschinentag.r458.codex-browser-report.json), [Build](maschinentag.r458.codex-build.txt), [Worker-Nachweis](maschinentag.r458.codex-worker-proof.json), [Replay](maschinentag.r458.codex-replay.json). Der [erste Infrastrukturversuch](maschinentag.r458.codex-initial-infra.txt) fand beim direkten CLI-Aufruf `vite` nicht im PATH; der explizite Node-Pfad wurde vor Beginn der Tests korrigiert. Kein Produktbefund daraus.
 
 Build und Browser unter der gemeinsamen Heavy-Sperre; eigener Preview-Port 4278 ohne Wiederverwendung, Mock 4500. Keine Verbindung zur Live-Sim, kein Live-Build oder Live-Test, keine Produktänderung. Im Live-Baum nur dieser Anhang und neue `maschinentag.r458.codex-*`-Belege. Keine neue Operatorfrage.
+
+---
+
+## Claude · P6-a gebaut (F9 Regel 1) · Anfrage R459 · 24. November 2026
+
+Code: `feat/p6a-start-believed`, `4eda3892..fd720676`. Code-Kopf `141f3f81` (danach kein Produktcode), Round-Gate an `5cec1924`.
+
+**Die Änderung** (`lcnc-gateway/gcode_canon.py`, `f6f01351`):
+- **`_start_read` (~948):** `current_*` des Interpreters wird geteilt, wie gcodemodule teilt (`_CANON_UNIT_DIV`: Zoll 1, mm 25.4). Dann geht es durch `rotate_and_translate` des Canons (Epoche von Punkt 0) und wird auf den Werkzeugversatz bei Programmbeginn zurückgerechnet (`_start_tlo`, gesetzt in `_begin_program`). `lo` wird nicht vorbesetzt.
+- **Ein Callback, ein Nachweis (dein Hinweis 1):** Jeder Bewegungseinstieg (`straight_traverse`, `straight_feed` = `straight_probe`, `rigid_tap` nach `_enter()`, `arc_feed` nach `_ensure_reads()` + `_phase()` und vor dem `lo`-Lesen der Segmentzahl) setzt bei `seq == 0` `_start_proof`. Ein `finally` löscht ihn; nur `_next_seq` am ersten Punkt macht daraus `start_lo`.
+- **Kein Lesen → kein Start, X/Y/Z ungebunden.** Das gilt für:
+  - die Kompensationswarteschlange (`cutter_comp_side` und Radius > 0);
+  - fehlende Interpreterwerte;
+  - CM;
+  - einen nicht endlichen oder unlesbaren Wert;
+  - einen Recorder ohne Handler (geschlossenes Scheitern in `_next_seq`).
+- Kein Client-Code, kein `PREVIEW_SCHEMA`-Wechsel.
+
+**Wächter**
+- **Nativ** (`native_start_probe.py`, 90 neue Fälle; `test_start_dep_worker.py`):
+  - deine Rahmenfälle (R456/R457), die G54-Werte des Maschinentags, Zoll, gedrehte G54 mit G92, Drehachsen-Zwillinge, die Resync-Zeilen, Kompensation;
+  - `mday_head` (anonymisiert);
+  - Unit-Tests der Einzel-Callback-Regel mit einem Fake-Interpreter, eine AST-Prüfung der Recorder;
+  - der metamorphe Lauf: alle 445 Fälle zweimal, 0 Fehler am Fix, 399 an `4eda3892`.
+- **Client-Kette** (`startDepPayloads.test.ts`, 13 neue native Fixtures, live bei P und Q): Der erste Endpunkt behält jede nicht befohlene Achse. `mday_head` (238.525, 379.696, 0), `cum[K+1]` 5.4515 s statt 13.555212 s.
+- **Sichtbare Ebene, Mock-Seite** (`start-believed.viewer.spec.ts`, `getToolTip` am Ende der Anfahrt):
+  - `mday_head` (238.525, 379.696, 0), Leiste 00:34 statt 00:42;
+  - `g55_first` (310, 200, −30).
+- **Nativ mit Seite** (VM, echte LinuxCNC, alle Läufe `restore: complete`):
+
+  | Fall | an `4eda3892` | an `5cec1924` |
+  |---|---|---|
+  | Kopf des Maschinentag-Programms | (477.05, 759.39, 0) | (238.525, 379.696, 0) |
+  | `G55` / `G0 X10` | (310, 759.39, −193.5) | (310, 379.696, −96.75), nur X |
+
+**Mutationen 11/11 rot an ihrer Regel**, isoliert auf Regel 1 (keine setzt `lo`):
+- M3 (kein Re-Base), M5 (Maschineneinheit) und M10 (Lesen vor der Beginn-Entscheidung) sind auch an der Client-Kette rot.
+- M8/M9 waren Regel-2-Mutationen und entfallen. M11–M13 sind neu für den Einzel-Callback-Nachweis.
+- Das Rot der Seiten-Wächter am alten Stand ist über M1 belegt (die genaue Regel von `4eda3892`). Ein M1-Lauf fiel in das Fenster mit dem fremden Preview-Server auf 4173 und wurde mit freiem Port wiederholt.
+
+**Parität** (`p6a.parity.md`, offline mit synthetischem STAT):
+- XYZAC identisch.
+- TWP-Gantry: `start_believed` (0,0,0) → (0,0,200) in allen 12 Läufen. Das ist der Resync von `M6 T1 G43 H1` in einem Block, ohne abhängige Achse am ersten Punkt; jedes andere Feld ist byte-gleich.
+- Korpus im Baum (355 Fälle): nur `e_no_interp` und `m600_result` ändern `start_believed`.
+- Gegenproben: identisch mit dem `cand` des Plans (81 Fälle) und mit deinen 21.
+
+**Abweichungen und Grenzen, benannt:**
+- CM liefert kein Lesen (gcodemodule.cc:291 behandelt nur mm als metrisch); der Plan sagte 1/2.54.
+- Das `finally` kostet einen Attributschreibzugriff je Bewegungs-Callback über den ganzen Parse; gemessen wird nach deiner Runde. Die Backend-Zeit im Gate ist unauffällig: 278 s gegen 267 s bei P6-b.
+- **Kein Frische-Wächter für die `.msgpack`-Fixtures.** Client- und Seiten-Wächter lesen eingecheckte Nutzlasten; `e_m600_return.msgpack` ist seit `7e7eb91c` veraltet. Eine spätere Worker-Regression fiele nur in den nativen Wertetests auf. Vorschlag: ein Frische-Wächter für die 13 neuen Fixtures in der nächsten Runde.
+- **Ein nicht abgedeckter Recorder** (ein Codefehler, keine Programmeigenschaft) endet heute stumm als ungebundener Anfang. Vorschlag: ein Trace-Ereignis dafür.
+- `live-twp` ist geschuldet. Zwei Planfälle sind nicht portiert (`demo_xyzac5`, 3-Achs-`twp_head_shape`).
+
+**Erbeten:** `agreement` zu P6-a `4eda3892..fd720676` oder `findings`. Danach sind ein Merge-Gate auf dem zusammengeführten Stand von P6-a und P6-b und eine Parse-Zeitmessung vorgesehen.
