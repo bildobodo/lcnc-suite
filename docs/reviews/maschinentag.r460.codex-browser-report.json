@@ -1,0 +1,919 @@
+{
+  "config": {
+    "configFile": "/tmp/r460/tree/lcnc-webui/playwright.codex-r460.config.ts",
+    "rootDir": "/tmp/r460/tree/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "4002117-1795518867355",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r460/tree/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "4002117-1795518867355",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r460/tree/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r460/browser-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "codex-r458-unmodified.viewer.spec.ts",
+      "file": "codex-r458-unmodified.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R458: repeated return without entry (desktop)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2626,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "{\"vp\":\"desktop\",\"before\":{\"first\":293,\"last\":311,\"active\":\"302\",\"band\":false,\"scrollTop\":6722},\"away\":{\"first\":2901,\"last\":2920,\"active\":null,\"band\":false,\"scrollTop\":66722},\"after\":{\"first\":293,\"last\":311,\"active\":\"302\",\"band\":false,\"scrollTop\":6722}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:28.013Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "observations",
+                      "contentType": "application/json",
+                      "body": "ewogICJiZWZvcmUiOiB7CiAgICAiZmlyc3QiOiAyOTMsCiAgICAibGFzdCI6IDMxMSwKICAgICJhY3RpdmUiOiAiMzAyIiwKICAgICJiYW5kIjogZmFsc2UsCiAgICAic2Nyb2xsVG9wIjogNjcyMgogIH0sCiAgImF3YXkiOiB7CiAgICAiZmlyc3QiOiAyOTAxLAogICAgImxhc3QiOiAyOTIwLAogICAgImFjdGl2ZSI6IG51bGwsCiAgICAiYmFuZCI6IGZhbHNlLAogICAgInNjcm9sbFRvcCI6IDY2NzIyCiAgfSwKICAiYWZ0ZXIiOiB7CiAgICAiZmlyc3QiOiAyOTMsCiAgICAibGFzdCI6IDMxMSwKICAgICJhY3RpdmUiOiAiMzAyIiwKICAgICJiYW5kIjogZmFsc2UsCiAgICAic2Nyb2xsVG9wIjogNjcyMgogIH0KfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4b70b81e89beab6c45d8-b5199a28bc192114481b",
+          "file": "codex-r458-unmodified.viewer.spec.ts",
+          "line": 157,
+          "column": 47
+        },
+        {
+          "title": "Codex R458: repeated return without entry (touch-fullhd)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2481,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "{\"vp\":\"touch-fullhd\",\"before\":{\"first\":295,\"last\":309,\"active\":\"302\",\"band\":false,\"scrollTop\":9414},\"away\":{\"first\":2170,\"last\":2184,\"active\":null,\"band\":false,\"scrollTop\":69414},\"after\":{\"first\":295,\"last\":309,\"active\":\"302\",\"band\":false,\"scrollTop\":9414}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:30.773Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "observations",
+                      "contentType": "application/json",
+                      "body": "ewogICJiZWZvcmUiOiB7CiAgICAiZmlyc3QiOiAyOTUsCiAgICAibGFzdCI6IDMwOSwKICAgICJhY3RpdmUiOiAiMzAyIiwKICAgICJiYW5kIjogZmFsc2UsCiAgICAic2Nyb2xsVG9wIjogOTQxNAogIH0sCiAgImF3YXkiOiB7CiAgICAiZmlyc3QiOiAyMTcwLAogICAgImxhc3QiOiAyMTg0LAogICAgImFjdGl2ZSI6IG51bGwsCiAgICAiYmFuZCI6IGZhbHNlLAogICAgInNjcm9sbFRvcCI6IDY5NDE0CiAgfSwKICAiYWZ0ZXIiOiB7CiAgICAiZmlyc3QiOiAyOTUsCiAgICAibGFzdCI6IDMwOSwKICAgICJhY3RpdmUiOiAiMzAyIiwKICAgICJiYW5kIjogZmFsc2UsCiAgICAic2Nyb2xsVG9wIjogOTQxNAogIH0KfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4b70b81e89beab6c45d8-edabec9b4752b4f6c644",
+          "file": "codex-r458-unmodified.viewer.spec.ts",
+          "line": 157,
+          "column": 47
+        },
+        {
+          "title": "Codex R458: positive repeat with entry and playback stops",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3658,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:33.259Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4b70b81e89beab6c45d8-2fce976dc9e169938ee3",
+          "file": "codex-r458-unmodified.viewer.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "Codex R458: explicit start of a bound program with globally untrusted motion lines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2426,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "{\"untrusted\":true,\"away\":{\"first\":2609,\"last\":2628,\"active\":null,\"band\":false,\"scrollTop\":60000},\"after\":{\"first\":1,\"last\":19,\"active\":null,\"band\":false,\"scrollTop\":0}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:36.922Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "observations",
+                      "contentType": "application/json",
+                      "body": "eyJhd2F5Ijp7ImZpcnN0IjoyNjA5LCJsYXN0IjoyNjI4LCJhY3RpdmUiOm51bGwsImJhbmQiOmZhbHNlLCJzY3JvbGxUb3AiOjYwMDAwfSwiYWZ0ZXIiOnsiZmlyc3QiOjEsImxhc3QiOjE5LCJhY3RpdmUiOm51bGwsImJhbmQiOmZhbHNlLCJzY3JvbGxUb3AiOjB9fQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4b70b81e89beab6c45d8-3e1b98215146ba55aea3",
+          "file": "codex-r458-unmodified.viewer.spec.ts",
+          "line": 185,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "codex-r460.viewer.spec.ts",
+      "file": "codex-r460.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R460: no-entry return while Program is hidden, including repetition",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3071,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:39.364Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "29025c277a22927b9430-d7f9f484a68e940f6bc5",
+          "file": "codex-r460.viewer.spec.ts",
+          "line": 162,
+          "column": 1
+        },
+        {
+          "title": "Codex R460: no-entry return number has no authority over mismatched text",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2565,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:42.439Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "29025c277a22927b9430-d8c7718aa7c42d425bfb",
+          "file": "codex-r460.viewer.spec.ts",
+          "line": 176,
+          "column": 1
+        },
+        {
+          "title": "Codex R460: actual touch returns the unchanged first point twice",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3035,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:45.009Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "29025c277a22927b9430-a1848f24779c46902b63",
+          "file": "codex-r460.viewer.spec.ts",
+          "line": 194,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "scrub-start.viewer.spec.ts",
+      "file": "scrub-start.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "desktop: the start — middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4157,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:48.059Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-d3135343a773aaca5959",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 172,
+          "column": 3
+        },
+        {
+          "title": "touch-fullhd: the start — middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4284,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:52.221Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-46473035d131b66b9980",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 172,
+          "column": 3
+        },
+        {
+          "title": "Back to start with the Sim tab open: the Program tab shows the top when it comes back; a height change keeps a scroll by hand",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2751,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:56.512Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-42bec4966bb90d311d08",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 209,
+          "column": 1
+        },
+        {
+          "title": "counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2454,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:14:59.267Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-24eb86ef4f76853161a3",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 236,
+          "column": 1
+        },
+        {
+          "title": "counter-control: a track without an entry move marks its first line at 0, in view",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2472,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:01.725Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-159863a9bdc0205940ca",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 263,
+          "column": 1
+        },
+        {
+          "title": "desktop: without an entry move, Back to start at 0 after a scroll by hand brings the marked first line back — on every press (Codex R458 probe)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2882,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:04.202Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-822d1450d1bcd73a8b94",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 284,
+          "column": 3
+        },
+        {
+          "title": "touch-fullhd: without an entry move, Back to start at 0 after a scroll by hand brings the marked first line back — on every press (Codex R458 probe)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2967,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:07.088Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-d7e9495736c40a1368a9",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 284,
+          "column": 3
+        },
+        {
+          "title": "with an entry move: Back to start again at 0 after a scroll by hand and during playback — the top, playback stopped (Codex R458 probe)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4054,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:10.060Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-9baf51290167d7693a39",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 301,
+          "column": 1
+        },
+        {
+          "title": "desktop: the lines untrusted as a whole — timeline → 0 and Back to start show the program's top; a null in the middle keeps the view (Codex R458 probe)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3617,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:14.119Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-38d5ba0e064eafea5b53",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 323,
+          "column": 3
+        },
+        {
+          "title": "touch-fullhd: the lines untrusted as a whole — timeline → 0 and Back to start show the program's top; a null in the middle keeps the view (Codex R458 probe)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3737,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:17.741Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-b192d876b89c6d53c33a",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 323,
+          "column": 3
+        },
+        {
+          "title": "counter-controls (Codex R458): no entry move with the lines untrusted, and a text not the preview's publication — the start keeps the view",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5415,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:21.485Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-88711fb17d56db273673",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 357,
+          "column": 1
+        },
+        {
+          "title": "Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2366,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:26.904Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-f835fb789211a3ca1504",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 392,
+          "column": 1
+        },
+        {
+          "title": "portrait 100 %: the two-row bar — Back to start directly left of Play, no link, the Sim tab in the side pane; the start at the top",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2399,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:29.275Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-2469d8187e63df18f6a7",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 425,
+          "column": 3
+        },
+        {
+          "title": "portrait 150 %: the two-row bar — Back to start directly left of Play, no link, the Sim tab in the side pane; the start at the top",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2398,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:31.679Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-2190496c8e3567f1e81d",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 425,
+          "column": 3
+        },
+        {
+          "title": "every bar form: its rows inside the bar, Back to start directly left of Play, the link only in one row; a press moves nothing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 600000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 21552,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T11:15:36.528Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-6149b9f9bb499b1bec4e",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 486,
+          "column": 1
+        }
+      ],
+      "suites": [
+        {
+          "title": "a real touch tap",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 459,
+          "column": 6,
+          "specs": [
+            {
+              "title": "touch Full HD: a tap on Back to start jumps to the start and sends nothing to the machine",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "e2e",
+                  "projectName": "e2e",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2444,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-24T11:15:34.080Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9974cf616de385c9b01e-875424255d2bc671353d",
+              "file": "scrub-start.viewer.spec.ts",
+              "line": 461,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-24T11:14:27.357Z",
+    "duration": 90795.258,
+    "expected": 23,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "review": "R460",
+  "base": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "previous_review": "d2c846b5d7605b4d51536d8dde585d5fd5b879b8",
+  "head": "22a212c9cac3ef5237fa5eee38db7535f80999bc",
+  "isolated_tree": "/tmp/r460/tree",
+  "prior_probe": "maschinentag.r458.codex-probe.spec.ts",
+  "prior_probe_sha256": "f647a1f28b101ef8aa5803cb92905b16287f8c648b3900226c28087cfffbb6c6",
+  "results": {
+    "browser": {
+      "startTime": "2026-11-24T11:14:27.357Z",
+      "duration": 90795.258,
+      "expected": 23,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "worker_errors": 0,
+    "replay_frames": 225,
+    "replay_findings": 0
+  },
+  "evidence": {
+    "maschinentag.r460.codex-build.txt": "f776373c9e061cc33ed040afbfbd4ae26f46397cd62fa0d6c4ffe24eb841023c",
+    "maschinentag.r460.codex-browser.txt": "944b39931773dbc021feac334d448e1d8dee543d3179bc52cdebefd27ae0ac2a",
+    "maschinentag.r460.codex-browser-report.json": "4cc0675235bd99a13e2e8ae01ca2ad76e707b7151dc850fbafc899937122ab7a",
+    "maschinentag.r460.codex-worker-proof.json": "be9fe8aaec448055ff1b78f397a910184a5b9956c8f29b5cb02e25af9c7c5d79",
+    "maschinentag.r460.codex-replay.json": "ed555ae8adab3bddf7f27fe4694a9b3b39c0e43aa901398166309efaec70b1ff",
+    "maschinentag.r460.codex-cleanup.json": "abb6d2c5aa3e131e2fb88fad965f01069e4a9695c6d7552f7f39855a402b1365",
+    "maschinentag.r460.codex-runner.py": "0de8f917dae1638ce32306f0ca3899ce703a62b55834795ca9c71b3937e3d144",
+    "maschinentag.r460.codex-config.ts": "cb2d6bd4ac0118f9b33116a40167530fa09f5e85d84343bc2ec85ee65f687ebf",
+    "maschinentag.r460.codex-probe.spec.ts": "3a60c5fb019d20195eea0b26e305c76009022128eefd222c84a143c24c168dbd"
+  },
+  "product_unchanged": {
+    "lcnc-webui/src/App.vue": "83dc5638f10dd3d5da05fd6fbc8fcab64692a85c96be0b0c4cb473629159717d",
+    "lcnc-webui/src/ScrubBar.vue": "a74ddcfc62a2a88d533843c2448e84031ddaa67d116260e7b71e8a51400dedee",
+    "lcnc-webui/src/GcodePanel.vue": "2fcdfd00e137b561c47fe86ca1c9448c7a08d7340b3788ae4c3ccf1dfd8872e5",
+    "lcnc-webui/src/ThreeViewer.vue": "d146d54d58b448221bac17307625a58ec46df63bae4cb81e01650bab673299b9"
+  }
+}

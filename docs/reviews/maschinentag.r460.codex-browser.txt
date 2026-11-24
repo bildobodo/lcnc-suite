@@ -1,0 +1,37 @@
+[2m[WebServer] [22m(node:4002145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 23 tests using 1 worker
+
+(node:4002166) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4002166) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"vp":"desktop","before":{"first":293,"last":311,"active":"302","band":false,"scrollTop":6722},"away":{"first":2901,"last":2920,"active":null,"band":false,"scrollTop":66722},"after":{"first":293,"last":311,"active":"302","band":false,"scrollTop":6722}}
+  ✓   1 [e2e] › e2e/codex-r458-unmodified.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (desktop) (2.6s)
+{"vp":"touch-fullhd","before":{"first":295,"last":309,"active":"302","band":false,"scrollTop":9414},"away":{"first":2170,"last":2184,"active":null,"band":false,"scrollTop":69414},"after":{"first":295,"last":309,"active":"302","band":false,"scrollTop":9414}}
+  ✓   2 [e2e] › e2e/codex-r458-unmodified.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (touch-fullhd) (2.5s)
+  ✓   3 [e2e] › e2e/codex-r458-unmodified.viewer.spec.ts:174:1 › Codex R458: positive repeat with entry and playback stops (3.7s)
+{"untrusted":true,"away":{"first":2609,"last":2628,"active":null,"band":false,"scrollTop":60000},"after":{"first":1,"last":19,"active":null,"band":false,"scrollTop":0}}
+  ✓   4 [e2e] › e2e/codex-r458-unmodified.viewer.spec.ts:185:1 › Codex R458: explicit start of a bound program with globally untrusted motion lines (2.4s)
+  ✓   5 [e2e] › e2e/codex-r460.viewer.spec.ts:162:1 › Codex R460: no-entry return while Program is hidden, including repetition (3.1s)
+  ✓   6 [e2e] › e2e/codex-r460.viewer.spec.ts:176:1 › Codex R460: no-entry return number has no authority over mismatched text (2.6s)
+  ✓   7 [e2e] › e2e/codex-r460.viewer.spec.ts:194:1 › Codex R460: actual touch returns the unchanged first point twice (3.0s)
+  ✓   8 [e2e] › e2e/scrub-start.viewer.spec.ts:172:3 › desktop: the start — middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once (4.2s)
+  ✓   9 [e2e] › e2e/scrub-start.viewer.spec.ts:172:3 › touch-fullhd: the start — middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once (4.3s)
+  ✓  10 [e2e] › e2e/scrub-start.viewer.spec.ts:209:1 › Back to start with the Sim tab open: the Program tab shows the top when it comes back; a height change keeps a scroll by hand (2.8s)
+  ✓  11 [e2e] › e2e/scrub-start.viewer.spec.ts:236:1 › counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top (2.5s)
+  ✓  12 [e2e] › e2e/scrub-start.viewer.spec.ts:263:1 › counter-control: a track without an entry move marks its first line at 0, in view (2.5s)
+  ✓  13 [e2e] › e2e/scrub-start.viewer.spec.ts:284:3 › desktop: without an entry move, Back to start at 0 after a scroll by hand brings the marked first line back — on every press (Codex R458 probe) (2.9s)
+  ✓  14 [e2e] › e2e/scrub-start.viewer.spec.ts:284:3 › touch-fullhd: without an entry move, Back to start at 0 after a scroll by hand brings the marked first line back — on every press (Codex R458 probe) (3.0s)
+  ✓  15 [e2e] › e2e/scrub-start.viewer.spec.ts:301:1 › with an entry move: Back to start again at 0 after a scroll by hand and during playback — the top, playback stopped (Codex R458 probe) (4.1s)
+  ✓  16 [e2e] › e2e/scrub-start.viewer.spec.ts:323:3 › desktop: the lines untrusted as a whole — timeline → 0 and Back to start show the program's top; a null in the middle keeps the view (Codex R458 probe) (3.6s)
+  ✓  17 [e2e] › e2e/scrub-start.viewer.spec.ts:323:3 › touch-fullhd: the lines untrusted as a whole — timeline → 0 and Back to start show the program's top; a null in the middle keeps the view (Codex R458 probe) (3.7s)
+  ✓  18 [e2e] › e2e/scrub-start.viewer.spec.ts:357:1 › counter-controls (Codex R458): no entry move with the lines untrusted, and a text not the preview's publication — the start keeps the view (5.4s)
+  ✓  19 [e2e] › e2e/scrub-start.viewer.spec.ts:392:1 › Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing (2.4s)
+  ✓  20 [e2e] › e2e/scrub-start.viewer.spec.ts:425:3 › portrait 100 %: the two-row bar — Back to start directly left of Play, no link, the Sim tab in the side pane; the start at the top (2.4s)
+  ✓  21 [e2e] › e2e/scrub-start.viewer.spec.ts:425:3 › portrait 150 %: the two-row bar — Back to start directly left of Play, no link, the Sim tab in the side pane; the start at the top (2.4s)
+  ✓  22 [e2e] › e2e/scrub-start.viewer.spec.ts:461:3 › a real touch tap › touch Full HD: a tap on Back to start jumps to the start and sends nothing to the machine (2.4s)
+  ✓  23 [e2e] › e2e/scrub-start.viewer.spec.ts:486:1 › every bar form: its rows inside the bar, Back to start directly left of Play, the link only in one row; a press moves nothing (21.6s)
+
+  23 passed (1.5m)

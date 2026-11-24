@@ -1,0 +1,9 @@
+{
+  "listening": [],
+  "ports": [
+    4280,
+    4500
+  ],
+  "method": "read /proc/net/tcp and tcp6",
+  "note": "An earlier optional socket-bind check was refused by the sandbox; worker proof and replay had already passed; no test failed."
+}
