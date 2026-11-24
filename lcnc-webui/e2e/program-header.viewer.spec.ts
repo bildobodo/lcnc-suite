@@ -27,7 +27,7 @@ const preview = (two = false) => Buffer.from(encode({
 /** The machine-day head's FORM (synthetic): the tool list, `N15 G21`, the
  *  retract, `T13 M600`; `unit` replaces the unit line. */
 const text = (entries: string[], unit = "N15 G21") => [
-  "(1001)", ...entries, "N10 G90 G94 G17 G91.1", unit, "N20 G53 G0 Z0.", "N25 T13 M600", "N30 S3000 M3",
+  "(SAMPLE)", ...entries, "N10 G90 G94 G17 G91.1", unit, "N20 G53 G0 Z0.", "N25 T13 M600", "N30 S3000 M3",
   ...LINES.map((l, i) => `N${l * 5} G1 X${FEED[i]![0]} Y${FEED[i]![1]} Z-1 F500`), "M2"].join("\n");
 const MISMATCH = text(["(T13 D=1.875 CR=1. - FLAT END MILL)"]);
 

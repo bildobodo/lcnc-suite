@@ -143,7 +143,7 @@ describe("the check basis card (step 4 plan 1c)", () => {
 // though the code panel binds it to the payload on screen — never enriches
 // V's card; failed or unproven text never compares.
 describe("the program header on the card, bound to the check's publication (P6-e, MT461-01)", () => {
-  const HEAD = (d: string) => ["(1001)", `(T13 D=${d} CR=1. - FLAT END MILL)`, "N10 G90 G94 G17", "N15 G21",
+  const HEAD = (d: string) => ["(SAMPLE)", `(T13 D=${d} CR=1. - FLAT END MILL)`, "N10 G90 G94 G17", "N15 G21",
                                "N20 G53 G0 Z0.", "N25 T13 M600", "N30 G0 X1 Y2"].join("\n");
   const pub = (version: number, source = "src-a", id = "mock.1") => ({ id, version, source });
   const ctxOf = (program: ContextInputs["program"], unit: string | null = "mm") => captureCheckContext(inputs({

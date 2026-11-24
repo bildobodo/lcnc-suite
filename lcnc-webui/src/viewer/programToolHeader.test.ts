@@ -9,7 +9,7 @@ const lines = (...l: string[]) => l.join("\n");
 // The machine-day head's FORM (a synthetic copy — not the operator's program):
 // the name, the tool list, the modal line, `N15 G21`, then `G53 G0 Z0.`
 const DAY_FORM = lines(
-  "(1001)",
+  "(SAMPLE)",
   "(T13 D=1.875 CR=1. TAPER=3.7DEG - ZMIN=-20. - TAPERED MILL)",
   "N10 G90 G94 G17 G91.1",
   "N15 G21",
