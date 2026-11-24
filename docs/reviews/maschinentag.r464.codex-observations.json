@@ -1,0 +1,253 @@
+{
+  "review": "R464",
+  "kind": "offline source and saved-evidence re-evaluation; no controller access",
+  "rev": "6c78780c3c2eba279356fb47662695f270b6bd61",
+  "sourceHashes": {
+    "lcnc-webui/src/runBasis.ts": "800c00f2b2f9b1556dff974fcc5c0a65eefc6a1b1e99937c88d1491bb660504c",
+    "lcnc-webui/src/viewer/checkBasis.ts": "f6500bbb3f90a5f5e97583ce5200343a204fc66ded713a41381f3b70815b156f",
+    "lcnc-webui/src/ThreeViewer.vue": "d146d54d58b448221bac17307625a58ec46df63bae4cb81e01650bab673299b9",
+    "lcnc-webui/src/ScrubBar.vue": "a74ddcfc62a2a88d533843c2448e84031ddaa67d116260e7b71e8a51400dedee",
+    "lcnc-gateway/gateway.py": "1a81809becac7522f37b58ed790b613d8923e32b751e260f3f200e52c48cd10f"
+  },
+  "base_admission": [
+    {
+      "name": "zero",
+      "wire_start_line": 0,
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "RFL",
+      "wire_start_line": 13,
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "missing",
+      "wire_start_line": "(absent)",
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "null",
+      "wire_start_line": null,
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "negative",
+      "wire_start_line": -1,
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "fractional",
+      "wire_start_line": 1.5,
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "string-zero",
+      "wire_start_line": "0",
+      "base_admission": {
+        "ok": true
+      }
+    },
+    {
+      "name": "boolean",
+      "wire_start_line": false,
+      "base_admission": {
+        "ok": true
+      }
+    }
+  ],
+  "skim": {
+    "path": "/home/cnc/lcnc-suite-p6d14/docs/reviews/p6d.skim-6c78780c.json",
+    "sha256": "d3ba99bea45ed3910ca840dc9cdfefeda7ddf74fd9cc7460d0c2ec50d3f92b69",
+    "restore": "complete",
+    "restore_post": "complete",
+    "owed": "settled",
+    "cases": {
+      "A": {
+        "N": 13,
+        "program_sha256": "b589e71897f9b55911bd3e923758fcaca582763d11f9f10a26b5e44097bc210e",
+        "start_record": [
+          100,
+          100,
+          0
+        ],
+        "program_point_before_N": [
+          100,
+          100,
+          -30
+        ],
+        "provided_all_frame_aggregate": {
+          "frames": 59,
+          "t": [
+            1.873,
+            3.858
+          ],
+          "x": [
+            102.158,
+            199.984
+          ],
+          "y": [
+            100,
+            100
+          ],
+          "z": [
+            0,
+            0
+          ]
+        },
+        "independently_read_saved_subset": {
+          "target": {
+            "count": 20,
+            "t": [
+              1.873,
+              3.858
+            ],
+            "xyz": [
+              [
+                102.158,
+                199.984
+              ],
+              [
+                100,
+                100
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "subroutine": {
+            "count": 0,
+            "t": null,
+            "xyz": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "first_auto": [
+          1.873,
+          [
+            102.158,
+            100,
+            0
+          ],
+          13,
+          0,
+          2
+        ]
+      },
+      "B": {
+        "N": 14,
+        "program_sha256": "7f032068c867d5478292ac635877eb8f439a339e5246c5bfcc7754187218ce18",
+        "start_record": [
+          100,
+          100,
+          0
+        ],
+        "program_point_before_N": [
+          100,
+          100,
+          -30
+        ],
+        "provided_all_frame_aggregate": {
+          "frames": 31,
+          "t": [
+            3.414,
+            4.441
+          ],
+          "x": [
+            150.016,
+            199.424
+          ],
+          "y": [
+            50,
+            50
+          ],
+          "z": [
+            -20,
+            -20
+          ]
+        },
+        "independently_read_saved_subset": {
+          "target": {
+            "count": 10,
+            "t": [
+              3.414,
+              4.374
+            ],
+            "xyz": [
+              [
+                150.016,
+                196.558
+              ],
+              [
+                50,
+                50
+              ],
+              [
+                -20,
+                -20
+              ]
+            ]
+          },
+          "subroutine": {
+            "count": 15,
+            "t": [
+              1.912,
+              3.347
+            ],
+            "xyz": [
+              [
+                101.553,
+                149.778
+              ],
+              [
+                50.222,
+                98.447
+              ],
+              [
+                -19.911,
+                -0.621
+              ]
+            ]
+          }
+        },
+        "first_auto": [
+          1.912,
+          [
+            101.553,
+            98.447,
+            -0.621
+          ],
+          4,
+          1,
+          2
+        ]
+      }
+    }
+  },
+  "limits": [
+    "No new native run; sampled status cannot prove absence of all unobserved motion.",
+    "Stored full-frame aggregates retained separately from independently evaluated 52-row subsets.",
+    "No browser execution; old result lifecycle assessed by code reading."
+  ],
+  "status": "PASS",
+  "harness_notes": [
+    "First harness attempt: Node spawnSync(git) reported EPERM before executing any assertions; no product verdict from that attempt.",
+    "Final harness reads the five source files exported with git archive at the stated commit; isolated original TypeScript modules and stored native evidence assertions PASS."
+  ]
+}

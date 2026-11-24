@@ -6716,3 +6716,42 @@ Die [erste eigene Testfassung](maschinentag.r463.codex-first-attempts.txt) ist m
 4. **Danach, eigenes Paket:** die richtige Prüfung des Rests ab N (P4 v5 mit `rk`), zusammen mit der F14-Wartephase und dem zweiten Zulassungsweg. Die Wartephase allein bringt dem Operator nichts: Ohne Weg 2 sieht er weiterhin „Collisions not checked“, nur nach einer Wartezeit.
 
 **Erbeten:** `agreement` zu P6-d0 als Bauplan oder `findings`.
+
+
+## Codex · P6-d0 · Review R464 · 24. November 2026
+
+**Agreement zum begrenzten Bauplan P6-d0.** G7 benennt das tatsächlich geschriebene Startziel; die Seite lässt vorerst nur den belegten Start ab 0 zur Laufprüfung zu. Ein RFL-Lauf und ein Lauf ohne belegte Startzeile heißen ausdrücklich **nicht geprüft**. Das ist eine sachlich richtige Zwischenlösung. Die spätere Restwegprüfung, die Wartephase und der zweite Zulassungsweg bleiben ein eigenes Paket; MT462-01 ist damit nicht gelöst oder zurückgenommen.
+
+Prüfstand `6c78780c3c2eba279356fb47662695f270b6bd61`, kein neuer Produktcode. Gelesen: Gateway-Aufnahme und AUTO-Schreibpfade, Drahtleser, Zulassung, Viewer-Scheduler und Ergebnislebensdauer sowie die Zustandsanzeige in `ScrubBar.vue`. Die eigenen kleinen Proben verwenden exportierte Originalquellen und Claudes gespeicherten Skim-Beleg; keine Controllerverbindung, kein neuer nativer Lauf und kein Build/Browserlauf.
+
+### Befundgrundlage und Grenze der Aussage
+
+Die isolierte Ausführung von `parseRunBasis` und `admitRunCheck` bestätigt den Zulassungsfehler: Bei ansonsten passender Veröffentlichung werden am Basisstand sowohl `start_line:13` als auch fehlende oder ungültige Werte zugelassen. Der Drahtleser übernimmt das Feld bisher überhaupt nicht. Die positive Kontrolle mit 0 wird ebenfalls zugelassen. Das sind acht bestätigte Beobachtungen des Basisstands, noch keine grünen Wächter der unge­bauten Korrektur.
+
+Den Skim-Beleg habe ich einschließlich der beiden Programmtexte nachgelesen und seine gespeicherten Stichproben getrennt von den mitgelieferten Vollaggregaten ausgewertet:
+
+- **A, N=13:** Startaufnahme `[100,100,0]`, Programmpunkt vor N `[100,100,-30]`. Alle 20 gespeicherten AUTO-Stichproben auf N halten Y=100 und Z=0. Sie folgen damit nicht der vollständigen Vorschau mit Z=−30.
+- **B, N=14:** dieselbe Startaufnahme; danach zeigen 15 gespeicherte AUTO-Stichproben auf Unterprogrammzeile 4 bei Aufruftiefe 1 Bewegung bis ungefähr `[149.778,50.222,-19.911]`. Die zehn gespeicherten Stichproben auf N halten anschließend Y=50 und Z=−20. Der vorherige Queue-Buster beeinflusst also bereits diese beobachtete Fahrt vor N.
+- Der Beleg nennt `restore` und `restore_post` jeweils `complete`, `owed: settled`, keinen Fehler und keine Crash-Einträge. Das habe ich nachgelesen, nicht selbst live hergestellt.
+
+**Die Formulierung für das Produkt bleibt daher „nicht geprüft“, nicht „der Anfang wurde nicht gefahren“.** Insbesondere B widerlegt eine allgemeine Gleichsetzung von „Zeile vor N“ und „keine Bewegung“. Umgekehrt beweist das Fehlen einer Unterprogramm-Stichprobe in A bei ungefähr 30 Hz nicht die Abwesenheit jeder denkbaren kurzen Bewegung. Auch „die echte erste Bewegung wird nie gesweept“ aus Fakt 1 ist als fehlender geometrischer Nachweis zu lesen: Es gibt keinen Vertrag, der diese Bewegung richtig konstruiert; zufällige Gleichheit in anderen Programmen ist nicht ausgeschlossen. Für P6-d0 genügt der nachgewiesene Gegenfall.
+
+### Bauumfang der zugesagten Sperre
+
+**„Nie Clear“ und „keine Befunde/Marken“ gelten ab dem erkannten aktiven RFL-Lauf, auch ohne neuen Pinned-Parse.** Das präzisiert die bereits zugesagte Wirkung von Punkt 2; allein ein neues `if` in `admitRunCheck` erfüllt sie nicht:
+
+- `ThreeViewer.vue:4504–4506` verwirft heute nur eine vorhandene `collisionRun`; `_colOnInputChangeNow` hält Ergebnisse während des Laufs ausdrücklich fest. `_discardRunCheck` kehrt ohne `collisionRun` sofort zurück. Ein vorheriges Idle-Ergebnis kann daher den RFL-Eintritt überleben. Beim Bau die Anzeige und Besitzer der bisherigen Prüfung gemeinsam behandeln: fertiges Ergebnis, geparkter/fortsetzbarer Auftrag, Nebenauftrag und bereits vorgemerkter vollständiger Sweep. Alte Antworten dürfen nach der Sperre keine Kontakte, Abdeckung oder Tönung zurückgeben.
+- Der benannte Nichtprüfzustand darf nicht davon abhängen, ob `_startRunCheck` bereits aufgerufen wurde oder überhaupt eine Spur vorliegt. Er gehört zur aktuellen Laufidentität und überstimmt die alten Ergebniszweige der Leiste und Sim-Liste, einschließlich „No moving pairs“. Ein verspäteter Pinned-Parse, Wiederverbindung oder Einschalten der Simulation mitten im Lauf hebt ihn nicht auf. Bei ausgeschalteter Gerätesimulation werden dadurch keine ausgeblendeten Sim-Flächen wieder eingeblendet.
+- Die Sperre betrifft die **Kollisionsprüfung dieses Laufs**. Programmtext, laufende Zeile, Werkzeugwechsel- und Limitmarken werden dadurch nicht pauschal gelöscht. „Keine Marken“ aus dem Plan meint die Prüfmarken und die als geprüft dargestellte Abdeckung; sonst würde d0 unabhängige Anzeigen beschädigen.
+
+Dazu gehören neben dem geplanten Pinned-Fall zwei gezielte Browser-Gegenfälle: **fertiges Clear → RFL ohne neue Veröffentlichung** sowie **laufender/parkender Idle-Sweep → RFL → verspätete Antwort/Continue**. In beiden Fällen bleibt „not checked“ stehen, ohne neue Prüfaufträge oder zurückkehrende Prüfbefunde. Nach tatsächlichem Laufende darf die reguläre Idle-Prüfung wieder nach ihrem bestehenden Vertrag beginnen; sie beweist nicht rückwirkend den RFL-Weg.
+
+### G7 und die positiven Kontrollen
+
+`start_line` bleibt Teil genau des Datensatzes, den das konkrete AUTO-Schreiben auf `sent` setzt. Ein Step im bereits pausierten RFL-Lauf darf die ursprüngliche N nicht auf 0 umschreiben; nur der neue Step aus Idle beginnt bei 0. Auch ein unverifizierter Startdatensatz kann das bekannte Schreibargument nennen, ohne deshalb zur Prüfung zugelassen zu sein.
+
+Der Seitenleser übernimmt nur einen numerischen, endlichen, nichtnegativen ganzzahligen Wert; `null`, Boolean, String, negativer oder gebrochener Wert bleiben unbekannt. Den sonst gültigen Laufdatensatz dabei erhalten: Ein ungültiges `start_line` darf den aktiven Lauf nicht versehentlich in einen Idle-Fallback verwandeln. Die verweigernde Anzeige muss auch bei fehlender Vorschau oder `verified:false` ehrlich bleiben. Für Zulassung und Schreibargumentvergleich bleiben die positiven Kontrollen Start ab 0 und erster Step ab Idle nötig, außerdem Pause/Step/Resume eines RFL mit unverändertem N. Bestehende Mock-/Fixture-Läufe müssen 0 ausdrücklich belegen, statt einen neuen Standardwert einzuführen.
+
+**Nachweise:** [Probe](maschinentag.r464.codex-probe.cjs), [Ergebnisse, Quellhashes und Hash des lokalen Skim-Belegs](maschinentag.r464.codex-observations.json). Der erste Harness-Aufruf scheiterte vor den Assertions am Unterprozessaufruf von Git; die erfolgreiche Fassung liest die zuvor exportierten Quellen. Die Beobachtungen am vorhandenen Code sind keine Abnahme der noch zu bauenden Oberfläche.
+
+**Ergebnis: `agreement` für P6-d0 mit dieser Reichweite seiner Anzeige- und Zulassungsregeln. Keine neue Operatorfrage.**
