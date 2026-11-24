@@ -1,0 +1,158 @@
+[2m[WebServer] [22m(node:3803427) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:3803448) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3803448) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"vp":"desktop","before":{"first":293,"last":311,"active":"302","band":false,"scrollTop":6722},"away":{"first":2901,"last":2920,"active":null,"band":false,"scrollTop":66722},"after":{"first":2901,"last":2920,"active":null,"band":false,"scrollTop":66722}}
+  ✘  1 [e2e] › e2e/codex-r458.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (desktop) (3.6s)
+(node:3803641) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3803641) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"vp":"touch-fullhd","before":{"first":295,"last":309,"active":"302","band":false,"scrollTop":9414},"away":{"first":2170,"last":2184,"active":null,"band":false,"scrollTop":69414},"after":{"first":2170,"last":2184,"active":null,"band":false,"scrollTop":69414}}
+  ✘  2 [e2e] › e2e/codex-r458.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (touch-fullhd) (3.8s)
+(node:3803811) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3803811) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [e2e] › e2e/codex-r458.viewer.spec.ts:174:1 › Codex R458: positive repeat with entry and playback stops (3.9s)
+{"untrusted":true,"away":{"first":2609,"last":2628,"active":null,"band":false,"scrollTop":60000},"after":{"first":2609,"last":2628,"active":null,"band":false,"scrollTop":60000}}
+  ✘  4 [e2e] › e2e/codex-r458.viewer.spec.ts:185:1 › Codex R458: explicit start of a bound program with globally untrusted motion lines (3.7s)
+(node:3804106) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3804106) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [e2e] › e2e/scrub-start.viewer.spec.ts:155:3 › desktop: the start — middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once (4.1s)
+  ✓  6 [e2e] › e2e/scrub-start.viewer.spec.ts:219:1 › counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top (2.5s)
+  ✓  7 [e2e] › e2e/scrub-start.viewer.spec.ts:246:1 › counter-control: a track without an entry move marks its first line at 0, in view (2.5s)
+  ✓  8 [e2e] › e2e/scrub-start.viewer.spec.ts:268:1 › Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing (2.3s)
+
+
+  1) [e2e] › e2e/codex-r458.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (desktop) 
+
+    Error: explicit Back to start restores the first marked line to view
+
+    explicit Back to start restores the first marked line to view
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+    Call Log:
+    - Timeout 1500ms exceeded while waiting on the predicate
+
+      169 |   console.log(JSON.stringify({vp,before,away,after}));
+      170 |   await expect.poll(async()=>{ const v=await codeView(page); return v.active==='302' && v.first!<=302 && v.last!>=302 && !v.band; },
+    > 171 |     {message:'explicit Back to start restores the first marked line to view',timeout:1500}).toBe(true);
+          |                                                                                             ^
+      172 | });
+      173 |
+      174 | test("Codex R458: positive repeat with entry and playback stops", async ({page,context})=>{
+        at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:171:93
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [e2e] › e2e/codex-r458.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (touch-fullhd) 
+
+    Error: explicit Back to start restores the first marked line to view
+
+    explicit Back to start restores the first marked line to view
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+    Call Log:
+    - Timeout 1500ms exceeded while waiting on the predicate
+
+      169 |   console.log(JSON.stringify({vp,before,away,after}));
+      170 |   await expect.poll(async()=>{ const v=await codeView(page); return v.active==='302' && v.first!<=302 && v.last!>=302 && !v.band; },
+    > 171 |     {message:'explicit Back to start restores the first marked line to view',timeout:1500}).toBe(true);
+          |                                                                                             ^
+      172 | });
+      173 |
+      174 | test("Codex R458: positive repeat with entry and playback stops", async ({page,context})=>{
+        at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:171:93
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [e2e] › e2e/codex-r458.viewer.spec.ts:185:1 › Codex R458: explicit start of a bound program with globally untrusted motion lines 
+
+    Error: explicit beginning needs program identity, not motion line trust
+
+    explicit beginning needs program identity, not motion line trust
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatchObject[2m([22m[32mexpected[39m[2m)[22m
+
+    [32m- Expected  - 2[39m
+    [31m+ Received  + 2[39m
+
+    [2m  Object {[22m
+    [2m    "active": null,[22m
+    [2m    "band": false,[22m
+    [32m-   "first": 1,[39m
+    [32m-   "scrollTop": 0,[39m
+    [31m+   "first": 2609,[39m
+    [31m+   "scrollTop": 60000,[39m
+    [2m  }[22m
+
+    Call Log:
+    - Timeout 1500ms exceeded while waiting on the predicate
+
+      194 |  console.log(JSON.stringify({untrusted:true,away,after}));
+      195 |  await info.attach('observations',{body:JSON.stringify({away,after}),contentType:'application/json'});
+    > 196 |  await expect.poll(()=>codeView(page),{message:'explicit beginning needs program identity, not motion line trust',timeout:1500}).toMatchObject({first:1,scrollTop:0,active:null,band:false});
+          |                                                                                                                                  ^
+      197 | });
+      198 |
+        at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:196:130
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [e2e] › e2e/codex-r458.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (desktop) 
+    [e2e] › e2e/codex-r458.viewer.spec.ts:157:47 › Codex R458: repeated return without entry (touch-fullhd) 
+    [e2e] › e2e/codex-r458.viewer.spec.ts:185:1 › Codex R458: explicit start of a bound program with globally untrusted motion lines 
+  5 passed (29.4s)

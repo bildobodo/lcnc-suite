@@ -1,0 +1,50 @@
+{
+  "request": "R458",
+  "verdict": "findings",
+  "base": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "head": "d2c846b5d7605b4d51536d8dde585d5fd5b879b8",
+  "product_unchanged_sha256": {
+    "lcnc-webui/src/App.vue": "74de9e649159a5c2e8f1f66efe01ec03a5281d3e3001eb06223d34c91b2088dd",
+    "lcnc-webui/src/ScrubBar.vue": "2cd7e59dd3e03a2d4dcda5ed145b150c909a55850440cb6b01b65db031da866e",
+    "lcnc-webui/src/GcodePanel.vue": "9090c5b5482d7057bdc53b4b58a5c923b1377d335df8fae723c3b0bd9ef454ad",
+    "lcnc-webui/src/ThreeViewer.vue": "b42254adf4906f64575b624fbd96f1d61fd86620d9ac6d2800dad8a62c44f334"
+  },
+  "isolated_tree": "/tmp/r458/tree",
+  "build": "node node_modules/vite/bin/vite.js build",
+  "browser": "node node_modules/@playwright/test/cli.js test --config=playwright.codex-r458.config.ts scrub-start.viewer.spec.ts codex-r458.viewer.spec.ts --grep \"Codex R458|desktop: the start|counter-control|Back to start never\"",
+  "run": "3803413-1795513212524",
+  "summary": {
+    "passed": 5,
+    "failed": 3,
+    "findings": {
+      "MT-I32": [
+        "repeated return without entry, desktop",
+        "repeated return without entry, touch-fullhd layout"
+      ],
+      "MT-I33": [
+        "explicit start with globally untrusted motion lines"
+      ]
+    },
+    "worker_proof_errors": [],
+    "replay": "PASS, 53 frames, 0 findings"
+  },
+  "boundaries": [
+    "One local mock worker at 4500; private preview at 4278, reuse disabled. No live controller/browser calls.",
+    "All build/browser execution inside the shared heavy lock; no timeout wrapper around Playwright.",
+    "Touch-fullhd reproducer uses the touch layout and a mouse click; no claim of an independent physical-touch probe.",
+    "Full round gate and Firefox read from supplied evidence, not rerun.",
+    "Initial infrastructure failure: direct CLI did not add node_modules/.bin to PATH, so vite preview was not found. Corrected preview command to explicit node path before any test ran."
+  ],
+  "artifacts": {
+    "maschinentag.r458.codex-probe.spec.ts": "f647a1f28b101ef8aa5803cb92905b16287f8c648b3900226c28087cfffbb6c6",
+    "maschinentag.r458.codex-config.ts": "38511c12cbc0531498d85498bb60cab40c58764e56bcef3e71ea2c3d257631bb",
+    "maschinentag.r458.codex-browser.txt": "130e8b9f1fbb7fbb40c1226b621a6b958dd170617f62493d0e70e080a3471df5",
+    "maschinentag.r458.codex-browser-report.json": "ee2c7da1ec8b9c015750a9da0c90d4430b25515378d9cfb83ac983d52b1d781c",
+    "maschinentag.r458.codex-build.txt": "aaaa6a093cda0a6e5b74c99f4d4a6b16d43efac93a908fb0a7be02a9777380fb",
+    "maschinentag.r458.codex-replay.json": "536dcbe33985ea77dad2f42c67c37bffe2dbe705170026b6902d418ea67c8e51",
+    "maschinentag.r458.codex-worker-proof.json": "48e9f6bad05798612648ea447bf068819655510df8df99aac17ce309383b2e43",
+    "maschinentag.r458.codex-initial-infra.txt": "a7ebb2510f8333545379872aee72e25c81e0483feb3563de3d5ada19385ae347",
+    "maschinentag.r458.codex-no-entry.png": "58a614ea658d8a23acbfabc32a52df2d9cf7d8a94dc9b99ca3f0b0545d5414b6",
+    "maschinentag.r458.codex-untrusted.png": "9ad023090cc27c3bd5bcd85ee51b93cac936d97b522dd31736664f4845348584"
+  }
+}

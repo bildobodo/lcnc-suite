@@ -1,0 +1,508 @@
+{
+  "config": {
+    "configFile": "/tmp/r458/tree/lcnc-webui/playwright.codex-r458.config.ts",
+    "rootDir": "/tmp/r458/tree/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "3803413-1795513212524",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r458/tree/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "3803413-1795513212524",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/r458/tree/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r458/report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "codex-r458.viewer.spec.ts",
+      "file": "codex-r458.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R458: repeated return without entry (desktop)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3638,
+                  "error": {
+                    "message": "Error: explicit Back to start restores the first marked line to view\n\nexplicit Back to start restores the first marked line to view\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate",
+                    "stack": "Error: explicit Back to start restores the first marked line to view\n\nexplicit Back to start restores the first marked line to view\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate\n    at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:171:93",
+                    "location": {
+                      "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                      "column": 93,
+                      "line": 171
+                    },
+                    "snippet": "  169 |   console.log(JSON.stringify({vp,before,away,after}));\n  170 |   await expect.poll(async()=>{ const v=await codeView(page); return v.active==='302' && v.first!<=302 && v.last!>=302 && !v.band; },\n> 171 |     {message:'explicit Back to start restores the first marked line to view',timeout:1500}).toBe(true);\n      |                                                                                             ^\n  172 | });\n  173 |\n  174 | test(\"Codex R458: positive repeat with entry and playback stops\", async ({page,context})=>{"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                        "column": 93,
+                        "line": 171
+                      },
+                      "message": "Error: explicit Back to start restores the first marked line to view\n\nexplicit Back to start restores the first marked line to view\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate\n\n  169 |   console.log(JSON.stringify({vp,before,away,after}));\n  170 |   await expect.poll(async()=>{ const v=await codeView(page); return v.active==='302' && v.first!<=302 && v.last!>=302 && !v.band; },\n> 171 |     {message:'explicit Back to start restores the first marked line to view',timeout:1500}).toBe(true);\n      |                                                                                             ^\n  172 | });\n  173 |\n  174 | test(\"Codex R458: positive repeat with entry and playback stops\", async ({page,context})=>{\n    at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:171:93"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "{\"vp\":\"desktop\",\"before\":{\"first\":293,\"last\":311,\"active\":\"302\",\"band\":false,\"scrollTop\":6722},\"away\":{\"first\":2901,\"last\":2920,\"active\":null,\"band\":false,\"scrollTop\":66722},\"after\":{\"first\":2901,\"last\":2920,\"active\":null,\"band\":false,\"scrollTop\":66722}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:13.148Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "observations",
+                      "contentType": "application/json",
+                      "body": "ewogICJiZWZvcmUiOiB7CiAgICAiZmlyc3QiOiAyOTMsCiAgICAibGFzdCI6IDMxMSwKICAgICJhY3RpdmUiOiAiMzAyIiwKICAgICJiYW5kIjogZmFsc2UsCiAgICAic2Nyb2xsVG9wIjogNjcyMgogIH0sCiAgImF3YXkiOiB7CiAgICAiZmlyc3QiOiAyOTAxLAogICAgImxhc3QiOiAyOTIwLAogICAgImFjdGl2ZSI6IG51bGwsCiAgICAiYmFuZCI6IGZhbHNlLAogICAgInNjcm9sbFRvcCI6IDY2NzIyCiAgfSwKICAiYWZ0ZXIiOiB7CiAgICAiZmlyc3QiOiAyOTAxLAogICAgImxhc3QiOiAyOTIwLAogICAgImFjdGl2ZSI6IG51bGwsCiAgICAiYmFuZCI6IGZhbHNlLAogICAgInNjcm9sbFRvcCI6IDY2NzIyCiAgfQp9"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-2860f-turn-without-entry-desktop--e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                    "column": 93,
+                    "line": 171
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "ebd8315a9f8b6f554add-5751b55fee252a971365",
+          "file": "codex-r458.viewer.spec.ts",
+          "line": 157,
+          "column": 47
+        },
+        {
+          "title": "Codex R458: repeated return without entry (touch-fullhd)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3811,
+                  "error": {
+                    "message": "Error: explicit Back to start restores the first marked line to view\n\nexplicit Back to start restores the first marked line to view\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate",
+                    "stack": "Error: explicit Back to start restores the first marked line to view\n\nexplicit Back to start restores the first marked line to view\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate\n    at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:171:93",
+                    "location": {
+                      "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                      "column": 93,
+                      "line": 171
+                    },
+                    "snippet": "  169 |   console.log(JSON.stringify({vp,before,away,after}));\n  170 |   await expect.poll(async()=>{ const v=await codeView(page); return v.active==='302' && v.first!<=302 && v.last!>=302 && !v.band; },\n> 171 |     {message:'explicit Back to start restores the first marked line to view',timeout:1500}).toBe(true);\n      |                                                                                             ^\n  172 | });\n  173 |\n  174 | test(\"Codex R458: positive repeat with entry and playback stops\", async ({page,context})=>{"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                        "column": 93,
+                        "line": 171
+                      },
+                      "message": "Error: explicit Back to start restores the first marked line to view\n\nexplicit Back to start restores the first marked line to view\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate\n\n  169 |   console.log(JSON.stringify({vp,before,away,after}));\n  170 |   await expect.poll(async()=>{ const v=await codeView(page); return v.active==='302' && v.first!<=302 && v.last!>=302 && !v.band; },\n> 171 |     {message:'explicit Back to start restores the first marked line to view',timeout:1500}).toBe(true);\n      |                                                                                             ^\n  172 | });\n  173 |\n  174 | test(\"Codex R458: positive repeat with entry and playback stops\", async ({page,context})=>{\n    at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:171:93"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "{\"vp\":\"touch-fullhd\",\"before\":{\"first\":295,\"last\":309,\"active\":\"302\",\"band\":false,\"scrollTop\":9414},\"away\":{\"first\":2170,\"last\":2184,\"active\":null,\"band\":false,\"scrollTop\":69414},\"after\":{\"first\":2170,\"last\":2184,\"active\":null,\"band\":false,\"scrollTop\":69414}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:17.505Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "observations",
+                      "contentType": "application/json",
+                      "body": "ewogICJiZWZvcmUiOiB7CiAgICAiZmlyc3QiOiAyOTUsCiAgICAibGFzdCI6IDMwOSwKICAgICJhY3RpdmUiOiAiMzAyIiwKICAgICJiYW5kIjogZmFsc2UsCiAgICAic2Nyb2xsVG9wIjogOTQxNAogIH0sCiAgImF3YXkiOiB7CiAgICAiZmlyc3QiOiAyMTcwLAogICAgImxhc3QiOiAyMTg0LAogICAgImFjdGl2ZSI6IG51bGwsCiAgICAiYmFuZCI6IGZhbHNlLAogICAgInNjcm9sbFRvcCI6IDY5NDE0CiAgfSwKICAiYWZ0ZXIiOiB7CiAgICAiZmlyc3QiOiAyMTcwLAogICAgImxhc3QiOiAyMTg0LAogICAgImFjdGl2ZSI6IG51bGwsCiAgICAiYmFuZCI6IGZhbHNlLAogICAgInNjcm9sbFRvcCI6IDY5NDE0CiAgfQp9"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-21bb4-without-entry-touch-fullhd--e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                    "column": 93,
+                    "line": 171
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "ebd8315a9f8b6f554add-08ffb81b942340918233",
+          "file": "codex-r458.viewer.spec.ts",
+          "line": 157,
+          "column": 47
+        },
+        {
+          "title": "Codex R458: positive repeat with entry and playback stops",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3867,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:22.036Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ebd8315a9f8b6f554add-f0dda369ecaeb11c6812",
+          "file": "codex-r458.viewer.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "Codex R458: explicit start of a bound program with globally untrusted motion lines",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3726,
+                  "error": {
+                    "message": "Error: explicit beginning needs program identity, not motion line trust\n\nexplicit beginning needs program identity, not motion line trust\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"active\": null,\u001b[22m\n\u001b[2m    \"band\": false,\u001b[22m\n\u001b[32m-   \"first\": 1,\u001b[39m\n\u001b[32m-   \"scrollTop\": 0,\u001b[39m\n\u001b[31m+   \"first\": 2609,\u001b[39m\n\u001b[31m+   \"scrollTop\": 60000,\u001b[39m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate",
+                    "stack": "Error: explicit beginning needs program identity, not motion line trust\n\nexplicit beginning needs program identity, not motion line trust\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"active\": null,\u001b[22m\n\u001b[2m    \"band\": false,\u001b[22m\n\u001b[32m-   \"first\": 1,\u001b[39m\n\u001b[32m-   \"scrollTop\": 0,\u001b[39m\n\u001b[31m+   \"first\": 2609,\u001b[39m\n\u001b[31m+   \"scrollTop\": 60000,\u001b[39m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate\n    at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:196:130",
+                    "location": {
+                      "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                      "column": 130,
+                      "line": 196
+                    },
+                    "snippet": "  194 |  console.log(JSON.stringify({untrusted:true,away,after}));\n  195 |  await info.attach('observations',{body:JSON.stringify({away,after}),contentType:'application/json'});\n> 196 |  await expect.poll(()=>codeView(page),{message:'explicit beginning needs program identity, not motion line trust',timeout:1500}).toMatchObject({first:1,scrollTop:0,active:null,band:false});\n      |                                                                                                                                  ^\n  197 | });\n  198 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                        "column": 130,
+                        "line": 196
+                      },
+                      "message": "Error: explicit beginning needs program identity, not motion line trust\n\nexplicit beginning needs program identity, not motion line trust\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"active\": null,\u001b[22m\n\u001b[2m    \"band\": false,\u001b[22m\n\u001b[32m-   \"first\": 1,\u001b[39m\n\u001b[32m-   \"scrollTop\": 0,\u001b[39m\n\u001b[31m+   \"first\": 2609,\u001b[39m\n\u001b[31m+   \"scrollTop\": 60000,\u001b[39m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 1500ms exceeded while waiting on the predicate\n\n  194 |  console.log(JSON.stringify({untrusted:true,away,after}));\n  195 |  await info.attach('observations',{body:JSON.stringify({away,after}),contentType:'application/json'});\n> 196 |  await expect.poll(()=>codeView(page),{message:'explicit beginning needs program identity, not motion line trust',timeout:1500}).toMatchObject({first:1,scrollTop:0,active:null,band:false});\n      |                                                                                                                                  ^\n  197 | });\n  198 |\n    at /tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts:196:130"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "{\"untrusted\":true,\"away\":{\"first\":2609,\"last\":2628,\"active\":null,\"band\":false,\"scrollTop\":60000},\"after\":{\"first\":2609,\"last\":2628,\"active\":null,\"band\":false,\"scrollTop\":60000}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:25.999Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "observations",
+                      "contentType": "application/json",
+                      "body": "eyJhd2F5Ijp7ImZpcnN0IjoyNjA5LCJsYXN0IjoyNjI4LCJhY3RpdmUiOm51bGwsImJhbmQiOmZhbHNlLCJzY3JvbGxUb3AiOjYwMDAwfSwiYWZ0ZXIiOnsiZmlyc3QiOjI2MDksImxhc3QiOjI2MjgsImFjdGl2ZSI6bnVsbCwiYmFuZCI6ZmFsc2UsInNjcm9sbFRvcCI6NjAwMDB9fQ=="
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r458/tree/lcnc-webui/test-results/codex-r458.viewer-Codex-R4-5b8a9-ally-untrusted-motion-lines-e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/r458/tree/lcnc-webui/e2e/codex-r458.viewer.spec.ts",
+                    "column": 130,
+                    "line": 196
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "ebd8315a9f8b6f554add-c0a3f736b1fb04392e27",
+          "file": "codex-r458.viewer.spec.ts",
+          "line": 185,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "scrub-start.viewer.spec.ts",
+      "file": "scrub-start.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "desktop: the start — middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4143,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:30.375Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-d3135343a773aaca5959",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 155,
+          "column": 3
+        },
+        {
+          "title": "counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2513,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:34.615Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-24eb86ef4f76853161a3",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 219,
+          "column": 1
+        },
+        {
+          "title": "counter-control: a track without an entry move marks its first line at 0, in view",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2479,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:37.133Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-159863a9bdc0205940ca",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 246,
+          "column": 1
+        },
+        {
+          "title": "Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2282,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-24T09:40:39.617Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9974cf616de385c9b01e-f835fb789211a3ca1504",
+          "file": "scrub-start.viewer.spec.ts",
+          "line": 268,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-24T09:40:12.527Z",
+    "duration": 29409.433,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

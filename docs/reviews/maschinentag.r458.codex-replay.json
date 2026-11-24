@@ -1,0 +1,812 @@
+{
+  "verdict": "PASS",
+  "run": "3803413-1795513212524",
+  "logs": 4,
+  "connections": {
+    "infra": 12,
+    "test": 8
+  },
+  "http": {
+    "with origin": 191
+  },
+  "frames": 53,
+  "frames_by_class": {
+    "test": 53
+  },
+  "commands": {
+    "get_tool_table": 16,
+    "heartbeat": 21,
+    "hello": 8,
+    "tab_visibility": 8
+  },
+  "attempts": 8,
+  "per_attempt": {
+    "codex-r458.viewer.spec.ts \u203a Codex R458: explicit start of a bound program with globally untrusted motion lines [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "codex-r458.viewer.spec.ts \u203a Codex R458: positive repeat with entry and playback stops [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "codex-r458.viewer.spec.ts \u203a Codex R458: repeated return without entry (desktop) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "codex-r458.viewer.spec.ts \u203a Codex R458: repeated return without entry (touch-fullhd) [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "scrub-start.viewer.spec.ts \u203a Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "scrub-start.viewer.spec.ts \u203a counter-control: a track without an entry move marks its first line at 0, in view [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "scrub-start.viewer.spec.ts \u203a counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 2,
+      "hello": 1,
+      "tab_visibility": 1
+    },
+    "scrub-start.viewer.spec.ts \u203a desktop: the start \u2014 middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once [retry 0]": {
+      "get_tool_table": 2,
+      "heartbeat": 3,
+      "hello": 1,
+      "tab_visibility": 1
+    }
+  },
+  "attempt_list": [
+    {
+      "name": "codex-r458.viewer.spec.ts \u203a Codex R458: explicit start of a bound program with globally untrusted motion lines [retry 0]",
+      "test": "ebd8315a9f8b6f554add-c0a3f736b1fb04392e27",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "50d070a3-1d8a-4d1b-812d-da214e1024e4",
+      "status": "failed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "codex-r458.viewer.spec.ts \u203a Codex R458: positive repeat with entry and playback stops [retry 0]",
+      "test": "ebd8315a9f8b6f554add-f0dda369ecaeb11c6812",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "50d070a3-1d8a-4d1b-812d-da214e1024e4",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "codex-r458.viewer.spec.ts \u203a Codex R458: repeated return without entry (desktop) [retry 0]",
+      "test": "ebd8315a9f8b6f554add-5751b55fee252a971365",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "d53fafcf-2f9a-423d-9d8d-6d71ea89c66f",
+      "status": "failed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "codex-r458.viewer.spec.ts \u203a Codex R458: repeated return without entry (touch-fullhd) [retry 0]",
+      "test": "ebd8315a9f8b6f554add-08ffb81b942340918233",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "436a420d-20e9-4d12-8158-200f7358fbf1",
+      "status": "failed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    },
+    {
+      "name": "scrub-start.viewer.spec.ts \u203a Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing [retry 0]",
+      "test": "9974cf616de385c9b01e-f835fb789211a3ca1504",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "543e72d4-b112-4ed5-a70c-afb436534c6c",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "scrub-start.viewer.spec.ts \u203a counter-control: a track without an entry move marks its first line at 0, in view [retry 0]",
+      "test": "9974cf616de385c9b01e-159863a9bdc0205940ca",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "543e72d4-b112-4ed5-a70c-afb436534c6c",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "scrub-start.viewer.spec.ts \u203a counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top [retry 0]",
+      "test": "9974cf616de385c9b01e-24eb86ef4f76853161a3",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "543e72d4-b112-4ed5-a70c-afb436534c6c",
+      "status": "passed",
+      "page": true,
+      "frames": 6,
+      "observed": "page loaded at its mock, 6 frame(s)"
+    },
+    {
+      "name": "scrub-start.viewer.spec.ts \u203a desktop: the start \u2014 middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once [retry 0]",
+      "test": "9974cf616de385c9b01e-d3135343a773aaca5959",
+      "project": "e2e",
+      "retry": 0,
+      "instance": "543e72d4-b112-4ed5-a70c-afb436534c6c",
+      "status": "passed",
+      "page": true,
+      "frames": 7,
+      "observed": "page loaded at its mock, 7 frame(s)"
+    }
+  ],
+  "no_cookie": [],
+  "per_attempt_expected": {},
+  "var_files": [
+    "examples/sim_config/xyz3/sim.var",
+    "examples/sim_config/xyzabc6/sim.var",
+    "examples/sim_config/xyzac5/sim.var"
+  ],
+  "expected": [],
+  "findings": [],
+  "outside": [
+    "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+    "the gates and the handlers (admission, effect)",
+    "HTTP payload values \u2014 a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+    "coverage against the inventory (step 5c)"
+  ],
+  "http_paths": {
+    "requests": 207,
+    "contexts": 8,
+    "classes": {
+      "replaced": 16,
+      "served": 168,
+      "fallback": 23
+    },
+    "routes": {
+      "GET /": {
+        "served": 8
+      },
+      "GET /g30": {
+        "fallback": 15
+      },
+      "GET /gcode": {
+        "replaced": 8
+      },
+      "GET /macros": {
+        "served": 8
+      },
+      "GET /preview": {
+        "replaced": 8
+      },
+      "GET /settings": {
+        "served": 8
+      },
+      "POST /telemetry": {
+        "fallback": 8
+      }
+    },
+    "fallback_paths": {
+      "GET /g30": 15,
+      "POST /telemetry": 8
+    },
+    "idless_covered_by_synthetic_hops": 0,
+    "ws_handshakes_joined": 0,
+    "per_attempt": {
+      "codex-r458.viewer.spec.ts \u203a Codex R458: explicit start of a bound program with globally untrusted motion lines [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "codex-r458.viewer.spec.ts \u203a Codex R458: positive repeat with entry and playback stops [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "codex-r458.viewer.spec.ts \u203a Codex R458: repeated return without entry (desktop) [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "codex-r458.viewer.spec.ts \u203a Codex R458: repeated return without entry (touch-fullhd) [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "scrub-start.viewer.spec.ts \u203a Back to start never begins a simulation in a run: dimmed like Play; an entry refused starts nothing [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "scrub-start.viewer.spec.ts \u203a counter-control: a track without an entry move marks its first line at 0, in view [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "scrub-start.viewer.spec.ts \u203a counter-controls: a null line in the middle and leaving the simulation keep the view; a re-entry starts at the top [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ],
+      "scrub-start.viewer.spec.ts \u203a desktop: the start \u2014 middle and end to 0, by the timeline and by Back to start: line 1 at the top, nothing marked, at once [retry 0]": [
+        {
+          "what": "GET /",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /g30",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 2
+        },
+        {
+          "what": "GET /gcode",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /macros",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /preview",
+          "variant": null,
+          "path": null,
+          "class": "replaced",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "GET /settings",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "POST /telemetry",
+          "variant": null,
+          "path": null,
+          "class": "fallback",
+          "transport": "finished",
+          "status": 200,
+          "n": 1
+        },
+        {
+          "what": "static",
+          "variant": null,
+          "path": null,
+          "class": "served",
+          "transport": "finished",
+          "status": 200,
+          "n": 18
+        }
+      ]
+    },
+    "measuring_effect": "the catch-all route: a request a page issues while its context closes no longer reaches the mock (class closing, R389 probe); Firefox no longer asks for /favicon.ico",
+    "findings": []
+  }
+}
