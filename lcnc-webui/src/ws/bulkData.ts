@@ -353,6 +353,10 @@ export interface ViewerGcode {
   /** The program identity this payload was parsed for — the answer's
    *  `X-Preview-Program`, stamped on arrival (P2b-F1-1). */
   programId?: string | null;
+  /** The fingerprint of the text this publication was parsed from — its
+   *  announcement's `origin.source`, stamped on arrival (P6-e, MT461-01: the
+   *  check card's program header binds to it). Null: none announced. */
+  publishedSource?: string | null;
   file?: string | null;
   // Wire-format generation stamp (P1) — gateway_util.PREVIEW_SCHEMA at parse
   // time. The gateway cache keys payloads on file+mtime only, so a gateway
@@ -786,6 +790,11 @@ interface TextAnnouncement {
 const _textAnn = shallowRef<TextAnnouncement | null>(null);
 /** The last text PROVEN to be its publication's: shown while its identity is active. */
 const _shownText = shallowRef<{ programId: string; version: number; rev: string; text: string; source: string } | null>(null);
+/** The proven text on screen as ONE object — its identity, its publication's
+ *  version, the fingerprint it was proven by and its bytes (P6-e, MT461-01):
+ *  a consumer binds it to a publication by all three, never by a flag
+ *  computed for whatever payload is on screen now. Null: none proven. */
+export const gcodeShownText = shallowRef<Readonly<{ programId: string; version: number; source: string; text: string }> | null>(null);
 /** The text's identity on screen (Run from line and the editor bind to it). */
 export const gcodeProgramId = ref<string | null>(null);
 /** The version of the text on screen (-1: none). */
@@ -811,6 +820,7 @@ function _exposeText(): void {
   gcodeTextSource.value = shown ? shown.source : "";
   gcodeProgramId.value = shown ? shown.programId : null;
   _shownTextVersion.value = shown ? shown.version : -1;
+  if (gcodeShownText.value !== shown) gcodeShownText.value = shown;
   // The revisions: equal while nothing of the active program is in flight —
   // hidden is NO load in flight (no new start lock); a fetch of the active
   // program's own announced text keeps them apart until it lands, fails or
@@ -1036,6 +1046,7 @@ function _ensurePreviewWorker(): Worker {
     if (m.gcode) {
       m.gcode.publishedVersion = m.version;
       m.gcode.programId = m.programId ?? null;
+      m.gcode.publishedSource = _previewLastSource;
     }
     _heldGcode.value = m.gcode ? markRaw(m.gcode) : null;
     _exposeGcode();
@@ -1064,6 +1075,8 @@ function _ensurePreviewWorker(): Worker {
 // worker; replies for another basis are dropped.
 let _previewLastFile: string | null = null;
 let _previewLastProgram: string | null = null;
+/** The announcement's `origin.source` of the version decoded now (P6-e). */
+let _previewLastSource: string | null = null;
 // The decode WANTED now — requested and outstanding, or already on screen
 // (Codex R59 VP-I23: a return to the basis on screen must invalidate the
 // reply still outstanding for another one, so the reply check reads the
@@ -1093,11 +1106,12 @@ function _postPreview(version: number, file: string | null, basis: number[] | nu
   _ensurePreviewWorker().postMessage({ version, programId, url, basis, basisKey: _previewWantKey });
 }
 
-function _fetchPreview(version: number, file: string | null, programId: string | null) {
+function _fetchPreview(version: number, file: string | null, programId: string | null, originSource: string | null) {
   if (version === _previewLastVersion && programId === _previewLastProgram) return;
   _previewLastVersion = version;
   _previewLastFile = file;
   _previewLastProgram = programId;
+  _previewLastSource = originSource;
   _postPreview(version, file, _basisFor(version, file));
 }
 
@@ -1148,7 +1162,7 @@ export function handleViewerGcodeReady(msg: { version?: number; file?: string | 
   const file: string | null = msg.file ?? null;
   const programId = typeof msg.program_id === "string" && msg.program_id ? msg.program_id : null;
   const originSource = typeof msg.origin?.source === "string" && msg.origin.source ? msg.origin.source : null;
-  _fetchPreview(version, file, programId);
+  _fetchPreview(version, file, programId, originSource);
   _applyGcodeFile(file, version, programId, originSource);
 }
 

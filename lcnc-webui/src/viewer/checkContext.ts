@@ -12,6 +12,7 @@ import type { TloEvent } from "./tloEvents";
 import { fmtCoord } from "../format";
 import { g5xLabel } from "../wcs";
 import { lineWordAt, partLabel } from "./simRows";
+import { compareHeaderD, headerNote, scanToolHeader, type ToolHeaderScan } from "./programToolHeader";
 
 const CANON = "XYZABCUVW";
 const ROTARY = new Set(["A", "B", "C"]);
@@ -48,6 +49,14 @@ export interface CheckContext {
   programTools: CheckTool[];
   /** A provisional check during a run: from this line on. */
   fromLine: number | null;
+  /** The publication the check's track and table values come from (P6-e,
+   *  MT461-01): the program identity, the published version and the
+   *  fingerprint of the text it was parsed from. The program header joins
+   *  the card only from a text proven for exactly this triple; null parts
+   *  never match. */
+  program: { id: string | null; version: number | null; source: string | null };
+  /** That publication's machine linear unit ("mm" / "in"), null = not read. */
+  unit: string | null;
 }
 
 export interface ContextInputs {
@@ -65,6 +74,10 @@ export interface ContextInputs {
   toollenTable?: readonly (readonly (number | undefined)[])[] | null;
   unknownTools?: readonly number[] | null;
   fromLine?: number | null;
+  /** The payload's identity, version and source (`programId`,
+   *  `publishedVersion`, `publishedSource`) and its `stats.unit`. */
+  program?: { id?: string | null; version?: number | null; source?: string | null } | null;
+  unit?: string | null;
 }
 
 const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
@@ -113,7 +126,54 @@ export function captureCheckContext(i: ContextInputs): CheckContext {
     fixture: finite(i.fixture) && i.fixture >= 1 ? Math.round(i.fixture) : null,
     programTools: programToolsOf(i),
     fromLine: i.fromLine ?? null,
+    program: { id: i.program?.id || null, version: finite(i.program?.version) ? i.program!.version! : null,
+               source: i.program?.source || null },
+    unit: i.unit === "mm" || i.unit === "in" ? i.unit : null,
   };
+}
+
+// ── The program header beside the card (P6-e, Codex R461 MT461-01) ──
+// The proven text can arrive AFTER the check took its context (`_applyGcodeFile`
+// loads it apart from the payload). Its arrival may add ONLY the header part
+// of a context of exactly its publication — no new sweep, no re-dated basis;
+// a text of another publication (V+1's, though the code panel binds it to
+// the payload on screen now) never enriches the card of V. Scans are kept
+// only for the publications of the contexts still shown or asked for.
+
+/** A text proven to be its publication's (bulkData `gcodeShownText`). */
+export interface ProvenText { programId: string; version: number; source: string; text: string }
+/** The header scans by publication key. */
+export type HeaderCache = ReadonlyMap<string, ToolHeaderScan>;
+
+const keyOf = (id: string | null | undefined, version: number | null | undefined, source: string | null | undefined) =>
+  id && finite(version) && source ? `${id}\u0000${version}\u0000${source}` : null;
+/** The publication a context belongs to; null = not bound to one. */
+export const publicationKey = (ctx: CheckContext | null | undefined): string | null =>
+  ctx ? keyOf(ctx.program.id, ctx.program.version, ctx.program.source) : null;
+
+/** The cache after a change of the live contexts or of the proven text: the
+ *  scans of the live contexts' publications kept, the text scanned for a
+ *  live publication that is exactly its own and has none yet, everything
+ *  else dropped. The same object when nothing changed. */
+export function nextHeaderCache(prev: HeaderCache, live: readonly (CheckContext | null | undefined)[],
+                                text: ProvenText | null | undefined,
+                                scan: (t: string) => ToolHeaderScan = scanToolHeader): HeaderCache {
+  const keys = new Set(live.map(publicationKey).filter((k): k is string => k != null));
+  const tk = text ? keyOf(text.programId, text.version, text.source) : null;
+  const next = new Map<string, ToolHeaderScan>();
+  for (const k of keys) {
+    const had = prev.get(k);
+    if (had) next.set(k, had);
+    else if (tk === k) next.set(k, scan(text!.text));
+  }
+  if (next.size === prev.size && [...next].every(([k, v]) => prev.get(k) === v)) return prev;
+  return next;
+}
+
+/** The header scan of a context's own publication, null = none (yet). */
+export function headerOf(cache: HeaderCache, ctx: CheckContext | null | undefined): ToolHeaderScan | null {
+  const k = publicationKey(ctx);
+  return k ? cache.get(k) ?? null : null;
 }
 
 export interface CardRow {
@@ -153,7 +213,9 @@ function list(rows: CardRow[], label: string, values: string[], warn = false) {
  * move's own check is merged into what is shown. `unit`: the linear unit.
  */
 export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
-                          o: { stale: boolean; entry: boolean; unit: string; lineAt?: LineAt | null }): CardView {
+                          o: { stale: boolean; entry: boolean; unit: string; lineAt?: LineAt | null;
+                               /** The program header of the context's OWN publication (headerOf). */
+                               header?: ToolHeaderScan | null }): CardView {
   if (!ctx) return { rows: [], notes: ["No check has run on this program yet."] };
   const b = ctx.basis;
   const rows: CardRow[] = [];
@@ -190,11 +252,15 @@ export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
     : "None — the check uses a stub body" });
   // the body the check poses for a tool is not its table length (Codex R136, answer 8)
   notes.push("The check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).");
-  list(rows, "Program tools", ctx.programTools.map(t => {
-    if (t.unknown) return `T${t.num} · no length in the table — its own pairs not checked`;
+  // each with the program header's diameter where it differs (P6-e): one
+  // fact, at the tool's own row; the row warns only for a difference
+  ctx.programTools.forEach((t, k) => {
     const dims = [len(t.len), dia(t.diam)].filter(Boolean).join(" · ");
-    return `T${t.num}${dims ? ` · ${dims} ${o.unit}` : ""}${t.assumed ? " · table length, assumed at its measurement" : ""}`;
-  }));
+    const base = t.unknown ? `T${t.num} · no length in the table — its own pairs not checked`
+      : `T${t.num}${dims ? ` · ${dims} ${o.unit}` : ""}${t.assumed ? " · table length, assumed at its measurement" : ""}`;
+    const note = headerNote(compareHeaderD(o.header, t.num, t.diam, ctx.unit), ctx.unit);
+    rows.push({ label: k ? "" : "Program tools", value: note ? `${base} · ${note.text}` : base, ...(note?.warn ? { warn: true } : {}) });
+  });
   // where the check begins
   rows.push({ label: "Start", value: run
     ? ctx.fromLine != null ? `From L${ctx.fromLine}, provisional` : "The whole program"

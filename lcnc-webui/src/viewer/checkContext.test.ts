@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
-import { captureCheckContext, checkCard, programToolsOf, type ContextInputs } from "./checkContext";
+import { captureCheckContext, checkCard, headerOf, nextHeaderCache, programToolsOf, publicationKey, type ContextInputs } from "./checkContext";
+import { scanToolHeader } from "./programToolHeader";
 import type { CollisionResult } from "./collision";
 
 const AXES = ["X", "Y", "Z", "A", "C"];   // XYZAC: C is joint 4, canonical 5
@@ -133,5 +134,131 @@ describe("the check basis card (step 4 plan 1c)", () => {
 
   it("no context: the card says no check has run", () => {
     expect(checkCard(null, null, opts)).toEqual({ rows: [], notes: ["No check has run on this program yet."] });
+  });
+});
+
+// ── P6-e: the program header bound to the shown check's OWN publication
+// (Codex R461 MT461-01): the text may arrive after the context was taken; its
+// arrival adds only the header part; a text of another publication — V+1's,
+// though the code panel binds it to the payload on screen — never enriches
+// V's card; failed or unproven text never compares.
+describe("the program header on the card, bound to the check's publication (P6-e, MT461-01)", () => {
+  const HEAD = (d: string) => ["(1001)", `(T13 D=${d} CR=1. - FLAT END MILL)`, "N10 G90 G94 G17", "N15 G21",
+                               "N20 G53 G0 Z0.", "N25 T13 M600", "N30 G0 X1 Y2"].join("\n");
+  const pub = (version: number, source = "src-a", id = "mock.1") => ({ id, version, source });
+  const ctxOf = (program: ContextInputs["program"], unit: string | null = "mm") => captureCheckContext(inputs({
+    program, unit, tloEvents: [{ seq: 1, xyz: [0, 0, 0], tool: 13 }], parseTlos: [[13, 0, 0, 63.192, 8]] }));
+  const text = (version: number, d: string, source = "src-a", programId = "mock.1") => ({ programId, version, source, text: HEAD(d) });
+  const toolRow = (ctx: ReturnType<typeof ctxOf>, cache: Parameters<typeof headerOf>[0]) =>
+    row(checkCard(ctx, null, { ...opts, header: headerOf(cache, ctx) }), "Program tools");
+  const EMPTY = new Map() as Parameters<typeof headerOf>[0];
+
+  it("captures the publication and its unit; null parts never form a key", () => {
+    const c = ctxOf(pub(5));
+    expect(c.program).toEqual({ id: "mock.1", version: 5, source: "src-a" });
+    expect(c.unit).toBe("mm");
+    expect(publicationKey(c)).not.toBeNull();
+    for (const p of [{ id: null, version: 5, source: "s" }, { id: "x", version: null, source: "s" }, { id: "x", version: 5, source: null }, null]) {
+      expect(publicationKey(ctxOf(p)), JSON.stringify(p)).toBeNull();
+    }
+    expect(ctxOf(pub(5), "furlong").unit).toBeNull();
+  });
+
+  it("text V delivered AFTER the check took its context: the header joins the card (no new context, no sweep)", () => {
+    const c = ctxOf(pub(5));
+    let cache = nextHeaderCache(EMPTY, [c], null);
+    expect(toolRow(c, cache)).toEqual({ label: "Program tools", value: "T13 · L 63.192 · Ø 8.000 mm" });
+    cache = nextHeaderCache(cache, [c], text(5, "1.875"));
+    expect(toolRow(c, cache)).toEqual({ label: "Program tools", value: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 1.875", warn: true });
+  });
+
+  it("text V already proven when the check is asked for: the same header (both orders)", () => {
+    const c = ctxOf(pub(5));
+    expect(toolRow(c, nextHeaderCache(EMPTY, [c], text(5, "1.875")))!.warn).toBe(true);
+    // a header that matches the table: nothing added
+    expect(toolRow(c, nextHeaderCache(EMPTY, [c], text(5, "8."))))
+      .toEqual({ label: "Program tools", value: "T13 · L 63.192 · Ø 8.000 mm" });
+  });
+
+  it("V → V+1: V+1's text never enriches V's card — not by its program, not by its source, not by a bound flag", () => {
+    const v = ctxOf(pub(5));
+    // V+1 is a re-parse of the same bytes (the same program, the same source):
+    // only the version tells them apart
+    for (const t of [text(6, "1.875"), text(6, "1.875", "src-b"), text(5, "1.875", "src-b"), text(5, "1.875", "src-a", "mock.2")]) {
+      const cache = nextHeaderCache(EMPTY, [v], t);
+      expect(headerOf(cache, v), JSON.stringify([t.programId, t.version, t.source])).toBeNull();
+      expect(toolRow(v, cache)!.warn).toBeUndefined();
+    }
+    // V+1's own context takes it
+    const v1 = ctxOf(pub(6));
+    expect(toolRow(v1, nextHeaderCache(EMPTY, [v, v1], text(6, "1.875")))!.warn).toBe(true);
+  });
+
+  it("V's header stays with V's card while V+1's text is on screen; V+1's card gets only its own", () => {
+    const v = ctxOf(pub(5));
+    let cache = nextHeaderCache(EMPTY, [v], text(5, "8."));          // V's text matches the table
+    const v1 = ctxOf(pub(6));
+    cache = nextHeaderCache(cache, [v, v1], text(6, "1.875"));       // V+1's differs
+    expect(toolRow(v, cache)!.warn).toBeUndefined();
+    expect(toolRow(v1, cache)!.warn).toBe(true);
+  });
+
+  it("failed or unproven text: nothing to compare (no text, or none for this triple)", () => {
+    const c = ctxOf(pub(5));
+    expect(headerOf(nextHeaderCache(EMPTY, [c], null), c)).toBeNull();
+    expect(headerOf(nextHeaderCache(EMPTY, [c], text(5, "1.875", "other-bytes")), c)).toBeNull();
+    // a context without an identity never takes a text
+    const anon = ctxOf(null);
+    expect(headerOf(nextHeaderCache(EMPTY, [anon], text(5, "1.875")), anon)).toBeNull();
+  });
+
+  it("the cache holds only the live contexts' publications, scans once per key, and is the same object when nothing changes", () => {
+    let scans = 0;
+    const counting = (t: string) => { scans++; return scanToolHeader(t); };
+    const a = ctxOf(pub(5)), b = ctxOf(pub(6));
+    let cache = nextHeaderCache(EMPTY, [a], text(5, "1.875"), counting);
+    const same = nextHeaderCache(cache, [a, a, null, undefined], text(5, "1.875"), counting);
+    expect(same).toBe(cache);
+    expect(scans).toBe(1);
+    // a second context of the same publication shares its scan
+    const a2 = ctxOf(pub(5));
+    expect(nextHeaderCache(cache, [a, a2], text(5, "1.875"), counting)).toBe(cache);
+    expect(headerOf(cache, a2)).toBe(headerOf(cache, a));
+    // V's context gone: its scan is dropped
+    cache = nextHeaderCache(cache, [b], text(6, "2"), counting);
+    expect([...cache.keys()]).toEqual([publicationKey(b)]);
+    expect(scans).toBe(2);
+    expect(nextHeaderCache(cache, [], null).size).toBe(0);
+  });
+
+  it("the comparison uses the context's own unit; only the tool's row changes; a header tool without a row says nothing", () => {
+    const c = ctxOf(pub(5), null);
+    const cache = nextHeaderCache(EMPTY, [c], text(5, "1.875"));
+    const v = checkCard(c, null, { ...opts, header: headerOf(cache, c) });
+    expect(row(v, "Program tools")).toEqual({ label: "Program tools",
+      value: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 1.875, machine units not read — not compared" });
+    // the header's T7 has no row: nothing anywhere
+    const other = { ...text(5, "1.875"), text: HEAD("1.875").replace("T13", "T7") };
+    const c2 = ctxOf(pub(5));
+    const v2 = checkCard(c2, null, { ...opts, header: headerOf(nextHeaderCache(EMPTY, [c2], other), c2) });
+    expect(JSON.stringify(v2)).not.toContain("program header");
+    // the start tool's row and the notes are untouched by a header
+    const plain = checkCard(c2, null, opts);
+    const hinted = checkCard(c2, null, { ...opts, header: headerOf(nextHeaderCache(EMPTY, [c2], text(5, "1.875")), c2) });
+    expect(hinted.notes).toEqual(plain.notes);
+    expect(hinted.rows.filter(r => r.label !== "Program tools")).toEqual(plain.rows.filter(r => r.label !== "Program tools"));
+  });
+
+  it("each tool row warns for its own difference only", () => {
+    const c = captureCheckContext(inputs({ program: pub(5), unit: "mm",
+      tloEvents: [{ seq: 1, xyz: [0, 0, 0], tool: 13 }, { seq: 4, xyz: [0, 0, 0], tool: 2 }],
+      parseTlos: [[13, 0, 0, 63.192, 8], [2, 0, 0, 40, 6]] }));
+    const t = { programId: "mock.1", version: 5, source: "src-a",
+                text: ["(T13 D=8.)", "(T2 D=3.)", "G21", "G0 X0"].join("\n") };
+    const v = checkCard(c, null, { ...opts, header: headerOf(nextHeaderCache(EMPTY, [c], t), c) });
+    const i = v.rows.findIndex(r => r.label === "Program tools");
+    expect(v.rows.slice(i, i + 2)).toEqual([
+      { label: "Program tools", value: "T13 · L 63.192 · Ø 8.000 mm" },
+      { label: "", value: "T2 · L 40.000 · Ø 6.000 mm · program header Ø 3.", warn: true }]);
   });
 });

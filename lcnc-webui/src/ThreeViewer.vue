@@ -32,7 +32,7 @@ import { g30Confirmed } from "./g30Shared";
 import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
 import { runInProgress } from "./runBasis";
 import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
-import { captureCheckContext, type CheckContext } from "./viewer/checkContext";
+import { captureCheckContext, headerOf, nextHeaderCache, type CheckContext, type HeaderCache } from "./viewer/checkContext";
 import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
@@ -62,7 +62,7 @@ import { bakeFollowsOffsets, bakeKey, pathBehind, type BakeMode } from "./viewer
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
-import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
+import { previewSchemaMismatch, parseTloMismatch, gcodeShownText, type ScrubTrack } from "./ws/bulkData";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
 import { findKey, heldBytes, indexAfter, displayLineAt, displayLineRuns, lineMark, retireView, runsOf, targetAt, targetKey, targetPos, targetWindow, tintAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
@@ -3423,6 +3423,18 @@ const CONTACTS_VIEW_MS = 500;
 const contactsVersion = ref(0);
 /** What the bar shows, published with the views (plan 3.6); null before the first. */
 const colShown = shallowRef<ColShown | null>(null);
+// The program header of the shown check's OWN publication (P6-e, Codex R461
+// MT461-01): its proven text may arrive after the check took its context —
+// the arrival adds the header to that context's card, never a sweep; a text
+// of another publication adds nothing. Kept for the shown and asked-for
+// contexts only (checkContext.nextHeaderCache); registered below colShown
+// (a watch reads its sources at once).
+const _headerCache = shallowRef<HeaderCache>(new Map());
+watch([collisionContext, colShown, gcodeShownText], () => {
+  _headerCache.value = nextHeaderCache(_headerCache.value,
+    [collisionContext.value, _colPendingCtx, colShown.value?.context], gcodeShownText.value);
+}, { immediate: true });
+const collisionHeader = computed(() => headerOf(_headerCache.value, colShown.value?.context ?? null));
 /** The bar's timeline columns (its marks and bands are built at them). */
 let _colTimelineCols = 1024;
 let _contactsTimer: ReturnType<typeof setTimeout> | undefined;
@@ -4063,6 +4075,10 @@ function _colContextFor(basis: CheckBasis, track: ScrubTrack, run?: RunSweep): C
     tloEvents: g?.tloEvents, parseTlos: g?.parse_tlos, toollenTable: g?.toollen_table,
     unknownTools: _unknownProgramTools(),
     fromLine: run?.range ? collisionRun.value?.fromLine ?? null : null,
+    // the publication the track and the table values are (P6-e): its program
+    // header joins the card only from a text proven for exactly it
+    program: { id: g?.programId, version: g?.publishedVersion, source: g?.publishedSource },
+    unit: (g?.stats?.unit as string | undefined) ?? null,
   });
 }
 function _colWcs(basis: CheckBasis): PartFrameWcs {
@@ -6230,6 +6246,7 @@ defineExpose({
       :collisionEntryResult="colShown?.entryResult ?? null"
       :collisionPrevious="colShown?.previous ?? null"
       :collisionContext="colShown?.context ?? null"
+      :collisionHeader="collisionHeader"
       :collisionContextStale="colShown?.contextStale ?? false"
       :collisionRunCheck="colShown?.runCheck ?? null"
       @timeline-columns="onTimelineColumns"

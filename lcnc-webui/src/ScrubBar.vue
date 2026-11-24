@@ -49,6 +49,7 @@ import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, SIM_FILTER_KINDS, SIM_SPEEDS, type SimSweepView } from "./simPanelStore";
 import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
 import { checkCard, type CheckContext } from "./viewer/checkContext";
+import type { ToolHeaderScan } from "./viewer/programToolHeader";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -82,6 +83,9 @@ const props = defineProps<{
    *  whether an idle check's basis is no longer the machine's state. */
   collisionContext?: CheckContext | null;
   collisionContextStale?: boolean;
+  /** The program header of that context's OWN publication (P6-e): the card's
+   *  tool rows name a header diameter that differs from the table's. */
+  collisionHeader?: ToolHeaderScan | null;
   /** The sweep is PARKED by a rotary jog (its track is about to be re-parsed)
    *  — with the covered fraction. The partial result is in `collisionResult`
    *  (marks show); `collisionResumable` says the worker still holds it, and
@@ -1309,6 +1313,7 @@ const checkCardView = computed(() => {
   const e = props.collisionEntryResult;
   return checkCard(props.collisionContext ?? null, shownResult.value, {
     stale: !!props.collisionContextStale, unit: linearUnit.value, lineAt: displayLineAtShown.value,
+    header: props.collisionHeader ?? null,
     entry: !!e && e.track === track.value && shownResult.value === e.result });
 });
 /** Which tools the check poses — said in the check's "?", not on the bar.
