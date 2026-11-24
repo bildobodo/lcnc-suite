@@ -43,7 +43,8 @@ top with nothing marked and no band. Never a sentinel line number: a null
 line keeps its meanings (an untrusted point, a sub's, the end without M2,
 leaving the simulation — the view stays). A track without an entry move
 (the machine on the first point) keeps index 0 = the first point and its
-line, marked. Back to start (⏮, its own fixed slot right of Play) enters by
+line, marked. Back to start (⏮, its own fixed slot directly left of Play — the
+speed stays directly beside Play) enters by
 Play's rules (`enterSim`: the device's switch, the machine off, no run — a
 refused entry does nothing, dimmed with Play in a run), stops playback,
 clears the finding selection, emits `manual-scrub` and takes a new start

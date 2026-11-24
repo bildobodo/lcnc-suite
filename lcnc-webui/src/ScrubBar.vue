@@ -1355,7 +1355,7 @@ onUnmounted(releaseSim);
 </script>
 
 <template>
-  <!-- ONE row (operator 2026-10-05, 2026-10-29): Sim, play, back to start,
+  <!-- ONE row (operator 2026-10-05, 2026-10-29): Sim, back to start, play,
        the speed, the timeline with its marks, the check's coverage (100 %
        once done), the time, the Sim tab link. Nothing here changes its width
        with the content, so the bar never folds; the findings and the check's
@@ -1370,6 +1370,16 @@ onUnmounted(releaseSim);
                      :disabled="!simulationOn || (!simMode && !machineOff)"
                      help="Poses the 3D model along the program. Machine must be OFF; machine controls lock until you exit." />
 
+      <!-- Back to start (P6-b F10): its own fixed slot LEFT of Play (a
+           player's skip back; the speed stays directly beside Play — operator
+           2026-10-29/31), Play's gate and reason — the simulation's
+           position 0, the program's top in the code view. -->
+      <MachineBtn type="scrub" class="iconBtn" :disabled="!simulationOn || (!simMode && !machineOff)"
+                  :reason="!simulationOn ? DEVICE_SIM_OFF : undefined"
+                  aria-label="Back to start" title="Back to start"
+                  @click="backToStart">
+        <SkipBack :size="14" />
+      </MachineBtn>
       <MachineBtn type="scrub" class="iconBtn" :disabled="!simulationOn || (!simMode && !machineOff)"
                   :reason="!simulationOn ? DEVICE_SIM_OFF : undefined"
                   :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
@@ -1377,19 +1387,10 @@ onUnmounted(releaseSim);
         <Pause v-if="playing" :size="14" />
         <Play v-else :size="14" />
       </MachineBtn>
-      <!-- Back to start (P6-b F10): its own fixed slot right of Play, Play's
-           gate and reason — the simulation's position 0, the program's top
-           in the code view. -->
-      <MachineBtn type="scrub" class="iconBtn" :disabled="!simulationOn || (!simMode && !machineOff)"
-                  :reason="!simulationOn ? DEVICE_SIM_OFF : undefined"
-                  aria-label="Back to start" title="Back to start"
-                  @click="backToStart">
-        <SkipBack :size="14" />
-      </MachineBtn>
       <MachineSelect gate="simSpeed" v-model="speedChoice" name="scrubSpeed" aria-label="Playback speed" class="speedSelect">
         <option v-for="v in SIM_SPEEDS" :key="v" v-memo="[v]" :value="String(v)">×{{ v }}</option>
       </MachineSelect>
-      <!-- the narrow form's line break (CSS below): Sim, Play, Back to start
+      <!-- the narrow form's line break (CSS below): Sim, Back to start, Play
            and the speed above; the timeline, the coverage and the time below -->
       <span class="rowBreak" aria-hidden="true"></span>
       <div ref="sliderWrap" class="sliderWrap">
@@ -1542,7 +1543,7 @@ onUnmounted(releaseSim);
 .posSlot { flex: none; white-space: nowrap; }
 /* A bar under 620 px takes TWO rows — the timeline kept ~90 px in one
    (the fixed items take ~450 px; at 620 one row leaves the timeline ~160):
-   Sim, Play, Back to start and the speed above; the timeline, the coverage
+   Sim, Back to start, Play and the speed above; the timeline, the coverage
    and the time below, as low as the timeline itself. Never a third, and no
    button in the second: a portrait viewer at 150 % holds the DRO card above
    the bottom column only so (layout.spec — TWP's six DRO rows). The bar is a
