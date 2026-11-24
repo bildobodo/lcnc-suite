@@ -7310,11 +7310,15 @@ def _cal_status_cycle(polled_at: float, polled: Optional[Link], fields: Dict[str
     waiting drain proofs. A Link replaced while it was read proves nothing."""
     if polled is None or current_link() is not polled:
         not_drained = "the connection changed"
-    c = Cycle(polled_at=polled_at, link_seq=polled.seq if polled is not None else None, fields=fields, estop=estop,
-              enabled=enabled, messages=tuple((k, str(x)) for k, x in messages), drained=not_drained)
-    out = _cal.cycle(c, _cal_base_rev())
-    _serve_cal_drains(c)
-    return out
+    try:
+        c = Cycle(polled_at=polled_at, link_seq=polled.seq if polled is not None else None, fields=fields, estop=estop,
+                  enabled=enabled, messages=tuple((k, str(x)) for k, x in messages), drained=not_drained)
+        out = _cal.cycle(c, _cal_base_rev())
+        _serve_cal_drains(c)
+        return out
+    except Exception as e:  # noqa: BLE001 - a calibration's fault never stops the status loop: said, nothing offered
+        _trace.emit_exc("cal.cycle_failed", e)
+        return messages
 
 
 def _serve_cal_drains(c: Cycle) -> None:
@@ -7467,7 +7471,7 @@ async def _cal_store(record: Dict[str, Any], admit) -> Dict[str, Any]:
     return out
 
 
-async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, Any]:
+async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], job: str) -> Dict[str, Any]:
     """The second step of Apply and Reset: #3032 into the machine — only
     when it is ready and idle, admitted at the write again (arm NOW, the
     switch, the record unchanged, the program unit). The machine's outcome is
@@ -7492,8 +7496,7 @@ async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str]) ->
     progress: List[Dict[str, Any]] = []
     _cal_writing = True
     try:
-        r = await _apply_probe_vars_detail({str(OFFSET_KEY): value}, True, admit=admit, job="cal_apply",
-                                           progress=progress)
+        r = await _apply_probe_vars_detail({str(OFFSET_KEY): value}, True, admit=admit, job=job, progress=progress)
         if not r["mdi_set"]:
             _actions.stopped_short(_current_action.get())
     finally:
@@ -7537,7 +7540,7 @@ async def _cal_apply(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, 
         if out.get("cancelled"):
             _probe_book.refused({OFFSET_KEY: value}, "cancelled")
             raise asyncio.CancelledError()
-        machine = await _cal_write_machine(stored, conn_key)
+        machine = await _cal_write_machine(stored, conn_key, "cal_apply")
         return {"ok": True, "run": run, "machine": machine}
 
 
@@ -7574,7 +7577,7 @@ async def _cal_reset(conn_key: Optional[str]) -> Dict[str, Any]:
         if out.get("cancelled"):
             _probe_book.refused({OFFSET_KEY: 0.0}, "cancelled")
             raise asyncio.CancelledError()
-        machine = await _cal_write_machine(stored, conn_key)
+        machine = await _cal_write_machine(stored, conn_key, "cal_reset")
         return {"ok": True, "machine": machine}
 
 
