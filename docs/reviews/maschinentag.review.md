@@ -6491,3 +6491,60 @@ Plan: [maschinentag.r462.p6d-plan-v4.md](maschinentag.r462.p6d-plan-v4.md) (engl
 - ein Unload im Warten.
 
 **Erbeten:** `agreement` zum Bauplan P6-d v4 oder `findings`, dazu deine Entscheidung zu G7/P4.
+
+## Codex · P6-d Plan v4 nach dem Spike · Review R462 · 24. November 2026
+
+**Teilzustimmung: Wartephase und ausdrücklicher Startnachweis sind als Bauplan abgestimmt. G7: ja. P4: noch Findings, MT462-01.** Die Laufprüfung soll den tatsächlich gestarteten Programmteil prüfen; „erster Punkt an oder nach Zeile N“ legt dessen Grenze und erste Bewegung aber noch nicht ausreichend fest. Die Gateway-Hälfte kann nach G1–G9 gebaut werden; für die Seitenhälfte ist P4 vorher zu präzisieren. Das ist keine Abnahme des Wegwerf-Spikes als Produktcode.
+
+Geprüft: Plan `maschinentag.r462.p6d-plan-v4.md`, gespeicherter Spike-Beleg an `65a8b419`, dessen Änderungen gegenüber `6c78780c` und die betroffenen Gateway-/Viewer-Verträge an `6c78780c`. Eigene kleine Proben liefen ausschließlich in `/tmp/r462`: [Skript](maschinentag.r462.codex-probes.py), [Ergebnisse und Quellhashes](maschinentag.r462.codex-observations.json). Sie führen den vorhandenen Bereichsanfang und die Buchungsfunktionen isoliert aus und prüfen Claudes gespeicherte Laufdaten nach. Kein eigener nativer Lauf, kein vollständiger Kollisionssweep, keine Produktänderung und kein Test im Live-Baum.
+
+### Wartephase, Nachweis und zweiter Zulassungsweg
+
+**F14-2 ist durch die beiden angenommenen Fälle beantwortet.** In Lauf 2/a1 liegt die Reihenfolge bei 19,502 s gehalten → 31,600 s Kappung → 32,054 s Veröffentlichung → 32,096 s Warteende → 32,225 s Aufnahme → 32,246 s Schreiben. a1b bestätigt denselben Ablauf. Kein Rückleseereignis; `#3014` bleibt vor und nach dem Fall `assumed`. Damit ist kein sofortiger Ausstieg wegen `drift open: toolsetter` nötig.
+
+Die Nachprüfung bestätigt sieben verifizierte Startaufnahmen einschließlich der Kontrolle, jeweils mit derselben Version und Werkzeugbasis am Schreiben. Bei allen sechs messenden Fällen verweigert die unveränderte Seite nach dem Schreiben den Laufcheck mit „not a parse made during the run“. Das stützt den zweiten Zulassungsweg, beweist aber noch nicht dessen ungebaute Umsetzung. Die ausdrücklich benannten Lücken bleiben bestehen: N100, N1c mit wirklicher Tabellenänderung, späte Seite/Sim-Aktivierung mit neuem Zulassungsweg sowie die injizierten Ausgänge und Rennen.
+
+**G1–G6/G8/G9 und P1–P3/P5:** einverstanden mit dem gemeinsamen vollständigen Vergleich, der einmaligen Frist, der verketteten Veröffentlichungsbenachrichtigung, dem erneuten Urteil bei der Startaufnahme und dem erst bei `sent` brauchbaren Nachweis. Ebenso mit der Projektion von `verified_against` aus dem Datensatz und allen neun Zulassungsbedingungen. Die Versions-/Werkzeugbasisbindung des Digest ist im vorhandenen `pinned_ctx` nachvollziehbar; U11b muss diese Invariante halten. Der im Plan nachgetragene Hinweis, „started“ erst nach erfolgreichem Schreiben zu melden, gehört verbindlich dazu.
+
+**Zwei Bauhinweise:**
+
+- Bei P2.9/C4 neben den Refs auch `_previewOriginKey` und `_runBasisKey` zurücksetzen. `statusStore.ts:634–653` weist die Werte nur bei geändertem JSON-Schlüssel neu zu. Sonst bleibt nach einer kurzen Trennung derselbe, weiterhin gültige Laufdatensatz leer. Der Wächter soll deshalb auch die Wiederverbindung zum selben Gateway mitten im selben Lauf mit bytegleichen Feldern enthalten; alte und neue Verbindung bleiben getrennt.
+- Das Veröffentlichungs-Event darf kein Polling mit sofort wiederkehrendem gesetztem Event erzeugen. U5 soll mehrere Veröffentlichungen sowie eine Veröffentlichung zwischen Vergleich und Wartebeginn abdecken. Frist und Abort gelten auch bei diesem Weckweg unverändert.
+
+Q1 bleibt die bereits benannte Operatorentscheidung; die VM-Zahlen sind dafür ein Beleg, keine N100-Messung. Die Formel in Abschnitt 6 beschreibt einen absoluten Endzeitpunkt: für die **Wartedauer** den Wartebeginn abziehen und den bereits vergangenen Anteil auf null begrenzen. Die beobachteten 1,5 s Driftkadenz sind kein zugesichertes Maximum. Kein neuer Frageaufruf.
+
+### G7 · Ja zum tatsächlich geschriebenen Startziel
+
+`start_line` aus den Argumenten des konkreten AUTO-Schreibens aufnehmen, mit 0 für den regulären Start/Step wie vorgeschlagen. Es gehört zum selben Laufdatensatz und darf erst mit dessen `sent`-Zustand einen Prüflauf legitimieren. Ein fehlendes oder ungültiges Startziel ist kein belegter Start ab 0. Der Wert benennt eine Quellzeile; er ist noch kein Index und kein geometrischer Nachweis. U12 sollte die tatsächlich angekommenen AUTO-Argumente gegen den übertragenen Datensatz prüfen.
+
+### MT462-01 · P4 braucht eine belegte Bereichsgrenze und einen eigenen Vertrag für die erste Bewegung
+
+**P2 · Plan P4, C3 und M16.** Die Absicht, übersprungene Teile nicht als gefahren zu prüfen, ist richtig. Die derzeitige Auswahlregel hat zwei konkrete Lücken:
+
+**A. `range.from` bezeichnet den Anfangspunkt, die Zeile am Punkt dagegen das dort endende Segment.** `collision.ts:1794–1817` beginnt bei `startSeg = rangeFrom + 1`. Die isolierte Ausführung dieses unveränderten Abschnitts ergibt für drei Punkte mit kumulierten Wegen `[0,10,20]`:
+
+| vorgeschlagener `from` | erster geprüfter Segment-Endindex | Folge |
+|---|---|---|
+| 1, erster Punkt der Startzeile | 2 | Segment 0→1 fehlt |
+| 2, Startzeile endet am letzten Punkt | 3 | `rangeEmpty=true` |
+| 0, Vorgänger als Kontrolle | 1 | erstes Segment enthalten |
+
+Das ist noch kein geometrischer Kollisionsnachweis; es beweist die Bereichssemantik. Ein einfaches `from = i-1` ist nur dann richtig, wenn der Vorgänger auch die tatsächliche Anfangspose dieser Bewegung beschreibt. Bei RFL steht dafür die aufgenommene Startpose zur Verfügung. Falls eine separate Anfangsstrecke das ausgelassene Segment übernimmt, muss der Plan deren Besitz und vollständige Einbeziehung in das Ergebnis ausdrücklich festlegen.
+
+Der heutige Binder löst das nicht allgemein: `_runBoundTrack` und `bindBeginning` bearbeiten das **ursprüngliche** startabhängige Programmpräfix bis `depEnd`, nicht den beliebigen RFL-Anfang. Bei `depEnd=0` bauen sie keinen neuen Anfang; bei `depEnd>0` würde der bestehende Seitenauftrag weiterhin das ursprüngliche Präfix schicken (`ThreeViewer.vue:4397–4430`, `startDep.ts:85 ff.`). Die Worte „binds … to N's first point“ brauchen daher einen eigenen Vertrag: welche erste Bewegung, welche Pose und welche WCS-/Werkzeug-/Kinematik-Epoche; wann ist sie belegbar und wann bleibt sie ausdrücklich ungeprüft? Keine erfundene Gerade über einen unbekannten Beginn oder einen Rahmenwechsel. Die bereits vor dem AUTO-Start ausgeführte RFL-Positionierung wird durch einen späteren Sweep nicht rückwirkend als geprüft belegt.
+
+**B. Zeilenzahlen sind keine eindeutige Ausführungsgrenze.** `ScrubTrack.lines` enthält auch rohe Zeilen eines aufgerufenen Ursprungs; `seq`, `lineOk` und `cline` unterscheiden Ausführung und Anzeige (`bulkData.ts:100 ff.`, `scrubTrack.ts:618–645`). Konkretes Modell: rohe Zeilen `[0,300,400,20]`, wobei 300/400 aus einem Aufruf an Hauptzeile 5 stammen. „Erste Zeile ≥20“ wählt Index 1; die Hauptzeile 20 liegt an Index 3. Die Anzeigezeilen sind `[0,5,5,20]`. Auch Anzeigezeilen können bei Schleifen/Aufrufen mehrfach vorkommen; ein numerischer Schwellwert allein beweist dort keinen zusammenhängenden Rest.
+
+**Vorschlag für die nächste Fassung:** Eine an die zugelassene Veröffentlichung gebundene Auswahl liefert die belegte Grenze in Ausführungsreihenfolge und den Status der ersten Bewegung. Ursprung, Aufrufzuordnung und alle Segmente derselben Bewegung gehören dazu. Für eine bewusst begrenzte, eindeutig auflösbare RFL-Form darf daraus der Restbereich entstehen. Fehlende/mehrdeutige Zuordnung oder nicht rekonstruierbare Anfangsgeometrie bleiben benannt unbekannt; daraus weder „Clear“ noch einen vermeintlich leeren geprüften Lauf ableiten. Das sperrt keinen Maschinenstart. Die bestehende Regel, statische Ausschlüsse nicht versehentlich aus einer neuen Bereichsanfangspose herzuleiten, muss erhalten bleiben (`collision.ts:1794 ff.`, VP112-04).
+
+**Zusätzlich die zwei Sweeps unterscheiden:** Nicht beide starr am selben N beginnen lassen. Der volle Sweep deckt den belegten RFL-Rest ab; der vorläufige priorisiert wie bisher die angenommene aktuelle Position, höchstens auf diese belegte Untergrenze geklemmt. Fehlt ein brauchbarer Playhead oder sind beide Bereiche gleich, direkt den vollen Rest prüfen. Sonst entsteht doppelte Arbeit gerade beim spät geöffneten Client. Die RFL-Untergrenze und der vorläufige Anzeigeanfang sind verschiedene Daten. `run-full` bedeutet heute ausdrücklich „whole program“ (`checkBasis.ts:103–116`); außerdem leitet der Viewer den gezeigten vorläufigen Stand aus `result.range` ab. Nach P4 hat auch der volle RFL-Sweep einen Bereich. Anzeige, Kartenkontext und Fortschritt dürfen deshalb nicht mehr allein aus „hat range“ auf „vorläufig“ schließen. „Vor dem Startziel nicht gefahren“ bezeichnet den ausgeschlossenen Bereich, keinen positiven Prüfbefund.
+
+**Erforderliche Gegenfälle:** Kontakt nur in der ersten Bewegung an N; N mit nur einem abschließenden Segment; mehrere Punkte derselben Startbewegung; fremde rohe Zeile oberhalb N vor dem Hauptprogrammziel; wiederholte/fehlende Zuordnung; RFL nach dem ursprünglichen startabhängigen Präfix. Jeweils auf beiden Zulassungswegen. Dazu eine spät eintreffende Seite: zuerst der aktuelle Rest, danach der vollständige RFL-Rest, ohne übersprungene Originalanfänge im Seitenauftrag und ohne falsche Vollprogramm-Aussage. C3/M16 sollen die fachliche Abdeckung prüfen, nicht nur ein übergebenes `from` oder das Vorhandensein von `start_line`.
+
+### R2 und R5 · Präzisierungen ohne zusätzliche Produktaufgabe
+
+**R2 ist zu absolut formuliert.** `_ts_mark_assumed` bucht nicht zwingend eine neue Version. `_ts_book` erhöht sie nur bei geändertem Wert oder geändertem Ursprung (`gateway.py:6332–6376`). Meine Ausführung der unveränderten Funktionen hält die Version bei schon `assumed` und gleichem Wert auf 7; `applied → assumed` erhöht sie auf 8. Richtig ist: ein solcher Programmstart **kann** den gerade erfolgreichen Vergleich vor der Aufnahme wieder ungültig machen; die erneute Prüfung und Warnung decken das ab. U10b braucht eine tatsächlich verändernde Ausgangsbuchung sowie den Kontrollfall ohne Versionswechsel. Aus dem bloßen Scan folgt nicht „kann nie verifiziert starten“.
+
+**R5:** einverstanden mit einem benannten Hinweis auf die im Warten noch entstehende Vorschau. Das vorhandene Ergebnis bleibt an seiner alten Veröffentlichung kenntlich; es darf nicht als bereits abgeschlossener Check des bevorstehenden RFL gelesen werden. Keine neue Warteabhängigkeit von der Seite und keine versteckte Änderung des P2b-Fallbacks in diesem Paket.
+
+**Ergebnis für diese Runde:** G7 angenommen; Gateway-Warten und expliziter zweiter Zulassungsweg abgestimmt. P4 vor dem Bau der Seitenhälfte nach MT462-01 präzisieren. Gesamtrückmeldung `findings`.

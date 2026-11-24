@@ -1,0 +1,122 @@
+{
+  "scope": "Isolated exact-code fragments, P4 line-selection model, re-evaluation of saved evidence; no native run or complete sweep",
+  "revision": "6c78780c3c2eba279356fb47662695f270b6bd61",
+  "sha256": {
+    "docs/reviews/maschinentag.r462.p6d-plan-v4.md": "3394878c94e3534d47b70c9444293abf642bb15e9c377582a19f3c2ed0c84195",
+    "lcnc-webui/src/viewer/collision.ts": "b6097788112e6be69aad6177e16fa90563cd4e96d277becad0234f7969de667b",
+    "lcnc-webui/src/ws/bulkData.ts": "576f53bdb84992e928a7fedb3519d3568de4284453385f8daadc8d5d0989cbf3",
+    "lcnc-webui/src/viewer/scrubTrack.ts": "e7409854b10803f08a4796d4a84d3aebd1b631d2578f06cd0b5167e5fab97576",
+    "lcnc-webui/src/ThreeViewer.vue": "d146d54d58b448221bac17307625a58ec46df63bae4cb81e01650bab673299b9",
+    "lcnc-webui/src/viewer/startDep.ts": "52c612b80e8b8e98f211863d1937527c7dc7b7dba2485d6cdbbdcfbd35a26652",
+    "lcnc-webui/src/viewer/checkBasis.ts": "f6500bbb3f90a5f5e97583ce5200343a204fc66ded713a41381f3b70815b156f",
+    "lcnc-webui/src/ws/statusStore.ts": "70b09582a81ac4e1634b83610cd7a208b98f01df6e70db510b48af9d54c7bb96",
+    "lcnc-gateway/gateway.py": "1a81809becac7522f37b58ed790b613d8923e32b751e260f3f200e52c48cd10f",
+    "docs/reviews/maschinentag.r462.p6d-spike-65a8b419.json": "c0de5b326b7628b4577923e320c55f2b11440789a2e8dd094a0a34fdad515cc4"
+  },
+  "range_fragment": "  const rangeFrom = opts.range ? Math.max(0, Math.min(n - 1, Math.floor(opts.range.from))) : 0;\n  let startSeg = 1;\n  if (opts.range) {\n    startSeg = rangeFrom + 1;\n    while (startSeg < n && dcum[startSeg]! - dcum[startSeg - 1]! <= 1e-9) startSeg++;\n    inContact.fill(0);\n    seeded.fill(0);\n    onsetRapid.fill(0);\n    undecided.fill(0);\n    restUndec.clear();\n  }\n  const rangeStart = opts.range && n > 0 ? dcum[rangeFrom]! : 0;\n  const rangeEmpty = !!opts.range && startSeg >= n;",
+  "range_cases": {
+    "first_line_endpoint": {
+      "rangeFrom": 1,
+      "startSeg": 2,
+      "rangeStart": 10,
+      "rangeEmpty": false
+    },
+    "final_line_endpoint": {
+      "rangeFrom": 2,
+      "startSeg": 3,
+      "rangeStart": 20,
+      "rangeEmpty": true
+    },
+    "predecessor_control": {
+      "rangeFrom": 0,
+      "startSeg": 1,
+      "rangeStart": 0,
+      "rangeEmpty": false
+    }
+  },
+  "line_model": {
+    "raw": [
+      0,
+      300,
+      400,
+      20
+    ],
+    "display": [
+      0,
+      5,
+      5,
+      20
+    ],
+    "raw_selection": 1,
+    "display_selection": 3
+  },
+  "booking": {
+    "initial_version": 7,
+    "same_assumed_value": 7,
+    "applied_to_assumed": 8
+  },
+  "saved_native_verified": [
+    {
+      "run": "run1",
+      "case": "a1",
+      "wait_s": 2.395,
+      "record_to_write_ms": 20.6
+    },
+    {
+      "run": "run1",
+      "case": "a2",
+      "wait_s": 2.811,
+      "record_to_write_ms": 23.2
+    },
+    {
+      "run": "run1",
+      "case": "b",
+      "wait_s": 2.616,
+      "record_to_write_ms": 22.4
+    },
+    {
+      "run": "run1",
+      "case": "e",
+      "wait_s": 0.001,
+      "record_to_write_ms": 37.5
+    },
+    {
+      "run": "run2_assumed",
+      "case": "a1",
+      "wait_s": 12.607,
+      "record_to_write_ms": 21.0
+    },
+    {
+      "run": "run2_assumed",
+      "case": "a1b",
+      "wait_s": 8.747,
+      "record_to_write_ms": 21.2
+    },
+    {
+      "run": "run2_assumed",
+      "case": "a2",
+      "wait_s": 2.57,
+      "record_to_write_ms": 20.6
+    }
+  ],
+  "saved_assumed_hold_order": [
+    {
+      "case": "a1",
+      "held": 19.502,
+      "cap": 31.6,
+      "published": 32.054,
+      "wait_exit": 32.096,
+      "record": 32.225,
+      "written": 32.246
+    },
+    {
+      "case": "a1b",
+      "held": 25.022,
+      "cap": 31.065,
+      "published": 31.729,
+      "wait_exit": 31.746,
+      "record": 31.878,
+      "written": 31.899
+    }
+  ]
+}
