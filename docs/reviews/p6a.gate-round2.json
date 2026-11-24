@@ -1,0 +1,217 @@
+{
+  "kind": "round",
+  "note": "P6-a follow-up: the freshness guard (Codex R459) and the parse-time record",
+  "base": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "head": "5eeab980054b1bc2b7517d6482aaad1c68364e1a",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/viewer/startDepPayloads.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/viewer/startDepPayloads.test.ts"
+      ]
+    },
+    "browser": {
+      "run": [
+        "collisions.viewer",
+        "example-tool-library",
+        "start-believed.viewer"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "lcnc-gateway/gcode_canon.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/native_start_probe.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_start_dep_worker.py: the gateway: the browser suite runs against the mock",
+        "scripts/gen_start_dep_payloads.py: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/comp_first_g55.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/comp_next_xyz_g55.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/g20_g55.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/g43_line_then_x.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/g43h_g55_move.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/g55_first.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/g55_first_rot.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/inch_g43_g55.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/m6_after_g55.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/m6_after_g55_rot.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/m6_first_g43_zero.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/mday_head.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_fixtures/start_dep_payloads/py_motion_first_bound.msgpack: what the parse writes and the committed payloads the client and page guards read: the backend's freshness guard writes P6-a's again from the worker under test and compares the bytes (test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {
+      "live-twp": [
+        "lcnc-gateway/gcode_canon.py",
+        "lcnc-gateway/native_start_probe.py"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 54.1,
+  "browser_specs": [
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 360272
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 20702
+    },
+    {
+      "file": "start-believed.viewer.spec.ts",
+      "ms": 7778
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/session-31.scope",
+    "cpu_s": 844188,
+    "memory_peak_mb": 17870
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-p6a/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-p6a/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 6
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 18
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-p6a/docs/reviews/p6a.gate-round2.logs/unit-light.json --reporter=/home/cnc/lcnc-suite-p6a/scripts/test_select/vitest_options_reporter.mjs",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 68,
+      "files": 179,
+      "tests": 2817,
+      "passed": 2817,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2817
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-p6a/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-p6a/scripts/test_suite.py offline --component backend --out-dir /home/cnc/lcnc-suite-p6a/docs/reviews/p6a.gate-round2.logs/backend --run-id backend-4c5919a1-7aa4-4ba4-81bd-2dc746ad14ea",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 281,
+      "run": "backend-4c5919a1-7aa4-4ba4-81bd-2dc746ad14ea"
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 3
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 363,
+      "tests": 65,
+      "passed": 65,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 65
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-b40dc088-82e0-4596-bcbc-10dadb7092ee",
+      "mocks": 3
+    },
+    {
+      "name": "browser-replay",
+      "status": "PASS",
+      "report": "replay.json",
+      "frames": 625,
+      "attempts": 65,
+      "http": {
+        "replaced": 1750,
+        "fetched": 3,
+        "served": 1371,
+        "fallback": 277,
+        "closing": 36
+      },
+      "outside": [
+        "the profile's axis and velocity bounds (MachineLimits holds only the var files' declared numbers)",
+        "the gates and the handlers (admission, effect)",
+        "HTTP payload values — a request's response path and its route's variant are judged (step 5b), never a value; a fallback or a replaced answer is no served route",
+        "coverage against the inventory (step 5c)"
+      ]
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "firefox-core",
+      "reason": "no path selects the Firefox core"
+    },
+    {
+      "check": "coverage",
+      "reason": "the coverage needs every set of the run — the merge gate runs it (replay step 5c)"
+    }
+  ],
+  "pending": [
+    {
+      "check": "live-twp",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gcode_canon.py",
+        "lcnc-gateway/native_start_probe.py"
+      ]
+    }
+  ]
+}
