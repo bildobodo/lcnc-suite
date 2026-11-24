@@ -1,0 +1,80 @@
+{
+  "review": "R456",
+  "verdict": "findings",
+  "parts": {
+    "P6-a": "findings: MT456-01",
+    "P6-b": "agreement as plan",
+    "F14/F8/F6": "direction comments only"
+  },
+  "code": "4eda38925c2657a697c6b3829de4d17a3b74ea1b",
+  "doc_head": "63c66d75af0550d4ae38032f06faae5f8499e376",
+  "plan_sha256": "31d8b818b660ddafd447161359758a3e7d2fd6f6a7d2090d2ba3430ce65a031b",
+  "own_runs": {
+    "native": {
+      "observations": 20,
+      "parse_errors": 0,
+      "skips": 0,
+      "description": "10 synthetic cases on the original worker and the proposed start read/transform via a disposable monkeypatch"
+    },
+    "client": {
+      "tests": 6,
+      "passed": 6,
+      "description": "Assertions of observed defect plus positive controls, not a fixed product gate"
+    }
+  },
+  "harness_note": "The first attempt at the optional prototype used interpreter.UNITS_MM, which is not exported. Its eight prototype parses failed in the harness; the original parses completed. Preserved in harness-initial.json. Corrected to observed length_units enum 2 (mm), 1 (inch); the final 20 cases all parse. f9spy.rotate_and_translate preserves Claudes diagnostic on the raw unconverted current vector; only the R456_FIX branch applies unit conversion before changing start_lo.",
+  "reproduction": [
+    "git archive 4eda3892 into /tmp/r456/tree",
+    "copy cases.py to /tmp/r456/cases.py; apply native-probe.patch to a copy of native_start_probe.py and save as /tmp/r456/probe.py",
+    "run run-probe.py with the native gateway Python under scripts/test_support/heavy_lock.py",
+    "copy client-probe.test.ts to src/viewer/codex-r456.test.ts in the isolated webui and run vitest under the same lock"
+  ],
+  "live_access": false,
+  "product_source_edited": false,
+  "heavy_lock": "released after both offline and client runs",
+  "source_sha256": {
+    "lcnc-gateway/gcode_canon.py": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+    "lcnc-gateway/gcode_parse_worker.py": "f3f80fed598dd273ee8d755cf41011a7e0c05b8df63c9f5327a07a16b42f9d59",
+    "lcnc-gateway/native_start_probe.py": "2bfd25b0ce755e2a2e8744212931bcb56578b10a27c5e3e5940cef1c4b5ba198",
+    "lcnc-webui/src/viewer/startDep.ts": "52c612b80e8b8e98f211863d1937527c7dc7b7dba2485d6cdbbdcfbd35a26652",
+    "lcnc-webui/src/viewer/scrubTrack.ts": "e7409854b10803f08a4796d4a84d3aebd1b631d2578f06cd0b5167e5fab97576",
+    "lcnc-webui/src/ScrubBar.vue": "ff0a5aea111ba365cd0d133b9b44fa533fff9576898e2c3bc2e382645f5cc7fd",
+    "lcnc-webui/src/GcodePanel.vue": "ff9d805507dc9abf3489a6a57b8e74f0934061ea95820a277b1174adfd50acb9",
+    "lcnc-webui/src/toolGeometry.ts": "66ed4dba3362a46b968e1112f22d74ddcee095eccf8b802ee311e8874d2a8b16",
+    "lcnc-gateway/gateway.py": "1a81809becac7522f37b58ed790b613d8923e32b751e260f3f200e52c48cd10f"
+  },
+  "artifacts": {
+    "maschinentag.r456.codex-native-observations.json": {
+      "sha256": "ba14b483bed200af77a8ab3afb999f1b04133829d9b2ff2479628e2ff390b300",
+      "bytes": 16233
+    },
+    "maschinentag.r456.codex-client-observations.json": {
+      "sha256": "44a834be7ac3fd315687e9e290956ba1e068a7a5315caeeadd7666a87791b92d",
+      "bytes": 1040
+    },
+    "maschinentag.r456.codex-client.txt": {
+      "sha256": "bbdc4a39fe0e1dfaf3ce0c43ce268f4a0186065fa8e0ee9aae42a1226d51da00",
+      "bytes": 207
+    },
+    "maschinentag.r456.codex-cases.py": {
+      "sha256": "622417631cb59d6b05f9f47bfe1f2b021627a6856594085c18653e58b685901a",
+      "bytes": 963
+    },
+    "maschinentag.r456.codex-native-probe.patch": {
+      "sha256": "dfaad2a1468cd6ab86d1ea992202e30e4d3b637b2608e572b82dd4d0eca6bf47",
+      "bytes": 3808
+    },
+    "maschinentag.r456.codex-run-probe.py": {
+      "sha256": "10f34ddf90f4ff091144fc3b330037ed973ad1fd8e5ba29116abc2e561dbacae",
+      "bytes": 1025
+    },
+    "maschinentag.r456.codex-client-probe.test.ts": {
+      "sha256": "4a5a2453e66192394bc73b1829b99c3d656640a2a37553b398d7d382b1d6be76",
+      "bytes": 2220
+    },
+    "maschinentag.r456.codex-harness-initial.json": {
+      "sha256": "4a65a475c9431274b4a5c244ab64a8282ead5fc8fef0b6864659588d5887392f",
+      "bytes": 12571
+    }
+  }
+}

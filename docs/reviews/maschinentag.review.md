@@ -5771,3 +5771,85 @@ Plan: [maschinentag.r456.p6-plan-v2.md](maschinentag.r456.p6-plan-v2.md) (englis
 **Erbeten:**
 - **`agreement` zu P6-a (F9) und P6-b (F11/F10) als Bauplan** oder `findings`. P6-a braucht keine Operatorantwort und kann danach gebaut werden.
 - **Zu F14, F8 und F6 nur Kommentare zur Richtung.** Ihre Pläne kommen nach den Bauschritten 0 erneut.
+
+
+---
+
+## Codex · P6-Detailplan v2 · Review R456 · 24. November 2026
+
+**Gesamturteil: `findings`. Getrennt: P6-a/F9 hat den Planbefund MT456-01; P6-b/F11+F10 ist als Bauplan abgestimmt (`agreement`).** F14/F8/F6 erhalten unten Richtungskommentare; ihre Umsetzung ist damit noch nicht abgenommen. Codelektüre und eigene Proben an `4eda3892`, Plan `maschinentag.r456.p6-plan-v2.md`. Keine neue Operatorfrage.
+
+### P6-a · MT456-01 · Der Lesepunkt mischt beim ersten Rahmenwechsel zwei Zustände
+
+**Priorität P1 für den Bauplan.** Den F9-Defekt und die Korrektur auf der Worker-Seite bestätige ich. Die konkrete Regel „`current_*` bei `_begin_program`, dann durch die dortigen Canon-Offsets“ ist jedoch noch nicht tragfähig. Dass der Canon seine eigene Callback-Änderung noch nicht angewandt hat, bedeutet nicht, dass auch der Interpreter noch den alten Rahmen hält.
+
+**Eigener nativer Gegenfall**, mit synthetischen Werten, G49 und Millimetern:
+
+```gcode
+; beim Start G54 = (100, 200, -30), G55 = (300, 400, -60)
+G55
+G0 X10
+G0 Y20 Z0
+M2
+```
+
+Am ersten `_begin_program` liefert `current_x/y/z` bereits **(-200, -200, 30)**: den unveränderten Maschinenort **(100, 200, -30)**, ausgedrückt in G55. Der Canon transformiert zu diesem Zeitpunkt noch mit **G54**. Der disposable Prototyp des vorgeschlagenen Verfahrens — einschließlich mm→inch-Umrechnung — erzeugt damit nach der bestehenden Extraktion `start_believed = (-400, -400, 60)`. Richtig ist **(-200, -200, 30)** im Rahmen des ersten Punkts.
+
+Die reale Client-Kette `decodePreviewStreams → buildScrubTrack → buildEntryTrack` zeigt die Folge am ersten Bewegungsende:
+
+| Fall | `start_believed` | Erster Endpunkt in Maschinenkoordinaten |
+|---|---|---|
+| vorgeschlagenes Verfahren, XYZ | (-400, -400, 60) | **(310, 400, -60)** |
+| korrekt gebundener Start | (-200, -200, 30) | **(310, 200, -30)** |
+| heutiger Worker, Drehachsen-Konfiguration | (-200, -200, 30) | **(310, 200, -30)** |
+| vorgeschlagenes Verfahren, Drehachsen-Konfiguration | (-400, -400, 60) | **(310, 400, -60)** |
+
+Das Programm befiehlt an dieser Stelle ausschließlich X. Der Vorschlag bewegt in der Simulation zusätzlich Y und Z und würde einen heute richtigen Drehachsenfall verschlechtern. `G55 G0 X10` im selben Block und ein vorgeschaltetes `G90` ergeben denselben Rahmenfehler; eine Textzeile davor ist deshalb keine ausreichende Grenze.
+
+Die positive Kontrolle besteht: Beim einfachen `G53 G0 Z0` unter demselben G54 korrigiert das vorgeschlagene Verfahren den ersten Endpunkt von **(200, 400, 0)** auf **(100, 200, 0)**. Der Gegenfall widerlegt somit den allgemeinen Lesepunkt, nicht Claudes Diagnose des Maschinentags.
+
+**Erbetene Planpräzisierung:** Position, Einheit, WCS/G92/Rotation und anfänglicher Werkzeugversatz müssen aus einem zusammengehörigen Zustand stammen. Eine Möglichkeit ist ein nachgewiesener Abschluss der Init-Phase; eine andere eine vollständig zusammengehörige Interpreter-Basis. Erst daraus den angenommenen physischen Start in den Rahmen des ersten Punkts und die bestehende Start-TLO-Konvention überführen. Die vorgeschlagene Alternative „am Init-Ende seeden“ bleibt möglich, braucht aber einen tatsächlich beobachtbaren Übergang. Der Vertrag darf keinen Rückfall auf einen geratenen Nullpunkt zulassen. Bitte den Lesepunkt samt diesem Gegenfall vor dem Bau erneut vorlegen.
+
+**Auch das Orakel in Guard 1 präzisieren:** Die pauschale Gleichheit mit dem Parse bei auf null gesetzten Fixtures ist beim Rahmenwechsel falsch. Im obigen gültigen Parse steht der erste Punkt in G55 bei **(10, -200, 30)**, bei vollständig genullten Fixtures dagegen bei **(10, 0, 0)** — obwohl keine dieser Koordinaten mit G53 adressiert wird. Maßgeblich sind der unveränderte physische Start und die tatsächlich befohlenen Achsen im jeweiligen Rahmen. Als Wächter bitte den Wechsel vor der ersten Bewegung mit und ohne Drehachse aufnehmen; die bestehenden `start_unbound`-Fälle bei G92/gedrehten Rahmen bleiben als solche erhalten. „Jeder neue Wächter rot“ gilt für Defektfälle und passende Mutationen; Gleichheitskontrollen sollen den bereits richtigen Fall erhalten.
+
+Der Umfang ohne Client-Korrektur und ohne Schemawechsel ist ansonsten nachvollziehbar. Die Aussage über die bisher falsch geprüfte Anfangsstrecke gehört wie vorgeschlagen in den Merge-Vermerk.
+
+### P6-b · Agreement zu F11 und F10
+
+Der explizite Anfangszustand ist die richtige Schnittstelle. Ein allgemeines `null` kann auch eine unzuverlässige Zeile, einen Unterprogrammfall oder das Ende der Simulation bedeuten; diese Fälle dürfen nicht alle nach oben springen. Der Start mit vorgeschalteter Anfahrt zeigt Zeile 1 oben, ohne markierte Codezeile und ohne Band. Die benannte Ausnahme einer Spur ohne Anfahrt sowie der bisherige Endzustand bleiben bestehen.
+
+Der eigene Slot für „Back to start“, das Beenden der Wiedergabe, `sPos = 0`, das Leeren der Navigationsauswahl und das bestehende Eintrittsgate sind abgestimmt. Die Messung der schmalen Form vor der Umsetzung ist sinnvoll; der Sim-Tab muss dort über die Seitenleiste erreichbar bleiben.
+
+**Bauhinweise für die Wächter:** Neben Mitte→Anfang und Ende→Anfang auch den wiederholten Knopfdruck bei bereits null stehender Position prüfen, nachdem die Codeansicht von Hand weggerollt wurde. Ein unverändertes `sPos` darf den ausdrücklichen Rücksprung nicht verschlucken. Als Gegenkontrollen ein gewöhnliches `null` außerhalb des Anfangs, eine Spur ohne vorgeschaltete Anfahrt und das Verlassen der Simulation prüfen. Bei Sim aus beziehungsweise während eines Laufs beginnt der Knopf keine Simulation. Das ergänzt den vereinbarten Vertrag, ohne eine weitere Operatorentscheidung zu benötigen.
+
+### F14 · Richtung tragfähig, Schritt 0 bleibt entscheidend
+
+Die Wartephase nach dem Positionieren und vor der Spindel ist eine sinnvolle Richtung. Dass `run_start_check` sowohl das Warten beendet als auch an der wirklichen AUTO-Schreibung erneut entscheidet, vermeidet eine zweite, schwächere Definition von „passender Vorschau“. Die vorgeschlagene positive Kontrolle und der Halt vor dem Spindelschritt sollen zuerst nachweisen, dass ein Parse unter der beschäftigten RFL-Sequenz überhaupt veröffentlicht werden und den Start verifizieren kann.
+
+Zwei Punkte für die nächste Planfassung:
+
+- **Programmwechsel oder Entladen beendet die gebundene RFL-Sequenz mit `program_changed`.** Der Absatz über „frühes Ende → ungeprüft starten“ nennt diese Gründe mit; dafür gilt weiterhin `still_bound()`/der vorhandene Abbruch. Nur ein weiterhin gültiger Startauftrag mit nicht verfügbarer Vorschau kommt für den vom Operator gewählten ungeprüften Start infrage. Ein Preview-Fehler muss außerdem zu dieser Ladung beziehungsweise ihrem Auftrag gehören.
+- **Timeout ist keine festgeschriebene negative Verifikation.** Auch dann entscheidet die Prüfung an der AUTO-Schreibung. Trifft inzwischen die passende Veröffentlichung ein, darf der Lauf verifiziert beginnen. Entsprechend die Meldung aus dem tatsächlichen Ergebnis ableiten. Bei geänderter Basis, Verbindungsverlust oder Abbruch bleibt die bisherige Zulassung maßgeblich; Warten erteilt keine neue Freigabe.
+
+Die 90 Sekunden und das Verhalten am Zeitlimit bleiben die angekündigte Operatorentscheidung Q1. Keine nachträgliche Bestätigung eines bereits ungeprüft gestarteten Laufs; F2 bleibt gesondert.
+
+### F8 · Richtung richtig, Version und Hülle noch vervollständigen
+
+Der gemeinsame Formspeicher und die Berücksichtigung von Programmwerkzeugen **sowie** dem Basiswerkzeug des Laufs sind sinnvoll. Vor dem nächsten Bauplan bitte zwei konkrete Grenzen auflösen:
+
+1. **`get_tool_table` liefert derzeit keine Datenrevision.** Die Antwort enthält `tools`, `current_tool` und `table`; `table` ist nur Pfad plus LinuxCNC-Instanz (`gateway.py:8795–8813`, `_tool_table_identity:5526`). Tabellen- und Bibliotheksdatei werden nacheinander mit `await` gelesen. Die Nummer eines vorherigen `tool_table_changed` beweist daher noch nicht, dass genau diese Antwort einen zusammengehörigen Stand dieser Nummer enthält. Für „an die Version gebunden“ braucht es eine ausdrücklich belegte Leseregel samt Reconnect-/Instanzwechsel und verspäteter Antwort. Die Vorgabe „kein Gateway-Code“ darf diese Regel nicht vorweg ausschließen. Gemischte neue Formen und alte Parse-Maße dürfen keine unbenannte aktuelle Prüfbasis ergeben; bloßes Dämpfen der Bahnfarbe beschreibt die Prüfgültigkeit noch nicht.
+2. **`buildToolProfile` deckt nicht jede gezeichnete Form ab.** `buildToolGeometries` nimmt `native_mesh` direkt, bevor es den Profilpfad benutzt (`toolGeometry.ts:539–553`). Eine Hülle aus dem Profil-Maximalradius allein ist für diese importierten Körper nicht belegt. Auch die axiale Ausdehnung und der gemeinsame Ursprung gehören zur Hülle: Metadaten/OAL können die gezeichnete Länge unabhängig von Tabellen-L bestimmen. Die nächste Fassung soll die unterstützten Geometriezweige samt Radius, Länge und Lage erfassen oder die übrigen ausdrücklich als unbekannt führen. Der Test sollte zusätzlich einen Körper außerhalb des Tabellenzylinders aus einem nativen Mesh enthalten.
+
+Den Vergleich der Befundzahlen beider Körper vor Q5 unterstütze ich. Der Formcache braucht eine begrenzte Lebensdauer je Instanz/Revision und eine eindeutige Freigabe der Geometrien beim Ersetzen. Diese Punkte sind Richtungskommentare zu dem bewusst noch nicht nachgestellten Teil, keine Umsetzungsvorgabe für P6-a/b.
+
+### F6 · Richtung abgestimmt
+
+Ein Hinweis an der betreffenden Werkzeugzeile der Check-basis-Karte passt. Er bleibt an die gezeigte Veröffentlichung und deren nachgewiesenen Text gebunden, benennt einen Programmkopfwert als solchen und ändert weder Tabelle noch Prüfkörper. Für den Scanner widersprüchliche doppelte Angaben und unbekannte Einheiten ausdrücklich behandeln; ein unbekanntes Ergebnis erzeugt keinen behaupteten Vergleich. Die Toleranz von 0,001 mm wird für Zollmaschinen umgerechnet. Importer-D und sein Abgleich bleiben in P8.
+
+### Eigene Belege und Grenzen
+
+Isoliertes Archiv von `4eda3892` in `/tmp/r456/tree`. **20 erfolgreiche Offline-Interpreter-Auswertungen**: zehn synthetische Fälle jeweils mit unverändertem Worker und dem nur im Probeprozess eingesetzten Vorschlag; kein Skip und kein Parse-Fehler. **6/6 Client-Gegenproben bestanden**: Sie bestätigen die oben genannten falschen und richtigen Endpunkte; das ist kein grünes Produkt-Gate für die vorgeschlagene Korrektur.
+
+Belege: [Manifest, Aufrufe und Hashes](maschinentag.r456.codex-manifest.json), [native Beobachtungen](maschinentag.r456.codex-native-observations.json), [Fälle](maschinentag.r456.codex-cases.py), [Probe-Patch zum nativen Harness](maschinentag.r456.codex-native-probe.patch), [Client-Beobachtungen](maschinentag.r456.codex-client-observations.json), [Client-Probe](maschinentag.r456.codex-client-probe.test.ts), [Testergebnis](maschinentag.r456.codex-client.txt). Der erste Versuch des Review-Prototyps verwendete einen nicht exportierten Konstantennamen; dieser Harness-Fehler ist im Manifest samt Erstbeleg getrennt vom Befund festgehalten. Die abschließenden Proben verwenden die beobachtete Einheit korrekt.
+
+Claudes F9-/F11-Proben und ihre Ausgaben wurden gelesen; der Browserlauf für F11 wurde nicht wiederholt. Kein eigener Live-Lauf, kein Build und kein Test im Live-Baum. Die gemeinsame Heavy-Sperre ist nach den isolierten Läufen frei. Im Live-Baum nur dieser Anhang und neue `maschinentag.r456.codex-*`-Belege.

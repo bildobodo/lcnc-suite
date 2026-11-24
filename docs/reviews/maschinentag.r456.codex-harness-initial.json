@@ -1,0 +1,531 @@
+[
+  {
+    "case": "plain",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        30.0
+      ],
+      [
+        10.0,
+        10.0,
+        30.0
+      ]
+    ],
+    "rapid_dep": [
+      3,
+      0
+    ],
+    "start_believed": [
+      -100.0,
+      -200.0,
+      30.0
+    ],
+    "start_unbound": null,
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotate_and_translate": [
+          3.937007874015748,
+          7.874015748031496,
+          -1.1811023622047245
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "g55_first",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "start_believed": [
+      -300.0,
+      -400.0,
+      60.0
+    ],
+    "start_unbound": null,
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          -200.0,
+          -200.0,
+          30.0
+        ],
+        "rotate_and_translate": [
+          -196.06299212598424,
+          -192.1259842519685,
+          28.818897637795274
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "g55_with_move",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        10.0,
+        -200.0,
+        30.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "start_believed": [
+      -300.0,
+      -400.0,
+      60.0
+    ],
+    "start_unbound": null,
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          -200.0,
+          -200.0,
+          30.0
+        ],
+        "rotate_and_translate": [
+          -196.06299212598424,
+          -192.1259842519685,
+          28.818897637795274
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "g92_first",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        7.0,
+        10.0,
+        0.0
+      ],
+      [
+        20.0,
+        10.0,
+        0.0
+      ]
+    ],
+    "rapid_dep": null,
+    "start_believed": [
+      -93.0,
+      -200.0,
+      30.0
+    ],
+    "start_unbound": [
+      0,
+      1,
+      2
+    ],
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          7.0,
+          0.0,
+          0.0
+        ],
+        "rotate_and_translate": [
+          10.937007874015748,
+          7.874015748031496,
+          -1.1811023622047245
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "g20_first",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        25.399999618530273,
+        0.0,
+        0.0
+      ],
+      [
+        25.399999618530273,
+        25.399999618530273,
+        0.0
+      ]
+    ],
+    "rapid_dep": [
+      7,
+      1
+    ],
+    "start_believed": [
+      -100.0,
+      -200.0,
+      30.0
+    ],
+    "start_unbound": null,
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "1",
+        "interp_current": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotate_and_translate": [
+          3.937007874015748,
+          7.874015748031496,
+          -1.1811023622047245
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "g43_first",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        20.0
+      ],
+      [
+        10.0,
+        10.0,
+        20.0
+      ]
+    ],
+    "rapid_dep": [
+      3,
+      0
+    ],
+    "start_believed": [
+      -100.0,
+      -200.0,
+      30.0
+    ],
+    "start_unbound": null,
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotate_and_translate": [
+          3.937007874015748,
+          7.874015748031496,
+          -1.1811023622047245
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "rotated",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        -9.76865056266608e-15,
+        5.6399328803925005e-15,
+        30.0
+      ],
+      [
+        10.0,
+        10.0,
+        30.0
+      ]
+    ],
+    "rapid_dep": null,
+    "start_believed": [
+      -193.60254037844385,
+      -132.20508075688775,
+      30.0
+    ],
+    "start_unbound": [
+      0,
+      1
+    ],
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotate_and_translate": [
+          3.9985109380508295,
+          8.318670418663778,
+          -1.1811023622047245
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "g55_zero",
+    "fix": false,
+    "rc": 0,
+    "skip": null,
+    "parse_error": null,
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        20.0,
+        0.0
+      ]
+    ],
+    "rapid_dep": [
+      6,
+      0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_unbound": null,
+    "f9spy": [
+      {
+        "lineno": 0,
+        "lo": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "length_units": "2",
+        "interp_current": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotate_and_translate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    ],
+    "invalid": null,
+    "stderr": null
+  },
+  {
+    "case": "plain",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-g6tsuwih/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "g55_first",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-vp4tr74z/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "g55_with_move",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-112mgw28/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "g92_first",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-bu3ccjqd/program.ngc\n!!!interp_error=19 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "g20_first",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-deoumoc1/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "g43_first",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-myuf4y06/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "rotated",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-ketvdbod/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  },
+  {
+    "case": "g55_zero",
+    "fix": true,
+    "rc": 1,
+    "skip": null,
+    "parse_error": null,
+    "rapid": null,
+    "rapid_dep": null,
+    "start_believed": null,
+    "start_unbound": null,
+    "f9spy": null,
+    "invalid": "",
+    "stderr": "!!!emc/rs274ngc/gcodemodule.cc: parse_file() f=/tmp/start-probe-zp3aw3xs/program.ngc\n!!!interp_error=1 result=0 last_sequence_number=1\nTraceback (most recent call last):\n  File \"/tmp/r456/probe.py\", line 978, in <module>\n    out = worker.parse(ctx)\n  File \"/tmp/r456/tree/lcnc-gateway/gcode_parse_worker.py\", line 539, in parse\n    result, seq = gcode.parse(filename, canon, initcodes, \"\")\n                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: parse_file interp_error\n"
+  }
+]

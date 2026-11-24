@@ -1,0 +1,85 @@
+--- a/lcnc-gateway/native_start_probe.py
++++ b/lcnc-gateway/native_start_probe.py
+@@ -30,7 +30,7 @@
+     print(json.dumps({"skip": f"no native LinuxCNC modules: {e}"}))
+     sys.exit(0)
+ 
+-HERE = Path(__file__).resolve().parent
++HERE = Path("/tmp/r456/tree/lcnc-gateway")
+ sys.path.insert(0, str(HERE))
+ work = Path(tempfile.mkdtemp(prefix="start-probe-"))
+ atexit.register(shutil.rmtree, work, True)   # one per case: 10 000 were left in /tmp
+@@ -822,6 +822,7 @@
+     "e_m600_no_return": _m600(prog="G21 G90\nG53 G0 Z0\nT2 M600\nG0 Z5\nM2\n", var={3106: 0}),
+ })
+ 
++exec(open("/tmp/r456/cases.py").read())
+ program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
+ inch = units == "in"
+ ini = work / "machine.ini"
+@@ -840,16 +841,16 @@
+ TOOL_TABLE = tool.tbl
+ {extra.get("emcio", "")}
+ [AXIS_X]
+-MIN_LIMIT = -500
+-MAX_LIMIT = 500
+-MAX_VELOCITY = 10
++MIN_LIMIT = {extra.get("xmin", -500)}
++MAX_LIMIT = {extra.get("xmax", 500)}
++MAX_VELOCITY = {extra.get("xvmax", 10)}
+ [AXIS_Y]
+-MIN_LIMIT = -500
+-MAX_LIMIT = 500
+-MAX_VELOCITY = 10
++MIN_LIMIT = {extra.get("ymin", -500)}
++MAX_LIMIT = {extra.get("ymax", 500)}
++MAX_VELOCITY = {extra.get("yvmax", 10)}
+ [AXIS_Z]
+ MIN_LIMIT = {extra.get("zmin", -500)}
+-MAX_LIMIT = {1.2 if inch else 50}
++MAX_LIMIT = {extra.get("zmax", 1.2 if inch else 50)}
+ MAX_VELOCITY = {extra.get("zvmax", 10)}
+ {extra.get("axis_z", "")}
+ {extra.get("ini", "")}
+@@ -926,6 +927,33 @@
+ 
+ import numpy as np  # noqa: E402
+ import gcode_parse_worker as worker  # noqa: E402
++if os.environ.get("F9_SPY"):
++    # P6 plan probe: what the interpreter holds at the program's begin, beside
++    # the canon's lo (the believed start's source today)
++    import gcode_canon as _gc
++    _orig_begin = _gc.PreviewCanon._begin_program
++    def _f9_spy(self):
++        first = not self._program_started
++        if first:
++            t = self.interp()
++            cur = None
++            rt = None
++            if t is not None:
++                try:
++                    cur = [float(getattr(t, a)) for a in ("current_x", "current_y", "current_z")]
++                    rt = [float(v) for v in self.rotate_and_translate(cur[0], cur[1], cur[2], 0, 0, 0, 0, 0, 0)[:3]]
++                except Exception as e:  # noqa: BLE001
++                    cur = repr(e)
++            print("__F9SPY__\t" + json.dumps({"lineno": self.lineno, "lo": [float(v) for v in self.lo[:3]],
++                                              "length_units": str(getattr(t, "length_units", None)), "interp_current": cur, "rotate_and_translate": rt}),
++                  file=sys.stderr, flush=True)
++        result = _orig_begin(self)
++        if first and t is not None and os.environ.get("R456_FIX"):
++            scale = 1 / 25.4 if int(t.length_units) == 2 else 1
++            xyz = [float(getattr(t, a)) * scale for a in ("current_x", "current_y", "current_z")]
++            self.start_lo = tuple(self.rotate_and_translate(*xyz, 0, 0, 0, 0, 0, 0))
++        return result
++    _gc.PreviewCanon._begin_program = _f9_spy
+ 
+ ctx = {"file": str(ngc), "ini_path": str(ini), "units": units, "g5x_index": 1,
+        "var_patches": {str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)},
+@@ -1005,6 +1033,7 @@
+     "start_dep_unavailable": out.get("start_dep_unavailable"),
+     "start_writes_untracked": out.get("start_writes_untracked"),
+     "start_unbound": out.get("start_unbound"),
++    "f9spy": [json.loads(ln.split("\t", 1)[1]) for ln in err.getvalue().splitlines() if ln.startswith("__F9SPY__")],
+     "feed_lines_all": u("feed_lines", "<u4"), "python_reads": [ln for ln in err.getvalue().splitlines()
+                                                               if ln.startswith("python remap reads")],
+     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},

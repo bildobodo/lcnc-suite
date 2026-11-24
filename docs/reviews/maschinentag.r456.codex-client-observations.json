@@ -1,0 +1,86 @@
+[
+  {
+    "name": "plain-old",
+    "startBelieved": [
+      -100,
+      -200,
+      30
+    ],
+    "patched": false,
+    "first": [
+      200,
+      400,
+      0
+    ]
+  },
+  {
+    "name": "plain-fix",
+    "startBelieved": [
+      0,
+      0,
+      0
+    ],
+    "patched": false,
+    "first": [
+      100,
+      200,
+      0
+    ]
+  },
+  {
+    "name": "g55_first-fix",
+    "startBelieved": [
+      -400,
+      -400,
+      60
+    ],
+    "patched": false,
+    "first": [
+      310,
+      400,
+      -60
+    ]
+  },
+  {
+    "name": "g55_first-fix",
+    "startBelieved": [
+      -200,
+      -200,
+      30
+    ],
+    "patched": true,
+    "first": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g55_rotary-old",
+    "startBelieved": [
+      -200,
+      -200,
+      30
+    ],
+    "patched": false,
+    "first": [
+      310,
+      200,
+      -30
+    ]
+  },
+  {
+    "name": "g55_rotary-fix",
+    "startBelieved": [
+      -400,
+      -400,
+      60
+    ],
+    "patched": false,
+    "first": [
+      310,
+      400,
+      -60
+    ]
+  }
+]
