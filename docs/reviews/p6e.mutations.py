@@ -90,6 +90,31 @@ MUTS = {
         "      if (!MOTION_G.has(g) && !NEUTRAL_G.has(g)) return { kind: \"unproven\" };\n",
         "      if (!MOTION_G.has(g) && !NEUTRAL_G.has(g) && g < 0) return { kind: \"unproven\" };\n")],
         [vt(UT_HDR, "the allow-list")]),
+    # ---- Codex R466 (MT-I34 rest): LinuxCNC executes Python comments
+    # (P1) the Python form ignored
+    "py_form_ignored": (HDR, [(
+        "  if (cut == null || cut.exec) return { kind: \"unproven\" };\n",
+        "  if (cut == null) return { kind: \"unproven\" };\n")],
+        [vt(UT_HDR, "R466 executable comment — semicolon Python"), pw("R466", "an executable comment: the units not proven")]),
+    # (P2) only lower case detected
+    "py_only_lower_case": (HDR, [(
+        "const EXEC_COMMENT = /^\\s*(?:py,|pyrun,|pyreload)/i;",
+        "const EXEC_COMMENT = /^\\s*(?:py,|pyrun,|pyreload)/;")],
+        [vt(UT_HDR, "R466 executable comment — Python case and leading spaces")]),
+    # (P3) only the parenthesis form detected
+    "py_only_paren_form": (HDR, [(
+        "    if (ch === \";\") { if (EXEC_COMMENT.test(s.slice(i + 1))) exec = true; break; }\n",
+        "    if (ch === \";\") break;\n")],
+        [vt(UT_HDR, "R466 executable comment — semicolon Python"), pw("R466", "an executable comment: the units not proven")]),
+    # (P4) the first motion's line not checked
+    "py_first_motion_line_unchecked": (HDR, [
+        ("  if (cut == null || cut.exec) return { kind: \"unproven\" };\n",
+         "  if (cut == null) return { kind: \"unproven\" };\n"),
+        ("  if (!c) return { kind: \"plain\", units: [], motion: false };\n",
+         "  if (!c) return cut.exec ? { kind: \"unproven\" } : { kind: \"plain\", units: [], motion: false };\n"),
+        ("  return { kind: \"plain\", units, motion };\n",
+         "  return cut.exec && !motion ? { kind: \"unproven\" } : { kind: \"plain\", units, motion };\n")],
+        [vt(UT_HDR, "the first motion line's executable comment counts too")]),
     # ---- the tolerance: 0.001 mm physical, converted (Codex R461 decided)
     # (6) the comparison's tolerance not converted for inch
     "tolerance_not_converted_for_inch": (HDR, [(

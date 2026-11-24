@@ -123,6 +123,38 @@ describe("the scan: a small straight-line header grammar (MT461-02)", () => {
     expect(scanToolHeader(lines("(T1 D=6)", "G21", "G0 X1 M8")).unit).toBe("mm");
   });
 
+  // Codex R466 (MT-I34 rest; its counter-cases and controls adopted from
+  // maschinentag.r466.codex-unit.test.ts): LinuxCNC EXECUTES Python comment
+  // forms (Interp::convert_comment, 2.9.4 interp_convert.cc: leading
+  // whitespace stripped, compared lower-case — `py,` / `pyrun,` run Python,
+  // `pyreload` reloads it, a prefix). `;py,… this.execute("G20")` after G21
+  // moved X1 by 25.4 mm natively. Their content is never evaluated here.
+  for (const [name, comment] of [
+    ["semicolon Python", ';py,from interpreter import this; this.execute("G20")'],
+    ["Python case and leading spaces", ';  Py,from interpreter import this; this.execute("G20")'],
+    ["parenthesis Python assignment", "(py,from interpreter import this; this.length_units=1)"],
+    ["Python file", "(pyrun,/tmp/r466/native/inch.py)"],
+    ["Python reload", "(pyreload)"],
+    ["Python reload, a prefix, upper case, in parentheses with spaces", "(  PYRELOADNOW)"],
+    ["under block delete", '/;py,from interpreter import this; this.execute("G20")'],
+  ] as const) {
+    it(`R466 executable comment — ${name}: the unit not proven`, () => {
+      const scan = scanToolHeader(`(T13 D=6)\nG21\n${comment}\nG0 X1\nM2\n`);
+      expect({ scan, comparison: compareHeaderD(scan, 13, 6, "mm") }).toMatchObject({
+        scan: { unit: null, unitWhy: "unproven" }, comparison: { kind: "notCompared", why: "unitsNotProven" } });
+    });
+  }
+  it("R466: the first motion line's executable comment counts too", () => {
+    expect(scanToolHeader('(T13 D=6)\nG21\nG0 X1 ;py,from interpreter import this; this.execute("G20")').unitWhy).toBe("unproven");
+    expect(scanToolHeader("(T13 D=6)\nG21\nG0 X1 (pyrun,/tmp/x.py)").unitWhy).toBe("unproven");
+  });
+  it("R466 controls: ordinary comments still prove mm; a Python comment AFTER the bounded header does not spoil it", () => {
+    expect(scanToolHeader("(T13 D=6)\nG21 (ordinary G20 text)\n; ordinary G20 text\nG0 X1").unit).toBe("mm");
+    expect(scanToolHeader('(T13 D=6)\nG21 G0 X1\n;py,from interpreter import this; this.execute("G20")').unit).toBe("mm");
+    // the native compare is exact: "py ," and "python," are no Python forms
+    expect(scanToolHeader("(T13 D=6)\nG21 (py ,x) (python, x) (msg,py,)\nG0 X1").unit).toBe("mm");
+  });
+
   it("the machine-day form still compares: its tool change (T13 M600) comes after the first motion", () => {
     expect(scanToolHeader(DAY_FORM).unit).toBe("mm");
     // the same head with the tool change BEFORE the retract: not proven (by the contract)

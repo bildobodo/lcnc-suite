@@ -17,7 +17,10 @@
 // MT-I34: `M70 / G20 / M72` restores the start's units, `M98` calls a sub
 // that sets them): only a bounded ALLOW-list of words passes; any other word —
 // a call, a modal save / restore, a code a config may remap (M600 too) —
-// leaves the unit NOT PROVEN.
+// leaves the unit NOT PROVEN. A comment is no word, but LinuxCNC EXECUTES its
+// Python forms (Codex R466): `py,` / `pyrun,` / `pyreload` in a comment of
+// either form, anywhere in the scanned lines, leave it NOT PROVEN too —
+// their content is never read.
 import { fmtUnit } from "../format";
 
 /** The scan reads at most this many lines from the program's start. */
@@ -82,9 +85,9 @@ function readLine(line: string): LineRead {
   // a block-delete line runs or not with the switch: anything but a comment
   // on it leaves the unit unproven
   const del = s.startsWith("/");
-  const code = stripComments(del ? s.slice(1) : s);
-  if (code == null) return { kind: "unproven" };
-  const c = code.replace(/\s+/g, "").toUpperCase();
+  const cut = stripComments(del ? s.slice(1) : s);
+  if (cut == null || cut.exec) return { kind: "unproven" };
+  const c = cut.code.replace(/\s+/g, "").toUpperCase();
   if (!c) return { kind: "plain", units: [], motion: false };
   if (del) return { kind: "unproven" };
   const units: number[] = [];
@@ -112,16 +115,24 @@ function readLine(line: string): LineRead {
   return { kind: "plain", units, motion };
 }
 
-/** The line's code with its comments removed; null = a comment left open. */
-function stripComments(s: string): string | null {
+// A comment LinuxCNC executes (2.9.4 Interp::convert_comment, interp_convert.cc
+// 1499-1603: leading whitespace stripped, compared lower-case; `py,` and
+// `pyrun,` run Python, `pyreload` — a prefix — reloads it).
+const EXEC_COMMENT = /^\s*(?:py,|pyrun,|pyreload)/i;
+
+/** The line's code with its comments removed, and whether a comment is one
+ *  LinuxCNC executes; null = a comment left open. */
+function stripComments(s: string): { code: string; exec: boolean } | null {
   let out = "";
+  let exec = false;
   let i = 0;
   while (i < s.length) {
     const ch = s[i]!;
-    if (ch === ";") break;
+    if (ch === ";") { if (EXEC_COMMENT.test(s.slice(i + 1))) exec = true; break; }
     if (ch === "(") {
       const close = s.indexOf(")", i + 1);
       if (close < 0) return null;
+      if (EXEC_COMMENT.test(s.slice(i + 1, close))) exec = true;
       i = close + 1;
       out += " ";
       continue;
@@ -129,7 +140,7 @@ function stripComments(s: string): string | null {
     out += ch;
     i++;
   }
-  return out;
+  return { code: out, exec };
 }
 
 /** Scans the program's start: the tool entries and the unit, from line 1 to

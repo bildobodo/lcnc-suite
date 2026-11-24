@@ -219,3 +219,20 @@ for (const [name, unit, tail, version] of [
       { text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
   });
 }
+
+// Codex R466 (MT-I34 rest; its browser probe maschinentag.r466.codex-browser.spec.ts,
+// adopted): a Python comment is a hidden call before the first move —
+// LinuxCNC executes `;py,…` (natively X1 = 25.4 mm after G21). Header D 8,
+// table D 8: never a proven "match", the plain "not compared".
+test("R466 Python comment: the card claims no proven header unit", async ({ page, context }) => {
+  const t = text(["(T13 D=8.)"], 'N15 G21\n;py,from interpreter import this; this.execute("G20")');
+  await routes(context, { body: preview(), texts: { 6801: t } });
+  await open(page);
+  await publishFile(FILE, 6801, t);
+  await checked(page, 6801);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getHeaderText!().proven?.version ?? null),
+    { message: "the text proven on the page" }).toBe(6801);
+  await cardRows(page);
+  await expect.poll(() => toolRows(page), { message: "an executable comment: the units not proven" }).toEqual([
+    { text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
+});
