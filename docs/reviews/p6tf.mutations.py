@@ -9,6 +9,7 @@ from the restored tree afterwards).
   python3 scripts/test_support/heavy_lock.py --who p6tf -- python3 -I docs/reviews/p6tf.mutations.py [name ...]
 """
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -17,6 +18,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 # the binaries themselves, never npx: it writes ~/.npm/_logs, and another tree's
 # gate compares the home in its install probe ("home:.npm changed")
 BIN = str(ROOT / "lcnc-webui/node_modules/.bin") + "/"
+# Playwright's web server command is a bare `vite` (npx put the binaries on PATH)
+ENV = {**os.environ, "PATH": BIN[:-1] + os.pathsep + os.environ.get("PATH", "")}
 G = "lcnc-gateway/"
 PROOF = G + "tool_proof.py"
 TABLE = G + "tool_table.py"
@@ -270,7 +273,7 @@ def run_guard(kind, args):
             return False, b.stdout + b.stderr, args[2]
         # never under a timeout: a killed runner orphans its web server (4173)
         r = subprocess.run([BIN + "playwright", "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
-                           cwd=ROOT / "lcnc-webui", capture_output=True, text=True)
+                           cwd=ROOT / "lcnc-webui", capture_output=True, text=True, env=ENV)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     raise SystemExit(f"unknown guard kind {kind}")
 
