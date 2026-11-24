@@ -531,6 +531,34 @@ class TestPollStatus(unittest.TestCase):
 
 
 class TestErrors(unittest.TestCase):
+    def test_a_read_says_whether_it_reached_the_empty_channel(self):
+        # P5 (plan v6, R442): the proof is an empty poll actually seen — its
+        # own result, never the list (no channel and a failed read give an
+        # empty list too)
+        rt = _runtime(err=None)
+
+        class Err:
+            def __init__(self, n, fail_at=None):
+                self.n, self.fail_at, self.polls = n, fail_at, 0
+
+            def poll(self):
+                self.polls += 1
+                if self.fail_at is not None and self.polls > self.fail_at:
+                    raise RuntimeError("no buffer")
+                if self.n <= 0:
+                    return None
+                self.n -= 1
+                return (12, "m")
+        for n, drain, count, proven in ((0, False, 0, True), (49, False, 49, True), (50, False, 50, False),
+                                        (50, True, 50, True), (51, True, 51, True), (300, True, 300, True),
+                                        (1001, True, 1000, False)):
+            msgs, why = rt.read_errors(Err(n), drain=drain)
+            self.assertEqual((len(msgs), why is None), (count, proven), (n, drain, why))
+        self.assertEqual(rt.read_errors(None, drain=True), ([], "no error channel"))
+        msgs, why = rt.read_errors(Err(10, fail_at=3), drain=True)
+        self.assertEqual(len(msgs), 3)
+        self.assertIn("not read", why)
+
     def test_read_errors_caps_and_drains(self):
         class _Err:
             def __init__(self):

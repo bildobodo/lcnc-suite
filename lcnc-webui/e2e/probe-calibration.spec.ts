@@ -304,6 +304,28 @@ test("the machine line follows the booking, value by value, and says no more tha
   await expect(line).toHaveText("Partly on the machine · the next probe writes it");
 });
 
+test("forced colours: the bar is the field's own edge, the cells keep their size", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  const side = await openView(page, DESKTOP, "Outside");
+  const got = await side.locator(".formGrid:has([data-section-line])").evaluate(grid => {
+    const cell = grid.querySelector<HTMLElement>(".formField")!;
+    const input = cell.querySelector<HTMLElement>(".inputField")!;
+    const size = () => { const r = cell.getBoundingClientRect(); const i = input.getBoundingClientRect(); return [r.height, i.width, i.height].map(Math.round); };
+    const out: Record<string, { edge: string; size: number[] }> = { none: { edge: getComputedStyle(input).borderInlineStartWidth, size: size() } };
+    for (const st of ["draft", "refused"]) {
+      cell.classList.add(`fs-${st}`);
+      out[st] = { edge: getComputedStyle(input).borderInlineStartWidth, size: size() };
+      cell.classList.remove(`fs-${st}`);
+    }
+    return out;
+  });
+  expect(got.none!.edge).toBe("1px");
+  for (const st of ["draft", "refused"]) {
+    expect(got[st]!.edge, st).toBe("3px");
+    expect(got[st]!.size, st).toEqual(got.none!.size);
+  }
+});
+
 for (const theme of ["light", "dark", "hc-light", "hc-dark"]) {
   test(`the bars hold 3 : 1 against their field and its surroundings (${theme})`, async ({ page }) => {
     const side = await openView(page, DESKTOP, "Outside");
