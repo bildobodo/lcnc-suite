@@ -22,14 +22,15 @@ WEB = "lcnc-webui/"
 S = WEB + "src/"
 GW = "lcnc-gateway/"
 SPEC = "e2e/collisions.viewer.spec.ts"
+HDR_SPEC = "e2e/program-header.viewer.spec.ts"
 UT_BASIS = "src/viewer/checkBasis.test.ts"
 UT_WORDS = "src/viewer/scrubBarWords.test.ts"
 PY_DISPATCH = "test_command_dispatch.py"
 
 
-def pw(grep, at):
+def pw(grep, at, spec=SPEC):
     """A browser guard: the page rebuilt with the mutation, the spec's test run."""
-    return ("pw", [SPEC, grep, at])
+    return ("pw", [spec, grep, at])
 
 
 def vt(file, name, at=None):
@@ -69,6 +70,10 @@ MUTS = {
     "the_idle_result_survives_the_entry": (S + "ThreeViewer.vue", [(
         ENTRY_TAIL, ENTRY_TAIL.replace("  collisionResult.value = null;\n  collisionTrack.value = null;\n", ""))],
         [pw(CLEAR, "the run's entry: no check job, no result")]),
+    # (a2) the check's context (P6-e's card and header cache) is kept
+    "the_context_survives_the_entry": (S + "ThreeViewer.vue", [(
+        "  collisionContext.value = null;\n  _colPendingCtx = null;\n  emit(\"collision-lines\", null);\n", "  emit(\"collision-lines\", null);\n")],
+        [pw("a run from line: the card names", "the earlier check's context let go", HDR_SPEC)]),
     # (b) the entry does nothing at all: the defect at 6c78780c behind the display gate
     "the_entry_lets_nothing_go": (S + "ThreeViewer.vue", [(
         "watch(_runNotCheckedKey, (k, old) => { if (k && k !== old) _colEnterNotChecked(k); });\n",

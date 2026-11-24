@@ -433,8 +433,10 @@ is not a proven 0; ThreeViewer keys it by run id and line
 `_colEnterNotChecked` lets every owner of an earlier check go: the run check
 and its bound beginning, the side job and the entry overlay, the main job
 running, parked or resumable (cancelled — `_colReqId` moves on, so its late
-replies and a settled rotary's continue are no one's), a finished result and
-the earlier preview's verdict; the code marks and the tint go, the hold
+replies and a settled rotary's continue are no one's), a finished result
+with its context (the card's basis and the program header bound to it,
+P6-e: a text that arrives in the run adds no header) and the earlier
+preview's verdict; the code marks and the tint go, the hold
 (`_colHeldByRun`) is set. While it stands every start path refuses it
 (`runCollisionCheck`, `_colPostSide`, `continueCollisionCheck`,
 `runEntryCheck`, `_colScheduleAuto` — nothing is scheduled —,
@@ -468,7 +470,8 @@ an unproven line / the control from 0; a finished Clear through pause, the
 simulation off and on and a reconnect; a running check's late replies; a
 parked check's settled rotary; the marks that stay; the slot's words with
 every box of the bar unmoved at desktop, touch Full HD and portrait; a run
-without a preview and the publication that arrives in it); mutations
+without a preview and the publication that arrives in it),
+`program-header.viewer.spec` (the card and a late text in the run); mutations
 `docs/reviews/p6d0.mutations.txt`.
 
 **M600 in the preview (collision plan step 3, Codex R102–R104, plan

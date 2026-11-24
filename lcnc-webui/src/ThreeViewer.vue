@@ -4558,7 +4558,7 @@ watch(runBasis, (rb) => {
  *  an earlier check lets go at once — the run check and its beginning, the
  *  side job (an entry move's, a run's beginning) with the entry overlay, the
  *  main job running, parked or resumable (cancelled: its late replies and
- *  continues are no one's), a finished result and the earlier preview's
+ *  continues are no one's), a finished result with its context and the earlier preview's
  *  verdict — no contact, coverage or tint comes back. Its end starts the
  *  idle check under its own contract (the interp watcher reads the hold);
  *  that check proves nothing of this run. */
@@ -4581,6 +4581,10 @@ function _colEnterNotChecked(key: string) {
   collisionTrack.value = null;
   collisionPrevious.value = null;
   _colPendingTrack = null;
+  // the check's context too (P6-e): a text that arrives in the run adds its
+  // program header to no card — the cache drops what no context binds
+  collisionContext.value = null;
+  _colPendingCtx = null;
   emit("collision-lines", null);
   _updateClashTint(null, null);
   _colHeldByRun = true;

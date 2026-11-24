@@ -10,7 +10,7 @@ import { encode } from "@msgpack/msgpack";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 import { openSimTab } from "./simTab";
-import { fulfillPreview, fulfillText, publishFile } from "./programFixture";
+import { fulfillPreview, fulfillText, loadOf, publishFile } from "./programFixture";
 
 const FILE = "/hdr.ngc";
 const FEED = Array.from({ length: 10 }, (_, i) => [i * 4, i % 2 ? 10 : 0, -1]);
@@ -235,4 +235,41 @@ test("R466 Python comment: the card claims no proven header unit", async ({ page
   await cardRows(page);
   await expect.poll(() => toolRows(page), { message: "an executable comment: the units not proven" }).toEqual([
     { text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
+});
+
+// P6-d0 (Codex R464): a run from line shows no check — the card's rows and the
+// program header a late text would add to them included; the run's end
+// checks again, and that check's card has its header.
+test("a run from line: the card names the run not checked; a text that arrives in it adds no header (P6-d0, Codex R464)", async ({ page, context }) => {
+  const h = hold();
+  await routes(context, { body: preview(), texts: { 6901: MISMATCH }, holdText: { 6901: h } });
+  await open(page);
+  await publishFile(FILE, 6901, MISMATCH);
+  await checked(page, 6901);
+  await cardRows(page);
+  await expect.poll(() => toolRows(page), { message: "the idle check's card" }).toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm", warn: false }]);
+  const before = await diag(page);
+  const zero = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await ctl({ op: "status_delta", envelope: { run_basis: { run_id: 21, state: "sent", file: FILE, source: "s", version: 6901,
+    program_id: loadOf(FILE).id, ctx_digest: "d", tool_basis_rev: 1, verified: false, why: "x", start_line: 10,
+    start: { g5x_index: 1, g5x_offset: zero, g92_offset: zero, rotation_xy: 0, wcs_table: null, tool_number: 0,
+             tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: zero } } },
+    data: { is_enabled: true, enabled: true, interp_state: 2, task_mode: 2, motion_line: 10 } });
+  const card = await cardRows(page);
+  await expect(card, "the run from line").toContainText("This run is not checked (run from line 10).");
+  await expect(card, "no row of the earlier check").not.toContainText(/T13|Program tools|Program kinematics/);
+  await expect.poll(async () => (await diag(page)).text.shownCheck, { message: "the earlier check's context let go" }).toBeNull();
+  h.release();
+  await expect.poll(async () => (await diag(page)).text.proven, { message: "the text is on the page" })
+    .toEqual({ programId: expect.any(String), version: 6901 });
+  await frames(page);
+  await expect(card, "the late text adds nothing").not.toContainText(/T13|program header/);
+  expect((await diag(page)).starts, "no check began").toBe(before.starts);
+  await ctl({ op: "status_delta", data: { interp_state: 1, task_mode: 1, motion_line: 0 } });
+  await expect.poll(async () => (await diag(page)).starts, { timeout: 30_000 }).toBe(before.starts + 1);
+  await checked(page, 6901);
+  await cardRows(page);
+  await expect.poll(() => toolRows(page), { message: "the idle check after the run has its header" })
+    .toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 1.875", warn: true }]);
+  await ctl({ op: "reset" });
 });
