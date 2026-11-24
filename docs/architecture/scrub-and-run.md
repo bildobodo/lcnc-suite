@@ -774,6 +774,21 @@ PW_BIG_C.NGC with A2's). Now:
   to the status's identity — so the path, the timeline, the check, the
   marks, the code lines, the line mapping and the run projection
   (`runDisplay.ts`, simulation off too) show nothing of another program.
+  The 3D view DRAWS nothing of it either (the pre-update check 2026-11-24:
+  case (c) kept A2's path green through C's run while every word said
+  "Preview after the run" — the null the gate hands only re-read the wanted
+  key): when the shown preview becomes null, ThreeViewer's
+  `_clearShownPreview` draws the unload's own empty payload — the path, its
+  box and its limit overlay go, the controller keeps the empty payload for a
+  rebuild (a line-mode or LOD change), a part-frame reply or a bake still out
+  draws nothing, `drawnKey` is null, the frame is rendered again; the
+  collision result goes with the viewerGcode watcher, the run's playhead
+  with its track (runDisplay), the simulation mode exits with its base track
+  (ScrubBar). Only the program's own publication draws again. The guards
+  read the SCENE, never the gate: the path box per frame, the path ledger,
+  the rendered path colour's pixels (program-identity.spec), the controller's
+  empty state through a rebuild (toolpathController.test), and the native
+  cases' canvas.
   Per kind of data (R450 MT450-02): the text needs its identity AND its proof
   (`X-Program-Source` = the announcement's `origin.source`), else it is
   named ("differs" / "failed") and gives no line mapping or text-bound

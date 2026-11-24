@@ -57,31 +57,80 @@ const code = (page: Page) => page.locator(".codeArea .codeViewer");
 const note = (page: Page) => page.locator("[data-text-note]");
 const hud = (page: Page) => page.locator("[data-preview-wait]");
 
-/** Every frame from now: the file named, the code shown, the payload on screen. */
+/** Every frame from now: the file named, the code shown, the payload on
+ *  screen — and what the viewer DRAWS (the scene, never the gate: P2b-F1
+ *  scene, the pre-update check 2026-11-24 found A2's path drawn under C). */
+type Frame = { file: string; code: string; shown: number | null; path: boolean };
 async function record(page: Page) {
   await page.evaluate(() => {
-    const w = window as unknown as { __idRec: unknown[]; __idRaf: number; __viewerDiag?: { getShownVersion?: () => number | null } };
+    const w = window as unknown as { __idRec: unknown[]; __idRaf: number };
     w.__idRec = [];
     const tick = () => {
       w.__idRec.push({ file: document.querySelector(".fileName")?.textContent ?? "",
                        code: document.querySelector(".codeArea .codeViewer")?.textContent ?? "",
-                       shown: w.__viewerDiag?.getShownVersion?.() ?? null });
+                       shown: window.__viewerDiag?.getShownVersion?.() ?? null,
+                       path: window.__viewerDiag?.getPathBox?.() != null });
       w.__idRaf = requestAnimationFrame(tick);
     };
     tick();
   });
 }
-async function frames(page: Page): Promise<{ file: string; code: string; shown: number | null }[]> {
+async function frames(page: Page): Promise<Frame[]> {
   return page.evaluate(() => {
-    const w = window as unknown as { __idRec: { file: string; code: string; shown: number | null }[]; __idRaf: number };
+    const w = window as unknown as { __idRec: Frame[]; __idRaf: number };
     cancelAnimationFrame(w.__idRaf);
     return w.__idRec;
   });
 }
-/** No frame shows A2's code or payload under C's name. */
-function noA2UnderC(rec: { file: string; code: string; shown: number | null }[], a2Version: number) {
+/** No frame shows A2's code or payload under C's name, and no frame DRAWS a
+ *  path while no preview is shown — with the positive control that the
+ *  path is drawn while one is (A2's before, C's own after when given). */
+function noA2UnderC(rec: Frame[], a2Version: number, cVersion?: number) {
   const bad = rec.filter(f => f.file === "c.ngc" && (f.code.includes("(A2)") || f.shown === a2Version));
   expect(bad, `${bad.length} of ${rec.length} frames showed A2 under C`).toEqual([]);
+  const drawn = rec.filter(f => f.shown == null && f.path);
+  expect(drawn.length, `${drawn.length} of ${rec.length} frames drew a path while no preview was shown`).toBe(0);
+  expect(rec.some(f => f.shown === a2Version && f.path), "the positive control: A2's path drawn while shown").toBe(true);
+  if (cVersion != null) expect(rec.some(f => f.shown === cVersion && f.path), "C's own path drawn once shown").toBe(true);
+}
+/** What the viewer draws of a program now: the path's world box, the path
+ *  ledger's CPU and GPU bytes, the key a drawn path is vouched by, the HUD's
+ *  limit line. */
+async function scene(page: Page) {
+  return page.evaluate(() => {
+    const d = window.__viewerDiag;
+    const m = d?.getPathMemory?.();
+    return { box: d?.getPathBox?.() ?? null, cpu: m?.cpu.total ?? null, gpu: m?.gpu.total ?? null,
+             drawn: d?.getPathBasis?.().drawn ?? null, limitLine: document.querySelectorAll(".hudMarkLimit").length };
+  });
+}
+/** Nothing of a program drawn — what an unload leaves (the gateway's empty
+ *  viewer_gcode frame). */
+const NOTHING_DRAWN = { box: null, cpu: 0, gpu: 0, drawn: null, limitLine: 0 };
+/** The path colour's pixels in the viewer canvas as RENDERED (a screenshot,
+ *  decoded in the page — fatpaths.viewer.spec's measure). */
+async function pathPixels(page: Page): Promise<number> {
+  // the palette's path colour as RGB (a CSS colour, parsed by a 2D canvas)
+  const want = await page.evaluate(() => {
+    const css = window.__viewerDiag!.getPalette!().resolved.feed!;
+    const cv = new OffscreenCanvas(1, 1), ctx = cv.getContext("2d")!;
+    ctx.fillStyle = css;
+    ctx.fillRect(0, 0, 1, 1);
+    return [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+  });
+  const png = (await page.locator(".viewerPane canvas").first().screenshot()).toString("base64");
+  return page.evaluate(async ([b64, c]) => {
+    const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
+    const cv = new OffscreenCanvas(img.width, img.height);
+    const ctx = cv.getContext("2d")!;
+    ctx.drawImage(img, 0, 0);
+    const px = ctx.getImageData(0, 0, img.width, img.height).data;
+    let n = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (Math.abs(px[i]! - c![0]!) + Math.abs(px[i + 1]! - c![1]!) + Math.abs(px[i + 2]! - c![2]!) < 40) n++;
+    }
+    return n;
+  }, [png, want] as const);
 }
 
 test("a new program at idle: A2's path and code never show under C; Start stays open, Edit closed", async ({ page }) => {
@@ -90,11 +139,13 @@ test("a new program at idle: A2's path and code never show under C; Start stays 
   await show(a2, 300);
   await expect(code(page)).toContainText("(A2)");
   await expect.poll(() => shown(page)).toBe(300);
+  await expect.poll(() => pathPixels(page), "the positive control: A2's path rendered").toBeGreaterThan(50);
   await record(page);
   const c = newLoad("/c.ngc", C);
   await ctl({ op: "status_delta", data: loadStatus(c), envelope: { preview_wait: {
     program_id: c.id, file: "c.ngc", reasons: ["debounce"], since_ms: 1 } } });
   await expect(page.locator(".fileName")).toHaveText("c.ngc");
+  await expect.poll(() => pathPixels(page), "A2's path no longer rendered under C").toBeLessThan(5);
   await expect(note(page)).toHaveText("Text and preview wait for the machine to settle");
   await expect(hud(page)).toContainText("Preview waits for the machine to settle");
   expect(await shown(page)).toBeNull();
@@ -109,7 +160,8 @@ test("a new program at idle: A2's path and code never show under C; Start stays 
   await expect(code(page)).toContainText("(C)");
   await expect.poll(() => shown(page)).toBe(301);
   await expect(hud(page)).toHaveCount(0);
-  noA2UnderC(await frames(page), 300);
+  await expect.poll(async () => (await scene(page)).box).not.toBeNull();
+  noA2UnderC(await frames(page), 300, 301);
 });
 
 for (const sim of [true, false]) {
@@ -127,6 +179,7 @@ for (const sim of [true, false]) {
     await expect(note(page)).toHaveText("Text and preview after the run");
     await expect(hud(page)).toContainText("Preview after the run");
     await expect(page.locator(".statusBanner")).toContainText("PREVIEW AFTER THE RUN");
+    expect(await scene(page), "case (c): nothing of A2 drawn through C's run").toEqual(NOTHING_DRAWN);
     // the run ends: its parse runs — named as the program's load, the banner's addition gone
     await ctl({ op: "status_delta", data: { interp_state: IDLE, task_mode: MANUAL, permissions: PERMS_ALL },
                 envelope: { preview_wait: null, preview_refresh: { reason: "discarded:mode", file: "c.ngc", program_id: c.id,
@@ -137,7 +190,8 @@ for (const sim of [true, false]) {
     await ctl({ op: "raw", frame: announcement(c, 401) });
     await expect(code(page)).toContainText("(C)");
     await expect.poll(() => shown(page)).toBe(401);
-    noA2UnderC(await frames(page), 400);
+    await expect.poll(async () => (await scene(page)).box).not.toBeNull();
+    noA2UnderC(await frames(page), 400, 401);
   });
 }
 
@@ -146,23 +200,39 @@ test("the same path loaded again and A→B→A are new loads: an old publication
   const l1 = newLoad("/a2.ngc", A2);
   await show(l1, 500);
   await expect.poll(() => shown(page)).toBe(500);
+  expect((await scene(page)).box, "the positive control: the path drawn").not.toBeNull();
   const l2 = newLoad("/a2.ngc", A2);                   // the same path again
   await ctl({ op: "status_delta", data: loadStatus(l2) });
   await expect.poll(() => shown(page)).toBeNull();
   await expect(code(page)).toHaveCount(0);
+  expect(await scene(page), "the same path reloaded: nothing of the old load drawn").toEqual(NOTHING_DRAWN);
   await ctl({ op: "raw", frame: announcement(l2, 501) });
   await expect.poll(() => shown(page)).toBe(501);
   await expect(code(page)).toContainText("(A2)");
   const b = newLoad("/c.ngc", C);
   await ctl({ op: "status_delta", data: loadStatus(b) });
   await expect.poll(() => shown(page)).toBeNull();
+  expect(await scene(page), "A→B: nothing of A drawn").toEqual(NOTHING_DRAWN);
   const a3 = newLoad("/a2.ngc", A2);                   // back to A: a third load
   await ctl({ op: "status_delta", data: loadStatus(a3) });
   await page.waitForTimeout(300);
   expect(await shown(page), "501 is the second load's, not this one's").toBeNull();
   await expect(code(page)).toHaveCount(0);
+  expect(await scene(page), "A→B→A: nothing of the earlier A drawn").toEqual(NOTHING_DRAWN);
   await ctl({ op: "raw", frame: announcement(a3, 502) });
   await expect.poll(() => shown(page)).toBe(502);
+  await expect.poll(async () => (await scene(page)).box, "its own publication drawn").not.toBeNull();
+  // hidden is drawn as an unload: the same scene as after the gateway's empty frame
+  const hidden = newLoad("/c.ngc", C);
+  await ctl({ op: "status_delta", data: loadStatus(hidden) });
+  await expect.poll(() => shown(page)).toBeNull();
+  const asHidden = await scene(page);
+  expect(asHidden.drawn, "no key vouches for a drawn path").toBeNull();
+  await ctl({ op: "status_delta", data: { active_file: null, program_id: null } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode", data: { file: null, feed: [], feed_lines: [], rapid: [] } } });
+  await expect(page.locator(".fileName")).not.toHaveText("c.ngc");
+  await expect.poll(async () => ({ ...(await scene(page)), drawn: "-" }), "hidden: the scene an unload leaves")
+    .toEqual({ ...asHidden, drawn: "-" });
 });
 
 test("late answers of the old load — text and decode — never show under the new one", async ({ page }) => {
@@ -182,7 +252,9 @@ test("late answers of the old load — text and decode — never show under the 
   await page.waitForTimeout(800);
   expect(await shown(page)).toBeNull();
   await expect(code(page)).toHaveCount(0);
-  noA2UnderC(await frames(page), 600);
+  expect(await scene(page), "the old load's late decode draws nothing").toEqual(NOTHING_DRAWN);
+  const rec = await frames(page);
+  expect(rec.filter(f => f.path).length, "no frame drew the late decode").toBe(0);
 });
 
 test("a reconnect: unchanged, the view stays; another load meanwhile hides it from the first status", async ({ page }) => {
@@ -197,6 +269,7 @@ test("a reconnect: unchanged, the view stays; another load meanwhile hides it fr
   await page.waitForTimeout(500);
   expect(await shown(page), "unchanged identity and version: the view stays").toBe(700);
   expect(previews, "nothing fetched again").toEqual([]);
+  expect((await scene(page)).box, "and its path stays drawn").not.toBeNull();
   // gone, a second client loads C meanwhile, back
   await ctl({ op: "refuseWs", on: true });
   await ctl({ op: "shutdownClose" });
@@ -206,6 +279,7 @@ test("a reconnect: unchanged, the view stays; another load meanwhile hides it fr
   await expect(page.locator(".fileName")).toHaveText("c.ngc", { timeout: 20_000 });
   await expect.poll(() => shown(page)).toBeNull();
   await expect(code(page)).toHaveCount(0);
+  expect(await scene(page), "another load meanwhile: nothing of A2 drawn").toEqual(NOTHING_DRAWN);
 });
 
 test("the editor's session is its load: another load of the same path is a conflict, the buffer kept", async ({ page }) => {

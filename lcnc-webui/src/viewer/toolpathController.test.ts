@@ -355,6 +355,32 @@ describe("overflow / visibility / colours", () => {
     expect(c.feedSegs).toBe(0);
   });
 
+  // P2b-F1 scene (the pre-update check 2026-11-24): what the viewer draws
+  // while no preview of the active program is shown is the unload's empty
+  // payload — nothing of the old program stays: lines, box, limit overlay,
+  // the validator's flag and count, the ledger; a rebuild draws nothing.
+  it("the unload's empty payload leaves nothing of the old program — also through a rebuild", () => {
+    const count = ref(0);
+    const cc = createToolpathController({ ...(deps as any), overflowCount: count,
+                                          boundsClipPlanes: [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 5)] });
+    const ctx = makeCtx();
+    cc.apply(ctx, { ...GCODE, violations_total: 2, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 0]) });
+    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); cam.position.set(5, 5, 100); cam.lookAt(5, 5, 0); cam.updateMatrixWorld();
+    cc.updateCulling(ctx, cam, 1000);
+    expect(cc.pathWorldBox(), "the positive control: a path is drawn").not.toBeNull();
+    expect(cc.pathMemory().cpu.overlay, "and its limit overlay").toBeGreaterThan(0);
+    expect([overflow.value, count.value]).toEqual([true, 2]);
+    cc.apply(ctx, { file: null, feed: [], feed_lines: [], rapid: [] } as any);
+    const empty = () => ({ box: cc.pathWorldBox(), cpu: cc.pathMemory().cpu.total, segs: cc.feedSegs + cc.rapidSegs,
+                           chunks: cc.chunks, drawn: ctx.workRotGroup.children.length,
+                           overflow: overflow.value, count: count.value });
+    const none = { box: null, cpu: 0, segs: 0, chunks: 0, drawn: 0, overflow: false, count: 0 };
+    expect(empty(), "nothing of the old program is drawn or held").toEqual(none);
+    cc.setLineMode("fat", ctx);                 // a rebuild re-applies what the controller keeps
+    cc.rebuild(ctx);
+    expect(empty(), "a rebuild draws nothing of the old program").toEqual(none);
+  });
+
   it("forgetAfterSceneClear drops refs without disposing (scene-cleared contract, H6 parallel)", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);

@@ -204,9 +204,11 @@ export function useRunDisplay(): void {
     };
     publishSubExec(t, i, disp.subName);
   });
-  // Another program (or the same one re-parsed): the watcher starts over.
+  // Another program (or the same one re-parsed, or none shown): the watcher
+  // starts over — the old track's playhead goes with it (P2b-F1 scene).
   watch(track, () => {
     watcher.reset();
+    runPlayhead.value = null;
     runOffPath.value = false;
     runCum.value = null;
     runLineState.value = null;

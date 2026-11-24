@@ -5605,6 +5605,30 @@ watch(
   },
 );
 
+// The unload's own empty payload (the gateway's `viewer_gcode` without a
+// file): what the viewer draws while no preview of the ACTIVE program is
+// shown — a new object each time, as each unload frame is.
+const noPreview = (): ViewerGcode => ({ file: null, feed: [], feed_lines: [], rapid: [] });
+/** No preview of the ACTIVE program is shown — the identity gate hands null:
+ *  another program is active, or none is proven (P2b-F1). The old preview's
+ *  drawn products leave the scene exactly as at an unload (the pre-update
+ *  check 2026-11-24: case (c) kept drawing A2's path through C's run while
+ *  every word said "Preview after the run"): the path, its box and its limit
+ *  overlay go through the unload's empty payload — the controller keeps
+ *  THAT, never the old one, for a rebuild (a line-mode or LOD change) —, a
+ *  part-frame reply or a bake still out draws nothing, no key vouches for a
+ *  drawn path, and the frame is drawn again (the viewer renders on demand).
+ *  The collision result goes with the viewerGcode watcher below; the run's
+ *  line with its track (runDisplay); the program's own publication draws
+ *  again. */
+function _clearShownPreview() {
+  clearTimeout(_pfWcsTimer);
+  _applyGcodeNow(noPreview());
+  drawnKey.value = null;
+  _refreshWantKey();
+  requestRender();
+}
+
 // Apply gcode preview when it arrives
 watch(
   () => viewerGcode.value,
@@ -5613,7 +5637,7 @@ watch(
     // bake follows); another program ends it without a catch-up
     _holdEvent({ kind: "adopted", file: g?.file ?? null, version: g?.publishedVersion ?? null });
     if (g) applyGcode(g);
-    else _refreshWantKey();
+    else _clearShownPreview();
     _holdRefresh();   // a parse already running for it begins a hold now
   },
 );
