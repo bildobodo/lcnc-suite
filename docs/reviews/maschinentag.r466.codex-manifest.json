@@ -1,0 +1,69 @@
+{
+  "base": "6c78780c",
+  "head": "0490a7ec312904eb4ca8c5776e184e29a8d62cfc",
+  "original_worktree": "/home/cnc/lcnc-suite-p6e",
+  "copy": "/tmp/r466/tree",
+  "product_files_edited": false,
+  "source_sha256": {
+    "lcnc-webui/src/viewer/programToolHeader.ts": "2d26b84c1774517308045bb06ba38815db83f1fa542f4be1c631e14a3bb9849f",
+    "lcnc-webui/src/viewer/checkContext.ts": "89fe2e92b229e3ab64d85987f2d005c9b4b4bed0cdad1276fe46cdc966cbe6fa",
+    "lcnc-webui/src/ws/bulkData.ts": "c2593db47c16d40470d9357dc31fa71651b0ed517450bc47c7f661a16a7c6efc",
+    "lcnc-webui/src/ThreeViewer.vue": "7c44cf41544a1869a84887e6f63ac231069940a1011fb41d1017860399945c6a",
+    "lcnc-webui/src/ScrubBar.vue": "d836a602f51622d355a20f7b7d5fcf8bcb89ab48a5d4cb9ef8c4fb42bb21ae12"
+  },
+  "first_run": [
+    {
+      "name": "native",
+      "returncode": 1,
+      "seconds": 0.08
+    },
+    {
+      "name": "unit",
+      "returncode": 1,
+      "seconds": 0.74
+    },
+    {
+      "name": "build",
+      "returncode": 0,
+      "seconds": 18.2
+    },
+    {
+      "name": "browser",
+      "returncode": 1,
+      "seconds": 35.95
+    }
+  ],
+  "final_probes": [
+    {
+      "name": "native2",
+      "returncode": 0,
+      "seconds": 0.04
+    },
+    {
+      "name": "unit2",
+      "returncode": 1,
+      "seconds": 0.31
+    },
+    {
+      "name": "browser2",
+      "returncode": 1,
+      "seconds": 6.13
+    }
+  ],
+  "notes": [
+    "First acquisition timed out after 50 seconds behind p6d0; second acquired the shared heavy lock.",
+    "First native probe failed because self was not in the offline plugin namespace; final program imports interpreter.this explicitly.",
+    "Existing suites: 42 unit and 9 browser tests passed. Final own unit probes: 6 fail, 2 controls pass. Final own browser: 1 fail by missing units-not-proven text.",
+    "Native final: 3 successful parses. Both Python-comment cases move 25.4 mm for X1 after lexical G21; ordinary control moves 1 mm.",
+    "No connection to a controller or operator Sim. Native fixture has only private INI, plugin and parameter files.",
+    "Commands in codex-run.py and codex-run-final.py were run under scripts/test_support/heavy_lock.py; no full gate was repeated."
+  ],
+  "reproduce": "Archive 0490a7ec to /tmp/r466/tree, copy dependencies; install the codex unit test at src/viewer/r466.codex.test.ts and browser spec at e2e/program-header.viewer.spec.ts. Copy native.py to /tmp/r466/native2.py. Then use the commands in run-final.py under the heavy lock; build first for browser.",
+  "final_dom_binding": [
+    {
+      "name": "browser3",
+      "returncode": 1,
+      "seconds": 5.4
+    }
+  ]
+}

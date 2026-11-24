@@ -6912,3 +6912,42 @@ Code: `feat/p6e`, `ebf47b93..0490a7ec`. Round-Gate 2 an `92841e18`: Browser 1103
 - **Mutationen 14/14 rot an ihrer Regel**, alle am Kopf wiederholt. Neu: jedes M-Wort wieder erlaubt; M98 erlaubt; T/S/F als Argumente; jeder G-Code erlaubt.
 
 **Erbeten:** `agreement` zu P6-e `6c78780c..0490a7ec` oder `findings`.
+
+
+## Codex · P6-e nach R463 · Review R466 · 24. November 2026
+
+**Findings: MT-I34 bleibt mit einem Rest offen.** Die Wort-Positivliste schließt M70/M72, M98 und die remapbaren T/S/F-Wörter wie verlangt. Die Kommentare umgehen diese Liste jedoch noch: LinuxCNC kann darin Python ausführen und damit die Einheit ändern. Für P6-e `6c78780c..0490a7ec` daher noch kein Agreement.
+
+Prüfstand `0490a7ec`, Produktänderung dieser Runde `fc3c17da`. Gesamtdiff einschließlich Bindung an Programm/Version/Textquelle und der beiden Kartenpfade nachgelesen. Eigene Ausführungen in einem Archiv des Kopfes unter `/tmp/r466/tree` mit kopierten Abhängigkeiten und gemeinsamer Testsperre. Kein Produktedit und keine Verbindung zur Operator-Sim. Die zuerst belegte Sperre wurde nach 50 s verlassen; der folgende Versuch erhielt sie.
+
+### MT-I34 · Rest · P2 · Ausführbare Kommentare gelten weiterhin als einheitenneutral
+
+**`lcnc-webui/src/viewer/programToolHeader.ts:117–134`, `stripComments`, aufgerufen vor der Wortprüfung in `readLine`.** Semikolonkommentare werden vollständig verworfen; Klammerkommentare ebenfalls. Das ist für normale CAM-Kommentare richtig, aber nicht für die Python-Kommentarformen des Interpreters. Ein gültiger Gegenfall ist:
+
+```ngc
+(T13 D=6)
+G21
+;py,from interpreter import this; this.execute("G20")
+G0 X1
+M2
+```
+
+**Eigener nativer Nachweis ohne Controller:** `gcode.parse` mit `PreviewCanon`, synthetischem Status und privater INI, die nur ein inertes Python-Toplevel lädt. Der Kontrollfall ohne Python-Kommentar liefert für X1 **1 mm**, obiger Fall liefert **25,4 mm**, `length_units=1`, erfolgreicher Parse. Dasselbe gilt für `(pyrun,/tmp/r466/native/inch.py)`, wenn die private Datei den gezeigten G20-Aufruf enthält. Das sind zwei echte Interpreterausführungen, keine angenommene Remap-Wirkung.
+
+Der unveränderte Scanner meldet für diese Texte dagegen `unit: "mm"`, `unitWhy: null` und bei Tabellen-D 6 `kind: "match"`. Die eigene Browserprobe mit Header-D 8 und Tabellen-D 8 zeigt nur **„T13 · L 63.192 · Ø 8.000 mm“**. Der erforderliche Zusatz **„program header Ø 8., units not proven — not compared“** fehlt. Damit kann der Hinweis eine scheinbare Übereinstimmung ableiten; beim umgekehrten Zahlenverhältnis wäre auch eine unbegründete Warnung möglich. Geometrie und Maschinenwerte ändert dieser Befund nicht.
+
+**Korrektur:** Kommentare vor dem Verwerfen auf ausführbare Python-Formen prüfen. `py,`, `pyrun,` und `pyreload` im untersuchten Kopf machen die Einheit unbelegt; deren Inhalt wird nicht ausgewertet. Die Erkennung muss Klammer- und Semikolonform, Groß-/Kleinschreibung und führenden Leerraum berücksichtigen. Die Prüfung gilt auch in der ersten Bewegungszeile und unter Block-Delete. Gewöhnliche Beschreibungen und die `(T… D=…)`-Einträge bleiben lesbar; ein solcher Kommentar erst **nach** dem begrenzten Kopf beeinflusst diesen nicht. Keine neue allgemeine Interpreter-Nachbildung erforderlich.
+
+Die native Quelle 2.9.4 bestätigt diese Klasse: `Interp::convert_comment` (`interp_convert.cc:1499–1603`) entfernt führenden Leerraum, vergleicht kleingeschrieben und ruft für die drei Formen `py_execute` bzw. `py_reload` auf. Python-Kommentare und ihr Interpreterzugriff sind auch im [LinuxCNC-Handbuch, Abschnitt 8.2](https://linuxcnc.org/docs/2.9/html/remap/remap.html#_executing_python_statements_from_the_interpreter) dokumentiert. Insbesondere ist `pyreload` im Quelltext ein Präfixvergleich; die Erkennung nicht enger als die native Form machen.
+
+### Prüfung und Abschluss
+
+- **Vorhandene Wächter:** 42/42 gezielte Unit-Tests (`programToolHeader`, `checkContext`) und 9/9 Browserfälle grün, einschließlich beider R463-Gegenfälle. Der isolierte Build besteht.
+- **Eigene Gegenwächter:** sechs Unit-Fälle rot, zwei positive Kontrollen grün; Browser-Gegenfall rot an der oben genannten DOM-Aussage. Wiederholt mit genau dem nativ ausführbaren `interpreter.this`-Aufruf. Die drei finalen Offline-Parses bestehen.
+- **Probenkorrektur offengelegt:** Der erste native Versuch verwendete das im Handbuch gezeigte `self`, das im privaten Offline-Plugin nicht gebunden war, und scheiterte mit `NameError`. Dieser Versuch ist kein Produktbefund. Die finale Probe importiert `interpreter.this` ausdrücklich; beide Ausgaben bleiben im Beleg. Kein erneuter vollständiger Gate-Lauf.
+
+Belege: [Manifest](maschinentag.r466.codex-manifest.json), [gesamte Prüfausgaben einschließlich Erstversuch](maschinentag.r466.codex-checks.txt), [native Probe](maschinentag.r466.codex-native.py), [native Messwerte](maschinentag.r466.codex-native.json), [Unit-Gegenwächter](maschinentag.r466.codex-unit.test.ts), [Browser-Spec](maschinentag.r466.codex-browser.spec.ts), [DOM-Kontext](maschinentag.r466.codex-browser-context.md), [Browserbild](maschinentag.r466.codex-browser.png), [erster Runner](maschinentag.r466.codex-run.py), [finaler Runner](maschinentag.r466.codex-run-final.py).
+
+**Urteil: `findings` wegen des Kommentarrests von MT-I34.** Die neue Wortliste und die R463-Korrekturen sind bestätigt. Keine neue Operatorentscheidung nötig.
+
+**Zusätzliche DOM-Bindungsprobe:** Der Browser-Gegenfall bleibt auch nach ausdrücklichem Warten auf `getHeaderText().proven.version === 6801` rot. Ein noch ausstehender Text erklärt die fehlende Meldung nicht; finale Spec, Kontext und Bild sowie der Abschnitt `browser3` der Prüfausgabe enthalten diesen Stand ([Runner](maschinentag.r466.codex-run-dom.py)).

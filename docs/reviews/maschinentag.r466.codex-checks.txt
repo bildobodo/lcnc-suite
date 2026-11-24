@@ -1,0 +1,431 @@
+===== native =====
+run_string(self.execute("G20")): 
+Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+NameError: name 'self' is not defined
+
+Traceback (most recent call last):
+  File "/tmp/r466/native.py", line 46, in <module>
+    assert code <= gcode.MIN_ERROR, (name,code,line,gcode.strerror(code))
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('hot_semicolon', 5, 4, 'py_execute(self.execute("G20")):\nTraceback (most recent call last):\n\n  File "<string>", line 1, in <module>\n\nNameError: name \'self\' is not defined\n')
+
+
+===== unit =====
+
+ RUN  v4.1.8 /tmp/r466/tree/lcnc-webui
+
+ ❯ src/viewer/r466.codex.test.ts (8 tests | 6 failed) 11ms
+     × semicolon Python 6ms
+     × Python case and leading spaces 1ms
+     × parenthesis Python assignment 1ms
+     × Python file 1ms
+     × Python reload 1ms
+     × the first motion line's executable comment counts too 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > semicolon Python
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > Python case and leading spaces
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > parenthesis Python assignment
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > Python file
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > Python reload
+AssertionError: expected { scan: { unit: 'mm', …(2) }, …(1) } to match object { scan: { unit: null, …(1) }, …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "comparison": {
+-     "kind": "notCompared",
+-     "why": "unitsNotProven",
++     "kind": "match",
+    },
+    "scan": {
+-     "unit": null,
+-     "unitWhy": "unproven",
++     "unit": "mm",
++     "unitWhy": null,
+    },
+  }
+
+ ❯ src/viewer/r466.codex.test.ts:15:71
+     13|       const source = `(T13 D=6)\nG21\n${comment}\nG0 X1\nM2\n`;
+     14|       const scan = scanToolHeader(source);
+     15|       expect({ scan, comparison: compareHeaderD(scan, 13, 6, "mm") }).…
+       |                                                                       ^
+     16|         scan: { unit: null, unitWhy: "unproven" },
+     17|         comparison: { kind: "notCompared", why: "unitsNotProven" },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > the first motion line's executable comment counts too
+AssertionError: expected null to be 'unproven' // Object.is equality
+
+- Expected:
+"unproven"
+
++ Received:
+null
+
+ ❯ src/viewer/r466.codex.test.ts:28:85
+     26|   });
+     27|   it("the first motion line's executable comment counts too", () => {
+     28|     expect(scanToolHeader('(T13 D=6)\nG21\nG0 X1 ;py,self.execute("G20…
+       |                                                                                     ^
+     29|   });
+     30| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  6 failed | 44 passed (50)
+   Start at  16:57:43
+   Duration  563ms (transform 140ms, setup 0ms, import 298ms, tests 54ms, environment 0ms)
+
+
+
+===== build =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2144 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-P733WBKL.js                     4.88 kB
+dist/static/previewWorker-DZMwxwFk.js               32.99 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-Yjbrxars.js            208.73 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-B0FJESal.css                 8.13 kB │ gzip:   2.07 kB
+dist/static/index-CVprt2Gh.css                     100.82 kB │ gzip:  18.72 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-CDsfzMIp.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-6-hrKsPZ.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BMdw7bS3.js                288.92 kB │ gzip: 109.01 kB
+dist/static/index-0R91JhLb.js                      723.67 kB │ gzip: 233.83 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.24s
+
+
+===== browser =====
+[WebServer] (node:353186) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+(node:353224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:353224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/program-header.viewer.spec.ts:92:3 › desktop: a header diameter that differs from the table's is named at the tool's row, in warn (3.1s)
+  ✓   2 [e2e] › e2e/program-header.viewer.spec.ts:92:3 › touch-fullhd: a header diameter that differs from the table's is named at the tool's row, in warn (3.8s)
+  ✓   3 [e2e] › e2e/program-header.viewer.spec.ts:108:1 › a header that matches the table adds nothing; the other tool's difference is named at its own row (3.0s)
+  ✓   4 [e2e] › e2e/program-header.viewer.spec.ts:120:1 › an unproven unit (a sub definition's G20) compares nothing: the header named, not compared, no warn (3.0s)
+  ✓   5 [e2e] › e2e/program-header.viewer.spec.ts:133:1 › text delivered after the check ended: the hint joins that check's card without a new sweep (3.2s)
+  ✓   6 [e2e] › e2e/program-header.viewer.spec.ts:157:1 › V → V+1: V+1's text never enriches V's card; V+1's own check shows its header (4.0s)
+  ✓   7 [e2e] › e2e/program-header.viewer.spec.ts:189:1 › a text without its proof (other bytes than announced) compares nothing (3.3s)
+  ✓   8 [e2e] › e2e/program-header.viewer.spec.ts:211:3 › R463 case A (Codex's probe): M70 / G20 / M72: units not proven — the header named, not compared, no warn (3.0s)
+  ✓   9 [e2e] › e2e/program-header.viewer.spec.ts:211:3 › R463 case B: G21, M98 P100 calling a G20 sub: units not proven — the header named, not compared, no warn (3.2s)
+R466 observed card [{"text":"T13 · L 63.192 · Ø 8.000 mm","warn":false}]
+  ✘  10 [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit (3.4s)
+
+
+  1) [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Array [[22m
+    [2m    Object {[22m
+    [32m-     "text": "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared",[39m
+    [31m+     "text": "T13 · L 63.192 · Ø 8.000 mm",[39m
+    [2m      "warn": false,[22m
+    [2m    },[22m
+    [2m  ][22m
+
+      232 |   const rows = await toolRows(page);
+      233 |   console.log("R466 observed card", JSON.stringify(rows));
+    > 234 |   expect(rows).toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
+          |                ^
+      235 | });
+      236 |
+        at /tmp/r466/tree/lcnc-webui/e2e/program-header.viewer.spec.ts:234:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit 
+  9 passed (35.5s)
+
+
+===== native2 =====
+[
+  {
+    "case": "control_metric",
+    "program": "(T13 D=6)\nG21\nG0 X1\nM2\n",
+    "initcode": "G21",
+    "return": 1,
+    "moves": [
+      {
+        "line": 3,
+        "length_units": 2,
+        "canon_x_inches": 0.03937007874015748,
+        "x_mm": 0.9999999999999999
+      }
+    ]
+  },
+  {
+    "case": "hot_semicolon",
+    "program": "(T13 D=6)\nG21\n;py,from interpreter import this; this.execute(\"G20\")\nG0 X1\nM2\n",
+    "initcode": "G21",
+    "return": 1,
+    "moves": [
+      {
+        "line": 4,
+        "length_units": 1,
+        "canon_x_inches": 1.0,
+        "x_mm": 25.4
+      }
+    ]
+  },
+  {
+    "case": "hot_pyrun",
+    "program": "(T13 D=6)\nG21\n(pyrun,/tmp/r466/native/inch.py)\nG0 X1\nM2\n",
+    "initcode": "G21",
+    "return": 1,
+    "moves": [
+      {
+        "line": 4,
+        "length_units": 1,
+        "canon_x_inches": 1.0,
+        "x_mm": 25.4
+      }
+    ]
+  }
+]
+
+
+===== unit2 =====
+
+ RUN  v4.1.8 /tmp/r466/tree/lcnc-webui
+
+ ❯ src/viewer/r466.codex.test.ts (8 tests | 6 failed) 10ms
+     × semicolon Python 5ms
+     × Python case and leading spaces 1ms
+     × parenthesis Python assignment 1ms
+     × Python file 1ms
+     × Python reload 0ms
+     × the first motion line's executable comment counts too 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > semicolon Python
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > Python case and leading spaces
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > parenthesis Python assignment
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > Python file
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > Python reload
+AssertionError: expected { scan: { unit: 'mm', …(2) }, …(1) } to match object { scan: { unit: null, …(1) }, …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "comparison": {
+-     "kind": "notCompared",
+-     "why": "unitsNotProven",
++     "kind": "match",
+    },
+    "scan": {
+-     "unit": null,
+-     "unitWhy": "unproven",
++     "unit": "mm",
++     "unitWhy": null,
+    },
+  }
+
+ ❯ src/viewer/r466.codex.test.ts:15:71
+     13|       const source = `(T13 D=6)\nG21\n${comment}\nG0 X1\nM2\n`;
+     14|       const scan = scanToolHeader(source);
+     15|       expect({ scan, comparison: compareHeaderD(scan, 13, 6, "mm") }).…
+       |                                                                       ^
+     16|         scan: { unit: null, unitWhy: "unproven" },
+     17|         comparison: { kind: "notCompared", why: "unitsNotProven" },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/viewer/r466.codex.test.ts > R466: executable comments are outside the unit proof > the first motion line's executable comment counts too
+AssertionError: expected null to be 'unproven' // Object.is equality
+
+- Expected:
+"unproven"
+
++ Received:
+null
+
+ ❯ src/viewer/r466.codex.test.ts:28:115
+     26|   });
+     27|   it("the first motion line's executable comment counts too", () => {
+     28|     expect(scanToolHeader('(T13 D=6)\nG21\nG0 X1 ;py,from interpreter …
+       |                                                                                                                   ^
+     29|   });
+     30| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 2 passed (8)
+   Start at  16:58:55
+   Duration  175ms (transform 38ms, setup 0ms, import 78ms, tests 10ms, environment 0ms)
+
+
+
+===== browser2 =====
+[WebServer] (node:354896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:354963) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:354963) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R466 observed card [{"text":"T13 · L 63.192 · Ø 8.000 mm","warn":false}]
+  ✘  1 [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit (3.6s)
+
+
+  1) [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Array [[22m
+    [2m    Object {[22m
+    [32m-     "text": "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared",[39m
+    [31m+     "text": "T13 · L 63.192 · Ø 8.000 mm",[39m
+    [2m      "warn": false,[22m
+    [2m    },[22m
+    [2m  ][22m
+
+      232 |   const rows = await toolRows(page);
+      233 |   console.log("R466 observed card", JSON.stringify(rows));
+    > 234 |   expect(rows).toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
+          |                ^
+      235 | });
+      236 |
+        at /tmp/r466/tree/lcnc-webui/e2e/program-header.viewer.spec.ts:234:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit 
+
+
+===== browser3: explicit proven-text arrival =====
+[WebServer] (node:358145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:358217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:358217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R466 observed card [{"text":"T13 · L 63.192 · Ø 8.000 mm","warn":false}]
+  ✘  1 [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit (2.8s)
+
+
+  1) [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Array [[22m
+    [2m    Object {[22m
+    [32m-     "text": "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared",[39m
+    [31m+     "text": "T13 · L 63.192 · Ø 8.000 mm",[39m
+    [2m      "warn": false,[22m
+    [2m    },[22m
+    [2m  ][22m
+
+      234 |   const rows = await toolRows(page);
+      235 |   console.log("R466 observed card", JSON.stringify(rows));
+    > 236 |   expect(rows).toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
+          |                ^
+      237 | });
+      238 |
+        at /tmp/r466/tree/lcnc-webui/e2e/program-header.viewer.spec.ts:236:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/program-header.viewer-R466-0b2b3--claim-a-proven-header-unit-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/program-header.viewer.spec.ts:224:1 › R466 Python comment: the card must not claim a proven header unit 

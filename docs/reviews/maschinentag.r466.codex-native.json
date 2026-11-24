@@ -1,0 +1,44 @@
+[
+  {
+    "case": "control_metric",
+    "program": "(T13 D=6)\nG21\nG0 X1\nM2\n",
+    "initcode": "G21",
+    "return": 1,
+    "moves": [
+      {
+        "line": 3,
+        "length_units": 2,
+        "canon_x_inches": 0.03937007874015748,
+        "x_mm": 0.9999999999999999
+      }
+    ]
+  },
+  {
+    "case": "hot_semicolon",
+    "program": "(T13 D=6)\nG21\n;py,from interpreter import this; this.execute(\"G20\")\nG0 X1\nM2\n",
+    "initcode": "G21",
+    "return": 1,
+    "moves": [
+      {
+        "line": 4,
+        "length_units": 1,
+        "canon_x_inches": 1.0,
+        "x_mm": 25.4
+      }
+    ]
+  },
+  {
+    "case": "hot_pyrun",
+    "program": "(T13 D=6)\nG21\n(pyrun,/tmp/r466/native/inch.py)\nG0 X1\nM2\n",
+    "initcode": "G21",
+    "return": 1,
+    "moves": [
+      {
+        "line": 4,
+        "length_units": 1,
+        "canon_x_inches": 1.0,
+        "x_mm": 25.4
+      }
+    ]
+  }
+]
