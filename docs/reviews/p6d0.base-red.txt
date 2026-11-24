@@ -1,22 +1,77 @@
-# P6-d0 red at base: e2e/collisions.viewer.spec.ts "P6-d0" (this branch's spec) against development 6c78780c's product
-# (ThreeViewer, ScrubBar, SimPanel, simPanelStore, runBasis, checkBasis at 6c78780c) + the test seam only (getDebounceFired().settle),
-# vite build, 3 workers, heavy lock, 2026-11-24
-✘  1 [e2e] › e2e/collisions.viewer.spec.ts:917:3 › a run from line 7 with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (16.0s)
-✘  2 [e2e] › e2e/collisions.viewer.spec.ts:917:3 › a run whose start line is not proven with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (16.1s)
-✓  3 [e2e] › e2e/collisions.viewer.spec.ts:917:3 › the control — a run from line 0 with a pinned parse made for it: checked during the run (P6-d0, Codex R464) (8.8s)
-✘  4 [e2e] › e2e/collisions.viewer.spec.ts:945:1 › a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464) (17.9s)
-✘  5 [e2e] › e2e/collisions.viewer.spec.ts:1031:1 › a running idle check when a run from line begins: let go — its late replies bring no result back (P6-d0, Codex R464) (15.5s)
-✘  6 [e2e] › e2e/collisions.viewer.spec.ts:1064:1 › a parked idle check when a run from line begins: let go — a settled rotary continues nothing (P6-d0, Codex R464) (16.6s)
-✘  7 [e2e] › e2e/collisions.viewer.spec.ts:1096:1 › a run from line keeps the program's tool-change and limit marks and the running line (P6-d0, Codex R464) (16.8s)
-# what the base showed where the guard reads "Not checked · …" (the summary's name at the run's entry):
-1) [e2e] a run from line 7 with a pinned parse made for it: named not checked — no check, … → Received: "2 collisions · checked in full"
-2) [e2e] a run whose start line is not proven with a pinned parse made for it: named not c… → Received: "2 collisions · checked in full"
-3) [e2e] a finished idle Clear does not carry into a run from line: not checked, no new jo… → Received: "Clear · checked in full"
-4) [e2e] a running idle check when a run from line begins: let go — its late replies bring… → Received: "No contact so far · <1 % checked"
-5) [e2e] a parked idle check when a run from line begins: let go — a settled rotary contin… → Received: "66 collisions so far · 64 % checked"
-6) [e2e] a run from line keeps the program's tool-change and limit marks and the running l… → Received: "2 collisions · checked in full"
-6 failed
-1 passed
-# the control (a run from line 0) is green at base by nature: the run check during a run from 0 is the contract that stays
-# unit guards: RunBasis.startLine, checkBasis.uncheckedRun and the admission's start-line reasons do not exist at base; the gateway's
-# _auto_start_line and run_basis.start_line neither (test_command_dispatch's new tests fail there by construction)
+# P6-d0 red at base: this package's browser guards ("P6-d0") against the base's PRODUCT (ThreeViewer, ScrubBar, SimPanel,
+# simPanelStore, runBasis, checkBasis) + the test seam only (getDebounceFired().settle); vite build, 3 workers, heavy lock, 2026-11-24.
+# Expected: every guard red, the control (a run from line 0 is checked during the run - the contract that stays) green.
+
+## base 6c78780c, the spec at 96aaf0e0 (before the rebase): 10 failed, 1 passed (3.1m)
+✘   1 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › a run from line 7 with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (16.2s)
+✘   2 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › a run whose start line is not proven with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (17.1s)
+✓   3 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › the control — a run from line 0 with a pinned parse made for it: checked during the run (P6-d0, Codex R464) (8.8s)
+✘   4 [e2e] › e2e/collisions.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464) (16.3s)
+✘   5 [e2e] › e2e/collisions.viewer.spec.ts:1036:1 › a running idle check when a run from line begins: let go — its late replies bring no result back (P6-d0, Codex R464) (15.1s)
+✘   6 [e2e] › e2e/collisions.viewer.spec.ts:1069:1 › a parked idle check when a run from line begins: let go — a settled rotary continues nothing (P6-d0, Codex R464) (16.2s)
+✘   7 [e2e] › e2e/collisions.viewer.spec.ts:1101:1 › a run from line keeps the program's tool-change and limit marks and the running line (P6-d0, Codex R464) (16.0s)
+✘   8 [e2e] › e2e/collisions.viewer.spec.ts:1141:3 › desktop: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (16.4s)
+✘   9 [e2e] › e2e/collisions.viewer.spec.ts:1141:3 › touch-fullhd: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (16.2s)
+✘  10 [e2e] › e2e/collisions.viewer.spec.ts:1141:3 › touch-portrait: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (15.9s)
+✘  11 [e2e] › e2e/collisions.viewer.spec.ts:1178:1 › a run from line without a preview: the Sim tab names it; the publication that arrives in the run lifts nothing (P6-d0, Codex R464) (13.9s)
+# the first failing assertion of each:
+collisions.viewer.spec.ts:920:3 › a run from line 7 with a pinned parse made for it: named not checked — no ch
+    the run's entry: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:920:3 › a run whose start line is not proven with a pinned parse made for it: named 
+    the run's entry: the summary · expected "Not checked · start line not proven" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no n
+    the run's entry: the summary · expected "Not checked · run from line 3" · received "Clear · checked in full"
+collisions.viewer.spec.ts:1036:1 › a running idle check when a run from line begins: let go — its late replies
+    the run's entry: the summary · expected "Not checked · run from line 7" · received "No contact so far · <1 % checked"
+collisions.viewer.spec.ts:1069:1 › a parked idle check when a run from line begins: let go — a settled rotary 
+    the run's entry: the summary · expected "Not checked · run from line 7" · received "68 collisions so far · 69 % checked"
+collisions.viewer.spec.ts:1101:1 › a run from line keeps the program's tool-change and limit marks and the run
+    expect(locator).toHaveAttribute(expected) failed · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1141:3 › desktop: the bar's slot says "not checked" without moving anything (P6-d0, 
+    the run from line 7: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1141:3 › touch-fullhd: the bar's slot says "not checked" without moving anything (P6
+    the run from line 7: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1141:3 › touch-portrait: the bar's slot says "not checked" without moving anything (
+    the run from line 7: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1178:1 › a run from line without a preview: the Sim tab names it; the publication th
+    without a preview: the Sim tab · expected "This run is not checked (run from line 7)." · received ?
+
+## base f392d6a0 (P6-e merged), the specs at dd1c7a60 (rebased): 11 failed, 1 passed (3.1m)
+✘   1 [e2e] › e2e/program-header.viewer.spec.ts:243:1 › a run from line: the card names the run not checked; a text that arrives in it adds no header (P6-d0, Codex R464) (15.5s)
+✘   2 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › a run from line 7 with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (17.9s)
+✘   3 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › a run whose start line is not proven with a pinned parse made for it: named not checked — no check, finding, mark or checked coverage (P6-d0, Codex R464) (16.0s)
+✓   4 [e2e] › e2e/collisions.viewer.spec.ts:920:3 › the control — a run from line 0 with a pinned parse made for it: checked during the run (P6-d0, Codex R464) (8.9s)
+✘   5 [e2e] › e2e/collisions.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464) (16.3s)
+✘   6 [e2e] › e2e/collisions.viewer.spec.ts:1036:1 › a running idle check when a run from line begins: let go — its late replies bring no result back (P6-d0, Codex R464) (15.0s)
+✘   7 [e2e] › e2e/collisions.viewer.spec.ts:1069:1 › a parked idle check when a run from line begins: let go — a settled rotary continues nothing (P6-d0, Codex R464) (16.0s)
+✘   8 [e2e] › e2e/collisions.viewer.spec.ts:1101:1 › a run from line keeps the program's tool-change and limit marks and the running line (P6-d0, Codex R464) (16.0s)
+✘   9 [e2e] › e2e/collisions.viewer.spec.ts:1141:3 › desktop: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (16.1s)
+✘  10 [e2e] › e2e/collisions.viewer.spec.ts:1141:3 › touch-fullhd: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (16.4s)
+✘  11 [e2e] › e2e/collisions.viewer.spec.ts:1141:3 › touch-portrait: the bar's slot says "not checked" without moving anything (P6-d0, Codex R464) (15.9s)
+✘  12 [e2e] › e2e/collisions.viewer.spec.ts:1178:1 › a run from line without a preview: the Sim tab names it; the publication that arrives in the run lifts nothing (P6-d0, Codex R464) (13.7s)
+# the first failing assertion of each:
+collisions.viewer.spec.ts:920:3 › a run from line 7 with a pinned parse made for it: named not checked — no ch
+    the run's entry: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:920:3 › a run whose start line is not proven with a pinned parse made for it: named 
+    the run's entry: the summary · expected "Not checked · start line not proven" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:948:1 › a finished idle Clear does not carry into a run from line: not checked, no n
+    the run's entry: the summary · expected "Not checked · run from line 3" · received "Clear · checked in full"
+collisions.viewer.spec.ts:1036:1 › a running idle check when a run from line begins: let go — its late replies
+    the run's entry: the summary · expected "Not checked · run from line 7" · received "No contact so far · <1 % checked"
+collisions.viewer.spec.ts:1069:1 › a parked idle check when a run from line begins: let go — a settled rotary 
+    the run's entry: the summary · expected "Not checked · run from line 7" · received "69 collisions so far · 70 % checked"
+collisions.viewer.spec.ts:1101:1 › a run from line keeps the program's tool-change and limit marks and the run
+    expect(locator).toHaveAttribute(expected) failed · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1141:3 › desktop: the bar's slot says "not checked" without moving anything (P6-d0, 
+    the run from line 7: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1141:3 › touch-fullhd: the bar's slot says "not checked" without moving anything (P6
+    the run from line 7: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1141:3 › touch-portrait: the bar's slot says "not checked" without moving anything (
+    the run from line 7: the summary · expected "Not checked · run from line 7" · received "2 collisions · checked in full"
+collisions.viewer.spec.ts:1178:1 › a run from line without a preview: the Sim tab names it; the publication th
+    without a preview: the Sim tab · expected "This run is not checked (run from line 7)." · received ?
+program-header.viewer.spec.ts:243:1 › a run from line: the card names the run not checked; a text that arrives
+    the run from line · expected "This run is not checked (run from line 10)." · received    "Check basisBasisThe machine when the check started — changed since
+
+# unit and gateway guards: RunBasis.startLine, checkBasis.uncheckedRun, the admission's start-line reasons, _auto_start_line and
+# run_basis.start_line do not exist at either base (checkBasis.test / test_command_dispatch's new tests fail there by construction)
