@@ -1046,7 +1046,7 @@
      "id": "control:ProbePanel.vue|MachineToggle:compToggle|@update:modelValue=onCompToggle"
     },
     {
-     "id": "control:ProbePanel.vue|MachineToggle:probeParam|@update:model-value=saveParams v-model=autoZero"
+     "id": "control:ProbePanel.vue|MachineToggle:probeParam|@update:model-value=saveParams('autoZero') v-model=autoZero"
     },
     {
      "id": "control:ProbePanel.vue|MachineToggle:probeParam|v-model=setRotation"

@@ -49,7 +49,7 @@
     "src/radioNames.test.ts",
     "src/commandShapes.test.ts",
     "src/routeProjection.test.ts",
-    "src/probeVarFiles.test.ts",
+    "src/fieldState.test.ts", "src/probeVarFiles.test.ts",
     "src/probePanelJobs.test.ts",
     "src/propShadow.test.ts",
     "src/exampleToolLibrary.test.ts",
