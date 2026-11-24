@@ -781,6 +781,7 @@ class TestTheChunkStates(_Base):
         self.stat.enabled = False
         states, r = self.apply()
         self.assertEqual((states, r["mdi_set"], self.cmd.calls), (["not_written"], False, []))
+        self.assertEqual(gateway._probe_book.entry(3032, 1)["refused"], {"value": 0.2, "why": "machine not ready"})
 
     def test_a_link_change_after_the_write_is_unknown(self):
         orig = self.cmd.wait_complete

@@ -6790,8 +6790,7 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
     link().stat.poll()
     if not (armed and bool(safe_get("enabled", False)) and not reject_if_auto_running()):
         states.append({"keys": sorted(vals), "state": "not_written"})
-        chunk_vals.append({int(k): v for k, v in vals.items()})
-        why_not = "machine not ready"
+        _probe_book.refused({int(k): v for k, v in vals.items()}, "machine not ready")
     else:
         chunks: List[tuple] = []
         current, booked = "", {}
