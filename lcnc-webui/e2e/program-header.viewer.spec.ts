@@ -197,3 +197,25 @@ test("a text without its proof (other bytes than announced) compares nothing", a
   await frames(page);
   expect(await toolRows(page), "a text without its proof: no header").toEqual([{ text: "T13 · L 63.192 · Ø 8.000 mm", warn: false }]);
 });
+
+// Codex R463 MT-I34: an M-word is no proof of a neutral effect. Case A — Codex's
+// own browser probe (maschinentag.r463.codex-browser.spec.ts), adopted: M70
+// saves the start's (metric) state, M72 restores it before the move; the
+// lexical G20 turned a matching Ø 8 into "Ø 8. in (203.200 mm)" in warn.
+// Case B: G21, then M98 calls a sub that sets G20 before the move — the
+// header read as mm and "matching". Both: the plain "not compared".
+for (const [name, unit, tail, version] of [
+  ["R463 case A (Codex's probe): M70 / G20 / M72", "M70\nG20\nM72", "", 6701],
+  ["R463 case B: G21, M98 P100 calling a G20 sub", "N15 G21\nM98 P100", "\no100\nG20\nM99", 6702],
+] as const) {
+  test(`${name}: units not proven — the header named, not compared, no warn`, async ({ page, context }) => {
+    const t = text(["(T13 D=8.)"], unit) + tail;
+    await routes(context, { body: preview(), texts: { [version]: t } });
+    await open(page);
+    await publishFile(FILE, version, t);
+    await checked(page, version);
+    await cardRows(page);
+    await expect.poll(() => toolRows(page), { message: "a call or a modal restore: the units not proven" }).toEqual([
+      { text: "T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared", warn: false }]);
+  });
+}

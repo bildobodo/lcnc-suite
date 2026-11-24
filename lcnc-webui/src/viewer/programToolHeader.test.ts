@@ -87,8 +87,46 @@ describe("the scan: a small straight-line header grammar (MT461-02)", () => {
     expect(scanToolHeader(lines("(T1 D=6)", "X0", "G21")).unitWhy).toBe("none");
     expect(scanToolHeader(lines("(T1 D=6)", "G43 Z15. H1", "G21")).unitWhy).toBe("none");
     expect(scanToolHeader(lines("(T1 D=6)", "G10 L2 P1 X0 Y0", "G92 X0", "G52 X1", "G43.1 Z1", "G21", "G0 X0")).unit).toBe("mm");
-    // M-codes and the tool words are plain words (a remap behind one is not followed)
-    expect(scanToolHeader(lines("(T1 D=6)", "T1 M6", "S1000 M3", "G21", "G0 X0")).unit).toBe("mm");
+  });
+
+  // Codex R463 MT-I34: "a letter and a number" proves no neutral effect. Only
+  // an allow-list of words passes; a call, a modal restore or a code a config
+  // may remap leaves the unit NOT PROVEN.
+  it("R463 case A: M70 / G20 / M72 restores the start's units — the lexical G20 is no proof", () => {
+    const s = scanToolHeader(lines("(T13 D=6)", "M70", "G20", "M72", "G0 X1", "M2"));
+    expect(s.unit).toBeNull();
+    expect(s.unitWhy).toBe("unproven");
+    expect(compareHeaderD(s, 13, 6, "mm")).toEqual({ kind: "notCompared", raw: "6", why: "unitsNotProven" });
+  });
+
+  it("R463 case B: M98 calls a sub that sets G20 before the move — no mm proof, no match", () => {
+    const s = scanToolHeader(lines("(T13 D=6)", "G21", "M98 P100", "G0 X1", "M2", "o100", "G20", "M99"));
+    expect(s.unit).toBeNull();
+    expect(compareHeaderD(s, 13, 6, "mm")).toEqual({ kind: "notCompared", raw: "6", why: "unitsNotProven" });
+  });
+
+  it("the allow-list: spindle and coolant (built in, never remapped) pass; calls, modal state, remappable codes do not", () => {
+    for (const m of ["M3", "M4", "M5", "M7", "M8", "M9", "M03", "G4 P1", "G40 G49 G80", "G54", "G59.3",
+                     "G61", "G64 P0.01 Q0.01", "G90.1", "G93", "G95", "G96 D2000", "G97", "G98", "G99", "G7", "G8", "G17.1",
+                     "G18", "G19.1", "G41 D3", "G42.1 D3", "G43 H1", "G43.2 H2", "G92.1", "G92.2", "G92.3"]) {
+      expect(scanToolHeader(lines("(T1 D=6)", "G21", m, "G0 X0")).unit, m).toBe("mm");
+    }
+    // LinuxCNC 2.9.4 §9.6.14.1: Tx, M6, M61, M0, M1, M60, S and F can be
+    // remapped, as can every unallocated G- and M-code (M600 here)
+    for (const w of ["M70", "M71", "M72", "M73", "M98 P100", "M99", "M6", "T1 M6", "M61 Q1", "M0", "M1", "M60",
+                     "M2", "M30", "M100", "M199", "M600", "M66 P0 L0", "M3.5", "T13", "S1000", "F100", "G65 P1",
+                     "G71", "G88.1", "G12"]) {
+      expect(scanToolHeader(lines("(T1 D=6)", "G21", w, "G0 X0")).unitWhy, w).toBe("unproven");
+    }
+    // on the first motion's line too: its F runs before the move
+    expect(scanToolHeader(lines("(T1 D=6)", "G21", "G1 X1 F100")).unitWhy).toBe("unproven");
+    expect(scanToolHeader(lines("(T1 D=6)", "G21", "G0 X1 M8")).unit).toBe("mm");
+  });
+
+  it("the machine-day form still compares: its tool change (T13 M600) comes after the first motion", () => {
+    expect(scanToolHeader(DAY_FORM).unit).toBe("mm");
+    // the same head with the tool change BEFORE the retract: not proven (by the contract)
+    expect(scanToolHeader(DAY_FORM.replace("N20 G53 G0 Z0.", "N25 T13 M600\nN20 G53 G0 Z0.")).unitWhy).toBe("unproven");
   });
 
   it("entries: only `(T<n> D=<d>` at a line's start, before the motion's end", () => {

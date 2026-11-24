@@ -13,7 +13,11 @@
 // an O-word (a sub definition, a call, a conditional), a block-delete line, a
 // parameter or an expression (`#<g20>` is no G-word), a comment left open —
 // makes the unit NOT PROVEN, and nothing is compared. No interpreter is
-// rebuilt here. An M-code is a word: a remap behind it is not followed.
+// rebuilt here. "A letter and a number" proves no neutral effect (Codex R463
+// MT-I34: `M70 / G20 / M72` restores the start's units, `M98` calls a sub
+// that sets them): only a bounded ALLOW-list of words passes; any other word —
+// a call, a modal save / restore, a code a config may remap (M600 too) —
+// leaves the unit NOT PROVEN.
 import { fmtUnit } from "../format";
 
 /** The scan reads at most this many lines from the program's start. */
@@ -50,6 +54,20 @@ const MOTION_G = new Set([0, 10, 20, 30, 50, 51, 52, 53, 280, 300, 330, 331, 382
 // move in the modal motion mode).
 const AXIS_NO_MOTION_G = new Set([100, 431, 520, 920]);
 const AXIS_LETTERS = new Set(["X", "Y", "Z", "A", "B", "C", "U", "V", "W"]);
+// ── The allow-list (Codex R463 MT-I34) ──
+// G: LinuxCNC 2.9's built-in codes that do not move — a built-in G-code
+// cannot be remapped (2.9.4 manual §9.6.14.2); none of them calls code or
+// saves / restores modal state. ×10: G4 = 40, G59.3 = 593.
+const NEUTRAL_G = new Set([40, 70, 80, 100, 170, 171, 180, 181, 190, 191, 200, 210, 281, 301, 400, 410, 411, 420, 421,
+                           430, 431, 432, 490, 520, 530, 540, 550, 560, 570, 580, 590, 591, 592, 593, 610, 611, 640,
+                           800, 900, 901, 910, 911, 920, 921, 922, 923, 930, 940, 950, 960, 970, 980, 990]);
+// M: spindle and coolant only — built in, not in the remappable set (Tx, M6,
+// M61, M0, M1, M60, S, F and the unallocated codes, §9.6.14.1). Not M70–M73
+// (modal save / restore), M98 / M99 (calls), M2 / M30, M100–M199, M6, M600.
+const NEUTRAL_M = new Set([3, 4, 5, 7, 8, 9]);
+// The arguments of those codes and the block number. T, S and F are not
+// here: each can be remapped to a routine.
+const ARG_LETTERS = new Set(["N", "P", "Q", "R", "L", "H", "D", "I", "J", "K", "E"]);
 // One entry: a comment at the line's start, `(T<n> D=<d>` then a space or `)`.
 const ENTRY = /^\(T(\d+)\s+D=(\d+(?:\.\d*)?|\.\d+)(?=[\s)])/;
 const WORD = /([A-Z])([+-]?(?:\d+(?:\.\d*)?|\.\d+))/y;
@@ -78,12 +96,17 @@ function readLine(line: string): LineRead {
     const m = WORD.exec(c);
     if (!m || m.index !== at) return { kind: "unproven" };
     const letter = m[1]!;
-    if (letter === "O") return { kind: "unproven" };
     if (letter === "G") {
       const g = Math.round(Number(m[2]) * 10);
+      if (!MOTION_G.has(g) && !NEUTRAL_G.has(g)) return { kind: "unproven" };
       gs.push(g);
       if (g === 200 || g === 210) units.push(g);
+    } else if (letter === "M") {
+      const v = Number(m[2]);
+      if (!Number.isInteger(v) || !NEUTRAL_M.has(v)) return { kind: "unproven" };
     } else if (AXIS_LETTERS.has(letter)) axis = true;
+    // O (a sub, a call, a conditional), T, S, F: not on the list
+    else if (!ARG_LETTERS.has(letter)) return { kind: "unproven" };
   }
   const motion = gs.some(g => MOTION_G.has(g)) || (axis && !gs.some(g => AXIS_NO_MOTION_G.has(g)));
   return { kind: "plain", units, motion };

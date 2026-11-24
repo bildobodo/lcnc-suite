@@ -48,9 +48,11 @@ MUTS = {
          pw("V → V\\+1", "V's card: no header from V+1")]),
     # ---- MT461-02: the unit only from a literal unconditional G20/G21 in plain code
     # (3) the unit from any G20/G21 occurrence: control flow read as plain words
+    # (R463: the O-word's refusal is now the allow-list's; the mutation reads an
+    # O-word line as plain code, as before)
     "unit_from_any_occurrence": (HDR, [(
-        "    if (letter === \"O\") return { kind: \"unproven\" };\n",
-        "    if (letter === \"O\") return { kind: \"plain\", units: [], motion: false };\n")],
+        "    const letter = m[1]!;\n",
+        "    const letter = m[1]!;\n    if (letter === \"O\") return { kind: \"plain\", units: [], motion: false };\n")],
         [vt(UT_HDR, "a sub DEFINITION's G20 is no unit"),
          pw("an unproven unit", "the header named, not compared")]),
     # (3b) code the grammar cannot read is skipped instead of refused: the G20
@@ -67,6 +69,27 @@ MUTS = {
     "scan_past_first_motion": (HDR, [(
         "      if (r.motion) { ended = true; break; }\n", "      if (r.motion) ended = true;\n")],
         [vt(UT_HDR, "ends with the first motion's line")]),
+    # ---- Codex R463 MT-I34: only an allow-list of words passes
+    # (R1) every M-word passes again (the first build)
+    "m_words_passed": (HDR, [(
+        "      if (!Number.isInteger(v) || !NEUTRAL_M.has(v)) return { kind: \"unproven\" };\n",
+        "      if (!Number.isInteger(v) || (!NEUTRAL_M.has(v) && v < 0)) return { kind: \"unproven\" };\n")],
+        [vt(UT_HDR, "R463 case A"), pw("R463 case A", "a call or a modal restore: the units not proven")]),
+    # (R2) M98 on the list
+    "m98_passed": (HDR, [(
+        "const NEUTRAL_M = new Set([3, 4, 5, 7, 8, 9]);",
+        "const NEUTRAL_M = new Set([3, 4, 5, 7, 8, 9, 98]);")],
+        [vt(UT_HDR, "R463 case B"), pw("R463 case B", "a call or a modal restore: the units not proven")]),
+    # (R3) T, S and F (remappable) taken as arguments
+    "remappable_letters_passed": (HDR, [(
+        "const ARG_LETTERS = new Set([\"N\", \"P\",",
+        "const ARG_LETTERS = new Set([\"T\", \"S\", \"F\", \"N\", \"P\",")],
+        [vt(UT_HDR, "the allow-list")]),
+    # (R4) any G-code passes (an unallocated one may be a remap)
+    "unknown_g_passed": (HDR, [(
+        "      if (!MOTION_G.has(g) && !NEUTRAL_G.has(g)) return { kind: \"unproven\" };\n",
+        "      if (!MOTION_G.has(g) && !NEUTRAL_G.has(g) && g < 0) return { kind: \"unproven\" };\n")],
+        [vt(UT_HDR, "the allow-list")]),
     # ---- the tolerance: 0.001 mm physical, converted (Codex R461 decided)
     # (6) the comparison's tolerance not converted for inch
     "tolerance_not_converted_for_inch": (HDR, [(
