@@ -5642,3 +5642,32 @@ Alle eigenen Läufe beendet und die Testsperre freigegeben. Keine Produktdatei i
 - Auf der VM prüfen, dass die Seite vor dem Start sichtbar zeigt, dass die Vorschau noch berechnet wird.
 
 **Vor main geschuldet:** live-twp, perf-matrix, twp-buttons.
+
+---
+
+## Claude · P2b-F1 Szene: die 3D-Ansicht zeichnet keine verborgene Vorschau · Anfrage R455 · 24. November 2026
+
+Code: `fix/p2b-f1-scene`, `389d73de..5d71f190`. Code-Kopf `fea4c2b7`, danach nur Belege (nativ, Round-Gate).
+
+**Befund (Vorprüfung vor dem Maschinen-Update, 24. November):** F-P2b-01 war im Text, in der Zeitleiste und in der Prüfung geschlossen, nicht aber im Bild. Im nativen Fall (c) zeichnete die 3D-Ansicht A2s Bahn grün durch den ganzen Lauf von C, während jedes Wort „Preview after the run“ sagte. Ursache: Gibt das Identitäts-Gate `null` weiter, las der Watcher in `ThreeViewer.vue` nur den gewünschten Schlüssel neu (`_refreshWantKey`); die gezeichnete Geometrie blieb. Die Wächter von P2b-F1 lasen die gegateten Werte, nie die Szene.
+
+**Die Korrektur** (`26957675`, Aufräumen in `cd045d1d`)
+- **Verborgen wird wie ein Entladen gezeichnet:** `_clearShownPreview` (`ThreeViewer.vue` ~5611–5630) wendet die leere Nutzlast des Entladens an (`{file: null, feed: [], feed_lines: [], rapid: []}`, jedes Mal ein neues Objekt). Bahn, Bahnbox, Grenzüberlagerung und HUD-Grenzzähler gehen. Der Controller hält danach diese leere Nutzlast; ein Neuaufbau (Linienmodus, LOD) zeichnet nichts vom alten Programm.
+- **Ausstehendes zeichnet nichts:** Die leere Nutzlast ist nie „part“ (`displayDecision`: keine Modi, kein abc → programmed), also erhöht der Pfad `_pfReqId` und verwirft eine ausstehende Part-Frame-Antwort; ein entprellter Bake wird gelöscht (`_pfWcsTimer`). `drawnKey` ist null.
+- **Ein Frame wird neu gezeichnet:** Die Anwendung im Controller fordert ihn an; das ist im Controller-Test festgehalten.
+- **Laufanzeige:** `runDisplay.ts` verwirft beim Spurwechsel auch den Playhead der alten Spur. Das Kollisionsergebnis ging schon mit dem `viewerGcode`-Watcher, der Simulationsmodus endet mit seiner Spur (ScrubBar).
+- Nur die eigene Veröffentlichung des Programms zeichnet wieder.
+
+**Wächter, die die Szene lesen, nie das Gate**
+- `program-identity.spec.ts`: Jeder Frame trägt die Bahnbox. Kein Frame zeichnet eine Bahn, solange nichts gezeigt wird; positive Kontrollen sind A2s Bahn vor dem Wechsel und Cs eigene danach. Szene leer (Bahnbox, CPU-/GPU-Bahnspeicher, gezeichneter Schlüssel, HUD-Grenzzeile) für: gleicher Pfad neu geladen, A→B, A→B→A, Fall (c) mit und ohne Simulation, spätes Decode, Reconnect mit einem Laden dazwischen. Die verborgene Szene gleicht der nach einem echten Entlade-Frame. Pixel der Bahnfarbe im Canvas: über 50 vor dem Wechsel, unter 5 unter C. 11/11.
+- `toolpathController.test.ts`: Nach einer Nutzlast mit Box, Grenzflags und Verletzungszähler lässt die leere Nutzlast nichts übrig, auch nach einem Neuaufbau, und fordert einen Frame an. Die Mock-Nutzlast der Spec hat keine Grenzüberlagerung; dieser Teil ist hier abgedeckt.
+
+**Belege**
+- **Mutationen 4/4 rot an ihrer Regel** (`p2bf.mutations.txt`): die verborgene Vorschau bleibt gezeichnet (das Verhalten an `389d73de`, rot an der Szene UND an den Pixeln), die Leerung behält die alte Nutzlast, der gezeichnete Schlüssel bleibt, die leere Anwendung ohne Frame-Anforderung. Zwei Erstläufe waren nur deshalb nicht rot, weil die Mutation eine Funktion unbenutzt ließ und vue-tsc den Build verweigerte; mit referenzierter Funktion wiederholt, so vermerkt.
+- **Nativ mit Canvas-Urteil** (echte LinuxCNC auf der VM, Chromium 1920×1080, alle 100 ms Bahnbox und Bahnspeicher, Bahnfarb-Pixel bei 2 s und 10 s; LAN-Sim beide Male vollständig zurück):
+  - an `389d73de` (`p2bf2.native-389d73de-red.json`) **rot**: (c) 378 von 410 Messpunkten zeichnen eine Bahn, ohne dass etwas von C gezeigt ist, 327/323 px von A2s Bahn während Cs Lauf; (b) 40 solche Messpunkte vor der eigenen Veröffentlichung; (a) sauber (kein Vorprogramm);
+  - an `fea4c2b7` (`p2bf2.native-fea4c2b7.json`): 0 fremde Messpunkte in (a)/(b)/(c); in (c) 0/0 px während des Laufs, gegen 323 px vor dem Laden und 9768 px nach der Übernahme. Die bisherigen Urteile (kein fremder Text, keine fremde Version, „Preview after the run“, Übernahme, kein Parse unter dem Lauf in (a)/(c)) unverändert.
+- **Round-Gate 1 PASS an `7f84c714`** (Basis `389d73de`), alle 21 Prüfungen (`p2bf2.gate-round1.json`). Abdeckung bleibt dem Merge-Gate.
+- Doku: `CLAUDE.md` (Zeile `ws/bulkData.ts`) und `docs/architecture/scrub-and-run.md`.
+
+**Erbeten:** `agreement` zu `fix/p2b-f1-scene` `389d73de..5d71f190` oder `findings`. Danach Merge-Gate und Fast-Forward; erst dann ist F-P2b-01 für das Maschinen-Update geschlossen.
