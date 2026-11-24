@@ -123,7 +123,12 @@ const emit = defineEmits<{
   // position still brings the code view to its top; null = not there. Never
   // a line number: a null `displayLine` alone also means an untrusted line,
   // a sub's or the end without M2.
-  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null, start: number | null): void;
+  // `back`: Back to start where position 0 is a FIRST POINT (a track
+  // without an entry move — no start state there; Codex R458 MT-I32): a
+  // new number per press, held while the position stays on that point —
+  // the press itself, never a line: the code view brings the first point's
+  // line (the gated `displayLine`) back into view; null = no such press.
+  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null, start: number | null, back: number | null): void;
   /** A finding navigated to (limit or collision); `onRapid`: its sample is
    *  a rapid, `run`: its section in BASE-track segments (null = on the
    *  entry move) — the viewer shows that section of a hidden layer
@@ -232,10 +237,16 @@ const curAtEnd = ref(false);
 // one keeps its first point and that point's line. `_startSeq` numbers the
 // arrivals: a re-pose AT the start (an offset edge, a rebuilt entry move)
 // keeps the number — a hand-scrolled code view stays where it is — while
-// Back to start always takes a new one (`_startAsked`).
+// Back to start always takes a new one (`_startAsked`). Where position 0 is
+// a first point (no entry move, no start state) the press travels as its
+// own number (`_back`, Codex R458 MT-I32): neither the position nor the line
+// changes there, and the code scrolled away by hand must come back to that
+// line — never the top, never a line the trust gate holds back.
 let _startSeq = 0;
 let _atStartShown = false;
 let _startAsked = false;
+let _backSeq = 0;
+let _back: number | null = null;
 // W5: the unique program-end line (M2/M30 text scan) — what the playhead
 // displays when pinned at the track's terminal vertex.
 const endLine = computed(() => programEndLine(gcodeContent.value));
@@ -305,11 +316,16 @@ function applyPos() {
   // the end, never another point whose line does not show
   const atStart = !curAtEnd.value && t === entryTrack.value && _sample.index === 0;
   const start = atStart ? (_atStartShown && !_startAsked ? _startSeq : ++_startSeq) : null;
+  // Back to start on a FIRST point (a track without an entry move): a new
+  // number per press, kept while the position stays there
+  const atFirstPoint = !curAtEnd.value && t !== entryTrack.value && _sample.index === 0;
+  if (!atFirstPoint) _back = null;
+  else if (_startAsked) _back = ++_backSeq;
   _atStartShown = atStart;
   _startAsked = false;
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
        curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane,
-       _sample.tlo ? [..._sample.tlo.xyz] : null, _sample.tlo?.tool ?? null, start);
+       _sample.tlo ? [..._sample.tlo.xyz] : null, _sample.tlo?.tool ?? null, start, _back);
 }
 
 /** ---------- explicit mode entry / exit ---------- */
@@ -374,8 +390,9 @@ function exitSim() {
   // program changes, and REBUILT from the new pose when the machine moves
   // (the joint watcher below) — the base result keeps its own identity, so
   // keeping the entry track no longer costs a re-sweep on re-entry.
-  emit("pose", null, null, null, null, null, null, null, null, null);
+  emit("pose", null, null, null, null, null, null, null, null, null, null);
   _atStartShown = false;   // the next entry arrives at the start anew
+  _back = null;
   subExecState.value = null;
 }
 
@@ -499,7 +516,9 @@ function togglePlay() {
  *  switch, the machine off, no run — a refusal does nothing); playback
  *  stops, no finding is shown, and the code view returns to its top even
  *  when the position already stood at 0 (a scroll by hand meanwhile): the
- *  return takes a new start number, an unchanged sPos would swallow it. */
+ *  return takes a new start number, an unchanged sPos would swallow it — on
+ *  a track without an entry move a new `back` number (its first point's
+ *  line comes back into view, marked; Codex R458 MT-I32). */
 function backToStart() {
   if (!enterSim()) return;
   playing.value = false;

@@ -215,6 +215,11 @@ const emit = defineEmits<{
   // and never while not simulating) — App forwards it to GcodePanel, which
   // shows the program's top with nothing marked.
   (e: "scrub-start", start: number | null): void;
+  // Back to start on a FIRST point (a track without an entry move, Codex
+  // R458 MT-I32): ScrubBar's `back` number — the press, never a line; null
+  // otherwise and never while not simulating. App forwards it to
+  // GcodePanel, which brings the scrub line back into view.
+  (e: "scrub-back", back: number | null): void;
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
   (e: "collision-lines", lines: CollisionLineQuery | null): void;
@@ -5087,7 +5092,7 @@ let _scrubLineNo: number | null = null;
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null, tlo: number[] | null = null, tool: number | null = null, start: number | null = null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null, tlo: number[] | null = null, tool: number | null = null, start: number | null = null, back: number | null = null) {
   _scrubJoints = joints;
   _scrubTlo = joints ? tlo : null;
   _scrubTool = joints ? tool : null;
@@ -5102,6 +5107,7 @@ function onScrubPose(joints: (number | null)[] | null, line: number | null, cum:
   _scrubTrackRef = joints ? trk : null;
   emit("scrub-line", joints ? displayLine : null);
   emit("scrub-start", joints ? start : null);
+  emit("scrub-back", joints ? back : null);
   _scrubCum = joints ? cum : null;
   _updateClashTint(_scrubLineNo, _scrubCum);
   if (_lastState && !pendingState) pendingState = _lastState;

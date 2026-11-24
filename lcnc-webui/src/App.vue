@@ -801,8 +801,17 @@ const softLimitStatus = computed(() => {
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
 // The simulation at the program's beginning (P6-b F11): the viewer's start
-// number, a new one per arrival there; null = not there.
+// number, a new one per arrival there; null = not there. GcodePanel gets it
+// under the text/preview identity alone (`gcodeLinesBound`): the start maps
+// no motion to a line (the top of the text on screen), so a distrust of the
+// motion's lines (`linesUntrusted`) does not hold it back (Codex R458
+// MT-I33) — the scrub LINE keeps that gate.
 const scrubStart = ref<number | null>(null);
+// Back to start where position 0 is a first point (a track without an entry
+// move — Codex R458 MT-I32): the viewer's press number; null = no such press.
+// Passed as it is: the press carries no line — the line it brings back into
+// view is the scrub line, under the scrub line's gate.
+const scrubBack = ref<number | null>(null);
 // Source lines with collision hits from the viewer's sweep (null = none run).
 // the code panel's collision mark per line (a query, step 4 package 2 plan 4.2)
 const collisionLines = shallowRef<CollisionLineQuery | null>(null);
@@ -2364,6 +2373,7 @@ watch(viewerGcode, (newGcode) => {
           @open-sim-tab="requestTab('sim')"
           @scrub-line="scrubLine = $event"
           @scrub-start="scrubStart = $event"
+          @scrub-back="scrubBack = $event"
           @collision-lines="collisionLines = $event"
         />
       </div>
@@ -2399,7 +2409,8 @@ watch(viewerGcode, (newGcode) => {
               :subView="gcodeLinesBound ? subExecState : null"
               :linesUntrustedReason="linesUntrustedReason"
               :scrubLine="linesUntrusted || !gcodeLinesBound ? null : scrubLine"
-              :scrubStart="linesUntrusted || !gcodeLinesBound ? null : scrubStart"
+              :scrubStart="gcodeLinesBound ? scrubStart : null"
+              :scrubBack="scrubBack"
               :collisionLines="gcodeLinesBound ? collisionLines : null"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"

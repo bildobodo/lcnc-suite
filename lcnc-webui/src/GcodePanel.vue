@@ -97,6 +97,12 @@ const props = defineProps<{
   // top with nothing marked; null = not there. A null scrubLine alone keeps
   // its meaning (an untrusted line, a sub's, the end): the view stays.
   scrubStart?: number | null;
+  // Back to start where position 0 is a FIRST point (a track without an
+  // entry move — Codex R458 MT-I32): a new number per press. It brings the
+  // scrub line (the first point's, marked) back into view at once — the
+  // code scrolled away by hand at an unchanged position and line; a scrub
+  // line held back (no trust) shows nothing, never the top.
+  scrubBack?: number | null;
   // Lines flagged by the viewer's collision sweep (stage 3) — danger-tinted
   // line numbers (soft-limit violations are warn-tinted; a line with both
   // reads danger), the same colours as the scrub bar's timeline marks.
@@ -588,8 +594,14 @@ function scrollToLine(line: number) {
 watch(() => props.currentLine, (newLine) => {
   if (newLine != null) scrollToLine(newLine);
 });
-watch(() => props.scrubLine, (newLine) => {
-  if (newLine != null && !editing.value) scrollToLine(newLine);
+// The scrub line and Back to start on a first point, decided in ONE place
+// (both change in one flush when the press comes from another line): a press
+// brings the line back into view at once (a snap — the code scrolled away by
+// hand, or a line followed elsewhere); a new line alone is followed in steps.
+watch([() => props.scrubLine, () => props.scrubBack], ([line, back], [oldLine, oldBack]) => {
+  if (line == null || editing.value) return;
+  if (back != null && back !== oldBack) scrollToRow(rowForMain(line, expansion.value), true);
+  else if (line !== oldLine) scrollToLine(line);
 });
 /** The simulation at the program's beginning (P6-b F11): the program's top,
  *  nothing marked — a SNAP in one place (no highlight to step from, no band;
