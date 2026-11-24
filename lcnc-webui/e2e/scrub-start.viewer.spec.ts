@@ -8,10 +8,13 @@
 // Play returns there by a tap — also when the position already stood at 0
 // and the code was scrolled away by hand. A null line elsewhere (an
 // untrusted point, leaving the simulation) keeps the view where it is; a
-// track without an entry move marks its first line at 0. ⏮ enters the
-// simulation by Play's own rules: never in a run, never refused entry. Every
-// form of the bar keeps its rows inside it; in the two-row form ⏮ takes the
-// Sim tab link's room (measured: the link beside it went to a third row).
+// track without an entry move marks its first line at 0. ⏮ sits directly
+// LEFT of Play (a player's skip back; the speed stays directly beside Play,
+// operator 2026-10-29/31) and enters the simulation by Play's own rules:
+// never in a run, never refused entry. Every form of the bar keeps its rows
+// inside it; in the two-row form ⏮ takes the Sim tab link's room (measured:
+// the link beside it went to a third row). A real touch tap acts like a click
+// and sends nothing to the machine.
 import { test, expect, type Page, type BrowserContext } from "./test";
 import { encode } from "@msgpack/msgpack";
 import { ctl } from "./ctl";
@@ -292,10 +295,10 @@ test("Back to start never begins a simulation in a run: dimmed like Play; an ent
   await expect(simOn(page)).toBeChecked();
 });
 
-// The narrow form (a bar under 620 px, two rows): ⏮ beside Play in the first
-// row, the link's room; the Sim tab through the side pane.
+// The narrow form (a bar under 620 px, two rows): Sim, ⏮, Play, the speed in
+// the first row (⏮ in the link's room); the Sim tab through the side pane.
 for (const zoom of [1, 1.5]) {
-  test(`portrait ${zoom * 100} %: the two-row bar — Back to start beside Play, no link, the Sim tab in the side pane; the start at the top`, async ({ page, context }) => {
+  test(`portrait ${zoom * 100} %: the two-row bar — Back to start directly left of Play, no link, the Sim tab in the side pane; the start at the top`, async ({ page, context }) => {
     test.setTimeout(90_000);
     await prepare(page, context, "touch-portrait", { zoom });
     await settleLayout(page);
@@ -308,8 +311,9 @@ for (const zoom of [1, 1.5]) {
     expect(g.w, "the two-row form").toBeLessThan(620 * zoom);
     expect(g.back, "Back to start shown").not.toBeNull();
     expect(Math.abs(mid(g.back!) - mid(g.play!)), "Back to start in Play's row").toBeLessThan(4);
-    expect(g.back!.l, "right of Play").toBeGreaterThan(g.play!.r);
-    expect(g.speed!.l, "the speed right of Back to start").toBeGreaterThan(g.back!.r);
+    expect(g.back!.r, "left of Play").toBeLessThanOrEqual(g.play!.l);
+    expect(g.play!.l - g.back!.r, "directly: one gap between them").toBeLessThanOrEqual(8.5 * zoom);
+    expect(g.speed!.l, "the speed right of Play").toBeGreaterThan(g.play!.r);
     expect(g.link, "the link's room is Back to start's").toBeNull();
     expect(g.slider!.t, "the timeline below").toBeGreaterThanOrEqual(g.play!.b);
     // the Sim tab through the side pane's navigation
@@ -325,13 +329,37 @@ for (const zoom of [1, 1.5]) {
   });
 }
 
+// A real touch tap (CDP Input.dispatchTouchEvent, the pattern of
+// touch-hold.spec) on the touch panel's form: Back to start acts on the tap —
+// the start at once, nothing marked — and sends nothing to the machine.
+test.describe("a real touch tap", () => {
+  test.use({ hasTouch: true });
+  test("touch Full HD: a tap on Back to start jumps to the start and sends nothing to the machine", async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await prepare(page, context, "touch-fullhd");
+    await simOn(page).check();
+    await atLine(page, 0.83);
+    const cdp = await page.context().newCDPSession(page);
+    await expect(backBtn(page)).toBeEnabled();   // read the geometry after the signal: shown and open
+    const b = (await backBtn(page).boundingBox())!;
+    const p = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    await ctl({ op: "clearCmds" });
+    await framesTo(page, async () => {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    }, "a tap on Back to start");
+    const sent = ((await ctl({ op: "lastCmds" })) as { cmds?: { cmd?: string }[] }).cmds ?? [];
+    expect(sent.map(c => c.cmd), "a tap sends nothing to the machine").toEqual([]);
+  });
+});
+
 // Every form of the bar, measured: its rows inside it (one row; two under
-// 620 px), Back to start right of Play, the link only in the one-row form,
+// 620 px), Back to start directly left of Play, the link only in the one-row form,
 // live and dimmed (a dimmed button stands in its .btnTip); a press on Back
 // to start moves nothing in the bar.
 const FORMS = [["desktop", 1], ["compact", 1], ["touch-landscape", 1], ["touch-portrait", 1], ["touch-portrait", 1.25],
                ["touch-portrait", 1.5], ["touch-fullhd", 1], ["touch-fullhd-window", 1]] as const;
-test("every bar form: its rows inside the bar, Back to start right of Play, the link only in one row; a press moves nothing", async ({ page, context }) => {
+test("every bar form: its rows inside the bar, Back to start directly left of Play, the link only in one row; a press moves nothing", async ({ page, context }) => {
   test.setTimeout(600_000);
   let version = 7400;
   for (const [vp, zoom] of FORMS) {
@@ -368,8 +396,10 @@ test("every bar form: its rows inside the bar, Back to start right of Play, the 
           const text = k.e.matches(".val-slot, .posSlot");
           return [named(k.e), Math.round(k.r.left), Math.round(k.r.width), text ? null : Math.round(k.r.top), text ? null : Math.round(k.r.height)];
         }),
-        backAfterPlay: !!play && !!back && Math.abs((play.r.top + play.r.bottom) - (back.r.top + back.r.bottom)) < 4
-          && back.r.left >= play.r.right && back.r.left - play.r.right <= 8.5 * z,
+        // directly left of Play: its row, its left side, nothing between
+        backBeforePlay: !!play && !!back && Math.abs((play.r.top + play.r.bottom) - (back.r.top + back.r.bottom)) < 4
+          && back.r.right <= play.r.left && play.r.left - back.r.right <= 8.5 * z
+          && kids.indexOf(back) === kids.indexOf(play) - 1,
         link: !!find('button[aria-label="Open the Sim tab"]'),
       };
     });
@@ -384,7 +414,7 @@ test("every bar form: its rows inside the bar, Back to start right of Play, the 
       expect(f.rows, `${dump} — rows`).toBe(f.width < 620 ? 2 : 1);
       expect(f.out, `${dump} — every control inside the bar`).toEqual([]);
       expect(f.overflow, `${dump} — no row runs out`).toBeLessThanOrEqual(1);
-      expect(f.backAfterPlay, `${dump} — Back to start right of Play`).toBe(true);
+      expect(f.backBeforePlay, `${dump} — Back to start directly left of Play`).toBe(true);
       expect(f.link, `${dump} — the link only in one row`).toBe(f.width >= 620);
     }
     // a press on Back to start (the machine off again) moves nothing in the bar
