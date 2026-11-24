@@ -132,7 +132,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - **Tool Management**: Tool number, diameter, and length offset tracking
 - **G-code Parser**: Preview generator for feed and rapid moves (G0/G1/G2/G3)
 - **G-code File Management**: Upload, browse, and load G-code files via REST API
-- **Probe Support**: Real-time probe results and calibration offset parsed from DEBUG EVAL messages on the error channel
+- **Probe Support**: Real-time probe results parsed from DEBUG EVAL messages on the error channel; a probe calibration reports a candidate that takes effect only with Apply
 - **Camera Streaming**: MJPEG stream from USB or network cameras (OpenCV) via `GET /camera/stream`
 - **Server Settings**: JSON-backed settings store (`settings.json`) with per-INI sections, shared across all clients with real-time sync via WebSocket
 - **Error Channel**: Real-time LinuxCNC error/message forwarding
