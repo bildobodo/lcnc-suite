@@ -12,6 +12,10 @@ label, title or message follows this page. The CSS audit
 | The main tab for tools | **Tools** | — |
 | The machine's tool list | **Tool Table** (heading, strip button) | "tool list" |
 | A library file to import | **Tool Library** | "tool file" |
+| A tool-table read that got no table (an error, no reply) | **Tool table not read.** (no rows) | "No tools" |
+| A read LinuxCNC's own table does not prove (rule R, P6) | **Tool table not confirmed** — the note "File incomplete or differs from LinuxCNC — T3 differs; T4 missing in the file; line 7 not read." | "is being written", "corrupt" (a paused writer and a closed incomplete file look the same) |
+| A read rule R cannot check (random tool changer, tool database, controller not read) | **Tool table not checked** — "Not checked against LinuxCNC — random tool changer." | "unverified" |
+| An edit refused on such a basis | "Tool table not confirmed — nothing written; read again" / "Table not checked (random tool changer) — nothing written" | — |
 | The loaded G-code file | **Program** ("No program loaded") | "file" in the program context |
 | G54–G59.3 | **Work offset(s)** ("Work Offsets", "Clear all work offsets") | "fixture offset", "work coordinate offset" |
 | The same, in a compact button | **WCS** ("Go to WCS 0") | — |

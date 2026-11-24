@@ -180,6 +180,26 @@ the server re-checks before the effect. Package A closed what made that false:
   connection's key to the commit (`handle_command(msg, armed, conn_key)`,
   BG-23): the arm the dispatcher saw is no commit permission. E-Stop is
   allowed: maintenance.
+- *An edit's basis is proven by LinuxCNC's table* (MT-TF1, P6 tool files
+  read, Codex R465): every tool edit (save / add / delete / renumber) that
+  rewrites the table needs its basis `complete` under rule R
+  (`tool_proof.py`: the file's bytes equal STAT.tool_table — LinuxCNC's io
+  writes tool.tbl IN PLACE, so a clean prefix of a paused save passes the
+  strict parse and its rewrite would lose the rest) — at the basis read
+  (`_tool_edit_basis` via `_tool_table_for_edit`) AND in the write thread
+  (`_tool_edit_check`: ONE byte read — strict parse, rule R, the row check,
+  the base compare, add / delete too) right after
+  `_write_admission_refusal`; an early check replaces neither. Refusal "Tool
+  table not confirmed — nothing written; read again" (a PermissionError: the
+  bounded reply), never a repair by `load_tool_table` (that would replace
+  LinuxCNC's whole table with the cut file). A random changer, a tool
+  database and an unread controller are `unchecked`: refused with the reason
+  ("Table not checked (…) — nothing written") — for the first two ONE switch
+  decides, `tool_proof.UNCHECKED_EDITS_BLOCKED` (Q465-1, the operator's,
+  default True; False lets them edit as before, the other checks stay).
+  R does not exclude a foreign NML writer (`command.tool_offset`) between
+  the check and the write — no atomic exclusion is claimed. A full import
+  REPLACES the table and needs no basis.
 - *An admitted tool-table persist ends* (BG-22, Codex R211): the table write,
   the reload into LinuxCNC and the metadata are ONE section
   (`_persist_tool_edit` for the WS edits, the import's own) awaited through
@@ -188,9 +208,30 @@ the server re-checks before the effect. Package A closed what made that false:
   propagates, so the next writer never runs inside it and an admitted table
   never goes without its reload and metadata. The abort waiting for the lock
   pays one table write, one `load_tool_table` (no wait_complete) and one
-  library read and write; the preempted edit's reply still says "Preempted by
-  abort" while the table holds the edit (`tool_table_changed` carries it) —
-  the contract a sent MDI has under `_cmd_blocking`. The client gates are the
+  library read and write; an edit preempted INSIDE its section still answers
+  "Preempted by abort" while the table holds the edit (`tool_table_changed`
+  carries it) — the contract a sent MDI has under `_cmd_blocking`.
+- *The wait for LinuxCNC to show a write is outside `_cmd_lock`* (MT465-01,
+  P6 tool files read, Codex R465): the section books a write JOB (`seq`, the
+  bytes written, the Link) whose task polls STAT.tool_table every 10 ms
+  until rule R finds the written bytes complete against it (measured lag
+  22–81 ms with the machine on, 301 ms off, 518 ms in E-Stop), bound
+  `TOOL_RELOAD_WAIT_S` 2 s — COOPERATIVE, checked between STAT reads: one
+  read can wait on the mmap's entry mutex with the GIL held (10 s per entry
+  in tooldata_mmap.cc), so no hard 2 s and no instant-cancel guarantee. It
+  holds NO lock and writes nothing; a newer job or another controller ends
+  it without publishing; only the NEWEST job's end bumps the table version
+  (the clients' re-read). The WS edit's reply and the REST import's response
+  await the job after the lock is released. What that means for the stops,
+  exactly: an abort / E-Stop of ANY client enters `_cmd_lock` at once (the
+  wait never holds it — the REST import is no WS command and
+  `_preempt_inflight` never reaches it, which it need not); `_preempt_inflight`
+  cancels the editing client's handler in its wait (only `abort` and `estop`
+  preempt, `_WS_PREEMPT_CMDS`), and the handler answers its committed write
+  `ok` with `reload: "not awaited"` while the job goes on; the editing
+  client's OTHER commands, non-preempting stops included (`spindle_stop`,
+  `jog_stop`, `cycle_pause`), wait FIFO behind its reply — at most the bound;
+  other clients' commands do not wait for it. The client gates are the
   same rules: `sourceWrite`, `toolTableWrite` (catalog `fileSave`, `sourceOp`,
   `sourceDanger`, `toolOp`, `toolSave`, `toolDanger`, `listActionTool`,
   `listActionSource`, `toolEdit*`, `uploadName`); both stay open in simulation

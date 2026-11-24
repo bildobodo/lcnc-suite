@@ -1021,6 +1021,34 @@ guard. The parity corpora offline, before
 and after a change: `docs/reviews/p6a.parity.py run <tree> <out>` /
 `compare` (the profile's own INI, synthetic STAT — no live gate).
 
+## The tool table read (P6 tool files read)
+
+Rule R pure: `lcnc-gateway/test_tool_proof.py` — every cut position of an
+io-format content (50 and 150 tools, io's own `T%-3d P%-3d` / `%+f` / zero
+fields left out / ` ;%s\n`) is not complete, the full content is; Codex
+R465's cut last digit (a proven ROW of a partial read) and R461's paused
+writer; old file / new memory; TOL; unread lines and their T; the scope
+(index 0, duplicates, T0, a random changer, a tool database, an unread or
+EMPTY controller table); the REAL STAT dumps of native run 2
+(`scripts/test_fixtures/tool_proof/run2-checkpoints.json`: the examples'
+format, io's `%+f` with T1 loaded, the gateway's format after a reload, in
+E-Stop); the Q465-1 switch. In the gateway:
+`lcnc-gateway/test_tool_proof_gateway.py` — the reply (attempts, partial,
+unchecked, a corrupt library, rev), GW-1 (the read sees a writer's
+after-state, also through two cancels), the post-write job (the reply after
+LinuxCNC shows the write with `_cmd_lock` free, the bound, superseded by a
+newer write — nothing written back —, another controller, no reload sent),
+`_preempt_inflight` with an abort and an E-Stop from ANOTHER client against
+the WS edit and the REAL REST import route, MT-TF1 at the basis read and in
+the write thread (all four edits), the switch. A test that edits on purpose
+gives its fake status LinuxCNC's table: `tool_io_fixture.py` (`load_into`,
+`loaded_table`, `LoadingCommand`, `nonrandom`). Client:
+`lcnc-webui/src/toolTableRead.test.ts` (the epoch after a sequence restart,
+each state with and without rows, unread lines) and
+`e2e/tool-table-read.spec.ts` (each state in the Tools tab). The red proofs:
+`docs/reviews/p6tf.mutations.py` (pytest / vitest / page guards; under the
+heavy lock).
+
 ## Live TWP setup
 
 Use **6 Axis TWP XYZABC**, the 45-degree gantry installed by the suite.
