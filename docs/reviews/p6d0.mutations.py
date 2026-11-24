@@ -8,11 +8,16 @@ the restored tree afterwards).
   python3 scripts/test_support/heavy_lock.py --who p6d0 -- python3 -I docs/reviews/p6d0.mutations.py [name ...]
 """
 import json
+import os
 import pathlib
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+# the tools directly, never npm / npx: those write ~/.npm, which a merge gate's install probe compares
+BIN = ROOT / "lcnc-webui/node_modules/.bin"
+os.environ["PATH"] = f"{BIN}:{os.environ['PATH']}"   # the Playwright config starts a bare `vite preview`
+BUILD = f"{BIN}/vue-tsc -b && {BIN}/vite build"   # package.json's build
 WEB = "lcnc-webui/"
 S = WEB + "src/"
 GW = "lcnc-gateway/"
@@ -118,10 +123,10 @@ def failures(text):
 
 def run_guard(kind, args):
     if kind == "vitest":
-        t = subprocess.run(["npx", "vue-tsc", "-b"], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
+        t = subprocess.run([str(BIN / "vue-tsc"), "-b"], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
         if t.returncode != 0:
             return False, "BUILD RED: " + t.stdout + t.stderr, args[2]
-        r = subprocess.run(["npx", "vitest", "run", args[0], "-t", args[1]], cwd=ROOT / "lcnc-webui",
+        r = subprocess.run([str(BIN / "vitest"), "run", args[0], "-t", args[1]], cwd=ROOT / "lcnc-webui",
                            capture_output=True, text=True, timeout=900)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     if kind == "pytest":
@@ -129,11 +134,11 @@ def run_guard(kind, args):
                            cwd=ROOT / "lcnc-gateway", capture_output=True, text=True, timeout=900)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     if kind == "pw":
-        b = subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
+        b = subprocess.run(["bash", "-c", BUILD], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900)
         if b.returncode != 0:
             return False, "BUILD RED: " + b.stdout + b.stderr, args[2]
         # never under a timeout: a killed runner orphans its web server (4173)
-        r = subprocess.run(["npx", "playwright", "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
+        r = subprocess.run([str(BIN / "playwright"), "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
                            cwd=ROOT / "lcnc-webui", capture_output=True, text=True)
         return r.returncode != 0, r.stdout + r.stderr, args[2]
     raise SystemExit(f"unknown guard kind {kind}")
@@ -165,7 +170,7 @@ def main(names):
             f.write_bytes(orig)
             if any(k == "pw" for k, _a in guards):
                 # the page back to the tree's own build
-                subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, timeout=900, check=True)
+                subprocess.run(["bash", "-c", BUILD], cwd=ROOT / "lcnc-webui", capture_output=True, timeout=900, check=True)
         red = all(r for r, _o, _a in results)
         at_rule = red and all(at in o for _r, o, at in results)
         out[name] = {"red": red, "at_rule": at_rule}
