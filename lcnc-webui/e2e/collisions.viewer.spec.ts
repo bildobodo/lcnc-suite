@@ -19,15 +19,17 @@ async function prepare(page: Page, context: BrowserContext, o: {
   file: string; version: number; feed: number[][]; lines: number[]; joints: number[]; extra?: Record<string, unknown>;
   /** Runs once the viewer is up, before the program is published. */
   before?: () => Promise<unknown>;
+  /** The program's text (default: ten G1 lines) and the viewport (default: desktop). */
+  text?: string; viewport?: string;
 }) {
   const preview = Buffer.from(encode({ file: o.file, preview_schema: 11, feed: o.feed,
     feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
     violations: [], violations_total: 0, ...o.extra }));
   await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview }));
-  await routeText(context, Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n"));
+  await routeText(context, o.text ?? Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n"));
   await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
     body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
-  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === (o.viewport ?? "desktop"))!);
   await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
     parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
     workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
@@ -486,12 +488,14 @@ test("a sweep held off by a run starts once the machine is idle, without another
 const RUN_FEED = [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]];
 const Z9 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 /** The envelope's run_basis as the gateway sends it once the start was
- *  written (scripts/test_fixtures/run_check_wire.json). */
+ *  written (scripts/test_fixtures/run_check_wire.json): a start from the
+ *  program's beginning, its line 0 named (G7, Codex R464 — a run from line
+ *  N sets `start_line: N`). */
 const runEnv = (file: string, over: Record<string, unknown> = {}) => ({ run_basis: {
   run_id: 7, state: "sent", file, source: "s", version: 4101, program_id: loadOf(file).id, ctx_digest: "d", tool_basis_rev: 1,
   start: { g5x_index: 1, g5x_offset: Z9, g92_offset: Z9, rotation_xy: 0, wcs_table: null, tool_number: 0,
            tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: Z9 },
-  verified: true, why: null, ...over } });
+  start_line: 0, verified: true, why: null, ...over } });
 const basisOf = (page: Page) => page.evaluate(() => window.__viewerDiag?.getCollisionBasis?.() ?? null);
 const g92z = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
 
@@ -867,6 +871,260 @@ test("another run discards the check made during the last one (plan „Prüfung 
   await ctl({ op: "status_delta", envelope: runEnv(file, { run_id: 10 }), data: {} });
   await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("discard run");
   await expect(page.locator(".simPanel .checkRow .sub")).toHaveText("Collision check");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// ---- P6-d0 (Codex R464): a run from line N is NOT CHECKED ----
+// The check sweeps the program from its beginning; for a run from line N
+// nothing proves the path the machine takes (the skim may move; the axes N
+// does not name stay where they stood). From the run's entry on — with or
+// without a pinned parse, whatever check stood, ran or was parked before —
+// the bar's coverage slot and the Sim tab say "not checked", no check's
+// finding, mark, band or coverage shows and no check job begins; the
+// program's limit and tool-change marks and the running line stay. A run
+// from line 0 keeps the run check (the control). Its end starts the idle
+// check again under its own contract.
+const NOT_CHECKED = (line: number | null) => (line == null ? "start line not proven" : `run from line ${line}`);
+const sumClash = (page: Page) => page.locator(".simSummary .sumItem").first();
+const activity = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionActivity!());
+const IDLE_ACTIVITY = { busy: false, resumable: false, result: false };
+/** The run named not checked: what the operator sees of the check — and no
+ *  check's owner behind it (a result kept, a job running or parked). */
+async function expectNotChecked(page: Page, line: number | null, what: string) {
+  await expect(sumClash(page), `${what}: the summary`).toHaveAttribute("aria-label", `Not checked · ${NOT_CHECKED(line)}`);
+  const slot = page.locator(".scrubBar .checkSlot");
+  await expect(slot, `${what}: the bar's coverage slot`).toHaveAttribute("aria-label", `Collision check: not checked · ${NOT_CHECKED(line)}`);
+  await expect(slot, `${what}: no coverage figure`).toHaveText("");
+  await expect(page.locator(".simPanel .checkRow .checkState"), `${what}: the check row`).toHaveText("Not checked");
+  await expect(page.locator(".simPanel .checkRow .progressTrack"), `${what}: no progress of a check`).toHaveCount(0);
+  await expect(clashRows(page), `${what}: no collision row`).toHaveCount(0);
+  await expect(page.locator(".scrubBar .scrubTick.clash"), `${what}: no collision mark`).toHaveCount(0);
+  await expect(page.locator(".scrubBar .scrubBand.clash"), `${what}: no collision band`).toHaveCount(0);
+  expect(await page.evaluate(() => window.__viewerDiag!.getClashTint!()), `${what}: no tint`).toEqual([]);
+  expect(await activity(page), `${what}: no check job, no result`).toMatchObject(IDLE_ACTIVITY);
+  expect(await page.evaluate(() => window.__viewerDiag!.checkTimerPending!()), `${what}: none scheduled`).toBe(false);
+}
+/** The run's entry: AUTO, the interpreter running at `line`, its run_basis
+ *  (and further envelope keys, `env`). */
+const enterRun = (file: string, over: Record<string, unknown>, line: number, extra: Record<string, unknown> = {},
+                  env: Record<string, unknown> = {}) =>
+  ctl({ op: "status_delta", envelope: { ...runEnv(file, over), ...env },
+        data: { interp_state: 2, task_mode: 2, motion_line: line, ...extra } });
+
+for (const [name, startLine] of [["a run from line 7", 7], ["a run whose start line is not proven", null],
+                                 ["the control — a run from line 0", 0]] as const) {
+  test(`${name} with a pinned parse made for it: ${startLine === 0 ? "checked during the run" : "named not checked — no check, finding, mark or checked coverage"} (P6-d0, Codex R464)`, async ({ page, context }) => {
+    test.setTimeout(150_000);
+    const file = `/rfl-pinned-${startLine ?? "x"}.ngc`;
+    await runReady(page, context, file, 4301);
+    await ctl({ op: "quiet", on: true });
+    await enterRun(file, { run_id: 9, start_line: startLine }, 7, { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] },
+                   originEnv(file, 4301));
+    await expect(simLine(page)).toHaveText(/L7/);
+    if (startLine !== 0) await expectNotChecked(page, startLine, "the run's entry");
+    // the table edge's pinned parse, published for run 9
+    await publishInRun(page, file, 4302, pinnedFor(9));
+    if (startLine === 0) {
+      await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
+      await expect(sumClash(page)).toHaveAttribute("aria-label", /· checked in full$/);
+    } else {
+      await expectNotChecked(page, startLine, "the pinned parse on screen");
+      expect(await runLog(page), "no run check began").toEqual([`not checked ${startLine ?? "?"}`]);
+      // the card: no check is this run's — not "no check has run on this program"
+      expect(await basisCard(page)).toContain(`This run is not checked (${NOT_CHECKED(startLine)}).`);
+    }
+    await ctl({ op: "quiet", on: false });
+    await ctl({ op: "reset" });
+  });
+}
+
+// Codex R464's counter-case: a FINISHED idle check reading Clear, then a run
+// from line — no new publication. The Clear is no verdict on the run.
+const CLEAR_FEED = [[0, 0, -100], [100, 0, -100], [100, 50, -100], [0, 50, -100]];
+test("a finished idle Clear does not carry into a run from line: not checked, no new job, through pause, the simulation switched off and on and a reconnect; the run's end checks again (P6-d0, Codex R464)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/rfl-clear.ngc";
+  await prepare(page, context, { file, version: 4311, feed: CLEAR_FEED, lines: [1, 2, 3, 4], joints: [-100, 0, 0, 0, 0] });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  await expect(sumClash(page), "the idle check: Clear").toHaveAttribute("aria-label", "Clear · checked in full", { timeout: 60_000 });
+  await expect(page.locator(".scrubBar .checkSlot")).toHaveText("100 %");
+  const timeline = await page.locator(".scrubBar .sliderWrap").boundingBox();
+  const { starts } = await activity(page);
+  await ctl({ op: "quiet", on: true });
+  await enterRun(file, { run_id: 11, start_line: 3, version: 4311 }, 3, { joint_pos: [100, 25, -100, 0, 0], actual_position: [100, 25, -100, 0, 0] });
+  await expect(simLine(page)).toHaveText(/L3/);
+  await expectNotChecked(page, 3, "the run's entry");
+  expect((await activity(page)).starts, "no check began").toBe(starts);
+  // the slot keeps its width: the timeline does not move
+  expect(await page.locator(".scrubBar .sliderWrap").boundingBox(), "the timeline's box").toEqual(timeline);
+  // pause and resume: the same run
+  await ctl({ op: "status_delta", data: { interp_state: 3 } });
+  await ctl({ op: "status_delta", data: { interp_state: 2, motion_line: 4, joint_pos: [50, 50, -100, 0, 0], actual_position: [50, 50, -100, 0, 0] } });
+  await expect(simLine(page)).toHaveText(/L4/);
+  await expectNotChecked(page, 3, "paused and resumed");
+  // the simulation switched off and on in the run: the bar comes back saying it
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: false } } } });
+  await expect(page.locator(".scrubBar")).toHaveCount(0);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: true } } } });
+  await simShow(page, "clash");
+  await expectNotChecked(page, 3, "the simulation on again");
+  // a reconnect: the same run comes back with its record
+  await ctl({ op: "quiet", on: false });
+  const hellos = ((await ctl({ op: "lastHellos" })).hellos as unknown[]).length;
+  await ctl({ op: "refuseWs", on: true });
+  await ctl({ op: "shutdownClose" });
+  await expect(page.getByText("Server shutting down")).toBeVisible();
+  await ctl({ op: "refuseWs", on: false });
+  await expect.poll(async () => ((await ctl({ op: "lastHellos" })).hellos as unknown[]).length, { timeout: 60_000 }).toBeGreaterThan(hellos);
+  await expect(page.getByText("Server shutting down")).toHaveCount(0, { timeout: 30_000 });
+  await expectNotChecked(page, 3, "after the reconnect");
+  expect((await activity(page)).starts, "still no check").toBe(starts);
+  // the run ends: the idle check begins again under its own contract
+  await ctl({ op: "status_delta", data: { interp_state: 1, task_mode: 1, motion_line: 0 } });
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 30_000 }).toBe(starts + 1);
+  await expect(sumClash(page)).toHaveAttribute("aria-label", "Clear · checked in full", { timeout: 60_000 });
+  await ctl({ op: "reset" });
+});
+
+// The idle check still RUNNING (held, as under a camera drag) or PARKED (a
+// rotary jog) when a run from line begins: the job is let go, and neither a
+// late reply of it nor a settled rotary brings anything back.
+const LONG_FEED = (() => {
+  const feed: number[][] = [[0, 0, -100], [0, 0, -380]], lines = [1, 6];
+  for (let k = 0; k < 80; k++) { feed.push([k % 2 ? 0 : 240, 0, -380]); lines.push(7); }
+  feed.push([0, 0, -100]); lines.push(8);
+  return { feed, lines };
+})();
+/** The collision worker's main requests and words, and a word delivered as
+ *  if the worker had sent it (a reply already on its way). */
+async function installLateTap(page: Page) {
+  await page.addInitScript(() => {
+    const tap: any = { mains: [] as number[], words: [] as Array<Record<string, unknown>>, deliver: null };
+    (window as any).__lateTap = tap;
+    const Real = window.Worker;
+    const Tapped = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w) as (m: unknown, t?: Transferable[]) => void;
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (m && typeof m === "object" && "track" in m && !m.side) tap.mains.push(m.id);
+        post(m, t ?? []);
+      }) as any;
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      w.addEventListener("message", e => {
+        const d = e.data ?? {};
+        tap.words.push({ id: d.id, cancelled: !!d.cancelled, result: !!d.result, stopped: !!d.stopped });
+        handler?.(e);
+      });
+      return w;
+    } as any;
+    Tapped.prototype = Real.prototype;
+    window.Worker = Tapped;
+  });
+}
+const LATE_RESULT = { staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5, pairsPrescreened: 5,
+                      bvhMs: 0, sweepMs: 0, truncated: null };
+
+test("a running idle check when a run from line begins: let go — its late replies bring no result back (P6-d0, Codex R464)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await installLateTap(page);
+  const file = "/rfl-running.ngc";
+  await prepare(page, context, { file, version: 4321, joints: [-100, 0, 0, 0, 0], ...LONG_FEED,
+    // the idle sweep holds after its first slice, as under a camera drag
+    before: () => expect.poll(() => page.evaluate(() => { window.__viewerDiag?.setCameraHold?.(true); return !!window.__viewerDiag?.setCameraHold; })).toBe(true) });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionHoldLog?.() ?? []), { timeout: 60_000 }).toContain("camera on");
+  await expect.poll(async () => (await activity(page)).busy, { timeout: 30_000 }).toBe(true);
+  const main = await page.evaluate(() => (window as any).__lateTap.mains.at(-1) as number);
+  const { starts } = await activity(page);
+  await ctl({ op: "quiet", on: true });
+  await enterRun(file, { run_id: 12, start_line: 7, version: 4321 }, 7, { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] });
+  await expect(simLine(page)).toHaveText(/L7/);
+  await expectNotChecked(page, 7, "the run's entry");
+  // a reply of the let-go job already on its way: its progress and its result
+  await page.evaluate(([id, r]) => {
+    const t = (window as any).__lateTap;
+    t.deliver({ id, progress: 0.5, partial: { ...(r as object), truncated: { covered: 0.5, reason: "running" } } });
+    t.deliver({ id, result: r });
+  }, [main, LATE_RESULT] as const);
+  await expectNotChecked(page, 7, "a late reply");
+  // the hold ends: the worker's own last word for the job is its cancel's
+  await page.evaluate(() => window.__viewerDiag!.setCameraHold!(false));
+  await expect.poll(() => page.evaluate(id => (window as any).__lateTap.words.filter((w: any) => w.id === id && (w.cancelled || w.result)).length, main),
+                    { timeout: 60_000 }).toBeGreaterThan(0);
+  await expectNotChecked(page, 7, "the worker's last word");
+  expect((await activity(page)).starts, "no check began").toBe(starts);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+test("a parked idle check when a run from line begins: let go — a settled rotary continues nothing (P6-d0, Codex R464)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/rfl-parked.ngc";
+  await prepare(page, context, { file, version: 4331, joints: [-100, 0, 0, 0, 0], ...LONG_FEED });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  // the table turns by hand while the idle sweep runs: it parks
+  let a = 0;
+  await expect.poll(async () => {
+    a = a ? 0 : 2;
+    await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
+    return page.evaluate(() => window.__viewerDiag?.getCollisionStopped?.()?.reason ?? null);
+  }, { timeout: 30_000, intervals: [50] }).toBe("motion");
+  expect(await activity(page)).toMatchObject({ resumable: true });
+  const { starts } = await activity(page);
+  const settled = (await page.evaluate(() => window.__viewerDiag!.getDebounceFired!())).settle;
+  await ctl({ op: "quiet", on: true });
+  await enterRun(file, { run_id: 13, start_line: 7, version: 4331 }, 7, { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] });
+  await expect(simLine(page)).toHaveText(/L7/);
+  await expectNotChecked(page, 7, "the run's entry");
+  // the run's table turns and settles: the settle timer fires — and continues nothing
+  await ctl({ op: "status_delta", data: { rotary_abc: [5, 0, 0] } });
+  await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getDebounceFired!())).settle, { timeout: 15_000 })
+    .toBeGreaterThan(settled);
+  await expectNotChecked(page, 7, "the rotary settled");
+  expect((await activity(page)).starts, "no check began").toBe(starts);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// The lock-out is the run's COLLISION check only: the program's tool-change
+// and limit marks, the running line and the code are the program's and stay.
+const MARKS_TEXT = ["G21", "G90", "T2 M6", "G0 X0", "G0 Z0", "G1 Z-380 F100", "G1 X240", "G1 Z-100", "M2", ""].join("\n");
+test("a run from line keeps the program's tool-change and limit marks and the running line (P6-d0, Codex R464)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/rfl-marks.ngc";
+  await prepare(page, context, { file, version: 4341, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0], text: MARKS_TEXT,
+    extra: { feed_outside: new Uint8Array([0, 0, 0, 1]), violations_total: 1,
+             violations: [{ line: 8, axis: "Z", value: -100, limit: -110, kind: "max", runs: [[4, 4]], nruns: 1 }] } });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  await expect(clashRows(page).first(), "the program's collisions, swept at load").toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
+  await simShow(page, "all");
+  const rows = page.locator(".simPanel tbody tr[data-sim-row]");
+  const keys = () => rows.evaluateAll(rs => rs.map(r => r.getAttribute("data-sim-row")!.charAt(0)));
+  const ticks = (kind: string) => page.locator(`.scrubBar .scrubTick.${kind}`).count();
+  expect(await keys(), "a collision, a limit, a tool change").toEqual(expect.arrayContaining(["C", "L", "T"]));
+  const limitTicks = await ticks("limit"), toolTicks = await ticks("tool");
+  expect(limitTicks).toBeGreaterThan(0);
+  expect(toolTicks).toBeGreaterThan(0);
+  await ctl({ op: "quiet", on: true });
+  await enterRun(file, { run_id: 14, start_line: 7, version: 4341 }, 7, { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] });
+  await expect(simLine(page), "the running line").toHaveText(/L7/);
+  await expect(sumClash(page)).toHaveAttribute("aria-label", `Not checked · ${NOT_CHECKED(7)}`);
+  await expect.poll(keys, { message: "the limit and tool-change rows stay, no collision row" }).toEqual(["T", "L"]);
+  expect(await ticks("clash"), "no collision mark").toBe(0);
+  expect(await ticks("limit"), "the limit marks").toBe(limitTicks);
+  expect(await ticks("tool"), "the tool-change marks").toBe(toolTicks);
+  await expect(page.locator(".simSummary .sumLimit")).toHaveAttribute("aria-label", "1 limit violation");
+  // the code panel: the tool change and the limit marked, the running line, no collision mark
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine.toolChange .lineNumber")).toHaveText(["3"]);
+  await expect(page.locator(".codeLine.violation .lineNumber")).toHaveText(["8"]);
+  await expect(page.locator(".codeLine.active .lineNumber")).toHaveText(["7"]);
+  await expect(page.locator(".codeLine.collision")).toHaveCount(0);
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
