@@ -380,6 +380,12 @@ class TestTheRunInTheGateway(_Base):
         self.assertEqual(self.booked(), ("unknown", None))
         self.assertEqual(self.machine(), "saved_write_unknown")
 
+    def test_a_fault_of_the_step_never_stops_the_status_loop(self):
+        with unittest.mock.patch.object(gateway._cal, "cycle", side_effect=RuntimeError("boom")), \
+                unittest.mock.patch.object(gateway._trace, "emit_exc") as said:
+            self.assertEqual(self.cycle((12, "a message")), [(12, "a message")], "its messages go on")
+        self.assertEqual(said.call_args[0][0], "cal.cycle_failed")
+
     def test_calibrate_then_abort_leaves_controller_and_record(self):
         # Codex' case: stored 0.20, controller 0.20, the local draft 0.05 —
         # the calibration sends no 3032 and changes nothing
