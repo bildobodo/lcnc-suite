@@ -972,6 +972,9 @@ test("a finished idle Clear does not carry into a run from line: not checked, no
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: false } } } });
   await expect(page.locator(".scrubBar")).toHaveCount(0);
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: true } } } });
+  // the tab is back first: openSimTab probes it ONCE (a narrow pane has none) —
+  // under load it looked before the tab was rendered (round gate 1, 1 of 1116)
+  await expect(page.getByRole("tab", { name: "Sim", exact: true })).toBeVisible();
   await simShow(page, "clash");
   await expectNotChecked(page, 3, "the simulation on again");
   // a reconnect: the same run comes back with its record
@@ -983,6 +986,9 @@ test("a finished idle Clear does not carry into a run from line: not checked, no
   await ctl({ op: "refuseWs", on: false });
   await expect.poll(async () => ((await ctl({ op: "lastHellos" })).hellos as unknown[]).length, { timeout: 60_000 }).toBeGreaterThan(hellos);
   await expect(page.getByText("Server shutting down")).toHaveCount(0, { timeout: 30_000 });
+  // a frame of the NEW connection is on screen before the state is read
+  await ctl({ op: "status_delta", data: { motion_line: 3, joint_pos: [100, 25, -100, 0, 0], actual_position: [100, 25, -100, 0, 0] } });
+  await expect(simLine(page), "the new connection's frame").toHaveText(/L3/);
   await expectNotChecked(page, 3, "after the reconnect");
   expect((await activity(page)).starts, "still no check").toBe(starts);
   // the run ends: the idle check begins again under its own contract
@@ -1076,9 +1082,9 @@ test("a parked idle check when a run from line begins: let go — a settled rota
   await expect.poll(async () => {
     a = a ? 0 : 2;
     await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
-    return page.evaluate(() => window.__viewerDiag?.getCollisionStopped?.()?.reason ?? null);
-  }, { timeout: 30_000, intervals: [50] }).toBe("motion");
-  expect(await activity(page)).toMatchObject({ resumable: true });
+    return page.evaluate(() => ({ reason: window.__viewerDiag?.getCollisionStopped?.()?.reason ?? null,
+                                  resumable: window.__viewerDiag?.getCollisionActivity?.().resumable ?? false }));
+  }, { timeout: 30_000, intervals: [50] }).toEqual({ reason: "motion", resumable: true });
   const { starts } = await activity(page);
   const settled = (await page.evaluate(() => window.__viewerDiag!.getDebounceFired!())).settle;
   await ctl({ op: "quiet", on: true });
@@ -1111,7 +1117,7 @@ test("a run from line keeps the program's tool-change and limit marks and the ru
   const rows = page.locator(".simPanel tbody tr[data-sim-row]");
   const keys = () => rows.evaluateAll(rs => rs.map(r => r.getAttribute("data-sim-row")!.charAt(0)));
   const ticks = (kind: string) => page.locator(`.scrubBar .scrubTick.${kind}`).count();
-  expect(await keys(), "a collision, a limit, a tool change").toEqual(expect.arrayContaining(["C", "L", "T"]));
+  await expect.poll(keys, { message: "a collision, a limit, a tool change" }).toEqual(expect.arrayContaining(["C", "L", "T"]));
   const limitTicks = await ticks("limit"), toolTicks = await ticks("tool");
   expect(limitTicks).toBeGreaterThan(0);
   expect(toolTicks).toBeGreaterThan(0);
