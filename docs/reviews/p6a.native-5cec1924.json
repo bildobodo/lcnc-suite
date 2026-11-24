@@ -1,0 +1,259 @@
+{
+ "_doc": "P6-a (machine-day F9) native page cases, second record (after round gate 1 at 5cec1924): the VM's real LinuxCNC (the 3-axis sim profile, a confined copy of the run tree's commit), Chromium headless 1920x1080, the device's simulation switched on by the probe; driver ~/claude-work/p6a/native/p6a_native.py + p6a_probe.mjs (local). Every joint homed, the toolsetter section saved (pinned: the 3-axis sim plate X10 Y10 Z-180, the run tree's VAR_MAP keys), G54 and G55 written in the copy only (G10 L2 P1 X238.525 Y379.696 Z-96.75 - the machine day's -, G10 L2 P2 X300 Y400 Z-60), the machine at the G54 origin under G49, the machine OFF. Case 1: the machine day's head shape (G53 G0 Z0. / T1 M600 / G54 / G0 X120. Y80. / G43 Z15. H1 / G1 ...); case 2: a G55 first line with G55 != G54 (G21 G90 / G55 / G0 X10 / G0 Y20 Z0 / G53 G0 Z0 / M2, Codex R456 MT456-01). For each the page enters the simulation, its OWN entry track is read from its collision worker's side request (the Worker tapped and forwarded; `side_track_head` = cum, pos, lines of its first points), the scrub is put at the entry's end (cum[1], the slider's step grid set to 'any') and the SCENE is read once the drawn tool tip (__viewerDiag.getToolTip, machine frame) has settled on the scrub pose (settle_ms; a first read 500 ms after the scrub caught the G55 tip before the scene was posed - this record waits for it). Verdicts: case 1 the tip ends the entry straight above where the machine stands (X/Y unchanged, Z = 0); case 2 only X moves, to G55 X10 = 310 (Y, Z unchanged). GREEN at 5cec1924: case 1 (238.525, 379.696, 0), the bar 02:26 (the entry 0.97 s against 4.59 s); case 2 (310, 379.696, -96.75).",
+ "run": "20261124T095444-fix3",
+ "commit": "5cec19244106f59db14d463cd9d9782f72f10605",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "owed": "settled",
+ "crashes": [],
+ "page": {
+  "verdict": {
+   "tip": [
+    238.52500000000006,
+    379.69599999999997,
+    0
+   ],
+   "want": [
+    238.525,
+    379.696,
+    0.0
+   ],
+   "entry_end_straight_above": true,
+   "bar": "00:00/02:26",
+   "g55_tip": [
+    310,
+    379.6959991455078,
+    -96.75
+   ],
+   "g55_want": [
+    310.0,
+    379.696,
+    -96.75
+   ],
+   "g55_only_x_moves": true,
+   "g55_bar": "00:00/00:01"
+  },
+  "status_before": {
+   "g5x_index": 1,
+   "g5x_offset": [
+    238.525,
+    379.696,
+    -96.75,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "joint_pos": [
+    238.52500000000006,
+    379.69599999999997,
+    -96.74999999999999,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "tool_offset": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "tool_number": 0
+  },
+  "toolsetter_pinned": {
+   "3004": 2000.0,
+   "3005": 200.0,
+   "3006": 3000.0,
+   "3007": 60.0,
+   "3009": 3.0,
+   "3010": 150.0,
+   "3013": 0.0,
+   "3100": 10.0,
+   "3101": 10.0,
+   "3102": -180.0,
+   "3103": 1.0,
+   "3104": 2.0,
+   "3105": 0.0,
+   "3106": 1.0,
+   "3107": 5.0,
+   "3108": 0.0,
+   "3109": 0.0,
+   "3110": 0.0,
+   "3111": 0.0,
+   "3112": 0.0,
+   "3113": 0.0,
+   "3114": 0.0,
+   "3115": 0.0
+  },
+  "toolsetter_error": null,
+  "mday": {
+   "tip": [
+    238.52500000000006,
+    379.69599999999997,
+    0
+   ],
+   "pose": {
+    "joints": [
+     238.52500000000006,
+     379.69599999999997,
+     0
+    ],
+    "tlo": [
+     0,
+     0,
+     0
+    ],
+    "tool": null,
+    "cum": 0.967499971389771,
+    "line": 247
+   },
+   "settled": true,
+   "settle_ms": 1799,
+   "bar": "00:00/02:26",
+   "entry_end_cum": 0.9674999713897705,
+   "error": null,
+   "side_track_head": {
+    "count": 21,
+    "cum": [
+     0,
+     0.9674999713897705,
+     0.9674999713897705,
+     0.9674999713897705,
+     54.77558898925781,
+     54.77558898925781,
+     54.77558898925781,
+     56.4726448059082,
+     71.8326416015625,
+     71.89264678955078,
+     71.95220184326172,
+     72.31220245361328
+    ],
+    "pos": [
+     5.684341886080802e-14,
+     -5.684341886080802e-14,
+     1.1469580840639537e-10,
+     5.684341886080802e-14,
+     -5.684341886080802e-14,
+     96.75,
+     5.684341886080802e-14,
+     -5.684341886080802e-14,
+     96.75,
+     5.684341886080802e-14,
+     -5.684341886080802e-14,
+     96.75,
+     -238.52499389648438,
+     -379.6960144042969,
+     96.75,
+     -238.52499389648438,
+     -379.6960144042969,
+     96.75,
+     -238.52499389648438,
+     -379.6960144042969,
+     96.75,
+     -228.52499389648438,
+     -369.6960144042969,
+     96.75,
+     -228.52499389648438,
+     -369.6960144042969,
+     -31.25,
+     -228.52499389648438,
+     -369.6960144042969,
+     -33.25,
+     -228.52499389648438,
+     -369.6960144042969,
+     -35.23518371582031,
+     -228.52499389648438,
+     -369.6960144042969,
+     -32.23518371582031
+    ],
+    "lines": [
+     0,
+     3,
+     241,
+     241,
+     247,
+     248,
+     284,
+     308,
+     341,
+     456,
+     472,
+     475
+    ]
+   }
+  },
+  "g55": {
+   "tip": [
+    310,
+    379.6959991455078,
+    -96.75
+   ],
+   "pose": {
+    "joints": [
+     310,
+     379.6959991455078,
+     -96.75
+    ],
+    "tlo": null,
+    "tool": null,
+    "cum": 0.714749991893768,
+    "line": 3
+   },
+   "settled": true,
+   "settle_ms": 745,
+   "bar": "00:00/00:01",
+   "entry_end_cum": 0.7147499918937683,
+   "error": null,
+   "side_track_head": {
+    "count": 3,
+    "cum": [
+     0,
+     0.7147499918937683,
+     1.260183334350586
+    ],
+    "pos": [
+     -61.474998474121094,
+     -20.304000854492188,
+     -36.75,
+     10,
+     -20.304000854492188,
+     -36.75,
+     10,
+     20,
+     0
+    ],
+    "lines": [
+     0,
+     3,
+     4
+    ]
+   }
+  },
+  "probe_errors": []
+ },
+ "steps": [
+  "tree",
+  "copy",
+  "start",
+  "connect",
+  "p6a-page"
+ ]
+}
