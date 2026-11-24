@@ -69,6 +69,26 @@ test("a reconnect reads the table again; the strip follows a changed table", asy
   await expect(page.locator('[data-strip="tool"]')).toContainText("Five after reconnect");
 });
 
+// P6 tool files read: a closed connection clears the rows; the moment one
+// opens the tab loads — never "Not connected" while the read waits its delay
+// (the page's timers stand still here, so that delay never ends).
+test("a connection that opens: the tab loads, never 'Not connected' while its read waits", async ({ page }) => {
+  await page.clock.install();
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  await publishToolTable([TOOL]);
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const tab = page.locator(".toolsTab");
+  const row = tab.getByRole("button", { name: "Edit T5", exact: true });
+  await expect(row).toBeVisible();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now()) + 1_000);
+  await ctl({ op: "shutdownClose" });
+  await expect(row, "a closed connection's rows are gone").toHaveCount(0);
+  await expect(tab.locator(".emptyState.loading"), "connected again: the tab loads").toHaveText("Loading tools…", { timeout: 20_000 });
+  await expect(tab.getByRole("alert").filter({ hasText: "Not connected" }), "no 'Not connected' while connected").toHaveCount(0);
+  await page.clock.resume();
+  await expect(row, "and reads").toBeVisible();
+});
+
 // P6 tool files read (plan maschinentag.r465 v4 §6, Codex R465): the Tools
 // tab shows the read's proof — a partial read its rows with a note naming
 // the tools (neutral: never "is being written"), an unchecked read its rows

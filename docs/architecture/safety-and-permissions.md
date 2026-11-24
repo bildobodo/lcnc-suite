@@ -200,9 +200,11 @@ the server re-checks before the effect. Package A closed what made that false:
   R does not exclude a foreign NML writer (`command.tool_offset`) between
   the check and the write — no atomic exclusion is claimed. A full import
   REPLACES the table and needs no basis. A table that never reads complete
-  (LinuxCNC loaded it without its final newline, a line LinuxCNC skips, more
-  tools than io holds) keeps edits refused until the file is rewritten (a
-  G10 L1, a full import, the line end by hand) — a named limit.
+  (LinuxCNC loaded it without its final newline, a tool number twice, a line
+  LinuxCNC skips, more tools than io holds) keeps EVERY edit refused — the
+  delete or renumber that would repair it too — until the file is rewritten
+  (by hand and reloaded, a full import; a G10 L1 adds the missing line end) —
+  a named limit, new with MT-TF1 for the duplicate.
 - *An admitted tool-table persist ends* (BG-22, Codex R211): the table write,
   the reload into LinuxCNC and the metadata are ONE section
   (`_persist_tool_edit` for the WS edits, the import's own) awaited through
@@ -222,9 +224,11 @@ the server re-checks before the effect. Package A closed what made that false:
   `TOOL_RELOAD_WAIT_S` 2 s — COOPERATIVE, checked between STAT reads: one
   read can wait on the mmap's entry mutex with the GIL held (10 s per entry
   in tooldata_mmap.cc), so no hard 2 s and no instant-cancel guarantee. It
-  holds NO lock and writes nothing; a newer job or another controller ends
-  it without publishing; only the NEWEST job's end bumps the table version
-  (the clients' re-read). The WS edit's reply and the REST import's response
+  holds NO lock and writes nothing; its binding is judged after each
+  comparison (a thread): a newer job ends it without publishing, another
+  controller ends it unproven; it never raises (a wait that fails answers no
+  error for a committed write); only the NEWEST job's end bumps the table
+  version, however it ended — the clients' re-read, which claims no state. The WS edit's reply and the REST import's response
   await the job after the lock is released. What that means for the stops,
   exactly: an abort / E-Stop of ANY client enters `_cmd_lock` at once (the
   wait never holds it — the REST import is no WS command and

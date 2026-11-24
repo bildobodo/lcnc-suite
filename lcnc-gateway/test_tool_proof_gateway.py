@@ -366,9 +366,51 @@ class TestThePostWriteWait(_Tools):
                 await asyncio.sleep(0.01)
                 use(self, cmd=self.io)             # a NEW Link (a reconnect)
                 return await t
-        seq0 = gateway._tool_write_seq
+        seq0, v0 = gateway._tool_write_seq, gateway._tool_table_version
         r = asyncio.run(run())
         self.assertEqual(r["reload"], "controller changed")
+        self.assertEqual(gateway._tool_table_version - v0, 1, "the ping goes: the edit is committed, the clients read")
+
+    def test_a_controller_that_changes_during_the_comparison_confirms_nothing(self):
+        # the comparison runs in a thread: what it found belongs to the Link
+        # it read — judged again after it
+        real = gateway._tool_job_compare
+
+        def compare(job):
+            proof = real(job)
+            use(self, cmd=self.io)                 # a NEW Link while the thread compares
+            return proof
+        with patch.object(gateway, "_tool_job_compare", compare):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertEqual(r["reload"], "controller changed", "never 'confirmed' by another controller's wait")
+
+    def test_a_newer_write_during_the_comparison_supersedes(self):
+        real = gateway._tool_job_compare
+
+        def compare(job):
+            proof = real(job)
+            if job.seq == seq0 + 1:
+                gateway._tool_write_seq += 1       # a newer write booked while the thread compares
+            return proof
+        seq0, v0 = gateway._tool_write_seq, gateway._tool_table_version
+        with patch.object(gateway, "_tool_job_compare", compare):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)})
+        self.assertEqual((r["reload"], gateway._tool_table_version - v0), ("superseded", 0), "judged after the comparison")
+
+    def test_a_wait_that_fails_answers_no_error_for_a_committed_write(self):
+        def boom(_job):
+            raise RuntimeError("STAT read exploded")
+        v0 = gateway._tool_table_version
+        with patch.object(gateway, "_tool_job_compare", boom), \
+                patch.object(gateway._trace, "emit_exc", lambda ev, *a, **k: self.events.append((ev, k))):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "flutes": 5, "expected": self.expect(1)})
+            gateway._cmd_lock = None
+            asyncio.run(gateway._persist_imported_tools(str(self.table), [{"T": 4, "P": 4, "Z": 1.0, "D": 2.0}], {},
+                                                        self.writer.conn_key))   # the REST import's wait: no 500 either
+        self.assertEqual((r["ok"], r["reload"]), (True, "failed"), r)
+        self.assertEqual(self.event_names().count("tools.reload_wait_failed"), 2, "named, never silent")
+        self.assertEqual(gateway._tool_table_version - v0, 2, "and both pinged")
+        self.assertEqual([t["T"] for t in parse_tool_table(str(self.table))], [4])
 
     def test_no_reload_sent_ends_the_job_at_once(self):
         with patch.object(gateway, "_cmd_now", lambda: None):

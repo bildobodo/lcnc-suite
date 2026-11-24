@@ -1037,7 +1037,8 @@ E-Stop); the Q465-1 switch. In the gateway:
 unchecked, a corrupt library, rev), GW-1 (the read sees a writer's
 after-state, also through two cancels), the post-write job (the reply after
 LinuxCNC shows the write with `_cmd_lock` free, the bound, superseded by a
-newer write — nothing written back —, another controller, no reload sent),
+newer write — nothing written back —, another controller, both judged after the
+comparison too, a wait that fails, no reload sent),
 `_preempt_inflight` with an abort and an E-Stop from ANOTHER client against
 the WS edit and the REAL REST import route, MT-TF1 at the basis read and in
 the write thread (all four edits), the switch. A test that edits on purpose

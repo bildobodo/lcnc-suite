@@ -149,6 +149,29 @@ MUTS = {
         "            me = asyncio.current_task()\n            if me is not None:\n                me.uncancel()\n",
         "            raise\n")],
         [py(TG + "TestTheWaitIsNotInAStopsWay::test_a_ws_edit_abort_from_another_client", "never 'Preempted'")]),
+    # (self-review before gate round 1: the comparison runs in a thread — its
+    # binding is judged AFTER it; a wait never raises for a committed write)
+    "the_binding_judged_before_the_comparison": (GW, [(
+        "            proof = await asyncio.to_thread(_tool_job_compare, job)\n"
+        "            if job.seq != _tool_write_seq:\n                job.outcome = \"superseded\"\n                return\n"
+        "            if _link is not job.link:\n                job.outcome = \"controller changed\"\n"
+        "                _trace.emit(\"tools.reload_controller_changed\", level=\"warn\", seq=job.seq)\n                return\n",
+        "            if job.seq != _tool_write_seq:\n                job.outcome = \"superseded\"\n                return\n"
+        "            if _link is not job.link:\n                job.outcome = \"controller changed\"\n"
+        "                _trace.emit(\"tools.reload_controller_changed\", level=\"warn\", seq=job.seq)\n                return\n"
+        "            proof = await asyncio.to_thread(_tool_job_compare, job)\n")],
+        [py(TG + "TestThePostWriteWait::test_a_controller_that_changes_during_the_comparison_confirms_nothing",
+            "never 'confirmed' by another controller's wait"),
+         py(TG + "TestThePostWriteWait::test_a_newer_write_during_the_comparison_supersedes", "judged after the comparison")]),
+    "a_failing_wait_raises": (GW, [(
+        "        job.outcome = \"failed\"\n        _trace.emit_exc(\"tools.reload_wait_failed\", e, seq=job.seq)\n",
+        "        job.outcome = \"failed\"\n        raise e\n")],
+        [py(TG + "TestThePostWriteWait::test_a_wait_that_fails_answers_no_error_for_a_committed_write",
+            "test_a_wait_that_fails_answers_no_error_for_a_committed_write")]),
+    "another_controller_never_pings": (GW, [(
+        "        if job.outcome != \"superseded\" and job.seq == _tool_write_seq:\n",
+        "        if job.outcome not in (\"superseded\", \"controller changed\") and job.seq == _tool_write_seq:\n")],
+        [py(TG + "TestThePostWriteWait::test_another_controller_ends_the_wait", "the ping goes")]),
     # ---- MT-TF1 --------------------------------------------------------------
     "no_basis_admission": (GW, [(
         "    why = _tool_edit_refusal(proof)\n    if why is not None:\n",
@@ -207,6 +230,14 @@ MUTS = {
         "const emptyText = computed(() => readView.value ? \"No tools in the table. Add tools manually or import a Fusion"
         " 360 or FreeCAD library.\" : TOOL_TABLE_NOT_READ);")],
         [pw(STATE_SPEC, "a partial read without rows is not 'No tools'")]),
+    "page_not_connected_while_connected": (PANEL, [(
+        "  reads.opened();\n  loading.value = true;\n  tableError.value = null;\n  setTimeout(fetchTools, FETCH_DELAY_MS);\n",
+        "  reads.opened();\n  setTimeout(fetchTools, FETCH_DELAY_MS);\n")],
+        [pw("a connection that opens", "connected again: the tab loads")]),
+    "page_a_close_keeps_the_rows": (PANEL, [(
+        "  loading.value = false;\n  tools.value = [];\n  readView.value = null;\n",
+        "  loading.value = false;\n  readView.value = null;\n")],
+        [pw("a connection that opens", "a closed connection's rows are gone")]),
     "page_a_failed_read_keeps_its_rows": (PANEL, [(
         "  tools.value = view.rows;\n",
         "  if (view.kind !== \"failed\") tools.value = view.rows;\n")],

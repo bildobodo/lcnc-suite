@@ -134,9 +134,16 @@ class TestTF1EveryCutIsNotComplete(unittest.TestCase):
 class TestAPermanentPartial(unittest.TestCase):
     """A named limit: a table that never reads complete keeps every edit
     refused (MT-TF1) — "read again" does not resolve it; a rewrite of the file
-    does (a G10 L1: io saves it whole; a full import; a line end added by
-    hand). The cases: LinuxCNC loaded a file without its final newline, a
-    line LinuxCNC skips (unread here), more tools than io holds."""
+    does (by hand and reloaded; a full import; a G10 L1 for the line end
+    alone: io saves it whole). The cases: LinuxCNC loaded a file without its
+    final newline, a tool number twice, a line LinuxCNC skips (unread here),
+    more tools than io holds."""
+
+    def test_a_tool_number_twice_stays_partial_whatever_linuxcnc_holds(self):
+        stat = (entry(-1), entry(1, Z=5), entry(1, Z=6), entry(2, Z=1))    # io loads both lines
+        _r, _u, proof = prove(b"T1 P1 Z5 ;\nT1 P2 Z6 ;\nT2 P3 Z1 ;\n", stat, None)
+        self.assertEqual((proof["state"], proof["proven"], proof["duplicates"]), ("partial", [2], [1]))
+        self.assertEqual(edit_basis_refusal(proof), EDIT_NOT_CONFIRMED, "the repairing delete too")
 
     def test_a_loaded_table_without_its_final_newline_stays_partial(self):
         mem = {1: {"D": 6.0}, 2: {"D": 4.0}}

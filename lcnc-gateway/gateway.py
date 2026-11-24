@@ -3357,9 +3357,10 @@ def get_tool_tbl_path() -> Optional[str]:
 # MT465-01: the REST import is no WS command, _preempt_inflight never reaches
 # it — a wait under the lock would hold every stop behind it). The job is
 # bound to its write (`seq`, the bytes, the Link): it writes nothing, a newer
-# job or another controller ends it without a word, and only the NEWEST job's
-# end bumps the table version — the ping that makes every client read again,
-# now that LinuxCNC shows what was written (or the bound ran out).
+# job ends it without a word, another controller ends it unproven (traced),
+# and only the NEWEST job's end bumps the table version — the ping that makes
+# every client read again. The ping claims no state: it goes however the
+# newest job ended, or nobody would read a committed edit.
 
 #: the bound of the post-write wait — COOPERATIVE: checked between
 #: STAT.tool_table calls (each in a thread); one call can wait on the mmap's entry
@@ -3383,7 +3384,8 @@ class _ToolWriteJob:
     reload_sent: bool
     scope: Optional[str]
     task: Optional[asyncio.Task] = None
-    outcome: Optional[str] = None   # confirmed / unconfirmed / not checked / reload not sent / superseded / controller changed
+    # confirmed / unconfirmed / not checked / reload not sent / superseded / controller changed / failed / cancelled
+    outcome: Optional[str] = None
 
 
 _tool_write_seq = 0
@@ -3508,12 +3510,15 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
     """The write job's wait: STAT.tool_table every TOOL_RELOAD_POLL_S until
     rule R finds the WRITTEN bytes complete against it (LinuxCNC loaded
     them), at most TOOL_RELOAD_WAIT_S (cooperative — see there). Bound to
-    its write: a newer write job or another controller ends it at once, and
-    it publishes nothing then; it never writes, reloads or replays a table.
-    Its end — confirmed, unconfirmed (traced with what differs), not
-    checkable (a random changer, a tool database, no reload sent) or a
+    its write, judged again after EACH comparison (a thread: a newer write or
+    another controller can come meanwhile): a newer write job ends it and it
+    publishes nothing; another controller ends it unproven. It never writes,
+    reloads or replays a table, and it never raises: the write is committed,
+    a wait that fails (traced) answers no error for it. Its end — confirmed,
+    unconfirmed (traced with what differs), not checkable (a random changer,
+    a tool database, no reload sent), another controller, a failure or a
     cancel — bumps the version once while it is the newest job: every client
-    reads the table LinuxCNC now shows."""
+    reads the table again (the ping claims no state)."""
     global _tool_table_version
     t0 = time.monotonic()
     proof: Optional[Dict[str, Any]] = None
@@ -3527,6 +3532,10 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
             return
         deadline = t0 + TOOL_RELOAD_WAIT_S
         while True:
+            # the STAT read and the comparison off the loop: a table of
+            # 1000 tools is a few ms of Python per poll (the GIL is shared —
+            # the loop gets its switch interval, never a whole poll's stall)
+            proof = await asyncio.to_thread(_tool_job_compare, job)
             if job.seq != _tool_write_seq:
                 job.outcome = "superseded"
                 return
@@ -3534,10 +3543,6 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
                 job.outcome = "controller changed"
                 _trace.emit("tools.reload_controller_changed", level="warn", seq=job.seq)
                 return
-            # the STAT read and the comparison off the loop: a table of
-            # 1000 tools is a few ms of Python per poll (the GIL is shared —
-            # the loop gets its switch interval, never a whole poll's stall)
-            proof = await asyncio.to_thread(_tool_job_compare, job)
             if proof["state"] == "complete":
                 job.outcome = "confirmed"
                 return
@@ -3549,6 +3554,9 @@ async def _confirm_tool_write(job: _ToolWriteJob) -> None:
                             extra=proof["extra"][:20])
                 return
             await asyncio.sleep(TOOL_RELOAD_POLL_S)
+    except Exception as e:  # noqa: BLE001 — named: the write is committed, its wait alone failed
+        job.outcome = "failed"
+        _trace.emit_exc("tools.reload_wait_failed", e, seq=job.seq)
     finally:
         if job.outcome is None:
             job.outcome = "cancelled"
