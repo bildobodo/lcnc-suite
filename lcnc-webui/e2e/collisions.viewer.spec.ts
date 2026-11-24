@@ -952,7 +952,9 @@ test("a finished idle Clear does not carry into a run from line: not checked, no
   const timeline = await page.locator(".scrubBar .sliderWrap").boundingBox();
   const { starts } = await activity(page);
   await ctl({ op: "quiet", on: true });
-  await enterRun(file, { run_id: 11, start_line: 3, version: 4311 }, 3, { joint_pos: [100, 25, -100, 0, 0], actual_position: [100, 25, -100, 0, 0] });
+  // as a run from line usually starts at this base: not verified, no pinned parse
+  await enterRun(file, { run_id: 11, start_line: 3, version: 4311, verified: false, why: "tool table changed" }, 3,
+                 { joint_pos: [100, 25, -100, 0, 0], actual_position: [100, 25, -100, 0, 0] });
   await expect(simLine(page)).toHaveText(/L3/);
   await expectNotChecked(page, 3, "the run's entry");
   expect((await activity(page)).starts, "no check began").toBe(starts);

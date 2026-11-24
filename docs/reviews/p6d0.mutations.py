@@ -18,6 +18,7 @@ S = WEB + "src/"
 GW = "lcnc-gateway/"
 SPEC = "e2e/collisions.viewer.spec.ts"
 UT_BASIS = "src/viewer/checkBasis.test.ts"
+UT_WORDS = "src/viewer/scrubBarWords.test.ts"
 PY_DISPATCH = "test_command_dispatch.py"
 
 
@@ -79,6 +80,11 @@ MUTS = {
         "      if (m.id !== _colReqId) return;  // superseded\n",
         "      if (m.id !== _colReqId && !m.result) return;  // superseded\n")],
         [pw(RUNNING, "a late reply: no check job, no result")]),
+    # ---- the bar's override: no result branch speaks for the run (after Codex R464's
+    # "overrides the old result branches"; the owner cleanup masks it in the browser)
+    "the_bar_speaks_for_the_run": (S + "ScrubBar.vue", [(
+        "  if (props.collisionRunNotChecked) return null;\n  const r = shownResult.value;\n", "  const r = shownResult.value;\n")],
+        [vt(UT_WORDS, "a run the check does not cover overrides every result branch")]),
     # ---- the lock-out is the COLLISION check's only: the program's marks stay
     # (a) every timeline mark goes with the check
     "the_marks_go_with_the_check": (S + "ScrubBar.vue", [(
