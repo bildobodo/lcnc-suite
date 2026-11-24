@@ -1604,6 +1604,9 @@
      "id": "control:ToolTablePanel.vue|MachineBtn:retry|@click=fetchTools"
     },
     {
+     "id": "control:ToolTablePanel.vue|MachineBtn:retry|@click=fetchTools#2"
+    },
+    {
      "id": "control:ToolTablePanel.vue|MachineBtn:toolDanger|@click=confirmDelete"
     },
     {

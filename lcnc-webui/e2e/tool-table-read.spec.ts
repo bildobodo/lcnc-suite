@@ -68,3 +68,48 @@ test("a reconnect reads the table again; the strip follows a changed table", asy
   await expect(reread.first()).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('[data-strip="tool"]')).toContainText("Five after reconnect");
 });
+
+// P6 tool files read (plan maschinentag.r465 v4 §6, Codex R465): the Tools
+// tab shows the read's proof — a partial read its rows with a note naming
+// the tools (neutral: never "is being written"), an unchecked read its rows
+// and why, a failed read no rows ("Tool table not read."), "No tools" only
+// for a complete read without rows.
+test("the read's proof: partial and unchecked name it, a failed read is not empty, 'No tools' only complete", async ({ page }) => {
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const tab = page.locator(".toolsTab");
+  const state = tab.locator("[data-read-state]");
+  const empty = tab.locator(".emptyState");
+  let version = 900;
+  const serve = async (reply: Record<string, unknown>) => {
+    await ctl({ op: "replyFor", cmd: "get_tool_table", reply });
+    await ctl({ op: "raw", frame: { type: "tool_table_changed", version: ++version } });
+  };
+  const PROOF = { proven: [], differs: [], missing: [], extra: [], duplicates: [] };
+
+  await serve({ ok: true, tools: [TOOL], proof: { ...PROOF, state: "partial", proven: [], differs: [{ T: 5, fields: ["Z"] }],
+                                                 missing: [7], why: "file incomplete or differs from LinuxCNC" },
+                unread: [{ line: 3, T: null }] });
+  await expect(state).toHaveText("File incomplete or differs from LinuxCNC — T5 differs; T7 missing in the file; line 3 not read.Retry");
+  await expect(state).not.toContainText("written");
+  await expect(tab.getByRole("button", { name: "Edit T5", exact: true }), "its rows show").toBeVisible();
+
+  await serve({ ok: true, tools: [], proof: { ...PROOF, state: "partial", missing: [5], why: "file incomplete or differs from LinuxCNC" } });
+  await expect(empty, "a partial read without rows is not 'No tools'").toHaveText("Tool table not confirmed.");
+
+  await serve({ ok: true, tools: [TOOL], proof: { ...PROOF, state: "unchecked", why: "random tool changer" } });
+  await expect(state).toContainText("Not checked against LinuxCNC — random tool changer.");
+  await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();
+
+  await serve({ ok: true, tools: [], proof: { ...PROOF, state: "unchecked", why: "controller not read" } });
+  await expect(empty).toHaveText("Tool table not checked.");
+
+  await serve({ ok: false, error: "Tool library not JSON (line 1) — check tool_library.json" });
+  await expect(tab.getByRole("alert").filter({ hasText: "Tool library not JSON" })).toBeVisible();
+  await expect(empty, "a failed read shows no rows, never an empty table").toHaveText("Tool table not read.");
+  await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toHaveCount(0);
+
+  await serve({ ok: true, tools: [], proof: { ...PROOF, state: "complete", why: null } });
+  await expect(empty).toHaveText(/^No tools in the table\./);
+  await expect(state).toHaveCount(0);
+});

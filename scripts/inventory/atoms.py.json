@@ -250,6 +250,9 @@
      "id": "ini:DISPLAY/WEBUI_SPINDLE_BEFORE_HOMING"
     },
     {
+     "id": "ini:EMCIO/DB_PROGRAM"
+    },
+    {
      "id": "ini:EMCIO/RANDOM_TOOLCHANGER"
     },
     {
