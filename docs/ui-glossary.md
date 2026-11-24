@@ -23,6 +23,10 @@ label, title or message follows this page. The CSS audit
 | A machine body contact found by the sweep | **Collision(s)** ("2 collisions", "No collision so far") | "clash" |
 | An unbound key or gamepad button | **None** | "Unassigned" |
 | The simulation's return to position 0 — the program's beginning (the timeline's ⏮) | **Back to start** | "Rewind", "Restart", "Go to start" |
+| A calibration's measured result before it is taken over | **Candidate**, **Apply** / **Discard** | "New offset", "Accept" |
+| The probe tip offset in use | **Calibration offset** (block), **Calibration Offset** (field label) | "cal offset", "tip offset" |
+| Where a saved value is | **On the machine · 05:12** / **Saved · the next probe writes it** / **machine value unknown** | "synced", "written" without its time |
+| An act not carried out | **Not applied: … / Not discarded: … / Not reset: … / Not saved: …** | "failed" |
 | Spindle direction | **Rev · Stop · Fwd** in this order (a preset: Rev · Off · Fwd) | FWD / REV |
 | The HAL browser (Settings tab) | **HAL** | "Halshow" |
 | The comments a CAM post writes at a program's start (its tool list, `(T13 D=1.875 …)`) | **program header** ("program header Ø 1.875" on the Check basis card) | "preamble", "program comment" |

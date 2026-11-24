@@ -92,6 +92,17 @@ The machine day's P4 has a run of its own: `native_run.py … --variant p4` — 
 observed outcome (`estop-reset`: resets with the chain closed, held open at `and2.0.in0`, closed
 again; the settle window against the measured transition) and a parse error's line on the real task
 (`error-line-*`: a tool the table lacks on line 8 — line 8 or none).
+P5's probe calibration has a run of its own: `native_run.py … --variant p5` — without a record a job
+that reads `#3032` is refused; Reset; a rect-boss calibration of the 3-axis sim's workpiece (a solid
+80 × 80 mm body for the control point: touched at 510 / 590 in X and Y, so the offset is half the probe
+tool's table diameter) offers its candidate and moves neither the record nor a planted `#3032`; Apply
+(record, interpreter, parameter file); the routine as upstream has it (`git show 6c78780c:…`, under a name
+of its own in the copy's program folder) measures the same and is warned about; an error and an abort in
+the measurement offer nothing, the next calibration still starts; a G20 refuses before any write. Judges:
+`eval_cal_*` (offline in `test_native_stage.py`). What the sim cannot show: a POCKET (the windows are
+solid bodies) — owed at the machine. The interpreter goldens (`test_cal_routines.py`) run `rs274` under a
+HOME of their own: it recreates `$HOME/.tool.mmap`, which a running LinuxCNC maps (2026-11-24: the first
+runs replaced the live sim's tool table).
 The `latch-sticky` row's display check follows the measurement contract (package 3b, Codex
 R375–R377): every frame from a baseline before the stop to right before the acknowledgement is recorded
 with its receipt, `trip_basis` and `safety_trip` (R378 VM-I19: the section's end is a mark taken together

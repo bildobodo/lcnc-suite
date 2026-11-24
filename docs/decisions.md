@@ -12021,3 +12021,24 @@ On the machine day the program's header said `(T13 D=1.875 …)` while the table
 - **The box grows only in this view, and only when needed.** It stays at its height while idle: `layout.spec`'s "parameters in place" holds in every viewport, and the gaps in this view are `--gap-controls` / `--gap-micro` so the idle block fits 368 px at touch. It grows while a candidate or an outcome note shows; the cells never move.
 - **One column for the sizes.** The two cell rows and their sizes form one grid: Diameter and X / Y Width share one label / "?" / field / unit column across both rows (subgrid), whatever their labels' widths.
 - **Narrow pane.** Where the pane cannot hold cells and sizes side by side, a container query (≤ 380 px) puts the sizes under the cells and "Calibrate On" over its choices. A two-part line (offset · machine state, candidate · its basis) breaks between its parts there, never after a dangling "·". The view no longer runs out sideways at the 150 % narrow pane: it used to put 356 CSS px of content into 272; now it measures 0 px of overflow in every state.
+
+## 2026-11-24 — The calibration candidate and the field states (P5 step 2; plan v6, Codex R444; operator 2026-11-23/24)
+
+Built to the plan's contract (the routines, the run token, the drain proof, the record and its migration, the two-step Apply, the chunk states by the begin hook, the probe booking, the per-field change ids). What is decided here, beyond or against its text:
+
+**The operator over the plan.** Disarmed controls are simply inactive: a refusal for the writer's arm is never a refused field — an entry that met a disarm in its 300 ms stays a DRAFT (amber) on a greyed field, no red bar and no reason about arming. An Apply / Discard / Reset that was not carried out stands in its own row's second part. No text under a field; the plan's text table (P5-2 c) becomes ONE section line in the short "state · consequence" form: "On the machine · 05:12", "Saved · the next probe writes it", "Partly on the machine · the next probe writes it", "Saved · machine value unknown", "Not saved: …", and "Defaults · the next probe writes them" while the server holds no section ("Saved" would be a false claim there). The plan's "Writing to the machine…" is not built for the parameters: the edited field is a draft for exactly that moment; the calibration's own `write_pending` is. The line compares the HELD values (the renderings), a field with a bar is no part of it — so a draft uses no old proof.
+
+**One counter file, one entry per INI.** The plan's `{"next", "ini"}` with the INI's name compared would have refused the second profile of one folder for good, and the shipped example keeps three. `lcnc-suite-cal-runs.json` maps each INI's name to its own `next`; every check of the plan holds per entry, a run of one INI's instance cannot reach another's (a new LinuxCNC, a new error channel).
+
+**An error left standing is no dead end.** LinuxCNC keeps `RCS_ERROR` in the status until the next command of any kind (emctaskmain.cc `taskPlanError`); the proof demands `RCS_DONE`. A calibration after a failed one sends its own switch to MDI first, then asks.
+
+**The machine outcome is derived, not stored.** The record's `machine` is computed from the booking of `#3032` (one truth, whoever wrote it) and lives with the process: a stored "taken" would claim another LinuxCNC's value after a restart — a fresh process says "the next probe writes it", which holds.
+
+**A routine's proven effect needs content identity.** `probe_routines.py` holds the sha256, the assigned keys and the callees of every bundled probe routine; the interpreter's own lookup must find exactly those bytes, and the configuration's remaps must be readable for them — else the call makes every probe key unknown. `reset_interpreter` re-reads the parameter file (Interp::init): every key unknown.
+
+**The bar's amber per theme** (`--field-draft`): `--warn` sits at 1.9 : 1 on the light field; light `#c47800` (3.3), hc-light `#b86f00` (3.6), dark `#f5a623`, hc-dark `#ffcc00`. The renderings showed `--warn`.
+
+**The `set_params` unit check** covers the probing purposes only: the toolsetter's values are no probing form.
+
+**Named limits.** A candidate does not outlive the gateway process; an abort by another NML client leaves no evidence beyond the missing result; a write the gateway does not see is not booked; after any program start the parameters' line says "machine value unknown" until the next probe (or a confirmed read-back). The sim has no pocket: the pocket calibrations ran only on the interpreter's goldens.
+

@@ -657,9 +657,9 @@ named exception, an older page's `mdi` with `vars` included (R336).
   interpreter — a switch that went off between the dispatch and the write
   stops the line (`test_feature_switches.TestTheJobs`).
 - **The jobs**: `probe_run {routine, vars}` — the routine one of the
-  subroutine path's `probe_*` files; a routine that reads no panel values
-  (`PARAMLESS_PROBE_ROUTINES`: `probe_cal_reset`) takes exactly an empty set
-  (R343 SS-I08); `surface_scan_run {vars}`;
+  subroutine path's `probe_*` files, always with its values
+  (`probe_cal_reset` is not run: Reset is the gateway's own `cal_reset`, P5);
+  `surface_scan_run {vars}`;
   `tool_measure {tool}` / `tool_unload_measure` — the values the SERVER's
   confirmed toolsetter section (`_toolsetter_basis`, P2), never the page's;
   not set up, nothing starts. Each carries the `#3116` clear like every
@@ -685,6 +685,90 @@ named exception, an older page's `mdi` with `vars` included (R336).
   helper), a command or route marked switched is the gateway's under that
   switch, and every one the gateway switches is claimed so
   (`functions.feature_problems`).
+
+### The probe calibration and the probing parameters (P5, plan v6, Codex R439–R444)
+
+- **What it replaced.** The bundled calibrations zeroed `#3032` at their start
+  and wrote the new offset at their end; every page took any `cal_offset`
+  message and saved its whole form. An aborted calibration left a machine
+  probing with 0, a late message of run A became run B's, and a page with an
+  old draft brought an old offset back.
+- **The record.** The active offset is the machine section
+  `probeCalibration` `{value, unit, state, rev, at, source}` — written by the
+  gateway alone (`settings_store.GATEWAY_SECTIONS`, every client save refused
+  "Set by Apply or Reset"). One migration per INI, one write under the
+  store's lock: `probe.calOffset` with the DECLARED legacy unit (`[TRAJ]
+  LINEAR_UNITS`; unreadable = unit unknown, the value goes nowhere), no finite
+  old value = `state: "none"`. The probe section loses the key on every save
+  (`settings.probe_cal_offset_dropped`).
+- **`#3032` has one writer.** No page's set may carry it
+  (`command_policy.GATEWAY_VARS`, every mapping; no purpose holds it). A
+  probing job whose routine reads `#3032` (`probe_book.routine_reads_offset`;
+  a file that is not the bundled one reads it) gets the active value from the
+  record; none, no unit or another unit refuses by name. A hand-typed MDI line
+  is the named exception: the booking turns unknown, the next probe writes the
+  record's value again.
+- **The unit.** A probing, calibration or scan job and a `set_params` of their
+  purposes need the interpreter's program unit (`STAT.program_units`) to be the
+  form's (the machine's): `_probe_unit_refusal`, at the mode switch, every
+  chunk and the call — never converted.
+- **The run** (`cal_runs.py`). A token per run, reserved on the disk BEFORE
+  anything is sent (`lcnc-suite-cal-runs.json` in the INI's folder, one entry
+  per INI name — the shipped example keeps three profiles in one folder; a
+  strict read: an integer 1 … 9 999 999 + 1, "used up" and "unreadable" are
+  named refusals; fsync of file and folder). It travels `CALL [n]` → `#1` →
+  `#1014` and comes back in ONE line `(DEBUG, LCNC_CAL_CANDIDATE run= value=
+  axis=)`, which the poller consumes and takes only as an exact integer of its
+  range (the interpreter prints `%lf`; at `#5599 = 0` it prints nothing:
+  "no result was reported"). Before the reservation the DRAIN PROOF: a status
+  cycle that BEGAN after the question shows the controller at rest (RCS DONE,
+  idle, no queued MDI, execution done, no open start claim) and then reads the
+  same Link's error channel to an actually empty poll (≤ 20 × 50 messages /
+  500 ms, `status_runtime.read_errors(drain=)` — its own result field: no
+  channel and a failed read give an empty list too). An interpreter error
+  stays in the status until the next command (`taskPlanError`), so a
+  calibration after one first sends the job's own switch to MDI — else the
+  strict rest would never come. No proof: "Earlier run not settled — wait and
+  calibrate again".
+- **The candidate** needs, for the SAME token on the SAME Link: the written
+  call, the proven start, the result, and the clean end — `controller_done`
+  and then the drained channel without an error, no abort, E-Stop or power off
+  booked (`note_end_of_machine`, right before those writes). Any other end
+  offers nothing and says why (`stale`); the record changed since the start →
+  not offered either. A new call supersedes an open candidate at its BEGIN.
+- **Apply / Discard / Reset** (`cal_apply {run, value}`, `cal_discard {run}`,
+  `cal_reset`): one decision under `_cal_lock` (inside `_cmd_lock`). Apply: the
+  record first — admitted inside the store's lock by the connection armed NOW,
+  the probing switch, the candidate, its Link and the record's revision
+  (`_cal_commit_admit`; it must not call back into the store) —, then `#3032`
+  through `_apply_probe_vars_detail` with its own admission. Stored = applied,
+  whatever follows ("Already applied" from then on); a refusal of the store
+  leaves the result open. A cancel waits for the write under way
+  (`_thread_to_end`) and books what it did.
+- **Chunk states.** `_apply_probe_vars_detail` returns per parameter chunk
+  `not_written` (refused before its begin hook, or never tried),
+  `written_unknown` (the hook ran, no proven end) or `taken`; the mode switch
+  books none. The machine's outcome of the active offset is DERIVED from the
+  booking of `#3032` (`probe_book.machine_outcome`) and lives with the process:
+  a stored "taken" would claim another LinuxCNC's value after a restart.
+- **The probe booking** (`probe_book.py`, status `probe_booking`): per key of
+  #3014–#3036 and #3050–#3059 the last `applied` / `read` / `unknown` with its
+  Link, plus the value of a write refused before its begin. Every text the
+  gateway sends is classified in `_cmd_blocking` and takes effect in the
+  write's own thread at its BEGIN, never at a refusal: the keys it provenly
+  writes (`param_assigned_keys`, the toolsetter's reader over a key range, the
+  remapped bodies included), none, or ALL — a computed target, a call into
+  another file, a program start, a re-initialised interpreter. A routine the
+  gateway calls itself has a PROVEN set only where the interpreter's own lookup
+  finds exactly the bundled file and its callees (sha256,
+  `probe_routines.py`, generated — a changed assignment fails
+  `test_probe_book`). Restored only by the next own write or a confirmed
+  synch-read (the toolsetter's read-back feeds both books). Another Link =
+  unknown. Named limits: writes the gateway does not see (another NML client,
+  halcmd, a custom `ON_ABORT_COMMAND`).
+- **Delivery.** `probe_calibration`, `cal_candidate` and `probe_booking` ride a
+  connection's first frame and every change; a candidate does not outlive the
+  gateway process.
 
 ### The connection: one Link (package 2b, plan vor-maschine R352/R353 VM352-02)
 
