@@ -17,3 +17,14 @@ Run B (the spec exactly as committed in 64765f4e - before the frame sampler's fi
 
 The counter-controls hold at the base (today's behaviour kept); every red is F11's view or F10's missing button.
 Logs: ~/claude-work/p6/p6b/base-4eda3892-scrub-start.log (A); B: ~/claude-work/p6/p6b/base-4eda3892-scrub-start-runB.log.
+
+2026-11-24, Codex R458 (MT-I32, MT-I33): the new guards on d2c846b5's product code - commit cb748d57 (the guards
+only, the product unchanged), the page built from this worktree, Chromium, 3 workers, -g "Codex R458":
+  desktop: without an entry move, Back to start at 0 ...       red at "Back to start at 0: the first point's line marked and in view" (MT-I32; expected "302", the predicate read null: line 302 not in view)
+  touch-fullhd: without an entry move, Back to start at 0 ...  red at the same assertion (MT-I32)
+  desktop: the lines untrusted as a whole ...                 red at "timeline → 0, lines untrusted: the program's top" (MT-I33; "at the start", "the middle: no line" and "a null in the middle keeps the view" GREEN before it)
+  touch-fullhd: the lines untrusted as a whole ...            red at the same assertion (MT-I33)
+  with an entry move: ... during playback (Codex's positive probe)   GREEN (the behaviour was right; kept as a guard)
+  counter-controls (Codex R458): no entry move with untrusted lines, a text not the preview's publication   GREEN (the behaviour kept)
+After the fix (97508427, built the same way): 6 of 6 green.
+Logs: ~/claude-work/p6/p6b-fix/base-cb748d57.log, ~/claude-work/p6/p6b-fix/fix-r458.log.

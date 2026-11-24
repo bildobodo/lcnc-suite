@@ -100,6 +100,34 @@ MUTS = {
     "the_link_beside_back": (S + "ScrubBar.vue", [(
         "  .simTabLink { display: none; }\n", "  .simTabLink { order: 1; margin-left: auto; }\n")],
         [pw("every bar form", "the link only in one row")]),
+    # ---- Codex R458 (2026-11-24): MT-I32 - Back to start on a track WITHOUT an entry move
+    # (position 0 = the first point, line 302) travels as its own press number; MT-I33 - the
+    # start is gated by the text/preview identity alone, never the motion's line trust
+    # (a) the press acts only on a line change - the d2c846b5 behaviour (a press at 0 is lost)
+    "no_entry_return_only_on_a_line_change": (S + "GcodePanel.vue", [(
+        "  if (back != null && back !== oldBack) scrollToRow(rowForMain(line, expansion.value), true);\n",
+        "  if (back != null && back !== oldBack && line !== oldLine) scrollToRow(rowForMain(line, expansion.value), true);\n")],
+        [pw("desktop: without an entry move, Back to start at 0", "Back to start at 0: the first point's line marked and in view")]),
+    # (b) the start held back by the motion's line trust again (App before R458)
+    "start_gated_by_line_trust": (S + "App.vue", [(
+        '              :scrubStart="gcodeLinesBound ? scrubStart : null"\n',
+        '              :scrubStart="linesUntrusted || !gcodeLinesBound ? null : scrubStart"\n')],
+        [pw("desktop: the lines untrusted as a whole", "timeline → 0, lines untrusted: the program's top")]),
+    # (c) the start passed whatever text is on screen (no identity check)
+    "start_without_the_identity": (S + "App.vue", [(
+        '              :scrubStart="gcodeLinesBound ? scrubStart : null"\n',
+        '              :scrubStart="scrubStart"\n')],
+        [pw("counter-controls (Codex R458)", "entering at the start keeps the view")]),
+    # (d) the no-entry press jumps to line 1 instead of the first point's line
+    "no_entry_return_to_line_1": (S + "GcodePanel.vue", [(
+        "  if (back != null && back !== oldBack) scrollToRow(rowForMain(line, expansion.value), true);\n",
+        "  if (back != null && back !== oldBack) showProgramStart();\n")],
+        [pw("desktop: without an entry move, Back to start at 0", "Back to start at 0: the first point's line marked and in view")]),
+    # (e) a press whose first line the trust gate holds back falls back to the top
+    "untrusted_first_point_to_the_top": (S + "GcodePanel.vue", [(
+        "  if (line == null || editing.value) return;\n  if (back != null && back !== oldBack)",
+        "  if (line == null || editing.value) { if (line == null && back != null && back !== oldBack) showProgramStart(); return; }\n  if (back != null && back !== oldBack)")],
+        [pw("counter-controls (Codex R458)", "Back to start keeps the view (no line 1, nothing marked)")]),
 }
 
 
