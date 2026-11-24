@@ -616,7 +616,7 @@ class TestStartAfterPreparation(_Handlers):
         self.cmd.auto=auto  # the real method name selects the real start path
         saved_claims=list(gateway._source_claims)
         self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), saved_claims))
-        async def capture():
+        async def capture(*_a,**_k):
             self.now.update(kins_type=2.0,twp_active=False)
             return None
         with patch.object(gateway,'_begin_run_basis',capture), \
