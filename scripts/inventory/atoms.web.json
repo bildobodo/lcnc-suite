@@ -951,7 +951,7 @@
      "id": "control:ProbePanel.vue|MachineBtn:surfaceScan|@click=runSurfaceScan"
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams(f.key) v-model.number=params[f.key]",
      "family": [
       "f in PROBE_HINT_FIELDS.boss"
      ],
@@ -962,7 +962,7 @@
      ]
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#2",
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams(f.key) v-model.number=params[f.key]#2",
      "family": [
       "f in PROBE_HINT_FIELDS.angle"
      ],
@@ -971,7 +971,7 @@
      ]
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#3",
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams(f.key) v-model.number=params[f.key]#3",
      "family": [
       "f in [CAL_ROUND_FIELD]"
      ],
@@ -980,7 +980,7 @@
      ]
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#4",
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams(f.key) v-model.number=params[f.key]#4",
      "family": [
       "f in CAL_RECT_FIELDS"
      ],
@@ -990,7 +990,7 @@
      ]
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#5",
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams(f.key) v-model.number=params[f.key]#5",
      "family": [
       "f in PROBE_HINT_FIELDS.ridge"
      ],
@@ -1000,7 +1000,7 @@
      ]
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#6",
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams(f.key) v-model.number=params[f.key]#6",
      "family": [
       "f in PROBE_COMMON_FIELDS"
      ],
@@ -1018,7 +1018,7 @@
      ]
     },
     {
-     "id": "control:ProbePanel.vue|MachineInput:scanParam|@change=saveParams v-model.number=params[f.key]",
+     "id": "control:ProbePanel.vue|MachineInput:scanParam|@change=saveParams(f.key) v-model.number=params[f.key]",
      "family": [
       "f in SCAN_FIELDS"
      ],
@@ -2654,6 +2654,10 @@
      ]
     },
     {
+     "id": "cmd:cal_reset",
+     "members": []
+    },
+    {
      "id": "cmd:capture_g30",
      "members": []
     },
@@ -3331,9 +3335,6 @@
      "id": "setting:probe.calDiameter"
     },
     {
-     "id": "setting:probe.calOffset"
-    },
-    {
      "id": "setting:probe.diameterHint"
     },
     {
@@ -3781,12 +3782,6 @@
     },
     {
      "id": "routine:probe_back_top_side",
-     "members": [
-      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
-     ]
-    },
-    {
-     "id": "routine:probe_cal_reset",
      "members": [
       "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]

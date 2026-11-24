@@ -11,7 +11,7 @@ import { installReleaseClick } from './releaseClick'
 import { initFlashClock } from './flashClock'
 import { startClientDiag } from './clientDiag'
 
-const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels", "macroBar", "simulation", "features"];
+const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels", "macroBar", "simulation", "features", "probeCalibration"];
 
 async function bootstrap() {
   initTouchDetect();

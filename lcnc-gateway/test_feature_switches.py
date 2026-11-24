@@ -60,7 +60,14 @@ class TestTheSection(unittest.TestCase):
                 features.validate_features(bad)
 
     def test_the_purposes_are_their_own_sets(self):
-        self.assertIsNone(features.purpose_refusal("probe", ["3014", "3036"]))
+        self.assertIsNone(features.purpose_refusal("probe", ["3014", "3031", "3033", "3035"]))
+        # a calibration adds its axis choice — a probe has none of it (P5)
+        self.assertIsNone(features.purpose_refusal("calibration", ["3014", "3036"]))
+        self.assertIn("not a probe parameter", features.purpose_refusal("probe", ["3036"]))
+        # the probe tip offset belongs to no purpose: the gateway's (P5-1 c)
+        for purpose in features.PURPOSE_VARS:
+            self.assertEqual(features.purpose_refusal(purpose, ["3032"]),
+                             "The calibration offset is set by Apply or Reset", purpose)
         self.assertIsNone(features.purpose_refusal("surface", ["3050", "3059", "3014", "3021"]))
         self.assertIsNone(features.purpose_refusal("toolsetter", ["3004", "3013", "3100", "3115"]))
         self.assertIn("not a probe parameter", features.purpose_refusal("probe", ["3014", "3050"]))
@@ -196,6 +203,16 @@ class TestEachSwitch(_Store, unittest.TestCase):
         self.addCleanup(p.stop)
         self.hal = []
         p = unittest.mock.patch.object(gateway, "_hal_send", lambda m: (self.hal.append(m), True)[1])
+        p.start()
+        self.addCleanup(p.stop)
+        # the form's unit and the interpreter's program unit (P5-1 c): both mm
+        p = unittest.mock.patch.object(gateway, "_declared_linear_unit", lambda: "mm")
+        p.start()
+        self.addCleanup(p.stop)
+        current().stat.program_units = 2
+        # the probe routine is the bundled one and reads no #3032 (_routine_facts'
+        # own tests: test_cal_gateway)
+        p = unittest.mock.patch.object(gateway, "_routine_facts", lambda name: (frozenset(), False))
         p.start()
         self.addCleanup(p.stop)
 
@@ -372,22 +389,27 @@ class TestTheJobs(_Store, unittest.TestCase):
         self.assertIn("bytes", r["error"])
         self.assertEqual(self.cmd.calls, [], "no clear, no values, no mode switch")
 
-    def test_the_calibration_reset_runs_without_values_and_only_it(self):
-        # Codex R343 SS-I08: the button's job ({routine: probe_cal_reset,
-        # vars: {}}, recorded by the browser) was refused "Missing vars dict"
-        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": {}})
-        self.assertTrue(r["ok"], r)
-        self.assertEqual(self.mdis(), ["#3116=0.000000", "O<probe_cal_reset> CALL"])
-        # it takes no values; every other routine needs its own
-        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": {"3032": 0}})
-        self.assertEqual(r["error"], "probe_cal_reset takes no values — reload the page")
+    def test_the_calibration_reset_routine_is_not_run(self):
+        # P5-1 c: Reset is the gateway's own command (cal_reset) — the bundled
+        # routine would zero #3032 behind the active record
+        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": self.PROBE})
+        self.assertEqual(r["error"], "The calibration offset is set by Apply or Reset")
         r = self._send({"cmd": "probe_run", "routine": "probe_z_minus_wco", "vars": {}})
         self.assertEqual(r["error"], "Missing vars dict")
-        self.assertEqual(self.mdis(), ["#3116=0.000000", "O<probe_cal_reset> CALL"])
-        # and the switch holds it like every probe routine
+        self.assertEqual(self.mdis(), [])
+        # and the switch holds every one of them
         self.put("features", off("probing"))
-        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": {}})
-        self.assertEqual(r["error"], "Probing is off — Settings › Features")
+        for msg in ({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": self.PROBE}, {"cmd": "cal_reset"}):
+            self.assertEqual(self._send(msg)["error"], "Probing is off — Settings › Features", msg)
+
+    def test_an_offset_from_the_page_is_refused_for_every_purpose(self):
+        for msg in ({"cmd": "probe_run", "routine": "probe_z_minus_wco", "vars": {**self.PROBE, "3032": 0.05}},
+                    {"cmd": "probe_run", "routine": "probe_cal_round_pocket", "vars": {**self.PROBE, "3032": 0.05}},
+                    {"cmd": "surface_scan_run", "vars": {**self.SCAN, "3032": 0}},
+                    {"cmd": "set_params", "sets": {"probe": {"3014": 99, "3032": 0.05}}},
+                    {"cmd": "mdi", "text": "G0 X1", "vars": {"3032": 0.05}}):
+            self.assertEqual(self._send(msg), {"ok": False, "error": "The calibration offset is set by Apply or Reset"}, msg)
+        self.assertEqual(self.mdis(), [])
 
     def test_measuring_takes_the_servers_toolsetter_section(self):
         r = self._send({"cmd": "tool_measure", "tool": 5})

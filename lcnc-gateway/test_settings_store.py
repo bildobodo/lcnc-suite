@@ -146,6 +146,69 @@ class TestClassification(unittest.TestCase):
         self.assertTrue(section_needs_arm("nonsense"))
 
 
+class TestTheGatewaysOwnSection(_Base):
+    """The active probe calibration (P5-1 c): the gateway alone writes it."""
+
+    def admit(self, *_a):
+        return None
+
+    def test_every_client_save_is_refused(self):
+        from settings_store import GATEWAY_SECTIONS
+        self.assertEqual(GATEWAY_SECTIONS, {"probeCalibration"})
+        self.assertTrue(GATEWAY_SECTIONS <= MACHINE_SECTIONS)
+        for kw in ({}, {"device": "x"}):
+            with self.assertRaisesRegex(PermissionError, "^Set by Apply or Reset$"):
+                self.store.save_section("probeCalibration", {"value": 1}, base_rev=0, writer="w", **kw)
+        self.assertIsNone(self.store.calibration())
+        self.assertFalse(self.path.exists())
+
+    def test_the_probe_section_loses_the_key_on_every_save(self):
+        dropped = []
+        s = SettingsStore(self.path, lambda: "ini-A", on_dropped=lambda *a: dropped.append(a))
+        s.save_section("probe", {"slowFr": 5, "calOffset": 0.2}, base_rev=0, writer="w")
+        self.assertEqual(s.load()["probe"], {"slowFr": 5})
+        self.assertEqual(dropped, [("probe", "calOffset")])
+        self.assertIsNone(s.calibration(), "a save migrates nothing")
+
+    def test_the_migration_is_one_write_and_happens_once(self):
+        self.path.write_text(json.dumps({"ini-A": {"probe": {"calOffset": 0.2, "slowFr": 5}},
+                                         "ini-B": {"probe": {"calOffset": 0.9}}}))
+        with patch("settings_store.atomic_write_bytes", side_effect=OSError(errno.ENOSPC, "full")):
+            with self.assertRaises(OSError):
+                self.store.migrate_calibration("mm")
+        self.assertIsNone(self.store.calibration())
+        self.assertEqual(self.store.load()["probe"], {"slowFr": 5, "calOffset": 0.2}, "all or nothing")
+        rec, made = self.store.migrate_calibration("mm")
+        self.assertTrue(made)
+        self.assertEqual({k: rec[k] for k in ("value", "unit", "unit_basis", "state", "rev")},
+                         {"value": 0.2, "unit": "mm", "unit_basis": "declared_legacy", "state": "active", "rev": 1})
+        self.assertEqual(self.store.load()["probe"], {"slowFr": 5})
+        self.assertEqual(self.store.view_for(None)["revs"]["probe"], 1, "the section changed")
+        self.assertEqual(self.store.migrate_calibration("in"), (rec, False))
+        self.assertEqual(json.loads(self.path.read_text())["ini-B"], {"probe": {"calOffset": 0.9}}, "another INI's is its own")
+        self.assertEqual(SettingsStore(self.path, lambda: "ini-A").calibration(), rec)
+
+    def test_a_write_s_admission_decides_under_the_lock(self):
+        self.store.migrate_calibration("mm")
+        seen = []
+        rec = self.store.write_calibration({"value": 0.1, "unit": "mm", "state": "active"},
+                                           lambda r, f: seen.append((r["rev"], r["state"], f["probing"])))
+        self.assertEqual((seen, rec["rev"], rec["value"]), ([(1, "none", True)], 2, 0.1))
+
+        def refuse(_r, _f):
+            raise PermissionError("Not armed — press Arm")
+        v = self.store.version
+        with self.assertRaises(PermissionError):
+            self.store.write_calibration({"value": 0.5}, refuse)
+        self.assertEqual((self.store.calibration(), self.store.version), (rec, v))
+
+    def test_a_client_sees_it_with_the_machine_s_sections(self):
+        self.store.write_calibration({"value": 0.1, "unit": "mm", "state": "active"}, self.admit)
+        view = self.store.view_for(None)
+        self.assertEqual(view["settings"]["probeCalibration"]["value"], 0.1)
+        self.assertEqual(view["revs"]["probeCalibration"], 1)
+
+
 class TestMigration(_Base):
     def schema1(self):
         self.path.write_text(json.dumps({"ini-A": {

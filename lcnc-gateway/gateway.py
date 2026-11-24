@@ -17,13 +17,15 @@ import contextlib
 import copy
 import itertools
 import contextvars
+import functools
 import threading
 from pathlib import Path
 import linuxcnc
 
 from dataclasses import dataclass
 from dataclasses import replace as _dc_replace
-from typing import Any, AsyncIterator, Callable, Concatenate, Dict, Iterator, List, Literal, Optional, ParamSpec, Tuple
+from typing import (Any, AsyncIterator, Callable, Concatenate, Dict, FrozenSet, Iterator, List, Literal, Optional,
+                    ParamSpec, Tuple, Union)
 from fastapi.staticfiles import StaticFiles
 import re
 from urllib.parse import urlsplit
@@ -104,7 +106,7 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift, evaluate_start_drift,
-    TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
+    TOOLSETTER_BASIS_KEYS, param_assigned_keys, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
     controller_done,
     toolsetter_inputs_equal,
     RemapEnv, resolve_subroutine_dirs,
@@ -140,6 +142,9 @@ from settings_store import (SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SEC
                             DEVICE_SECTIONS as _DEVICE_SECTIONS, Stale as _SettingsStale,
                             UnknownDevice as _UnknownDevice)
 import features as _features
+from cal_runs import (CAL_ROUTINES, COUNTER_FILE, NOT_SETTLED, CalRun, CalState, CounterError, Cycle, DrainRequest,
+                      WHY_ABORT, WHY_ESTOP, WHY_OFF, reserve_run, size_of)
+from probe_book import OFFSET_KEY, PROBE_KEYS, ProbeBook, machine_outcome, routine_effect, routine_reads_offset
 import jog_lease as _jog_lease_mod
 from jog_lease import LeaseTable as _LeaseTable, JOG_LEASE_DEAD, JOG_LEASE_FOREIGN_LINK
 import status_runtime as _status_runtime_mod
@@ -1747,7 +1752,6 @@ _PROBE_WIDGET_MAP = {
     "averaged_diam":           "diameter",
     "edge_delta":              "edge_delta",
     "edge_angle":              "edge_angle",
-    "calibration_offset_3032": "cal_offset",
 }
 
 _PROBE_EVAL_RE = re.compile(
@@ -1768,7 +1772,7 @@ async def _status_poller():
     """
     global _shared_status, _published, _errors_total
     global _status_gen, _reconnect_fails, _shared_timing
-    global _status_event
+    global _status_event, _poll_cycle
     loop = asyncio.get_event_loop()
     _poll_fails = 0
     _last_pid_check = 0.0
@@ -1847,6 +1851,7 @@ async def _status_poller():
             # between GIL switches during that time. asdict() runs in the
             # same hop so StatusPayload serialisation stays off the event
             # loop too.
+            _poll_cycle += 1                 # (P5: a drain request is answered by a cycle that began after it)
             t0 = time.monotonic()
             polled_link = current_link()     # the Link this poll reads (VM-I09)
             _set_phase("status_poller.poll_and_serialize")
@@ -1860,7 +1865,17 @@ async def _status_poller():
             # NML read; running it inline on the main thread blocks the
             # event loop in the same way STAT.poll does. Move it to the
             # default executor so heartbeat / WS sends can interleave.
-            raw_errs = await loop.run_in_executor(None, read_errors_nonblocking)
+            # The calibration's proofs (P5, plan v6): the controller's fields
+            # of THIS poll, then the channel of the SAME Link — read until it
+            # is empty when a calibration start asks for it or an open run may
+            # be through (status_runtime.read_errors; the poller is the one
+            # reader).
+            cal_fields = _cal_fields(polled_link)
+            err_chan = polled_link.err if polled_link is not None else _err_now()
+            raw_errs, not_drained = await loop.run_in_executor(None, functools.partial(
+                _status_runtime.read_errors, err_chan, drain=_cal_wants_drain(cal_fields, polled_link)))
+            await _cal_migrate_once()
+            raw_errs = _cal_status_cycle(t0, polled_link, cal_fields, st.estop, st.enabled, raw_errs, not_drained)
             t2 = time.monotonic()
             _set_phase("status_poller.post_poll")
             _poll_fails = 0
@@ -3518,7 +3533,9 @@ def _settings_load_error(e: Exception) -> None:
 # current-INI key (_current_ini_path → STAT) is injected. Thin wrappers below
 # keep the existing call sites stable.
 _settings_store = SettingsStore(SETTINGS_PATH, _current_ini_path,
-                                on_load_error=_settings_load_error)
+                                on_load_error=_settings_load_error,
+                                on_dropped=lambda section, key: _trace.emit(
+                                    "settings.probe_cal_offset_dropped", level="warn", section=section, key=key))
 
 
 def load_settings() -> dict:
@@ -4408,11 +4425,21 @@ class _WriteRefused(PermissionError):
     the manual commands): the reply says why, nothing was written."""
 
 
+class _ByText:
+    """The default of _cmd_blocking's `probe_effect`: the line's own text
+    decides (never a set — None means "any")."""
+
+
+_BY_TEXT = _ByText()
+
+
 async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD_WAIT_TIMEOUT,
                         claim: Optional["_StartClaim"] = None,
                         admit: Optional[Callable[[], Optional[str]]] = None,
                         written: Optional[Callable[[], None]] = None,
-                        began: Optional[Callable[[], Any]] = None) -> int:
+                        began: Optional[Callable[[], Any]] = None,
+                        probe_effect: Union[_ByText, Optional[FrozenSet[int]]] = _BY_TEXT,
+                        probe_job: Optional[str] = None) -> int:
     """Run one command on the Link `conn` + optional wait_complete() on a
     worker thread (package 2b: the admission, the write, the serial the claim
     books and every wait slice belong to `conn`; a write whose Link is no
@@ -4465,6 +4492,13 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     it pending — its effect unknown; a returned write books the serial the
     NML buffer gave it. `written` keeps its job after the write.
 
+    The PROBE booking (P5-2 b, plan v6): what the text may write of the
+    probing parameters becomes unknown at the same begin — before its
+    possible effect, never at a refusal. An MDI line is classified by its
+    text (param_assigned_keys), a program start may write any, a
+    re-initialised interpreter reads the parameter file again (any);
+    `probe_effect` states the PROVEN set of a routine the gateway calls.
+
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
 
     An MDI line LinuxCNC would not take as ONE command (a NUL, not UTF-8,
@@ -4489,15 +4523,21 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
     in_class = input_write_class(command.name, args, _TASK_MODES)
     in_action = _current_action.get() if in_class else None
     kind = _start_kind(command.name, args)
+    touches_probe = kind is not None or command.name == "reset_interpreter"
+    probe_keys: Optional[FrozenSet[int]] = None
     if kind:
+        text = str(args[0]) if args and kind == "mdi" else ""
+        env = _remap_env() if kind == "mdi" else None
+        if env is not None:
+            probe_keys = (param_assigned_keys(text, env, PROBE_KEYS)
+                          if isinstance(probe_effect, _ByText) else probe_effect)
         # A start may write the toolsetter's values (M600 plan section 2,
         # Codex R105 VP-I60): booked here — every MDI line and every AUTO
         # run / step / resume passes this one place — and BEFORE the command
         # can reach the interpreter, so neither a cancel nor a timeout after
         # the write skips it (it was booked after the await, on four of five
         # paths). A command that never went out costs only a confirmation.
-        _ts_mark_assumed(toolsetter_assigned_keys(str(args[0]) if args else "", _remap_env())
-                         if kind == "mdi" else _ts_program_writes())
+        _ts_mark_assumed(toolsetter_assigned_keys(text, env) if env is not None else _ts_program_writes())
     run_basis = None
     if kind == "auto" and args and args[0] in (getattr(linuxcnc, "AUTO_RUN", None),
                                                getattr(linuxcnc, "AUTO_STEP", None)):
@@ -4549,6 +4589,8 @@ async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD
         # the BEGIN: the last check passed, the effect is next (P2b-3)
         if obs is not None:
             _calc_gen.began(command.name)
+        if touches_probe:
+            _probe_book.invalidate(probe_keys, probe_job or kind or command.name)
         if began is not None:
             began()
         try:
@@ -6375,6 +6417,10 @@ def _ts_mark_assumed(keys) -> None:
         _ts_book(_ts_file_values(ks), "assumed")
 
 
+#: the parameters a remapped body is read for: both bookings' keys
+_REMAP_KEYS = frozenset(TOOLSETTER_BASIS_KEYS) | PROBE_KEYS
+
+
 def _remap_env() -> RemapEnv:
     """The configured REMAPs, read now (Codex R106: what a remapped code's
     body may write — an M200 writing #3009 left a confirmed basis). The INI
@@ -6388,7 +6434,7 @@ def _remap_env() -> RemapEnv:
         dirs = ([os.path.dirname(os.path.abspath(path))]
                 + resolve_subroutine_dirs(ini.find("DISPLAY", "PROGRAM_PREFIX"), path)
                 + resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"), path))
-        return RemapEnv(ini.findall("RS274NGC", "REMAP") or [], dirs)
+        return RemapEnv(ini.findall("RS274NGC", "REMAP") or [], dirs, keys=_REMAP_KEYS)
     except Exception as e:  # noqa: BLE001 - unread: every line may write anything
         _trace.emit("toolsetter.remaps_unread", level="warn", exc=type(e).__name__, msg=str(e))
         return RemapEnv.unknown()
@@ -6462,7 +6508,7 @@ async def _ts_read_back(file: str, attempt: Optional[tuple] = None) -> None:
     written to the machine. Under _cmd_lock then _var_file_lock; an abort cancels it
     (_preempt_inflight). A failure leaves the basis as it was, said."""
     global _ts_readback_tried
-    keys = [str(k) for k in TOOLSETTER_BASIS_KEYS]
+    keys = [str(k) for k in sorted(_REMAP_KEYS)]   # the same synch confirms the probe's values (P5)
     if attempt is None:
         attempt = _ts_attempt_key()   # a direct call; the poll passes the one it created
     try:
@@ -6489,8 +6535,9 @@ async def _ts_read_back(file: str, attempt: Optional[tuple] = None) -> None:
                         _trace.emit("toolsetter.read_back_failed", level="warn", why="not saved")
                         _ts_readback_ended(attempt, "failed")
                         return
-                    link()     # the owner, admitted again for the booking (no await between)
-                    _ts_book({int(k): v for k, v in vals.items()}, "read")
+                    owner = link()     # the owner, admitted again for the booking (no await between)
+                    _ts_book({k: vals.get(str(k)) for k in TOOLSETTER_BASIS_KEYS}, "read")
+                    _probe_book.book({k: vals.get(str(k)) for k in PROBE_KEYS}, "read", owner.seq, "read")
                     _ts_readback_ended(attempt, "confirmed")
     except (NotConnected, _WriteRefused) as e:
         # no connection, or its Link changed: the synch's own write refused
@@ -6695,7 +6742,9 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool,
 
 
 async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
-                                   admit: Optional[Callable[[], Optional[str]]] = None) -> Dict[str, Any]:
+                                   admit: Optional[Callable[[], Optional[str]]] = None, *,
+                                   job: str = "params", progress: Optional[List[Dict[str, Any]]] = None
+                                   ) -> Dict[str, Any]:
     """The routine parameters (#3004–#3115 …) into the INTERPRETER, then the
     keys it took into the var file (P2, Codex R308–R309 FI308-03). Caller
     holds _cmd_lock. A cancel (abort/estop preemption) propagates:
@@ -6719,15 +6768,31 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
     "refused": a final chunk LinuxCNC would not take — nothing written}. A file
     failure after the take-over leaves the take-over as it is ("applied,
     persistence not confirmed"). A taken #3116=0 makes the skip flag known
-    clear."""
+    clear.
+
+    "chunks" (P5-1 d, plan v6; also filled into `progress` as it goes, so a
+    cancelled caller reads how far it came): per parameter chunk {"keys",
+    "state"} — `not_written` (refused provenly before its begin, or never
+    tried), `written_unknown` (its begin hook ran and no positive end
+    followed: no RCS_DONE, a timeout, another Link, an exception IN the call,
+    a cancel), `taken`. The mode switch is a write of its own and books no
+    chunk. The probe booking follows them: a taken chunk its values
+    (`job`), a chunk not written leaves what the machine holds."""
     global _skip_flag_unknown
+    states: List[Dict[str, Any]] = progress if progress is not None else []
     admit = admit or _interp_idle_refusal
     vals = {str(k): canonical_param(finite_float(v)) for k, v in vars_to_set.items()}
     _trace.emit("probe.set_vars", vars=vals)
     applied: Dict[str, float] = {}
     mdi_ok = False
+    why_not: Optional[str] = None      # why a chunk was not written
+    chunk_vals: List[Dict[int, float]] = []
     link().stat.poll()
-    if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
+    if not (armed and bool(safe_get("enabled", False)) and not reject_if_auto_running()):
+        states.append({"keys": sorted(vals), "state": "not_written"})
+        chunk_vals.append({int(k): v for k, v in vals.items()})
+        why_not = "machine not ready"
+    else:
         chunks: List[tuple] = []
         current, booked = "", {}
         for k, v in vals.items():
@@ -6745,10 +6810,15 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
         # would refuse refuses them all — never a first chunk written and a
         # later one refused.
         refused = next((w for w in (mdi_line_refusal(c) for c, _b in chunks) if w), None)
+        chunk_states = [{"keys": sorted(str(k) for k in b), "state": "not_written"} for _c, b in chunks]
+        chunk_vals.extend(dict(b) for _c, b in chunks)
+        states.extend(chunk_states)
         if refused:
             _trace.emit("probe.set_vars_refused", level="warn", reason=refused)
+            for b in chunk_vals:
+                _probe_book.refused(b, refused)
             return {"mdi_set": False, "applied_keys": [], "persisted": False, "file_error": None,
-                    "refused": refused}
+                    "refused": refused, "chunks": states}
         _ts_ensure()
         inflight: Optional[Dict[int, Optional[float]]] = None
         try:
@@ -6756,9 +6826,14 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
             # above (Codex R217 — the executor queue lies between them).
             await set_mode(linuxcnc.MODE_MDI, admit=admit)
             mdi_ok = True
-            for chunk, booked in chunks:
+            for (chunk, booked), state in zip(chunks, chunk_states):
                 inflight = booked
-                ret = await _cmd_blocking(link(), op(linuxcnc.command.mdi, chunk), wait=5, admit=admit)
+                conn = link()
+
+                def begun(st: Dict[str, Any] = state) -> None:
+                    st["state"] = "written_unknown"     # from here: an effect, until its end is proven
+                ret = await _cmd_blocking(conn, op(linuxcnc.command.mdi, chunk), wait=5, admit=admit,
+                                          began=begun, probe_job=job)
                 inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
@@ -6769,18 +6844,26 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
                     mdi_ok = False
                     _ts_book({k: None for k in booked}, "unknown")
                 else:
+                    state["state"] = "taken"
                     _ts_book(booked, "applied")
+                    _probe_book.book(booked, "applied", conn.seq, job)
                     applied.update({str(k): v for k, v in booked.items()})
         except asyncio.CancelledError:
+            why_not = "cancelled"
             if inflight is not None:
                 _ts_book({k: None for k in inflight}, "unknown")
             raise
         except Exception as e:
             mdi_ok = False
+            why_not = str(e)
             if inflight is not None:
                 _ts_book({k: None for k in inflight}, "unknown")
             _trace.emit("probe.mdi_set_failed", level="warn",
                         exc=type(e).__name__, msg=str(e))
+        finally:
+            for st, chunk_v in zip(chunk_states, chunk_vals):
+                if st["state"] == "not_written" and why_not is not None:
+                    _probe_book.refused(chunk_v, why_not)
     persisted, file_error = False, None
     if applied:
         var_file = _resolve_var_file_path()
@@ -6795,12 +6878,13 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
             except Exception as e:  # noqa: BLE001 — the take-over stands; the file's failure is named
                 file_error = f"{type(e).__name__}: {e}"
                 _trace.emit("probe.set_vars_file_failed", level="warn", msg=file_error)
+        _probe_book.persisted([int(k) for k in applied], persisted)
     if mdi_ok and vals.get("3116") == 0 and _own_link_current():
         _skip_flag_unknown = False
     _trace.emit("probe.set_vars_result", mdi_set=mdi_ok, applied=sorted(applied), persisted=persisted,
                 file_error=file_error)
     return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error,
-            "refused": None}
+            "refused": None, "chunks": states}
 
 
 def _ts_booking_for(client) -> Optional[Dict[str, Any]]:
@@ -6888,7 +6972,7 @@ async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
     return None, note
 
 
-async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, Any]:
+async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None) -> Dict[str, Any]:
     """A routine the WebUI starts, as ONE validated job (package 3, R336) in
     place of the page's `mdi` with `vars`: the values of ITS purpose only,
     the line the gateway builds, under its switch at the dispatch and at
@@ -6896,7 +6980,10 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
     them, an abort cancels this handler (Codex R16 XZ-06, unchanged).
 
     probe_run {routine, vars}: a probe routine of the subroutine path,
-      `O<routine> CALL` with the probe values;
+      `O<routine> CALL` with the probe values — in the program unit of the
+      form (P5-1 c); a routine that reads #3032 gets the ACTIVE calibration
+      offset from the gateway's record, never from the page. A calibration
+      (cal_runs.CAL_ROUTINES) is a run of its own: _calibration_job;
     surface_scan_run {vars}: `O<surface_scan> CALL` with the scan's values;
     tool_measure {tool} / tool_unload_measure: `T<tool> M600` / `T0 M600`
       with the SERVER's confirmed toolsetter section (P2 — never the page's
@@ -6912,13 +6999,11 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
         routine = msg["routine"]   # required (validate_payload)
         if not isinstance(routine, str) or routine not in await asyncio.to_thread(get_probe_macros):
             return {"ok": False, "error": "Not a probe routine — reload the page"}
-        purpose, vars_to_set, line = "probe", msg.get("vars"), f"O<{routine}> CALL"
-        if routine in _features.PARAMLESS_PROBE_ROUTINES:
-            # reads none of the panel's values (SS-I08): an empty set, never
-            # a missing one let through for a routine that needs its values
-            if vars_to_set not in (None, {}):
-                return {"ok": False, "error": f"{routine} takes no values — reload the page"}
-            vars_to_set = {}
+        if routine == "probe_cal_reset":
+            # it would zero #3032 behind the active record's back
+            return {"ok": False, "error": _features.OFFSET_REFUSAL}
+        purpose = "calibration" if routine in CAL_ROUTINES else "probe"
+        vars_to_set, line = msg.get("vars"), f"O<{routine}> CALL"
     elif cmd == "surface_scan_run":
         purpose, vars_to_set, line = "surface", msg.get("vars"), "O<surface_scan> CALL"
     else:
@@ -6933,8 +7018,7 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": False, "error": "No tool to measure"}
         purpose, line = "toolsetter", f"T{tool} M600"
         vars_to_set = {str(k): v for k, v in basis["values"].items()}
-    if not isinstance(vars_to_set, dict) or (not vars_to_set and not (
-            routine in _features.PARAMLESS_PROBE_ROUTINES)):
+    if not isinstance(vars_to_set, dict) or not vars_to_set:
         return {"ok": False, "error": "Missing vars dict"}
     why = _features.purpose_refusal(purpose, vars_to_set)
     if why:
@@ -6942,15 +7026,33 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
     why = mdi_line_refusal(line)   # the call LinuxCNC gets — a routine's file name may be long (Codex R366 VM-I11, R367)
     if why:
         return {"ok": False, "error": f"{cmd}: {why}"}
+    in_form_unit = purpose in _features.UNIT_PURPOSES
+    if in_form_unit:
+        link().stat.poll()
+        why = _probe_unit_refusal()         # by name, before anything goes out
+        if why:
+            return {"ok": False, "error": why}
+    effect: Union[_ByText, Optional[FrozenSet[int]]] = _BY_TEXT
+    if routine is not None or cmd == "surface_scan_run":
+        name = routine if routine is not None else "surface_scan"
+        effect, reads_offset = await asyncio.to_thread(_routine_facts, name)
+        if purpose == "probe" and reads_offset:
+            value, why = _active_offset()
+            if why:
+                return {"ok": False, "error": why}
+            vars_to_set = {**vars_to_set, str(OFFSET_KEY): value}
     refused = await _start_guard(armed, clears_flag=True)
     if refused:
         return refused
 
     def admit() -> Optional[str]:
         return (_feature_refusal(feature) or (_basis_refusal(basis) if basis else None)
-                or _interp_idle_refusal())
+                or _interp_idle_refusal() or (_probe_unit_refusal() if in_form_unit else None))
+    if purpose == "calibration" and routine is not None:
+        return await _calibration_job(routine, vars_to_set, armed, conn_key, admit, effect)
     try:
-        persisted, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed, admit=admit)
+        r = await _apply_probe_vars_detail(_skip_flag_cleared(vars_to_set), armed, admit=admit, job=purpose)
+        persisted, mdi_ok = r["persisted"], r["mdi_set"]
         if not mdi_ok:
             _actions.stopped_short(_current_action.get())   # a chunk may be taken: partial (P2b-3)
             return {"ok": False, "error": admit() or "Parameters not taken over — nothing started",
@@ -6958,12 +7060,523 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
         await set_mode(linuxcnc.MODE_MDI, admit=admit)
         # the CALL goes with wait=None: the reply comes long before the
         # routine ends — its observer owns the action past this return (P2b-3)
-        await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=None, admit=admit)
+        await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=None, admit=admit,
+                            probe_effect=effect, probe_job=cmd)
     except _WriteRefused as refused:
         _actions.stopped_short(_current_action.get())   # after its chunks: partial (P2b-3)
         return {"ok": False, "error": str(refused)}
     _trace.emit("features.job", cmd=cmd, line=line)
     return {"ok": True, "persisted": persisted, "mdi_set": True, "line": line}
+
+
+# ---- The probe calibration: its runs, its candidate, the active offset ----
+# (P5-1, plan v6 — Codex R439–R444; operator 2026-11-23/24). The routine
+# measures and reports (cal_runs), the active offset is the gateway's own
+# record (settings_store `probeCalibration`), #3032 has one writer: the
+# gateway. One decision lock around every await of Apply, Discard, Reset and a
+# calibration start (always inside _cmd_lock — the dispatcher's); the status
+# poller steps the run synchronously and takes no lock of the loop.
+_cal_lock: Optional[asyncio.Lock] = None
+_cal_last_reserved = 0          # the last run token this process reserved
+_cal_writing = False            # Apply's / Reset's own #3032 write is under way
+_cal_drains: List[DrainRequest] = []
+_poll_cycle = 0                 # the status poller's cycles
+#: the record as last read, with what it was read under (store version, INI)
+_cal_record_read: Tuple[Optional[Tuple[int, str]], Optional[Dict[str, Any]]] = (None, None)
+_cal_migrated: Dict[str, float] = {}    # INI → when its migration last failed (0: done)
+#: how long a calibration start waits for the controller to rest
+CAL_SETTLE_S = 2.0
+
+_CONTROLLER_CONSTS = {n: getattr(linuxcnc, n, d) for n, d in (("RCS_DONE", 1), ("RCS_ERROR", 3), ("INTERP_IDLE", 1),
+                                                               ("EXEC_DONE", 2))}
+_probe_book = ProbeBook(emit=_trace.emit)
+_cal = CalState(emit=_trace.emit, proof_window_s=_CLAIM_ERROR_PROOF_S, consts=_CONTROLLER_CONSTS,
+                on_old_routine=lambda: _probe_book.invalidate([OFFSET_KEY], "old calibration routine"))
+
+
+def _get_cal_lock() -> asyncio.Lock:
+    global _cal_lock
+    if _cal_lock is None:
+        _cal_lock = asyncio.Lock()
+    return _cal_lock
+
+
+def _cal_fields(owner: Optional[Link]) -> Dict[str, Any]:
+    """The controller fields controller_done reads, of the Link just polled."""
+    if owner is None:
+        return {}
+    stat = owner.stat
+    return {"echo": getattr(stat, "echo_serial_number", None), "state": getattr(stat, "state", None),
+            "interp_state": getattr(stat, "interp_state", None), "queued": getattr(stat, "queued_mdi_commands", None),
+            "exec_state": getattr(stat, "exec_state", None)}
+
+
+_LENGTH_UNIT_NAMES = {"mm": "mm", "metric": "mm", "in": "in", "inch": "in", "imperial": "in"}
+_PROGRAM_UNITS = {1: "in", 2: "mm", 3: "cm"}
+_UNIT_WORDS = {"in": "inch (G20)", "mm": "mm (G21)", "cm": "cm"}
+
+
+def _declared_linear_unit() -> Optional[str]:
+    """[TRAJ] LINEAR_UNITS as declared ("mm" / "in"), None when it cannot be
+    read or names no unit — never a default."""
+    path = getattr(_stat_now(), "ini_filename", None)
+    if not path:
+        return None
+    try:
+        raw = linuxcnc.ini(path).find("TRAJ", "LINEAR_UNITS")
+    except Exception as e:  # noqa: BLE001 - an unread INI declares nothing
+        _trace.emit_exc("cal.linear_units_unread", e)
+        return None
+    return _LENGTH_UNIT_NAMES.get(str(raw).strip().lower()) if raw else None
+
+
+def _probe_unit_refusal() -> Optional[str]:
+    """The probing form's values are in the machine's unit and no routine
+    commands G20 / G21: the interpreter's PROGRAM unit must be that one —
+    read from the status polled just before (each write's admission polls).
+    Never converted (P5-1 c, MT440-01)."""
+    form = _declared_linear_unit()
+    if form is None:
+        return "Machine unit not read — set [TRAJ] LINEAR_UNITS"
+    raw = safe_get("program_units", None)
+    unit = _PROGRAM_UNITS.get(raw) if isinstance(raw, int) else None
+    if unit is None:
+        return "Program unit not read — try again"
+    if unit != form:
+        want = "G21" if form == "mm" else "G20"
+        return (f"Probing values are in {'mm' if form == 'mm' else 'inch'} — the interpreter is in "
+                f"{_UNIT_WORDS[unit]}: switch to {want}")
+    return None
+
+
+def _oword_search() -> Optional[Tuple[Optional[str], str, List[str]]]:
+    """Where the interpreter looks for `o<name> call`'s file, in its order:
+    (milltask's working directory, PROGRAM_PREFIX, the SUBROUTINE_PATH dirs)
+    — the macro files' resolution (macro_dir_state). None: not known."""
+    ini_path = getattr(_stat_now(), "ini_filename", None)
+    if not ini_path:
+        return None
+    try:
+        ini = linuxcnc.ini(ini_path)
+        prefix = ini.find("DISPLAY", "PROGRAM_PREFIX") or ""
+        raw_sub = ini.find("RS274NGC", "SUBROUTINE_PATH") or ""
+    except Exception as e:  # noqa: BLE001 - not read: no routine is proven
+        _trace.emit_exc("probe.search_path_unread", e)
+        return None
+    cwd = _milltask_cwd(ini_path)
+    if cwd is None:
+        return None                     # its first place to look is not known
+    dirs = [d for d in (_ini_dir_path(ini_path, e) for e in [x for x in raw_sub.split(":") if x.strip()][:10])
+            if os.path.isdir(d)]
+    return cwd, (_ini_dir_path(ini_path, prefix) if prefix else ""), dirs
+
+
+def _routine_facts(name: str) -> Tuple[Optional[FrozenSet[int]], bool]:
+    """(the probing parameters the call of `name` provenly writes — None:
+    not proven —, does it read #3032) — from the files the interpreter
+    resolves NOW, each exactly the bundled one (probe_book, probe_routines)."""
+    search = _oword_search()
+
+    def read(n: str) -> Optional[bytes]:
+        if search is None:
+            return None
+        path = macro_files.resolve_oword(n, search[0], search[1], search[2])
+        if path is None:
+            return None
+        try:
+            with open(path, "rb") as f:
+                return f.read(1 << 20)
+        except OSError:
+            return None
+    env = _remap_env()
+    effect = routine_effect(name, read, lambda line: env.text_effect(line)[0] if PROBE_KEYS <= env.keys else None)
+    reads = routine_reads_offset(name, read)
+    _trace.emit("probe.routine_facts", routine=name, proven=effect is not None,
+                writes=sorted(effect) if effect is not None else None, reads_offset=reads)
+    return effect, reads
+
+
+def _cal_record() -> Optional[Dict[str, Any]]:
+    """The active calibration's record, None before its migration (or when
+    the settings cannot be read). Read once per settings version and INI —
+    a status cycle asks for it every time."""
+    global _cal_record_read
+    key = (_settings_store.version, _current_ini_path())
+    if _cal_record_read[0] != key:
+        try:
+            rec = _settings_store.calibration()
+        except Exception as e:  # noqa: BLE001 - unread: no value, said
+            _trace.emit_exc("cal.record_unread", e)
+            rec = None
+        _cal_record_read = (key, rec)
+    return _cal_record_read[1]
+
+
+def _cal_rev_of(rec: Optional[Dict[str, Any]]) -> Optional[int]:
+    rev = rec.get("rev") if rec else None
+    return rev if isinstance(rev, int) and not isinstance(rev, bool) else None
+
+
+def _cal_base_rev() -> Optional[int]:
+    return _cal_rev_of(_cal_record())
+
+
+async def _cal_migrate_once() -> None:
+    """The record's one migration per INI (settings_store.migrate_calibration),
+    at the first status cycle that knows it: the old form value with the
+    DECLARED machine unit — never the program unit in force now. A failed
+    write is tried again after 5 s; until then nothing is known of it."""
+    ini = _current_ini_path()
+    if ini == "default" or _cal_migrated.get(ini) == 0:
+        return
+    if time.monotonic() - _cal_migrated.get(ini, -10.0) < 5.0:
+        return
+    unit = _declared_linear_unit()
+
+    def migrate() -> Tuple[Dict[str, Any], bool]:
+        return _settings_store.migrate_calibration(unit)
+    try:
+        rec, made = await asyncio.to_thread(migrate)
+    except Exception as e:  # noqa: BLE001 - the settings file's failure: named, tried again
+        _cal_migrated[ini] = time.monotonic()
+        _trace.emit_exc("cal.migration_failed", e)
+        return
+    _cal_migrated[ini] = 0
+    if made:
+        _trace.emit("cal.migrated", value=rec.get("value"), unit=rec.get("unit"), state=rec.get("state"),
+                    unit_basis=rec.get("unit_basis"), migrated=rec.get("migrated"))
+
+
+_CAL_NONE = "No calibration offset — calibrate or Reset"
+
+
+def _active_offset() -> Tuple[Optional[float], Optional[str]]:
+    """(the active offset a probing job writes into #3032, why it cannot):
+    a value the record holds, in the machine's unit — which the job's own
+    unit check holds against the program's."""
+    rec = _cal_record()
+    if rec is None:
+        return None, "Calibration offset not read — try again"
+    value = rec.get("value")
+    if rec.get("state") != "active" or not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None, _CAL_NONE
+    unit = rec.get("unit")
+    if unit is None:
+        return None, "Calibration offset without a unit — calibrate or Reset"
+    if unit != _declared_linear_unit():
+        return None, "Calibration offset in another unit — calibrate or Reset"
+    return canonical_param(float(value)), None
+
+
+def _cal_wire(link_seq: Optional[int]) -> Dict[str, Any]:
+    """The status wire's `probe_calibration`: the active value, its unit and
+    what the machine holds of it (the booking of #3032)."""
+    rec = _cal_record()
+    if rec is None:
+        return {"value": None, "unit": None, "state": "unread", "rev": None, "at": None, "machine": None}
+    state, unit, value = rec.get("state"), rec.get("unit"), rec.get("value")
+    if state == "active" and unit is None:
+        state = "unit_unknown"
+    elif state == "active" and unit != _declared_linear_unit():
+        state = "unit_other"
+    machine = (machine_outcome(canonical_param(float(value)), _probe_book.entry(OFFSET_KEY, link_seq), _cal_writing)
+               if state == "active" and isinstance(value, (int, float)) else None)
+    return {"value": value, "unit": unit, "state": state, "rev": rec.get("rev"), "at": rec.get("at"),
+            "machine": machine}
+
+
+def _probe_state_for(client) -> Optional[Dict[str, Any]]:
+    """The calibration record, the candidate and the probe booking for this
+    connection's next frame — on its first frame and on every change (like
+    the toolsetter booking), else None."""
+    owner = current_link()
+    seq = owner.seq if owner is not None else None
+    key = (_cal.version, _probe_book.version, _settings_store.version, _current_ini_path(), seq, _cal_writing)
+    if client.probe_state_sent == key:
+        return None
+    client.probe_state_sent = key
+    return {"probe_calibration": _cal_wire(seq), "cal_candidate": _cal.wire(), "probe_booking": _probe_book.wire(seq)}
+
+
+def _cal_wants_drain(fields: Dict[str, Any], polled: Optional[Link]) -> bool:
+    """Must this status cycle read the error channel until it is empty — a
+    calibration start asks for the proof, or the open run may be through?"""
+    return bool(_cal_drains) or _cal.wants_drain(fields, polled.seq if polled is not None else None)
+
+
+def _cal_status_cycle(polled_at: float, polled: Optional[Link], fields: Dict[str, Any], estop: Optional[bool],
+                      enabled: Optional[bool], messages: list, not_drained: Optional[str]) -> list:
+    """The calibration's step of one status cycle: its messages (the result
+    lines consumed; the rest comes back), the open run, the candidate, the
+    waiting drain proofs. A Link replaced while it was read proves nothing."""
+    if polled is None or current_link() is not polled:
+        not_drained = "the connection changed"
+    c = Cycle(polled_at=polled_at, link_seq=polled.seq if polled is not None else None, fields=fields, estop=estop,
+              enabled=enabled, messages=tuple((k, str(x)) for k, x in messages), drained=not_drained)
+    out = _cal.cycle(c, _cal_base_rev())
+    _serve_cal_drains(c)
+    return out
+
+
+def _serve_cal_drains(c: Cycle) -> None:
+    """Answer the calibration starts waiting for a drain proof from this
+    cycle (one that BEGAN after their question); an open start claim is work
+    not through yet."""
+    if not _cal_drains:
+        return
+    now = time.monotonic()
+    if _source_claims:
+        c = _dc_replace(c, fields={**c.fields, "queued": None})     # not at rest
+    for req in list(_cal_drains):
+        req.serve(_poll_cycle, c, now, _CONTROLLER_CONSTS)
+
+
+async def _cal_drain_proof(conn: Link) -> Optional[str]:
+    """None: the controller rests on `conn` and its error channel was then
+    read until it was empty — no message of an earlier run can still come
+    (P5-1 b). Else why not. Asked of the status poller, the channel's one
+    reader; only a cycle that begins after the question answers it."""
+    fut: "asyncio.Future[Optional[str]]" = asyncio.get_running_loop().create_future()
+
+    def done(why: Optional[str]) -> None:
+        if not fut.done():
+            fut.set_result(why)
+    req = DrainRequest(cycle=_poll_cycle, link_seq=conn.seq, done=done, deadline=time.monotonic() + CAL_SETTLE_S)
+    _cal_drains.append(req)
+    try:
+        return await asyncio.wait_for(fut, CAL_SETTLE_S + 1.0)
+    except asyncio.TimeoutError:
+        return "no status cycle"
+    finally:
+        _cal_drains.remove(req)
+
+
+async def _calibration_job(routine: str, vars_to_set: Dict[str, Any], armed: bool, conn_key: Optional[str],
+                           base_admit: Callable[[], Optional[str]],
+                           effect: Union[_ByText, Optional[FrozenSet[int]]]) -> Dict[str, Any]:
+    """One calibration run (P5-1 b): the drain proof, the run token reserved
+    on the disk, the values, the call with the token — one decision under
+    _cal_lock and the dispatcher's _cmd_lock, so no other start comes between.
+    The active offset is not written. From the call's BEGIN the run is open
+    and an earlier candidate superseded."""
+    global _cal_last_reserved
+    ini_path = _current_ini_path()
+    if not os.path.isabs(ini_path):
+        return {"ok": False, "error": f"Calibration run counter unreadable — {COUNTER_FILE}: no INI path"}
+
+    def admit() -> Optional[str]:
+        return _writer_refusal(conn_key) or base_admit()
+    async with _get_cal_lock():
+        rec = _cal_record()
+        base_rev = _cal_rev_of(rec)
+        if rec is None or base_rev is None:
+            return {"ok": False, "error": "Calibration offset not read — try again"}
+        unit = _declared_linear_unit()
+        if unit is None:
+            return {"ok": False, "error": "Machine unit not read — set [TRAJ] LINEAR_UNITS"}
+        conn = link()
+        try:
+            conn.stat.poll()
+            if getattr(conn.stat, "state", None) == _CONTROLLER_CONSTS["RCS_ERROR"]:
+                # an interpreter error stays in the status until the next
+                # command (emctaskmain.cc taskPlanError): the job's own
+                # switch to MDI clears it, so the rest below is judged on
+                # the controller as it is now
+                await set_mode(linuxcnc.MODE_MDI, force=True, admit=admit)
+            why = await _cal_drain_proof(conn)
+            if why:
+                _trace.emit("cal.not_settled", level="warn", why=why)
+                return {"ok": False, "error": NOT_SETTLED}
+            path = os.path.join(os.path.dirname(os.path.realpath(ini_path)), COUNTER_FILE)
+            try:
+                n, created = await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(
+                    reserve_run, path, os.path.basename(ini_path), _cal_last_reserved)))
+            except CounterError as e:
+                _trace.emit("cal.run_not_reserved", level="warn", why=str(e))
+                return {"ok": False, "error": str(e)}
+            _cal_last_reserved = n
+            if created:
+                _trace.emit("cal.run_counter_created", path=path, ini=os.path.basename(ini_path), run=n)
+            progress: List[Dict[str, Any]] = []
+            r = await _apply_probe_vars_detail(_skip_flag_cleared(vars_to_set), armed, admit=admit,
+                                               job="calibration", progress=progress)
+            if not r["mdi_set"]:
+                _actions.stopped_short(_current_action.get())
+                return {"ok": False, "error": admit() or "Parameters not taken over — nothing started",
+                        "persisted": r["persisted"], "mdi_set": False}
+            await set_mode(linuxcnc.MODE_MDI, admit=admit)
+            sent = {str(k): canonical_param(finite_float(v)) for k, v in vars_to_set.items()}
+            line = f"O<{routine}> CALL [{n}]"
+            run = CalRun(run=n, routine=routine, starter=conn_key, link_seq=conn.seq, basis=sent, unit=unit,
+                         axis=int(sent.get("3036", 0)), size=size_of(routine, sent), base_rev=base_rev,
+                         was=rec.get("value"))
+            try:
+                await _cmd_blocking(conn, op(linuxcnc.command.mdi, line), wait=None, admit=admit,
+                                    began=lambda: _cal.call_began(run),
+                                    written=lambda: _cal.call_sent(run, getattr(conn.cmd, "serial", None)),
+                                    probe_effect=effect, probe_job="calibration")
+            except asyncio.CancelledError:
+                raise        # the write ran to its end (_thread_to_end): its hooks booked it
+            except BaseException:
+                if run.opened_t and run.state != "sent":
+                    _cal.call_failed(run)       # its effect is unknown: nothing is offered
+                raise
+        except _WriteRefused as refused:
+            _actions.stopped_short(_current_action.get())
+            return {"ok": False, "error": str(refused)}
+    _trace.emit("features.job", cmd="probe_run", line=line)
+    return {"ok": True, "persisted": r["persisted"], "mdi_set": True, "line": line, "run": n}
+
+
+def _cal_commit_admit(conn_key: Optional[str], run: Optional[int]) -> Callable[[Optional[Dict[str, Any]], Dict[str, bool]], None]:
+    """Apply's / Reset's admission inside the settings store's lock, right
+    before its write (it must not call back into the store): the connection
+    registered and armed NOW, the probing switch on, and for Apply the
+    candidate `run` still open on this Link and on the record it stood on —
+    then reserved, so the status cycle leaves it alone until it is decided."""
+    def admit(record: Optional[Dict[str, Any]], switches: Dict[str, bool]) -> None:
+        why = _writer_refusal(conn_key)
+        if not why and not switches["probing"]:
+            why = _features.off_reason("probing")
+        if not why and run is not None:
+            owner = current_link()
+            why = _cal.refusal(run, _cal_rev_of(record), owner.seq if owner is not None else None)
+        if why:
+            raise PermissionError(why)
+        if run is not None:
+            _cal.deciding(run)
+    return admit
+
+
+async def _cal_store(record: Dict[str, Any], admit) -> Dict[str, Any]:
+    """The record's write, in a thread, to its END through a cancel — what it
+    did is known before anything propagates: {"record"} or {"error"}."""
+    out: Dict[str, Any] = {}
+
+    def write() -> None:
+        try:
+            out["record"] = _settings_store.write_calibration(record, admit)
+        except PermissionError as e:
+            out["error"] = str(e)
+        except Exception as e:  # noqa: BLE001 - the file's own failure, named
+            _trace.emit_exc("cal.store_failed", e)
+            out["error"] = f"not saved — {type(e).__name__}"
+    try:
+        await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(write)))
+    except asyncio.CancelledError:
+        out["cancelled"] = True
+    return out
+
+
+async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, Any]:
+    """The second step of Apply and Reset: #3032 into the machine — only
+    when it is ready and idle, admitted at the write again (arm NOW, the
+    switch, the record unchanged, the program unit). The machine's outcome is
+    the booking's (probe_book.machine_outcome): `write_pending` from here to
+    the end, whatever ends it."""
+    global _cal_writing
+    value, rev = canonical_param(float(record["value"])), _cal_rev_of(record)
+
+    def admit() -> Optional[str]:
+        return (_writer_refusal(conn_key) or _feature_refusal("probing") or _controller_gate_refusal("ready", True)
+                or _probe_unit_refusal()
+                or (None if _cal_rev_of(_settings_store.calibration()) == rev else "The active offset changed meanwhile"))
+    why: Optional[str]
+    try:
+        why = admit()
+    except NotConnected as e:
+        why = str(e)
+    if why:
+        _probe_book.refused({OFFSET_KEY: value}, why)
+        _trace.emit("cal.machine_not_tried", why=why)
+        return {"outcome": "saved_not_written", "why": why}
+    progress: List[Dict[str, Any]] = []
+    _cal_writing = True
+    try:
+        r = await _apply_probe_vars_detail({str(OFFSET_KEY): value}, True, admit=admit, job="cal_apply",
+                                           progress=progress)
+        if not r["mdi_set"]:
+            _actions.stopped_short(_current_action.get())
+    finally:
+        # the write has ended (_cmd_blocking waits for it through a cancel):
+        # what it did is in the chunk's state and in the booking
+        _cal_writing = False
+        owner = current_link()
+        out = machine_outcome(value, _probe_book.entry(OFFSET_KEY, owner.seq if owner is not None else None), False)
+        _trace.emit("cal.machine_write", value=value, chunks=progress, outcome=out["outcome"])
+    return out
+
+
+async def _cal_apply(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, Any]:
+    """Apply the calibration candidate `run` (P5-1 d): one decision under
+    _cal_lock in two steps. The record first — refused, nothing changed and
+    the result stays open; stored, the candidate is APPLIED, whatever follows
+    (a repeat answers "Already applied"). Then #3032 into the machine, with
+    its own outcome (the booking's). A cancel (abort, disconnect) ends after
+    the write under way did, and books what it did."""
+    run, value = finite_int(msg["run"], lo=1), canonical_param(finite_float(msg["value"]))   # required
+    async with _get_cal_lock():
+        rec = _cal_record()
+        owner = current_link()
+        why = _cal.refusal(run, _cal_rev_of(rec), owner.seq if owner is not None else None)
+        if why:
+            return {"ok": False, "error": why}
+        cand = _cal.candidate
+        if cand is None or cand.value is None or canonical_param(cand.value) != value:
+            return {"ok": False, "error": "Another value than the result — reload the page"}
+        out = await _cal_store({"value": value, "unit": cand.unit, "state": "active", "unit_basis": "measured",
+                                "source": {"run": run, "routine": cand.routine, "axis": cand.axis,
+                                           "basis": cand.basis, "measured_at": cand.at}},
+                               _cal_commit_admit(conn_key, run))
+        stored = out.get("record")
+        if stored is None:
+            _cal.undecided(run)
+            if out.get("cancelled"):
+                raise asyncio.CancelledError()
+            return {"ok": False, "error": out.get("error") or "not saved"}
+        _cal.decided(run, "applied")
+        if out.get("cancelled"):
+            _probe_book.refused({OFFSET_KEY: value}, "cancelled")
+            raise asyncio.CancelledError()
+        machine = await _cal_write_machine(stored, conn_key)
+        return {"ok": True, "run": run, "machine": machine}
+
+
+async def _cal_discard(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, Any]:
+    """Discard the candidate `run`: any armed client (operator O-2), its
+    connection armed NOW and the switch on; nothing is stored, the active
+    offset stays."""
+    run = finite_int(msg["run"], lo=1)   # required
+    async with _get_cal_lock():
+        owner = current_link()
+        why = (_writer_refusal(conn_key) or _feature_refusal("probing")
+               or _cal.refusal(run, _cal_base_rev(), owner.seq if owner is not None else None))
+        if why:
+            return {"ok": False, "error": why}
+        _cal.decided(run, "discarded")
+        return {"ok": True, "run": run}
+
+
+async def _cal_reset(conn_key: Optional[str]) -> Dict[str, Any]:
+    """The active offset to 0, in the machine's unit — Apply's two steps; an
+    open candidate is superseded with the record it stood on."""
+    async with _get_cal_lock():
+        unit = _declared_linear_unit()
+        if unit is None:
+            return {"ok": False, "error": "Machine unit not read — set [TRAJ] LINEAR_UNITS"}
+        out = await _cal_store({"value": 0.0, "unit": unit, "state": "active", "unit_basis": "reset",
+                                "source": {"reset": True}}, _cal_commit_admit(conn_key, None))
+        stored = out.get("record")
+        if stored is None:
+            if out.get("cancelled"):
+                raise asyncio.CancelledError()
+            return {"ok": False, "error": out.get("error") or "not saved"}
+        _cal.supersede("reset")
+        if out.get("cancelled"):
+            _probe_book.refused({OFFSET_KEY: 0.0}, "cancelled")
+            raise asyncio.CancelledError()
+        machine = await _cal_write_machine(stored, conn_key)
+        return {"ok": True, "machine": machine}
 
 
 _SIM_TRIP_RESETS = 2          # attempts to put probe-in back to 0
@@ -7075,7 +7688,8 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
         return {"ok": True}
 
     if cmd == "estop":
-        await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP), wait=None)
+        await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP), wait=None,
+                            began=lambda: _cal.note_end_of_machine(WHY_ESTOP))
         _settle_leases_ended_by(("estop", "abort"))   # written: every motion stops (MT-I08)
         _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
         _trace_ended_actions()
@@ -7139,7 +7753,8 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
 
     if cmd == "machine_off":
         require_armed(armed)
-        await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_OFF), wait=None)
+        await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_OFF), wait=None,
+                            began=lambda: _cal.note_end_of_machine(WHY_OFF))
         return {"ok": True}
 
     if cmd == "set_mode":
@@ -7183,7 +7798,8 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
     if cmd == "abort":
         # A stop needs no arm (button gates BG-08): arm authorizes NEW
         # machine effects — E-Stop was already open to every client.
-        await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None)
+        await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None,
+                            began=lambda: _cal.note_end_of_machine(WHY_ABORT))
         _settle_leases_ended_by(("abort",))   # written: the jogs stop with it (MT-I08)
         _actions.end_all("aborted")   # task flushed its queues: no proof follows (P2b-3)
         _trace_ended_actions()
@@ -8086,15 +8702,6 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
     return _UNHANDLED
 
 
-def _cal_decision(cmd: str, msg: Dict[str, Any]) -> Dict[str, Any]:
-    """Apply / Discard of the calibration candidate named by `run` (P5-1 d).
-    No calibration run offers a candidate yet (its run, result and clean end
-    are the next build step): there is nothing to decide — said, never a
-    guessed success."""
-    what = "apply" if cmd == "cal_apply" else "discard"
-    return {"ok": False, "error": f"No calibration result to {what}"}
-
-
 async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
                                   conn_key: Optional[str]) -> Any:
     """_handle_command_impl's commands: program files, G30, parameters, probing, the preview, compensation, the tool-change confirm, the sim trip. The reply, or _UNHANDLED
@@ -8230,12 +8837,17 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
             _status_runtime.end_program_change()
         return {"ok": True}
 
-    # A calibration's candidate (P5, plan v6 P5-1 d): Apply / Discard decide
-    # the gateway-owned candidate. No calibration run offers one yet: every
-    # decision answers that there is none — never a guessed success.
-    if cmd == "cal_apply" or cmd == "cal_discard":
+    # A calibration's candidate and the active offset (P5, plan v6 P5-1 d):
+    # each one decision under _cal_lock, admitted at its commit.
+    if cmd == "cal_apply":
         require_armed(armed)
-        return _cal_decision(cmd, msg)
+        return await _cal_apply(msg, conn_key)
+    if cmd == "cal_discard":
+        require_armed(armed)
+        return await _cal_discard(msg, conn_key)
+    if cmd == "cal_reset":
+        require_armed(armed)
+        return await _cal_reset(conn_key)
 
     # G30's stored position (operator P4): one sequence, three commands.
     if cmd == "read_g30":
@@ -8265,19 +8877,26 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
         if why or not isinstance(sets, dict):   # (sets_refusal admits only a mapping)
             return {"ok": False, "error": why}
         feats = sorted({_features.PURPOSE_FEATURE[p] for p in sets})
+        in_form_unit = bool(_features.UNIT_PURPOSES & set(sets))
 
         def admit() -> Optional[str]:
-            return next((w for w in map(_feature_refusal, feats) if w), None) or _interp_idle_refusal()
-        r = await _apply_probe_vars_detail(_features.merged_sets(sets), armed, admit=admit)
+            return (next((w for w in map(_feature_refusal, feats) if w), None) or _interp_idle_refusal()
+                    or (_probe_unit_refusal() if in_form_unit else None))
+        if in_form_unit:
+            link().stat.poll()
+            why = _probe_unit_refusal()     # before any effect, by name (P5-1 c, MT440-01)
+            if why:
+                return {"ok": False, "error": why}
+        r = await _apply_probe_vars_detail(_features.merged_sets(sets), armed, admit=admit, job="set_params")
         if not r.get("mdi_set"):
             _actions.stopped_short(_current_action.get())   # not every chunk taken: partial (P2b-3)
         return {"ok": True, **r}
 
     # the routines as jobs (package 3): one function, a branch each
     if cmd == "probe_run" or cmd == "surface_scan_run":
-        return await _feature_job(cmd, msg, armed)
+        return await _feature_job(cmd, msg, armed, conn_key)
     if cmd == "tool_measure" or cmd == "tool_unload_measure":
-        return await _feature_job(cmd, msg, armed)
+        return await _feature_job(cmd, msg, armed, conn_key)
 
     if cmd == "reparse_preview":
         require_armed(armed)
@@ -12990,6 +13609,11 @@ async def ws_endpoint(ws: WebSocket):
                     _booking = _ts_booking_for(client)
                     if _booking is not None:
                         status_msg["toolsetter_booking"] = _booking
+                    # The calibration record, the candidate and the probe
+                    # booking (P5): the same rule.
+                    _probe_state = _probe_state_for(client)
+                    if _probe_state is not None:
+                        status_msg.update(_probe_state)
 
                     # Inject tool_meta on tool_number change or library edit (for
                     # 3D rendering). Lives at top level — sibling of `data` — so

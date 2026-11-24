@@ -4,7 +4,7 @@
 // or the outcome it came to. Both are GATEWAY state, the same on every client
 // (status `probe_calibration` / `cal_candidate`) — never a reply alone and
 // never a value a page saved on its own. Pure: the view, not the wire.
-import { fmtQty, fmtUnit, NO_VALUE } from "./format";
+import { fmtNum, fmtQty, fmtUnit, NO_VALUE } from "./format";
 
 /** The machine outcome of the active value (plan v6 P5-1 d). */
 export type CalMachineOutcome =
@@ -14,24 +14,31 @@ export type CalMachineOutcome =
   | "saved_not_written"           // not written: the next probe writes it
   | "saved_write_unknown";        // written, its outcome is not known
 
-/** The gateway-owned active calibration record (`probeCalibration`). */
+/** The gateway-owned active calibration record (`probeCalibration`), as the
+ *  status names it. `state`: `active`; `none` (no value: a probe whose routine
+ *  reads #3032 is refused until Calibrate or Reset); `unit_unknown` /
+ *  `unit_other` (a value that goes nowhere: no unit, or not the machine's);
+ *  `unread` (not migrated yet, or the settings not readable). */
 export interface ProbeCalibration {
   value: number | null;
   unit: string | null;
-  state?: "active" | "none";
-  machine?: { outcome: CalMachineOutcome; at?: string | null; why?: string | null } | null;
+  rev?: number | null;
+  state?: "active" | "none" | "unit_unknown" | "unit_other" | "unread";
+  machine?: { outcome: CalMachineOutcome; at?: number | null; why?: string | null } | null;
 }
 
 /** A calibration run's candidate (`cal_candidate`). */
 export interface CalCandidate {
   run: number;
-  value: number;
+  /** null: the run reported none (it is stale). */
+  value: number | null;
   was: number | null;
   routine: string;
   /** The calibration's size basis as it was sent (the record's unit): the
    *  ring's diameter, or the block's X and Y. */
   size?: { d?: number; x?: number; y?: number } | null;
   axis: 0 | 1 | 2;
+  unit?: string;
   at: string;
   state: "pending" | "applied" | "discarded" | "stale";
   why?: string | null;
@@ -48,8 +55,10 @@ export interface CalOffsetView {
   machine: string | null;
   /** The candidate, or the outcome it came to. */
   note: CalNote | null;
-  /** This client's Apply refusal for the pending run: nothing changed. */
+  /** This client's Apply / Discard refusal for the pending run. */
   refusal: string | null;
+  /** This client's Reset refusal on the record shown. */
+  resetRefusal: string | null;
 }
 
 const ROUTINE_NAMES: Record<string, string> = {
@@ -78,50 +87,66 @@ function sizeText(size: CalCandidate["size"], unit: string): string | null {
   return null;
 }
 
-/** This client's Apply / Discard that was not carried out: `why` from the
- *  gateway's answer, null = no answer. */
-export interface CalRefusal { run: number; kind: "cal_apply" | "cal_discard"; why: string | null }
+/** This client's Apply / Discard (for the candidate `run`) or Reset (on the
+ *  record's revision `rev`) that was not carried out: `why` from the
+ *  gateway's answer, null = no answer. Shown only while that candidate or
+ *  that record is still the one on screen. */
+export type CalRefusal =
+  | { kind: "cal_apply" | "cal_discard"; run: number; why: string | null }
+  | { kind: "cal_reset"; rev: number | null; why: string | null };
+const ACT_FAILED = { cal_apply: "Not applied", cal_discard: "Not discarded", cal_reset: "Not reset" } as const;
 /** Its words name the act that failed; without an answer nothing is claimed
  *  about the outcome — the status says which state the candidate is in. */
 export function refusalText(r: CalRefusal): string {
-  if (r.why === null) return "No reply — outcome unknown";
-  return `${r.kind === "cal_apply" ? "Not applied" : "Not discarded"}: ${r.why}`;
+  return r.why === null ? "No reply — outcome unknown" : `${ACT_FAILED[r.kind]}: ${r.why}`;
+}
+
+/** The states in which the record's value goes nowhere, and what to do. */
+const STATE_TEXT: Partial<Record<NonNullable<ProbeCalibration["state"]>, string>> = {
+  none: "calibrate or Reset",
+  unit_unknown: "unit unknown, calibrate or Reset",
+  unit_other: "other unit, calibrate or Reset",
+};
+
+/** The active value as every place shows it ("0.0677 mm"; `bare`: the number
+ *  alone, where the field names the unit) — the gateway's record alone; before
+ *  it sent one (or cannot read it) there is none. */
+export function activeOffsetText(active: ProbeCalibration | null | undefined, bare = false): string {
+  if (!active || active.state === "unread") return NO_VALUE;
+  if (active.state === "none" || active.value === null) return "not set";
+  return active.unit && !bare ? fmtQty(active.value, active.unit) : fmtNum(active.value);
 }
 
 /** The block's view (texts: the UI's "state — consequence" form, ≤ 60
- *  characters, no value said twice — operator 2026-11-23). `active` is the
- *  gateway's record — `null` before it sent one (an older gateway): then the
- *  form's value stands in as the value only, with no machine claim.
- *  `refusal` is THIS client's last Apply / Discard refusal for the pending
- *  run (a reply, shown where it began). */
-export function calOffsetView(active: ProbeCalibration | null, formValue: number,
-                              candidate: CalCandidate | null, unit: string,
-                              refusal: CalRefusal | null = null): CalOffsetView {
-  const u = active?.unit ?? unit;
-  const value = active === null ? fmtQty(formValue, unit)
-    : active.state === "none" || active.value === null ? "not set"
-    : fmtQty(active.value, u);
+ *  characters, no value said twice — operator 2026-11-23). `unit`: the
+ *  machine's, where the record names none. `refusal` is THIS client's last
+ *  Apply / Discard refusal for the pending run (a reply, shown where it
+ *  began). */
+export function calOffsetView(active: ProbeCalibration | null | undefined, candidate: CalCandidate | null | undefined,
+                              unit: string, refusal: CalRefusal | null = null): CalOffsetView {
   const outcome = active?.machine?.outcome;
   const machineText = outcome ? (MACHINE_TEXT[outcome] ?? null) : null;
-  let machine = machineText;
+  let machine = (active?.state && STATE_TEXT[active.state]) ?? machineText;
   let note: CalNote | null = null;
   let refused: string | null = null;
-  if (candidate?.state === "pending") {
+  if (candidate?.state === "pending" && candidate.value !== null) {
+    const u = candidate.unit ?? active?.unit ?? unit;
     const basis = [ROUTINE_NAMES[candidate.routine] ?? candidate.routine, sizeText(candidate.size, u)]
       .filter(Boolean).join(" ");
     // two parts: the line breaks between them, never after a dangling "·"
     const lead = `Candidate ${fmtQty(candidate.value, u)}`;
     const detail = `${basis}, ${AXIS_NAMES[candidate.axis] ?? NO_VALUE}`;
     note = { kind: "pending", run: candidate.run, value: candidate.value, lead, detail, text: `${lead} · ${detail}` };
-    if (refusal && refusal.run === candidate.run) refused = refusalText(refusal);
+    if (refusal && refusal.kind !== "cal_reset" && refusal.run === candidate.run) refused = refusalText(refusal);
   } else if (candidate?.state === "applied") {
     // the Active line already holds the new value; the note says where it
     // went, once — the line then says no machine state of its own
-    note = { kind: "applied", text: `Applied — ${machineText ?? "saved"}` };
+    note = { kind: "applied", text: `Applied — ${machine ?? "saved"}` };
     machine = null;
   } else if (candidate?.state === "stale") {
     note = { kind: "stale", text: `Result not offered — ${candidate.why ?? "the run did not complete"}` };
   }
   // discarded: the candidate line goes, nothing else changed — no note
-  return { value, machine, note, refusal: refused };
+  const resetRefusal = refusal?.kind === "cal_reset" && refusal.rev === (active?.rev ?? null) ? refusalText(refusal) : null;
+  return { value: activeOffsetText(active), machine, note, refusal: refused, resetRefusal };
 }

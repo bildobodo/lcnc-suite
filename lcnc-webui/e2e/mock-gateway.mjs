@@ -223,6 +223,14 @@ const server = createServer(async (req, res) => {
 const state = {
   type: "status",
   armed: true, // lcncWs.ts: any frame with `armed` sets the client's armed state
+  // P5: the gateway's active calibration record, no candidate, nothing booked.
+  // The real gateway sends them on a connection's first frame and on every
+  // change; every full status here carries them (a spec sets its own through
+  // `envelope`).
+  probe_calibration: { value: 0, unit: "mm", state: "active", rev: 1, at: null,
+                       machine: { outcome: "saved_not_written", at: null, why: null } },
+  cal_candidate: null,
+  probe_booking: { version: 0, keys: {} },
   data: {
     estop: false, enabled: true, emc_enable_in: true, homed: true,
     is_estop: false, is_enabled: true,  // backend-merged truth (review #5)
@@ -380,6 +388,26 @@ const withDevice = (frame) => ({
   device: frame.device ?? MOCK_DEVICE,
 });
 
+/** Apply / Discard / Reset on what the mock holds: why not, or null (done). */
+function decideCalibration(cmd, msg) {
+  const rec = envelope.probe_calibration ?? state.probe_calibration;
+  const next = (value) => ({ ...rec, value, unit: "mm", state: "active", rev: (rec.rev ?? 0) + 1,
+                             machine: { outcome: "taken", at: null, why: null } });
+  if (cmd === "cal_reset") {
+    envelope.probe_calibration = next(0);
+    delete envelope.cal_candidate;
+    return null;
+  }
+  const c = envelope.cal_candidate ?? state.cal_candidate;
+  if (!c || c.run !== msg.run) return "No calibration result";
+  if (c.state === "applied") return "Already applied";
+  if (c.state === "discarded") return "Discarded meanwhile";
+  if (c.state !== "pending") return `Not offered — ${c.why}`;
+  if (cmd === "cal_apply") envelope.probe_calibration = next(c.value);
+  envelope.cal_candidate = { ...c, state: cmd === "cal_apply" ? "applied" : "discarded" };
+  return null;
+}
+
 // What a fresh app client receives on connect — also what `snapshot` reports.
 const connectFrames = () => [withEnvelope(state), activeViewerInit];
 
@@ -455,6 +483,14 @@ wss.on("connection", (ws, req) => {
     // ... and an E-Stop Reset with its observed outcome (P4-1): the real
     // gateway answers after its settle window — confirmed here unless scripted
     // (replyFor: not confirmed / unknown / silent)
+    else if (cmd === "cal_apply" || cmd === "cal_discard" || cmd === "cal_reset") {
+      // ... and a calibration decision (P5): the gateway's contract in small —
+      // one decision per candidate, the record and the candidate in every
+      // client's status, then the reply
+      const why = decideCalibration(cmd, msg);
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...(why ? { ok: false, error: why } : { ok: true }) }));
+      if (!why) broadcast(withEnvelope({ type: "status_delta", armed: state.armed, data: {} }));
+    }
     else if (cmd === "estop_reset" && msg.req_id)
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, confirmed: true }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));

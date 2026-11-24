@@ -159,6 +159,8 @@ export type WsCommand =
   // P5: Apply / Discard the calibration candidate the gateway offers, by its run
   | { cmd: "cal_apply"; run: number; value: number }
   | { cmd: "cal_discard"; run: number }
+  // … and the active offset back to 0 (the gateway's own write of #3032)
+  | { cmd: "cal_reset" }
   | { cmd: "capture_g30" }
   | { cmd: "set_g30"; values: Record<string, number>; based_on: Record<string, number> }
   | { cmd: "get_probe_results" }

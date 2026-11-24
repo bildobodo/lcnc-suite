@@ -19,6 +19,7 @@ import { type WsCommand, OPERATOR_ERROR, OPERATOR_DISPLAY, isQueueSafe } from ".
 import { updateServerCache, loadDisplayDefaults, registerSettingsSaver, noteOwnSaveReply, dropPendingSaves, devicesVersion, invalidateServerSettings } from "./defaults";
 import { deviceTokenFresh, onDeviceRebind, recheckDeviceToken } from "./deviceToken";
 import { noteSaveReply, noteSaveConnectionLost, noteSaveServerState } from "./settingsSaveStatus";
+import { noteFieldsConnectionLost } from "./fieldState";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
@@ -112,6 +113,7 @@ if (typeof window !== "undefined") {
 function connectionGone() {
   connected.value = false;
   noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
+  noteFieldsConnectionLost(); // … and refuses no field (P5)
   settleAwaitedReplies();     // a request in flight has no answer coming
   armed.value = false;        // the next connection starts disarmed
   setConnKey(null);           // the key died with its connection (button gates BG-14)

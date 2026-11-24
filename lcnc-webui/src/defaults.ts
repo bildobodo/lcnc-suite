@@ -5,6 +5,7 @@ import { withToken } from "./auth";
 import { connKey } from "./connKey";
 import { mergeViewerSection, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSection";
 import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed, sectionRev, sectionAcked, sectionFailed, stableJson } from "./settingsSaveStatus";
+import { noteFieldsBlocked, noteFieldsEdited, noteFieldsReply, noteFieldsSent } from "./fieldState";
 import { deviceStorage, deviceToken } from "./deviceToken";
 import type { GamepadProfile } from "./gamepadProfile";
 import { mergeMacrosSection } from "./macroParams";
@@ -228,6 +229,7 @@ export function noteOwnSaveReply(reqId: string, reply: { ok?: unknown; rev?: unk
   const own = _ownSaves.get(reqId);
   if (!own) return false;
   _ownSaves.delete(reqId);
+  noteFieldsReply(reqId, reply);      // the fields this save carried (P5, fieldState.ts)
   if (own.gen !== _bindingGen) return false;
   if (reply.ok !== false) noteSectionRev(own.section, reply.rev);
   else if (reply.stale === true) applyStale(own.section, reply.data, reply.rev, own.ledgerRev);
@@ -422,15 +424,30 @@ function mergeSection<T>(key: string, saved: unknown): T {
   }
 }
 
-/** Save a section. Routes server sections through WS, local sections to localStorage. */
-export function saveSection(key: string, data: any): void {
+/** The keys of `data` that differ from what this tab last held (fallbacks
+ *  merged in — an untouched field is no edit). */
+function changedKeys(key: string, data: Record<string, unknown>): string[] {
+  let held: Record<string, unknown>;
+  try { held = loadSectionDraft<Record<string, unknown>>(key); } catch { return []; }
+  if (!data || typeof data !== "object") return [];
+  return Object.keys(data).filter(k => stableJson(data[k]) !== stableJson(held[k]));
+}
+
+/** Save a section. Routes server sections through WS, local sections to localStorage.
+ *  `edited`: the fields the operator just entered — an edit of their own even
+ *  when the value is the one already shown (P5: a repeat after a refusal is a
+ *  new change); every field whose value changed counts anyway. */
+export function saveSection(key: string, data: any, edited: readonly string[] = []): void {
+  const keys = [...new Set([...edited, ...changedKeys(key, data)])];
+  noteFieldsEdited(key, keys);
+  const block = (reason: string) => { noteSaveBlocked(key, reason); noteFieldsBlocked(key, keys, reason); };
   // Block saves until server data is confirmed (prevents overwriting with
   // fallback zeros) — visibly: the Settings header says so (UX-08).
-  if (!serverSettingsReady.value) { noteSaveBlocked(key, "waiting for server settings"); return; }
+  if (!serverSettingsReady.value) { block("waiting for server settings"); return; }
   // A device section is saved into THIS browser's profile — none while the
   // connection is not bound to one (settings split).
   if (DEVICE_SECTIONS.has(key) && deviceInfo.value.id === null) {
-    noteSaveBlocked(key, deviceStorage() === "failed"
+    block(deviceStorage() === "failed"
       ? "browser storage unavailable — this device's settings are not saved"
       : "device not bound yet");
     return;
@@ -457,6 +474,7 @@ export function saveSection(key: string, data: any): void {
       if (reqId === null) noteSaveFailed(key, "not connected");
       else {
         noteSaveSent(key, reqId);
+        noteFieldsSent(key, reqId);
         _ownSaves.set(reqId, { section: key, ledgerRev: sectionRev(key), gen: _bindingGen });
       }
     } else {
@@ -1106,7 +1124,6 @@ export interface ProbeDefaults {
   xyClearance: number;
   maxZDistance: number;
   zClearance: number;
-  calOffset: number;
   stepOffWidth: number;
   extraProbeDepth: number;
   edgeWidth: number;
@@ -1130,9 +1147,13 @@ export interface ProbeDefaults {
   autoZero: boolean;
 }
 
+// The probe tip offset left this section (P5-1 c): the gateway's own record
+// `probeCalibration`, set by Apply or Reset. A section an older gateway or
+// page still carries it in is read without it.
 registerSection<ProbeDefaults>("probe", PROBE_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
-  return { ...fb, ...saved };
+  const { calOffset: _gone, ...rest } = saved;
+  return { ...fb, ...rest };
 });
 
 export function loadProbeDefaults(): ProbeDefaults {
@@ -1145,8 +1166,8 @@ export function loadProbeDraft(): ProbeDefaults {
   return loadSectionDraft<ProbeDefaults>("probe");
 }
 
-export function saveProbeDefaults(data: ProbeDefaults): void {
-  saveSection("probe", data);
+export function saveProbeDefaults(data: ProbeDefaults, edited: readonly string[] = []): void {
+  saveSection("probe", data, edited);
 }
 
 // ─── Toolsetter section ─────────────────────────────────────────

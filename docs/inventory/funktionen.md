@@ -394,8 +394,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 5 | 5 | 0 |
-| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 1 | 1 | 0 |
+| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 86 | 7 | 7 | 0 |
+| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 19 | 7 | 7 | 0 |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 3 | 3 | 0 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
@@ -411,11 +411,27 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: native: `native_run.py` — probe-z; native: `native_run.py` — probe-z.counter-plate-1; native: `native_run.py` — probe-z-miss
 - **S4 (Wirkung):** Auf echtem LinuxCNC startet der Z-Flächenknopf seinen ganzen Auftrag (Auto Zero an: Modus 0) über den Handler probe_run: der Handler liefert die Panelwerte samt #3116 = 0 einmal (aus dem Trace des Gateways), G54 Z wird die Platte (± 0,003 mm); eine unbekannte Routine und der ausgeschaltete Schalter werden abgelehnt und ändern nichts; ohne Kontakt kommt der Fehler über diesen Weg an. Ein auf mdi zurückgebauter Treiber fällt durch. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — probe-run; native: `native_run.py` — probe-run.counter-plate-1; native: `native_run.py` — probe-run.not-a-routine; native: `native_run.py` — probe-run.feature-off; native: `native_run.py` — probe-run-miss; browser: `probe-click.spec.ts` — ${key}: the job the button sends is the native stage's whole job (je: z_surface)
+- **S5 (Daten):** Ein geändertes, noch nicht vom Server gehaltenes Feld trägt einen amberfarbenen Balken, eine abgelehnte Änderung einen roten; gespeichert ist neutral. Die Zustände gehören der Änderung, nicht dem Wert, und ändern keine Feldhöhe. — gilt für: alle
+  - Beleg: unit: `fieldState.test.ts` — a refusal marks the refused change; the next edit is a draft — the same value too; browser: `probe-calibration.spec.ts` — fields at ${vp.name}: draft, refused and saved keep every cell's height; the section line is one line (je: desktop, touch-fullhd, narrow-150)
+- **S6 (Unbekannt):** Die Zeile unter „Parameters“ nennt nur, was eine gültige Buchung belegt: auf der Maschine, der nächste Probe schreibt, teils, oder Maschinenwert unbekannt. Ein Linkwechsel oder ein Text, der die Parameter schreiben kann, macht sie unbekannt. — gilt für: alle
+  - Beleg: unit: `probeMachine.test.ts` — one unknown value makes the line unknown — whatever the others are; gateway: `test_probe_book.py` — test_a_link_change_makes_every_entry_unknown; gateway: `test_cal_gateway.py` — test_what_the_text_does_not_settle_is_all; browser: `probe-calibration.spec.ts` — the machine line follows the booking, value by value, and says no more than it proves
 
 ### Taster kalibrieren
 
 - **S1 (Daten):** Kalibrieren sendet seine Routine mit der Achswahl #3036 und den Zahlen der Kalibrier-Zuordnung. — gilt für: alle
   - Beleg: browser: `probe-click.spec.ts` — ${form.sub}: a held probe button sends its routine with the panel's numbers (je: Calibrate)
+- **S2 (Wirkung):** Eine Kalibrierung liefert nur einen Kandidaten: der aktive Offset und #3032 bleiben unverändert, bis Apply ihn übernimmt. Angeboten wird er erst mit dem Ergebnis desselben Laufs und einem sauberen Ende. — gilt für: alle
+  - Beleg: gateway: `test_cal_runs.py` — test_a_complete_run_offers_its_value; gateway: `test_cal_gateway.py` — test_calibrate_then_abort_leaves_controller_and_record; gateway: `test_cal_routines.py` — test_each_routine_computes_what_upstream_did_and_leaves_3032
+- **S3 (Ablehnung):** Ein Lauf, der abgebrochen wird, mit einem Fehler endet, nicht startet, kein Ergebnis meldet oder dessen Verbindung wechselt, liefert keinen Kandidaten; eine späte oder doppelte Meldung wird nie zu einem. — gilt für: alle
+  - Beleg: gateway: `test_cal_gateway.py` — test_abort_in_the_retract_gives_no_candidate; gateway: `test_cal_runs.py` — test_run_a_s_late_message_never_becomes_run_b_s; gateway: `test_cal_runs.py` — test_a_link_change_in_the_run_is_not_offered; browser: `probe-calibration.spec.ts` — an aborted run offers nothing: its reason, no buttons
+- **S4 (Ablehnung):** Apply, Discard und Reset brauchen Arm; ohne Arm sind sie inaktiv und nennen den Grund beim Antippen. Die Schreibung prüft Arm, Verbindung, Schalter, Revision und Link am Commit. — gilt für: alle
+  - Beleg: browser: `probe-calibration.spec.ts` — disarmed: Apply, Discard, Reset and the fields are closed and say why on a press — no bar, nothing sent; gateway: `test_cal_gateway.py` — test_the_commit_admits_arm_switch_revision_and_link_at_the_write
+- **S5 (Wirkung):** Apply speichert den Wert und schreibt ihn danach in den Controller; jeder Ausgang der zweiten Stufe ist benannt, nie wird ein unbewiesen unveränderter Maschinenwert gezeigt. Zwei Clients treffen genau eine Entscheidung. — gilt für: alle
+  - Beleg: gateway: `test_cal_gateway.py` — test_apply_stores_then_writes; gateway: `test_cal_gateway.py` — test_stored_then_the_write_times_out_is_unknown; gateway: `test_cal_gateway.py` — test_a_cancel_waits_for_the_write_and_claims_nothing; gateway: `test_cal_gateway.py` — test_two_clients_exactly_one_decision; browser: `probe-calibration.spec.ts` — a second client's decision shows here, and this page's late press answers with it
+- **S6 (Daten):** #3032 hat einen Schreiber, das Gateway: kein Auftrag der Seite trägt ihn, ein Antastauftrag bekommt den aktiven Wert aus dem Datensatz, ohne gültigen Wert wird er benannt abgelehnt. — gilt für: alle
+  - Beleg: gateway: `test_cal_gateway.py` — test_a_probing_job_gets_the_active_value_from_the_gateway; gateway: `test_cal_gateway.py` — test_no_offset_is_refused_by_name; gateway: `test_feature_switches.py` — test_an_offset_from_the_page_is_refused_for_every_purpose; browser: `probe-calibration.spec.ts` — the page never sends or keeps the offset: a parameter save and a probe carry no 3032
+- **S7 (Ablehnung):** Antast-, Kalibrier- und Scan-Aufträge verlangen die Programmeinheit des Formulars; sonst werden sie vor jeder Wirkung benannt abgelehnt, nie umgerechnet. — gilt für: alle
+  - Beleg: gateway: `test_cal_gateway.py` — test_g20_under_a_metric_form_is_refused_before_any_write; gateway: `test_cal_gateway.py` — test_a_switch_to_g20_between_the_admission_and_the_call_is_seen
 
 ### Fläche abtasten (Surface-Scan)
 
@@ -474,7 +490,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 28 | 1 | 1 | 0 |
+| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 29 | 1 | 1 | 0 |
 | **Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten** `F-DEVICES` | Einstellungen › Geräte | 16 | 3 | 3 | 0 |
 | **Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad)** `F-FEATURES` | Einstellungen | 8 | 4 | 4 | 0 |
 | **Darstellung: Farbschema, Vollbild, Bildschirm wach halten** `F-DISPLAY` | Einstellungen, Kopfzeile | 13 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -567,7 +583,7 @@ Je Schalter (Einstellungen › Features) die Funktionen und was mit ihren Atomen
 | macros | Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen `F-MACROFILES` | geschaltet 30, bleibt lesbar 3 | — |
 | macros | Makro starten (Tab, Leiste, Parameter-Dialog) `F-MACRORUN` | geschaltet 6 | — |
 | keiner (Ausnahme) | Antast-Auslösung simulieren (nur Sim) `F-SIMTRIP` | bleibt 3 | Diagnose des Taster-Eingangs, nur in Dev-Builds sichtbar, serverseitig nur Arm — benannte Ausnahme (R336), kein Schalter |
-| probing | Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut `F-PROBE` | geschaltet 39, nach Inhalt 1, bleibt lesbar 38, gemeinsam 9 | — |
+| probing | Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut `F-PROBE` | geschaltet 39, nach Inhalt 1, bleibt lesbar 37, gemeinsam 9 | — |
 | probing | Taster kalibrieren `F-PROBECAL` | geschaltet 19 | — |
 | surfaceMap | Flächenkompensation ein/aus und Interpolation umschalten `F-COMP` | geschaltet 2, nach Inhalt 4, bleibt lesbar 7 | Kompensation AUS ist immer zugelassen; EIN und die Methode gehören zum Schalter |
 | surfaceMap | Fläche abtasten (Surface-Scan) `F-SURFACE` | geschaltet 6, bleibt lesbar 1 | — |

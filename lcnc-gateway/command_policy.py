@@ -901,6 +901,9 @@ COMMAND_GATES: Dict[str, str] = {
     # (operator O-2: any armed client).
     "cal_apply": "armed",
     "cal_discard": "armed",
+    # Reset sets the active offset to 0 (the probe operations' class, as its
+    # button): the record first, then the machine as Apply does
+    "cal_reset": "probe",
     # --- tool-table edits (button gates BG-14: E-Stop allowed, no pending
     #     tool change; the handler re-checks at the write) ---
     "save_tool": "toolTableWrite",
@@ -974,8 +977,9 @@ COMMAND_EFFECTS: Dict[str, str] = {
     "tool_measure": "input_action", "tool_unload_measure": "input_action",
     # the confirming read synchs the parameters into the file (task_plan_synch)
     "read_g30": "input_action", "capture_g30": "input_action", "set_g30": "input_action",
-    # the probe tip offset is no parse input (no preview reads #3032)
-    "cal_apply": "none", "cal_discard": "none",
+    # the active probe offset: #3032 goes out as an MDI line and into the
+    # parameter file (the write's begin decides); a discard writes nothing
+    "cal_apply": "input_action", "cal_reset": "input_action", "cal_discard": "none",
     "save_tool": "input_action", "add_tool": "input_action", "delete_tool": "input_action",
     "renumber_tool": "input_action",
     "load_file": "input_action", "unload_file": "input_action",
@@ -1124,6 +1128,12 @@ class MachineLimits:
 #: proper commands (G10 L2 for offsets, G92, the tool table), and poking it
 #: behind the interpreter's back desynchronises what those commands manage.
 WRITABLE_VAR_DENY_RANGES = ((1, 30), (5000, 99999))
+
+#: Parameters only the GATEWAY writes (P5-1 c, plan v6): the probe tip offset
+#: #3032 comes from the active calibration record, never from a page — in
+#: whatever mapping it is sent (a stale form's value reached every probe).
+GATEWAY_VARS = frozenset({3032})
+GATEWAY_VAR_REFUSAL = "The calibration offset is set by Apply or Reset"
 
 
 #: a schema bound: a literal, none, or a function of the machine's declared limits
@@ -1487,11 +1497,10 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "set_compensation": {"enable": Flag(required=True)},
     "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}), required=True)},  # nearest/linear/cubic
     # --- parameters with their purpose, and the routines as jobs (package 3;
-    #     each purpose's own variables are the handler's check, features.py).
-    #     probe_run's `vars`: required but for the parameterless routines
-    #     (features.PARAMLESS_PROBE_ROUTINES) — the handler's rule.
+    #     each purpose's own variables are the handler's check, features.py;
+    #     the probe tip offset #3032 in none: GATEWAY_VARS).
     "set_params": {"sets": PurposeSets(required=True)},
-    "probe_run": {"routine": Text(max_len=63, required=True), "vars": VarNumbers()},
+    "probe_run": {"routine": Text(max_len=63, required=True), "vars": VarNumbers(required=True)},
     "surface_scan_run": {"vars": VarNumbers(required=True)},
     "set_g30": {"values": AxisMap(required=True), "based_on": AxisMap(required=True)},
     # a calibration candidate named by its run (P5: 1 … 9 999 999) and, for
@@ -1499,6 +1508,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "cal_apply": {"run": Num(lo=1, hi=9_999_999, integer=True, required=True),
                   "value": Num(lo=0, hi=1000, required=True)},
     "cal_discard": {"run": Num(lo=1, hi=9_999_999, integer=True, required=True)},
+    # (cal_reset takes nothing: the value is 0, its unit the machine's)
     "load_file": {"path": Text(max_len=PATH_MAX, required=True)},
 }
 
@@ -1576,6 +1586,8 @@ def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimi
             raise ValueError(f"{cmd}: {field} key {key!r} is not a parameter number "
                              f"— digits only, no leading zero")
         num = int(key)
+        if num in GATEWAY_VARS:
+            raise ValueError(GATEWAY_VAR_REFUSAL)
         for dlo, dhi in WRITABLE_VAR_DENY_RANGES:
             if dlo <= num <= dhi:
                 raise ValueError(

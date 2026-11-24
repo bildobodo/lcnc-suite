@@ -84,6 +84,10 @@ const DOM_GATED_ONLY = new Set([
   // (parameterRead / g30Capture / g30Write) and the gateway refuses the same
   // classes — found once the guard read request() too (package 3c).
   "read_g30", "capture_g30", "set_g30",
+  // The probe calibration's decisions (P5, ProbePanel): request() with ITS
+  // reply shown in the row it began in; Apply / Discard self-gate (armed),
+  // Reset (probe, its confirm too), the gateway admits each at its commit.
+  "cal_apply", "cal_discard", "cal_reset",
 ]);
 
 /**

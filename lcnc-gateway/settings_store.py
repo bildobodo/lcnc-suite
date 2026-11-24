@@ -39,6 +39,7 @@ Stale with the current state — never merged, never retried here.
 import copy
 import hashlib
 import json
+import math
 import secrets
 import threading
 from collections import deque
@@ -56,7 +57,14 @@ from json_types import JsonObject, JsonValue, to_int
 # stored, never used again); the macro BAR is a device section (OP3).
 # `features`: the switchable suite functions (package 3, features.py).
 MACHINE_SECTIONS = frozenset({"machine", "toolsetter", "probe", "keyboard",
-                              "gamepad", "mdi", "macros", "features"})
+                              "gamepad", "mdi", "macros", "features", "probeCalibration"})
+
+# The machine sections the GATEWAY alone writes (P5-1 c, plan v6): the active
+# probe calibration — its value comes from a calibration's Apply or a Reset,
+# never from a page's save. Every client save path is refused here.
+GATEWAY_SECTIONS = frozenset({"probeCalibration"})
+GATEWAY_SECTION_REFUSAL = "Set by Apply or Reset"
+CALIBRATION_SECTION = "probeCalibration"
 
 # A device's sections: how THIS browser looks and what it runs for itself.
 # Its own device saves them without arm (the former display sections, the
@@ -134,10 +142,13 @@ def _now() -> str:
 
 class SettingsStore:
     def __init__(self, path: Path, ini_key: Callable[[], str],
-                 on_load_error: Optional[Callable[[Exception], None]] = None):
+                 on_load_error: Optional[Callable[[Exception], None]] = None,
+                 on_dropped: Optional[Callable[[str, str], None]] = None):
         self._path = path
         self._ini_key = ini_key
         self._on_load_error = on_load_error
+        # a key a save carried that its section no longer has (section, key)
+        self._on_dropped = on_dropped
         # Serializes RMW from BOTH the WS save path and the REST save/reset
         # routes (the latter not under _cmd_lock) — threading.Lock because the
         # guarded methods run in executor threads (#24).
@@ -413,6 +424,8 @@ class SettingsStore:
         save's check of the machine's sections as they are and as they would
         be (package 3: the switches' transitions and the one cross-section
         rule), called right after `admit`, raising to refuse."""
+        if section in GATEWAY_SECTIONS:
+            raise PermissionError(GATEWAY_SECTION_REFUSAL)
         if device is None and section not in MACHINE_SECTIONS:
             raise ValueError(f"{section} is a device section")
         if device is not None and section not in DEVICE_SECTIONS:
@@ -425,6 +438,12 @@ class SettingsStore:
             raise ValueError(f"{section}: settings are an object — reload the page")
         if section == "features":
             validate_features(data)
+        if section == "probe" and "calOffset" in data:
+            # an older page's form still carries the offset: it has its own
+            # record now — saved without it, and no second migration (P5)
+            data = {k: v for k, v in data.items() if k != "calOffset"}
+            if self._on_dropped is not None:
+                self._on_dropped(section, "calOffset")
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             entry = self._entry(all_data)
@@ -463,6 +482,72 @@ class SettingsStore:
             if listed:
                 self.devices_version += 1
             return current + 1
+
+    # ---- the active probe calibration (P5-1 c) ------------------------
+
+    def calibration(self) -> Optional[JsonObject]:
+        """The stored record of the current INI (a copy), None before its
+        migration."""
+        with self._lock:
+            found = self._current().get(CALIBRATION_SECTION)
+            return copy.deepcopy(found) if isinstance(found, dict) else None
+
+    def migrate_calibration(self, unit: Optional[str]) -> Tuple[JsonObject, bool]:
+        """(the record, made now). ONCE per INI, in one write under the lock:
+        the value the probe form held (`probe.calOffset`) with its DECLARED
+        legacy unit — the machine unit its form showed it in (`unit`; None:
+        not readable, the unit stays unknown and the value goes nowhere until
+        Calibrate or Reset), named as such, no measurement. No finite old
+        value: {value: null, state: "none"}. The probe section loses the key.
+        A record that exists is never migrated again."""
+        with self._lock:
+            found = self._current().get(CALIBRATION_SECTION)
+            if isinstance(found, dict):
+                return copy.deepcopy(found), False
+            all_data = copy.deepcopy(self._load_all())
+            entry = self._entry(all_data)
+            revs = _obj(self._v2(entry).get("revs"), "the machine revisions")
+            probe = entry.get("probe")
+            old = probe.get("calOffset") if isinstance(probe, dict) else None
+            at = _now()
+            migrated: JsonObject = {"from_rev": to_int(revs.get("probe", 0)), "at": at}
+            rec: JsonObject
+            if isinstance(old, (int, float)) and not isinstance(old, bool) and math.isfinite(old):
+                rec = {"value": round(float(old), 6), "unit": unit, "state": "active",
+                       "unit_basis": "declared_legacy" if unit else "unknown", "at": at, "migrated": migrated}
+            else:
+                rec = {"value": None, "unit": None, "state": "none", "at": at, "migrated": migrated}
+            rec["rev"] = to_int(revs.get(CALIBRATION_SECTION, 0)) + 1
+            entry[CALIBRATION_SECTION] = rec
+            bumped = [CALIBRATION_SECTION]
+            if isinstance(probe, dict) and "calOffset" in probe:
+                entry["probe"] = {k: v for k, v in probe.items() if k != "calOffset"}
+                bumped.append("probe")
+            self._bump_all(revs, bumped)
+            self._save_all(all_data)
+            self._book_all(revs, "machine", bumped)
+            self.version += 1
+            return copy.deepcopy(rec), True
+
+    def write_calibration(self, record: JsonObject,
+                          admit: Callable[[Optional[JsonObject], Dict[str, bool]], None]) -> JsonObject:
+        """The gateway's own write (Apply, Reset): `admit(the record as it is,
+        the switches)` decides inside the lock, right before the write, and
+        raises to refuse — a refusal writes and bumps nothing. It must not
+        call back into this store (one lock). Returns the stored record."""
+        with self._lock:
+            all_data = copy.deepcopy(self._load_all())
+            entry = self._entry(all_data)
+            revs = _obj(self._v2(entry).get("revs"), "the machine revisions")
+            found = entry.get(CALIBRATION_SECTION)
+            admit(copy.deepcopy(found) if isinstance(found, dict) else None, features_of(entry.get("features")))
+            rec: JsonObject = {**record, "rev": to_int(revs.get(CALIBRATION_SECTION, 0)) + 1, "at": _now()}
+            entry[CALIBRATION_SECTION] = rec
+            self._bump_all(revs, [CALIBRATION_SECTION])
+            self._save_all(all_data)
+            self._book_all(revs, "machine", [CALIBRATION_SECTION])
+            self.version += 1
+            return copy.deepcopy(rec)
 
     @staticmethod
     def _bump_all(revs: JsonObject, sections: Iterable[str]) -> None:

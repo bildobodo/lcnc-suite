@@ -127,6 +127,7 @@ class ClientState:
     prev_tc_req: Optional[bool] = False   # tool-change-requested edge detection
     prev_tool_num: Optional[int] = None   # tool_number edge for tool_meta resend
     ts_booking_sent: Optional[int] = None  # the toolsetter booking version this connection has (P2)
+    probe_state_sent: Optional[tuple] = None  # the calibration record / candidate / probe booking it has (P5)
     # The device profile this CONNECTION is bound to (settings split,
     # R335–R337): set once by its hello, never swapped inside the connection
     # (a tab whose stored token changed opens a NEW connection). None = not

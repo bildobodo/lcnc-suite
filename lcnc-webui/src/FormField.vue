@@ -21,6 +21,7 @@
 // group).
 import { computed, useId, useSlots } from "vue";
 import HelpIcon from "./HelpIcon.vue";
+import type { FieldState } from "./fieldState";
 
 const props = defineProps<{
   label: string;
@@ -34,6 +35,10 @@ const props = defineProps<{
   /** Label, "?", field and unit in ONE row (a fixed section with room for
    *  one row: the rough sizes under a probe grid). */
   inline?: boolean;
+  /** The field against the server (P5, W1 — fieldState.ts): a draft it does
+   *  not hold yet, or an entry it refused. null / absent = saved, neutral. A
+   *  bar ON the field (style.css), never a text under it. */
+  state?: FieldState;
 }>();
 
 const slots = useSlots();
@@ -41,13 +46,15 @@ const id = `ff${useId()}`;
 const labelId = `${id}-label`;
 const unitId = `${id}-unit`;
 const errorId = `${id}-error`;
+const stateId = `${id}-state`;
+const STATE_WORDS = { draft: "Not saved yet", refused: "Not saved — refused" } as const;
 
 const describedBy = computed(() =>
-  [props.unit ? unitId : "", props.error ? errorId : ""].filter(Boolean).join(" ") || undefined);
+  [props.unit ? unitId : "", props.error ? errorId : "", props.state ? stateId : ""].filter(Boolean).join(" ") || undefined);
 const field = computed(() => ({
   id,
   "aria-describedby": describedBy.value,
-  "aria-invalid": props.error ? ("true" as const) : undefined,
+  "aria-invalid": props.error || props.state === "refused" ? ("true" as const) : undefined,
 }));
 const input = computed(() => ({
   ...field.value,
@@ -62,7 +69,7 @@ const groupAttrs = computed(() => ({
 </script>
 
 <template>
-  <div class="formField" :class="{ wide, inline }">
+  <div class="formField" :class="[{ wide, inline }, state ? `fs-${state}` : null]">
     <div class="formFieldHead">
       <span v-if="group" :id="labelId" class="formLabel">{{ label }}</span>
       <label v-else :id="labelId" :for="id" class="formLabel">{{ label }}</label>
@@ -71,5 +78,7 @@ const groupAttrs = computed(() => ({
     </div>
     <slot :field="field" :input="input" :group="groupAttrs" />
     <div v-if="error" :id="errorId" class="formError" role="alert">{{ error }}</div>
+    <!-- the state in words, for the field's description only (no layout) -->
+    <span v-if="state" :id="stateId" hidden>{{ STATE_WORDS[state] }}</span>
   </div>
 </template>

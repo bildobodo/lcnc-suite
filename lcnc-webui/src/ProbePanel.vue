@@ -10,7 +10,7 @@ import MachineRadio from "./MachineRadio.vue";
 import { usePermissions, useFire } from "./permissions";
 import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
-import { loadProbeDraft, saveProbeDefaults, settingsVersion, serverSettingsReady, clearToolsetterDefaults } from "./defaults";
+import { confirmedSection, loadProbeDefaults, loadProbeDraft, saveProbeDefaults, settingsVersion, serverSettingsReady, clearToolsetterDefaults } from "./defaults";
 import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
@@ -19,7 +19,9 @@ import { PROBE_COMMON_FIELDS, PROBE_HINT_FIELDS, CAL_ROUND_FIELD, CAL_RECT_FIELD
          bossPocketRefusal, bossPocketNote } from "./probeFields";
 import { showBtnHint } from "./btnHint";
 import { status, request } from "./lcncWs";
-import { calOffsetView, type CalRefusal } from "./calibrationView";
+import { activeOffsetText, calOffsetView, type CalRefusal } from "./calibrationView";
+import { fieldStates, sectionRefusal } from "./fieldState";
+import { probeMachineState, probeSectionLine } from "./probeMachine";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
@@ -99,7 +101,7 @@ function confirmReset() {
   const target = resetTarget.value;
   resetTarget.value = null;
   if (target === "toolsetter") clearToolsetterDefaults();
-  else if (target === "cal") emit("runProbe", { vars: {}, macro: "probe_cal_reset" });
+  else if (target === "cal") void calReset();
 }
 
 // ─── Grid probe operations ────────────────────────────────────────
@@ -170,7 +172,8 @@ const calAxis = ref(0); // 0=avg XY, 1=X only, 2=Y only
 
 // ─── Parameters ───────────────────────────────────────────────────
 // Parameter order matches config v0.2 subroutines:
-// #1=probe_tool, #2=slow_fr, #3=fast_fr, #4=traverse_fr, #5=max_distance, #6=clearance, #7=cal_offset
+// #1=probe_tool, #2=slow_fr, #3=fast_fr, #4=traverse_fr, #5=max_distance, #6=clearance
+// (#7, the calibration offset, is the gateway's: the active record — P5-1 c)
 const { autoZero: _fallbackAutoZero, ...PROBE_PARAMS } = PROBE_FALLBACK;
 const params = ref({ ...PROBE_PARAMS });
 
@@ -195,8 +198,10 @@ function loadParams() {
   Object.assign(params.value, rest);
 }
 
-function saveParams() {
-  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
+/** `field`: the one just entered — a change of its own, the same value too
+ *  (P5: an entry repeated after a refusal is a new change). */
+function saveParams(field?: string) {
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value }, field ? [field] : []);
   // Sync to var file when machine is ready (execution functions also sync
   // before each probe) — every purpose whose function is on, as ONE command:
   // two left the second waiting in the browser, where an abort never
@@ -208,14 +213,6 @@ function saveParams() {
   if (features.value.surfaceMap) sets.surface = surfaceVarMap(params.value);
   if (Object.keys(sets).length) emit("setParams", sets);
 }
-
-/** Sync cal offset from DEBUG EVAL messages (emitted by cal subroutines and reset). */
-watch(() => props.probeResults?.cal_offset, (v) => {
-  if (v != null) {
-    params.value.calOffset = v;
-    saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
-  }
-});
 
 // Re-read when another client changes probe settings
 watch(settingsVersion, () => { loadParams(); });
@@ -311,16 +308,35 @@ function resetCal() {
 // The gateway's record and candidate — the same on every client. This
 // client's refusal of Apply stays where it began (the block), for its run.
 const calRefusal = ref<CalRefusal | null>(null);
-const calView = computed(() => calOffsetView(status.value?.probe_calibration ?? null, params.value.calOffset,
-  status.value?.cal_candidate ?? null, props.linearUnit, calRefusal.value));
+const calActive = computed(() => status.value?.probe_calibration ?? null);
+const calView = computed(() => calOffsetView(calActive.value, status.value?.cal_candidate ?? null,
+  props.linearUnit, calRefusal.value));
+const whyOf = (r: { ok?: boolean; error?: unknown } | null): string | null | undefined =>
+  !r ? null : r.ok === false ? (typeof r.error === "string" ? r.error : "refused") : undefined;
 async function calDecide(kind: "cal_apply" | "cal_discard") {
   const note = calView.value.note;
   if (note?.kind !== "pending") return;
   calRefusal.value = null;
-  const r = await request(kind === "cal_apply" ? { cmd: kind, run: note.run, value: note.value } : { cmd: kind, run: note.run });
-  if (!r) calRefusal.value = { run: note.run, kind, why: null };
-  else if (r.ok === false) calRefusal.value = { run: note.run, kind, why: typeof r.error === "string" ? r.error : "refused" };
+  const why = whyOf(kind === "cal_apply"
+    ? await request({ cmd: "cal_apply", run: note.run, value: note.value })
+    : await request({ cmd: "cal_discard", run: note.run }));
+  if (why !== undefined) calRefusal.value = { kind, run: note.run, why };
 }
+async function calReset() {
+  const rev = calActive.value?.rev ?? null;
+  calRefusal.value = null;
+  const why = whyOf(await request({ cmd: "cal_reset" }));
+  if (why !== undefined) calRefusal.value = { kind: "cal_reset", rev, why };
+}
+
+// ─── The fields against the server, and what the machine holds (P5-2, W1) ──
+// The bar is the field's, the line the section's: one fact in one place.
+const formNow = computed(() => ({ ...params.value, autoZero: autoZero.value }));
+const heldProbe = computed(() => { void settingsVersion.value; return loadProbeDefaults(); });
+const states = computed(() => fieldStates("probe", formNow.value, heldProbe.value));
+const sectionLine = computed(() => probeSectionLine(sectionRefusal("probe", states.value),
+  probeMachineState(serverSettingsReady.value ? heldProbe.value : null, confirmedSection("probe") !== undefined,
+                    states.value, status.value?.probe_booking, probeView.value === "surface")));
 
 // ─── Surface map ──────────────────────────────────────────────────
 function runSurfaceScan() {
@@ -853,10 +869,10 @@ function fmtR(key: string): string {
 
       <!-- Rough feature sizes (FormField, one row under the grid) -->
       <div class="inlineParams">
-        <FormField v-for="f in PROBE_HINT_FIELDS.boss" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+        <FormField v-for="f in PROBE_HINT_FIELDS.boss" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline :state="states[f.key]">
           <template #default="{ input }">
             <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
-                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
           </template>
           <template #help>{{ f.help }}</template>
         </FormField>
@@ -962,10 +978,10 @@ function fmtR(key: string): string {
 
       <!-- Rough feature sizes (FormField, one row under the grid) -->
       <div class="inlineParams">
-        <FormField v-for="f in PROBE_HINT_FIELDS.angle" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+        <FormField v-for="f in PROBE_HINT_FIELDS.angle" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline :state="states[f.key]">
           <template #default="{ input }">
             <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
-                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
           </template>
           <template #help>{{ f.help }}</template>
         </FormField>
@@ -1012,10 +1028,10 @@ function fmtR(key: string): string {
             </div>
           </div>
           <div class="calParamStacked">
-            <FormField v-for="f in [CAL_ROUND_FIELD]" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+            <FormField v-for="f in [CAL_ROUND_FIELD]" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline :state="states[f.key]">
               <template #default="{ input }">
                 <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
-                              :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                              :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
               </template>
               <template #help>{{ f.help }}</template>
             </FormField>
@@ -1053,10 +1069,10 @@ function fmtR(key: string): string {
             </div>
           </div>
           <div class="calParamStacked">
-            <FormField v-for="f in CAL_RECT_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+            <FormField v-for="f in CAL_RECT_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline :state="states[f.key]">
               <template #default="{ input }">
                 <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
-                              :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                              :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
               </template>
               <template #help>{{ f.help }}</template>
             </FormField>
@@ -1076,8 +1092,9 @@ function fmtR(key: string): string {
           </div>
         </div>
         <div class="statusNote" data-cal="active">
-          <span>Calibration offset <strong class="mono">{{ calView.value }}</strong><template v-if="calView.machine"><span
-            class="calDot" aria-hidden="true"> · </span><span class="calPart text-muted">{{ calView.machine }}</span></template></span>
+          <span>Calibration offset <strong class="mono">{{ calView.value }}</strong><template v-if="calView.resetRefusal ?? calView.machine"><span
+            class="calDot" aria-hidden="true"> · </span><span class="calPart" :class="calView.resetRefusal ? 'text-danger' : 'text-muted'">{{
+            calView.resetRefusal ?? calView.machine }}</span></template></span>
           <MachineBtn type="probeReset" aria-label="Reset Calibration" @click="resetCal">Reset</MachineBtn>
         </div>
         <div v-if="calView.note?.kind === 'pending'" class="statusNote warn" role="status" data-cal="candidate">
@@ -1174,10 +1191,10 @@ function fmtR(key: string): string {
 
       <!-- Rough feature sizes (FormField, one row under the grid) -->
       <div class="inlineParams">
-        <FormField v-for="f in PROBE_HINT_FIELDS.ridge" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+        <FormField v-for="f in PROBE_HINT_FIELDS.ridge" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline :state="states[f.key]">
           <template #default="{ input }">
             <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
-                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
           </template>
           <template #help>{{ f.help }}</template>
         </FormField>
@@ -1190,10 +1207,10 @@ function fmtR(key: string): string {
       <div v-if="compOnlyNote" class="statusNote warn" role="status">{{ compOnlyNote }}</div>
       <div v-if="surfaceFull" class="formGrid">
         <div class="sub">Scan Grid</div>
-        <FormField v-for="f in SCAN_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+        <FormField v-for="f in SCAN_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" :state="states[f.key]">
           <template #default="{ input }">
             <MachineInput v-bind="input" gate="scanParam" type="number" v-model.number="params[f.key]"
-                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
           </template>
           <template #help>{{ f.help }}</template>
         </FormField>
@@ -1275,18 +1292,20 @@ function fmtR(key: string): string {
          probeFields.ts — design wave D4) -->
     <div class="formGrid">
       <div class="sub">Parameters</div>
-      <FormField v-for="f in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <div class="sectionLine" :class="{ refused: sectionLine.refused }" :title="sectionLine.text" role="status"
+           data-section-line="probe">{{ sectionLine.text }}</div>
+      <FormField v-for="f in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" :state="states[f.key]">
         <template #default="{ input }">
           <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
-                        :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+                        :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams(f.key)" />
         </template>
         <template #help>{{ f.help }}</template>
       </FormField>
       <FormField label="Calibration Offset" :unit="linearUnit">
         <template #default="{ field }">
-          <output v-bind="field" class="formValue">{{ fmtNum(params.calOffset) }}</output>
+          <output v-bind="field" class="formValue">{{ activeOffsetText(calActive, (calActive?.unit ?? linearUnit) === linearUnit) }}</output>
         </template>
-        <template #help>Probe tip offset, set by the calibration routines — don't edit by hand.</template>
+        <template #help>The active probe tip offset — set by Apply or Reset in Calibrate.</template>
       </FormField>
     </div>
     </template>

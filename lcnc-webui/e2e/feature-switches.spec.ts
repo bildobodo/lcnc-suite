@@ -243,15 +243,14 @@ test("a focused camera setting its switch removes hands the focus to the setting
   await expect(settings.getByRole("tab", { name: "3D Viewer", exact: true })).toBeFocused();
 });
 
-test("Reset Calibration sends its routine as a probe job without values (SS-I08)", async ({ page }) => {
+test("Reset Calibration is the gateway's own command — no routine, no value from the page (P5-1 c)", async ({ page }) => {
   await open(page, { features: ALL_ON });
   await side(page).getByRole("tab", { name: "Probing", exact: true }).click();
   await side(page).getByRole("tab", { name: "Calibrate", exact: true }).click();
   await side(page).getByRole("button", { name: "Reset Calibration", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Reset", exact: true }).click();
-  // the same payload test_feature_switches replays through the dispatcher
-  await expect.poll(async () => (await sent()).filter(c => c.cmd === "probe_run"))
-    .toEqual([expect.objectContaining({ cmd: "probe_run", routine: "probe_cal_reset", vars: {} })]);
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "cal_reset").length).toBe(1);
+  expect((await sent()).filter(c => c.cmd === "probe_run" || c.cmd === "set_params"), "nothing else goes out").toEqual([]);
 });
 
 for (const c of [

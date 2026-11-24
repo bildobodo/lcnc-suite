@@ -12,7 +12,6 @@
       "xyClearance": 2,
       "maxZDistance": 10,
       "zClearance": 2,
-      "calOffset": 0,
       "stepOffWidth": 5,
       "extraProbeDepth": 0,
       "edgeWidth": 0.5,
@@ -57,7 +56,6 @@
         "3029": 0,
         "3030": 0,
         "3031": 0,
-        "3032": 0,
         "3033": 0,
         "3034": 0,
         "3035": 0
@@ -76,7 +74,6 @@
       "xyClearance": 2,
       "maxZDistance": 10,
       "zClearance": 1,
-      "calOffset": 0,
       "stepOffWidth": 5,
       "extraProbeDepth": 0,
       "edgeWidth": 0.5,

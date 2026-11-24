@@ -18,6 +18,7 @@ import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } 
 import { parseDriftDecision, type DriftDecision } from "../viewer/driftWait";
 import { emitTelemetry } from "./telemetry";
 import type { CalCandidate, ProbeCalibration } from "../calibrationView";
+import type { ProbeBooking } from "../probeMachine";
 
 export interface LcncMessage {
   id: number;
@@ -73,9 +74,12 @@ export interface WsStatus {
   // a connection's first frame and on every change, carried in between,
   // dropped with the connection. The toolsetter form projects its state from it.
   toolsetter_booking?: ToolsetterBooking | null;
-  // P5: the gateway's active calibration record and a calibration run's candidate
+  // P5: the gateway's active calibration record, a calibration run's candidate
+  // and what the machine holds of the probing parameters — on a connection's
+  // first frame and on every change, carried in between, dropped with it.
   probe_calibration?: ProbeCalibration | null;
   cal_candidate?: CalCandidate | null;
+  probe_booking?: ProbeBooking | null;
 }
 
 /** Per parameter number, what the gateway knows the interpreter holds and
@@ -471,6 +475,8 @@ export function notePong(): void {
 // persist across the relay (previously closure-locals inside connectWs).
 let _pendingStatus: any = null;
 let _lastRflTs = 0;
+const PROBE_STATE_KEYS = ["probe_calibration", "cal_candidate", "probe_booking"] as const;
+let _probeState: Partial<Record<typeof PROBE_STATE_KEYS[number], unknown>> = {};   // carried (P5)
 let _tsBooking: ToolsetterBooking | null = null;   // carried toolsetter booking (P2)   // dedupe for rfl_status frames (same phase repeats per tick)
 let _flushScheduled = false;
 // The oldest socket receipt among the frames folded into the pending status,
@@ -549,6 +555,12 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   // never confirms a new instance (P2).
   if (msg.toolsetter_booking !== undefined) _tsBooking = msg.toolsetter_booking;
   else if (_tsBooking) msg.toolsetter_booking = _tsBooking;
+  // The calibration record, its candidate and the probe booking (P5): the
+  // same rule — null is a value (no candidate), absent is "as before".
+  for (const k of PROBE_STATE_KEYS) {
+    if (msg[k] !== undefined) _probeState[k] = msg[k];
+    else if (k in _probeState) msg[k] = _probeState[k];
+  }
   if (msg.tool_meta && msg.data?.tool_number != null) {
     _lastToolMeta = { num: msg.data.tool_number, meta: msg.tool_meta };
   } else if (_lastToolMeta && msg.data?.tool_number === _lastToolMeta.num && !msg.tool_meta) {
@@ -834,6 +846,7 @@ export function resetOnClose(): void {
   latency.value = null;
   networkLatency.value = null;
   _tsBooking = null;   // the booking was this connection's (P2)
+  _probeState = {};    // and so were these (P5)
   _heartbeatSentAt = _rtSentAt = 0;
   // The carry deliberately SURVIVES a reconnect: the surface map on screen did
   // not stop being true because the socket blipped, and the gateway re-pings

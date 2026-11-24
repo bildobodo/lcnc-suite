@@ -171,7 +171,7 @@ PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read", "tool-preview", "tool-edit")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
-PROBING = ("probe-click", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
+PROBING = ("probe-click", "probe-calibration", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "hold-stall", "hold-stall-mouse", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
@@ -225,7 +225,7 @@ RULES: tuple[Rule, ...] = (
              "MachineBtn.vue", "holdGesture.ts", "MachineInput.vue", "MachineToggle.vue", "MachineSlider.vue",
              "MachineSelect.vue", "MachineRadio.vue", "MachineColor.vue", "Gate.vue",
              "permissions.ts", "machineControls.ts",
-             "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "deviceToken.ts", "simShown.ts", "features.ts",
+             "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "fieldState.ts", "deviceToken.ts", "simShown.ts", "features.ts",
              "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts", "releaseClick.ts", "jogLease.ts",
              "sidePaneNarrow.ts", "stickyHead.ts", "scrollFade.ts", "helpPlacement.ts",
              "HelpIcon.vue", "FormField.vue", "MoreMenu.vue", "DetailsPopover.vue",
@@ -287,7 +287,7 @@ RULES: tuple[Rule, ...] = (
          "the G-code reference", browser=("gcode-reference", "editor-guards")),
     Rule(src("MessagesDialog.vue", "messageView.ts"), "the message center", browser=MESSAGES),
     Rule(src("ProbePanel.vue", "probeFields.ts", "probeViews.ts", "probeVars.ts",
-             "CornerGlyph.vue", "axisColors.ts", "calibrationView.ts"),
+             "CornerGlyph.vue", "axisColors.ts", "calibrationView.ts", "probeMachine.ts"),
          "the probing panel and its glyphs", browser=PROBING, firefox=True,
          live=("probe-live",)),
     Rule(src("ToolsetterSettings.vue", "toolsetterSetup.ts", "toolsetterVars.ts",
@@ -369,6 +369,10 @@ RULES: tuple[Rule, ...] = (
          "freshness guard writes P6-a's again from the worker under test and compares the bytes "
          "(test_start_dep_worker TestTheBelievedStartPayloadsAreFresh, Codex R459)", backend=True),
     Rule(("lcnc-gateway/macro_files.py",), "macro files", live=("macro-live",)),
+    Rule(("lcnc-gateway/cal_runs.py", "lcnc-gateway/probe_book.py", "lcnc-gateway/probe_routines.py",
+          "scripts/gen_probe_routines.py"),
+         "the probe calibration's runs and the probing parameters' booking (P5)", backend=True,
+         live=("probe-live",)),
     Rule(("examples/**",), "the shipped examples: backend, models, var files",
          backend=True),
     Rule(("examples/sim_config/*/*.var",), "a shipped var file: the probe numbers",

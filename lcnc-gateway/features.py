@@ -33,14 +33,28 @@ def _span(lo: int, hi: int) -> FrozenSet[int]:
     return frozenset(range(lo, hi + 1))
 
 
+#: The probe tip offset #3032 belongs to NO purpose: it has one writer, the
+#: gateway, from the active calibration (P5-1 c, plan v6) — a page never
+#: sends it.
+OFFSET_VAR = 3032
+OFFSET_REFUSAL = "The calibration offset is set by Apply or Reset"
+
 #: Each purpose's variables (CLAUDE.md "Toolsetter Var-File Mapping", the
-#: probe panel's #3014–#3036, surface_scan.ngc's inputs) and its switch.
+#: probe panel's #3014–#3035 without the offset — a calibration adds its axis
+#: choice #3036 —, surface_scan.ngc's inputs) and its switch.
+_PROBE_VARS = _span(3014, 3035) - {OFFSET_VAR}
 PURPOSE_VARS: Dict[str, FrozenSet[int]] = {
-    "probe": _span(3014, 3036),
+    "probe": _PROBE_VARS,
+    "calibration": _PROBE_VARS | {3036},
     "surface": _span(3050, 3059) | {3014, 3021},
     "toolsetter": _span(3004, 3013) | _span(3100, 3115),
 }
-PURPOSE_FEATURE = {"probe": "probing", "surface": "surfaceMap", "toolsetter": "toolsetter"}
+PURPOSE_FEATURE = {"probe": "probing", "calibration": "probing", "surface": "surfaceMap",
+                   "toolsetter": "toolsetter"}
+#: The purposes whose lengths and feeds are the probing form's — in the
+#: machine's unit, so the interpreter's program unit must be that one (P5-1
+#: c, MT440-01).
+UNIT_PURPOSES = frozenset({"probe", "calibration", "surface"})
 
 #: The recognisable jobs and their switch — the gateway's ONE table of what a
 #: switch refuses over WS (the inventory guard reads it). `set_params` is
@@ -50,6 +64,7 @@ COMMAND_FEATURES = {
     # P5: the calibration candidate is probing's (plan v6: the switch at the commit)
     "cal_apply": "probing",
     "cal_discard": "probing",
+    "cal_reset": "probing",
     "surface_scan_run": "surfaceMap",
     "set_compensation_method": "surfaceMap",
     "tool_measure": "toolsetter",
@@ -85,11 +100,6 @@ GAMEPAD_COMMANDS = frozenset({
     "cycle_start", "cycle_resume", "cycle_pause", "abort", "estop",
     "spindle_stop", "flood_on", "flood_off", "mist_on", "mist_off", "home_all",
 })
-
-#: The probe routines that read none of the panel's values — a probe_run of
-#: one carries an EMPTY set (Codex R343 SS-I08: Reset Calibration only zeroes
-#: #3032); every other routine needs its values.
-PARAMLESS_PROBE_ROUTINES = frozenset({"probe_cal_reset"})
 
 M600_MODE = "m600"
 
@@ -138,6 +148,8 @@ def purpose_refusal(purpose, keys: Iterable) -> Optional[str]:
             n = int(k)
         except (TypeError, ValueError):
             return f"#{k} is not a parameter number"
+        if n == OFFSET_VAR:
+            return OFFSET_REFUSAL
         if n not in allowed:
             return f"#{n} is not a {purpose} parameter — nothing written"
     return None

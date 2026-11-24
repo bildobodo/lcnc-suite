@@ -148,6 +148,7 @@
   --fg-muted: #525e6a;
   --ok-text: #006c00;
   --warn-text: #8d4500;
+  --field-draft: #c47800;
   --danger-text: #9c0003;
   --info-text: #146197;
   --accent-text: #5442dd;
@@ -379,6 +380,7 @@
     --fg-muted: #999fa5;
     --ok-text: #3fb53c;
     --warn-text: #f5a623;
+    --field-draft: #f5a623;
     --danger-text: #ff8076;
     --info-text: #65abe6;
     --accent-text: #9493ff;
@@ -426,6 +428,7 @@
   --fg-muted: #525e6a;
   --ok-text: #006c00;
   --warn-text: #8d4500;
+  --field-draft: #c47800;
   --danger-text: #9c0003;
   --info-text: #146197;
   --accent-text: #5442dd;
@@ -472,6 +475,7 @@
   --fg-muted: #999fa5;
   --ok-text: #3fb53c;
   --warn-text: #f5a623;
+  --field-draft: #f5a623;
   --danger-text: #ff8076;
   --info-text: #65abe6;
   --accent-text: #9493ff;
@@ -528,6 +532,7 @@
   --fg-muted: #3b3b3b;
   --ok-text: #006400;
   --warn-text: #863f00;
+  --field-draft: #b86f00;
   --danger-text: #8d0000;
   --info-text: #004bc1;
   --accent-text: #483cd3;
@@ -583,6 +588,7 @@
   --fg-muted: #bbbbbb;
   --ok-text: #33dd33;
   --warn-text: #ffcc00;
+  --field-draft: #ffcc00;
   --danger-text: #ff887c;
   --info-text: #66aaff;
   --accent-text: #9b93ff;
@@ -848,6 +854,44 @@ input[type="range"]::-moz-range-thumb:hover {
 .inputField[readonly] {
   cursor: pointer;
 }
+
+/* A field's state against the server (P5, W1; operator 2026-11-21/24): ONE
+   pattern for every form, set by FormField's `state`. A DRAFT — changed here,
+   not yet held by the server — carries a 3 px amber bar on its leading edge
+   and a faint tint; a REFUSED one a red bar. A saved field is neutral, a
+   field a client may not change is closed by its gate. The bar is drawn INTO
+   the field (an inset shadow): no state adds a pixel, and no state writes a
+   text under a field — the section's one line says the rest (.sectionLine).
+   --field-draft: the amber that holds 3 : 1 on the tinted field and the
+   panel in each theme (--warn itself sits at 1.9 : 1 on the light ones). */
+.formField.fs-draft .inputField {
+  box-shadow: inset 3px 0 0 var(--field-draft);
+  background: color-mix(in oklab, var(--warn) var(--tint-faint), var(--bg));
+}
+.formField.fs-refused .inputField {
+  box-shadow: inset 3px 0 0 var(--danger);
+  background: color-mix(in oklab, var(--danger) var(--tint-faint), var(--bg));
+}
+/* Forced colours draw no shadow: the bar is the field's own edge there. */
+@media (forced-colors: active) {
+  .formField.fs-draft .inputField { border-inline-start: 3px solid Highlight; }
+  .formField.fs-refused .inputField { border-inline-start: 3px solid LinkText; }
+}
+/* A section's ONE line under its heading (P5, operator 2026-11-23): what the
+   machine holds of the section, or why a change was not saved. Always
+   exactly one line — a longer text ends in an ellipsis, its whole in the
+   title — so no state moves what follows. */
+.sectionLine {
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  min-height: calc(var(--fs-sm) * 1.5);
+  line-height: 1.5;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sectionLine.refused { color: var(--danger-text); }
 
 
 input[type="checkbox"] {
@@ -1479,7 +1523,8 @@ label:has(input:disabled, select:disabled) {
 .formGrid > .wide,
 .formGrid > .sub,
 .formGrid > .sep,
-.formGrid > .settingDesc { grid-column: 1 / -1; }
+.formGrid > .settingDesc,
+.formGrid > .sectionLine { grid-column: 1 / -1; }
 /* .sectionColumns: two EQUAL columns INSIDE a section while each keeps
    --section-col-min, else one (the .formGrid rule a level up). Settings'
    3D Viewer stacks its sections and splits each one (operator 2026-10-01:

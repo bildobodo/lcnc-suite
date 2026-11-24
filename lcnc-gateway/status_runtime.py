@@ -31,7 +31,7 @@ import math
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import linuxcnc
 
@@ -989,16 +989,35 @@ class StatusRuntime:
     # ---- error channel ----
 
     def read_errors_nonblocking(self) -> list:
-        err = self._get_err()
+        return self.read_errors(self._get_err())[0]
+
+    #: one packet of a status cycle: caps an error flood's hold of the thread
+    ERR_PACKET = 50
+    #: a drain (P5): this many packets and this long at most
+    ERR_DRAIN_PACKETS = 20
+    ERR_DRAIN_S = 0.5
+
+    def read_errors(self, err, *, drain: bool = False) -> Tuple[list, Optional[str]]:
+        """(the messages, why the channel is NOT proven empty — None: an
+        `err.poll()` came back empty). ONE packet per cycle; `drain` (P5, plan
+        v6: a calibration start's proof, a run's end) reads packet after
+        packet to that empty poll, bounded. The messages stand beside the
+        proof: no channel and a failed read give an empty list too, which
+        proves nothing."""
         if err is None:
-            return []
-        out = []
+            return [], "no error channel"
+        out: list = []
+        packets = self.ERR_DRAIN_PACKETS if drain else 1
+        t0 = time.monotonic()
         try:
-            while len(out) < 50:  # cap: prevents executor stall on pathological error floods
-                e = err.poll()
-                if not e:
+            for _ in range(packets):
+                for _ in range(self.ERR_PACKET):   # cap: prevents executor stall on pathological error floods
+                    e = err.poll()
+                    if not e:
+                        return out, None
+                    out.append(e)
+                if time.monotonic() - t0 > self.ERR_DRAIN_S:
                     break
-                out.append(e)
         except Exception as e:
             # Error buffer may be briefly invalid after reconnect — log first
             # failure per reconnect window so a persistent issue surfaces;
@@ -1007,7 +1026,8 @@ class StatusRuntime:
                 _trace.emit("err_chan.poll_failed", level="warn",
                             exc=type(e).__name__, msg=str(e))
                 self._err_poll_warned = True
-        return out
+            return out, f"error channel not read ({type(e).__name__})"
+        return out, "more messages than one read takes"
 
     # ---- sampling ----
 
