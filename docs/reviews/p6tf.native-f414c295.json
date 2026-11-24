@@ -1,0 +1,76 @@
+{
+ "run": "20261124T170814-toolfiles",
+ "driver": "docs/reviews/p6tf.native.py (via ~/claude-work/p6/tf/drive.sh: the native-run user unit, restore_lan.py as ExecStopPost)",
+ "commit": "f414c295b5f7a53b2f456d352adb5aea35f17c9b",
+ "profile": "3axis_xyz",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "crashes": [],
+ "p6tf": {
+  "table_file": "xyz3/tool.tbl",
+  "loaded": {
+   "tools": 902,
+   "size": 109728,
+   "proof": "complete",
+   "blksize": 4096
+  },
+  "burst": {
+   "g10_lines": 150,
+   "seconds": 15.2,
+   "sampler": {
+    "reads": 310132,
+    "distinct": 1132,
+    "torn": 981,
+    "full": 151,
+    "torn_examples": [
+     "xxxxxxxxxxxxxxxxxxxxxxxxx\nT399 P399 D+6.000000 Z+43.990000 ; long remark 0399 xxxxxxxxxxxx",
+     "42.020000 ; long remark 0202 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT137 P137 D+6.000000 Z+41.370000 ; long remark",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT137 P137 D+6.000000 Z+41.370000 ; long remark",
+     "emark 0464 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT465 P"
+    ],
+    "errors": {}
+   },
+   "reader": {
+    "replies": 1580,
+    "failed": [],
+    "complete": 1580,
+    "partial": 0,
+    "unchecked": 0,
+    "attempts_over_1": 35,
+    "complete_rev_a_sampled_full_content": 1580,
+    "complete_with_a_torn_content_or_short": [],
+    "not_complete_examples": [],
+    "ms_median": 9.4
+   },
+   "edit_during_the_burst": {
+    "refused": true,
+    "error": "save_tool refused: Machine busy — wait until it is idle"
+   },
+   "verdict": "PASS"
+  },
+  "prefix": {
+   "read_state": "partial",
+   "missing": 270,
+   "dropped": 270,
+   "refusal": "save_tool refused: Tool table not confirmed — nothing written; read again",
+   "file_unchanged": true,
+   "linuxcnc_tools_before": 902,
+   "linuxcnc_tools_after": 902,
+   "restored_state": "complete",
+   "edit_after": "confirmed",
+   "read_after": "complete",
+   "attempts_after": 1,
+   "t2_after": 35.0,
+   "verdict": "PASS"
+  },
+  "trace_tools_events": {
+   "tools.table_file_changed": 17,
+   "tools.read_partial": 1,
+   "tools.edit_basis_refused": 1,
+   "tools.reload_confirmed": 1
+  },
+  "verdict": "PASS"
+ }
+}
