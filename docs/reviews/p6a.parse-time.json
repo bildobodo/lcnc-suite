@@ -1,0 +1,209 @@
+{
+ "program": "/home/cnc/linuxcnc/nc_files/heavy_test_findings.ngc",
+ "lines": 689082,
+ "program_sha256": "d84c8a542d6aa99f7d1f84d421b6ed833526e36bd14eb7ad673de9554645e630",
+ "started": "2026-11-24T11:14:39+0100",
+ "ended": "2026-11-24T11:15:56+0100",
+ "runs_per_tree": 3,
+ "same_work": true,
+ "rows": [
+  {
+   "label": "base",
+   "warmup": true,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/base",
+   "canon_sha256": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+   "wall_s": 9.600227162241936,
+   "cpu_s": 9.598219092,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    -238.52499999999998,
+    -379.696,
+    96.75
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "head",
+   "warmup": true,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/head",
+   "canon_sha256": "12af92e4cfd53df18579ffe4d45c6a1f84b606773e9a9e540d6114af6e4b4e9c",
+   "wall_s": 9.571909642778337,
+   "cpu_s": 9.571042712,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "base",
+   "warmup": false,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/base",
+   "canon_sha256": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+   "wall_s": 9.540835817344487,
+   "cpu_s": 9.54013684,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    -238.52499999999998,
+    -379.696,
+    96.75
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "head",
+   "warmup": false,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/head",
+   "canon_sha256": "12af92e4cfd53df18579ffe4d45c6a1f84b606773e9a9e540d6114af6e4b4e9c",
+   "wall_s": 9.506008219905198,
+   "cpu_s": 9.504651587,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "base",
+   "warmup": false,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/base",
+   "canon_sha256": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+   "wall_s": 9.492073555011302,
+   "cpu_s": 9.491398799,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    -238.52499999999998,
+    -379.696,
+    96.75
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "head",
+   "warmup": false,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/head",
+   "canon_sha256": "12af92e4cfd53df18579ffe4d45c6a1f84b606773e9a9e540d6114af6e4b4e9c",
+   "wall_s": 9.58306041173637,
+   "cpu_s": 9.58240976,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "base",
+   "warmup": false,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/base",
+   "canon_sha256": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+   "wall_s": 9.61548021575436,
+   "cpu_s": 9.612324508,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    -238.52499999999998,
+    -379.696,
+    96.75
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  },
+  {
+   "label": "head",
+   "warmup": false,
+   "tree": "/home/cnc/claude-work/p6a/parse-time/head",
+   "canon_sha256": "12af92e4cfd53df18579ffe4d45c6a1f84b606773e9a9e540d6114af6e4b4e9c",
+   "wall_s": 9.59606677480042,
+   "cpu_s": 9.595531212,
+   "parse_error": null,
+   "feedMoves": 689201,
+   "rapidMoves": 8,
+   "arcMoves": 138,
+   "start_believed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "digest_without_start": "1a31dbb22853fb3fee1fab399d3cb44904ebda011b6f1d1cbf78903ec1f3b2ea"
+  }
+ ],
+ "summary": {
+  "base_wall_s": {
+   "runs": [
+    9.540835817344487,
+    9.492073555011302,
+    9.61548021575436
+   ],
+   "median": 9.540835817344487,
+   "min": 9.492073555011302,
+   "max": 9.61548021575436,
+   "spread": 0.12340666074305773
+  },
+  "base_cpu_s": {
+   "runs": [
+    9.54013684,
+    9.491398799,
+    9.612324508
+   ],
+   "median": 9.54013684,
+   "min": 9.491398799,
+   "max": 9.612324508,
+   "spread": 0.12092570899999977
+  },
+  "head_wall_s": {
+   "runs": [
+    9.506008219905198,
+    9.58306041173637,
+    9.59606677480042
+   ],
+   "median": 9.58306041173637,
+   "min": 9.506008219905198,
+   "max": 9.59606677480042,
+   "spread": 0.09005855489522219
+  },
+  "head_cpu_s": {
+   "runs": [
+    9.504651587,
+    9.58240976,
+    9.595531212
+   ],
+   "median": 9.58240976,
+   "min": 9.504651587,
+   "max": 9.595531212,
+   "spread": 0.09087962499999946
+  },
+  "diff_wall_s": {
+   "seconds": 0.04222459439188242,
+   "percent": 0.44256703710508716
+  },
+  "diff_cpu_s": {
+   "seconds": 0.04227292000000027,
+   "percent": 0.4431060131418436
+  }
+ }
+}
