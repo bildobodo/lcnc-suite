@@ -23,3 +23,23 @@ test-results/program-header.viewer-V-→--72aea--own-check-shows-its-header-e2e/
 1 passed (1.6m)
 # the 7th is a negative guard (no header from a text without its proof) - green at base by nature; its positive control is test 1 (red at base)
 # unit guards: viewer/programToolHeader.ts and the checkContext binding exports do not exist at base - both unit files fail to import there
+
+# R463 (Codex MT-I34) - red at ebf47b93 (the first build), 2026-11-24
+# unit: programToolHeader.test.ts's new cases against ebf47b93's scanner (the product unchanged since 9977669d), in this worktree before the fix:
+     × R463 case A: M70 / G20 / M72 restores the start's units — the lexical G20 is no proof 3ms
+     × R463 case B: M98 calls a sub that sets G20 before the move — no mm proof, no match 1ms
+     × the allow-list: spindle and coolant (built in, never remapped) pass; calls, modal state, remappable codes do not 1ms
+     × the machine-day form still compares: its tool change (T13 M600) comes after the first motion 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 'in' to be null
+AssertionError: expected 'mm' to be null
+AssertionError: M70: expected null to be 'unproven' // Object.is equality
+AssertionError: expected null to be 'unproven' // Object.is equality
+      Tests  4 failed | 18 passed (22)
+# browser: the two R463 cases of program-header.viewer.spec (case A Codex's own probe) against a build of ebf47b93, 1 worker, heavy lock:
+✘  1 [e2e] › e2e/program-header.viewer.spec.ts:211:3 › R463 case A (Codex's probe): M70 / G20 / M72: units not proven — the header named, not compared, no warn (12.9s)
+✘  2 [e2e] › e2e/program-header.viewer.spec.ts:211:3 › R463 case B: G21, M98 P100 calling a G20 sub: units not proven — the header named, not compared, no warn (12.3s)
+Error: a call or a modal restore: the units not proven
+Error: a call or a modal restore: the units not proven
+2 failed
+# at fc3c17da: the whole spec 9/9 green (~/claude-work/p6/p6e/r463-spec.log)
