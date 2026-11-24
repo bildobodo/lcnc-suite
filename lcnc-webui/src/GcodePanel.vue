@@ -378,16 +378,19 @@ watch(codeViewerRef, (el, old) => {
 // the followed row at once.
 const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
   const h = codeViewerRef.value?.clientHeight ?? 0;
-  if (h === viewH.value) return;
+  const was = viewH.value;
+  if (h === was) return;
   viewH.value = h;
   if (!(h > 0)) return;
   // the newest line: the one waiting for its step, else the one followed
   const row = _waitRow != null && _rowsStill(_waitRows) ? _waitRow
     : _followedRow != null && _rowsStill(_followedRows) ? _followedRow : null;
   if (row != null) scrollToRow(row, true);
-  // the simulation at the program's beginning: the view that comes back
-  // shows the top (a hidden pane's scroll is not the one it shows again)
-  else if (props.scrubStart != null && !editing.value) showProgramStart();
+  // the simulation at the program's beginning: the view that COMES BACK
+  // (from no height: a hidden tab) shows the top — a hidden pane's scroll is
+  // not the one it shows again; a height change of a shown view keeps a
+  // scroll by hand
+  else if (!(was > 0) && props.scrubStart != null && !editing.value) showProgramStart();
 }) : null;
 onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).

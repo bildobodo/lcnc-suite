@@ -85,6 +85,18 @@ const codeView = (page: Page): Promise<View> => page.evaluate(() => {
            active: sc.querySelector(".codeLine.active .lineNumber")?.textContent ?? null,
            band: !!sc.querySelector(".codeFollowBand"), scrollTop: sc.scrollTop };
 });
+/** The code scrolled away by hand — and come to rest (a wheel's scroll may
+ *  still run its course: two frames with one position). */
+async function scrollAway(page: Page, what: string) {
+  await page.locator(".codeViewer").filter({ visible: true }).hover();
+  await page.mouse.wheel(0, 60_000);
+  await expect.poll(() => page.evaluate(() => new Promise<boolean>(res => {
+    const sc = [...document.querySelectorAll(".codeViewer")].find(e => e.getBoundingClientRect().height > 0)!;
+    const a = sc.scrollTop;
+    requestAnimationFrame(() => requestAnimationFrame(() => res(a > 30_000 && sc.scrollTop === a)));
+  })), { message: `${what}: scrolled away by hand, at rest` }).toBe(true);
+  expect((await codeView(page)).first, `${what}: away from the top`).toBeGreaterThan(1000);
+}
 /** A line followed: marked and in view, the step done. */
 async function atLine(page: Page, frac: number, line?: number): Promise<View> {
   if (line != null) await scrubToLine(page, line);
@@ -150,16 +162,11 @@ for (const vp of ["desktop", "touch-fullhd"]) {
     await framesTo(page, () => backBtn(page).click(), "end → Back to start");
     // at 0 already, the code scrolled away by hand: Back to start returns
     // (an unchanged position must not swallow the return)
-    const code = page.locator(".codeViewer").filter({ visible: true });
-    await code.hover();
-    await page.mouse.wheel(0, 60_000);
-    await expect.poll(async () => (await codeView(page)).first, { message: "scrolled away by hand" }).toBeGreaterThan(1000);
+    await scrollAway(page, "at 0");
     expect(Number(await slider(page).inputValue()), "the position still at 0").toBe(0);
     await framesTo(page, () => backBtn(page).click(), "Back to start again at 0");
     // twice in a row: the second return comes back too
-    await code.hover();
-    await page.mouse.wheel(0, 60_000);
-    await expect.poll(async () => (await codeView(page)).first, { message: "scrolled away again" }).toBeGreaterThan(1000);
+    await scrollAway(page, "at 0 again");
     await framesTo(page, () => backBtn(page).click(), "Back to start a third time");
     // a line NEAR the top (a step there would glide, with its band): the
     // start is a snap from there too — by the timeline and by Back to start
@@ -171,7 +178,7 @@ for (const vp of ["desktop", "touch-fullhd"]) {
   });
 }
 
-test("Back to start with the Sim tab open: the Program tab shows the top when it comes back", async ({ page, context }) => {
+test("Back to start with the Sim tab open: the Program tab shows the top when it comes back; a height change keeps a scroll by hand", async ({ page, context }) => {
   test.setTimeout(90_000);
   await prepare(page, context, "desktop");
   await simOn(page).check();
@@ -183,6 +190,18 @@ test("Back to start with the Sim tab open: the Program tab shows the top when it
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect.poll(() => codeView(page), { message: "the Program tab at the top", timeout: 10_000 })
     .toMatchObject({ first: 1, scrollTop: 0, active: null, band: false });
+  // still at the start: the code scrolled by hand, then the view's height
+  // changes (a smaller window) — the scroll by hand stays
+  await scrollAway(page, "at the start");
+  const away = await codeView(page);
+  const h0 = await page.locator(".codeViewer").filter({ visible: true }).evaluate(e => e.clientHeight);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await expect.poll(() => page.locator(".codeViewer").filter({ visible: true }).evaluate(e => e.clientHeight),
+    { message: "the view's height changed" }).not.toBe(h0);
+  // the resize observer has run once two frames have passed after the layout
+  await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
+  const after = await codeView(page);
+  expect(after.first, `a height change keeps the scroll by hand: ${JSON.stringify({ away, after })}`).toBeGreaterThan(1000);
 });
 
 // Codex R456: a null line ELSEWHERE keeps its meaning — the view stays.
