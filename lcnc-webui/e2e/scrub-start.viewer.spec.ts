@@ -116,9 +116,11 @@ async function framesTo(page: Page, act: () => Promise<unknown>, what: string) {
     w.__p6b = []; w.__p6bOn = true; w.__p6bAt = Infinity;
     // the action's moment: its click (a button acts on it) or input event
     for (const ev of ["click", "input"]) addEventListener(ev, () => { w.__p6bAt = Math.min(w.__p6bAt, performance.now()); }, { capture: true, once: true });
-    const loop = (t: number) => {
+    // each frame stamped when it is read (a frame's own timestamp is its
+    // start — earlier than an event handled in it)
+    const loop = () => {
       const sc = [...document.querySelectorAll(".codeViewer")].find(e => e.getBoundingClientRect().height > 0);
-      if (sc) w.__p6b.push({ t, top: sc.scrollTop, band: !!sc.querySelector(".codeFollowBand"), active: !!sc.querySelector(".codeLine.active") });
+      if (sc) w.__p6b.push({ t: performance.now(), top: sc.scrollTop, band: !!sc.querySelector(".codeFollowBand"), active: !!sc.querySelector(".codeLine.active") });
       if (w.__p6bOn) requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
@@ -126,6 +128,12 @@ async function framesTo(page: Page, act: () => Promise<unknown>, what: string) {
   await act();
   await expect.poll(async () => { const v = await codeView(page); return v.first === 1 && v.scrollTop === 0; },
     { message: `${what}: the program's top`, timeout: 10_000 }).toBe(true);
+  // the frames after the action: at least two drawn (a loaded page may reach
+  // the top before its next frame — gate round 1 read none)
+  await expect.poll(() => page.evaluate(() => {
+    const w = window as unknown as { __p6b: { t: number }[]; __p6bAt: number };
+    return w.__p6b.filter(f => f.t > w.__p6bAt).length;
+  }), { message: `${what}: frames after the action` }).toBeGreaterThanOrEqual(2);
   const frames = await page.evaluate(() => {
     const w = window as unknown as { __p6b: { t: number; top: number; band: boolean; active: boolean }[]; __p6bOn: boolean; __p6bAt: number };
     w.__p6bOn = false;
