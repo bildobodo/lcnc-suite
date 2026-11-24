@@ -239,6 +239,15 @@ class TestARun(unittest.TestCase):
             g.cycle(state=RCS_ERR, echo=40)
         self.assertEqual((g.cand.state, g.cand.why, g.cand.value), ("stale", WHY_ERROR, None))
 
+    def test_an_abort_that_ends_in_an_error_is_still_the_abort(self):
+        g = Rig()
+        g.start()
+        g.cycle(**BUSY)
+        g.s.note_end_of_machine(WHY_ABORT)
+        for _ in range(3):
+            g.cycle(state=RCS_ERR, echo=40)
+        self.assertEqual(g.cand.why, WHY_ABORT)
+
     def test_an_interpreter_that_only_stays_idle_did_not_start(self):
         g = Rig()
         g.start()

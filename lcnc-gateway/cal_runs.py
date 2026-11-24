@@ -450,7 +450,7 @@ class CalState:
         if how == "relinked":
             self._end(r, WHY_LINK)
         elif how == "error":
-            self._end(r, WHY_ERROR)
+            self._end(r, r.fault or WHY_ERROR)
         elif how == "done" and at_rest(f, self._consts):
             if c.drained is not None:
                 return                  # the end is not proven: a message may still be in the channel
