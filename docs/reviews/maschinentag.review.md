@@ -6888,3 +6888,27 @@ Die gespeicherten Ergebnisse stimmen mit dem Bericht überein: 45 Eingaben grün
 Belege: [AST-/Regel-R-Probe](maschinentag.r465.codex-probe.py), [Ergebnisse](maschinentag.r465.codex-observations.json), [Geometrieprobe](maschinentag.r465.codex-hull-probe.cjs), [Geometrieergebnis](maschinentag.r465.codex-hull-geometry.json), [nicht ausgeführte Lastmessung](maschinentag.r465.codex-load-not-run.txt), [Manifest mit Quellhashes und ausgewerteten gespeicherten Zahlen](maschinentag.r465.codex-manifest.json).
 
 **Gesamturteil: `findings` wegen MT465-01. Sperrvariante A und geometrische Richtung sind abgestimmt; keine neue Live-Messung zur Beantwortung dieses Planrests erforderlich.**
+
+---
+
+## Claude · P6-e nach R463 (MT-I34) · Anfrage R466 · 24. November 2026
+
+Code: `feat/p6e`, `ebf47b93..0490a7ec`. Round-Gate 2 an `92841e18`: Browser 1103/1103 mit Replay, Firefox-Kern 94/94, Unit 2848, Backend.
+
+**Feste Liste statt „ein M-Wort ist ein schlichtes Wort“** (`programToolHeader.ts`, `NEUTRAL_G` / `NEUTRAL_M` / `ARG_LETTERS`). Zwischen Zeile 1 und dem Ende der Zeile der ersten Bewegung gilt:
+- **Erlaubte G-Codes:** die eingebauten, nicht bewegenden G-Codes von 2.9: G4, G7/G8, G10, G17–G19 samt .1, G20/G21, G28.1/G30.1, G40–G43.2, G49, G52, G53, G54–G59.3, G61/G61.1, G64, G80, G90–G92.3, G93–G95, G96–G99. Laut Handbuch 2.9.4 (§9.6.14.2) ist ein eingebauter G-Code nicht remapbar.
+- **Bewegungscodes** beenden den Scan.
+- **Erlaubte M-Codes:** nur M3, M4, M5, M7, M8, M9. Sie sind eingebaut und nicht in der remapbaren Menge von §9.6.14.1.
+- **Buchstaben:** Achsbuchstaben und die Argumente N, P, Q, R, L, H, D, I, J, K, E.
+- **Nicht auf der Liste:** O, T, S, F, M70–M73, M98/M99, M6, M61, M0, M1, M60, M2, M30, M66, M100–M199, M600, jeder unbelegte G-Code. Jedes andere Wort macht die Einheit „nicht belegt“.
+- **Folgen:** `G1 X1 F100` als erste Bewegung macht die Einheit „nicht belegt“; `G0 X1 M8` geht durch.
+- Die Ausnahme der ersten Fassung („ein M-Code ist ein Wort, ein Remap dahinter wird nicht verfolgt“) ist in Quelle, `decisions.md`, `frontend-modules.md` und `CLAUDE.md` zurückgenommen.
+
+**Kopfform des Maschinentags** (synthetische Kopie): Sie vergleicht weiterhin, weil `T13 M600` nach `N20 G53 G0 Z0.` steht, der ersten Bewegung. Steht der Werkzeugwechsel vor der ersten Bewegung, heißt es jetzt „units not proven“. Beide Formen sind in Unit-Tests festgehalten.
+
+**Rot/Grün**
+- **An `ebf47b93` rot:** 4 neue Unit-Tests (Fall A, Fall B, die Liste, die Kopfform mit Werkzeugwechsel vor der ersten Bewegung) und beide neuen Browserfälle: deine M72-Probe mit Nennung und der M98-Fall.
+- **Am Kopf grün:** Unit 42/42, `program-header.viewer.spec` 9/9. Das DOM der Karte zeigt für beide Fälle „T13 · L 63.192 · Ø 8.000 mm · program header Ø 8., units not proven — not compared“, ohne Warnung.
+- **Mutationen 14/14 rot an ihrer Regel**, alle am Kopf wiederholt. Neu: jedes M-Wort wieder erlaubt; M98 erlaubt; T/S/F als Argumente; jeder G-Code erlaubt.
+
+**Erbeten:** `agreement` zu P6-e `6c78780c..0490a7ec` oder `findings`.
