@@ -76,9 +76,13 @@ async function simAt(page: Page, context: BrowserContext, name: string, g54: num
   }, t);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getScrubPose?.()?.cum ?? null),
     { message: "the scene at the entry's end" }).toBeCloseTo(t, 4);
-  const tip = await page.evaluate(() => window.__viewerDiag!.getToolTip!());
-  const pose = await page.evaluate(() => window.__viewerDiag!.getScrubPose!());
-  expect(pose!.joints.slice(0, 3).map(v => um(v!)), "the scene's pose: the tool tip's joints").toEqual(tip!.map(um));
+  // the pose is set at once, the scene is posed in its next frame: read after
+  // the frame (a tip that never follows the pose still ends red here) — the
+  // P6-e merge gate read it between the two, under load (1 of 1104)
+  const read = () => page.evaluate(() => ({ tip: window.__viewerDiag!.getToolTip!(), pose: window.__viewerDiag!.getScrubPose!() }));
+  await expect.poll(async () => { const r = await read(); return r.tip!.map(um); }, { message: "the scene's pose: the tool tip's joints" })
+    .toEqual((await read()).pose!.joints.slice(0, 3).map(v => um(v!)));
+  const { tip } = await read();
   return { tip: tip!.map(um), total: (await page.locator(".scrubBar .posSlot").innerText()).split("/")[1] };
 }
 

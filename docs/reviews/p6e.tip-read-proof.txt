@@ -1,0 +1,9 @@
+start-believed.viewer.spec "the machine day's head …" (from P6-a): merge gate run 1 at 5b2579ed failed 1 of 1104
+(p6e.gate-merge-run1.json): the tool tip read (238.525, 379.696, -96.75) while the scrub pose was already (…, 0).
+Cause in the test: __viewerDiag.getScrubPose() answers as soon as the pose is set, the tool group follows in the next
+rendered frame; the spec read both at once. The product pose was right (the native cases of P6-a wait for the drawn tip).
+Fix: poll the tip until it equals the pose; the case's own expectation (the tip at machine 0 above the stand) is unchanged.
+Proof (2026-11-24, heavy lock, Chromium, animation frames delayed by 600 ms from the slider's input on):
+  old read + late frames : 2 failed (the gate's failure reproduced, in both cases of the spec)
+  new read + late frames : 2 passed
+  new read, as committed : 12/12 passed (--repeat-each=6)
