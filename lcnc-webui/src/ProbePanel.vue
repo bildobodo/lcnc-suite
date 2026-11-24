@@ -722,7 +722,7 @@ function fmtR(key: string): string {
          :aria-labelledby="narrow ? undefined : tabIds('probe', probeView).tab" :aria-label="narrow ? probeViewLabel : undefined">
     <!-- Control bar (hidden for toolsetter view) -->
     <div v-if="probeView !== 'toolsetter'" class="controlBar actionGroup">
-      <MachineToggle gate="probeParam" v-model="autoZero" label="Auto Zero" @update:model-value="saveParams" />
+      <MachineToggle gate="probeParam" v-model="autoZero" label="Auto Zero" @update:model-value="saveParams('autoZero')" />
       <MachineToggle gate="probeParam" v-model="setRotation" label="Set Rotation" />
       <div class="controlBarRight">
         <div class="row-tight">
