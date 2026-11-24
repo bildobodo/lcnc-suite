@@ -822,6 +822,151 @@ CASES.update({
     "e_m600_no_return": _m600(prog="G21 G90\nG53 G0 Z0\nT2 M600\nG0 Z5\nM2\n", var={3106: 0}),
 })
 
+# The believed start (P6-a, machine-day F9; plan docs/reviews/maschinentag.r457
+# .p6a-plan-v3.md, Codex R456/R457): every case above zeroes every fixture —
+# the frame in which the canon's initial `lo` (machine zero) and the
+# interpreter's start (program zero) coincide. These run with fixtures that
+# are NOT zero: Codex's frame G54 (100, 200, −30), G55 (300, 400, −60); the
+# machine day's G54 (238.525, 379.696, −96.75); an inch machine's G54
+# (2, 3, −1), G55 (4, 5, −2). `_rot`: the same program on an XYZA machine,
+# whose rotary sync initcode is a motion (the config that was right before).
+_F0 = {str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)}
+_F9P = {**_F0, "5221": "100", "5222": "200", "5223": "-30", "5241": "300", "5242": "400", "5243": "-60"}
+_F9_IN = {**_F0, "5221": "2.0", "5222": "3.0", "5223": "-1.0", "5241": "4.0", "5242": "5.0", "5243": "-2.0"}
+# a ROTATED G54 (R30) with a stored G92 (7, 9, 0) as the init frame
+_F9_TURN = {**_F9P, "5230": "30", "5210": "1", "5211": "7", "5212": "9"}
+
+
+def _f9(prog, patch=_F9P, units="mm", T=0.0, **extra):
+    """A case under the fixtures `patch`, started under G43 Z`T` (else G49)."""
+    return (prog, units, T, (430,) if T else (490,), {"ctx": {"var_patches": patch}, **extra})
+
+
+def _f9both(name, prog, **kw):
+    CASES[name] = _f9(prog, **kw)
+    CASES[name + "_rot"] = _f9(prog, rotary=True, **kw)
+
+
+# The machine day's head in its shape (anonymized: `G53 G0 Z0`, the routine
+# through `T13 M600` with the bundled tool_touch_off.ngc, then moves of its
+# own) under the day's limits, toolsetter values and tools; G30 at machine
+# 0/0/0 (the day's, confirmed by the trace's time) or far away.
+_MDAY_HEAD = ("G90 G94 G17 G91.1\nG21\nG53 G0 Z0.\nT13 M600\nS3000 M3\nG17 G90 G94\nG54\nG64 P0.01 Q0.01\n"
+              "G0 X120. Y80.\nG43 Z15. H13\nG1 Z-3. F1000.\nG1 X140. F560.\nG1 Y95.\nG53 G0 Z0.\nM5\nM30\n")
+_MDAY_TS = {3004: 500, 3005: 50, 3006: 6000, 3007: 180, 3009: 2, 3010: 180, 3013: 3, 3014: 0,
+            3100: 0, 3101: 0, 3102: -180, 3103: 0, 3104: 0, 3105: 0, 3106: 0, 3107: 5, 3108: 0,
+            3109: 0, 3110: 0, 3111: 25, 3112: 50, 3113: 0, 3114: 0, 3115: 0, 3116: 0}
+_MDAY_FIX = {**_F0, "5221": "238.525", "5222": "379.696", "5223": "-96.75"}
+
+
+def _mday(prog, g30=(0, 0, 0), patch=_MDAY_FIX, **kw):
+    return _f9(prog, patch=patch, var={**_MDAY_TS, 5181: g30[0], 5182: g30[1], 5183: g30[2]},
+               rs274ngc="REMAP=M600 modalgroup=6 ngc=m600", bundled=_M600_SUBS,
+               tools=[(1, 10), (13, 63.192), (99, 67.2175)], xmin=-0.1, xmax=685, ymin=-0.1, ymax=705,
+               zmin=-190, zmax=0.1, xvmax=100, yvmax=100, zvmax=80, traj="MAX_LINEAR_VELOCITY = 100", **kw)
+
+
+# a Python remap whose motion is the program's FIRST callback (line 0: the
+# begin is decided in the handler's _enter); `_bound` = a suite-pinned body
+# that reads nothing (suite_py {mover: []})
+_PY_MOVER = {"rs274ngc": "REMAP=M200 modalgroup=10 python=mover\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+             "subs": {"toplevel.py": "import remap\n",
+                      "remap.py": "from interpreter import INTERP_OK\n\ndef mover(self, **words):\n"
+                                  "    self.execute('G0 X10')\n    return INTERP_OK\n"}}
+CASES.update({
+    # Codex R456's cases (the same programs, the same frames)
+    "plain": _f9("G53 G0 Z0\nG0 X10 Y10\nM2\n"),
+    "g55_first": _f9("G55\nG0 X10\nG0 Y20 Z0\nM2\n"),
+    "g55_first_rot": _f9("G55\nG0 X10\nG0 Y20 Z0\nM2\n", rotary=True),
+    "g55_with_move": _f9("G55 G0 X10\nG0 Y20 Z0\nM2\n"),
+    "g92_first": _f9("G92 X7\nG0 Y10\nG0 X20 Z0\nM2\n"),
+    "g20_first": _f9("G20 G91 G0 X1\nG90 G0 Y1 Z0\nM2\n"),
+    "g43_first": _f9("G43.1 Z10\nG53 G0 Z0\nG0 X10 Y10\nM2\n"),
+    "rotated": _f9("G53 G0 Z0\nG0 X10 Y10\nM2\n", patch=_F9_TURN),
+    "g55_zero": _f9("G55\nG0 X10\nG0 Y20 Z0\nM2\n", patch=_F0),
+    "g55_preamble": _f9("G90\nG55\nG0 X10\nG0 Y20 Z0\nM2\n"),
+    # the machine day's head (live at the G54 origin: X/Y stay, Z to 0)
+    "mday_head": _mday(_MDAY_HEAD),
+    "mday_head_g30_far": _mday(_MDAY_HEAD, g30=(600, 650, 0)),
+    "f9_g53z_only": _mday("G21 G90\nG53 G0 Z0\nG54\nG0 X10 Y10\nG1 Z-1 F100\nM2\n"),
+    "f9_g53z_rotary": _f9("G21 G90\nG53 G0 Z0\nG54\nG0 X10 Y10\nG1 Z-1 F100\nM2\n", patch=_MDAY_FIX, rotary=True),
+    "f9_g53z_zero": _f9("G21 G90\nG53 G0 Z0\nG54\nG0 X10 Y10\nG1 Z-1 F100\nM2\n", patch=_F0),
+    "f9_g91_first": _f9("G21 G90\nG91 G0 X5\nG90 G0 Y10\nG0 X10 Z-1\nM2\n", patch=_MDAY_FIX),
+    "f9_g91_bare": _f9("G91 G0 X5\nG90 G0 Y10\nM2\n", patch=_MDAY_FIX),
+    "f9_inch_g54": _f9("G20 G90\nG53 G0 Z0\nG0 X1 Y1\nM2\n", patch=_F9_IN, units="in"),
+    "f9_g43_start": _f9("G21 G90\nG53 G0 Z0\nG0 X10 Y10\nM2\n", patch=_MDAY_FIX, T=10.0),
+    "f9_m600_first": _mday("G21 G90\nT13 M600\nG0 X10 Y10\nM2\n"),
+    "g55_with_move_rot": _f9("G55 G0 X10\nG0 Y20 Z0\nM2\n", rotary=True),
+    "g55_preamble_rot": _f9("G90\nG55\nG0 X10\nG0 Y20 Z0\nM2\n", rotary=True),
+    "g92_first_rot": _f9("G92 X7\nG0 Y10\nG0 X20 Z0\nM2\n", rotary=True),
+    "m6tc_first_partial_zero": _f9("T2 M6\nG0 X10\nG0 Z0\nG0 Y20\nM2\n", patch=_F0,
+                                   emcio="TOOL_CHANGE_POSITION = 50 50 50"),
+    # F9-R (a resync AFTER the first point — open): M6 and G43 in ONE block
+    # (the G43 converts after the M6, the resync comes at the next read) vs two
+    "m6_g43_one_block": _f9("G53 G0 Z0\nT1 M6 G43 H1\nG0 X10 Y10\nM2\n", patch=_F0),
+    "m6_g43_two_blocks": _f9("G53 G0 Z0\nT1 M6\nG43 H1\nG0 X10 Y10\nM2\n", patch=_F0),
+    # the TWP parity heads' shape (G10 L2 P0 on the active fixture, then M6
+    # and G43 in ONE block, then a full XYZ(A) move) — the A word needs XYZA
+    "twp_head_shape_rot": _f9("G21 G90 G54\nG10 L2 P0 X100 Y-200 Z-140 A0\nM6 T2 G43 H2\nG0 X0 Y0 Z100\nG0 X10\nM2\n",
+                              rotary=True),
+    # Codex R457's own combinations: a feed first, a G10 on the active
+    # fixture, M61 then G91, M6 and G43 in one block, G49 from a G43 start,
+    # G40 as the queue's end, a canned cycle
+    "cx_feed_g55": _f9("G55 G1 X10 F100\nM2\n"),
+    "cx_g10_active": _f9("G10 L2 P1 X50 Y70 Z-9\nG0 X10\nM2\n"),
+    "cx_m61_g91": _f9("G55 M61 Q2\nG91 G0 Y4\nM2\n", tools=[(1, 10), (2, 20)]),
+    "cx_m6_g43": _f9("G55 T2 M6 G43 H2\nG0 X10\nM2\n", tools=[(1, 10), (2, 20)]),
+    "cx_g49_before": _f9("G55 G49 G0 X10\nM2\n", T=10.0),
+    "cx_comp_g40": _f9("G55\nG41 D1 G1 X10 Y10 F100\nG40 G1 X50 Y50 Z-1\nM2\n", tools=[(1, 10)]),
+    "cx_cycle_g55": _f9("G55 G99 G81 X10 Y10 Z-20 R35 F100\nG80\nM2\n"),
+})
+# frame, unit and offset changes before the first motion, each with and
+# without the rotary sync
+_f9both("g20_g55", "G20 G55 G0 X1\nG90 G0 Y1 Z0\nM2\n")
+_f9both("g43h_g55_move", "G55 G43 H1 G0 X10\nG0 Y20 Z0\nM2\n")
+_f9both("g43_start_g55", "G55\nG0 X10\nG0 Y20 Z0\nM2\n", T=10.0)
+_f9both("inch_g43_start", "G20 G90\nG53 G0 Z0\nG0 X1 Y1\nM2\n", patch=_F9_IN, units="in", T=0.5)
+_f9both("inch_g43_g55", "G55\nG0 X1\nG0 Y1 Z0\nM2\n", patch=_F9_IN, units="in", T=0.5)
+_f9both("rot_g92_to_g55", "G55\nG0 X10\nG0 Y20 Z0\nM2\n", patch=_F9_TURN)
+_f9both("ocall_g55", "o100 sub\nG55\no100 endsub\no100 call\nG0 X10\nG0 Y20 Z0\nM2\n")
+# the offline interpreter's RESYNC (read_inputs → refresh_actual_position:
+# current_* := gcodemodule's _pos_*, the last STRAIGHT_* endpoint as passed,
+# zero before any) between the program's begin and its first motion
+_f9both("m6_after_g55", "G55\nT2 M6\nG0 X10\nG0 Y20 Z0\nM2\n")
+_f9both("m61_after_g55", "G55\nM61 Q2\nG0 X10\nG0 Y20 Z0\nM2\n")
+_f9both("m6_first_g43", "T2 M6\nG0 X10 Y10\nG0 Z0\nM2\n", T=10.0)
+_f9both("m6_first_g43_zero", "T2 M6\nG0 X10 Y10\nG0 Z0\nM2\n", patch=_F0, T=10.0)
+_f9both("inch_m6_first_g43", "T2 M6\nG0 X1 Y1\nG0 Z0\nM2\n", patch=_F9_IN, units="in", T=0.5)
+_f9both("m6_first_plain", "T2 M6\nG0 X10\nG0 Y20 Z0\nM2\n")
+_f9both("m6_after_motion_g55", "G53 G0 Z0\nG55\nT2 M6\nG0 X10\nG0 Y20 Z5\nM2\n")
+# cutter compensation: the first recorded motion comes from the comp queue
+# (its callback runs inside the NEXT block) — no read; the next block
+# commanding X, Y and Z must not make it look start-free
+_f9both("comp_first_g55", "G55\nG41\nG1 X10 Y10 F100\nG1 X50\nG40\nG0 Z0\nM2\n")
+_f9both("comp_first", "G41\nG1 X10 Y10 F100\nG1 X50\nG40\nG0 Z0\nM2\n")
+_f9both("comp_next_xyz_g55", "G55\nG41\nG1 X10 Y10 F100\nG1 X50 Y50 Z-1\nG40\nG0 Z0\nM2\n")
+_f9both("no_motion_g55", "G55\nM2\n")
+# a tool change at a position no parse sees; the interpreter's own quill-up
+# and G30 moves (line −1, recorded) before the first motion
+_f9both("m6tc_first_partial", "T2 M6\nG0 X10\nG0 Z0\nG0 Y20\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 50")
+_f9both("m6tc_after_g55", "G55\nT2 M6\nG0 X10\nG0 Y20 Z0\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 0")
+_f9both("m6_quill_first_g55", "G55\nT2 M6\nG0 X10\nG0 Y20 Z0\nM2\n", emcio="TOOL_CHANGE_QUILL_UP = 1")
+_f9both("m6_g30_first_g55", "G55\nT2 M6\nG0 X10\nG0 Y20 Z0\nM2\n", emcio="TOOL_CHANGE_AT_G30 = 1",
+        var={5181: 10, 5182: 20, 5183: 0})
+# G28 (two legs), an arc and a rigid tap as the first motion after a switch
+_f9both("g28_first_g55", "G55\nG91 G28 Z0\nG90\nG0 X10\nM2\n", var={5161: 0, 5162: 0, 5163: 0})
+_f9both("arc_first_g55", "G55\nG91 G2 X10 Y0 I5 J0 F100\nG90\nG0 Z0\nM2\n")
+_f9both("tap_first_g55", "G55\nM3 S1000\nG33.1 Z-5 K1\nG0 X10\nM2\n")
+# an offset change on its own line before an X-only first block
+_f9both("g43_line_then_x", "G43.1 Z10\nG0 X10\nG0 Y20 Z0\nM2\n")
+# a Python remap's motion first: unbound for its reads / bound (reads nothing)
+_f9both("py_motion_first", "M200\nG0 Y20 Z0\nM2\n", **_PY_MOVER)
+_f9both("py_motion_first_bound", "M200\nG0 Y20 Z0\nM2\n", **_PY_MOVER, suite_py={"mover": []})
+
+if sys.argv[1] == "--list":
+    # every case's name (the metamorphic run, test_start_dep_worker)
+    print(json.dumps(sorted(CASES)))
+    sys.exit(0)
 program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
 inch = units == "in"
 ini = work / "machine.ini"
@@ -840,16 +985,16 @@ SUBROUTINE_PATH = {work}
 TOOL_TABLE = tool.tbl
 {extra.get("emcio", "")}
 [AXIS_X]
-MIN_LIMIT = -500
-MAX_LIMIT = 500
-MAX_VELOCITY = 10
+MIN_LIMIT = {extra.get("xmin", -500)}
+MAX_LIMIT = {extra.get("xmax", 500)}
+MAX_VELOCITY = {extra.get("xvmax", 10)}
 [AXIS_Y]
-MIN_LIMIT = -500
-MAX_LIMIT = 500
-MAX_VELOCITY = 10
+MIN_LIMIT = {extra.get("ymin", -500)}
+MAX_LIMIT = {extra.get("ymax", 500)}
+MAX_VELOCITY = {extra.get("yvmax", 10)}
 [AXIS_Z]
 MIN_LIMIT = {extra.get("zmin", -500)}
-MAX_LIMIT = {1.2 if inch else 50}
+MAX_LIMIT = {extra.get("zmax", 1.2 if inch else 50)}
 MAX_VELOCITY = {extra.get("zvmax", 10)}
 {extra.get("axis_z", "")}
 {extra.get("ini", "")}
@@ -930,6 +1075,17 @@ import gcode_parse_worker as worker  # noqa: E402
 ctx = {"file": str(ngc), "ini_path": str(ini), "units": units, "g5x_index": 1,
        "var_patches": {str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)},
        "kins_type": 0, "kins_frame": None, **extra.get("ctx", {})}
+if os.environ.get("START_PROBE_SHIFT"):
+    # The metamorphic run (P6-a guard 10): EVERY fixture row G54…G59.3 moved by
+    # the same D = "dx,dy,dz" — the interpreter's start (program zero of the
+    # fixture in effect) moves with it; a program-frame answer must not.
+    _D = [float(v) for v in os.environ["START_PROBE_SHIFT"].split(",")]
+    _vp = dict(ctx.get("var_patches") or {})
+    for _k in range(9):
+        for _j, _dv in enumerate(_D):
+            _key = str(5221 + 20 * _k + _j)
+            _vp[_key] = repr(float(_vp.get(_key, _var.get(int(_key), 0))) + _dv)
+    ctx["var_patches"] = _vp
 if extra.get("no_interp"):
     # Codex R132 VP-I80's injection: the interpreter's state unavailable
     import gcode_canon  # noqa: E402

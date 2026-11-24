@@ -21,6 +21,7 @@ import subprocess
 import sys
 import types
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import gateway_util
@@ -520,6 +521,371 @@ class TestTheCanonUnits(unittest.TestCase):
         c.dep = frozenset()
         self._step(c, words="XY", g1=10)
         self.assertEqual((c.dep, c.stale), (frozenset(), frozenset({0})))
+
+
+class _AtTheCallback:
+    """The interpreter at a motion callback: the block commands X only
+    (absolutely), and the position it holds — in its own length unit
+    (CANON_UNITS_INCHES 1, _MM 2), cutter compensation (side, radius)."""
+
+    def __init__(self, cur=(0.0, 0.0, 0.0), units=2, comp=(0, 0.0)):
+        self.blocks = [types.SimpleNamespace(x_flag=True, y_flag=False, z_flag=False, g_modes=[-1, 0])]
+        self.distance_mode, self.feed_mode = 0, 0
+        self.current_x, self.current_y, self.current_z = cur
+        self.length_units = units
+        self.cutter_comp_side, self.cutter_comp_radius = comp
+
+
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
+class TestTheReadBelongsToTheFirstPoint(unittest.TestCase):
+    """P6-a (machine-day F9, Codex R457): the believed start is read in the
+    motion callback that records the program's FIRST point — the proof
+    belongs to exactly that callback; no read is no believed start and X, Y,
+    Z unbound, never a guess. The canon under G54 (100, 200, −30) mm."""
+
+    G54 = (100 / 25.4, 200 / 25.4, -30 / 25.4)
+
+    def _canon(self, t):
+        c = object.__new__(gcode_canon.PreviewCanon)
+        c.feed, c.rapid, c.unknown_start = [], [], []
+        c.seq, c.lineno, c.lo, c.first_move, c.suppress, c.feedrate = 0, -1, (0.0,) * 9, True, 0, 1.0
+        c.basis_at_start, c.wcs_used, c._last_motion_g5x = None, [], None
+        c.wcs_events, c._last_wcs_basis = [], None
+        c.sub_events, c.tlo_events, c.offset_events, c.cur_tool = [], [], [], -1
+        c.xo = c.yo = c.zo = c.ao = c.bo = c.co = c.uo = c.vo = c.wo = 0.0
+        c.g5x_index, c.plane, c.arcdivision, c.arc_dist, c.arc_moves = 1, 1, 8, 0.0, 0
+        c.rotation_cos, c.rotation_sin = 1.0, 0.0
+        c.kins_events, c.dep_seg, c.dep_time = [], {}, {}
+        for k in c._WCS_SUFFIXES:                 # floats: gcode.arc_to_segments parses them
+            setattr(c, "g5x_offset_" + k, 0.0)
+            setattr(c, "g92_offset_" + k, 0.0)
+        c.g5x_offset_x, c.g5x_offset_y, c.g5x_offset_z = self.G54
+        c.interp = lambda: t
+        return c
+
+    def _begin(self, c):
+        c.next_line(types.SimpleNamespace(sequence_number=1))
+        self.assertTrue(c._program_started)
+
+    def _close(self, a, b, msg=None):
+        self.assertEqual(len(a), len(b), msg)
+        for x, y in zip(a, b):
+            self.assertAlmostEqual(x, y, places=12, msg=msg)
+
+    def test_the_first_point_s_own_callback_reads(self):
+        # each motion entry gcodemodule calls (gcodemodule.cc STRAIGHT_TRAVERSE,
+        # STRAIGHT_FEED, STRAIGHT_PROBE, ARC_FEED, RIGID_TAP): program zero of
+        # G54 at its point is the start, in the canon's inch
+        # (an arc in the plane of a dependent axis and a tap hand those axes
+        # to `stale` — unbound for their own reason, the read stands)
+        for name, call, unbound in (
+                ("traverse", lambda c: c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0), ()),
+                ("feed", lambda c: c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0), ()),
+                ("probe", lambda c: c.straight_probe(1, 0, 0, 0, 0, 0, 0, 0, 0), ()),
+                ("arc", lambda c: c.arc_feed(1, 0, 0.5, 0, 1, 0, 0, 0, 0, 0, 0, 0), (0, 1)),
+                ("tap", lambda c: c.rigid_tap(0, 0, -1), (0, 1, 2))):
+            c = self._canon(_AtTheCallback())
+            self._begin(c)
+            # the arc's segments as gcode.arc_to_segments hands them to
+            # straight_arcsegments — inside the arc's own callback
+            with mock.patch.object(gcode_canon.ArcsToSegmentsMixin, "arc_feed",
+                                   lambda self, *a: self.straight_arcsegments([(1.0,) + (0.0,) * 8])):
+                call(c)
+            self.assertGreater(c.seq, 0, name)
+            self._close(c.start_lo, self.G54, name)
+            self.assertEqual(c.start_unbound, unbound, name)
+            self.assertIsNone(c._start_proof, f"{name}: the read ends with its callback")
+
+    def test_a_recorder_no_handler_covers_finds_no_read(self):
+        # fail closed in ONE place: the first point recorded outside a
+        # handler that read (here the stale path's recorder called bare)
+        c = self._canon(_AtTheCallback())
+        self._begin(c)
+        c._unknown_move((0.0,) * 9)
+        self.assertEqual((c.seq, c.start_lo, c.start_unbound), (1, None, (0, 1, 2)))
+
+    def test_a_callback_that_records_nothing_leaves_no_read(self):
+        # a suppressed traverse, an arc of no segments: their callback ends,
+        # and a later recorder that did not read finds nothing (Codex R457)
+        c = self._canon(_AtTheCallback())
+        self._begin(c)
+        c.suppress = 1
+        c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+        c.suppress = 0
+        self.assertEqual((c.seq, c._start_proof), (0, None))
+        with mock.patch.object(gcode_canon.ArcsToSegmentsMixin, "arc_feed",
+                               lambda self, *a: self.straight_arcsegments([])):
+            c.arc_feed(1, 0, 0.5, 0, 1, 0, 0, 0, 0, 0, 0, 0)
+        self.assertEqual((c.seq, c._start_proof), (0, None))
+        c._unknown_move((0.0,) * 9)
+        self.assertEqual((c.start_lo, c.start_unbound), (None, (0, 1, 2)))
+
+    def test_no_read_is_no_believed_start(self):
+        # the cutter-compensation queue (its callback runs in a LATER block),
+        # a unit gcodemodule does not convert (CANON_UNITS_CM 3, or none), a
+        # value not read or not finite, no interpreter words, no program yet
+        for why, t in (("comp queue", _AtTheCallback(comp=(1, 0.1))),
+                       ("centimetres", _AtTheCallback(units=3)),
+                       ("no unit", _AtTheCallback(units=0)),
+                       ("not finite", _AtTheCallback(cur=(float("nan"), 0.0, 0.0))),
+                       ("not a number", _AtTheCallback(cur=("x", 0.0, 0.0))),
+                       ("no words", None)):
+            c = self._canon(t)
+            self._begin(c)
+            c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+            self.assertEqual((c.seq, c.start_lo, c.start_unbound), (1, None, (0, 1, 2)), why)
+        t = _AtTheCallback()
+        del t.current_y
+        c = self._canon(t)
+        self._begin(c)
+        c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+        self.assertEqual((c.start_lo, c.start_unbound), (None, (0, 1, 2)), "no position word")
+        # a comp side with radius 0 queues nothing (interp_convert.cc 4812)
+        c = self._canon(_AtTheCallback(comp=(1, 0.0)))
+        self._begin(c)
+        c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+        self._close(c.start_lo, self.G54, "radius 0: read")
+        # before the program's begin no callback reads (an initcode's motion)
+        c = self._canon(_AtTheCallback())
+        c.next_line(types.SimpleNamespace(sequence_number=0))
+        self.assertIsNone(c._start_read())
+
+    def test_the_interpreter_s_unit_and_the_start_tool_basis(self):
+        # G20: inches pass through; G21: millimetres divided by 25.4 as
+        # gcodemodule divides them — then into the canon frame by the canon's
+        # own rotate_and_translate
+        c = self._canon(_AtTheCallback(cur=(1.0, 2.0, 3.0), units=1))
+        self._begin(c)
+        c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+        self._close(c.start_lo, (self.G54[0] + 1, self.G54[1] + 2, self.G54[2] + 3), "inch")
+        c = self._canon(_AtTheCallback(cur=(25.4, 50.8, -25.4), units=2))
+        self._begin(c)
+        c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+        self._close(c.start_lo, (self.G54[0] + 1, self.G54[1] + 2, self.G54[2] - 1), "mm")
+        # a tool offset set before the first point (G43.1 Z10 on its own
+        # line): the interpreter's position re-expressed by it, the start
+        # re-based to the offset at the program's begin — machine Z unchanged
+        t = _AtTheCallback()
+        c = self._canon(t)
+        self._begin(c)
+        c.tool_offset(0, 0, 10 / 25.4, 0, 0, 0, 0, 0, 0)
+        t.current_z = -10.0                       # convert_tool_length_offset re-expresses current_z
+        c.straight_traverse(1, 0, 0, 0, 0, 0, 0, 0, 0)
+        self._close(c.start_lo, self.G54, "re-based to the begin's tool offset")
+        self.assertEqual(c._start_tlo, (0.0, 0.0, 0.0))
+
+    def test_every_recorder_is_named(self):
+        # The methods that record a point (call _next_seq) are these five,
+        # reached only from the four motion entries gcodemodule calls — each
+        # reads at its top. A new recorder fails here until it is covered by
+        # a read (or it records no first point: fail closed anyway).
+        tree = ast.parse(Path(gcode_canon.__file__).read_text())
+        cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "PreviewCanon")
+        calls = lambda f, name: any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                                    and n.func.attr == name for n in ast.walk(f))
+        fns = {f.name: f for f in cls.body if isinstance(f, ast.FunctionDef)}
+        self.assertEqual(sorted(n for n, f in fns.items() if calls(f, "_next_seq")),
+                         ["_straight_arcsegments", "_straight_traverse", "_unknown_move", "rigid_tap", "straight_feed"])
+        self.assertEqual(sorted(n for n, f in fns.items() if calls(f, "_start_read")),
+                         ["arc_feed", "rigid_tap", "straight_feed", "straight_traverse"])
+        self.assertIs(gcode_canon.PreviewCanon.straight_probe, gcode_canon.PreviewCanon.straight_feed)
+
+
+_G55 = [-200.0, -200.0, 30.0]       # Codex's frame: G54 (100, 200, −30) in G55 (300, 400, −60)
+
+
+class TestTheBelievedStartUnderFixtures(unittest.TestCase):
+    """P6-a (machine-day F9, plan maschinentag.r457.p6a-plan-v3.md guards
+    8–10, Codex R456/R457) natively: `start_believed` is the interpreter's
+    position at the program's FIRST point in that point's frame (the first
+    point's epoch, the start tool basis) — with fixtures that are not zero,
+    where the canon's initial `lo` (machine zero) was a whole fixture off. Each
+    `_rot` twin runs on an XYZA machine (the rotary sync initcode: right before
+    except after a resync or from the comp queue)."""
+
+    def believed(self, case, want, places=9):
+        r = probe(case)
+        self.assertIsNone(r["parse_error"], case)
+        got = r["start_believed"]
+        self.assertIsNotNone(got, case)
+        for k, (g, w) in enumerate(zip(got, want)):
+            self.assertAlmostEqual(g, w, places=places, msg=f"{case} {'XYZ'[k]}: {got}")
+        return r
+
+    def test_a_frame_change_before_the_first_motion(self):
+        # Codex R456 MT456-01 and its shapes: G55 on its own line, in the
+        # move's block, after a preamble G90, from an inline O-call; the
+        # interpreter's start (program zero of G54) in G55's frame — on the
+        # XYZ machine before: (−300, −400, 60) (machine 0); v2's read at the
+        # begin: (−400, −400, 60) (the interpreter already in G55, the canon
+        # still in G54)
+        for case in ("g55_first", "g55_with_move", "g55_preamble", "ocall_g55", "g43h_g55_move", "cx_feed_g55",
+                     "g28_first_g55", "arc_first_g55", "tap_first_g55", "cx_cycle_g55"):
+            for c in (case, case + "_rot") if case != "cx_feed_g55" and not case.startswith("cx_") else (case,):
+                self.believed(c, _G55)
+        # a rotated G54 (R30) with a stored G92 (7, 9) as the init frame
+        for c in ("rot_g92_to_g55", "rot_g92_to_g55_rot"):
+            self.believed(c, [100 + 7 * math.cos(math.pi / 6) - 9 * 0.5 - 300 - 7,
+                              200 + 7 * 0.5 + 9 * math.cos(math.pi / 6) - 400 - 9, 30.0])
+        # a G10 L2 on the active fixture before the first move: G54 written
+        # (50, 70, −9) — the start, where G54 was, in the written frame
+        self.believed("cx_g10_active", [50.0, 130.0, -21.0])
+
+    def test_the_interpreter_s_unit(self):
+        # a G20 block on a mm machine (the canon's frame is inch either way);
+        # an inch machine (G54 (2, 3, −1) in, G55 (4, 5, −2) in) under a G43
+        # start of 0.5 in — the start re-based to that start offset
+        for c in ("g20_g55", "g20_g55_rot"):
+            self.believed(c, _G55)
+        for c in ("inch_g43_g55", "inch_g43_g55_rot"):
+            self.believed(c, [-2.0, -2.0, 0.5])
+        for c in ("inch_g43_start", "inch_g43_start_rot"):
+            self.believed(c, [0.0, 0.0, -0.5])
+        for c in ("g20_first", "f9_inch_g54"):
+            self.believed(c, [0.0, 0.0, 0.0])
+
+    def test_the_tool_offset_before_the_first_point_is_re_based(self):
+        # G43.1 Z10 on its own line, G43 H1 in the first block, a G43 start
+        # with G49 in the first block, M6 + G43 in one block: the start in the
+        # tool basis at the program's begin (scrubTrack buildEntryTrack startTlo)
+        for c in ("g43_line_then_x", "g43_line_then_x_rot", "g43_first"):
+            self.believed(c, [0.0, 0.0, 0.0])
+        for c in ("g43_start_g55", "g43_start_g55_rot", "cx_g49_before"):
+            self.believed(c, [-200.0, -200.0, 20.0])
+        self.believed("f9_g43_start", [0.0, 0.0, -10.0])
+        # the M6's resync restores the position before the block's G43
+        # (convert_m before convert_g): 20 mm above it in the start basis
+        self.believed("cx_m6_g43", [0.0, 0.0, 20.0])
+
+    def test_the_offline_resync_before_the_first_motion(self):
+        # M6 / M61 make the next read take gcodemodule's last endpoint (zero
+        # before any): the first point is made of THAT position — on both
+        # configs (the rotary one was wrong here before: the init-end start)
+        for case in ("m6_after_g55", "m61_after_g55", "m6_first_g43", "m6_first_g43_zero", "inch_m6_first_g43",
+                     "m6_first_plain", "m6_after_motion_g55"):
+            for c in (case, case + "_rot"):
+                self.believed(c, [0.0, 0.0, 0.0])
+        self.believed("cx_m61_g91", [0.0, 0.0, 0.0])
+        # the TWP heads' shape (a G10 L2 P0, then M6 and G43 in one block)
+        self.believed("twp_head_shape_rot", [0.0, 0.0, 80.0])
+
+    def test_the_machine_day_s_head(self):
+        # G53 G0 Z0 then the routine: the start at program zero, X and Y
+        # dependent at the first point — before: (−238.525, −379.696, 96.75)
+        for c in ("mday_head", "mday_head_g30_far", "f9_g53z_only", "f9_m600_first", "f9_g91_first", "f9_g91_bare",
+                  "plain"):
+            r = self.believed(c, [0.0, 0.0, 0.0])
+            self.assertIsNone(r["start_unbound"], c)
+        self.assertEqual(probe("mday_head")["rapid_dep"][0], 3, "X and Y dependent at the first point")
+
+    def test_a_python_remap_s_motion_first_is_read_after_the_begin(self):
+        # its motion is the program's first callback (line 0): the begin is
+        # decided in the handler's _enter — the read after it (M10)
+        for c in ("py_motion_first_bound", "py_motion_first_bound_rot"):
+            r = self.believed(c, [0.0, 0.0, 0.0])
+            self.assertEqual((r["start_unbound"], r["rapid_dep"][0]), (None, 6), c)
+
+    def test_the_comp_queue_gives_no_read(self):
+        # the first point's callback runs inside a LATER block — no believed
+        # start, X, Y, Z unbound (before: a value, and nothing unbound), also
+        # where that block commands X, Y and Z, and through a G40
+        for case in ("comp_first_g55", "comp_first", "comp_next_xyz_g55"):
+            for c in (case, case + "_rot"):
+                r = probe(c)
+                self.assertEqual((r["parse_error"], r["start_believed"], r["start_unbound"]), (None, None, [0, 1, 2]), c)
+        r = probe("cx_comp_g40")
+        self.assertEqual((r["start_believed"], r["start_unbound"]), (None, [0, 1, 2]))
+
+    def test_no_interpreter_words_ship_no_believed_start(self):
+        # VP-I80's injection: X, Y, Z unknown from the begin anyway — no
+        # meaningless value from `lo` any more
+        r = probe("e_no_interp")
+        self.assertEqual((r["start_believed"], r["start_unbound"]), (None, [0, 1, 2]))
+
+    def test_the_m600_case_with_g54_z_10(self):
+        # the in-tree corpus's one F9 instance (G54 Z = 10, no dependent axis):
+        # (0, 0, −10) before
+        self.believed("m600_result", [0.0, 0.0, 0.0])
+
+    def test_unbound_stays_unbound(self):
+        # a G92 first, a turned frame, an arc, a tap, a canned cycle, a tool
+        # change at a position no parse sees and the interpreter's own moves
+        # at an M6 (quill-up, G30), a Python body that reads: no start a live
+        # pose is bound by — as before
+        for c, axes in (("g92_first", [0, 1, 2]), ("g92_first_rot", [0, 1, 2]), ("rotated", [0, 1]),
+                        ("arc_first_g55", [0, 1]), ("arc_first_g55_rot", [0, 1]), ("tap_first_g55", [0, 1, 2]),
+                        ("tap_first_g55_rot", [0, 1, 2]), ("cx_cycle_g55", [0, 1, 2]),
+                        ("m6tc_first_partial", [0, 1, 2]), ("m6tc_first_partial_rot", [0, 1, 2]),
+                        ("m6tc_first_partial_zero", [0, 1, 2]), ("m6tc_after_g55", [0, 1, 2]),
+                        ("m6tc_after_g55_rot", [0, 1, 2]), ("m6_quill_first_g55", [0, 1, 2]),
+                        ("m6_quill_first_g55_rot", [0, 1, 2]), ("m6_g30_first_g55", [0, 1, 2]),
+                        ("m6_g30_first_g55_rot", [0, 1, 2]), ("py_motion_first", [0, 1, 2]),
+                        ("py_motion_first_rot", [0, 1, 2])):
+            self.assertEqual(probe(c)["start_unbound"], axes, c)
+
+    def test_equal_where_it_was_right(self):
+        # zero fixtures and the rotary sync without a resync: the value of
+        # 4eda3892 (the in-tree corpus' frame; `lo` held the start there)
+        # (Codex's rotary counter-case first: green before, red under a read
+        # at the program's begin — the guard that keeps the rotary config
+        # from getting worse)
+        for c, want in (("g55_first_rot", _G55), ("g55_zero", [0.0, 0.0, 0.0]), ("f9_g53z_zero", [0.0, 0.0, 0.0]),
+                        ("f9_g53z_rotary", [0.0, 0.0, 0.0]), ("g43_start_g55_rot", [-200.0, -200.0, 20.0]),
+                        ("g28_first_g55_rot", _G55), ("e_g53_rdp", [0.0, 0.0, 0.0])):
+            self.believed(c, want)
+
+
+def _shifted(case):
+    """`case` with EVERY fixture row G54…G59.3 moved by (100, 200, 0)."""
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    env["START_PROBE_SHIFT"] = "100,200,0"
+    p = subprocess.run([sys.executable, str(HERE / "native_start_probe.py"), case],
+                       capture_output=True, text=True, timeout=120, env=env, cwd=HERE)
+    lines = [ln for ln in p.stdout.splitlines() if ln.startswith("{")]
+    if not lines:
+        raise AssertionError(f"{case} shifted: rc={p.returncode} {p.stderr[-800:]}")
+    return json.loads(lines[-1])
+
+
+class TestAFixtureTranslationMovesNoBelievedStart(unittest.TestCase):
+    """P6-a guard 10, metamorphic: every native_start_probe case once more
+    with all fixture rows moved by the same D = (100, 200, 0). The
+    interpreter's start (program zero of the fixture in effect) moves with
+    them; a program-frame answer must not. `start_believed`, the masks, the
+    unknown starts and `start_unbound` stay — except where a program WRITES
+    the fixture of its first point absolutely before it (G10 L2): that frame
+    does not move, so the start in it moves by D on the written axes. Before
+    (the canon's initial `lo`) `start_believed` moved by −D in 263 cases."""
+
+    # case → the written axes' expected move (+D on each axis the G10 L2 names)
+    WRITTEN = {"r133_g55_before_first": (100.0, 200.0, 0.0), "cx_g10_active": (100.0, 200.0, 0.0)}
+
+    def test_every_case(self):
+        from concurrent.futures import ThreadPoolExecutor
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        cases = json.loads(subprocess.run([sys.executable, str(HERE / "native_start_probe.py"), "--list"],
+                                          capture_output=True, text=True, env=env, cwd=HERE, check=True).stdout)
+        with ThreadPoolExecutor(4) as ex:
+            plain = dict(zip(cases, ex.map(probe, cases)))
+            moved = dict(zip(cases, ex.map(_shifted, cases)))
+        bad = []
+        for c in cases:
+            a, b = plain[c], moved[c]
+            if "skip" in a:
+                raise unittest.SkipTest(a["skip"])
+            for f in ("parse_error", "start_unbound", "rapid_dep", "feed_dep", "rapid_ustart", "start_dep_unavailable"):
+                if a.get(f) != b.get(f):
+                    bad.append((c, f, a.get(f), b.get(f)))
+            sa, sb = a.get("start_believed"), b.get("start_believed")
+            if (sa is None) != (sb is None):
+                bad.append((c, "start_believed", sa, sb))
+            elif sa is not None:
+                d = self.WRITTEN.get(c, (0.0, 0.0, 0.0))
+                if any(abs(y - x - dk) > 1e-6 for x, y, dk in zip(sa, sb, d)):
+                    bad.append((c, "start_believed", sa, sb))
+        self.assertEqual(bad, [], f"{len(bad)} of {len(cases)} cases")
 
 
 class TestSuitePythonTable(unittest.TestCase):

@@ -29,6 +29,8 @@ import { partLabel } from "./simRows";
 import { ContactStore } from "./contactStore";
 import { buildContactView, lineMark, lineRuns, runsOf, targetAt, trackLineAt } from "./contactView";
 import { shownContactView } from "./shownContacts";
+import { programToMachine } from "./partFrame";
+import { tloForIndex } from "./tloEvents";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
 const MACHINE: CollisionMachine = {
@@ -722,5 +724,111 @@ describe("Codex R149 VP-I110: a base contact at 0 marks only the moves its check
     expect(Array.from({ length: v.n }, (_, i) => targetAt(v, i, at).line)).toEqual([5]);
     expect(lineMark(v, 5, runsOf(runs, 5), at)).toEqual({ line: 5 });
     for (const line of [2, 3, 4]) expect(lineMark(v, line, runsOf(runs, line), at), `L${line}`).toBeNull();
+  });
+});
+
+// The believed start (P6-a, machine-day F9; plan docs/reviews/maschinentag.r457
+// .p6a-plan-v3.md, Codex R456/R457): the parse's `start_believed` is the
+// interpreter's position at the program's FIRST point, in that point's frame —
+// never the canon's initial `lo` (machine zero: the whole fixture off on a
+// config without a rotary sync). Native payloads under fixtures that are NOT
+// zero, bound through the real chain (decode → base → epoch terms → entry
+// track) to a live start at the believed physical start P — where the
+// interpreter's init puts program zero, G54 — AND away from it at Q (a wrong
+// dependency label shows only there). The oracle needs nothing from the read:
+// the first endpoint, in machine joints, keeps every axis the first block does
+// not command at the live value and puts a commanded one on its target.
+interface F9Case {
+  P: [number, number, number];          // G54's program zero, machine units
+  T?: number;                           // the start tool offset Z (G43 at the start)
+  cmd: number[];                        // the axes the first motion block commands (0 X, 1 Y, 2 Z)
+  target: Record<number, number>;       // their machine targets
+  rotary?: boolean;                     // an XYZA machine (the rotary sync initcode)
+  inch?: boolean;
+}
+const CODEX: [number, number, number] = [100, 200, -30];   // G54; G55 (300, 400, −60)
+const F9: Record<string, F9Case> = {
+  // Codex's counter-case R456 MT456-01: G55 before an X-only first move
+  g55_first: { P: CODEX, cmd: [0], target: { 0: 310 } },
+  g55_first_rot: { P: CODEX, cmd: [0], target: { 0: 310 }, rotary: true },
+  // the machine day's head: G53 G0 Z0, then the routine — Z to machine 0, X/Y stay
+  mday_head: { P: [238.525, 379.696, -96.75], cmd: [2], target: { 2: 0 } },
+  // the offline resync (M6 resets the interpreter's position to the last
+  // endpoint passed, zero before any) on both configs
+  m6_after_g55: { P: CODEX, cmd: [0], target: { 0: 310 } },
+  m6_after_g55_rot: { P: CODEX, cmd: [0], target: { 0: 310 }, rotary: true },
+  m6_first_g43_zero: { P: [0, 0, 0], T: 10, cmd: [0, 1], target: { 0: 10, 1: 10 } },
+  // the interpreter's unit: an inch machine's G55 X1 (G55 X 4 in); a G20 block on a mm machine
+  inch_g43_g55: { P: [2, 3, -1], T: 0.5, cmd: [0], target: { 0: 5 }, inch: true },
+  g20_g55: { P: CODEX, cmd: [0], target: { 0: 325.4 } },
+  // the tool offset set before the first point: joint Z stays
+  g43_line_then_x: { P: CODEX, cmd: [0], target: { 0: 110 } },
+  g43h_g55_move: { P: CODEX, cmd: [0], target: { 0: 310 } },
+  // a suite-bound Python remap's motion is the program's first callback
+  py_motion_first_bound: { P: CODEX, cmd: [0], target: { 0: 110 } },
+};
+
+function f9Entry(name: string, away: boolean) {
+  const c = F9[name]!;
+  const raw = msgpackDecode(fs.readFileSync(path.join(DIR, `${name}.msgpack`))) as Record<string, any>;
+  const d = decodePreviewStreams(raw);
+  const base = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents,
+                               d.rotaryCmd, d.startBelieved, d.startUnbound)!;
+  const off = c.inch ? [0.5, -0.7, 0.3] : [13, -17, 7];
+  const live = c.P.map((v, k) => v + (away ? off[k]! : 0));
+  // the live active fixture G54 from the case — a G55-first payload carries no
+  // G54 epoch (Codex R457's harness note) — and the live tool offset = the start's
+  const wcs = { g5x: [...c.P, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0], rotationDeg: 0, tool: raw.tlo_start ?? [0, 0, 0] } as any;
+  const terms = epochTermsFor(d.wcsEvents!, wcs, undefined);
+  const axes = c.rotary ? ["X", "Y", "Z", "A"] : ["X", "Y", "Z"];
+  const e = buildEntryTrack(base, c.rotary ? [...live, 0] : live, axes, wcs, undefined, terms, 0,
+                            { linear: raw.rapid_rate, rotary: raw.rot_rapid_rate, axisVmax: raw.axis_vmax, trajVmax: raw.traj_vmax });
+  if (!e) return { raw, base, live, e: null, joint: null };
+  // the entry's end = the program's first point, in machine joints (tip + its tool offset)
+  const tip: number[] = [];
+  programToMachine(e.pos[3]!, e.pos[4]!, e.pos[5]!, e.abc[3] ?? 0, e.abc[4] ?? 0, e.abc[5] ?? 0,
+                   terms[e.wcsEpoch?.[1] ?? 0]!, tip);
+  const tl = tloForIndex(e.tlo?.[1], e.tloEvents, wcs.tool);
+  return { raw, base, live, e, joint: [0, 1, 2].map(k => tip[k]! + tl[k]!) };
+}
+
+describe("the believed start under fixtures that are not zero (P6-a, machine-day F9)", () => {
+  for (const name of Object.keys(F9)) for (const away of [false, true]) {
+    it(`${name}, live ${away ? "away from" : "at"} the believed start: the first endpoint moves only the commanded axes`, () => {
+      const c = F9[name]!;
+      const { joint, live, raw } = f9Entry(name, away);
+      expect(raw.start_believed, "the parse ships its believed start").toBeTruthy();
+      expect(joint, "an entry move to the first point").not.toBeNull();
+      for (let k = 0; k < 3; k++) {
+        const want = c.cmd.includes(k) ? c.target[k]! : live[k]!;
+        expect(joint![k], `${"XYZ"[k]}: ${c.cmd.includes(k) ? "its target" : "stays where the machine stands"}`).toBeCloseTo(want, 6);
+      }
+    });
+  }
+
+  it("the machine day's head: Z up alone to machine 0, the beginning 5.4515 s (13.555 s along the diagonal before)", () => {
+    const { joint, base, e } = f9Entry("mday_head", false);
+    expect(joint!.map(v => Math.round(v * 1e4) / 1e4)).toEqual([238.525, 379.696, 0]);
+    const K = base.depEnd!;
+    expect(K, "a start-dependent beginning").toBeGreaterThan(0);
+    expect(Math.round(e!.cum[K + 1]! * 1e4) / 1e4).toBe(5.4515);
+  });
+
+  it("a first point from the cutter-compensation queue: no believed start, X, Y, Z unbound — no entry move", () => {
+    // its callback runs inside the NEXT block (interp_queue.cc): the
+    // interpreter's position is past the entry, the block's words are the
+    // next block's — even one that commands X, Y and Z
+    for (const name of ["comp_first_g55", "comp_next_xyz_g55"]) {
+      const raw = msgpackDecode(fs.readFileSync(path.join(DIR, `${name}.msgpack`))) as Record<string, any>;
+      const d = decodePreviewStreams(raw);
+      const base = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents,
+                                   d.rotaryCmd, d.startBelieved, d.startUnbound)!;
+      expect([raw.start_believed ?? null, d.startUnbound], name).toEqual([null, [0, 1, 2]]);
+      const wcs = { g5x: [...CODEX, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0], rotationDeg: 0, tool: [0, 0, 0] } as any;
+      for (const live of [CODEX, [113, 183, -23]]) {
+        expect(buildEntryTrack(base, live, ["X", "Y", "Z"], wcs, undefined, epochTermsFor(d.wcsEvents!, wcs, undefined), 0),
+               `${name}: the start not checked`).toBeNull();
+      }
+    }
   });
 });
