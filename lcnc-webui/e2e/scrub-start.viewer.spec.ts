@@ -24,19 +24,22 @@ import { fulfillPreview, publishFile, routeText } from "./programFixture";
 const N = 6000;
 const FEED = Array.from({ length: N - 1 }, (_, i) => [i % 100, Math.floor(i / 100), -1]);
 const LINEOK = new Uint8Array(FEED.map((_, i) => (i >= 2400 && i < 3600 ? 0 : 1)));
-const preview = (file: string) => Buffer.from(encode({ file, preview_schema: 11, feed: FEED,
-  feed_lines: FEED.map((_, i) => i + 2), feed_seq: FEED.map((_, i) => i + 2), feed_lineok: LINEOK,
+// `head` comment lines after the first: the first move's line is head + 2
+const preview = (file: string, head = 0) => Buffer.from(encode({ file, preview_schema: 11, feed: FEED,
+  feed_lines: FEED.map((_, i) => i + 2 + head), feed_seq: FEED.map((_, i) => i + 2), feed_lineok: LINEOK,
   feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 0.5)).buffer) }));
-const TEXT = [...Array.from({ length: N }, (_, i) => i === 0 ? "(long)" : `G1 X${(i - 1) % 100} Y${Math.floor((i - 1) / 100)} Z-1 F1000`), "M2"].join("\n");
+const textOf = (head = 0) => ["(long)", ...Array.from({ length: head }, (_, i) => `(head ${i + 1})`),
+  ...Array.from({ length: N - 1 }, (_, i) => `G1 X${i % 100} Y${Math.floor(i / 100)} Z-1 F1000`), "M2"].join("\n");
 const ZERO = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 /** The program loaded with the machine OFF, standing away from the first
  *  point (an entry move) — or ON it (`atFirst`: no entry move). Motion as
  *  the operator sees it (no reduced motion): a glide would show. */
-async function prepare(page: Page, context: BrowserContext, vp: string, o: { atFirst?: boolean; version?: number; zoom?: number } = {}) {
+async function prepare(page: Page, context: BrowserContext, vp: string,
+                       o: { atFirst?: boolean; version?: number; zoom?: number; head?: number } = {}) {
   const file = `/start-${o.version ?? 7300}.ngc`;
-  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview(file) }));
-  await routeText(context, TEXT);
+  await context.route(/\/preview(\?|$)/, r => fulfillPreview(r, { contentType: "application/octet-stream", body: preview(file, o.head) }));
+  await routeText(context, textOf(o.head));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   const at = o.atFirst ? [0, 0, -1] : [40, 30, 20];
@@ -208,19 +211,25 @@ test("counter-controls: a null line in the middle and leaving the simulation kee
   await framesTo(page, () => simOn(page).check(), "Sim on again");
 });
 
-test("counter-control: a track without an entry move marks its first line at 0", async ({ page, context }) => {
+// The first move on line 302 (300 comment lines before it): past the first
+// view, so its line in view is the follow's, not the top's.
+test("counter-control: a track without an entry move marks its first line at 0, in view", async ({ page, context }) => {
   test.setTimeout(90_000);
-  await prepare(page, context, "desktop", { atFirst: true, version: 7310 });
+  await prepare(page, context, "desktop", { atFirst: true, version: 7310, head: 300 });
+  const first = async (what: string) => {
+    await expect.poll(async () => { const v = await codeView(page); return v.active != null && v.first! <= 302 && 302 <= v.last! && !v.band ? v.active : null; },
+      { message: `${what}: the first point's line marked and in view` }).toBe("302");
+    expect((await codeView(page)).scrollTop, `${what}: not the program's top`).toBeGreaterThan(0);
+  };
   await simOn(page).check();
-  await expect.poll(async () => (await codeView(page)).active, { message: "position 0: the first point's line" }).toBe("2");
+  await first("position 0");
+  await expect(page.locator(".simPanel .simLine")).toHaveText(/^L302\b/);
   await atLine(page, 0.83);
   await scrubTo(page, 0);
-  await expect.poll(async () => (await codeView(page)).active, { message: "back at 0: the first line marked" }).toBe("2");
-  await expect(page.locator(".simPanel .simLine")).toHaveText(/^L2\b/);
+  await first("back at 0 (timeline)");
   await atLine(page, 0.83);
   await backBtn(page).click();
-  await expect.poll(async () => (await codeView(page)).active, { message: "Back to start: the first line marked" }).toBe("2");
-  expect((await codeView(page)).first, "line 2 in view").toBeLessThanOrEqual(2);
+  await first("Back to start");
 });
 
 // Play's entry rules: ⏮ is dimmed with Play in a run and with the machine
