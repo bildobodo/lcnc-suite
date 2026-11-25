@@ -1,0 +1,64 @@
+{
+  "kind": "plan models only",
+  "cases": [
+    {
+      "case": "disconnect",
+      "held_result": "shape",
+      "marker": "table cylinder",
+      "same_as_card": false
+    },
+    {
+      "case": "late proof during run",
+      "held_result": "table cylinder",
+      "marker_from_publication": "shape",
+      "same_as_card": false
+    },
+    {
+      "case": "successive two-tool tables",
+      "table_number": 0,
+      "current_tools": 2,
+      "seen_tools": 2,
+      "max_rows_per_tool": 1
+    },
+    {
+      "case": "successive two-tool tables",
+      "table_number": 1,
+      "current_tools": 2,
+      "seen_tools": 4,
+      "max_rows_per_tool": 1
+    },
+    {
+      "case": "successive two-tool tables",
+      "table_number": 2,
+      "current_tools": 2,
+      "seen_tools": 6,
+      "max_rows_per_tool": 1
+    },
+    {
+      "case": "successive two-tool tables",
+      "table_number": 3,
+      "current_tools": 2,
+      "seen_tools": 8,
+      "max_rows_per_tool": 1
+    },
+    {
+      "case": "successive two-tool tables",
+      "table_number": 4,
+      "current_tools": 2,
+      "seen_tools": 10,
+      "max_rows_per_tool": 1
+    },
+    {
+      "case": "same library, eight proven Z rows",
+      "seen_rows": 8,
+      "distinct_meta_objects": 8,
+      "distinct_meta_contents": 1
+    },
+    {
+      "case": "private build completes",
+      "owner_alive": true,
+      "generation_alive": true,
+      "late_result_publishable": false
+    }
+  ]
+}

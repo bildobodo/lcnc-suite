@@ -1,0 +1,150 @@
+--- 24f3bd3a:lcnc-webui/src/viewer/collision.ts:643 ---
+643: export function toolCylinderPositions(diam: number, len: number, segments = 20): Float32Array {
+644:   const geom = new THREE.CylinderGeometry(diam / 2, diam / 2, len, segments);
+645:   geom.rotateX(Math.PI / 2);        // cylinder Y-axis → Z-up
+646:   geom.translate(0, 0, len / 2);    // tip at origin, extends +Z
+647:   const nonIndexed = geom.toNonIndexed();
+648:   const pos = new Float32Array(nonIndexed.getAttribute("position").array as Float32Array);
+649:   geom.dispose();
+650:   nonIndexed.dispose();
+651:   return pos;
+652: }
+653: 
+654: /** A kinematic DOF on the path between a pair's bodies, with the node that
+
+--- 24f3bd3a:lcnc-webui/src/viewer/collision.ts:1958 ---
+1958:     };
+1959:     const api = {
+1960:       full: false,
+1961:       /** The earliest position (sweep parameter) of a row the budget refused. */
+1962:       failAt: Infinity,
+1963:       moved: false,
+1964:       sample(pi: number, s: number, isRapid: boolean, d: number, inBand: boolean, undecidable: boolean) {
+1965:         // the knowledge gap: open or extend on an undecidable answer, end on a decided one
+1966:         if (undecidable) {
+1967:           if (gapRow[pi]! < 0) gapRow[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_UNDECIDABLE }, s);
+1968:           lastUndec[pi] = s;
+1969:         } else if (gapRow[pi]! >= 0) {
+1970:           store.gaps.set(gapRow[pi]!, "end", T(lastUndec[pi]!));
+1971:           gapRow[pi] = -1;
+1972:         }
+1973:         const cutting = !!pairCutting[pi];
+1974:         const touch = !undecidable && d <= CONTACT_EPS;
+1975:         const freeDecided = !undecidable && !inBand && d > CONTACT_EPS;
+1976:         if (d <= opts.margin) {
+1977:           if (epRow[pi]! < 0 && !cutMute[pi]) {
+1978:             // a cutting pair's contact begun on a feed (or before a range) is
+1979:             // machining: nothing is written until it separates (plan 2.3) — but
+1980:             // a feed touch on a probe's braking range changes no contact state
+1981:             // (R126 VP-I74): it writes nothing and mutes nothing, so a rapid
+1982:             // into the stock after the range is the gouge it is
+1983:             const boundary = !!opts.range && s <= rangeStart + 1e-9;
+1984:             if (cutting && (!isRapid || boundary)) { if (!inBand) cutMute[pi] = 1; }
+1985:             else {
+1986:               const flags = (boundary ? ORIGIN_BOUNDARY : origin) | (isRapid ? EP_RAPID : 0)
+1987:                 | (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !opts.range ? EP_AT_START : 0) | (inBand ? EP_POSSIBLE : 0);
+1988:               epRow[pi] = add(store.episodes, { pair: pi, ordinal: ordinal[pi]!++, flags, onset: T(s), end: NaN,
+1989:                                                 closeAt: T(s), closeDist: d, firstIv: NONE, ivCount: 0 }, s);
+1990:               lastIv[pi] = -1;
+1991:               cutPart[pi] = 0;
+1992:               cutFeedAt[pi] = NaN;
+1993:             }
+1994:           }
+1995:           const ep = epRow[pi]!;
+1996:           if (ep >= 0) {
+1997:             lastInMargin[pi] = s;
+1998:             if (d < store.episodes.get(ep, "closeDist")) {
+1999:               store.episodes.set(ep, "closeDist", d);
+2000:               store.episodes.set(ep, "closeAt", T(s));
+2001:             }
+2002:             if (!inBand && (store.episodes.get(ep, "flags") & EP_POSSIBLE)) store.episodes.set(ep, "flags", store.episodes.get(ep, "flags") & ~EP_POSSIBLE);
+2003:           }
+2004:         } else if (d > opts.margin * 2 && !undecidable && !inBand) {
+2005:           // a verified separation ends the stay (and a muted cutting contact)
+2006:           if (ivRow[pi]! >= 0) closeInterval(pi, s, d);
+2007:           closeEpisode(pi);
+2008:           cutMute[pi] = 0;
+2009:         }
+2010:         const ep = epRow[pi]!;
+2011:         if (ep >= 0 && touch && cutting && !isRapid) {
+
+--- 24f3bd3a:lcnc-webui/src/ToolTablePanel.vue:185 ---
+185: async function fetchTools() {
+186:   if (!reads.isOpen) {                 // no connection: nothing to read from (a Retry while closed)
+187:     tableError.value = NOT_CONNECTED;
+188:     return;
+189:   }
+190:   const ticket = reads.begin();
+191:   loading.value = true;
+192:   tableError.value = null;
+193:   const slow = setTimeout(() => {
+194:     if (reads.applies(ticket) && loading.value) tableError.value = "No reply from the gateway yet — retry";
+195:   }, TOOL_READ_SLOW_MS);
+196:   const reply = await request({ cmd: "get_tool_table" }, TOOL_READ_TIMEOUT_MS);
+197:   clearTimeout(slow);
+198:   if (!reads.applies(ticket)) return;
+199:   loading.value = false;
+200:   const view = toolTableView<Tool>(reply, connected.value ? "No reply from the gateway — retry" : NOT_CONNECTED);
+201:   readView.value = view;
+202:   tools.value = view.rows;
+203:   tableIdentity.value = view.kind !== "failed" && isTableIdentity(reply.table)
+204:     ? { path: reply.table.path, instance: reply.table.instance } : null;
+205:   written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);
+206:   writtenAtNextRead = null;
+207:   tableError.value = view.error;
+208: }
+209: 
+210: /** What the last WRITTEN table left open (its load into LinuxCNC, its
+
+--- 24f3bd3a:lcnc-webui/src/ToolTablePanel.vue:223 ---
+223: 
+224: // A connection opens a new read epoch and reads; a close ends it — nothing
+225: // of it applies any more, its rows are gone (store point 1).
+226: function connectionClosed() {
+227:   reads.closed();
+228:   loading.value = false;
+229:   tools.value = [];
+230:   readView.value = null;
+231:   tableIdentity.value = null;
+232:   tableError.value = NOT_CONNECTED;
+233: }
+234: onMounted(() => {
+
+--- 24f3bd3a:lcnc-webui/src/toolTableRead.ts:119 ---
+119: export function toolTableView<R extends { T: number }>(reply: any, noReply = "No reply from the gateway — retry"): ToolTableView<R> {
+120:   const none = { proven: new Set<number>(), unreadByTool: new Map<number, number[]>(), unreadLoose: [] as number[] };
+121:   if (!reply?.ok || !Array.isArray(reply.tools)) {
+122:     const error = reply == null ? noReply : (typeof reply.error === "string" && reply.error ? reply.error : "Tool table unavailable");
+123:     return { kind: "failed", rows: [], error, note: null, empty: TOOL_TABLE_NOT_READ, ...none };
+124:   }
+125:   const rows = reply.tools as R[];
+126:   const unread = readUnread(reply.unread);
+127:   const unreadByTool = new Map<number, number[]>();
+128:   const unreadLoose: number[] = [];
+129:   for (const u of unread) {
+130:     if (u.T === null) unreadLoose.push(u.line);
+131:     else unreadByTool.set(u.T, [...(unreadByTool.get(u.T) ?? []), u.line]);
+132:   }
+133:   const proof = readProof(reply.proof);
+134:   if (!proof) {
+135:     return { kind: "unchecked", rows, error: null, note: `Not checked against LinuxCNC — ${NO_PROOF}.`,
+136:              empty: TOOL_TABLE_NOT_CHECKED, proven: new Set(), unreadByTool, unreadLoose };
+137:   }
+138:   if (proof.state === "complete") {
+139:     return { kind: "complete", rows, error: null, note: null, empty: TOOL_TABLE_NO_TOOLS,
+140:              proven: new Set(rows.map(r => r.T)), unreadByTool, unreadLoose };
+141:   }
+142:   if (proof.state === "unchecked") {
+143:     return { kind: "unchecked", rows, error: null, note: `Not checked against LinuxCNC — ${proof.why ?? "no reason given"}.`,
+144:              empty: TOOL_TABLE_NOT_CHECKED, proven: new Set(), unreadByTool, unreadLoose };
+145:   }
+146:   const refusal = typeof reply.edit_refusal === "string" && reply.edit_refusal ? reply.edit_refusal as string : null;
+147:   return { kind: "partial", rows, error: null, note: partialNote(proof, unread, refusal), empty: TOOL_TABLE_NOT_CONFIRMED,
+148:            proven: new Set(proof.proven), unreadByTool, unreadLoose };
+
+--- 24f3bd3a:lcnc-gateway/tool_proof.py:283 ---
+283: 
+284: def library_rev(section: Dict[str, Any]) -> str:
+285:     """The library read's revision: the sha256 of its canonical section."""
+286:     return hashlib.sha256(json.dumps(section, sort_keys=True, separators=(",", ":"),
+287:                                      ensure_ascii=False).encode("utf-8")).hexdigest()

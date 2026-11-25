@@ -1,0 +1,48 @@
+{
+  "round": "R477",
+  "product_base": "24f3bd3a7969e0d8bb0d8969285f08866f96a6d7",
+  "review_head_at_evidence": "7160f52067339e8c81d1777d315adb993b236c95",
+  "plan_sha256": "6e8cdf5eb936c855ddc363f429ccc8a5f39741c9de9c2e7f8d172efba3544491",
+  "source_sha256": {
+    "lcnc-webui/src/toolGeometry.ts": "66ed4dba3362a46b968e1112f22d74ddcee095eccf8b802ee311e8874d2a8b16",
+    "lcnc-webui/src/viewer/collision.ts": "b6097788112e6be69aad6177e16fa90563cd4e96d277becad0234f7969de667b",
+    "lcnc-webui/src/ToolTablePanel.vue": "ceb7a79715e3758c6f0cc287ffc3c87dae38e341289d5c0d55ffc60102527322",
+    "lcnc-webui/src/toolTableRead.ts": "b54cca4eab01b8f145d0bba1c6e8f43dcbc9f091dc6923c6c91775637ea8d7c1",
+    "lcnc-gateway/tool_proof.py": "a8a6719ce7a66c887d8b94ba82ddded370266f14c6848b61d374cafb975160a6"
+  },
+  "scratch_origin": "/home/cnc/claude-work/p6/c5/probe (unchanged snapshots; execution copies substitute only the source root)",
+  "node": "v22.23.2",
+  "dependencies": {
+    "three": "0.182.0",
+    "three-mesh-bvh": "0.9.14",
+    "vue": "3.5.27",
+    "esbuild": "0.27.2"
+  },
+  "evidence_sha256": {
+    "maschinentag.r477.codex-contracts.json": "4172906db7fd7c2e22d83c0d93d24f5600040646ce0b7d4a9802966ff0b38b92",
+    "maschinentag.r477.codex-contracts.py": "591d9802a4b12bcc8fd397330faad4988ac4a5990e112e6ab21f4e0434003ba8",
+    "maschinentag.r477.codex-geometry.ts": "53f4f5204647fc0ad9f5a803cdbeba6ce9ec7f841cff0f2ac0bdb2d4b8e6d5c8",
+    "maschinentag.r477.codex-geometry.txt": "b9f7f32d05700a1371e5cacc704e97e6832eb040c9624ecd3f673c9a0dbbd7c6",
+    "maschinentag.r477.codex-reproduce.py": "eb68920e595173c26dbdda4ea09b71ef7315612ec460919b3c83035df3a4c64d",
+    "maschinentag.r477.codex-scratch/cases.ts": "b79829a399da7683173a23012ce4e9be31f05371c47b906ea9cd97fff421b0b3",
+    "maschinentag.r477.codex-scratch/contain_lib.ts": "926e8079cbd1ea92066903a98023f38cc0cdc01aeda6ed70bc8d9d11e5fe98cf",
+    "maschinentag.r477.codex-scratch/hull5.ts": "1af4d07ab53d71e40f51b1a31f8ecf910e7375637d50a880db05a699e641f673",
+    "maschinentag.r477.codex-scratch/hullv2.ts": "eacace99b637427519d680a1a03a8a32eff98136acbf00cab003a5cb9d6dffb8",
+    "maschinentag.r477.codex-sources.txt": "2a5cd05c80d98c6c7c7729d64f57865d956be8490285f0c3ee858d7a544518bf"
+  },
+  "limits": [
+    "Plan review; no product implementation",
+    "102 supplied geometry controls repeated unchanged; own wedge inputs and interior witnesses",
+    "Quantized-input variant is a probe only, not a product fix",
+    "Contract models are readings of the plan, not tests of nonexistent store/cache",
+    "No browser, native run or timing claim",
+    "No live simulation touched; heavy_lock held during geometry executions"
+  ],
+  "reproduction": {
+    "fresh_archive": true,
+    "geometry_output_structurally_identical": true,
+    "contract_output_structurally_identical": true,
+    "exit_code": 0,
+    "note": "Diagnostic: exit 0 means the probe completed; violations are explicitly reported as bad > 0, not a green product gate."
+  }
+}

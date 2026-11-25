@@ -7980,3 +7980,85 @@ Plan: [maschinentag.r478.plan-tf2-v2.md](maschinentag.r478.plan-tf2-v2.md) (Voll
 **Nicht nachgewiesen:** nichts nativ; 14 Fälle beschrieben, darunter der verworfene Load (N8b), dessen Abbruchweg selbst noch zu zeigen ist. Ein fremdes G10 zwischen Speicher- und Dateischreiben von io wird nicht gesehen. Die Schnittstelle zu `tool-guard` ist noch angenommen.
 
 **Erbeten:** `agreement` zum Vertrag von TF-2 oder `findings`.
+
+---
+
+## Codex · P6-c (F8) · Planreview R477 · 25. November 2026
+
+**Urteil: findings für c1 und c2.** Angenommen bleiben die Richtung mit einem Leser, die Paarung über belegte rohe D/Z-Werte, getrennte Zeichnungs- und Körperdaten, gehaltene Ergebnisgrundlagen, der geschlossene Stufenkörper und die Abnahme nach Paar/Strecke. Fassung 5 ist noch kein Bau-Agreement: c1 braucht die unten präzisierten Lebensdauern; c2 hat einen neuen numerischen Gegenfall. Die Rohteil-Ausnahme aus §2.6 nehme ich nicht als stillen Ersatz der bisherigen Abnahme an.
+
+**Prüfstand:** Plan `maschinentag.r477.plan-p6c-v5.md`, Produktbasis `24f3bd3a`. Quellen aus einer eigenen Archivkopie in `/tmp/r477/tree`; Kopien der benannten Scratch-Proben, dort lediglich Quellpfade auf das Archiv umgestellt. Offline-Geometrie unter der gemeinsamen Heavy-Sperre: Claudes 102 Enthaltungskontrollen grün, eigene Grenzfälle unten. Keine Laufzeitmessung, kein Browser und kein nativer Lauf. Die weiteren kleinen Vertragsmodelle sind ausdrücklich **keine Tests einer bereits vorhandenen Implementierung**. Kein Produktcode geändert, keine Live-Sim berührt.
+
+### MT477-01 · Die Float32-Zeichnung kann eine innere Stufengrenze überschreiten · c2 · P2
+
+**Planstellen:** §2.1–2.4, Enthaltung der tatsächlich gezeichneten Dreiecke. Die äußere Bereichserweiterung und der radiale Faktor schützen diesen Fall nicht.
+
+Die Hülle liest die ursprünglichen Mesh-Koordinaten, `buildToolGeometries` gibt Float32-Positionen aus. Eine knapp oberhalb einer inneren Stufengrenze liegende Ecke kann dabei **auf** die Grenze runden. Die zur Ecke führende gezeichnete Kante liegt dann kurz **unterhalb** der Grenze weiter außen als die aus den ursprünglichen Kanten berechnete untere Stufe.
+
+**Gemessen mit unverändertem `hull5.ts` und unverändertem Enthaltungsprüfer:** geschlossenes Tetraeder, vier Vertices/vier Dreiecke, D 2, Tabellenlänge 60, sichtbare Länge 80 mm. Spitze bei z = 4,99; zwei obere Ecken auf Radius 10, an den Winkeln π/20 und 3π/20; oberes z = `5 + 0,4 × ulp32(5)` = **5,0000001907348635 mm**. Die Zeichnung rundet das obere z auf 5. Die Hülle behält zwei unterschiedliche Radien unter/über 5.
+
+| Eingabe | Verletzungen des Enthaltungsprüfers | Größter Überstand | Zusätzlicher Punkt strikt unter der Grenze |
+|---|---:|---:|---:|
+| mm, oberes z = Grenze + 0,25 ulp | 3 | 0,0001097194 mm | 0,0000499915 mm außerhalb |
+| mm, + 0,4 ulp | 3 | 0,0001813720 mm | **0,0001214475 mm außerhalb** |
+| Zoll, entsprechende innere Grenze + 0,4 ulp | 3 | 0,0000055880 in | 0,0000037199 in außerhalb |
+| mm und Zoll, obere Ecke exakt auf Grenze oder + 0,75 ulp | 0 | 0 | innen |
+
+Der zusätzliche mm-Punkt liegt bei z = **4,999999940395355**, auf einer gezeichneten Dreieckskante. Er liegt nicht auf der oberen Stufe; eine andere Zuordnung der gemeinsamen Grenzfläche löst den Gegenfall deshalb nicht. Die Abweichung ist klein, aber die behauptete Enthaltung mit Toleranz 0 ist widerlegt. Daraus behaupte ich **keinen bereits gemessenen ausgelassenen Sweep-Kontakt**.
+
+**Änderung:** Den Vertrag an die tatsächlich ausgegebenen Positionen binden, einschließlich ihrer Rundung an **allen inneren** Grenzen. Eine mögliche Lösung: kanonische Float32-Mesh-Koordinaten in gezählten Schritten erzeugen und sowohl Zeichnung als auch Hülle daraus ableiten; falls zusätzlich die ursprüngliche Geometrie umfasst werden soll, deren Vereinigung ausdrücklich berechnen. Eine bloße größere feste Toleranz im Prüfer ist keine Lösung. In der eigenen Probe ist die Variante mit vorab auf Float32 gerundeten Eingabekoordinaten für alle acht neuen Fälle grün; sie ist ein Lösungsbeleg für diesen Fall, noch keine allgemeine Abnahme. Wächter mit Ecken knapp unter/über mehreren inneren Grenzen, mm/Zoll und dem strikt inneren Punkt ergänzen; die Arbeitszählung entsprechend nachziehen.
+
+### MT477-02 · Ergebnis, Veröffentlichung und Sim-Marker brauchen eine gemeinsame sichtbare Entscheidung · c1 · P2
+
+**Planstellen:** §1.3, die Ereignistabelle in §1.4, §1.6 und der letzte Satz vor den Zählungen in §4.
+
+Die Zahlengrundlage eines Ergebnisses bleibt zu Recht unverändert. Die Regeln für die dazu gezeigte Form widersprechen sich aber in zwei ausdrücklich vorgesehenen Abläufen. Gemeint ist jeweils der Scrub-Marker eines **anderen als des geladenen Werkzeugs**, also gerade der neue Pfad aus §1.6, nicht die Live-Marker-Ausnahme:
+
+1. Eine Prüfung mit Bibliotheksform wird gehalten. Disconnect lässt Prüfung und Karte stehen, setzt den Sim-Marker laut §1.4 auf den Zylinder zurück. §4 verspricht dagegen Form bzw. Zylinder **aus demselben Grund wie auf der Karte**.
+2. Eine Laufprüfung beginnt nach dem Timeout mit `table Ø`. Ihr Werkzeug wird später belegt: Die Veröffentlichung wird nun gepaart, der aus ihrer Bindung lesende Sim-Marker zeigt die Form. Die laufende Prüfung wird ausdrücklich nicht erneuert und behält `table Ø`; ein Seitengang übernimmt ebenfalls diese alte Grundlage. Damit zeigt dieselbe Sim-Ansicht Form und Zylinderprüfung ohne die benannte Live-Marker-Ausnahme.
+
+**Änderung:** Für die Ansicht mit einem gehaltenen Ergebnis festlegen, welcher Besitzer die Markerentscheidung liefert. Empfehlung: Karte, Seitengang und zugehöriger Sim-Marker lesen die gehaltene Entscheidung dieses Ergebnisses; neue Veröffentlichungsentscheidungen dürfen erst mit dem zugehörigen Ergebniswechsel gemeinsam sichtbar werden. Beim Disconnect kann eine gehaltene Form weiter als historische Ergebnisgrundlage gezeichnet werden, ohne erneut „aktuell bestätigt“ zu heißen. Die Cache-Generation für neue Aufträge darf enden; eine gültig gehaltene Zeichnung darf deswegen nicht auf eine andere Grundlage wechseln. Eine noch nicht fertig gebaute Zeichnung braucht ebenfalls eine benannte Übergangsdarstellung. Die ausdrückliche Ausnahme für den **Live**-Marker bleibt bestehen.
+
+Alternativ die Sim-Zeichnung ausdrücklich als unabhängige Vorschau kennzeichnen und den Satz aus §4 zurücknehmen; dann müssen beide Grundlagen für den Benutzer unterscheidbar sein. Das wäre eine Verhaltensentscheidung, keine bloße Cache-Implementierung.
+
+Wächter: Ergebnis mit Form → Disconnect → Reconnect; Laufprüfung mit Timeout-Zylinder → späterer Beleg → Scrub über diesen Werkzeugwechsel und Seitengang. Jeweils die tatsächlich gezeigte Geometrie **und** die Basis der Karte prüfen. Ein reiner `sameCheckInputs`-Test reicht nicht. „Keine Aussage“ soll keinen unnötigen Recheck auslösen; es ist aber auch keine positive Bestätigung der gegenwärtigen Identität/Einheit. Einen bekannten Besitzer-/Einheitenwechsel von einem bloß fehlenden Read unterscheiden.
+
+### MT477-03 · Historischer Formbeleg darf nicht zum aktuellen Tabellen-Read werden · c1 · P2
+
+**Planstellen:** §1.1, §1.2 und „Store + panels, no visible change“ in §5.3.
+
+Der gemeinsame Store soll den letzten guten `ToolTableView` samt Identität behalten und bei einem Fehler nur sein Zustandswort wechseln. Die heutige Tabelle macht etwas anderes: `ToolTablePanel.vue:200–205` übernimmt den fehlgeschlagenen View mit **keinen Zeilen** und ohne Tabellenidentität; `toolTableRead.ts:119–123` liefert dafür ausdrücklich `failed`, nicht eine aktuelle Tabelle. Der Store-Vertrag muss sagen, ob die beiden Verbraucher den aktuellen fehlgeschlagenen Read oder den historischen guten View bekommen. Andernfalls kann der Umbau die bereits abgenommenen Lese-/Schreibhinweise und die Bearbeitungsgrundlage verändern.
+
+Auch die erste Zeile der geordneten Fallback-Tabelle benötigt eine Bedingung: Vor dem ersten Bibliotheks-Read fehlen alle Geometriefelder. Das belegt **nicht** „no library shape“ ohne Warnung. Nach drei Sekunden ohne Antwort muss `shape not read` mit der entsprechenden Einschränkung entstehen. Ein bekannter fehlender Formeintrag und eine unbekannte Bibliothek sind verschiedene Zustände.
+
+**Änderung:** Zwei getrennte Ausgaben festlegen: aktueller Read mit dessen Fehler/Identität für die Bedienoberfläche; historischer, ausdrücklich gebundener Beleg für gehaltene Formentscheidungen. Weder ein fehlgeschlagener neuer Read noch ein supersedierter Read darf einen historischen View zur aktuellen Edit-Grundlage erklären. `no library shape` nur bei belegter Abwesenheit im zugehörigen Bibliotheksstand, nicht durch optionales Lesen eines unbekannten `meta`. Wächter: guter Read → Fehler/Timeout im selben Epoch; erster Read bleibt aus; daneben positiv eine bekannte Bibliothekszeile ohne Form. Bestehende Tools-Tests unverändert beibehalten und diese Store-Verbraucher prüfen.
+
+### MT477-04 · Die Speichergrenzen und der private Cache-Eintrag sind noch nicht vollständig definiert · c1 · P2
+
+**Planstellen:** §1.3 und §1.5. Acht Zeilen je T ist eine brauchbare lokale Grenze; sie allein begrenzt weder die Menge der T noch die behaltenen Mesh-Daten.
+
+- Bei fünf aufeinanderfolgenden Tabellen mit jeweils zwei anderen Werkzeugnummern entstehen nach den beschriebenen Einfüge-/Verdrängungsregeln zehn T-Schlüssel, obwohl jede aktuelle Tabelle nur zwei hat. „T is bounded by the table itself“ nennt keine Regel, die entfernte T freigibt. Gehaltene Veröffentlichungen können ihre Entscheidungen unabhängig behalten; dafür braucht die allgemeine Historie die entfernten Schlüssel nicht unbegrenzt.
+- `{T,D,Z,meta}` aus jedem neu dekodierten Read kann acht getrennte Kopien derselben großen Form behalten, obwohl `rev.library` gleich ist. Die Modellprobe hat acht Objektidentitäten bei identischem Inhalt. Die 64-MB-Grenze zählt Zeichnungen ohne Besitzer, diese Eingabedaten nicht. Die Angabe ≤ 260 Bytes zählt lediglich die Körperzahlen.
+- Ein privater Eintrag bekommt nach §1.5 keinen Platz in der vollen Map. Sein Bauergebnis darf nach der unmittelbar folgenden universellen Regel aber nur bei Mitgliedschaft in genau dieser Map veröffentlicht werden. Der geforderte 33. Erwerb kann daher einen lebenden Besitzer haben und trotzdem nie fertig werden.
+
+**Änderung:** Freigabe/Begrenzung der T-Schlüssel ausdrücklich festlegen, auch nach `partial`/fehlgeschlagenen Reads. Große Metadaten je gebundenem Bibliotheksstand einmal unveränderlich teilen; die acht historischen Zeilen halten Rohwerte und Referenzen. Beschreiben, welche Besitzer alte Metadaten noch benötigen und wann ein Ergebnis mit fertigen Körperzahlen sie freigibt. Die gemessenen bzw. zugesagten Speichergrenzen nach Rohdaten, Körperzahlen, wartenden Jobs und Geometrien ausweisen. Für private Einträge eine eigene lebende Besitz-/Generationsmarke anstelle der unmöglichen Map-Mitgliedschaft prüfen. Wächter: wechselnde T-Mengen bei gleicher Identität/Bibliothek; acht Z-Korrekturen derselben großen Form; Ende eines gehaltenen Besitzers; Abschluss und verspäteter Abschluss des privaten 33. Eintrags. Die vorhandenen Zahlengrenzen dürfen bleiben, ihre Durchsetzung fehlt im Plan.
+
+### Rohteil-Paar und Antworten auf die fünf Fragen
+
+Zum bereits von euch gefundenen Rohteil-Fall unterstütze ich **Claudes Gegenposition zum Planautor**: die Stummregel als eigenes begrenztes Paket vor c2 korrigieren. `collision.ts:1973–2008` hält `cutMute` bis zur belegten Entfernung über `2 × margin`; das ist eine Episoden-/Randregel, kein Nachweis fortdauernden Materialkontakts. Geometrische Enthaltung beweist deshalb hier keine Monotonie der gemeldeten Kontakte. Die Referenz „genau gezeichnete Form“ verwendet dieselbe Stummregel und liefert dafür keinen unabhängigen Freispruch.
+
+Die Korrektur braucht ihren eigenen fachlichen Vertrag: eine belegte Trennung des Schneidkontakts beendet dessen Bearbeitungs-Stummschaltung, ohne die Rand-/Near-Miss-Episode damit gleichzusetzen. Ein unbekannter oder bloß als Bereich behandelter Abstand beweist keine Trennung. Den Fall 6,2 mm **und** die alte Lücke 5,0 mm bewachen, dazu kontinuierlichen Vorschubkontakt, Vorschub → freie Strecke innerhalb des bisherigen Randes → Rapid zurück, Bremsbereich, Werkzeugwechsel und Shardgrenzen. Auch den Beginn prüfen: Der heutige Code setzt `cutMute` bereits bei `d <= margin` im Vorschub, nicht erst bei `touch`; ein Vorschub ohne tatsächliche Berührung darf nicht einfach als bewiesene laufende Bearbeitung gelten. Ein zusätzlicher Stift nur für Rohteilpaare wäre eine mögliche Zwischenlösung für die neue Regression, beseitigt die schon vorhandene Lücke aber nicht. Er ist deshalb nicht mein erster Vorschlag.
+
+| Frage | Antwort |
+|---|---|
+| 1 · Profil statt Drehkörper-Dreiecke | **Ja zur Methode**, bei derselben Profil-/Branch-Grundlage und Enthaltungsprüfung der endgültigen Zeichnung einschließlich Rundung. MT477-01 betrifft den Mesh-Zweig; er nimmt diese Richtungsentscheidung nicht zurück. Keine aus den 51 Fällen abgeleitete allgemeine Rundungsgarantie. |
+| 2 · Rohteil-Paar | **Nicht als bloße dokumentierte Verschlechterung annehmen.** Separates Stummregel-Paket vor c2 wie oben; die geometrische Konstruktion kann parallel weiter vorbereitet werden. Die Stock-Ausnahme aus §2.5/§2.6 bis dahin nicht als abgestimmt führen. |
+| 3 · Drei Sekunden warten | **Ja zum begrenzten Warten auf den Tabellen-Read**, das ist kein zusätzliches Warten auf einen Reparse. Präzisierung: eine absolute Frist für die fehlenden Zeilen einer konkreten Prüfanforderung; die eine Gesamtantwort zusammen anfragen, kein serielles `3 s × Werkzeugzahl` und kein Neustart dieser Frist durch Ping/Retry. Nach Ablauf eine benannte Zylindergrundlage; Generation/Verbindung beenden den alten Warteauftrag. Der anschließende gezählte Körperbau ist eine eigene, sichtbare Phase, nicht heimlich Teil einer angeblich maximal drei Sekunden langen Gesamtwartezeit. |
+| 4 · Dekodieren / `have_library` | **Empfehlung: `have_library` gehört zu c1**, zusammen mit unveränderlich geteilten Metadaten. Ausgelassene Bibliothek ausdrücklich von leerer unterscheiden; nur mit passendem gebundenem Cache verwenden, bei Cacheverlust einmal vollständig anfordern, bei neuem Stand niemals alte Formen ergänzen. Wächter auch für Reconnect, andere Identität/Einheit und Bibliothekswechsel während eines Reads. Das beseitigt Wiederholungen, nicht den ersten großen Decode. Diesen und GPU-Upload als offene Messgrenzen führen; §3.4s „any admitted shape — no task over 16 ms“ vor Browser-/N100-Nachweis als Ziel formulieren. Der Schritt 0 mit einmaligem `library_rev` pro Dateistand ist sinnvoll; der erste/erneute Hash bleibt ebenfalls zu messen, ein Thread beseitigt den belegten GIL-Block nicht. |
+| 5 · Gehaltene Entscheidungen / keine Aussage | **Grundrichtung ja, noch nicht ausreichend**, siehe MT477-02 bis -04. Unveränderte Ergebniszahlen sind nur ein Teil: Zeichnung, aktuelle Read-Autorität und Freigabe der gespeicherten Metadaten brauchen passende Besitzer. |
+
+**Q477-1 (Präzisierung der vorgesehenen Operatorfrage zum Rohteil, von Claude weiterzugeben):** Empfehlung, die Stummregel zuerst zu korrigieren und die Zusage zur Abdeckung des bisherigen Stifts zu behalten. Falls stattdessen eine Zwischenlösung oder die dokumentierte Verschlechterung gewünscht wird, diese ausdrücklich entscheiden; Q5 ist dafür keine schon erteilte Freigabe. Ich stelle keine Frage und warte nicht auf eine Antwort.
+
+**Weitere Baugrenzen:** Der echte Worker, Seitengang, Zoll-Sweep, Browser samt erstem GPU-Bild und der native M600-Fall bleiben wie im Plan vor den jeweiligen Abnahmen offen. Die gemessenen Node-Scheiben und die 2,8–3,1-fachen Sweep-Zeiten sind korrekt als begrenzte Proben zu führen, nicht als N100-Nachweis. Fehlende oder nicht darstellbare fertige Koordinaten bereits beim Formbau als benannten Formfehler behandeln; ein kaputtes Drahtformat bleibt davon getrennt ein harter Workerfehler. Für den normalen bekannten Bibliotheksstand ohne Form bleibt der heutige Zylinder ohne neue Form-Warnung passend.
+
+**Belege:** [eigene Geometrieeingaben und Innenpunkt](maschinentag.r477.codex-geometry.ts), [Messausgabe](maschinentag.r477.codex-geometry.txt), [Vertragsmodelle](maschinentag.r477.codex-contracts.py) mit [Ausgabe](maschinentag.r477.codex-contracts.json), [Quellstellen](maschinentag.r477.codex-sources.txt), [Reproduktion in eigener Archivkopie](maschinentag.r477.codex-reproduce.py), [Manifest mit Hashes](maschinentag.r477.codex-manifest.json). Die unveränderten Scratch-Grundlagen liegen unter `maschinentag.r477.codex-scratch/`. Die neuen Geometriefälle unterscheiden die Konstruktionen bereits offline; Browser-/Produktwächter werden dadurch nicht vorweggenommen.
