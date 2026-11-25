@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { buildHolderGeometry, drawableHolder, drawableToolGeometries, buildToolGeometries, buildToolGeometry, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
+import { buildHolderGeometry, buildToolGeometries, buildToolGeometry, drawableHolder, drawableToolGeometries, holderProfile, partGeometry, toolDrawing, type ToolMeta } from "./toolGeometry";
 import {
   DRAW_BUDGET, LATHE_VERTICES_MAX, ShapeNotUsable, canonMeshSteps, canonProfile, drawCounter, drawingAdmitted, drawingBytes,
   drawingVertices, drawnSteps, isCanonMesh, latheColumnsSteps, latheSize, meshSoupSteps, withHeldMeter,
@@ -85,9 +85,9 @@ describe("the lathe is three's, turned by an exact axis swap", () => {
     const pts = [new THREE.Vector2(0, 5), new THREE.Vector2(9, 5), new THREE.Vector2(4, 1e7), new THREE.Vector2(0, 1e7)];
     const want = runToEnd(latheColumnsSteps({ role: "shaft", prof: canonProfile(pts), segments: 24 }));
     expect(same(buildToolGeometry(pts).getAttribute("position").array, want.positions)).toBe(true);
-    const h = buildHolderGeometry([{ height: 1e7 - 5, lower_diameter: 18, upper_diameter: 8 }], 5)!;
-    const hp = h.getAttribute("position");
-    for (let i = 0; i < hp.count; i++) expect([Math.fround(5), Math.fround(1e7)]).toContain(hp.getZ(i));
+    const segs = [{ height: 1e12, lower_diameter: 18, upper_diameter: 8 }], h = buildHolderGeometry(segs, 5)!;
+    const hw = runToEnd(latheColumnsSteps({ role: "shaft", prof: canonProfile(holderProfile(segs, 5)!), segments: 24 }));
+    for (const [a, b] of [[h.getAttribute("position"), hw.positions], [h.getAttribute("normal"), hw.normals]] as const) expect(same(a.array, b)).toBe(true);
   });
 });
 

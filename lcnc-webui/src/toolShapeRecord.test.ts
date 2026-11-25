@@ -147,6 +147,8 @@ describe("decisions and their owners", () => {
     expect(visibleDecision(shown, own, 1)).toMatchObject({ body: "table", why: SHAPE_NOT_READ });
     expect(visibleDecision(null, own, 1)!.body).toBe("shape");
     expect(visibleDecision(shown, own, 99)).toBeNull();
+    // a check's gap is the check's: never filled from the publication
+    expect(visibleDecision(set(rec(read()), [row(4)]), own, 1)).toBeNull();
     expect(visibleDecision(null, own, 6)!.T).toBe(6);                // the base tool
   });
   it("a publication's own decisions are refined, kept through a lost connection, never un-paired by a thinner read", () => {
@@ -155,8 +157,8 @@ describe("decisions and their owners", () => {
     r.apply(read(), NONE);
     const b = refineSet(a, set(r));
     expect(b.tools.get(1)!.body).toBe("shape");
-    r.apply(read({ rows: [row(1, 6, 51)], proven: new Set([1]) }), NONE);
-    expect(refineSet(b, decideSet(r, [row(1), row(4)], row(6))).tools.get(1)!.body).toBe("shape");
+    for (let i = 0; i < 10; i++) r.apply(read({ rows: [row(1, 6, 60 + i)], proven: new Set([1]) }), NONE);
+    expect([why(r, row(1)), refineSet(b, set(r)).tools.get(1)!.body]).toEqual([TABLE_CHANGED, "shape"]);
     const closed = new ToolShapeRecord();
     expect(refineSet(b, set(closed))).toBe(b);
     const other = rec(read({ binding: B({ rev: "lib2" }), library: library(B({ rev: "lib2" })), rows: [row(1, 6, 70)], proven: new Set([1]) }));

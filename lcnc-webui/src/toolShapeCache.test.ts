@@ -258,7 +258,12 @@ describe("what is not drawn is named", () => {
       expect([h.state, h.why, h.shape]).toEqual(["refused", why, null]);
     });
     expect([cache.bytes, cache.size]).toEqual([0, 3]);
-    expect(LATHE_VERTICES_MAX).toBe(400_000);
+    // (a form is refused over the vertices when it is made; the build asks again, whatever made the record)
+    const many = { ...profile(3), profile: Float32Array.from({ length: 4000 }, (_, i) => (i % 2 ? i : 1000)) };
+    expect((LATHE_VERTICES_MAX / 513 | 0) < 2000).toBe(true);
+    const m = { bytes: 0, peak: 0 };
+    expect(withHeldMeter(m, () => runToEnd(shapeSteps(src(many as FormRecord))))).toEqual({ why: "shape too detailed" });
+    expect(m.peak).toBeLessThan(100_000);                         // nothing of the drawing was allocated
   });
   it("the points are asked before the profile is built: a shape both too detailed and not usable is too detailed", () => {
     const teeth = { type: "threadmill", thread_pitch: 0.01, thread_profile_angle: 60, number_of_teeth: 9000, thread_tip_type: "round", thread_tip_radius: 0.001, flute_length: 90 };

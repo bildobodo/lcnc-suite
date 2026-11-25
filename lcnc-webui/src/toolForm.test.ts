@@ -70,8 +70,10 @@ describe("what a row becomes", () => {
     const f = form({ ...SEED["2015"] });
     expect(f.kind).toBe("mesh");
     expect(Object.isFrozen(f) && Object.isFrozen(f.scalars)).toBe(true);
-    const note = SEED["2015"].geometry_note as string | undefined;
-    expect(f.bytes).toBe(RECORD_BYTES + f.mesh!.pos.byteLength + f.mesh!.idx.byteLength + 2 * (note?.length ?? 0));
+    const arrays = RECORD_BYTES + f.mesh!.pos.byteLength + f.mesh!.idx.byteLength;
+    expect(f.bytes).toBe(arrays + 2 * ((SEED["2015"].geometry_note as string | undefined)?.length ?? 0));
+    expect(form({ ...SEED["2015"], geometry_note: "x".repeat(40) }).bytes).toBe(arrays + 80);
+    expect(form({ ...SEED["2015"], geometry_note: "x".repeat(9000) }).bytes).toBe(arrays + 2 * (GEOMETRY_NOTE_MAX + 1));
   });
 });
 
@@ -188,7 +190,7 @@ describe("the library of forms", () => {
     expect(lib.of(9)).toBeNull();
   });
   it("makes them in ascending T, releasing each tool's lists with its record", () => {
-    const raw = rows({ 7: { native_mesh: box(30) }, 2: { native_mesh: box(30) }, 5: { native_mesh: box(30) } });
+    const raw = [7, 2, 5].map(T => ({ T, native_mesh: box(30) }));
     const lib = new FormLibrary(B, raw, 1), order: number[] = [], left: number[] = [];
     const job = lib.normalise(drawCounter(), T => { order.push(T); });
     while (!job.next().done) left.push(decodedIn(lib).length);
