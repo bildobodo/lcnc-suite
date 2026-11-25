@@ -1,0 +1,43 @@
+[VINIT] session bound to linuxcncsvr pid=1519609 start=251482200
+[VINIT] try_connect_lcnc OK, pid=1519609
+[VINIT] Loaded machine config: 3-Axis Mill
+test_migration_control (__main__.BoundaryProbes.test_migration_control) ... ok
+test_migration_link_loss_must_not_mark_original_ini_done (__main__.BoundaryProbes.test_migration_link_loss_must_not_mark_original_ini_done) ... {"case": "migration_link_loss", "stored": {"/tmp/tmppb1l40f6/mill.ini": {"probe": {"calOffset": 0.2, "slowFr": 50}}, "default": {"_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1}}, "probeCalibration": {"value": null, "unit": null, "state": "none", "at": "2026-11-25T07:35:55", "migrated": {"from_rev": 0, "at": "2026-11-25T07:35:55"}, "rev": 1}}}, "migration_marks": {"/tmp/tmppb1l40f6/mill.ini": 0}, "original_record": null}
+FAIL
+test_old_page_save_before_migration_must_preserve_legacy_offset (__main__.BoundaryProbes.test_old_page_save_before_migration_must_preserve_legacy_offset) ... FAIL
+test_reset_control (__main__.BoundaryProbes.test_reset_control) ... ok
+test_reset_revoked_before_store_commit_must_write_no_profile (__main__.BoundaryProbes.test_reset_revoked_before_store_commit_must_write_no_profile) ... {"case": "reset_link_loss", "reply": {"ok": true, "machine": {"outcome": "saved_not_written", "why": "Machine status not read \u2014 try again"}}, "stored": {"/tmp/tmpi36hs_up/mill.ini": {"_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1}}, "probeCalibration": {"value": 0.2, "unit": "mm", "state": "active", "rev": 1, "at": "2026-11-25T07:35:55"}}, "default": {"_v2": {"schema": 2, "template": {"simulation": {"enabled": false}}, "devices": {}, "revs": {"probeCalibration": 1}}, "probeCalibration": {"value": 0.0, "unit": "mm", "state": "active", "unit_basis": "reset", "source": {"reset": true}, "rev": 1, "at": "2026-11-25T07:35:55"}}}, "controller_writes": []}
+FAIL
+
+======================================================================
+FAIL: test_migration_link_loss_must_not_mark_original_ini_done (__main__.BoundaryProbes.test_migration_link_loss_must_not_mark_original_ini_done)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r470/probe.py", line 77, in test_migration_link_loss_must_not_mark_original_ini_done
+    self.assertIsNotNone(store.calibration(), 'the original INI has been marked done without its migration')
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: unexpectedly None : the original INI has been marked done without its migration
+
+======================================================================
+FAIL: test_old_page_save_before_migration_must_preserve_legacy_offset (__main__.BoundaryProbes.test_old_page_save_before_migration_must_preserve_legacy_offset)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r470/probe.py", line 86, in test_old_page_save_before_migration_must_preserve_legacy_offset
+    self.assertTrue(r['ok'], r)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AssertionError: False is not true : {'ok': False, 'error': 'save_settings: unknown command'}
+
+======================================================================
+FAIL: test_reset_revoked_before_store_commit_must_write_no_profile (__main__.BoundaryProbes.test_reset_revoked_before_store_commit_must_write_no_profile)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r470/probe.py", line 53, in test_reset_revoked_before_store_commit_must_write_no_profile
+    self.assertEqual(path.read_bytes(), before, 'Reset lost its owning Link before the settings commit')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'{\n[402 chars]\n  },\n  "default": {\n    "_v2": {\n      "s[432 chars]}\n}' != b'{\n[402 chars]\n  }\n}' : Reset lost its owning Link before the settings commit
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.036s
+
+FAILED (failures=3)
+[GC] +103ms gen=2 duration=10.6ms collected=521 uncollectable=0

@@ -1,0 +1,67 @@
+{
+  "review": "R470",
+  "recorded": "2026-11-25T07:44:01.849088+01:00",
+  "base": "f392d6a014f5d7721d91daaee56bd236793a8c8b",
+  "head": "49db74f181e342a48a1dcd9f2bdd34007fa7790c",
+  "product_head": "a3a77b5b8c2acfacc45ac53f58a34fa095d9013b",
+  "native_evidence_head": "b7f36c98e45ae4f8e624959a325a77e9dab76b3d",
+  "copy": "/tmp/r470/tree",
+  "product_worktree": "/home/cnc/lcnc-suite-p5",
+  "isolation": "archive copy; fake_linuxcnc for gateway tests; rs274 with individual temporary HOME/INI/var/tool table; isolated mock browser; no live Sim actions",
+  "heavy_lock": "python3 -I /tmp/r470/tree/scripts/test_support/heavy_lock.py --who codex-r470-... --wait 50 -- COMMAND",
+  "checks": [
+    {
+      "command": "python3 /tmp/r470/run_checks.py",
+      "runner": "maschinentag.r470.codex-run_checks.py",
+      "results": {
+        "backend": 235,
+        "unit": 89,
+        "build": "PASS",
+        "browser": 20
+      }
+    },
+    {
+      "command": "env LCNC_LOG_DIR=/tmp/r470/probe-final-logs PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/r470/tree/lcnc-gateway /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B /tmp/r470/probe.py",
+      "cwd": "/tmp/r470",
+      "exit": 1,
+      "tests": 7,
+      "passed": 3,
+      "failed_assertions": 4,
+      "findings": [
+        "MT-I38",
+        "MT-I39"
+      ]
+    },
+    {
+      "command": "env npm_config_cache=/tmp/r470/npm-cache LCNC_E2E_WORKERS=1 LCNC_E2E_RUN=codex-r470-probe2 LCNC_E2E_EVENTS=/tmp/r470/probe2-events.jsonl LCNC_E2E_REPLAY_DIR=/tmp/r470/probe2-replay LCNC_E2E_HTTP_DIR=/tmp/r470/probe2-http LCNC_E2E_SELECTION=/tmp/r470/selection.json npx --no-install playwright test -c playwright.select.config.ts --grep 'Codex R470' --reporter=list",
+      "cwd": "/tmp/r470/tree/lcnc-webui",
+      "source": "append maschinentag.r470.codex-browser-probe.ts to e2e/probe-calibration.spec.ts",
+      "exit": 1,
+      "finding": "MT-I40"
+    }
+  ],
+  "harness_corrections": [
+    "Initial backend probe sent save_settings via handle_command, which is not its WS entry; final probe uses _ws_save_settings. The other probes unchanged. Then two controls/countercases for migration order were added (seven total).",
+    "Initial browser probe used a .sidePane-scoped locator in a relative has filter; corrected to page.getByLabel. Final failure is the machine-state assertion, screenshot and logged draft value included."
+  ],
+  "hashes": {
+    "maschinentag.r470.codex-run_checks.py": "4b31964f2491c12af6645aab639598f70783bae10bfc121e33ab941782f79594",
+    "maschinentag.r470.codex-selection.json": "da534a8aab9286d1040ad8c816038582b76c59672f7cd340d4a443a39775fa07",
+    "maschinentag.r470.codex-backend.txt": "9d345906c048b345303d1dfcbbc7e715772a91377283a56264fe6b53afd40330",
+    "maschinentag.r470.codex-unit.txt": "afe105a5a938a9f5b53e299116fe71c151e540bebb78e6726bddc6cce06999e6",
+    "maschinentag.r470.codex-build.txt": "dbea83ac3b32417fac72a0d1e09c576bf571fb72a13f744db9114cd9603380d5",
+    "maschinentag.r470.codex-browser.txt": "9efb956b9f8d330123ac8c28127226e963ea396b52fb07cd3c041c4ef873bf29",
+    "maschinentag.r470.codex-probe.py": "3414832227f70d16b428b722a16129b9d05e4a264287d4328f8463f8a9760888",
+    "maschinentag.r470.codex-probe.txt": "1f96a9cc23870bd30eaf8bcdc1135c8e04b1d52fee1c61b83ab5ad4b16a32c12",
+    "maschinentag.r470.codex-probe-initial.py": "e70a7eff7bde6cc800814e337ce0ffd614aeb1295a4d02c300169a8e5a719195",
+    "maschinentag.r470.codex-probe-initial.txt": "3b0b32141ac0b9def9bdd35cec14058b824cac9dbaee16ede7d24168a453922b",
+    "maschinentag.r470.codex-probe-five.py": "4e59ec74f2136ee0139a93d5c0c303333da18e50ba11d50946f4d1411f3940b5",
+    "maschinentag.r470.codex-probe-five.txt": "564a9cf4b69456dd303becfba3bc6c6db574ddfaf22372bcc1581aa8def513bc",
+    "maschinentag.r470.codex-browser-probe.ts": "784ad10bb8d27331f471c9b5d527a81fab18373d2798da890becc249a5eb9e38",
+    "maschinentag.r470.codex-browser-probe.txt": "255626bf1506dcc2d94f11bd820843fbb0068a1f41bcc33e7f8944624039608e",
+    "maschinentag.r470.codex-browser-probe-initial.ts": "dcd1f68d85cc64da154e05a24ff22c03d01173d884031fc6f272debf70f32875",
+    "maschinentag.r470.codex-browser-probe-initial.txt": "462a8de72d9a4f66194fc18a35d7b8ae7f68a7fa20f3691b833dcb519cfab63b",
+    "maschinentag.r470.codex-draft-unknown.png": "94dac2d828c844019a36df188f3931e2fb9e9055d1e9e2cb468a4a4ce3b19bb3",
+    "maschinentag.r470.codex-append-check.json": "c0fbd0962a14fd3180630657672abe143e175a809845377939f146eaeb1ad661"
+  }
+}

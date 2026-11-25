@@ -1,0 +1,53 @@
+[2m[WebServer] [22m(node:1994413) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:1994457) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1994457) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R470_DRAFT_UNKNOWN {"value":"60","line":"On the machine · 06:41","described":"ffv-6-unit ffv-6-state"}
+  ✘  1 [e2e] › e2e/probe-calibration.spec.ts:374:1 › Codex R470: an unknown machine value remains unknown when its field becomes a draft (13.6s)
+
+
+  1) [e2e] › e2e/probe-calibration.spec.ts:374:1 › Codex R470: an unknown machine value remains unknown when its field becomes a draft 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).not.[22mtoHaveText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('.sidePane').locator('[data-section-line]')
+    Expected pattern: not [32m/^On the machine/[39m
+    Received string: [31m"[7mOn the machine[27m · 06:41"[39m
+    Timeout: 10000ms
+
+    Call log:
+    [2m  - Expect "not toHaveText" with timeout 10000ms[22m
+    [2m  - waiting for locator('.sidePane').locator('[data-section-line]')[22m
+    [2m    24 × locator resolved to <div role="status" data-v-4dd3f5ed="" class="sectionLine" data-section-line="probe" title="On the machine · 06:41">On the machine · 06:41</div>[22m
+    [2m       - unexpected value "On the machine · 06:41"[22m
+
+
+      403 |   console.log('R470_DRAFT_UNKNOWN', JSON.stringify(state));
+      404 |   await page.screenshot({ path: '/tmp/r470/draft-unknown.png', fullPage: true });
+    > 405 |   await expect(line).not.toHaveText(/^On the machine/);
+          |                          ^
+      406 | });
+      407 |
+        at /tmp/r470/tree/lcnc-webui/e2e/probe-calibration.spec.ts:405:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/probe-calibration-Codex-R4-96068-n-its-field-becomes-a-draft-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/probe-calibration-Codex-R4-96068-n-its-field-becomes-a-draft-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/probe-calibration-Codex-R4-96068-n-its-field-becomes-a-draft-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/probe-calibration-Codex-R4-96068-n-its-field-becomes-a-draft-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/probe-calibration.spec.ts:374:1 › Codex R470: an unknown machine value remains unknown when its field becomes a draft 

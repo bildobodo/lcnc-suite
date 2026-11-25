@@ -1,0 +1,31 @@
+[2m[WebServer] [22m(node:1982891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 1 worker
+
+(node:1982932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1982932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/probe-calibration.spec.ts:62:3 › Calibrate at desktop: the cells and fields keep their size in every state, nothing sideways (3.9s)
+  ✓   2 [e2e] › e2e/probe-calibration.spec.ts:103:3 › fields at desktop: draft, refused and saved keep every cell's height; the section line is one line (3.0s)
+  ✓   3 [e2e] › e2e/probe-calibration.spec.ts:62:3 › Calibrate at touch-fullhd: the cells and fields keep their size in every state, nothing sideways (3.8s)
+  ✓   4 [e2e] › e2e/probe-calibration.spec.ts:103:3 › fields at touch-fullhd: draft, refused and saved keep every cell's height; the section line is one line (2.9s)
+  ✓   5 [e2e] › e2e/probe-calibration.spec.ts:62:3 › Calibrate at narrow-150: the cells and fields keep their size in every state, nothing sideways (2.5s)
+  ✓   6 [e2e] › e2e/probe-calibration.spec.ts:103:3 › fields at narrow-150: draft, refused and saved keep every cell's height; the section line is one line (2.7s)
+  ✓   7 [e2e] › e2e/probe-calibration.spec.ts:148:1 › disarmed: Apply, Discard, Reset and the fields are closed and say why on a press — no bar, nothing sent (2.4s)
+  ✓   8 [e2e] › e2e/probe-calibration.spec.ts:165:1 › disarmed between the entry and the save: the change stays a draft, never a red bar about arming (2.5s)
+  ✓   9 [e2e] › e2e/probe-calibration.spec.ts:182:1 › Apply names its run and value; the outcome is the status', not the reply (2.0s)
+  ✓  10 [e2e] › e2e/probe-calibration.spec.ts:199:1 › no answer claims no outcome; the status that arrives later does (7.3s)
+  ✓  11 [e2e] › e2e/probe-calibration.spec.ts:211:1 › a second client's decision shows here, and this page's late press answers with it (3.6s)
+  ✓  12 [e2e] › e2e/probe-calibration.spec.ts:233:1 › an aborted run offers nothing: its reason, no buttons (2.2s)
+  ✓  13 [e2e] › e2e/probe-calibration.spec.ts:242:1 › Reset is asked once, goes out as the gateway's command, and a refusal stands in the offset's own row (2.4s)
+  ✓  14 [e2e] › e2e/probe-calibration.spec.ts:262:1 › the page never sends or keeps the offset: a parameter save and a probe carry no 3032 (2.5s)
+  ✓  15 [e2e] › e2e/probe-calibration.spec.ts:278:1 › the machine line follows the booking, value by value, and says no more than it proves (2.6s)
+  ✓  16 [e2e] › e2e/probe-calibration.spec.ts:309:1 › forced colours: the bar is the field's own edge, the cells keep their size (1.9s)
+  ✓  17 [e2e] › e2e/probe-calibration.spec.ts:332:3 › the bars hold 3 : 1 against their field and its surroundings (light) (1.8s)
+  ✓  18 [e2e] › e2e/probe-calibration.spec.ts:332:3 › the bars hold 3 : 1 against their field and its surroundings (dark) (2.0s)
+  ✓  19 [e2e] › e2e/probe-calibration.spec.ts:332:3 › the bars hold 3 : 1 against their field and its surroundings (hc-light) (1.9s)
+  ✓  20 [e2e] › e2e/probe-calibration.spec.ts:332:3 › the bars hold 3 : 1 against their field and its surroundings (hc-dark) (2.2s)
+
+  20 passed (58.3s)

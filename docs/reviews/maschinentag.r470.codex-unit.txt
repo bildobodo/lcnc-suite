@@ -1,0 +1,18 @@
+
+> lcnc-webui@0.0.0 test
+> vitest run src/calibrationView.test.ts src/fieldState.test.ts src/probeMachine.test.ts src/ws/statusStore.test.ts src/probeVarFiles.test.ts
+
+
+ RUN  v4.1.8 /tmp/r470/tree/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  89 passed (89)
+   Start at  07:33:14
+   Duration  296ms (transform 442ms, setup 0ms, import 719ms, tests 53ms, environment 0ms)
+
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.3
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3
+npm notice To update run: npm install -g npm@12.2.3
+npm notice
