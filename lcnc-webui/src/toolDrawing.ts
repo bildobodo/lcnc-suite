@@ -65,7 +65,7 @@ export function* canonMeshSteps(m: NestedMesh, c: DrawCounter = drawCounter()): 
     const v = V[i];
     if (!v || v.length < 3) throw new ShapeNotUsable("a mesh vertex");
     for (let j = 0; j < 3; j++) {
-      const x = Math.fround(v[j]!);
+      const raw: unknown = v[j], x = typeof raw === "number" ? Math.fround(raw) : NaN;   // null is no 0
       if (!Number.isFinite(x)) throw new ShapeNotUsable("a mesh coordinate");
       pos[3 * i + j] = x;
     }

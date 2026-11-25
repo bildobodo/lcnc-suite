@@ -129,7 +129,7 @@ export type WsCommand =
   | { cmd: "set_optional_stop"; value: boolean }
   | { cmd: "set_block_delete"; value: boolean }
   // Tool table
-  | { cmd: "get_tool_table" }
+  | { cmd: "get_tool_table"; have_library?: string }
   | ({ cmd: "save_tool"; expected: ToolRowExpect } & ToolFields)
   | ({ cmd: "add_tool" } & ToolFields)
   | ({ cmd: "renumber_tool"; old_tool_number: number; expected: ToolRowExpect } & ToolFields)

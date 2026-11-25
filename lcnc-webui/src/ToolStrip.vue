@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { toolOffsetWord, type ToolOffsetState } from "./viewer/toolOffsetState";
-import { ref, computed, watch, onMounted } from "vue";
-import { request, connected, toolTableVersion } from "./lcncWs";
+import { ref, computed, watch } from "vue";
+import { connected } from "./lcncWs";
+import { currentTools, readToolTable, useToolTable } from "./toolTable";
 import { toolTypeLabel } from "./toolTypes";
 import { fmtQty, NO_VALUE } from "./format";
 import MachineBtn from "./MachineBtn.vue";
@@ -33,31 +34,19 @@ const emit = defineEmits<{
 const tools = ref<ToolEntry[]>([]);
 const tableError = ref<string | null>(null);
 
-// ITS reply (req_id) within a time limit, the newest read only — the same
-// read as the Tools tab (operator 2026-10-04: a lost reply left the table
-// "Loading tools…" until a refresh). A failed read is shown, never rendered
-// as NO_VALUE placeholders; a reconnect reads again.
-let readSeq = 0;
-async function fetchTools() {
-  const seq = ++readSeq;
-  const reply = await request({ cmd: "get_tool_table" }, 60_000);
-  if (seq !== readSeq) return;
-  if (reply?.ok && Array.isArray(reply.tools)) {
-    tools.value = reply.tools;
-    tableError.value = null;
-  } else if (reply === null) {
-    if (connected.value) tableError.value = "no reply from the gateway";   // disconnected: the banner says it
-  } else {
-    tableError.value = reply.error ?? "Tool table unavailable";
-  }
-}
-
-onMounted(fetchTools);
-watch(connected, (val) => { if (val) setTimeout(fetchTools, 300); });
+// The page's ONE read (toolTable.ts; operator 2026-10-04: a lost reply left the
+// table "Loading tools…" until a refresh). A failed read is shown, never
+// rendered as NO_VALUE placeholders; a lost connection leaves what was read
+// (the banner says it), the reconnect reads again.
+useToolTable();
+watch(() => currentTools.value.applied, () => {
+  const v = currentTools.value.view;
+  if (!v) return;
+  if (v.kind !== "failed") { tools.value = v.rows as unknown as ToolEntry[]; tableError.value = null; }
+  else if (connected.value) tableError.value = v.error ?? "Tool table unavailable";
+}, { immediate: true });
+const fetchTools = () => { void readToolTable(); };
 watch(() => props.currentTool, fetchTools);
-// the table changed on the server (any client): read it again — the strip
-// used to take the Tools tab's reply along, which correlation ends
-watch(toolTableVersion, () => fetchTools());
 
 const currentToolData = computed(() =>
   tools.value.find(t => t.T === props.currentTool) ?? null

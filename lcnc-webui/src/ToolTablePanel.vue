@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from "vue";
+import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from "vue";
 import { touchInput } from "./touchDetect";
-import { request, awaitReply, connected, toolTableVersion } from "./lcncWs";
+import { awaitReply, connected } from "./lcncWs";
 import { useFire } from "./permissions";
 import { useToolsetterJob } from "./toolsetterVars";
 import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
@@ -20,6 +20,7 @@ import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
 import type { ToolMeta } from "./toolGeometry";
+import { formMeta, formNotice, holderNotice, type FormState } from "./toolForm";
 import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { toolPreviewNotice } from "./toolPreviewNotice";
@@ -27,9 +28,9 @@ import { summarizeToolImport } from "./toolImportSummary";
 import DialogFrame from "./DialogFrame.vue";
 import { vStickyHead } from "./stickyHead";
 import { TOOL_EDIT_FIELDS, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
+import { currentTools, readToolTable, toolForm, useToolTable } from "./toolTable";
 import {
-  toolTableView, toolWriteNote, toolWriteOutcome, toolWriteStands, ToolTableReads, TOOL_TABLE_NOT_READ,
-  type ToolTableView, type ToolWriteOutcome,
+  toolWriteNote, toolWriteOutcome, toolWriteStands, TOOL_TABLE_NOT_READ, type ToolWriteOutcome,
 } from "./toolTableRead";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
@@ -38,8 +39,6 @@ import {
 // three; with this async too, three loads only via async graphs.
 const ToolPreview = defineAsyncComponent(() => import("./ToolPreview.vue"));
 
-const FETCH_DELAY_MS = 500;
-const TOOL_READ_SLOW_MS = 8000;
 const TOOL_READ_TIMEOUT_MS = 60_000;
 /** A table write (persist + reload into LinuxCNC, behind this client's queue)
  *  waits as long as a read before it says the outcome is unknown. */
@@ -89,9 +88,12 @@ interface Tool extends ToolMeta {
   unit: string;
 }
 
-const tools = ref<Tool[]>([]);
-const loading = ref(false);
-const tableError = ref<string | null>(null);
+// The read on screen is the page's ONE read (toolTable.ts): its rows, its
+// state, its table, the forms beside it.
+useToolTable();
+const tools = computed(() => (currentTools.value.view?.rows ?? []) as unknown as Tool[]);
+const loading = computed(() => currentTools.value.reading);
+const tableError = computed(() => currentTools.value.error);
 const downloadError = ref<string | null>(null);
 
 /** Download (the Tools tab's More, operator 2026-10-03): the tool table
@@ -158,54 +160,15 @@ function toggleSort(key: "T" | "D" | "Z") {
   else { sortKey.value = key; sortAsc.value = true; }
 }
 
-// Read the tool table from the gateway: ITS reply (req_id), within a time
-// limit — the read used to wait for any reply named get_tool_table with no
-// limit, so a request lost in a reconnect (a page reloaded while the socket
-// came up, a command dropped by the worker) left "Loading tools…" until a
-// browser refresh (operator 2026-10-04). A slow reply is said after
-// TOOL_READ_SLOW_MS (a long command ahead of it in this client's queue is
-// legitimate) and still taken when it comes; no reply at all, or a lost
-// connection, ends the read with the reason and Retry; a reconnect reads
-// again. Only the newest read OF THE CURRENT CONNECTION applies (P6 tool
-// files read, toolTableRead.ts: an epoch per connection — a late reply of
-// an old connection never applies, even after the sequence restarted), and
-// what it shows is the reply's proof: a failed read shows no rows, a
-// partial or unchecked read its rows with the note naming why, "No tools"
-// only a complete read without rows.
-const reads = new ToolTableReads();
-const readView = ref<ToolTableView<Tool> | null>(null);
+// The read itself (its own reply within a time limit, the slow note, Retry, an
+// epoch per connection, the proof it shows) is the store's: toolTableStore.ts.
+const readView = computed(() => currentTools.value.view);
 const tableNote = computed(() => readView.value?.note ?? null);
 const emptyText = computed(() => readView.value?.empty ?? TOOL_TABLE_NOT_READ);
-const NOT_CONNECTED = "Not connected — the table reads again on reconnect";
 // The table the last read came from (P4-2): what an edit dialog names as the
 // row's table when it saves — another table or LinuxCNC instance is another row.
-const tableIdentity = ref<ToolTableIdentity | null>(null);
-const isTableIdentity = (t: unknown): t is ToolTableIdentity =>
-  !!t && typeof (t as ToolTableIdentity).path === "string" && typeof (t as ToolTableIdentity).instance === "string";
-async function fetchTools() {
-  if (!reads.isOpen) {                 // no connection: nothing to read from (a Retry while closed)
-    tableError.value = NOT_CONNECTED;
-    return;
-  }
-  const ticket = reads.begin();
-  loading.value = true;
-  tableError.value = null;
-  const slow = setTimeout(() => {
-    if (reads.applies(ticket) && loading.value) tableError.value = "No reply from the gateway yet — retry";
-  }, TOOL_READ_SLOW_MS);
-  const reply = await request({ cmd: "get_tool_table" }, TOOL_READ_TIMEOUT_MS);
-  clearTimeout(slow);
-  if (!reads.applies(ticket)) return;
-  loading.value = false;
-  const view = toolTableView<Tool>(reply, connected.value ? "No reply from the gateway — retry" : NOT_CONNECTED);
-  readView.value = view;
-  tools.value = view.rows;
-  tableIdentity.value = view.kind !== "failed" && isTableIdentity(reply.table)
-    ? { path: reply.table.path, instance: reply.table.instance } : null;
-  written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);
-  writtenAtNextRead = null;
-  tableError.value = view.error;
-}
+const tableIdentity = computed<ToolTableIdentity | null>(() => currentTools.value.table);
+const fetchTools = () => { void readToolTable(); };
 
 /** What the last WRITTEN table left open (its load into LinuxCNC, its
  *  metadata): said beside the read that followed the write — with that read,
@@ -215,44 +178,21 @@ async function fetchTools() {
 const written = ref<ToolWriteOutcome | null>(null);
 let writtenAtNextRead: ToolWriteOutcome | null = null;
 const writeNote = computed(() => toolWriteNote(written.value, readView.value?.kind ?? null));
+// an APPLIED read decides what stands of a written table's outcome
+watch(() => currentTools.value.applied, () => {
+  written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);
+  writtenAtNextRead = null;
+}, { flush: "sync" });
 function showWritten(reply: unknown, of: ToolTableIdentity | null) {
   written.value = null;
   writtenAtNextRead = toolWriteOutcome(reply, of);
-  void fetchTools();
+  fetchTools();
 }
-
-// A connection opens a new read epoch and reads; a close ends it — nothing
-// of it applies any more, its rows are gone (store point 1).
-function connectionClosed() {
-  reads.closed();
-  loading.value = false;
-  tools.value = [];
-  readView.value = null;
-  tableIdentity.value = null;
-  tableError.value = NOT_CONNECTED;
-}
-onMounted(() => {
-  if (!connected.value) { connectionClosed(); return; }
-  reads.opened();
-  void fetchTools();
-});
-watch(connected, (val) => {
-  if (!val) { connectionClosed(); return; }
-  // connected: no "Not connected" while the read waits its delay — the tab
-  // says it is loading (a mount used to queue its read, answered at once)
-  reads.opened();
-  loading.value = true;
-  tableError.value = null;
-  setTimeout(fetchTools, FETCH_DELAY_MS);
-});
 
 // Re-fetch when LinuxCNC config changes (INI switch or reconnect)
 watch(() => props.iniFilename, (newIni, oldIni) => {
   if (newIni && newIni !== oldIni) fetchTools();
 });
-
-// Re-fetch when any client edits the tool table (gateway pings via tool_table_changed).
-watch(toolTableVersion, () => fetchTools());
 
 // ---- Edit modal ----
 const editTool = ref<Tool | null>(null);
@@ -277,9 +217,31 @@ const editForm = ref({
 });
 const isNewTool = ref(false);
 const showNominalHolder = ref(false);
-const editPreviewMeta = computed(() => ({ ...editTool.value, ...editForm.value }));
+/** The form of the tool the dialog is open on: its record once made, kept for
+ *  the dialog (a lost connection or a later read changes nothing of it). */
+const editShape = shallowRef<FormState>(null);
+watch(() => ({ tool: isNewTool.value ? null : editTool.value, form: isNewTool.value ? null : toolForm(editTool.value?.T) }), (now, was) => {
+  if (now.tool !== was?.tool) editShape.value = now.form;
+  else if (editShape.value === null || editShape.value === "pending") editShape.value = now.form ?? editShape.value;
+}, { flush: "sync" });
+const editPreviewMeta = computed(() => formMeta({ ...editTool.value, ...editForm.value }, editShape.value));
 const hasNominalHolder = computed(() => nominalHolderBase(editPreviewMeta.value) !== null);
-const editNotice = computed(() => toolPreviewNotice(editPreviewMeta.value, unitsPerMm.value));
+const editNotice = computed(() => previewNotice(editPreviewMeta.value, editShape.value));
+/** What is said of a tool's preview: of its form first (a refused one, one not
+ *  made yet), else of the shape; the holder's own note beside it. */
+function previewNotice(meta: ToolMeta, form: FormState): string | null {
+  const shape = formNotice(form) ?? toolPreviewNotice(meta, unitsPerMm.value), holder = holderNotice(form);
+  return shape && holder ? `${shape} ${holder}.` : shape ?? (holder ? `${holder}.` : null);
+}
+/** Per tool what its row says of the preview — in full, and in two words. */
+const rowNotices = computed(() => new Map(tools.value.map(t => {
+  const form = toolForm(t.T), meta = formMeta(t, form);
+  const full = previewNotice(meta, form);
+  const short = formNotice(form) ?? (toolPreviewNotice(meta, unitsPerMm.value)
+    ? (t.source_format === "freecad" ? "Imported geometry" : "Approximate preview") : holderNotice(form));
+  return [t.T, { full, short }] as const;
+})));
+const hoverMeta = computed(() => (hoverTool.value ? formMeta(hoverTool.value, toolForm(hoverTool.value.T)) : null));
 // Header X and footer Cancel run ONE check (UX-02): an unchanged form closes
 // at once, an edited one asks (Keep editing / Discard) — the overlay was
 // hardened against a mis-grab, the X still discarded silently.
@@ -1127,8 +1089,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
                 <span v-if="tool.T === currentTool" class="inSpindle" role="img" aria-label="In spindle" title="In spindle"><CircleDot :size="12" /></span>
               </span>
             </td>
-            <td class="colDesc" :title="toolPreviewNotice(tool, unitsPerMm) || tool.description">{{ tool.description || tool.remark || "-" }}
-              <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />{{ tool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
+            <td class="colDesc" :title="rowNotices.get(tool.T)?.full || tool.description">{{ tool.description || tool.remark || "-" }}
+              <span v-if="rowNotices.get(tool.T)?.short" class="noteWarn"><br />{{ rowNotices.get(tool.T)!.short }}</span>
             </td>
             <td class="colNum mono">{{ fmtCell(tool.D) }}</td>
             <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
@@ -1181,12 +1143,12 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
         <ToolPreview
           :diameter="hoverTool.D || 6 * unitsPerMm"
           :length="hoverTool.oal || Math.abs(hoverTool.Z) || 50 * unitsPerMm"
-          :meta="hoverTool"
+          :meta="hoverMeta"
           :units-per-mm="unitsPerMm"
           :width="100"
           :height="160"
         />
-        <span v-if="toolPreviewNotice(hoverTool, unitsPerMm)" class="noteWarn">{{ hoverTool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
+        <span v-if="rowNotices.get(hoverTool.T)?.short" class="noteWarn">{{ rowNotices.get(hoverTool.T)!.short }}</span>
       </div>
     </Teleport>
   </div>
