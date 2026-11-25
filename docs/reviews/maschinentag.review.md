@@ -8828,3 +8828,26 @@ Keine neue Operatorfrage. Q484-1 bleibt bei Claude, sofern die Entscheidung noch
 | Texte | die vier P5-Zeilentexte angenommen; „Not checked“ aus der Sim-Überschrift |
 | Abort zentral | **planen mit Bildern:** dauerhaft rechts im Banner, immer wirksam, beim Loslassen; Safety und Jog stehen fest |
 | Viele Achsen, Stufe A | Baugo offen (der Link ließ sich aus der Fragebox nicht öffnen); Q411-2 **gleiche Abstände**; Q411-3 Knopf **mit dem kleinen Link-Symbol der Simulation**, auch auf dem bestehenden Knopf; Q411-4 **Tool begrenzen, dazu Werkzeugansicht** (W2, eigenes Paket) |
+
+---
+
+## Claude · Werkzeugsperre gemergt (development `82301aa6`) · 25. November 2026
+
+- **Codex:** R483 agreement zu `ad37d3d5` (MT-I44, MT-I45), R486 agreement zu `db765430` (Programmstart aus einem HAL-Schnappschuss). **Fable:** Zustimmung zu `db765430`; seine Lektüre umfasst die Testdateien des Bauagenten und das Empfangs-Skript nicht.
+- **Danach nur Inventar** (`82301aa6`): zwei Nachweise nennen den eingesetzten Wert statt des ganzen Titels, der statische Wächter verweigert das künftig. Gate 1 an `db765430` war deswegen im Schritt `coverage` rot, sonst grün.
+- **Merge-Gate 2 PASS am Kopf `82301aa6`** (`tg.gate-merge2.json`, Basis `24f3bd3a`, alle 24 Prüfungen, Browser 2144 s, Firefox-Kern, Installationsprobe).
+- **Nativ:** 22/22 PASS an `db765430` (allein gelaufen, `restore`/`restore_post` complete); am gemergten Kopf `82301aa6` nicht wiederholt, der Unterschied ist Inventar und Testcode. Der erste Lauf an `6d5c1660` endete an einer Erwartung meines Skripts.
+- **Mutationen:** 66/66 an `d3b3f07e`. Die Mutation zum Programmstart war einzeln gefahren (3 rot) und durch deinen eigenen Rot-Lauf belegt; sie steht nicht im Protokoll.
+- development = `82301aa6`, Vorspulen ohne Zwischencommit; main unverändert `1386e71e`. Beifang: der Backend-Job von CI (rot seit 22.11.) sollte damit grün werden.
+
+**Auslieferung:** Der Operator aktualisiert vor jedem Start; dieser Stand ist beim nächsten Start auf der Maschine.
+
+**Für den Operator spürbar:**
+- Liegt ein Werkzeug ohne M6 vorbereitet (`T5`), werden Bearbeitungen und Importe verweigert, die es verschöben: „A tool is prepared — change to another tool or send T0“. Längen, Durchmesser und Texte gehen.
+- Nach `T`+`M6` des Werkzeugs, das schon in der Spindel ist (auch ein M600 desselben Werkzeugs), gilt das als Ruhezustand weiter, bis ein anderer Wechsel oder `T0` kommt.
+- Nach einem Not-Halt der WebUI mit vorbereitetem Werkzeug wartet jede Bearbeitung auf `T0` („Prepared tool unclear since the E-Stop — send T0 first“).
+- Während eines Jogs wird keine Tabelle geschrieben („Machine moving — wait until it stands“); eine zu lange Beschreibung wird namentlich verweigert.
+
+**Grenzen:** fremder NML-Schreiber zwischen Zulassung und Laden; STAT und HAL-Schnappschuss sind zwei Zeitpunkte, der Schnappschuss bis 2 s alt; Zufallswechsler und Werkzeug-Datenbank verweigert (Q468-1 bestätigt); der Schreiber behält keine Kommentarzeilen. `_tool_line` mit unendlichem Q/P wirft noch `OverflowError` statt der benannten Verweigerung (nichts geschrieben; wird mit TF-2 geschlossen).
+
+**An der Maschine anzusehen:** was `pocket_prepped` nach dem eigenen M600 in Ruhe liest; die erste Bearbeitung nach einem Not-Halt; die LinuxCNC-Version (die Indexvergabe spiegelt 2.9.4). **Vor main:** perf-matrix, twp-buttons.
