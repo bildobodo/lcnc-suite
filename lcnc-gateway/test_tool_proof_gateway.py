@@ -11,6 +11,7 @@ import io
 import json
 import os
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -22,7 +23,8 @@ linuxcnc = fake_linuxcnc.install()
 import gateway  # noqa: E402
 import tool_proof  # noqa: E402
 from fastapi import UploadFile  # noqa: E402
-from link_fixture import current, use  # noqa: E402
+from command_policy import NOT_ARMED  # noqa: E402
+from link_fixture import FakeConnection, current, swap_connection, use  # noqa: E402
 from test_button_gates import _payload  # noqa: E402
 from test_button_gates_b import _Admission  # noqa: E402
 from tool_expect_fixture import row_expect  # noqa: E402
@@ -571,7 +573,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
         self.table.write_text(TABLE.rsplit("T3", 1)[0])
         for cmd, make in self.EDITS.items():
             with self.subTest(cmd):
-                self.refused(make(self), tool_proof.EDIT_NOT_CONFIRMED)
+                self.refused(make(self), "T3 not in the file — restore it; restart drops it")
 
     def test_the_basis_changed_in_the_write_thread_is_refused_there(self):
         # io between the edit's basis read and its write, at the moment only
@@ -592,7 +594,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
                 before_lib = self.library()
                 with patch.object(gateway, "_write_admission_refusal", admit):
                     r = self.send(msg)
-                self.assertEqual((r["ok"], r.get("error")), (False, tool_proof.EDIT_NOT_CONFIRMED),
+                self.assertEqual((r["ok"], r.get("error")), (False, tool_proof.EDIT_CHANGED),
                                  f"old file, new memory: refused in the write thread — {r}")
                 self.assertEqual(self.table.read_text(), TABLE, "nothing written")
                 self.assertEqual((self.io.loads, self.library()), (0, before_lib))
@@ -630,7 +632,7 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
                 current().stat.tool_table = table_of([entry(1, Z=1)])
             return real(path)
         with patch.object(gateway, "_tool_edit_basis", basis):
-            self.refused(self.EDITS["save_tool"](self), tool_proof.EDIT_NOT_CONFIRMED,
+            self.refused(self.EDITS["save_tool"](self), tool_proof.EDIT_CHANGED,
                          "the write thread's own admission")
         self.assertEqual(len(calls), 2, "the basis read AND the write thread's")
 
@@ -660,6 +662,395 @@ class TestMTTF1TheBasisMustBeComplete(_Tools):
         self.refused(self.EDITS["save_tool"](self), tool_proof.edit_unchecked(tool_proof.NOT_READ))
 
     def test_a_complete_basis_edits(self):
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                self.table.write_text(TABLE)
+                load_into(current().stat, self.table)
+                self.store.save(json.loads(json.dumps(LIBRARY)))
+                r = self.send(make(self))
+                self.assertEqual((r["ok"], r["reload"]), (True, "confirmed"), r)
+
+
+    def test_the_refusal_and_the_read_name_the_same_cause(self):
+        # Codex R468 TF-1: the edit's refusal and the read's `edit_refusal`
+        # (the Tools tab's note) are one function's words; nothing is written
+        # in any of them
+        twice = table_of([entry(1, Z=50, D=6), entry(2, Z=47.690467, D=6), entry(3, Z=22, D=4), entry(3, Z=9)])
+        cases = [
+            ("Last line has no line end — add it in an editor", TABLE[:-1], loaded_table(TABLE)),
+            ("T3 twice in the file — remove one, restart LinuxCNC", TABLE + "T3 P4 Z9 ; again\n", twice),
+            ("LinuxCNC holds T3 twice — restart it", TABLE, twice),
+            ("Line 4 not readable — fix it in an editor", TABLE + "T7 P7 E1 ;\n", loaded_table(TABLE)),
+            ("T3 differs from LinuxCNC — restart LinuxCNC or import", TABLE.replace("Z22", "Z23"), loaded_table(TABLE)),
+            ("File incomplete — read again; if it stays, fix the file", "", loaded_table(TABLE)),
+        ]
+        async def sleep(_s):
+            pass
+        for why, text, stat_table in cases:
+            with self.subTest(why):
+                self.table.write_text(text)
+                current().stat.tool_table = stat_table
+                with patch.object(gateway.asyncio, "sleep", sleep):
+                    r = self.read()
+                self.assertEqual((r["proof"]["state"], r["edit_refusal"]), ("partial", why))
+                self.refused({"cmd": "add_tool", "tool_number": 8, "z_offset": 1.0}, why)
+
+    def test_a_complete_read_names_no_refusal_an_unchecked_one_its_own(self):
+        self.assertIsNone(self.read()["edit_refusal"])
+        current().stat.tool_table = ()
+        self.assertEqual(self.read()["edit_refusal"], tool_proof.edit_unchecked(tool_proof.NOT_READ))
+
+    def test_while_linuxcnc_still_loads_the_last_write_the_refusal_says_so(self):
+        # another client's edit inside LinuxCNC's load of the last one (the
+        # reply of the first waits, the lock is free): not "restart LinuxCNC"
+        self.io.immediate = False
+
+        async def run():
+            gateway._cmd_lock = None
+            with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 5.0), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002):
+                first = asyncio.ensure_future(gateway.handle_command(
+                    {"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "expected": self.expect(1)},
+                    True, self.writer.conn_key))
+                while gateway._tool_write_seq == seq0:
+                    await asyncio.sleep(0.001)
+                during = await gateway.handle_command(
+                    {"cmd": "add_tool", "tool_number": 8, "z_offset": 1.0}, True, self.writer.conn_key)
+                self.io.show()
+                return during, await first
+        seq0 = gateway._tool_write_seq
+        during, first = asyncio.run(run())
+        self.assertEqual((during["ok"], during.get("error")), (False, tool_proof.EDIT_LOADING))
+        self.assertEqual(first["reload"], "confirmed")
+        self.io.immediate = True
+        # the load never shown: once the wait ended the difference is named
+        load_into(current().stat, self.table)
+        self.io.immediate = False
+        with patch.object(gateway, "TOOL_RELOAD_WAIT_S", 0.02), patch.object(gateway, "TOOL_RELOAD_POLL_S", 0.002):
+            self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 48.0, "expected": self.expect(1)})
+        r = self.send({"cmd": "add_tool", "tool_number": 8, "z_offset": 1.0})
+        self.assertEqual(r["error"], "T1 differs from LinuxCNC — restart LinuxCNC or import")
+
+
+# ---- Codex R468 MT-I35: the admission again, after the check ----------------
+
+class TestMTI35TheAdmissionAfterTheCheck(_Tools):
+    """The write thread's check reads the table, STAT and the library: what
+    the event loop does to the writer meanwhile (a disarm, a lost
+    connection) — and any other admission that fell — refuses the write,
+    with ITS reason: table and library byte-identical, no reload. The real
+    WS path; the moment is the SECOND rule-R read (the write thread's)."""
+
+    EDITS = TestMTTF1TheBasisMustBeComplete.EDITS
+
+    def at_the_second_read(self, hook, msg, *, held=False):
+        """The reply of `msg` with `hook` run while the write thread's check
+        reads — in that thread, or (`held`) on the event loop while the
+        thread waits."""
+        real, calls = gateway._stat_tool_table, []
+        reached, release = threading.Event(), threading.Event()
+
+        def table(*a, **kw):
+            got = real(*a, **kw)
+            calls.append(1)
+            if len(calls) == 2:
+                if held:
+                    reached.set()
+                    if not release.wait(5):
+                        raise AssertionError("never released")
+                else:
+                    hook()
+            return got
+
+        async def run():
+            gateway._cmd_lock = None
+            self.replies.clear()
+            task = asyncio.ensure_future(gateway._execute_client_command(901, self.writer, None, dict(msg)))
+            if held:
+                try:
+                    self.assertTrue(await asyncio.to_thread(reached.wait, 5))
+                    hook()
+                finally:
+                    release.set()
+            await task
+        before = (self.table.read_bytes(), (self.dir / "tool_library.json").read_bytes())
+        with patch.object(gateway, "_stat_tool_table", table):
+            asyncio.run(run())
+        return self.replies[-1], before, len(calls)
+
+    def refused(self, hook, why, *, held=False):
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd, held=held):
+                gateway._clients[901] = self.writer
+                self.writer.armed = True
+                r, before, reads = self.at_the_second_read(hook, make(self), held=held)
+                self.assertGreaterEqual(reads, 2, "the write thread's check ran")
+                self.assertEqual((r["ok"], r.get("error")), (False, why), r)
+                self.assertEqual((self.table.read_bytes(), (self.dir / "tool_library.json").read_bytes()), before,
+                                 "table and library byte-identical")
+                self.assertEqual(self.io.loads, 0, "no reload")
+                self.assertIn("tools.edit_admission_lost", self.event_names())
+
+    def test_a_disarm_while_the_check_reads(self):
+        self.refused(lambda: setattr(self.writer, "armed", False), NOT_ARMED)
+
+    def test_a_disarm_by_the_event_loop_while_the_check_thread_waits(self):
+        self.refused(lambda: setattr(self.writer, "armed", False), NOT_ARMED, held=True)
+
+    def test_a_connection_lost_while_the_check_reads(self):
+        self.refused(lambda: gateway._clients.pop(901, None), gateway.CONN_UNKNOWN, held=True)
+
+    def test_a_program_started_while_the_check_reads(self):
+        stat = current().stat
+        self.addCleanup(setattr, stat, "interp_state", linuxcnc.INTERP_IDLE)
+
+        def started():
+            stat.interp_state = linuxcnc.INTERP_READING
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                stat.interp_state = linuxcnc.INTERP_IDLE
+                r, before, _n = self.at_the_second_read(started, make(self))
+                self.assertEqual((r["ok"], r.get("error")), (False, "A program or MDI runs — wait"), r)
+                self.assertEqual(self.table.read_bytes(), before[0])
+                self.assertEqual(self.io.loads, 0)
+
+    def test_the_early_admission_stays_no_reads_for_a_refused_writer(self):
+        real, calls = gateway._stat_tool_table, []
+
+        def table(*a, **kw):
+            calls.append(1)
+            self.writer.armed = False          # during the BASIS read, the first one
+            return real(*a, **kw)
+        with patch.object(gateway, "_stat_tool_table", table):
+            r = self.send(self.EDITS["save_tool"](self))
+        self.assertEqual((r["ok"], r["error"], len(calls)), (False, NOT_ARMED, 1), "refused before the check's reads")
+
+    def test_an_unchanged_admission_commits(self):
+        for cmd, make in self.EDITS.items():
+            with self.subTest(cmd):
+                self.table.write_text(TABLE)
+                load_into(current().stat, self.table)
+                self.store.save(json.loads(json.dumps(LIBRARY)))
+                r, before, _n = self.at_the_second_read(lambda: None, make(self), held=True)
+                self.assertEqual((r["ok"], r.get("reload")), (True, "confirmed"), r)
+                self.assertNotEqual(self.table.read_bytes(), before[0])
+
+    def test_a_write_begun_is_not_taken_back(self):
+        # disarmed once the file write began: the section runs to its end —
+        # reload and metadata (BG-22), the reply ok
+        real = gateway.write_tool_table
+
+        def write(path, tools):
+            self.writer.armed = False
+            return real(path, tools)
+        with patch.object(gateway, "write_tool_table", write):
+            r = self.send({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0, "flutes": 7, "expected": self.expect(1)})
+        self.assertEqual((r["ok"], r["reload"]), (True, "confirmed"), r)
+        self.assertEqual((self.io.loads, self.library()["1"]["flutes"]), (1, 7))
+
+
+# ---- Codex R468 MT-I37: a read and an edit are ONE owner's -------------------
+
+class _Owner(_Tools):
+
+    def setUp(self):
+        super().setUp()
+        saved = gateway._bound_instance
+        self.addCleanup(setattr, gateway, "_bound_instance", saved)
+        gateway._bound_instance = (111, 111)
+        self.conn = current()
+
+    def changes(self):
+        """What another thread does to the gateway's connection: revoked,
+        replaced by one whose table reads the same / is unread, rebound (the
+        instance is set BEFORE its Link is published)."""
+        def replaced(table):
+            def do():
+                new = FakeConnection()
+                new.stat.tool_table = table
+                new.stat.interp_state = linuxcnc.INTERP_IDLE
+                swap_connection(new)
+            return do
+
+        def rebound():
+            gateway._bound_instance = (222, 222)
+
+        def rebound_and_published():
+            rebound()
+            replaced(())()
+        return {"revoked": lambda: swap_connection(None),
+                "replaced, the same table": replaced(loaded_table(TABLE)),
+                "replaced, unread": replaced(()),
+                "rebound, its Link not yet published": rebound,
+                "rebound and published": rebound_and_published}
+
+    def restored(self):
+        gateway._bound_instance = (111, 111)
+        swap_connection(FakeConnection(stat=self.conn.stat, cmd=self.io, err=self.conn.err))
+
+
+class TestMTI37TheReadIsOneOwners(_Owner):
+
+    def check(self, patch_at):
+        """Each change at the moment `patch_at(do)` (a patch context): the
+        result is discarded with its reason."""
+        for what, do in self.changes().items():
+            with self.subTest(what):
+                self.restored()
+                with patch_at(do):
+                    r = self.read()
+                self.assertEqual(r, {"ok": False, "error": gateway.LINK_CHANGED}, "discarded, named")
+                self.assertIn("tools.read_owner_changed", self.event_names())
+
+    def test_before_the_stat_read(self):
+        real = gateway._stat_tool_table
+
+        def at(do):
+            def table(*a, **k):
+                do()
+                return real(*a, **k)
+            return patch.object(gateway, "_stat_tool_table", table)
+        self.check(at)
+
+    def test_after_the_stat_read(self):
+        real = gateway._stat_tool_table
+
+        def at(do):
+            def table(*a, **k):
+                got = real(*a, **k)
+                do()
+                return got
+            return patch.object(gateway, "_stat_tool_table", table)
+        self.check(at)
+
+    def test_during_the_library_read(self):
+        real = self.store.load
+
+        def at(do):
+            def load(strict=False):
+                got = real(strict)
+                if strict:
+                    do()
+                return got
+            return patch.object(self.store, "load", load)
+        self.check(at)
+
+    def test_while_the_reply_is_built(self):
+        # the last read before the reply: judged after it
+        real = gateway._merge_tool_data
+
+        def at(do):
+            def merge(*a):
+                do()
+                return real(*a)
+            return patch.object(gateway, "_merge_tool_data", merge)
+        self.check(at)
+
+    def test_a_read_begun_without_a_connection_is_no_later_ones(self):
+        swap_connection(None)
+        real = self.store.load
+
+        def load(strict=False):
+            got = real(strict)
+            self.restored()                    # LinuxCNC connects meanwhile
+            return got
+        with patch.object(self.store, "load", load):
+            r = self.read()
+        self.assertEqual(r, {"ok": False, "error": gateway.LINK_CHANGED})
+
+    def test_outside_a_command_too(self):
+        # not only the command's pin: the job judges its own owner
+        real = self.store.load
+
+        def load(strict=False):
+            got = real(strict)
+            swap_connection(FakeConnection(stat=self.conn.stat, cmd=self.io, err=self.conn.err))
+            return got
+        with patch.object(self.store, "load", load):
+            r = asyncio.run(gateway._read_tool_files(str(self.table)))
+        self.assertEqual(r, {"ok": False, "error": gateway.LINK_CHANGED})
+
+    def test_another_configurations_library_is_none_of_this_read(self):
+        # the library's section is the configuration's (STAT.ini_filename):
+        # another one at the end is another assignment
+        stat = current().stat
+        stat.ini_filename = "/cfg/machine.ini"
+        self.addCleanup(lambda: setattr(stat, "ini_filename", ""))
+        real = self.store.load
+
+        def load(strict=False):
+            got = real(strict)
+            stat.ini_filename = "/cfg/other.ini"
+            return got
+        with patch.object(self.store, "load", load):
+            r = self.read()
+        self.assertEqual(r, {"ok": False, "error": gateway.LINK_CHANGED})
+
+    def test_an_unchanged_owner_publishes_under_its_name(self):
+        r = self.read()
+        self.assertEqual((r["ok"], r["proof"]["state"]), (True, "complete"))
+        self.assertEqual(r["table"]["instance"], "111:111")
+
+    def test_without_a_connection_throughout_it_reads_unchecked(self):
+        swap_connection(None)
+        r = self.read()
+        self.assertEqual((r["ok"], r["proof"]["state"], r["proof"]["why"], r["current_tool"]),
+                         (True, "unchecked", tool_proof.NOT_READ, None))
+
+
+class TestMTI37TheEditIsOneOwners(_Owner):
+    """A compare under one connection, the write under another: refused in
+    the write's thread, nothing written (no second lock: the owner is
+    captured with the basis and asked again right before the write)."""
+
+    EDITS = TestMTTF1TheBasisMustBeComplete.EDITS
+
+    def check(self, nth):
+        for what, do in self.changes().items():
+            for cmd, make in self.EDITS.items():
+                with self.subTest(what, cmd=cmd):
+                    self.restored()
+                    msg = make(self)
+                    real, calls = gateway._stat_tool_table, []
+
+                    def table(*a, **k):
+                        got = real(*a, **k)
+                        calls.append(1)
+                        if len(calls) == nth:
+                            do()
+                        return got
+                    before = (self.table.read_bytes(), self.library())
+                    with patch.object(gateway, "_stat_tool_table", table):
+                        r = self.send(msg)
+                    self.assertEqual((r["ok"], r.get("error")), (False, gateway.LINK_CHANGED), r)
+                    self.assertEqual((self.table.read_bytes(), self.library()), before, "nothing written")
+                    self.assertEqual(self.io.loads, 0)
+
+    def test_after_the_basis_compare(self):
+        self.check(1)
+
+    def test_after_the_write_threads_compare(self):
+        self.check(2)
+
+    def test_at_the_admissions_own_poll(self):
+        # the last thing before the write: the poll succeeded, then it changed
+        for what, do in self.changes().items():
+            with self.subTest(what):
+                self.restored()
+                msg = self.EDITS["add_tool"](self)
+                before = self.table.read_bytes()
+                real, calls = gateway._reader_fresh_get, []
+
+                def fresh(key):
+                    calls.append(key)
+                    if calls.count("tool_change") == 2:     # the second admission, after its poll
+                        do()
+                    return real(key)
+                with patch.object(gateway, "_reader_fresh_get", fresh):
+                    r = self.send(msg)
+                self.assertEqual((r["ok"], r.get("error")), (False, gateway.LINK_CHANGED), r)
+                self.assertEqual(self.table.read_bytes(), before)
+
+    def test_an_unchanged_owner_commits(self):
         for cmd, make in self.EDITS.items():
             with self.subTest(cmd):
                 self.table.write_text(TABLE)

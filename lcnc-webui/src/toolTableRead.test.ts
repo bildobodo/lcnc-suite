@@ -110,6 +110,22 @@ describe("store point 2: an error or a missing reply never shows as an empty tab
     expect(partialNote(proof({ state: "partial", proven: [1, 3], ends_newline: false }), []))
       .toBe("File incomplete or differs from LinuxCNC — the last line has no line end.");
   });
+  it("a partial note ends with the gateway's own refusal — cause and way out (Codex R468 TF-1)", () => {
+    const why = "T3 twice in the file — remove one, restart LinuxCNC";
+    const p = proof({ state: "partial", proven: [1], duplicates: [3] });
+    expect(toolTableView<Row>(reply({ proof: p, edit_refusal: why })).note)
+      .toBe(`File incomplete or differs from LinuxCNC — T3 twice. Edits refused: ${why}.`);
+    for (const none of [null, undefined, "", 7]) {
+      expect(toolTableView<Row>(reply({ proof: p, edit_refusal: none })).note, String(none))
+        .toBe("File incomplete or differs from LinuxCNC — T3 twice.");
+    }
+  });
+  it("a complete or unchecked read shows no edit refusal of its own", () => {
+    expect(toolTableView<Row>(reply({ edit_refusal: "x" })).note).toBeNull();
+    expect(toolTableView<Row>(reply({ proof: proof({ state: "unchecked", proven: [], why: "tool database" }),
+                                      edit_refusal: "Table not checked (tool database) — nothing written" })).note)
+      .toBe("Not checked against LinuxCNC — tool database.");
+  });
   it("a note caps the names it lists", () => {
     const missing = Array.from({ length: NOTE_NAMES_MAX + 3 }, (_v, i) => i + 10);
     const note = partialNote(proof({ state: "partial", proven: [], missing }), []);

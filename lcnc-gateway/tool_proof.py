@@ -75,7 +75,31 @@ CHANGED = "file changed while read"
 #: still hold). An unread controller is refused either way.
 UNCHECKED_EDITS_BLOCKED = True
 
+# ---- why an edit on a partial basis is refused (Codex R468 TF-1a/b) ---------
+# A reason is "why — what to do", at most 60 characters. A cause that STAYS
+# (a line LinuxCNC's file never reads whole, a tool number twice, a missing
+# line end, a table that differs) names its own way out; "read again" stands
+# only where a read may really come out differently: the file changed under
+# the read, or it ends inside a line and lacks something (a save under way —
+# or a closed, cut file: the same observation). The refusals change no rule:
+# nothing is written in any of them.
+#: the file changed while it was read
+EDIT_FILE_CHANGED = "File changed while read — nothing written; read again"
+#: the file ends inside a line AND lacks or differs (a save under way or a cut file)
+EDIT_INCOMPLETE = "File incomplete — read again; if it stays, fix the file"
+#: the file holds exactly what the gateway's last write wrote, its reload still awaited
+EDIT_LOADING = "LinuxCNC still loads the last change — try again"
+#: everything proven but the last line's line end
+EDIT_NO_LINE_END = "Last line has no line end — add it in an editor"
+#: more rows than LinuxCNC keeps
+EDIT_TOO_MANY = "More than 1000 tools — remove some in an editor"
+#: the basis was complete, the write thread's own read is not
+EDIT_CHANGED = "Tool table changed meanwhile — nothing written; read again"
+#: a partial proof with none of the named facts (compare leaves none)
 EDIT_NOT_CONFIRMED = "Tool table not confirmed — nothing written; read again"
+#: io keeps the home entries 1 … CANON_POCKETS_MAX - 1 (emctool.h 2.9.4: 1001)
+#: and skips the rows past them
+IO_TOOLS_MAX = 1000
 
 
 def edit_unchecked(why: str) -> str:
@@ -180,21 +204,74 @@ def changed_while_read(scan: Scan) -> Dict[str, Any]:
             "duplicates": [], "why": CHANGED, "ends_newline": scan[2]}
 
 
-def edit_basis_refusal(proof: Dict[str, Any]) -> Optional[str]:
+def _line_reason(unread: Sequence[Dict[str, Any]]) -> str:
+    return f"Line {unread[0]['line']} not readable — fix it in an editor"
+
+
+def partial_reason(proof: Dict[str, Any], scan: Scan, loading: bool = False) -> str:
+    """Why an edit on THIS partial read is refused and what to do about it —
+    the one source of the words (the gateway's refusal, and the Tools tab's
+    note through get_tool_table's `edit_refusal`). A cause in the file is
+    named only where the file is whole by its other marks: a file that ends
+    inside a line and lacks something may be a save under way, and "fix line
+    7 in an editor" would be the wrong advice there. The ways out follow
+    LinuxCNC's source (2.9.4; not run natively): tooldata_load reads a tool
+    number twice into TWO entries (removing one row leaves LinuxCNC's two —
+    hence the restart; io's next save would write both back), it skips an
+    unreadable line or takes a cut value from it, a start loads the file —
+    a tool missing there is gone —, a full import replaces the file and has
+    LinuxCNC load it. `loading`: the file holds exactly the gateway's last
+    write and LinuxCNC's load of it is still awaited."""
+    rows, unread, nl, _empty = scan
+    if proof["why"] == CHANGED:
+        return EDIT_FILE_CHANGED
+    if loading:
+        return EDIT_LOADING
+    file_ts = Counter(int(r["T"]) for r in rows)
+    extra, differs = proof["extra"], [d["T"] for d in proof["differs"]]
+    twice = [t for t in proof["duplicates"] if file_ts[t] > 1]
+    loaded_twice = [t for t in proof["duplicates"] if file_ts[t] <= 1]
+    if not nl:
+        if proof["missing"] or extra or differs or unread or twice or loaded_twice:
+            return EDIT_INCOMPLETE
+        return EDIT_NO_LINE_END
+    # a tool LinuxCNC took from a line unread here is missing WITH its line
+    gone = [t for t in proof["missing"] if t not in {u["T"] for u in unread}]
+    if gone and not extra:
+        what, them = (f"T{gone[0]}", "it") if len(gone) == 1 else (f"{len(gone)} tools", "them")
+        return f"{what} not in the file — restore it; restart drops {them}"
+    if unread:
+        return _line_reason(unread)
+    if twice:
+        return f"T{twice[0]} twice in the file — remove one, restart LinuxCNC"
+    if len(rows) > IO_TOOLS_MAX:
+        return EDIT_TOO_MANY
+    if loaded_twice:
+        return f"LinuxCNC holds T{loaded_twice[0]} twice — restart it"
+    other = sorted({*differs, *extra, *gone})
+    if other:
+        what = f"T{other[0]} differs" if len(other) == 1 else f"{len(other)} tools differ"
+        return f"{what} from LinuxCNC — restart LinuxCNC or import"
+    return EDIT_NOT_CONFIRMED
+
+
+def edit_basis_refusal(proof: Dict[str, Any], scan: Scan, loading: bool = False) -> Optional[str]:
     """MT-TF1 (Codex R465): an edit that rewrites the existing table needs
     its basis `complete` — at the basis read AND in the write thread, next to
     the base compare and the write admission (an early check replaces
-    neither). None = admitted; else the refusal (nothing written). The
-    Q465-1 switch (UNCHECKED_EDITS_BLOCKED) decides a random changer and a
-    tool database; an unread controller is refused either way."""
+    neither). None = admitted; else the refusal (nothing written), naming
+    the cause and the way out (partial_reason). The Q465-1 switch
+    (UNCHECKED_EDITS_BLOCKED) decides a random changer and a tool database —
+    a line the rewrite would drop refuses there too; an unread controller is
+    refused either way."""
     state, why = proof["state"], proof["why"]
     if state == "complete":
         return None
     if state == "unchecked":
         if why in (SCOPE_RANDOM, SCOPE_DATABASE) and not UNCHECKED_EDITS_BLOCKED:
-            return None
+            return _line_reason(scan[1]) if scan[1] else None
         return edit_unchecked(why)
-    return EDIT_NOT_CONFIRMED
+    return partial_reason(proof, scan, loading)
 
 
 def content_rev(data: bytes) -> str:

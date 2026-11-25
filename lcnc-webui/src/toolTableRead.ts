@@ -13,6 +13,9 @@
 //    LinuxCNC", never "is being written" (a paused writer and a closed
 //    incomplete file look the same, Codex R465); "No tools" only for a
 //    `complete` read with zero rows.
+//    The note ends with what an edit would be refused with — the gateway's
+//    own words (`edit_refusal`, tool_proof.partial_reason: cause and way
+//    out; Codex R468 TF-1), never a second wording of them here.
 // 3. An unread line without a readable T is attached to NOTHING: it is named
 //    by its line number; a line with one whole T token names that tool.
 // The gateway's rule R (tool_proof.py) proves the listed values per line
@@ -90,8 +93,9 @@ function readUnread(u: unknown): UnreadLine[] {
     .map(x => ({ line: x.line as number, T: Number.isInteger(x.T) ? (x.T as number) : null }));
 }
 
-/** The note of a partial read: neutral, the tools and lines named. */
-export function partialNote(proof: ToolTableProof, unread: UnreadLine[]): string {
+/** The note of a partial read: neutral, the tools and lines named; then, in
+ *  the gateway's words, why edits are refused and what to do about it. */
+export function partialNote(proof: ToolTableProof, unread: UnreadLine[], editRefusal: string | null = null): string {
   const parts: string[] = [];
   const t = (x: number | string) => `T${x}`;
   if (proof.differs.length) parts.push(`${names(proof.differs.map(d => d.T), t)} ${proof.differs.length === 1 ? "differs" : "differ"}`);
@@ -101,7 +105,8 @@ export function partialNote(proof: ToolTableProof, unread: UnreadLine[]): string
   if (unread.length) parts.push(`${unread.length === 1 ? "line" : "lines"} ${names(unread.map(u => u.line), String)} not read`);
   if (proof.ends_newline === false) parts.push("the last line has no line end");
   if (!parts.length && proof.why === "file changed while read") parts.push("it changed while read");
-  return `File incomplete or differs from LinuxCNC${parts.length ? " — " + parts.join("; ") : ""}.`;
+  return `File incomplete or differs from LinuxCNC${parts.length ? " — " + parts.join("; ") : ""}.`
+    + (editRefusal ? ` Edits refused: ${editRefusal}.` : "");
 }
 
 /** What a get_tool_table reply shows (null: the read got no reply). */
@@ -132,7 +137,8 @@ export function toolTableView<R extends { T: number }>(reply: any, noReply = "No
     return { kind: "unchecked", rows, error: null, note: `Not checked against LinuxCNC — ${proof.why ?? "no reason given"}.`,
              empty: TOOL_TABLE_NOT_CHECKED, proven: new Set(), unreadByTool, unreadLoose };
   }
-  return { kind: "partial", rows, error: null, note: partialNote(proof, unread), empty: TOOL_TABLE_NOT_CONFIRMED,
+  const refusal = typeof reply.edit_refusal === "string" && reply.edit_refusal ? reply.edit_refusal as string : null;
+  return { kind: "partial", rows, error: null, note: partialNote(proof, unread, refusal), empty: TOOL_TABLE_NOT_CONFIRMED,
            proven: new Set(proof.proven), unreadByTool, unreadLoose };
 }
 

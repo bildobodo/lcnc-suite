@@ -429,7 +429,7 @@ wss.on("connection", (ws, req) => {
     else if (cmd === "get_tool_table" && replies[cmd] && typeof replies[cmd] === "object" && replies[cmd].ok
              && (!("table" in replies[cmd]) || !("proof" in replies[cmd])))
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, table: MOCK_TOOL_TABLE,
-                               proof: completeProof(replies[cmd].tools), unread: [], ...replies[cmd] }));
+                               proof: completeProof(replies[cmd].tools), unread: [], edit_refusal: null, ...replies[cmd] }));
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
     else if (cmd === "save_settings" && settingsEcho && typeof msg.device === "string" && msg.device !== MOCK_DEVICE.id) {
       // ANOTHER device's profile (Settings › Devices): its reply names it,
@@ -451,7 +451,8 @@ wss.on("connection", (ws, req) => {
     // a gateway always answers a table read: an empty table unless scripted
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
     else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [],
-                                                                 table: MOCK_TOOL_TABLE, proof: completeProof([]), unread: [] }));
+                                                                 table: MOCK_TOOL_TABLE, proof: completeProof([]), unread: [],
+                                                                 edit_refusal: null }));
     // ... and a parameter write (settings split package 3): the page sends
     // its purposes one after the other, each once the last was answered
     else if (cmd === "set_params") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, mdi_set: true, persisted: true }));

@@ -17,7 +17,8 @@ from unittest.mock import patch
 import tool_proof
 from tool_proof import (TOL, compare, edit_basis_refusal, prove, scan_table, content_rev,
                         library_rev, changed_while_read, NOT_READ, SCOPE_RANDOM, SCOPE_DATABASE,
-                        SCOPE_UNKNOWN, DIFFERS, EDIT_NOT_CONFIRMED)
+                        SCOPE_UNKNOWN, DIFFERS, EDIT_CHANGED, EDIT_FILE_CHANGED, EDIT_INCOMPLETE,
+                        EDIT_LOADING, EDIT_NO_LINE_END, EDIT_NOT_CONFIRMED, EDIT_TOO_MANY, IO_TOOLS_MAX)
 
 FIXTURE = Path(__file__).resolve().parents[1] / "scripts/test_fixtures/tool_proof/run2-checkpoints.json"
 LETTERS = ("X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q")
@@ -62,6 +63,12 @@ def io_memory(n):
 
 def io_content(mem, remark="x"):
     return "".join(io_line(t, f, f"{remark} {t:03d}") for t, f in mem.items()).encode()
+
+
+def refusal(data, stat, loading=False, scope=None):
+    """What an edit on this read is refused with (None: admitted)."""
+    scan = scan_table(data)
+    return edit_basis_refusal(compare(scan, stat, scope), scan, loading)
 
 
 class TestTF1EveryCutIsNotComplete(unittest.TestCase):
@@ -133,23 +140,24 @@ class TestTF1EveryCutIsNotComplete(unittest.TestCase):
 
 class TestAPermanentPartial(unittest.TestCase):
     """A named limit: a table that never reads complete keeps every edit
-    refused (MT-TF1) — "read again" does not resolve it; a rewrite of the file
-    does (by hand and reloaded; a full import; a G10 L1 for the line end
-    alone: io saves it whole). The cases: LinuxCNC loaded a file without its
-    final newline, a tool number twice, a line LinuxCNC skips (unread here),
-    more tools than io holds."""
+    refused (MT-TF1) — "read again" does not resolve it, so the refusal names
+    the cause and the way out (Codex R468 TF-1a/b; the rule is unchanged).
+    The cases: LinuxCNC loaded a file without its final newline, a tool
+    number twice, a line LinuxCNC skips (unread here), more tools than io
+    holds."""
 
     def test_a_tool_number_twice_stays_partial_whatever_linuxcnc_holds(self):
         stat = (entry(-1), entry(1, Z=5), entry(1, Z=6), entry(2, Z=1))    # io loads both lines
         _r, _u, proof = prove(b"T1 P1 Z5 ;\nT1 P2 Z6 ;\nT2 P3 Z1 ;\n", stat, None)
         self.assertEqual((proof["state"], proof["proven"], proof["duplicates"]), ("partial", [2], [1]))
-        self.assertEqual(edit_basis_refusal(proof), EDIT_NOT_CONFIRMED, "the repairing delete too")
+        self.assertEqual(refusal(b"T1 P1 Z5 ;\nT1 P2 Z6 ;\nT2 P3 Z1 ;\n", stat),
+                         "T1 twice in the file — remove one, restart LinuxCNC", "the repairing delete too")
 
     def test_a_loaded_table_without_its_final_newline_stays_partial(self):
         mem = {1: {"D": 6.0}, 2: {"D": 4.0}}
         _r, _u, proof = prove(b"T1 P1 D6 ;\nT2 P2 D4 ;", table(mem), None)
         self.assertEqual((proof["state"], proof["proven"], proof["ends_newline"]), ("partial", [1, 2], False))
-        self.assertEqual(edit_basis_refusal(proof), EDIT_NOT_CONFIRMED)
+        self.assertEqual(refusal(b"T1 P1 D6 ;\nT2 P2 D4 ;", table(mem)), EDIT_NO_LINE_END)
         self.assertEqual(prove(b"T1 P1 D6 ;\nT2 P2 D4 ;\n", table(mem), None)[2]["state"], "complete",
                          "the way out: the file rewritten with its line end")
 
@@ -157,6 +165,89 @@ class TestAPermanentPartial(unittest.TestCase):
         # io loads at most CANON_POCKETS_MAX - 1 (1000) home entries
         _r, _u, proof = prove(b"T1 P1 ;\nT2 P2 ;\n", table({1: {}}), None)
         self.assertEqual((proof["state"], proof["extra"]), ("partial", [2]))
+
+
+class TestTheRefusalNamesTheCauseAndTheWayOut(unittest.TestCase):
+    """Codex R468 TF-1a/b: one function, "why — what to do", ≤ 60 characters;
+    "read again" only where a read may come out differently; nothing is
+    written in any of them (the edits: test_tool_proof_gateway)."""
+
+    A = b"T1 P1 Z5 ;\nT2 P2 Z6 ;\n"
+    MEM = {1: {"Z": 5}, 2: {"Z": 6}}
+
+    def test_each_cause(self):
+        twice = (entry(-1), entry(1, Z=5), entry(1, Z=9), entry(2, Z=6))
+        many = "".join(f"T{t} P{t} ;\n" for t in range(1, IO_TOOLS_MAX + 2)).encode()
+        cases = [
+            # the file's own, lasting causes
+            ("Last line has no line end — add it in an editor", self.A[:-1], table(self.MEM)),
+            ("T1 twice in the file — remove one, restart LinuxCNC", b"T1 P1 Z5 ;\nT1 P3 Z9 ;\nT2 P2 Z6 ;\n", twice),
+            ("Line 2 not readable — fix it in an editor", b"T1 P1 Z5 ;\nT2 P2 E7 ;\n", table({1: {"Z": 5}})),
+            ("Line 2 not readable — fix it in an editor", b"T1 P1 Z5 ;\nT2 P2 Z6mm ;\n", table(self.MEM)),
+            (EDIT_TOO_MANY, many, table({t: {} for t in range(1, IO_TOOLS_MAX + 1)})),
+            # LinuxCNC's
+            ("LinuxCNC holds T1 twice — restart it", self.A, twice),
+            # a pure difference
+            ("T2 differs from LinuxCNC — restart LinuxCNC or import", self.A, table({1: {"Z": 5}, 2: {"Z": 7}})),
+            ("T2 differs from LinuxCNC — restart LinuxCNC or import", self.A, table({1: {"Z": 5}})),
+            ("2 tools differ from LinuxCNC — restart LinuxCNC or import", self.A, table({1: {"Z": 5}, 9: {"Z": 6}})),
+            ("T3 not in the file — restore it; restart drops it", self.A, table({**self.MEM, 3: {}})),
+            ("2 tools not in the file — restore it; restart drops them", self.A, table({**self.MEM, 3: {}, 4: {}})),
+            # may come out differently: a save under way, or a closed, cut file
+            (EDIT_INCOMPLETE, b"", table(self.MEM)),
+            (EDIT_INCOMPLETE, self.A[:11 + 7], table(self.MEM)),
+            (EDIT_INCOMPLETE, b"T1 P1 Z5 ;\nT2 P", table(self.MEM)),
+        ]
+        for want, data, stat in cases:
+            with self.subTest(want, data=data[:40]):
+                self.assertEqual(refusal(data, stat), want)
+                self.assertLessEqual(len(want), 60)
+
+    def test_a_cause_in_a_file_that_ends_inside_a_line_is_not_named(self):
+        # a save under way is cut anywhere: no "fix line 2 in an editor", no
+        # "T1 twice" from a file that is still being written
+        stat = table({**self.MEM, 3: {}})
+        for data in (b"T1 P1 Z5 ;\nT2 P2 E7 ;\nT3", b"T1 P1 Z5 ;\nT1 P2 Z6 ;\nT3 P"):
+            self.assertEqual(refusal(data, stat), EDIT_INCOMPLETE)
+
+    def test_read_again_only_where_it_may_help(self):
+        scan = scan_table(self.A)
+        self.assertEqual(edit_basis_refusal(changed_while_read(scan), scan), EDIT_FILE_CHANGED)
+        again = [EDIT_FILE_CHANGED, EDIT_INCOMPLETE, EDIT_LOADING, EDIT_CHANGED]
+        for text in again:
+            self.assertRegex(text, "again")
+            self.assertLessEqual(len(text), 60)
+        for data, stat in ((self.A[:-1], table(self.MEM)), (b"T1 P1 ;\nT1 P2 ;\n", table({1: {}})),
+                           (b"T1 P1 E1 ;\n", (entry(-1),)), (self.A, table({1: {"Z": 1}})),
+                           (self.A, table({**self.MEM, 3: {}}))):
+            self.assertNotRegex(refusal(data, stat), "again", data)
+
+    def test_an_awaited_load_is_named_until_it_ends(self):
+        stat = table({1: {"Z": 5}, 2: {"Z": 7}})
+        self.assertEqual(refusal(self.A, stat, loading=True), EDIT_LOADING)
+        self.assertEqual(refusal(self.A, table(self.MEM), loading=True), None, "complete is admitted")
+
+    def test_the_way_out_taken_leaves_the_next_cause_or_none(self):
+        # the line end added: complete, no reload needed (Codex TF-1a)
+        self.assertIsNone(refusal(self.A, table(self.MEM)))
+        # one of the two rows removed in an editor: LinuxCNC still holds two
+        # (tooldata_load keeps both) — hence "restart LinuxCNC", then complete
+        twice = (entry(-1), entry(1, Z=5), entry(1, Z=9), entry(2, Z=6))
+        self.assertEqual(refusal(self.A, twice), "LinuxCNC holds T1 twice — restart it")
+        self.assertIsNone(refusal(self.A, table(self.MEM)), "the start loaded the file")
+        # a fixed line LinuxCNC skipped: named as what it then is
+        self.assertEqual(refusal(self.A, table({1: {"Z": 5}})), "T2 differs from LinuxCNC — restart LinuxCNC or import")
+
+    def test_the_longest_texts_fit(self):
+        big = {t: {} for t in range(1, IO_TOOLS_MAX + 1)}
+        full = "".join(f"T{t} P{t} Z1 ;\n" for t in big).encode()
+        texts = [refusal(full, table(big)), refusal(b"T99999 P1 ;\n", table({**big, 99999: {}})),
+                 refusal(b"T99999 P1 ;\nT99999 P2 ;\n", table({99999: {}})),
+                 refusal(b"T99999 P1 Z1 ;\n", table({99999: {}})), refusal(b";\n", table({99999: {}}))]
+        self.assertEqual(texts[0], "1000 tools differ from LinuxCNC — restart LinuxCNC or import")
+        self.assertEqual(texts[1], "1000 tools not in the file — restore it; restart drops them")
+        for t in texts:
+            self.assertLessEqual(len(t), 60, t)
 
 
 class TestTF2OldFileNewMemory(unittest.TestCase):
@@ -290,27 +381,37 @@ class TestTheEditAdmissionAndTheQ4651Switch(unittest.TestCase):
     def proof(self, state, why=None):
         return {"state": state, "why": why}
 
+    SCAN = scan_table(b"T1 P1 Z5 ;\n")
+
     def test_complete_admits_partial_refuses(self):
-        self.assertIsNone(edit_basis_refusal(self.proof("complete")))
-        self.assertEqual(edit_basis_refusal(self.proof("partial", DIFFERS)), EDIT_NOT_CONFIRMED)
+        self.assertIsNone(edit_basis_refusal(self.proof("complete"), self.SCAN))
+        self.assertIsNotNone(refusal(b"T1 P1 Z5 ;\n", table({1: {"Z": 6}})))
         self.assertLessEqual(len(EDIT_NOT_CONFIRMED), 60)
+
+    def test_a_partial_proof_is_refused_whatever_it_names(self):
+        # no fact at all (compare leaves none): refused, never admitted
+        empty = {"state": "partial", "why": DIFFERS, "missing": [], "extra": [], "differs": [], "duplicates": []}
+        self.assertEqual(edit_basis_refusal(empty, self.SCAN), EDIT_NOT_CONFIRMED)
 
     def test_the_switch_blocks_by_default_and_names_why(self):
         self.assertTrue(tool_proof.UNCHECKED_EDITS_BLOCKED, "Q465-1's default until the operator answers")
         for why in (SCOPE_RANDOM, SCOPE_DATABASE, SCOPE_UNKNOWN, NOT_READ):
             with self.subTest(why):
-                refusal = edit_basis_refusal(self.proof("unchecked", why))
-                self.assertIn(why, refusal)
-                self.assertIn("nothing written", refusal)
-                self.assertLessEqual(len(refusal), 60)
+                words = edit_basis_refusal(self.proof("unchecked", why), self.SCAN)
+                self.assertIn(why, words)
+                self.assertIn("nothing written", words)
+                self.assertLessEqual(len(words), 60)
 
     def test_the_switch_off_admits_only_the_two_scopes(self):
         with patch.object(tool_proof, "UNCHECKED_EDITS_BLOCKED", False):
-            self.assertIsNone(edit_basis_refusal(self.proof("unchecked", SCOPE_RANDOM)))
-            self.assertIsNone(edit_basis_refusal(self.proof("unchecked", SCOPE_DATABASE)))
-            self.assertIsNotNone(edit_basis_refusal(self.proof("unchecked", SCOPE_UNKNOWN)))
-            self.assertIsNotNone(edit_basis_refusal(self.proof("unchecked", NOT_READ)))
-            self.assertEqual(edit_basis_refusal(self.proof("partial", DIFFERS)), EDIT_NOT_CONFIRMED)
+            self.assertIsNone(edit_basis_refusal(self.proof("unchecked", SCOPE_RANDOM), self.SCAN))
+            self.assertIsNone(edit_basis_refusal(self.proof("unchecked", SCOPE_DATABASE), self.SCAN))
+            self.assertIsNotNone(edit_basis_refusal(self.proof("unchecked", SCOPE_UNKNOWN), self.SCAN))
+            self.assertIsNotNone(edit_basis_refusal(self.proof("unchecked", NOT_READ), self.SCAN))
+            self.assertIsNotNone(refusal(b"T1 P1 Z5 ;\n", table({1: {"Z": 6}})))
+            # a line the rewrite would drop stops it there too
+            self.assertEqual(refusal(b"T1 P1 ;\nT2 P2 E7 ;\n", None, scope=SCOPE_RANDOM),
+                             "Line 2 not readable — fix it in an editor")
 
 
 class TestRevisions(unittest.TestCase):

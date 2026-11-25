@@ -265,7 +265,8 @@ class TheFileWritersBegin(_Base):
         seen = []
         with patch.object(gateway, "_write_admission_refusal", return_value=None), \
              patch.object(gateway, "write_tool_table", lambda *_a: seen.append(self.gen.snapshot())):
-            gateway._write_tool_table_admitted("/t.tbl", [], "k", lambda: None)   # the edit's check: passed
+            gateway._write_tool_table_admitted("/t.tbl", [], "k", lambda: None,   # the edit's check: passed
+                                               gateway._tool_owner())
         self.assertEqual(len(seen), 1)
         self.assertNotEqual(seen[0], snap, "the generation moved BEFORE the file")
         self.assertFalse(gateway._bulk._publish_in_generation(snap, lambda: None, 1, "/p.ngc", "publish"))
