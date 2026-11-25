@@ -381,6 +381,12 @@ class TestPreparedRefusal(unittest.TestCase):
         self.assertEqual(self.ask(number=0, pocket=0), tool_proof.PREPARED_CLEARED)
         self.assertEqual(self.ask(data=b"T2 P2\nT5 P5 Zinf\n"), "Line 2 not readable — fix it in an editor")
 
+    def test_a_preparation_not_known_to_have_ended(self):
+        # MT-I44: a new T keeps the old index until its tool-prepared comes
+        for preparing in (None, 0, "FALSE"):
+            self.assertEqual(self.ask(preparing=preparing), tool_proof.PREPARED_UNKNOWN, preparing)
+        self.assertIsNone(self.ask(preparing=False))
+
     def test_under_way(self):
         for index in (-1, 0, 2):
             self.assertEqual(self.ask(index=index, preparing=True), tool_proof.PREPARING)

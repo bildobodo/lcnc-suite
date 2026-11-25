@@ -24,7 +24,7 @@ import linuxcnc
 
 from dataclasses import dataclass
 from dataclasses import replace as _dc_replace
-from typing import (Any, AsyncIterator, Callable, Concatenate, Dict, FrozenSet, Iterator, List, Literal, Optional,
+from typing import (Any, AsyncIterator, Callable, Concatenate, Dict, FrozenSet, Iterator, List, Literal, Mapping, Optional,
                     ParamSpec, Tuple, Union)
 from fastapi.staticfiles import StaticFiles
 import re
@@ -1272,6 +1272,18 @@ def _reader_fresh_get(field: str):
     POLICY decision (button gates BG-12): a stale snapshot's last value is
     no answer now. Displays keep _reader_get and the reader_stale banner."""
     return None if _reader_is_stale() else _reader_get(field)
+
+
+def _reader_fresh_snapshot() -> Optional[Mapping[str, Any]]:
+    """The reader's WHOLE newest snapshot while it is fresh, else None — one
+    read, for a decision on SEVERAL of its fields (Codex R481 MT-I45): a new
+    snapshot may be published between two _reader_fresh_get, and fields of
+    two snapshots make a state HAL never had. A field the snapshot does not
+    carry is unknown (.get → None)."""
+    state = _reader_state_now()
+    if state is None or time.monotonic() - state[1] > _hal_bridge.stale_sec:
+        return None
+    return state[0]
 
 # Safety-chain completeness banner (review group B1). Grace covers the
 # concurrent process bring-up window; after it, a down watchdog socket or a
@@ -6232,10 +6244,12 @@ def _require_writer(conn_key) -> None:
         raise HTTPException(status_code=403, detail=why)
 
 
-def _tool_load_refusal(stat: linuxcnc.stat, data: bytes, scope: Optional[str]) -> Optional[str]:
+def _tool_load_refusal(stat: linuxcnc.stat, hal: Mapping[str, Any], data: bytes,
+                       scope: Optional[str]) -> Optional[str]:
     """What a tool-table write that SENDS A RELOAD needs beyond the write's
     own admission (tool guard, Codex R476 answer 2), judged on the controller
-    status `stat` as just polled and the fresh reader snapshot: the machine
+    status `stat` as just polled and `hal`, the ONE fresh reader snapshot the
+    admission took (never fields of two, Codex R481 MT-I45): the machine
     STANDS — a load sent while something moves waits behind the motion and
     runs later (emctaskmain.cc 2.9.4:1556); a manual jog keeps the
     interpreter idle — and the prepared tool stays what it is
@@ -6246,8 +6260,8 @@ def _tool_load_refusal(stat: linuxcnc.stat, data: bytes, scope: Optional[str]) -
         return MOTION_UNKNOWN
     if not still:
         return MACHINE_MOVING_WAIT
-    index, preparing = getattr(stat, "pocket_prepped", None), _reader_fresh_get("tool_prepare")
-    number, pocket = _reader_fresh_get("tool_prep_number"), _reader_fresh_get("tool_prep_pocket")
+    index, preparing = getattr(stat, "pocket_prepped", None), hal.get("tool_prepare")
+    number, pocket = hal.get("tool_prep_number"), hal.get("tool_prep_pocket")
     why = _tool_prepared_refusal(data, scope, index, preparing, number, pocket)
     if why:
         _trace.emit("tools.prepared_refused", level="warn", reason=why, index=index, preparing=preparing,
@@ -6268,7 +6282,7 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
     open, no run from line and no load / unload in progress, a controller
     status (none is no known idle, BG-26), the interpreter idle by a poll
     that succeeded now, and for the tool table no tool change asking for a
-    tool (a FRESH reader). E-Stop does not refuse: the files are not the
+    tool (a FRESH reader snapshot, taken once). E-Stop does not refuse: the files are not the
     machine. `owner` (a tool-table write): the Link, the instance and the
     configuration it was begun under are still the gateway's (Codex R468
     MT-I37). `load` (with its owner): the bytes of the file about to be
@@ -6309,16 +6323,16 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
         return STATE_UNKNOWN
     if interp != linuxcnc.INTERP_IDLE:
         return "A program or MDI runs — wait"
-    if tool_table:
-        pending = _reader_fresh_get("tool_change")
-        if pending is None:
+    if tool_table or load is not None:
+        hal = _reader_fresh_snapshot()          # ONE snapshot for every pin asked here
+        if hal is None or hal.get("tool_change") is None:
             return "Tool change request unknown — HAL reader stale"
-        if pending:
+        if hal["tool_change"]:
             return "Tool change pending — finish it first"
-    if load is not None:
-        why = _tool_load_refusal(stat, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)
-        if why:
-            return why
+        if load is not None:
+            why = _tool_load_refusal(stat, hal, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)
+            if why:
+                return why
     return standing()
 
 

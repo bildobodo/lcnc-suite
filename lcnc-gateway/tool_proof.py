@@ -512,9 +512,12 @@ def prepared_refusal(data: bytes, scope: Optional[str], index: object, preparing
 
     Nothing prepared is index -1 or 0 AND no preparation under way — that one
     is known from the pin, or (an older reader) from number 0: nothing asked
-    for. Prepared: the tool at the index after the load (LinuxCNC's own index
-    assignment, home_tools) must be the SAME number in the SAME pocket as the
-    pins say was prepared — never as a file says, which may have changed."""
+    for. Prepared: the preparation is KNOWN to have ended (`preparing` False;
+    a new `T` keeps the old index until its tool-prepared comes, so a positive
+    index proves nothing about it — Codex R481 MT-I44), and the tool at the
+    index after the load (LinuxCNC's own index assignment, home_tools) must be
+    the SAME number in the SAME pocket as the pins say was prepared — never as
+    a file says, which may have changed."""
     if type(index) is not int or index < -1:
         return PREPARED_UNREAD
     if preparing is True:
@@ -524,7 +527,7 @@ def prepared_refusal(data: bytes, scope: Optional[str], index: object, preparing
         return None if preparing is False or tool == 0 else PREPARED_UNKNOWN
     if scope is not None:
         return f"Prepared tool not checked ({scope}) — send T0"
-    if tool is None or type(pocket) is not int:
+    if preparing is not False or tool is None or type(pocket) is not int:
         return PREPARED_UNKNOWN
     if tool == 0:
         return PREPARED_CLEARED

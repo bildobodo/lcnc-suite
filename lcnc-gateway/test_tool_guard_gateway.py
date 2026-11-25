@@ -14,6 +14,7 @@ The table, the library and LinuxCNC's table as in test_tool_commit_gateway."""
 import asyncio
 import io
 import json
+import time
 import unittest
 
 import fake_linuxcnc
@@ -25,7 +26,7 @@ from fastapi import HTTPException, UploadFile  # noqa: E402
 from unittest.mock import patch  # noqa: E402
 from command_policy import NOT_ARMED  # noqa: E402
 from test_tool_commit_gateway import _Commit  # noqa: E402
-from tool_io_fixture import READER_AT_REST, at_rest, entry, load_into  # noqa: E402
+from tool_io_fixture import READER_AT_REST, at_rest, entry, load_into, publish_reader  # noqa: E402
 
 #: file order = number order: index 1 T2, index 2 T5, index 3 T8
 ROWS = ("T2 P2 Z20 D2 ; two\n"
@@ -52,7 +53,7 @@ class _Guard(_Commit):
     def setUp(self):
         super().setUp()
         self.reader = dict(READER_AT_REST)
-        gateway._reader_get = lambda f: self.reader.get(f)     # (restored by _Handlers)
+        publish_reader(self, gateway, self.reader)
         self.fresh()
 
     def fresh(self, text=ROWS):
@@ -62,8 +63,13 @@ class _Guard(_Commit):
         at_rest(self.conn.stat)
         self.reader.clear()
         self.reader.update(READER_AT_REST)
-        gateway._reader_is_stale = lambda: False
+        self.arrived()
         gateway._source_claims.clear()
+
+    def arrived(self, snapshot=None, stale=False):
+        """The bridge's newest snapshot: the test's reader, or `snapshot`."""
+        gateway._hal_bridge._reader_state = (self.reader if snapshot is None else snapshot,
+                                             time.monotonic() + (-3600.0 if stale else 3600.0))
 
     def prepare(self, index, tool, pocket):
         """`T<tool>` prepared without M6, as LinuxCNC's io leaves it: the
@@ -260,8 +266,10 @@ class TestWhatIsNotKnown(_Guard):
                 self.each(change, UNREAD)
 
     def test_the_pins_absent_from_the_snapshot(self):
-        # an older reader (no tool-prep-pocket pin) or a pin that did not read
-        for field in ("tool_prep_number", "tool_prep_pocket"):
+        # an older reader (no tool-prepare, no tool-prep-pocket pin) or a pin
+        # that did not read; a positive index proves no preparation ended — a
+        # new T keeps the old one until its tool-prepared comes (MT-I44)
+        for field in ("tool_prepare", "tool_prep_number", "tool_prep_pocket"):
             def change(field=field):
                 self.prepare(2, 5, 5)
                 del self.reader[field]
@@ -271,8 +279,73 @@ class TestWhatIsNotKnown(_Guard):
     def test_the_reader_stale(self):
         def change():
             self.prepare(2, 5, 5)
-            gateway._reader_is_stale = lambda: True
+            self.arrived(stale=True)
         self.each(change, "Tool change request unknown — HAL reader stale")
+        # no snapshot ever arrived
+        self.each(lambda: setattr(gateway._hal_bridge, "_reader_state", None),
+                  "Tool change request unknown — HAL reader stale")
+
+    def test_one_snapshot_decides(self):
+        """MT-I45: a new snapshot published between two reads. Neither of the
+        two admits the write; fields of both would."""
+        rest = dict(READER_AT_REST, tool_prep_number=5, tool_prep_pocket=5)
+        done5, turns8 = rest, dict(rest, tool_prepare=True, tool_prep_number=8, tool_prep_pocket=8)
+        asks, turning = dict(rest, tool_change=True), dict(rest, tool_prepare=True)
+        shifted = b"T5 P5 Z50 D5\nT8 P8 Z80 D8\n"          # T2 deleted: T8 at the index
+        kept, pending = ROWS.encode(), "Tool change pending — finish it first"
+
+        def publishing(a, b, after):
+            """Snapshot `a`; `b` is published right after `after` was read of it."""
+            taken = []
+
+            class Snapshot(dict):
+                def seen(self, field):
+                    taken.append(field)
+                    if field == after:
+                        gateway._hal_bridge._reader_state = (b, time.monotonic() + 3600.0)
+
+                def get(self, field, default=None):
+                    value = super().get(field, default)
+                    self.seen(field)
+                    return value
+
+                def __getitem__(self, field):
+                    value = super().__getitem__(field)
+                    self.seen(field)
+                    return value
+            self.arrived(Snapshot(a))
+            return taken
+        for a, b, data, why in ((done5, turns8, shifted, PREPARED), (turns8, done5, shifted, PREPARING),
+                                (turning, asks, kept, PREPARING), (asks, turning, kept, pending)):
+            for after in ("tool_change", "tool_prepare", "tool_prep_number"):
+                with self.subTest(a=a, after=after):
+                    self.fresh()
+                    self.prepare(2, 5, 5)
+                    taken = publishing(a, b, after)
+                    got = gateway._write_admission_refusal(self.writer.conn_key, tool_table=True,
+                                                           owner=gateway._tool_owner(), load=data)
+                    self.assertEqual(got, why)
+                    self.assertIn("tool_change", taken)
+        # and through the command: the first admission takes it too, so after
+        # a field only the write's own last admission reads
+        self.fresh()
+        self.prepare(2, 5, 5)
+        publishing(done5, turns8, "tool_prepare")
+        self.refused(self.edit(cmd="delete_tool", tool_number=2), PREPARED)
+
+    def test_the_freshness_is_the_taken_snapshots(self):
+        # stale when it was taken; a fresh one arrives right after
+        self.prepare(2, 5, 5)
+        stale, fresh = (dict(self.reader), time.monotonic() - 3600.0), (dict(self.reader), time.monotonic() + 3600.0)
+        taken = []
+
+        def state():
+            taken.append(1)
+            return stale if len(taken) == 1 else fresh
+        with patch.object(gateway, "_reader_state_now", state):
+            self.assertEqual(gateway._write_admission_refusal(self.writer.conn_key, tool_table=True),
+                             "Tool change request unknown — HAL reader stale")
+        self.assertEqual(len(taken), 1, "one snapshot")
 
     def test_the_pins_cleared_by_an_e_stop(self):
         # EMC_AUX_ESTOP_ON clears the pins (hal_init_pins), never the index
@@ -399,16 +472,14 @@ class TestTheWriterAfterTheNewReads(_Guard):
                 self.prepare(2, 5, 5)
                 pins = []
 
-                def read(field):
-                    if field == "tool_prep_pocket":     # the last of the new reads, in the write's thread
-                        pins.append(1)
-                        do()
-                    return self.reader.get(field)
-                gateway._reader_get = read
-                try:
-                    self.refused(make(self), why)
-                finally:
-                    gateway._reader_get = lambda f: self.reader.get(f)
+                class Snapshot(dict):
+                    def get(self, field, default=None):
+                        if field == "tool_prep_pocket":     # the last of the new reads, in the write's thread
+                            pins.append(1)
+                            do()
+                        return super().get(field, default)
+                self.arrived(Snapshot(self.reader))
+                self.refused(make(self), why)
                 self.assertTrue(pins, "the prepared pocket was read")
 
     def test_disarmed(self):

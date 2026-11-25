@@ -146,7 +146,7 @@ MUTS = {
                                 [KNOWN + "test_an_older_reader_admits_only_where_it_proves_nothing_is_prepared", R + "test_nothing_prepared"]),
     "a_random_changer_judged": (PROOF, [("    if scope is not None:\n        return f\"Prepared tool not checked ({scope}) — send T0\"\n", "")],
                                 [KNOWN + "test_a_random_changer_and_a_tool_database", R + "test_no_index_is_judged_outside_rule_rs_scope"]),
-    "an_absent_pocket_is_0": (PROOF, [("    if tool is None or type(pocket) is not int:\n        return PREPARED_UNKNOWN\n",
+    "an_absent_pocket_is_0": (PROOF, [("    if preparing is not False or tool is None or type(pocket) is not int:\n        return PREPARED_UNKNOWN\n",
                                        "    tool, pocket = tool or 0, pocket if type(pocket) is int else 0\n")],
                               [KNOWN + "test_the_pins_absent_from_the_snapshot", R + "test_unknown_is_never_a_default"]),
     "cleared_pins_admitted": (PROOF, [("        return PREPARED_CLEARED\n", "        return None\n")],
@@ -167,15 +167,37 @@ MUTS = {
          "    why = _write_admission_refusal(conn_key, tool_table=True, owner=owner)\n    if why:\n        _trace.emit(\"tools.edit_admission_lost\"")],
         [STILL + "test_a_jog_begun_while_the_write_reads"]),
     "behind_the_writer": (GW, [(
-        "    if load is not None:\n        why = _tool_load_refusal(stat, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)\n"
-        "        if why:\n            return why\n    return standing()\n",
+        "        if load is not None:\n            why = _tool_load_refusal(stat, hal, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)\n"
+        "            if why:\n                return why\n    return standing()\n",
         "    why = standing()\n    if why:\n        return why\n    if load is not None:\n"
-        "        return _tool_load_refusal(stat, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)\n    return None\n")],
+        "        return _tool_load_refusal(stat, hal, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)\n    return None\n")],
         [LAST + "test_disarmed", LAST + "test_unregistered", LAST + "test_a_start_claimed", LAST + "test_another_link"]),
     "motion_read_before_the_poll": (GW, [
         ("        stat = link().stat\n        stat.poll()\n    except Exception as e:  # noqa: BLE001 - no fresh read, no write\n",
          "        stat = copy.copy(link().stat)\n        link().stat.poll()\n    except Exception as e:  # noqa: BLE001 - no fresh read, no write\n")],
         [STILL + "test_the_poll_decides_not_what_was_read_before"]),
+    # ---- one snapshot, a known end of the preparation (Codex R481 MT-I44 / MT-I45)
+    "no_known_end_of_the_preparation": (PROOF, [("    if preparing is not False or tool is None or", "    if tool is None or")],
+                                        [R + "test_a_preparation_not_known_to_have_ended", KNOWN + "test_the_pins_absent_from_the_snapshot"]),
+    "the_pins_of_a_later_snapshot": (GW, [(
+        "    number, pocket = hal.get(\"tool_prep_number\"), hal.get(\"tool_prep_pocket\")\n",
+        "    number, pocket = _reader_fresh_get(\"tool_prep_number\"), _reader_fresh_get(\"tool_prep_pocket\")\n")],
+        [KNOWN + "test_one_snapshot_decides"]),
+    "the_preparation_of_a_later_snapshot": (GW, [("None), hal.get(\"tool_prepare\")\n", "None), _reader_fresh_get(\"tool_prepare\")\n")],
+                                            [KNOWN + "test_one_snapshot_decides"]),
+    "the_request_of_another_snapshot": (GW, [(
+        "        if hal is None or hal.get(\"tool_change\") is None:\n            return \"Tool change request unknown — HAL reader stale\"\n"
+        "        if hal[\"tool_change\"]:\n",
+        "        pending = _reader_fresh_get(\"tool_change\")\n        hal = _reader_fresh_snapshot() or {}\n        if pending is None:\n"
+        "            return \"Tool change request unknown — HAL reader stale\"\n        if pending:\n")],
+        [KNOWN + "test_one_snapshot_decides"]),
+    "the_freshness_of_another_snapshot": (GW, [(
+        "    state = _reader_state_now()\n    if state is None or time.monotonic() - state[1] > _hal_bridge.stale_sec:\n        return None\n",
+        "    state = _reader_state_now()\n    if state is None or _reader_is_stale():\n        return None\n")],
+        [KNOWN + "test_the_freshness_is_the_taken_snapshots"]),
+    "a_stale_snapshot_counts": (GW, [(
+        "    if state is None or time.monotonic() - state[1] > _hal_bridge.stale_sec:\n", "    if state is None:\n")],
+        [KNOWN + "test_the_reader_stale", "test_button_gates_b.py::TestWriteAdmission::test_an_unknown_tool_change_refuses_the_table"]),
     "standstill_not_asked": (GW, [("    if not still:\n        return MACHINE_MOVING_WAIT\n    index, preparing =", "    index, preparing =")],
                              [STILL + "test_moving", STILL + "test_a_jog_begun_while_the_write_reads"]),
     "unread_motion_stands": (GW, [("    if still is None:\n        return MOTION_UNKNOWN\n    if not still:\n        return MACHINE_MOVING_WAIT\n    index, preparing =",
@@ -184,8 +206,8 @@ MUTS = {
     "e_stop_refuses": (GW, [("    if still is None:\n        return MOTION_UNKNOWN\n    if not still:\n        return MACHINE_MOVING_WAIT\n    index, preparing =",
                              "    if still is None:\n        return MOTION_UNKNOWN\n    if not still or getattr(stat, \"estop\", 0):\n        return MACHINE_MOVING_WAIT\n    index, preparing =")],
                        [STILL + "test_e_stop_and_machine_off_stand"]),
-    "a_write_without_a_reload_asked": (GW, [("    if load is not None:\n        why = _tool_load_refusal(stat, load,",
-                                             "    if tool_table:\n        load = load or b\"\"\n        why = _tool_load_refusal(stat, load,")],
+    "a_write_without_a_reload_asked": (GW, [("        if load is not None:\n            why = _tool_load_refusal(stat, hal, load,",
+                                             "        if tool_table:\n            load = load or b\"\"\n            why = _tool_load_refusal(stat, hal, load,")],
                                        [("test_tool_refresh.py::TestMetadataRefreshRoutes::test_it_sends_no_reload_so_nothing_of_one_is_asked",
                                          "HTTPException: 409: Machine moving")]),
     "the_line_inside_the_effect": (GW, [(
