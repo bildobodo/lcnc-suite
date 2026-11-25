@@ -9,8 +9,13 @@ export type SimKind = "all" | "clash" | "limit" | "tool";
 /** Opens the Simulation tab — the tab, or the narrow pane's select. */
 export async function openSimTab(page: Page): Promise<void> {
   const tab = page.getByRole("tab", { name: "Sim", exact: true });
+  const select = page.getByRole("combobox", { name: "Side panel" });
+  // one of the two is there once the pane is rendered — asked for, never
+  // probed once (under load the one look came before the tab was back, and
+  // the helper waited for the narrow pane's select: P6-d0 gate 1)
+  await expect(tab.or(select).first()).toBeVisible();
   if (await tab.isVisible()) await tab.click();
-  else await page.getByRole("combobox", { name: "Side panel" }).selectOption("sim");
+  else await select.selectOption("sim");
   await expect(page.locator(".simPanel")).toBeVisible();
 }
 
