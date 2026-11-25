@@ -1,0 +1,61 @@
+[2m[WebServer] [22m(node:2610138) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:2610182) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2610182) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [e2e] › e2e/codex-r474.spec.ts:14:1 › R474 restart before the file commit cannot prove that the written pocket loaded (32.5s)
+
+
+  1) [e2e] › e2e/codex-r474.spec.ts:14:1 › R474 restart before the file commit cannot prove that the written pocket loaded 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Edit Tool T1', exact: true }).getByLabel('Pocket', { exact: true })[22m
+    [2m    - locator resolved to <input min="0" readonly lang="en" value="1" id="ffv-33" type="text" inputmode="none" data-v-d9c7470e="" autocomplete="off" name="toolEditNum" class="inputField" aria-label="Pocket" data-control="toolEditNum" data-input-area="input-21"/>[22m
+    [2m    - fill("8")[22m
+    [2m  - attempting fill action[22m
+    [2m    2 × waiting for element to be visible, enabled and editable[22m
+    [2m      - element is not editable[22m
+    [2m    - retrying fill action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and editable[22m
+    [2m      - element is not editable[22m
+    [2m    - retrying fill action[22m
+    [2m      - waiting 100ms[22m
+    [2m    60 × waiting for element to be visible, enabled and editable[22m
+    [2m       - element is not editable[22m
+    [2m     - retrying fill action[22m
+    [2m       - waiting 500ms[22m
+
+
+      26 |   const editor=page.getByRole('dialog',{name:'Edit Tool T1',exact:true});
+      27 |   await expect(editor.getByLabel('Pocket',{exact:true})).toHaveValue('1');
+    > 28 |   await editor.getByLabel('Pocket',{exact:true}).fill('8');
+         |                                                  ^
+      29 |   await editor.getByRole('button',{name:'Save',exact:true}).click();
+      30 |   await expect(editor).toHaveCount(0);
+      31 |   await expect.poll(async () => ((await ctl({op:'lastCmds'})).cmds as {cmd:string}[])
+        at /tmp/r474/tree/lcnc-webui/e2e/codex-r474.spec.ts:28:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/codex-r474.spec.ts:14:1 › R474 restart before the file commit cannot prove that the written pocket loaded 

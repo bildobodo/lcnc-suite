@@ -1,0 +1,53 @@
+[2m[WebServer] [22m(node:2612328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:2612354) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2612354) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R474_EARLY_START {"old":{"path":"/cfg/tool.tbl","instance":"111:111"},"now":{"path":"/cfg/tool.tbl","instance":"222:222"},"proof":"complete","filePocket":8,"loadedPocket":1,"notes":[]}
+  ✘  1 [e2e] › e2e/codex-r474.spec.ts:14:1 › R474 restart before the file commit cannot prove that the written pocket loaded (5.1s)
+
+
+  1) [e2e] › e2e/codex-r474.spec.ts:14:1 › R474 restart before the file commit cannot prove that the written pocket loaded 
+
+    Error: the new instance started BEFORE this file commit; the old reload failed
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('.toolsTab').locator('[data-write-state]')
+    Expected substring: [32m"load into LinuxCNC failed"[39m
+    Timeout: 1000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - the new instance started BEFORE this file commit; the old reload failed with timeout 1000ms[22m
+    [2m  - waiting for locator('.toolsTab').locator('[data-write-state]')[22m
+
+
+      49 |   await page.screenshot({path:'/tmp/r474/early-start.png'});
+      50 |   await expect(note,'the new instance started BEFORE this file commit; the old reload failed')
+    > 51 |     .toContainText('load into LinuxCNC failed',{timeout:1000});
+         |      ^
+      52 | });
+      53 |
+        at /tmp/r474/tree/lcnc-webui/e2e/codex-r474.spec.ts:51:6
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/codex-r474-R474-restart-be-f0d0c-t-the-written-pocket-loaded-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/codex-r474.spec.ts:14:1 › R474 restart before the file commit cannot prove that the written pocket loaded 

@@ -1,0 +1,11 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+R474_ORDER {"restart_before_commit": false, "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "reload failed"}, "old_table": {"path": "/tmp/tmpj1n2xtd6/tool.tbl", "instance": "111:111"}, "new_table": {"path": "/tmp/tmpj1n2xtd6/tool.tbl", "instance": "222:222"}, "read": "complete", "loaded_pocket": 8, "file_pocket": 8, "completed_reloads": [0, 0], "old_reload_attempts": 1}
+.R474_ORDER {"restart_before_commit": true, "reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "reload failed"}, "old_table": {"path": "/tmp/tmpfi1upd5p/tool.tbl", "instance": "111:111"}, "new_table": {"path": "/tmp/tmpfi1upd5p/tool.tbl", "instance": "222:222"}, "read": "complete", "loaded_pocket": 1, "file_pocket": 8, "completed_reloads": [0, 0], "old_reload_attempts": 1}
+.
+2 passed in 0.32s
+[GC] +133ms gen=2 duration=13.9ms collected=851 uncollectable=0
+[GC] +140ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +147ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +154ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +161ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +168ms gen=2 duration=6.5ms collected=0 uncollectable=0

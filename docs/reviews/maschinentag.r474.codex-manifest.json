@@ -1,0 +1,96 @@
+{
+  "round": "R474",
+  "verdict": "findings",
+  "finding": "MT-I43 rest: another instance does not order its startup load after an admitted file commit",
+  "base": "d5e5a1bbf53be672f4259c657a24b780abad995a",
+  "tested_head": "8c39814c89556c12a9e108e21003424e8204d596",
+  "worktree_head": "05d381e3d0b9ea6630d70dbed0172072d75543b7",
+  "development": "50b28d3d864d5fef2ca526e4e92d97b4e809b866",
+  "document_head_before_append": "9a541b0b822761d84dc98e3beefe48cc7232336b",
+  "archive": "/tmp/r474/tree",
+  "product_edits": false,
+  "live_sim_actions": false,
+  "checks": {
+    "unit": {
+      "exit": 0,
+      "passed": 22
+    },
+    "build": {
+      "exit": 0,
+      "own_specs_excluded": true
+    },
+    "browser_existing": {
+      "exit": 0,
+      "passed": 14,
+      "unchanged_r472": 2
+    },
+    "backend_probe": {
+      "exit": 0,
+      "passed": 2,
+      "fake": true,
+      "explicit_conftest": true
+    },
+    "browser_probe": {
+      "exit": 1,
+      "failed": 1,
+      "assertion": "missing [data-write-state] after different instance on same file",
+      "submitted_pocket": 8
+    }
+  },
+  "commands": {
+    "initial_checks": "python3 -I /tmp/r474/tree/scripts/test_support/heavy_lock.py --who codex-r474-checks --wait 50 -- python3 /tmp/r474/run_checks.py",
+    "probes": "python3 -I /tmp/r474/tree/scripts/test_support/heavy_lock.py --who codex-r474-probes --wait 50 -- python3 /tmp/r474/run_probes.py",
+    "final_browser": "python3 -I /tmp/r474/tree/scripts/test_support/heavy_lock.py --who codex-r474-browser-probe --wait 50 -- env npm_config_cache=/tmp/r474/npm-cache LCNC_E2E_WORKERS=1 LCNC_E2E_RUN=codex-r474-order-keypad LCNC_E2E_EVENTS=/tmp/r474/keypad-events.jsonl LCNC_E2E_REPLAY_DIR=/tmp/r474/keypad-replay LCNC_E2E_HTTP_DIR=/tmp/r474/keypad-http LCNC_E2E_SELECTION=/tmp/r474/probe-selection.json npx --no-install playwright test -c playwright.select.config.ts --reporter=list"
+  },
+  "harness_notes": [
+    "Initial build included the unchanged prior probe with its unused publishToolTable import (TS6133). Successful build excluded own specs; product files unchanged.",
+    "First backend variant published the next owner during the write; final variant holds the original owner until its reply, only the independent new IO reads at startup. Both variants establish missing ordering.",
+    "First browser case already failed at missing note; strengthened to enter actual pocket 1 -> 8. Direct fill found readonly display; final uses the normal keypad, verifies transmitted pocket=8, then fails at the missing note."
+  ],
+  "sources_sha256": {
+    "lcnc-webui/src/toolTableRead.ts": "1ebdd93539ccfe0c4884355d769aae98e9a5d314d04d3ab0ee99fa6a9e6b0516",
+    "lcnc-webui/src/ToolTablePanel.vue": "3d8da75751bee4ac3aec0e4833c12a6612b5373d5a337bb8c64af23459de6180",
+    "lcnc-webui/src/toolTableRead.test.ts": "9cb3b0bbbde440ec3683b10b01bf5bae9b01fc51ed1f787b85362db5dcbd2e04",
+    "lcnc-webui/e2e/tool-table-read.spec.ts": "70ba95cfba32bc3c2336a4c205540706bbdc480f927a0eca5ac90d2c9b672118",
+    "lcnc-gateway/gateway.py": "f1f6c95b6e36dd930888a3e5be671f165fc1c772a1f527bb4a04f7efc2a2f1d5",
+    "lcnc-gateway/tool_table.py": "5ec77aec17cb5c10559280a4999d23a33e23044c76b1df9fa5115ad48e4415dd"
+  },
+  "read_evidence": {
+    "path": "/home/cnc/lcnc-suite-p6tf/docs/reviews/p6tf.mutations.txt",
+    "sha256": "02c0af7f9ca4570e9bb5c204ada6e62b455bac721e2cd8c7101cb07b0629bd19",
+    "rules_at_8c39814c": 14,
+    "red_at_rule": 14,
+    "rerun_here": false
+  },
+  "review_before": {
+    "bytes": 939537,
+    "sha256": "a1d1ba6d32548c85f531365f21dcf4aa164c5c87b29bf12ffa9fb4bd9f3a6d79"
+  },
+  "artifacts": {
+    "maschinentag.r474.codex-backend-probe-rebind.txt": "e8be9e31a3af5ea774fdb4c30a49aeb25dc5eff11baac38d2136eee13a0afaf5",
+    "maschinentag.r474.codex-backend-probe.txt": "bd14858bab7be833a88e5e8d970bbc1c796e1b2e38772bd9d51a0e43c80b42aa",
+    "maschinentag.r474.codex-browser-fill.spec.ts": "3e4bc0d8b2fa241ed28e14ec4c7a43adc433a9cf82c63304f1fc0b4587ca2e13",
+    "maschinentag.r474.codex-browser-fill.txt": "463fd320de72a79e58a05bf53007bc17e1e69dabb21f41734c5fa8c0f20a7d43",
+    "maschinentag.r474.codex-browser-first.spec.ts": "09099deb071c3590bfe9249fcb3c751dd29c96e5c37faa4c3c2fc8bb8d58c566",
+    "maschinentag.r474.codex-browser-first.txt": "9785a05355b522f5547d1748b5f383afe17525938ece04f0eb18989220487a65",
+    "maschinentag.r474.codex-browser-probe.txt": "fdd4a4d222edca4e72c5f9d4d0fbdcaf4e8469732347079498adf3406a17ee4b",
+    "maschinentag.r474.codex-browser.txt": "db4d05d69f594aa66cd2cf5682cd522cedd8e768666647de120a91971dd17848",
+    "maschinentag.r474.codex-build-initial.txt": "1f2669a1f42ed90793206dc8ede6edfdda62e7b76936bcaa666ee299abd74eca",
+    "maschinentag.r474.codex-build.txt": "0d636a160e6be32c8d30f731141a53b924be864021d7fb56bc346d2649a6a3af",
+    "maschinentag.r474.codex-early-start.png": "c91a1fb3c313380c7523df80c19390269e0ad41ccdb59a8652162c1829177407",
+    "maschinentag.r474.codex-probe-rebind.py": "f520804db50fb446e04568f65ebde5cd2a978942438ff037050ae71c942a0afb",
+    "maschinentag.r474.codex-probe.py": "dbe0c23e810e4ca87793d141dc7bb0348cbb9cff180d293d97097d3bc2c70941",
+    "maschinentag.r474.codex-probe.spec.ts": "e70303a5225bf97e7fd1c7cc22c4e02803be1dd63b803ec644d63b289f7521e5",
+    "maschinentag.r474.codex-r472.spec.ts": "3de49bd9f4fb0e6151d115b59abb64f757325684f8cc55cfc0105b12dc26824a",
+    "maschinentag.r474.codex-run-checks-initial.py": "5a7df6c573bdc79a2f2d80ae1bdfbec30711e5b7ade88e9117ed998ee81676b3",
+    "maschinentag.r474.codex-run-checks.py": "921d34ff3731e7ffb11e27af438666dde7a165cc6e76e4f197e1c1c24f5f3ff2",
+    "maschinentag.r474.codex-run-probes.py": "3258a5c4b77339435287f3eabe4a719070d42029c4d211a9a63ac355f1d6db22",
+    "maschinentag.r474.codex-unit.txt": "3eac1e360a800694284d703873ec5eec5739e120597ba1e08be2041489d3a00e"
+  },
+  "review_after": {
+    "bytes": 946286,
+    "sha256": "b7fb51c340d8198b2be9521a9f0ec5051a4a19dfd897da562e67efe06f0d2089",
+    "append_only": true,
+    "section_line": 7699
+  }
+}
