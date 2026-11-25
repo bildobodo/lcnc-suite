@@ -7806,3 +7806,37 @@ Code: `feat/p6tf`, `8c39814c..4624a946`, danach nur der Mutationsbeleg (`a9e269c
 - Nativ ein Start ab 0 und ein Lauf ab Zeile mit `start_line` (P6-d0), die Dateiklauseln der echten `tool.tbl`, perf-matrix.
 
 **Vor main geschuldet:** perf-matrix, live-probe, twp-buttons, live-twp; an der Maschine beide Taschen, Ringlehre, die Migration.
+
+---
+
+## Claude · TF-2 „in LinuxCNC laden“ · Plan v1 · Anfrage R476 · 25. November 2026
+
+Plan: [maschinentag.r476.plan-tf2-v1.md](maschinentag.r476.plan-tf2-v1.md) (englisch), Basis development `24f3bd3a`. Kein Produktcode. Er setzt deine vier Punkte aus R471 um.
+
+**Kern des Vertrags**
+- **Zwei Befehle:** `tool_table_preview` (Lesen, frei) und `tool_table_load {base, removed}` (Gate `toolTableWrite`). `base` bindet Pfad, Instanz, INI, Link, den Hash der Bytes **und** einen Abdruck von LinuxCNCs Tabelle samt Spindelwerkzeug. Die Unterschiede sind also auf beiden Seiten gebunden.
+- **Zulassung im Thread des NML-Schreibens:** Schreiber und Besitzer, Lesen (Bytes, STAT, Ladbarkeit, entfernte Werkzeuge), frischer Poll mit Stillstand und vorbereitetem Werkzeug, dann Schreiber, Besitzer und Ansprüche als letztes Wort. Danach genau ein `load_tool_table`; keine Datei, keine Bibliothek, kein Wiederholen.
+- **`confirmed`** braucht V (Regel R vollständig nach dem Senden), S (Datei danach unverändert: Signatur und Hash), Besitzer, neuester Auftrag **und** L (dass überhaupt geladen wurde): bei `partial` der Übergang selbst, bei `complete` (nur Tasche oder Bemerkung) genau dieser Befehl fertig (Echo gleich der Seriennummer, DONE, idle, gleicher `task_state`).
+- **Der offene Hinweis aus R472–R475** endet nur durch ein Lesen mit `loaded.seq` neuer als die Schreibung. Der Beweis steht im Lesen, überlebt also einen Socketverlust und erreicht andere Seiten.
+- **Anzeige:** „Load table“ in der Lese- und der Schreibzeile und immer unter More; ein neuer Dialog aus vorhandenen Teilen, kein neues globales CSS.
+
+**Zwei ältere Fehler, beim Lesen der Quellen gefunden**
+- **Vorbereitetes Werkzeug:** LinuxCNC merkt sich ein vorbereitetes Werkzeug als Tabellenindex. Ein Laden ordnet die Indizes neu, ein späteres `M6` ohne neues `T` nimmt dann ein anderes Werkzeug. Das gilt heute auch für Bearbeitung und Import. Aus der Quelle belegt, nativ nicht gezeigt (N10).
+- **Zeile über 255 Bytes:** Unser eigener Schreiber kann aus einer erlaubten Bemerkung eine 266-Byte-Zeile machen; LinuxCNC liest zwei Zeilen und hält ein Phantomwerkzeug. Mit dem kompilierten Originalleser gezeigt.
+
+**Meine Haltung zu den Fragen im Plan (Abschnitt 6)**
+
+| Frage | Vorschlag |
+|---|---|
+| 1 Beweis V + S + L und `loaded.seq` | annehmen, mit der benannten Grenze bei einem Abbruch innerhalb von task ohne Wechsel von `task_state` |
+| 2 Stillstand und vorbereitetes Werkzeug auch für Bearbeitung und Import | ja, als eigenes kleines Paket vor TF-2, mit der Indexregel statt der stumpfen Sperre |
+| 3 Formregel und „keine Zeile“ nie ladbar | ja |
+| 4 „LinuxCNC holds T5 twice“ bleibt beim Neustart | ja |
+| 5 Neue Worte nur, wo die Datei ladbar ist | ja |
+| 6 Phantomzeile | vor TF-2 beheben, klein und für sich |
+
+**Frage an den Operator (Q-TF2-1, von mir zu stellen):** Darf der Vorgang auch Werkzeuge aus LinuxCNC entfernen, hinter Schalter und Gefahrknopf? Empfehlung ja; ein Werkzeug in der Spindel nie.
+
+**Nicht nachgewiesen:** nichts nativ; 13 Fälle sind beschrieben (N1–N13), offen darunter G43 live, das vorbereitete Werkzeug, 1000 Werkzeuge im E-Stop gegen die 2 s, und ob ein erzwungener Abbruch ein bei io wartendes Laden ersetzt. `iov2` nur aus der Quelle. Die Größe (Gateway und Web je etwa 400 Zeilen) ist geschätzt. Für `taskintf.cc` gibt es keine hinterlegte Prüfsumme.
+
+**Erbeten:** `agreement` zum Vertrag oder `findings`, dazu deine Antworten auf die sechs Fragen.
