@@ -18,7 +18,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 BIN = ROOT / "lcnc-webui/node_modules/.bin"
 CACHE = pathlib.Path.home() / "claude-work/p5/npm-cache"
 ENV = {**os.environ, "PATH": f"{BIN}:{os.environ['PATH']}", "npm_config_cache": str(CACHE), "npm_config_logs_dir": str(CACHE / "_logs"),
-       "npm_config_update_notifier": "false"}
+       "npm_config_update_notifier": "false", "NO_COLOR": "1"}
 G, W, S, N = "lcnc-gateway/", "lcnc-webui/", "lcnc-webui/src/", "subroutines/probe_basic/"
 
 
@@ -201,6 +201,10 @@ MUTS = {
         "        if row is None or raw is None or hashlib.sha256(raw).hexdigest() != row[0]:", "        if row is None or raw is None or not hashlib.sha256(raw).hexdigest():")],
         [py("test_probe_book.py", "needs_the_bundled_file", "test_a_proven_effect_needs_the_bundled_file_and_its_calls")]),
     "a_chunk_lifts_the_call_s_invalidation": (G + "probe_book.py", [(
+        "                self._e[k] = {\"value\": None, \"outcome\": \"unknown\", \"t\": now, \"link\": None, \"job\": why,\n"
+        "                              \"persisted\": None, \"refused\": None}",
+        "                self._e[k] = {**(old or {\"value\": None, \"link\": None}), \"outcome\": \"unknown\", \"t\": now, \"job\": why,\n"
+        "                              \"persisted\": None, \"refused\": None}"), (
         "                if e is not None and e[\"outcome\"] == \"applied\":\n                    e[\"persisted\"] = bool(ok)",
         "                if e is not None:\n                    e.update(outcome=\"applied\", persisted=bool(ok))")],
         [py("test_probe_book.py", "restores_a_key", "test_only_the_next_write_or_a_read_restores_a_key")]),
@@ -254,7 +258,7 @@ MUTS = {
         [pw("the bars hold 3 : 1 against their field and its surroundings \\(light\\)", "light draft against its field")]),
     "the_reason_not_in_the_row": (S + "ProbePanel.vue", [(
         "data-cal=\"detail\">{{ calView.refusal ?? calView.note.detail }}</span>", "data-cal=\"detail\">{{ calView.note.detail }}</span>")],
-        [pw("no answer claims no outcome", "No reply — outcome unknown")]),
+        [pw("no answer claims no outcome", "the row says why")]),
     "apply_without_arm": (S + "machineControls.ts", [(
         "  calApply:       { gate: 'armed', ", "  calApply:       { gate: 'always', ")],
         [pw("disarmed: Apply, Discard, Reset", "Apply is closed while disarmed")]),
@@ -273,6 +277,12 @@ def failures(out):
             if "FAILED" in line or "✘" in line or line.lstrip().startswith(("FAIL ", "× ", "Error: "))]
 
 
+def at_failing(name, out):
+    """`name` only where a FAILING test's line says it: vitest and Playwright
+    list the passing tests of the file too."""
+    return name if any(name in line for line in failures(out)) else "\0"
+
+
 def build():
     b = subprocess.run(["npm", "run", "build"], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=900, env=ENV)
     return b.returncode == 0, b.stdout + b.stderr
@@ -285,12 +295,12 @@ def run_guard(kind, args):
         # 1 = tests failed; 5 = none collected (the guard is gone) is no red proof
         return r.returncode == 1, r.stdout + r.stderr, f"FAILED {args[0]}::" if args[2] in (r.stdout + r.stderr) else "\0"
     if kind == "vi":
-        r = subprocess.run([str(BIN / "vitest"), "run", args[0]], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=600)
-        return r.returncode != 0, r.stdout + r.stderr, args[1]
+        r = subprocess.run([str(BIN / "vitest"), "run", args[0]], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=600, env=ENV)
+        return r.returncode != 0, r.stdout + r.stderr, at_failing(args[1], r.stdout + r.stderr)
     if kind == "pw":
         r = subprocess.run([str(BIN / "playwright"), "test", args[0], "-g", args[1], "--workers=1", "--reporter=list"],
                            cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=1800, env=ENV)
-        return r.returncode != 0, r.stdout + r.stderr, args[2]
+        return r.returncode != 0, r.stdout + r.stderr, at_failing(args[2], r.stdout + r.stderr)
     raise SystemExit(f"unknown guard kind {kind}")
 
 

@@ -202,7 +202,7 @@ test("no answer claims no outcome; the status that arrives later does", async ({
   const row = side.locator('[data-cal="candidate"]');
   await ctl({ op: "replyFor", cmd: "cal_apply", reply: "silent" });
   await row.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(row.locator('[data-cal="detail"]')).toHaveText("No reply — outcome unknown", { timeout: 15_000 });
+  await expect(row.locator('[data-cal="detail"]'), "the row says why").toHaveText("No reply — outcome unknown", { timeout: 15_000 });
   await put(STATES.applied_next_probe!);
   await expect(side.locator('[data-cal="outcome"]')).toHaveText("Applied — the next probe writes it");
   await expect(side.getByText("No reply")).toHaveCount(0);
