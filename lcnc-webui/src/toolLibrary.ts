@@ -4,12 +4,22 @@
 // toolTableStore.ts fills it, and what it holds is content bound to a revision
 // — no statement about the current table. Pure, three-free.
 import { drawCounter, type DrawCounter } from "./toolDrawing";
-import { FORM_PAYLOAD_FIELDS, formSteps, rawForm, type FormRecord, type FormState, type RawForm } from "./toolForm";
+import { baseBytes, FORM_PAYLOAD_FIELDS, formSteps, rawForm, RECORD_BYTES, TOO_DETAILED, type FormRecord, type FormState, type RawForm,
+  type ShapeScalars } from "./toolForm";
 import type { Steps } from "./viewer/steps";
 
-/** The records of one library: all their arrays and RECORD_BYTES each. A
- *  record that would pass it is refused in its turn (ascending T). */
+/** The records of one library, ALL of them (Codex R492 MT-I48): every record's
+ *  base (RECORD_BYTES and its note), the branch it keeps and its holder. In
+ *  ascending T each record may take what is left after the bases of the rows
+ *  still to come; what does not fit is refused, its base reserved. */
 export const LIBRARY_BYTES_MAX = 64 * 1024 * 1024;
+
+/** The one record of every row whose base no longer fits (more rows than any
+ *  tool table has: some 21 800 of the largest notes): shared, counted once. */
+export const LIBRARY_FULL: FormRecord = Object.freeze({
+  kind: "refused", scalars: Object.freeze({}) as ShapeScalars, mesh: null, profile: null, segments: null, shaft: null, holder: null,
+  holderWhy: null, refused: Object.freeze({ why: TOO_DETAILED, field: "library", size: null }), bytes: RECORD_BYTES,
+});
 
 /** What a form is bound to: the table (path, LinuxCNC instance), the length
  *  unit of its numbers (units per mm) and the library's revision. */
@@ -17,8 +27,9 @@ export interface ToolBinding { readonly path: string; readonly instance: string;
 export const sameBinding = (a: ToolBinding | null, b: ToolBinding | null): boolean =>
   !!a && !!b && a.path === b.path && a.instance === b.instance && a.units === b.units && a.rev === b.rev;
 
-/** A decoded row as the normaliser owns it: its payload, then nothing. */
-interface Todo { T: number; row: Record<string, unknown>; raw: RawForm }
+/** A decoded row as the normaliser owns it: its payload, then nothing; `rest`
+ *  the bases of the rows after it. */
+interface Todo { T: number; row: Record<string, unknown>; raw: RawForm; rest: number }
 
 export class FormLibrary {
   private readonly forms = new Map<number, FormRecord | "pending">();
@@ -40,10 +51,22 @@ export class FormLibrary {
       const T = row.T;
       if (typeof T !== "number" || !Number.isInteger(T)) continue;
       // a table with a number twice: one library entry
-      if (!byT.has(T)) byT.set(T, { T, row, raw: rawForm(row) });
+      if (!byT.has(T)) byT.set(T, { T, row, raw: rawForm(row), rest: 0 });
       for (const k of FORM_PAYLOAD_FIELDS) delete row[k];
     }
-    this.todo = [...byT.values()].sort((a, b) => a.T - b.T);
+    const all = [...byT.values()].sort((a, b) => a.T - b.T), bases = all.map(t => baseBytes(t.row));
+    // the bases of every row fit — or, in T order, those that fit beside the one shared record
+    let own = all.length;
+    if (bases.reduce((n, b) => n + b, 0) > LIBRARY_BYTES_MAX) {
+      let sum = RECORD_BYTES;
+      own = 0;
+      while (sum + bases[own]! <= LIBRARY_BYTES_MAX) sum += bases[own++]!;
+    }
+    let rest = own < all.length ? RECORD_BYTES : 0;
+    for (let i = own - 1; i >= 0; i--) { all[i]!.rest = rest; rest += bases[i]!; }
+    if (own < all.length) this.taken = RECORD_BYTES;
+    for (const t of all.slice(own)) this.forms.set(t.T, LIBRARY_FULL);
+    this.todo = all.slice(0, own);
     this.left = this.todo.length;
     for (const t of this.todo) this.forms.set(t!.T, "pending");
   }
@@ -63,7 +86,9 @@ export class FormLibrary {
     for (let i = 0; i < this.todo.length; i++) {
       const t = this.todo[i];
       if (!t) continue;
-      const rec: FormRecord = yield* formSteps(t.row, t.raw, this.u, Math.max(0, LIBRARY_BYTES_MAX - this.taken), c);
+      const room = LIBRARY_BYTES_MAX - this.taken - t.rest;
+      const rec: FormRecord = yield* formSteps(t.row, t.raw, this.u, room, c);
+      if (rec.bytes > room) throw new Error(`tool form T${t.T}: ${rec.bytes} B past its room ${room} B`);
       this.taken += rec.bytes;
       this.forms.set(t.T, rec);
       this.todo[i] = null;

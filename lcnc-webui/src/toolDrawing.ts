@@ -12,6 +12,29 @@ export class ShapeNotUsable extends Error {
   constructor(what: string) { super(`shape not usable: ${what}`); this.name = "ShapeNotUsable"; }
 }
 
+/** The shape numbers of a tool row the drawing reads (toolForm.ts keeps them
+ *  in a record, toolGeometry.ts normalises them before it draws). */
+export const SHAPE_NUMBERS = ["oal", "flute_length", "shoulder_length", "shoulder_diameter", "corner_radius", "shaft_diameter",
+  "maximum_cutting_diameter", "upper_radius", "chamfer_width", "chamfer_angle", "taper_angle", "point_angle", "tip_diameter",
+  "tip_length", "thread_pitch", "number_of_teeth", "thread_profile_angle", "thread_tip_width", "thread_tip_radius"] as const;
+
+/** Longest text a library number may be given as. */
+export const DECIMAL_TEXT_MAX = 64;
+const DECIMAL = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+/** A number of a library entry (Codex R492 Q1): a JSON number, or its text in
+ *  the strict decimal grammar — an optional sign, digits with an optional
+ *  point, an optional exponent; at most DECIMAL_TEXT_MAX characters, nothing
+ *  around it (no space, hex, unit or a number at the front of other text).
+ *  null: absent (null, undefined, ""), as an empty optional field has always
+ *  been; NaN: anything else — the caller refuses it by name, like an exponent
+ *  that overflows (its value is not finite). Never parseFloat. */
+export function libraryNumber(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "string" && v.length <= DECIMAL_TEXT_MAX && DECIMAL.test(v)) return Number(v);
+  return NaN;
+}
+
 /** Operations between two yields (viewer/steps.ts STEP_OPS): the work of the
  *  next piece is asked for BEFORE it runs (Codex R485-H1). */
 export const DRAW_BUDGET = 4096;

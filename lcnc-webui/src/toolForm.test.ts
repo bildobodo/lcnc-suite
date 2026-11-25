@@ -6,11 +6,11 @@ import { describe, expect, it } from "vitest";
 import { buildToolParts, buildToolProfile, toolDrawing, type ToolMeta } from "./toolGeometry";
 import { drawCounter, DRAW_BUDGET, MESH_TRIANGLES_MAX, MESH_VERTICES_MAX } from "./toolDrawing";
 import {
-  FORM_PAYLOAD_FIELDS, FORM_SEGMENTS_MAX, GEOMETRY_NOTE_MAX, HOLDER_NOT_USABLE, HOLDER_SEGMENTS_MAX, HOLDER_TOO_DETAILED, NOT_USABLE,
+  baseBytes, FORM_PAYLOAD_FIELDS, FORM_SEGMENTS_MAX, GEOMETRY_NOTE_MAX, HOLDER_NOT_USABLE, HOLDER_SEGMENTS_MAX, HOLDER_TOO_DETAILED, NOT_USABLE,
   PROFILE_POINTS_MAX, RECORD_BYTES, ROW_FIELDS_DROPPED, SHAFT_SEGMENTS_MAX, SHAPE_WORD_MAX, TOO_DETAILED, formMeta, formNotice, formSteps,
   holderNotice, predictedProfilePoints, rawForm, rowFields, type FormRecord,
 } from "./toolForm";
-import { FormLibrary, LIBRARY_BYTES_MAX, type ToolBinding } from "./toolLibrary";
+import { FormLibrary, LIBRARY_BYTES_MAX, LIBRARY_FULL, type ToolBinding } from "./toolLibrary";
 import { toolPreviewNotice } from "./toolPreviewNotice";
 import { runToEnd } from "./viewer/steps";
 
@@ -90,7 +90,8 @@ describe("a refusal is content", () => {
     ["a null coordinate (no 0)", { native_mesh: { ...box(), vertices: [[0, 0, 0], [null, 0, 0], [0, 1, 0], [0, 0, 1]] } }, NOT_USABLE, "a mesh coordinate"],
     ["an index out of range", { native_mesh: { ...box(), triangles: [[0, 1, 9]] } }, NOT_USABLE, "a mesh index"],
     ["a negative radius", { native_profile: [[0, 0], [-1, 5]] }, NOT_USABLE, "a profile point"],
-    ["a text as a number", { type: "endmill", oal: "60" }, NOT_USABLE, "oal"],
+    ["a text that is no decimal number", { type: "endmill", oal: "60 mm" }, NOT_USABLE, "oal"],
+    ["an exponent past any number", { type: "endmill", oal: "1e999" }, NOT_USABLE, "oal"],
     ["an endless word", { type: "x".repeat(SHAPE_WORD_MAX + 1) }, NOT_USABLE, "type"],
     ["a segment without its end", { type: "formmill", profile: [{ end: [0, 0] }, { start: [1, 1] }] }, NOT_USABLE, "a profile segment"],
     ["a shaft segment without a number", { type: "endmill", shaft_segments: [{ height: 1, lower_diameter: null, upper_diameter: 1 }] }, NOT_USABLE, "a segment"],
@@ -205,21 +206,79 @@ describe("the library of forms", () => {
     expect([lib.settled, lib.has(2), lib.of(2)]).toEqual([false, false, "pending"]);
     expect(decodedIn(lib)).toEqual([]);
   });
-  it("is bounded over all its forms, in T order — by its lengths, before a conversion", () => {
-    const tri = Array.from({ length: 200_000 }, () => [0, 1, 2]), vertices = Array.from({ length: 100_000 }, () => [0, 0, 1]);
-    const big = { native_mesh: { vertices, triangles: tri } }, each = 12 * 300_000 + RECORD_BYTES;
-    const fit = Math.floor(LIBRARY_BYTES_MAX / each);
-    const raw = rows(Object.fromEntries(Array.from({ length: fit + 2 }, (_, i) => [i + 1, { ...big }])));
+  // Codex R492 MT-I48: ALL of a record is budgeted before it is taken over —
+  // its base, its branch, its holder —, the bases of the rows to come reserved
+  const vertices = Array.from({ length: 100_000 }, () => [0, 0, 1]), tri = Array.from({ length: 200_000 }, () => [0, 1, 2]);
+  const BIG = 1024 + 12 * 300_000;                                    // a maximum mesh's record
+  const seg = (n: number) => Array.from({ length: n }, () => ({ height: 1, lower_diameter: 6, upper_diameter: 6 }));
+  const filled = (...more: any[]) => {
+    const raw = [...Array.from({ length: 18 }, (_, i) => ({ T: i + 1, native_mesh: { vertices, triangles: tri } })), ...more];
     const lib = new FormLibrary(B, raw, 1);
     runToEnd(lib.normalise());
-    expect(lib.bytes).toBeLessThanOrEqual(LIBRARY_BYTES_MAX + 2 * RECORD_BYTES);
-    const kinds = raw.map(r => (lib.of(r.T) as FormRecord));
-    expect(kinds.slice(0, fit).every(f => f.kind === "mesh")).toBe(true);
-    expect(kinds.slice(fit).map(f => [f.refused!.why, f.refused!.field])).toEqual([[TOO_DETAILED, "library"], [TOO_DETAILED, "library"]]);
-    // a small tool after them still has its form
-    const small = new FormLibrary(B, [...raw.map(r => ({ ...r, native_mesh: big.native_mesh })), { T: 900, type: "endmill" } as any], 1);
-    runToEnd(small.normalise());
-    expect((small.of(900) as FormRecord).kind).toBe("param");
+    const recs = new Set(raw.map(r => lib.of(r.T) as FormRecord));
+    expect(lib.bytes).toBe([...recs].reduce((n, r) => n + r.bytes, 0));          // what it says it holds is what it holds
+    expect(lib.bytes).toBeLessThanOrEqual(LIBRARY_BYTES_MAX);
+    for (const row of raw) {
+      const r = lib.of(row.T) as FormRecord;
+      expect(r.bytes).toBe(baseBytes(row) + [r.mesh?.pos, r.mesh?.idx, r.profile, r.segments, r.shaft, r.holder]
+        .reduce((n, a) => n + (a?.byteLength ?? 0), 0));
+    }
+    return lib;
+  };
+  it("Codex's library: a mesh that fits by its payload but not with its record, then 32 shanks with holders", () => {
+    const lib = filled({ T: 19, native_mesh: { vertices, triangles: tri.slice(0, 90_869) } },
+                       ...Array.from({ length: 32 }, (_, i) => ({ T: 20 + i, type: "endmill", shaft_segments: seg(64), holder_segments: seg(64) })));
+    const f19 = lib.of(19) as FormRecord, f20 = lib.of(20) as FormRecord;
+    expect([f19.kind, f19.refused?.field, f20.kind, f20.shaft?.length, f20.holder?.length]).toEqual(["refused", "library", "param", 192, 192]);
+    expect(lib.bytes).toBe(18 * BIG + 1024 + 32 * (1024 + 2 * 64 * 24));
+  });
+  it("at the edge: a record that fills the library exactly is kept, one triangle more is refused — the row after keeps its base", () => {
+    // 18 meshes leave 2 290 432 B; T20's base is reserved: T19 may take 2 289 408 B, its note of 4 characters included
+    const edge = (nt: number) => filled({ T: 19, geometry_note: "abcd", native_mesh: { vertices, triangles: tri.slice(0, nt) } },
+                                        { T: 20, type: "endmill", shaft_segments: seg(1), holder_segments: seg(1) });
+    const exact = edge(90_698), past = edge(90_699);
+    expect([exact.bytes, (exact.of(19) as FormRecord).kind, (past.of(19) as FormRecord).refused?.field]).toEqual([LIBRARY_BYTES_MAX, "mesh", "library"]);
+    // after the exact fill only T20's base is left: its shank is refused, its holder dropped on its own
+    const t20 = exact.of(20) as FormRecord, p20 = past.of(20) as FormRecord;
+    expect([t20.kind, t20.refused?.field, t20.holder, t20.holderWhy, t20.bytes]).toEqual(["refused", "library", null, HOLDER_TOO_DETAILED, RECORD_BYTES]);
+    expect([p20.kind, p20.shaft?.length, p20.holder?.length, p20.holderWhy]).toEqual(["param", 3, 3, null]);
+  });
+  it("a shank, a holder or a plain form after a full library: only within what is left, never past it", () => {
+    const lib = filled({ T: 19, native_mesh: { vertices, triangles: tri.slice(0, 73_000) } },
+                       ...Array.from({ length: 200 }, (_, i) => ({ T: 20 + i, type: "endmill", shaft_segments: seg(64), holder_segments: seg(64) })),
+                       { T: 900, type: "ball" }, { T: 901, type: "ball", geometry_note: "n".repeat(5000) });
+    expect([(lib.of(900) as FormRecord).kind, (lib.of(901) as FormRecord).kind]).toEqual(["param", "param"]);  // their base was reserved
+    // the room left after the bases of everything to come: shanks until it is used, then refused — holders dropped on their own
+    const kinds = Array.from({ length: 200 }, (_, i) => lib.of(20 + i) as FormRecord), kept = kinds.filter(f => f.kind === "param").length;
+    expect([(lib.of(19) as FormRecord).kind, kept]).toEqual(["mesh", 1]);
+    expect(kinds.map(f => f.kind)).toEqual([...Array(kept).fill("param"), ...Array(200 - kept).fill("refused")]);
+    expect(kinds.slice(kept).every(f => f.refused?.field === "library" && f.holder === null && f.holderWhy === HOLDER_TOO_DETAILED)).toBe(true);
+    expect(LIBRARY_BYTES_MAX - lib.bytes).toBeLessThan(4096);          // the next shank (4 096 B) would not have fit
+  });
+  it("more rows than any table: the bases that fit, the rest ONE shared refusal counted once", () => {
+    const note = "n".repeat(GEOMETRY_NOTE_MAX + 50), n = 21_900;
+    const lib = new FormLibrary(B, Array.from({ length: n }, (_, i) => ({ T: i + 1, type: "ball", geometry_note: note })), 1);
+    runToEnd(lib.normalise());
+    const base = RECORD_BYTES + 2 * (GEOMETRY_NOTE_MAX + 1), own = Math.floor((LIBRARY_BYTES_MAX - RECORD_BYTES) / base);
+    expect([(lib.of(own) as FormRecord).kind, lib.of(own + 1), lib.of(n), lib.bytes]).toEqual(["param", LIBRARY_FULL, LIBRARY_FULL, own * base + RECORD_BYTES]);
+    expect([formNotice(LIBRARY_FULL), lib.settled]).toEqual(["Shape too detailed to draw", true]);
+  });
+  it("a number given as decimal text is that number: the same record, the same drawing", () => {
+    const num = { type: "tapered", taper_angle: 3.7, corner_radius: 1, flute_length: 47, shaft_diameter: 8, oal: 100,
+                  shaft_segments: [{ height: 5, lower_diameter: 8, upper_diameter: 8 }], holder_segments: [{ height: 5, lower_diameter: 20, upper_diameter: 20 }] };
+    const text = { type: "tapered", taper_angle: "3.7", corner_radius: "+1", flute_length: "4.7e1", shaft_diameter: "8.", oal: "100",
+                   shaft_segments: [{ height: "5", lower_diameter: "8", upper_diameter: "8" }], holder_segments: [{ height: "5", lower_diameter: "20", upper_diameter: ".2e2" }] };
+    expect(form(text)).toEqual(form(num));
+    expect(toolDrawing(6, 80, formMeta(text, form(text)) as ToolMeta)).toEqual(toolDrawing(6, 80, formMeta(num, form(num)) as ToolMeta));
+    expect(toolDrawing(6, 80, text as unknown as ToolMeta)).toEqual(toolDrawing(6, 80, num as ToolMeta));   // the live tool's raw meta too
+    // and what the preview says of it
+    const thread = { type: "threadmill", thread_pitch: 1.5, thread_profile_angle: 60, thread_tip_type: "flat", thread_tip_width: 0.1, flute_length: 20 };
+    const threadText = { ...thread, thread_pitch: "1.5", thread_profile_angle: "60", thread_tip_width: "0.1", flute_length: "20" };
+    expect(toolPreviewNotice(formMeta(threadText, form(threadText)) as ToolMeta)).toBe(toolPreviewNotice(formMeta(thread, form(thread)) as ToolMeta));
+    for (const bad of [" 60", "60 ", "0x3C", "60mm", "6,0", "1e", ".", "+", "Infinity", "NaN", "1e999", "-1e400", "6".repeat(65)])
+      expect([bad, form({ type: "endmill", oal: bad }).refused?.field]).toEqual([bad, "oal"]);
+    expect(form({ type: "endmill", oal: "", flute_length: null }).scalars).toMatchObject({ oal: null, flute_length: null });
+    expect(() => toolDrawing(6, 80, { type: "endmill", oal: "60 mm" } as unknown as ToolMeta)).toThrow("shape not usable: oal");
   });
   it("counts every step: a maximum mesh stays within the budget", () => {
     const c = drawCounter();

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { validHolderSegments } from "./toolHolder";
 import { runToEnd } from "./viewer/steps";
 import {
-  ShapeNotUsable, canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps,
+  SHAPE_NUMBERS, ShapeNotUsable, canonMeshSteps, canonProfile, drawnSteps, isCanonMesh, latheColumnsSteps, libraryNumber,
   type CanonMesh, type DrawnPart, type LathePart, type NestedMesh, type ToolDrawing,
 } from "./toolDrawing";
 
@@ -552,7 +552,8 @@ export function buildToolParts(diam: number, len: number, meta: ToolMeta | null,
  * are kept whole: FreeCAD does not classify their cutting faces. No
  * length/diameter edit stretches a source mesh or changes its physical tip
  * origin. Throws ShapeNotUsable. */
-export function toolDrawing(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1): ToolDrawing {
+export function toolDrawing(diam: number, len: number, rawMeta: ToolMeta | null, unitsPerMm = 1): ToolDrawing {
+  const meta = rawMeta && numericMeta(rawMeta);
   if (meta?.native_mesh) {
     const m = meta.native_mesh;
     return { kind: "mesh", mesh: isCanonMesh(m) ? m : runToEnd(canonMeshSteps(m)) };
@@ -574,6 +575,23 @@ export function toolDrawing(diam: number, len: number, meta: ToolMeta | null, un
 }
 
 const LATHE_SEGMENTS = 24;
+
+/** The shape numbers as numbers (Codex R492 Q1): a number given as strict
+ *  decimal text draws as that number, a text that is none is a shape that
+ *  cannot be drawn — never JavaScript's coercion ("60" + 20 is "6020"). The
+ *  object itself when nothing is text. */
+export function numericMeta<M extends ToolMeta>(meta: M): M {
+  let out: M | null = null;
+  for (const k of SHAPE_NUMBERS) {
+    const v = (meta as Record<string, unknown>)[k];
+    if (typeof v !== "string") continue;
+    const n = libraryNumber(v);
+    if (n !== null && !Number.isFinite(n)) throw new ShapeNotUsable(k);
+    out ??= { ...meta };
+    (out as Record<string, unknown>)[k] = n;
+  }
+  return out ?? meta;
+}
 
 /** A drawn part as three's geometry: the SAME arrays (no copy), no UVs. */
 export function partGeometry(d: DrawnPart): THREE.BufferGeometry {
