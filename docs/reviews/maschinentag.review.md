@@ -8590,3 +8590,44 @@ Den benannten **Seed 67** habe ich wiederholt. Bei der tiefen Variante melden so
 Die übrige Zustandsrichtung ist angenommen: kein Schnittbeginn durch bloße Nähe, Ende bei belegter Trennung statt `2 × margin`, eigener `stayMute`, Bewegungsklasse am eingegrenzten Eintritt, R88 ohne den ausschließenden `!onsetRapid`, nach Trennung auch `cutPart`/`cutFeedAt` beenden. Die bereits identifizierten Bremsbereichs- und Grenzfälle behalten. Vor Merge die als „not verified“ benannten Kontakt-/Union-/Range-/Worker-Wege prüfen; ein unverändertes Schema allein beweist die Vereinigung nicht. Die Bohrungsausnahme braucht neben dem gemeinsamen dichten Orakel unabhängige analytische Positiv- und Negativfälle. Kosten des Rück-/Vorwärtsscans mit 4096 Segmenten einschließlich temporärer Intervalle und wiederholter Anfragen messen; die Grenze benennt noch keine maximale Task-Dauer. Den Faktor 1289 → 6893 Samples als gemessene Mehrarbeit behalten. Die offene Browser-/N100-Messung nicht als bereits erfüllt darstellen.
 
 **Belege:** [eigene Probe](maschinentag.r484.codex-probe.ts), [sieben Einzelbeobachtungen](maschinentag.r484.codex-probe.jsonl), [Seed-67-Wiederholung](maschinentag.r484.codex-pin.ts), [Intervalle und beide Tiefen](maschinentag.r484.codex-pin.txt), [Assertions der Befunde](maschinentag.r484.codex-check.py), [Ausgabe](maschinentag.r484.codex-check.txt), [Prototyp-Diff gegen die Basis](maschinentag.r484.codex-variant.patch), [eingefrorene Bohrungsprobe](maschinentag.r484.codex-owncut.ts), [Fixture](maschinentag.r484.codex-lib.ts), [Reproduzierer](maschinentag.r484.codex-reproduce.py), [erneuter Lauf](maschinentag.r484.codex-reproduction.txt), [Stand und Hashes](maschinentag.r484.codex-manifest.json).
+
+
+## Codex · P6-c (F8) · Planreview R485 · 25. November 2026
+
+**Urteil: agreement auf Planebene. MT482-01 ist geschlossen.** Die Bytebilanz von v8 erfasst die tatsächlichen Zeichenattribute und deren Aufbaupuffer. Der Bau von Bell 1 kann auf diesem Vertrag fortgesetzt werden. Dieses Agreement nimmt weder dessen Implementierungsreview noch die weiterhin offene Stummregel-/c2-Abnahme aus R484 vorweg.
+
+**Prüfstand:** `maschinentag.r485.plan-p6c-v8.md`, Basis `24f3bd3a`, Scratch `c8/probe/lathe8.ts`. Produktimporte für die eigenen Läufe an die Archivbasis gebunden — `toolGeometry.ts` im laufend bearbeiteten Builder-Worktree weicht inzwischen davon ab. Keine Produktänderung, kein Live-/NML-Zugriff. Synthetische Node-Prüfungen unter der Heavy-Sperre; mit gespeichertem Reproduzierer aus frischer Archivkopie wiederholt, Ausgaben bytegleich. Keine neue Zeit-, Heap- oder GPU-Messung.
+
+### MT482-01 · Rechnung und Aufbau angenommen
+
+Für ein Teilnetz gelten `V = (segments + 1) × points` und `I = 6 × segments × (points − 1) < 6 V`. Positionen und Normalen brauchen zusammen 24 V Byte; mit u32-Indizes folgt `24 V + 4 I < 48 V`. Die Grenze von **400.000 Vertices über alle Teile einschließlich Nahtspalten** trägt deshalb die **19,2-MB-Puffergrenze**. Ohne UVs fehlt kein versteckter UV-Posten. Bei u16 ist der Bestand kleiner; die Zählung bleibt trotzdem die Summe der tatsächlich gehaltenen, eindeutigen ArrayBuffer.
+
+Der alte zulässige Gegenfall bleibt unverkleinert:
+
+| 600 Profilpunkte, 512 Winkelteilungen | Byte |
+|---|---:|
+| Positionen + Normalen, 307.800 Vertices | 7.387.200 |
+| 1.840.128 u32-Indizes | 7.360.512 |
+| **Fertige Zeichnung** | **14.747.712** |
+| Meridian-Normalen während des Baus | 9.600 |
+| **Gleichzeitig angelegte Puffer dieses Baus** | **14.757.312** |
+
+Die alte 14,4-MB-Grenze wäre weiterhin um 347.712 Byte verletzt. Der neue Spaltenbauer beseitigt die doppelten Sektor-Randspalten und den gleichzeitig gehaltenen Sektorbestand; er senkt nicht nachträglich die Eingangsdaten. Maximal 2.048 Profilpunkte ergeben **32.768 Byte** Meridian-Normalen je Teil, passend zu den benannten zusätzlichen 33 kB. Diese Zahlen bilanzieren die relevanten erreichbaren bzw. angelegten Typed-Array-Puffer; sie sind keine Obergrenze des Prozess-Heaps, der Decoder-Allokationen oder der GPU.
+
+**Eigene Ergänzung:** Sechs Größenfälle, darunter zwei verschiedene zulässige Aufteilungen mit genau 400.000 Vertices: **19.168.824** bzw. **19.147.224 Byte**. Die Indexgrenze wurde bei 65.500 und 65.536 Vertices geprüft: u16 bzw. u32 wie Three. Positionen und Normalen dieser zwei Kontrollen stimmen auch mit `Object.is` überein, die Indizes samt Typ ebenfalls. Claudes Vergleich über **148/148 Teile** für Positionen, Normalen und Indizes habe ich auf der Archivbasis wiederholt.
+
+Die Lebensdauerbeschreibung ist richtig: `dispose()` beendet nicht die CPU-Haltung eines weiterhin referenzierten Attributs. Die genannten Referenzfreigaben an Eintrag, Mesh und abgebrochenem Generator gehören daher in die Implementierungswächter. Cache-Bilanz aus den fertigen Buffern, Summierung über alle Teile, gemeinsamer Buffer einmal, kein zweiter kompletter Sektorbestand — angenommen. Die Bibliotheksgrenze von 64 MB bleibt ein anderer Speicherposten.
+
+### R485-H1 · Bauhinweis: der Scratch erfüllt das geplante Schrittbudget noch nicht
+
+Der Plan verlangt bereits höchstens 4.096 Vertices pro Spaltenschritt und die zugehörige Indexarbeit. Im Scratch wird erst **nach** einer ganzen Spalte auf die Grenze geprüft. Bei **2.000 Punkten × 199 Teilungen** (400.000 Vertices, also innerhalb der benannten Größen) entstehen dadurch **6.000 Vertices zwischen zwei Yields**, beim Indexlauf bis zu **35.982 Indexschreibungen**. Auch der 600-Punkte-Fall schreibt 4.200 Vertices in einem Schritt.
+
+Das ist **kein weiterer offener Planvertrag**: v8 benennt die richtige Grenze und erklärt die neue Laufzeit ausdrücklich als ungemessen. Für den Bau den nächsten Spaltenblock **vor** seiner Ausführung auf das verbleibende Budget prüfen oder innerhalb der Spalte teilen; Indexarbeit ebenfalls messen. Die gültigen Nichtteiler 600, 800 und 2.000 Punkte in den bereits geplanten Schrittwächter aufnehmen. Die v7-Zeitmessung darf weiterhin nicht als Nachweis des neuen Spaltenbauers gelten. Der Prototyp ist damit Byte-/Wertebeleg, kein fertiger Budgetnachweis.
+
+### Übriger Vertrag und Abnahmegrenze
+
+Die präzisierte Sechserliste `FORM_PAYLOAD_FIELDS`, die eigene Halter-Verweigerung samt Hinweis, der gemeinsame Zeichenweg für Werkzeug und Halter sowie das eigene Merge-Gate eines separat integrierten Bell 1 entsprechen R482. Angenommene Teile werden nicht neu geöffnet.
+
+**c2 bleibt abhängig:** R484 hat APART bei offenen Körpern, die seitliche Bohrungstoleranz und den Verlust von Stiftbefunden benannt. Der Satz „v5's stock exception is gone“ ist die weiter geltende Abnahmeforderung, noch kein erbrachter Nachweis. Das vorliegende Speicher-Agreement nimmt die Schaft-Ausnahme aus R484 nicht an. Browser/erster Frame, Worker und die dort benannten Deckungsprüfungen bleiben Implementierungsabnahme; N100 und 16-ms-Ziel bleiben wie in R482 eingeordnet. Keine neue Operatorfrage.
+
+**Belege:** [Wiederholung des Autorenprototyps](maschinentag.r485.codex-author-probe.jsonl), [eigene Größen-/Schrittprobe](maschinentag.r485.codex-probe.ts), [sechs Ergebnisse](maschinentag.r485.codex-probe.json), [gesicherte Scratch-Quellen](maschinentag.r485.codex-scratch/), [Reproduzierer](maschinentag.r485.codex-reproduce.py), [erneuter Lauf](maschinentag.r485.codex-reproduced.txt), [Stand, Bindung und Hashes](maschinentag.r485.codex-manifest.json).

@@ -1,0 +1,57 @@
+{
+  "review": "R485",
+  "kind": "plan review, scratch buffer/equality probes only",
+  "base": "24f3bd3a7969e0d8bb0d8969285f08866f96a6d7",
+  "plan_sha256": "0f821a98b1cd04a1e8739b9ff976713463a2423cf8e50820325b2424de06d14e",
+  "findings_closed": [
+    "MT482-01"
+  ],
+  "build_note": "Scratch generator writes up to 6000 vertices per yield; plan 4096 bound still to be implemented, not claimed verified.",
+  "execution": "Node synthetic geometry, common heavy lock; fresh archive; no live/NML/browser, no product edits",
+  "dependencies": {
+    "three": "0.182.0",
+    "three-mesh-bvh": "0.9.14",
+    "esbuild": "0.27.2"
+  },
+  "checks": {
+    "author_parts": 148,
+    "positions_equal": 148,
+    "normals_equal": 148,
+    "indices_equal": 148,
+    "own_size_cases": 6,
+    "old_600_point_input_final_bytes": 14747712,
+    "old_600_point_input_allocated_peak_bytes": 14757312,
+    "meridian_max_bytes": 32768,
+    "own_index_width_controls": [
+      65500,
+      65536
+    ],
+    "reproduction": "byte-identical output"
+  },
+  "setup_note": "The current builder worktree toolGeometry differs from the declared base; scratch product imports were rebound to the exact archived base before executing. Example data were checked equal, then also rebound for reproduction. No builder worktree files edited.",
+  "source_hashes": {
+    "contain_lib.ts": "926e8079cbd1ea92066903a98023f38cc0cdc01aeda6ed70bc8d9d11e5fe98cf",
+    "cases.ts": "b79829a399da7683173a23012ce4e9be31f05371c47b906ea9cd97fff421b0b3",
+    "hull7.ts": "8d7303263a303c74eea7c96e6398b3ce041db45c559c562ec78bda0a1d2e64a9",
+    "lathe8.ts": "baf0d102d953487940d01aae1a8f0b726013c76a3997254995236eabdbc3d413",
+    "hullv2.ts": "eacace99b637427519d680a1a03a8a32eff98136acbf00cab003a5cb9d6dffb8",
+    "hull5.ts": "1af4d07ab53d71e40f51b1a31f8ecf910e7375637d50a880db05a699e641f673",
+    "judge6.ts": "40e2d94c2512afd8317fad0e86a04f1f7705802e289f41c406b2381a9fb632e3"
+  },
+  "evidence_sha256": {
+    "docs/reviews/maschinentag.r485.codex-imports.json": "b82ff73be392b489411e32b61e0d86785e91663b4b77ae3a9ac702e2c34532e5",
+    "docs/reviews/maschinentag.r485.codex-scratch/latheColumns.ts": "057d7defd630d9c7f2afb7cdb984652a254b5baaa5435518dc53c3c73ebf7267",
+    "docs/reviews/maschinentag.r485.codex-scratch/contain_lib.ts": "b62ed45d09e4f7b5fd17481feb72c96ff0fba2ab19ad8b3c808630522dbaa8d4",
+    "docs/reviews/maschinentag.r485.codex-scratch/cases.ts": "b79829a399da7683173a23012ce4e9be31f05371c47b906ea9cd97fff421b0b3",
+    "docs/reviews/maschinentag.r485.codex-scratch/hull7.ts": "811f906db665645187b64d4140dcc08cc1aba687a02a274adbdaa3897559b236",
+    "docs/reviews/maschinentag.r485.codex-scratch/lathe8.ts": "baf0d102d953487940d01aae1a8f0b726013c76a3997254995236eabdbc3d413",
+    "docs/reviews/maschinentag.r485.codex-scratch/hullv2.ts": "331b816f9192c6d6c4ba16f34bbcd9f5d7d2da596e34763fddff92b161eda2ca",
+    "docs/reviews/maschinentag.r485.codex-scratch/hull5.ts": "03767826ed7ad88f2d0c16290a72790cd6166ed50a1e6a6ba138370498fcbec0",
+    "docs/reviews/maschinentag.r485.codex-scratch/judge6.ts": "40e2d94c2512afd8317fad0e86a04f1f7705802e289f41c406b2381a9fb632e3",
+    "docs/reviews/maschinentag.r485.codex-probe.json": "a99dab400fdd9b6c338caaea9573655cdd97b306b7f3b03c3b65e4646986cf12",
+    "docs/reviews/maschinentag.r485.codex-reproduce.py": "c728733f4c258bb7a1c35fdf549de3743791d89d5b3e1b4a15f09c151d989114",
+    "docs/reviews/maschinentag.r485.codex-author-probe.jsonl": "febc589c05a7ee5808e12bea954ca2fc993b61714fd8b7c8855c2e5d00fba29c",
+    "docs/reviews/maschinentag.r485.codex-reproduced.txt": "771ba1f53a5e695d416ad0dc038b86677b84f8a19f45a5f6adf8070d757edb69",
+    "docs/reviews/maschinentag.r485.codex-probe.ts": "61486b7bac6d24839393f0dc107c0c33c9a96015809865b9838bfa732452dac7"
+  }
+}

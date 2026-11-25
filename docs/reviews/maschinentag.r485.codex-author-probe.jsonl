@@ -1,0 +1,5 @@
+{"parts":148,"positionsEqual":148,"normalsEqual":148,"normalMaxDiff":0,"indexEqual":148}
+{"V":307800,"I":1840128,"bytes":14747712,"formula":14747712,"sharedWithWriter":true,"peakHeldByBuilder":14757312,"yields":149,"uv":false,"over14_4MB":347712}
+{"v7SectorBuffers":15488256,"v7Targets":16216512,"v7PeakTyped":31704768}
+[{"np":780,"seg":512,"v":400140,"i":2393088,"bytes":19175712,"ratio":5.981},{"np":16000,"seg":24,"v":400000,"i":2303856,"bytes":18815424,"ratio":5.76},{"np":200,"seg":1000,"v":200200,"i":1194000,"bytes":9580800,"ratio":5.964}] 19200000
+{"afterDisposeStillHeld":true}
