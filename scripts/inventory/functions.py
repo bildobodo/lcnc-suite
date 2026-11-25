@@ -349,6 +349,13 @@ def evidence_problems(e: dict, root: Path) -> list[str]:
         return [f"evidence {layer}/{file}: the title {title!r} is not in the file"]
     if PARAMETRIC.search(title) and not e.get("instances"):
         return [f"evidence {layer}/{file}: the parametric title {title!r} names no instances"]
+    # An instance is the CAPTURED value (coverage.bind compares it with the
+    # captures), never the rendered title: that one bound no test and only a
+    # merge gate's coverage step said so, after its 45 minutes (2026-11-25).
+    words = [re.escape(w) for w in re.split(r"\$\{[^}]*\}|\$[A-Za-z_]\w*|%[sdifjoO#]|\{[A-Za-z_]\w*\}", title)]
+    rendered = [i for i in e.get("instances") or [] if any(words) and re.fullmatch(".+?".join(words), i)]
+    if rendered:
+        return [f"evidence {layer}/{file}: instance(s) {rendered} are the rendered title — name the captured value"]
     return []
 
 
