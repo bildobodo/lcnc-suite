@@ -147,6 +147,8 @@ test("the read's proof: partial and unchecked name it, a failed read is not empt
 const NOT_LOADED = "Table saved, load into LinuxCNC failed — restart loads it.";
 const NO_METADATA = "Table saved, metadata not — check tool_library.json.";
 const NEITHER = "Table saved, metadata not — check tool_library.json; load into LinuxCNC failed — restart loads it.";
+const UNCONFIRMED = "Table saved, load not confirmed — restart loads it.";
+const NEITHER_UNCONFIRMED = "Table saved, metadata not — check tool_library.json; load not confirmed — restart loads it.";
 const PROVEN = { proven: [5], differs: [], missing: [], extra: [], duplicates: [] };
 const DIFFERS = { proof: { ...PROVEN, proven: [], state: "partial", differs: [{ T: 5, fields: ["Z"] }], why: "file incomplete or differs from LinuxCNC" },
                   edit_refusal: "T5 differs from LinuxCNC — a restart loads the file" };
@@ -209,11 +211,11 @@ test("a written table that LinuxCNC did not load, or without its metadata, is sa
   await expect(note).toHaveCount(0);
 });
 
-// Codex R472 MT-I43: a lost socket is no LinuxCNC restart, and a `complete`
-// read holds no pocket and no remark — the open load stands for its table
-// until a read names another LinuxCNC (it loaded the file when it started),
-// or the operator dismisses it.
-test("a table not loaded stays said over a socket reconnect and ends with another LinuxCNC", async ({ page }) => {
+// Codex R472 / R474 MT-I43: a lost socket is no LinuxCNC restart, a `complete`
+// read holds no pocket and no remark, and another LinuxCNC on the file may
+// have read it before the write published it — the open load stands (not
+// confirmed, then) until dismissed, the next write or another table file.
+test("a table not loaded stays said over a socket reconnect and another LinuxCNC", async ({ page }) => {
   await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
   const table = { path: "/cfg/tool.tbl", instance: "111:1" };
   const serve = (over: object = {}) => ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL], table, unread: [], ...HOLDS, ...over } });
@@ -227,7 +229,7 @@ test("a table not loaded stays said over a socket reconnect and ends with anothe
   const row = tab.getByRole("button", { name: "Edit T5", exact: true });
   const editor = page.getByRole("dialog", { name: "Edit Tool T5" });
   await expect(row).toBeVisible();
-  for (const c of [{ meta: false, text: NOT_LOADED, after: null }, { meta: true, text: NEITHER, after: NO_METADATA }]) {
+  for (const c of [{ meta: false, text: NOT_LOADED, after: UNCONFIRMED }, { meta: true, text: NEITHER, after: NEITHER_UNCONFIRMED }]) {
     await serve();
     await reread();
     await ctl({ op: "replyFor", cmd: "save_tool", reply: { ok: true, reload: "reload failed", ...(c.meta ? { metadata: "not saved" } : {}) } });
@@ -242,10 +244,10 @@ test("a table not loaded stays said over a socket reconnect and ends with anothe
     await expect(row).toHaveCount(0);
     await expect(row).toBeVisible({ timeout: 20_000 });
     await expect(note, "a lost socket proves nothing").toHaveText(c.text);
-    // LinuxCNC restarted: it loaded the file; the metadata are still not saved
+    // another LinuxCNC on the same file: which came first, its read or the write, is not known
     await serve({ table: { ...table, instance: c.meta ? "333:3" : "222:2" } });
     await reread();
-    if (c.after) await expect(note).toHaveText(c.after); else await expect(note).toHaveCount(0);
+    await expect(note, "another LinuxCNC proves nothing").toHaveText(c.after);
     // another table file: nothing of this one is said beside it
     await serve({ table: { path: "/cfg/other.tbl", instance: "444:4" } });
     await reread();

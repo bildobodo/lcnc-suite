@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import {
   NOTE_NAMES_MAX, NO_PROOF, TOOL_TABLE_NOT_CHECKED, TOOL_TABLE_NOT_CONFIRMED, TOOL_TABLE_NOT_READ,
-  LOAD_FAILED, TOOL_TABLE_NO_TOOLS, ToolTableReads, WRITE_NO_METADATA, WRITE_NOT_LOADED, partialNote, toolTableView,
+  LOAD_FAILED, LOAD_UNCONFIRMED, TOOL_TABLE_NO_TOOLS, ToolTableReads, WRITE_NO_METADATA, WRITE_NOT_LOADED,
+  WRITE_UNCONFIRMED, partialNote, toolTableView,
   toolWriteNote, toolWriteOutcome, toolWriteStands, type ToolReadKind, type ToolTableProof,
 } from "./toolTableRead";
 
@@ -190,7 +191,7 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
     expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "complete"), "the table named once").toBe(`${WRITE_NO_METADATA}; ${LOAD_FAILED}.`);
     expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "partial")).toBe(`${WRITE_NO_METADATA}.`);
   });
-  it("a lost socket ends nothing: it stands for the same table under the same LinuxCNC (Codex R472 MT-I43)", () => {
+  it("a lost socket ends nothing: it stands for its table, whichever LinuxCNC runs (Codex R472 / R474 MT-I43)", () => {
     const failed = toolWriteOutcome({ ok: true, reload: "reload failed" }, A);
     const both = toolWriteOutcome({ ok: true, reload: "reload not sent", metadata: "not saved" }, A);
     for (const o of [failed, both]) {
@@ -198,13 +199,20 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
       expect(toolWriteStands(o, null), "a failed read, an older gateway").toBe(o);
       expect(toolWriteStands(o, { ...A, instance: "unbound" }), "no LinuxCNC bound").toBe(o);
     }
-    // another LinuxCNC on the same file loaded it when it started; metadata are still not saved
+    // another LinuxCNC on the same file: it may have read the file before the
+    // write published it (Codex R474) — kept, no longer as a failed load
     const restarted = { ...A, instance: "222:2" };
-    expect(toolWriteStands(failed, restarted)).toBeNull();
-    expect(toolWriteStands(both, restarted)).toEqual({ notLoaded: false, noMetadata: true, of: restarted });
-    // another table: not its outcome, never shown beside it
+    for (const [o, words] of [[failed, `${WRITE_UNCONFIRMED}.`], [both, `${WRITE_NO_METADATA}; ${LOAD_UNCONFIRMED}.`]] as const) {
+      const later = toolWriteStands(o, restarted);
+      expect(later).toEqual({ ...o, earlier: true });
+      expect(toolWriteNote(later, "complete")).toBe(words);
+      expect(toolWriteStands(later, { ...A }), "the first one read again: still not confirmed").toBe(later);
+      expect(toolWriteStands(later, { ...A, instance: "333:3" })).toBe(later);
+      expect(toolWriteNote(later, "partial"), "a partial read names it").toBe(o.noMetadata ? `${WRITE_NO_METADATA}.` : null);
+    }
+    // another table file: not its outcome, never shown beside it
     for (const o of [failed, both]) expect(toolWriteStands(o, { ...A, path: "/cfg/other.tbl" })).toBeNull();
-    // a write whose table was not known, or under no LinuxCNC: nothing proves its end
+    // a write whose table was not known, or under no LinuxCNC: nothing is proven of it
     for (const of of [null, { ...A, instance: "unbound" }]) {
       const o = toolWriteOutcome({ ok: true, reload: "reload failed" }, of);
       expect(toolWriteStands(o, restarted)).toBe(o);
@@ -216,7 +224,7 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
     expect(toolWriteNote(null, "complete")).toBeNull();
   });
   it("its words say the table IS saved, why and what to do — at most 60 characters", () => {
-    for (const w of [WRITE_NOT_LOADED, WRITE_NO_METADATA]) {
+    for (const w of [WRITE_NOT_LOADED, WRITE_UNCONFIRMED, WRITE_NO_METADATA]) {
       expect(w.length).toBeLessThanOrEqual(60);
       expect(w).toMatch(/^Table saved, .* — /);
     }
