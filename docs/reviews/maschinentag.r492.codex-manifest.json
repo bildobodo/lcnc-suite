@@ -1,0 +1,42 @@
+{
+  "review": "R492",
+  "time": "2026-11-25T23:49:32.117581+01:00",
+  "base": "82301aa6",
+  "head": "e8d99b0ca7c8e26be86dd4a29f785d258dac5abc",
+  "archive": "/tmp/r492/tree",
+  "source_hashes": {
+    "toolForm.ts": "790b9b235c6dae648ffc23bd98bbfdc5781d17fcf8fd191b25b1d851d1e30668",
+    "toolLibrary.ts": "f63f085efe5ceb8660d0f9696f692f67ae18aee8995321fe408359fc1f5181dd",
+    "toolShapeCache.ts": "773d9f54bd4014d1ec73887e2550152d4aec614e47e5aacc9483f4c85367a495",
+    "toolShapeRecord.ts": "4e70b1d39becaa9453058060972fc824b192d0fa09bf732f4c80a4480762f7e3",
+    "toolTableStore.ts": "5ab5aee51bbd43b378830f5fc7923d297babb4ad491faf6890ce7ec4308bfe71",
+    "toolDrawing.ts": "c1b5c62b0443da2d3b09e538eb170b87c2ff3c5bd762f74dc8c5218eaaacdeac",
+    "toolGeometry.ts": "9b4dac3f16fcacadfd0dbfb27bfa3a7b97352e23af14a3c5743fbdc8b61717ac"
+  },
+  "build_dependency_root": "/tmp/r489/tree/lcnc-webui/node_modules (existing real copy; esbuild resolves imports from R492 archive)",
+  "reproduce": [
+    "git archive e8d99b0c | tar -x -C /tmp/r492/tree",
+    "Copy codex-probe.ts to /tmp/r492/probe.ts and codex-store-probe.ts to /tmp/r492/store-probe.ts; both import ./tree/...",
+    "esbuild buildSync: entryPoints [probe.ts] / [store-probe.ts], bundle true, platform node, format cjs, nodePaths [real node_modules copy]; run each bundle with node",
+    "cd /tmp/r492/tree/lcnc-gateway; /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -p conftest test_tool_store.py -q"
+  ],
+  "results": {
+    "probe": "3 FAIL / 3 PASS (library bound, private running and queued jobs fail)",
+    "store_probe": "1 FAIL / 6 PASS (missing-form reason fails)",
+    "backend": "19 passed"
+  },
+  "limits": [
+    "No live connection, NML, build, browser, sweep, worker or full gate. No product edits.",
+    "Heavy lock observed owned by other builders (TF2 then pathkinds); only tiny deterministic probes and isolated 19-test pure store suite.",
+    "probe ms is incidental unlocked execution time, not a performance result.",
+    "Authored round gate at 75a2e795 is FAIL (one browser test); no independent full gate performed.",
+    "Store probe run repeated only after evidence snapshot copied calls array rather than holding mutable history."
+  ],
+  "artifacts": {
+    "codex-probe.ts": "6c1eb05eee9dfd95d41c8dcf7fcbe30a5e8a6e3e70b8b0c414ddf19490dd7057",
+    "codex-probe.json": "0555fc3b74018bc4286a6654e04220e9032df29ea4dbdd4be54399cc705f0689",
+    "codex-store-probe.ts": "f89470f38a81b19eaf753c82e12e0b05748c959bfd5ca9066666a2167469cc7a",
+    "codex-store-probe.json": "755eebbac8ed453dc92b0aad4e3c7318dc36506629e1bfc1e439746924ead341",
+    "codex-backend.txt": "5509e46d0ce4dfeb6d5a6d9803738bc366825d0893251e64b744fcfb33807280"
+  }
+}

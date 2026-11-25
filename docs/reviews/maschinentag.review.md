@@ -9081,6 +9081,57 @@ Zweig `feat/p6c`, Kopf `e8d99b0c` (development `82301aa6` eingemischt), Plan v8 
 2. Die Bibliothek der Maschine lasse ich vor dem Merge durch den echten `FormLibrary.normalise` laufen (Kopie, nur lesen, sobald die Maschine an ist). Genügt das als Abnahme der Formgrenzen für diese Maschine?
 3. Reihenfolge: TF-2 merged zuerst (Konflikte in `ToolTablePanel.vue`, `mock-gateway.mjs`, `gateway.py`, `rules.py`, Docs; die TF-2-Felder müssen durch `toolTableStore.apply` → `toolTableView` laufen). Danach Bell 1 rebased, sein Merge-Gate am integrierten Kopf. Einverstanden?
 
+## Codex · P6-c Bell 1 · Review R492 · 25. November 2026
+
+**Urteil: findings — MT-I48/49 betreffen die zugesagten Speicher- und Lebensdauergrenzen; MT-I50 die Unterscheidung einer fehlenden Form von einer unbestätigten Zeile.** Die Trennung zwischen aktuellem Tabellenread und historischem Formbeleg trägt in den unten genannten Gegenproben. Bell 2 ist weiterhin nicht freigegeben oder durch diese Infrastruktur bereits gebaut. Antworten auf alle drei Fragen stehen unten.
+
+**Prüfstand:** `82301aa6..e8d99b0c`, isolierte Archivkopie `/tmp/r492/tree`; Plan v8/R485 und Anfrage R492. Keine Produktänderung, kein Live-/NML-Zugriff, kein Browser-, Sweep- oder vollständiger Gate-Lauf. Während die Heavy-Sperre anderen Buildern gehörte, liefen nur kleine deterministische Node-Proben und die 19 reinen `test_tool_store.py`-Tests mit `-p conftest` in der Kopie. Ergebnis: **neun grüne Kontrollen, vier rote Assertions über die drei Befunde**, außerdem **19/19 Backendtests grün**. Die beiläufige Laufzeit in der JSON-Probe ist kein Last- oder Budgetnachweis.
+
+### MT-I48 · Die Bibliotheksgrenze prüft weniger Bytes, als der Datensatz anschließend behält
+
+`toolForm.ts:217–231`, die entsprechenden Profile-Zweige und der abschließende Param-/Schaft-Zweig; Aufsummierung in `toolLibrary.ts`.
+
+`record()` zählt richtig den Grundbetrag von 1024 Bytes, die Notiz und die behaltenen Arrays. Die Zulassung vergleicht dagegen nur `payloadBytes(raw)` mit dem Restplatz. Parametrische Formen einschließlich Schaft und Halter prüfen den Restplatz überhaupt nicht. Auch ein verweigerter Datensatz behält Grundbetrag, Notiz und gegebenenfalls den gültigen Halter. Die Summe ist deshalb keine durchgesetzte Obergrenze.
+
+**Eigene Gegenprobe ohne künstliches Ändern interner Zähler:** 18 zulässige Netze mit je 100000 Vertices und 200000 Dreiecken belegen einschließlich Datensätzen 64818432 Bytes. Es bleiben 2290432 Bytes. Das nächste zulässige Netz hat 100000 Vertices und 90869 Dreiecke: 2290428 Nutzlastbytes passen, sein Grundbetrag aber nicht mehr. Trotzdem wird T19 als `mesh` angenommen. Anschließend werden 32 parametrische Formen mit jeweils 64 Schaft- und 64 Haltersegmenten ebenfalls angenommen. Ergebnis:
+
+| | Bytes |
+|---|---:|
+| vereinbarte Grenze / `LIBRARY_BYTES_MAX` | 67108864 |
+| tatsächlich behalten / `library.bytes` | 67240956 |
+| Überschreitung | 132092 |
+
+**Korrektur:** Den vollständigen künftigen Speicherbedarf einschließlich Grundbetrag, Notiz, Halter und Verweigerungsdarstellung vor der Übernahme budgetieren, für **alle** Formarten. Den Grundbedarf der noch folgenden Datensätze vorab reservieren oder eine ausdrücklich begrenzte Darstellung dafür vorsehen; bloß das aktuelle Netz um 1024 Bytes strenger zu prüfen reicht nicht. Auch nach einer Verweigerung dürfen spätere kleine Formen nur innerhalb des verbleibenden Gesamtbudgets hinein. Das gilt ebenso für eine Bibliothek mit vielen Verweigerungen/Haltern. Der bestehende Test erlaubt ausdrücklich `MAX + 2 * RECORD_BYTES` und trifft mit gleich großen Netzen den knappen Rand nicht; er belegt den Vertrag „64 MB, every form field counted“ daher nicht. Bitte diesen Randfall und die anderen Formarten als Wächter übernehmen.
+
+### MT-I49 · Ein privater Zeichenauftrag überlebt den Wechsel seiner Bindung
+
+`toolShapeCache.ts:139–144`: `retain()` läuft nur über `map.values()`. Der private 33. Eintrag ist absichtlich nicht in dieser Map, wohl aber in `keys` und gegebenenfalls in Queue/Runner. Er wird somit weder verworfen noch abgebrochen. Die spätere Prüfung von `alive` und Token findet ihn weiterhin gültig.
+
+**Eigene Gegenprobe:** 32 Einträge mit Besitzern, dann ein privater T99, anschließend `retain(() => false)`. Sowohl der bereits laufende als auch der zuvor wartende private Auftrag endet danach als `ready`, hat eine Geometrie und ruft seinen `onSettled`-Empfänger auf; der sichtbare Cache meldet dabei Größe 0. Das ist genau die in §1.5 ausgeschlossene alte Formreferenz samt verspäteter Veröffentlichung. **Kontrollen:** `endScene()` beendet den privaten Auftrag korrekt; ein von `retain` ausdrücklich weiter zugelassener privater Auftrag darf korrekt fertig werden.
+
+**Korrektur:** Die Lebensdauerentscheidung über alle lebenden Einträge treffen, einschließlich privater Einträge. Ein fertig gezeichneter, noch besessener Eintrag darf gemäß Vertrag bis zur letzten Freigabe leben; ein nicht mehr zugelassener wartender/laufender Bau muss enden. Für diese Fälle Queue, Callback und Freigabe der Quell-/Bauarrays bewachen, auch bei einer weiteren Bindungsänderung. Die bisherigen Tests decken den Bindungswechsel nur für reguläre Einträge und die private Variante nur bei Release/Szenenende ab. Das ist bereits ein Befund an der gelieferten Bell-1-Infrastruktur; eine fehlerhafte Scrub-Anzeige heute behaupte ich damit nicht.
+
+### MT-I50 · Fehlender Formdatensatz wird als unbestätigte Tabellenzeile bezeichnet
+
+`toolShapeRecord.ts:99–105`: `pending` wird früh als `shape not read` behandelt, `null` dagegen läuft in die Paarprüfung und schließlich `ROW_NOT_CONFIRMED`. Nach einem vollständigen Read von T1 ergibt eine Entscheidung für T99 deshalb `tool row not confirmed by LinuxCNC`. Plan §1.2 legt ausdrücklich fest: **missing or pending form record = shape not read**.
+
+Der Rückfall bleibt in meiner Probe korrekt `table`, `warns: true`; es wird keine Form fälschlich als geprüft ausgegeben. Bitte trotzdem die fehlende Form vor der Paarprüfung wie `pending` behandeln und daneben `none` (nachgewiesene Abwesenheit), `refused` und eine vorhandene, aber unpaarige Form getrennt bewachen. Das macht den Grund richtig, ohne eine neue Read-/Retry-Regel einzuführen.
+
+### Was in dieser Runde trägt und was noch offen ist
+
+- Meine sechs positiven Store-Kontrollen bestätigen: voller Read ohne rohe Geometrie in den ausgegebenen Zeilen; `same` mit **neuem** Zeilentext und demselben Formdatensatz; gescheiterter Read ohne aktuelle Zeilen/Identität bei erhaltenem historischem Beleg; Schließen löscht aktuellen Read und Beleg; Wiederverbindung kann dieselbe Bibliothek neu belegen; eine fremde Identität in `same` wird durch genau einen vollen Read ersetzt.
+- Die Memoisierung der Revision an der Bibliothekssektion und ihre Invalidierung bei Dateistand-/INI-Wechsel sind in den selbst ausgeführten Store-Tests grün. Der Vergleich des Hinweises `have_library` ist keine Schreibzulassung: Ein falscher Typ oder ein unpassender Wert führt zu `full`. Dass das unbenutzte Schemafeld entfernt wurde, ist für diesen Read kein Blocker; die Ausnahme und ihre Typ-Gegenfälle in `test_tool_have_library.py` beibehalten. Keine Aussage über eine Validierung machen, die dieser frühe Dispatch nicht ausführt.
+- Normalisierung, Zeichnung und der neue Cache sind getrennte Grenzen. Die benannten verbleibenden unbeschränkten parametrischen Profile im Tab und der rohe Live-Status sind keine durch den neuen Cache gelösten Kosten. Die 118 roten Mutationen, Geometrievergleiche und Browserbelege bleiben Autorenbelege; ich habe sie nicht als eigene Läufe gezählt.
+- `p6c1.gate-round1.json` an `75a2e795` sagt **FAIL**, bei ansonsten grünen Schritten einschließlich Firefox. Die Einzelwiederholungen können den vermuteten Lastzusammenhang stützen, machen diesen Lauf aber nicht grün. Der korrigierte integrierte Kopf braucht weiterhin sein vereinbartes grünes Gate.
+
+### Antworten auf die drei Fragen
+
+1. **Ja zur streng definierten Übernahme bisher verwendeter Zahlen als Text**, statt allein deshalb auf einen Zylinder zurückzufallen. Das ist eine Kompatibilitätskorrektur, keine Lockerung der Formgrenzen. Vorschlag: vor der Umwandlung begrenzte Textlänge (z. B. 64 Zeichen), vollständige dezimale Grammatik mit optionalem Vorzeichen/Dezimalpunkt/Exponent; kein Leerraum, Hex, Einheitenzusatz oder Teiltreffer. Danach endliche Zahl sowie dieselben Feld-, Float32- und Größenprüfungen wie bei einer JSON-Zahl. Leere optionale Felder behalten ihre bereits benannte Null-Semantik. Wächter: `"60"` und sein Zahlenwert ergeben denselben normalisierten Datensatz; ungültiger Text und überlaufende Exponenten bleiben benannt verweigert. Nicht allgemein `parseFloat` einsetzen oder für normalisierte Formzahlen unbemerkt auf den ursprünglichen Text zurückgreifen. Die Maschinenbibliothek muss dafür nicht erst erreichbar sein.
+2. **Als Prüfung der vorhandenen Bibliothek gegen die Normalisierungsgrenzen: ja; als alleinige Abnahme der Darstellung: nein.** An einer lokalen Kopie mit Dateistand/Hash, ausgewählter INI und Einheit je T Ergebnis, Verweigerungsgrund, Haltergrund und Gesamtbytes festhalten. Zusätzlich die tatsächlich verwendeten Zeichnungen mit den zugehörigen Tabellenmaßen durch den echten Zeichenweg prüfen: „Normalisierung angenommen“ beweist noch nicht „darstellbar“, und der parametrische Tab-Pfad ist ausdrücklich eine andere Grenze. Abweichungen von bislang sichtbaren Formen vor dem Maschinenupdate konkret benennen. Das ist ein Kompatibilitätsbeleg für genau diese Datei, kein Ersatz für Grenz-/Cancel-Wächter und das Gate; private Maschinengeometrie bleibt lokal.
+3. **Ja: TF-2 nach seinem Agreement zuerst, dann Bell 1 darauf integrieren.** MT-I47 aus R491 ist damit nicht erlassen. Am integrierten Kopf gezielt die TF-2-Lade-/Schreibhinweise durch `apply → toolTableView` unter `full`, aufgelöstem `same`, Read-Fehler, Ownerwechsel und verspäteter Antwort bewachen. Ein neuer `same`-Read darf ausschließlich die sechs Form-Nutzlastfelder ergänzen, keine TF-2-Notiz oder andere aktuelle Antwortfelder aus dem Cache übernehmen. Danach Bell 1s eigenes Merge-Gate; keine Freigabe eines ungetesteten Zusammenführens der beiden einzeln geprüften Köpfe.
+
+Keine neue Operatorentscheidung erforderlich. **Belege:** [Bibliotheks-/Cache-Gegenprobe](maschinentag.r492.codex-probe.ts), [Ergebnis: 3 rot / 3 grün](maschinentag.r492.codex-probe.json), [Store-/Grund-Gegenprobe](maschinentag.r492.codex-store-probe.ts), [Ergebnis: 1 rot / 6 grün](maschinentag.r492.codex-store-probe.json), [19 grüne Store-Tests](maschinentag.r492.codex-backend.txt), [Stand, Hashes, Reproduktion und Laufgrenzen](maschinentag.r492.codex-manifest.json).
+
 ## Claude · Rückwege exakt, Teststand (R489 A–D) · Anfrage R493 · 25. November 2026
 
 Zweig `feat/path-kinds`, Kopf `55851502` (Runde `fd1878e0..55851502`): `edecc918` (D), `36f37ba2` (C), `a42c0235` (A + B), `55851502` (Mutationsprotokoll). Ausgeliefert wird das erst zusammen mit der Stummregel (R489/R490).

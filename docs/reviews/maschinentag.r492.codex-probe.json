@@ -1,0 +1,93 @@
+{
+  "head": "e8d99b0c",
+  "results": [
+    {
+      "name": "all retained library records obey 64 MiB",
+      "verdict": "FAIL",
+      "evidence": {
+        "limit": 67108864,
+        "actual": 67240956,
+        "excess": 132092,
+        "T19": "mesh",
+        "T20": "param",
+        "T51": "param",
+        "ms": 80.847893
+      }
+    },
+    {
+      "name": "control: ordinary library",
+      "verdict": "PASS",
+      "evidence": {
+        "bytes": 1024
+      }
+    },
+    {
+      "name": "private running / new binding",
+      "verdict": "FAIL",
+      "evidence": {
+        "before": {
+          "state": "building",
+          "waiting": 0,
+          "live": 1
+        },
+        "after": {
+          "state": "ready",
+          "shape": true,
+          "told": 1,
+          "cacheSize": 0
+        }
+      }
+    },
+    {
+      "name": "private queued / new binding",
+      "verdict": "FAIL",
+      "evidence": {
+        "before": {
+          "state": "building",
+          "waiting": 0,
+          "live": 1
+        },
+        "after": {
+          "state": "ready",
+          "shape": true,
+          "told": 1,
+          "cacheSize": 0
+        }
+      }
+    },
+    {
+      "name": "private / scene ended",
+      "verdict": "PASS",
+      "evidence": {
+        "before": {
+          "state": "building",
+          "waiting": 0,
+          "live": 0
+        },
+        "after": {
+          "state": "building",
+          "shape": false,
+          "told": 0,
+          "cacheSize": 0
+        }
+      }
+    },
+    {
+      "name": "private / still visible",
+      "verdict": "PASS",
+      "evidence": {
+        "before": {
+          "state": "building",
+          "waiting": 0,
+          "live": 1
+        },
+        "after": {
+          "state": "ready",
+          "shape": true,
+          "told": 1,
+          "cacheSize": 0
+        }
+      }
+    }
+  ]
+}

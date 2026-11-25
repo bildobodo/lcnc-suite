@@ -1,0 +1,73 @@
+{
+  "head": "e8d99b0c",
+  "results": [
+    {
+      "name": "full reply: mesh record, raw payload absent from current rows",
+      "verdict": "PASS",
+      "evidence": {
+        "kind": "mesh",
+        "recordBody": "envelope"
+      }
+    },
+    {
+      "name": "same reply: current text, shared form, paired body",
+      "verdict": "PASS",
+      "evidence": {
+        "calls": [
+          null,
+          "L1"
+        ],
+        "remark": "new comment"
+      }
+    },
+    {
+      "name": "failure: empty current view and identity, historic proof unchanged",
+      "verdict": "PASS",
+      "evidence": {
+        "kind": "failed",
+        "keys": [
+          1
+        ],
+        "table": null
+      }
+    },
+    {
+      "name": "close: current and evidence cleared",
+      "verdict": "PASS",
+      "evidence": {
+        "current": null,
+        "binding": null
+      }
+    },
+    {
+      "name": "reconnect: same content is proven anew",
+      "verdict": "PASS",
+      "evidence": {
+        "body": "envelope"
+      }
+    },
+    {
+      "name": "different identity: unresolved same replaced by exactly one full read",
+      "verdict": "PASS",
+      "evidence": {
+        "calls": [
+          "L1",
+          null
+        ],
+        "table": {
+          "path": "/other",
+          "instance": "two"
+        }
+      }
+    },
+    {
+      "name": "missing form says shape not read",
+      "verdict": "FAIL",
+      "evidence": {
+        "actual": "tool row not confirmed by LinuxCNC",
+        "body": "table",
+        "warns": true
+      }
+    }
+  ]
+}
