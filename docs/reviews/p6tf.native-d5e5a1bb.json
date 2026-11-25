@@ -1,0 +1,78 @@
+{
+ "run": "20261125T115800-r471b",
+ "driver": "docs/reviews/p6tf.native.py (via ~/claude-work/p6/tf/drive.sh: the native-run user unit, restore_lan.py as ExecStopPost)",
+ "commit": "d5e5a1bbf53be672f4259c657a24b780abad995a",
+ "profile": "3axis_xyz",
+ "error": null,
+ "restore": "complete",
+ "restore_post": "complete",
+ "crashes": [],
+ "p6tf": {
+  "table_file": "xyz3/tool.tbl",
+  "loaded": {
+   "tools": 902,
+   "size": 109728,
+   "proof": "complete",
+   "blksize": 4096
+  },
+  "burst": {
+   "g10_lines": 150,
+   "seconds": 15.3,
+   "sampler": {
+    "reads": 364044,
+    "distinct": 1016,
+    "torn": 865,
+    "full": 151,
+    "torn_examples": [
+     "xxxxxxxxxxxxxx\nT104 P104 D+6.000000 Z+41.040000 ; long remark 0104 xxxxxxxxxxxxxxxxxxxxxxx",
+     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nT137 P137 D+6.000000 Z+41.370000 ; long remark",
+     "xxxxx\nT235 P235 D+6.000000 Z+42.350000 ; long remark 0235 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     " ; long remark 0333 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "xxxxx\nT235 P235 D+6.000000 Z+42.350000 ; long remark 0235 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "errors": {}
+   },
+   "reader": {
+    "replies": 1881,
+    "failed": [],
+    "complete": 1881,
+    "partial": 0,
+    "unchecked": 0,
+    "attempts_over_1": 39,
+    "complete_rev_a_sampled_full_content": 1881,
+    "complete_with_a_torn_content_or_short": [],
+    "not_complete_examples": [],
+    "ms_median": 7.9
+   },
+   "edit_during_the_burst": {
+    "refused": true,
+    "error": "save_tool refused: Machine busy \u2014 wait until it is idle"
+   },
+   "verdict": "PASS"
+  },
+  "prefix": {
+   "read_state": "partial",
+   "missing": 270,
+   "dropped": 270,
+   "refusal": "save_tool refused: 270 tools not in the file \u2014 restore it; restart drops them",
+   "refusal_read": "270 tools not in the file \u2014 restore it; restart drops them",
+   "file_unchanged": true,
+   "linuxcnc_tools_before": 902,
+   "linuxcnc_tools_after": 902,
+   "restored_state": "complete",
+   "edit_after": "confirmed",
+   "read_after": "complete",
+   "attempts_after": 1,
+   "t2_after": 35.0,
+   "verdict": "PASS"
+  },
+  "trace_tools_events": {
+   "tools.table_file_changed": 17,
+   "tools.read_partial": 1,
+   "tools.edit_basis_refused": 1,
+   "tools.reload_confirmed": 1
+  },
+  "verdict": "PASS"
+ },
+ "note": "the run before it (20261125T115643-r471) ended at its E-Stop reset, no case run: a pytest probe beside it held the HAL watchdog's gateway slot (wd.client_rejected duplicate_gateway); restore complete"
+}
