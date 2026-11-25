@@ -299,6 +299,10 @@ class TestTheWritersLine(unittest.TestCase):
         self.assertEqual(tool_table.home_tools(data), {1: (2, 102), 2: (5, 105), 3: (7, 107), 4: (9, 109)})
         self.assertEqual([r["T"] for r in parse_tool_table_bytes(data, strict=True)], [2, 5, 7, 9])
 
+    def test_no_description_is_no_error(self):
+        for text in (None, ""):
+            self.assertNotIn(b" ; ", write_tool_table(self.path, [row(remark=text)]))
+
     def test_the_reasons_are_short(self):
         for tool in (1, TOOL_NUMBER_MAX):
             for bad in (dict(remark="x" * 255), dict(Z=1e300), dict(remark="\n"), dict(remark="\ud800"),

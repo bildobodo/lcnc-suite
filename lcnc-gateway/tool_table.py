@@ -187,7 +187,7 @@ def _tool_line(t: dict) -> bytes:
     guard, Codex R476 answer 6 / MT476-03)."""
     tn = t["T"]
     pn = t.get("P", tn)
-    remark = t.get("remark", "")
+    remark = t.get("remark") or ""
     if not _C_INT_MIN <= tn <= _C_INT_MAX:
         name = f"T{tn}" if len(str(tn)) <= 12 else "A tool number"
         raise ToolTableUnwritable(f"{name} is past LinuxCNC's integers — renumber it")
