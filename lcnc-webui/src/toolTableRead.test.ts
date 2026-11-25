@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   NOTE_NAMES_MAX, NO_PROOF, TOOL_TABLE_NOT_CHECKED, TOOL_TABLE_NOT_CONFIRMED, TOOL_TABLE_NOT_READ,
   LOAD_FAILED, TOOL_TABLE_NO_TOOLS, ToolTableReads, WRITE_NO_METADATA, WRITE_NOT_LOADED, partialNote, toolTableView,
-  toolWriteNote, toolWriteOutcome, type ToolReadKind, type ToolTableProof,
+  toolWriteNote, toolWriteOutcome, toolWriteStands, type ToolReadKind, type ToolTableProof,
 } from "./toolTableRead";
 
 interface Row { T: number; Z: number }
@@ -171,14 +171,15 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
   // every outcome the gateway names (_ToolWriteJob.outcome, "not awaited")
   const OUTCOMES = ["confirmed", "unconfirmed", "not checked", "superseded", "controller changed", "reload not sent",
                     "reload failed", "failed", "cancelled", "not awaited"];
-  const note = (reply: unknown, kind: ToolReadKind | null) => toolWriteNote(toolWriteOutcome(reply), kind);
+  const A = { path: "/cfg/tool.tbl", instance: "111:1" };
+  const note = (reply: unknown, kind: ToolReadKind | null) => toolWriteNote(toolWriteOutcome(reply, A), kind);
 
   it("only a load that was not sent or failed has words of its own, and not beside a partial read", () => {
     for (const reload of OUTCOMES) {
       const own = reload === "reload not sent" || reload === "reload failed";
       for (const kind of ["complete", "unchecked", "failed", "partial", null] as const) {
         expect(note({ ok: true, reload }, kind), `${reload} beside ${kind}`)
-          .toBe(own && kind !== "partial" ? `${WRITE_NOT_LOADED}.` : null);
+          .toBe(own && kind !== "partial" && kind !== null ? `${WRITE_NOT_LOADED}.` : null);
       }
     }
   });
@@ -188,6 +189,27 @@ describe("a written table's rest (Codex R471 MT-I42)", () => {
     }
     expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "complete"), "the table named once").toBe(`${WRITE_NO_METADATA}; ${LOAD_FAILED}.`);
     expect(note({ ok: true, reload: "reload failed", metadata: "not saved" }, "partial")).toBe(`${WRITE_NO_METADATA}.`);
+  });
+  it("a lost socket ends nothing: it stands for the same table under the same LinuxCNC (Codex R472 MT-I43)", () => {
+    const failed = toolWriteOutcome({ ok: true, reload: "reload failed" }, A);
+    const both = toolWriteOutcome({ ok: true, reload: "reload not sent", metadata: "not saved" }, A);
+    for (const o of [failed, both]) {
+      expect(toolWriteStands(o, { ...A }), "the same table read again").toBe(o);
+      expect(toolWriteStands(o, null), "a failed read, an older gateway").toBe(o);
+      expect(toolWriteStands(o, { ...A, instance: "unbound" }), "no LinuxCNC bound").toBe(o);
+    }
+    // another LinuxCNC on the same file loaded it when it started; metadata are still not saved
+    const restarted = { ...A, instance: "222:2" };
+    expect(toolWriteStands(failed, restarted)).toBeNull();
+    expect(toolWriteStands(both, restarted)).toEqual({ notLoaded: false, noMetadata: true, of: restarted });
+    // another table: not its outcome, never shown beside it
+    for (const o of [failed, both]) expect(toolWriteStands(o, { ...A, path: "/cfg/other.tbl" })).toBeNull();
+    // a write whose table was not known, or under no LinuxCNC: nothing proves its end
+    for (const of of [null, { ...A, instance: "unbound" }]) {
+      const o = toolWriteOutcome({ ok: true, reload: "reload failed" }, of);
+      expect(toolWriteStands(o, restarted)).toBe(o);
+    }
+    expect(toolWriteStands(null, A)).toBeNull();
   });
   it("an older gateway's reply leaves nothing open", () => {
     for (const r of [{ ok: true }, { ok: true, added: 3 }, null, undefined]) expect(note(r, "complete")).toBeNull();
