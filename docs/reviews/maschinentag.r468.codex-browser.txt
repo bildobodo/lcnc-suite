@@ -1,0 +1,15 @@
+[2m[WebServer] [22m(node:1959328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:1959349) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1959349) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/tool-table-read.spec.ts:14:1 › a slow read says so, keeps waiting and takes its late reply; Retry reads again (19.2s)
+  ✓  2 [e2e] › e2e/tool-table-read.spec.ts:51:1 › a reconnect reads the table again; the strip follows a changed table (3.7s)
+  ✓  3 [e2e] › e2e/tool-table-read.spec.ts:75:1 › a connection that opens: the tab loads, never 'Not connected' while its read waits (3.5s)
+  ✓  4 [e2e] › e2e/tool-table-read.spec.ts:97:1 › the read's proof: partial and unchecked name it, a failed read is not empty, 'No tools' only complete (2.2s)
+
+  4 passed (30.6s)

@@ -1,0 +1,13 @@
+
+> lcnc-webui@0.0.0 test
+> vitest run src/toolTableRead.test.ts
+
+
+ RUN  v4.1.8 /tmp/r468/tree/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  07:14:01
+   Duration  103ms (transform 34ms, setup 0ms, import 40ms, tests 4ms, environment 0ms)
+

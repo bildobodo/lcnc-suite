@@ -1,0 +1,63 @@
+{
+  "review": "R468",
+  "base": "f392d6a014f5d7721d91daaee56bd236793a8c8b",
+  "head": "b3462e251964b54f212bb0c86a6fe73c5b24f476",
+  "product_head": "eeabbceb762cef9968b196ceab4812468eb583df",
+  "review_copy": "/tmp/r468/tree",
+  "product_files_match_head": {
+    "lcnc-gateway/gateway.py": "537558e5170d6e77fead59974004775a7aab9f93f59cdf8278e5fa57d9ae2ff4",
+    "lcnc-gateway/tool_proof.py": "2edb5056c9f085c778d561157a4a06060fa7cbbefadf41757cfad9742b7e4590",
+    "lcnc-gateway/tool_store.py": "507bbea85a844f32f89cea3a95aba5f3a5bb4d2403cf07fbb8b868c654b73bcc",
+    "lcnc-gateway/tool_table.py": "5ec77aec17cb5c10559280a4999d23a33e23044c76b1df9fa5115ad48e4415dd",
+    "lcnc-webui/src/toolTableRead.ts": "dcbb807d572a70525f62f204ba6c1ea774e4ea4dd5d65ec7d1e8343954dcf0d6",
+    "lcnc-webui/src/ToolTablePanel.vue": "0db6ebf5ff515c8b9d5ac8030ae319b25bb8f56c3a88fa76c8fb57273aa8f227"
+  },
+  "controller": "fake_linuxcnc installed before gateway import; no native commands or live Sim run",
+  "logging": "LCNC_LOG_DIR=/tmp/r468/logs; PYTHONDONTWRITEBYTECODE=1",
+  "locking": "scripts/test_support/heavy_lock.py, shared default lock, who codex-r468-backend/frontend/completion, --wait 50",
+  "backend_commands": [
+    "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B -m unittest -v test_tool_proof test_tool_proof_gateway test_tool_store test_tool_table test_codex_r468",
+    "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B -m unittest -v test_tool_edit_contract test_tool_refresh test_tool_table_watch test_button_gates_b_commit test_codex_r468"
+  ],
+  "backend_workdir": "/tmp/r468/tree/lcnc-gateway",
+  "raw_counts": {
+    "backend.txt": {
+      "tests": 99,
+      "failures": 5,
+      "errors": 0
+    },
+    "backend-completion.txt": {
+      "tests": 65,
+      "failures": 7,
+      "errors": 0
+    }
+  },
+  "summary": {
+    "existing_backend_unique": 148,
+    "existing_backend_passed": 148,
+    "own_final_cases": 9,
+    "own_final_controls_passed": 2,
+    "own_final_failed_assertions": 7,
+    "frontend_unit_passed": 14,
+    "build": "PASS",
+    "chromium_browser_passed": 4,
+    "new_native_run": false
+  },
+  "findings": [
+    "MT-I35: admission before the new writer basis reads",
+    "MT-I36: strict library form bypass via tolerant cache",
+    "MT-I37: table proof republished with another controller identity"
+  ],
+  "evidence_sha256": {
+    "docs/reviews/maschinentag.r468.codex-probe.py": "d4b513ab26508e253f64fa722f1c6146821985f0c533e8fb6c51f392756e5088",
+    "docs/reviews/maschinentag.r468.codex-probe-initial.py": "7d0f2ecd42e225222642a0a561fb8f3af36e411ccded8184454f2a8bd505330d",
+    "docs/reviews/maschinentag.r468.codex-backend.txt": "a9a7b995980fca9d6f80d07e5fdb2edfe335bda52e4184c126a9ef82fd6e7560",
+    "docs/reviews/maschinentag.r468.codex-backend-completion.txt": "2e062a677385644e6c686c9070d806288e1cda0c8757315bfe4a1600dc845058",
+    "docs/reviews/maschinentag.r468.codex-frontend-unit.txt": "77895ac92a582b3ccc80f3a078fb664dbae3db74f9a912747595a49f42ad4950",
+    "docs/reviews/maschinentag.r468.codex-build.txt": "17f17a50cbf9ae3732007062d66dd22f776e1757dbc6d9b8e24645fcb3294326",
+    "docs/reviews/maschinentag.r468.codex-browser.txt": "8b191ec805cf9ce9fe40d418a6a5e4464c13670e3fa39c8ece1a831e1a6a9b35",
+    "docs/reviews/maschinentag.r468.codex-frontend-runner.py": "90aebd59f48198faff1dce4f073245cde40744090bc6a4aafaef4afabe5dfc0e"
+  },
+  "review_prefix_sha256": "ae4ae85ab1767d3e5b9dd7972dabc8f4ffd006ee34a3210dc6b970936f402198",
+  "review_append_sha256": "54af6a0f1df87e218c61de5e6cfbd71b3b7ba5b86015c2d12382a90d67df0583"
+}

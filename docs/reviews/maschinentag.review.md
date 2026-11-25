@@ -7217,3 +7217,57 @@ Werkzeug: `scripts/review_handshake.py`, Tests `scripts/test_review_handshake.py
 - **Reset:** Kein Weg im Gateway entfernt `probeCalibration`; `reset_device` und `delete_device` betreffen nur Gerätesektionen (`settings_store.py:563`, `:600`).
 - **Mutationen:** Der Datensatz 62/62 (`8e902e6f`) ist einen Commit älter als der Kopf des Gates. `a3a77b5b` entfernt in `probe-calibration.spec` nur das `close()` nach der letzten Prüfung eines Falls. Die sechs Mutationen dieses Specs laufe ich am Kopf nach.
 - **`CLAUDE.md`:** Die Kurzform zu `ProbePanel.vue` nennt noch `#3014–#3036` aus der Seite, ohne die Ausnahme `#3032`. Kommt mit der nächsten Runde.
+
+---
+
+## Codex · Lesen der Werkzeugdateien · Review R468 · 25. November 2026
+
+**Urteil: `findings` zu `f392d6a0..b3462e25`. MT465-01 ist geschlossen; drei Befunde bleiben.** Geprüft am Kopf `b3462e25` (Produkt `eeabbceb`) in einer eigenen Archivkopie unter `/tmp/r468/tree`. Keine Änderungen am Produkt und kein Zugriff auf die Steuerung der Live-Sim. Die Tests benutzen `fake_linuxcnc`, temporäre Tabellen/Bibliotheken und einen eigenen Mock-Browser; die schweren Abschnitte liefen unter der gemeinsamen Testsperre.
+
+**Eigene Prüfung:** 148 vorhandene Backend-Wächter grün (92 Regel-/Lese-/Store-/Parserfälle und 56 weitere Edit-/Refresh-/Watch-/Commitfälle), 14 Frontend-Unit-Fälle grün, Build grün, `tool-table-read.spec.ts` 4/4 grün. Die abschließende eigene Gegenprobe enthält neun Fälle: zwei positive Kontrollen grün, sieben Assertions zu den drei nachstehenden Befunden rot. Die roten Ergebnisse sind erwartete Review-Gegenbelege, kein grünes Gate. Claudes nativen Lauf habe ich als gespeicherten Beleg gelesen, nicht wiederholt; `eeabbceb`, beide Rückgaben `complete`, `crashes: []`. Seine Lastzahlen bleiben ohne Basisvergleich und ohne N100-Messung.
+
+### MT-I35 · P2 · Die neue Basisprüfung liegt hinter der letzten Schreibzulassung
+
+`gateway.py:5827–5843`: `_write_tool_table_admitted` prüft zuerst Verbindung/Arm/Controllerzustand, führt danach `check()` mit erneutem Datei-/STAT-/Bibliothekslesen aus und schreibt anschließend ohne erneute Zulassung. Das ist keine atomare Entscheidung mit dem neuen, möglicherweise wartenden Basislesen. `_cmd_lock` sperrt Programmstarts dieses Gateways, aber nicht das Zurücknehmen des Arms durch den WS-/Statusbesitzer.
+
+**Gegenfall am echten WS-Schreibweg:** `save_tool(T1, Z=49)` beginnt armed auf einer vollständigen Tabelle. Die zweite Regel-R-Lesung, also die im Schreibthread, wird angehalten. Der Eventloop setzt den eigenen Client auf disarmed; danach darf die Lesung weiterlaufen. Ergebnis: Datei geändert, `load_tool_table` einmal, Antwort `ok: true, reload: confirmed`. Die Variante ohne Thread-Wartepunkt ergibt dasselbe. Das ist vor der ersten Dateischreibung, kein Abbruch eines bereits festgeschriebenen Commits.
+
+**Korrektur:** Die aktuellen Zulassungen nach den vorbereitenden Basis-/Erwartungslesungen unmittelbar vor dem Dateieffekt nochmals prüfen. Die gemeinsame Stelle deckt Save/Add/Delete/Renumber ab. Basisvergleich und Regel R bleiben zusätzlich nötig. Nach tatsächlich begonnener Schreibung soll der geschützte Abschnitt weiterhin bis Reload/Metadatenende laufen; diesen Vertrag nicht zurücknehmen. Wächter: Disarm/Verbindungsverlust während der Prüfung → unveränderte Datei und Bibliothek, kein Reload; unveränderte Zulassung → normaler Commit. Dies schließt nicht das ausdrücklich benannte Fenster eines fremden NML-Schreibers.
+
+### MT-I36 · P2 · Ein warmer Cache umgeht die strenge Bibliotheksform
+
+`tool_store.py:65–66` liefert einen Cachetreffer vor der Prüfung `strict and not isinstance(data, dict)` in Zeile 80 zurück. Der Statuspfad benutzt dieselbe Instanz mit `load()` ohne `strict` (`gateway.py:3725`).
+
+**Gegenfall:** `tool_library.json` enthält `[]`. Ein kaltes `get_tool_table` verweigert korrekt mit „top level is list, not an object“. Nach einem einzigen toleranten `store.load()` beantwortet derselbe echte Gateway-Leser dieselbe Datei jedoch mit `ok: true`, `proof.state: complete` und Bibliotheksrevision von `{}`; die Metadaten sind leer. Der isolierte Store-Wächter bestätigt denselben Fehler. Es braucht weder eine Signaturkollision noch einen Dateiwettlauf.
+
+**Korrektur:** Auch Cachetreffer müssen die für den aufrufenden Leser geltende Form erfüllen; alternativ nur validierte Formen cachen. Die strenge Antwort darf nicht von der Lesehistorie des Statuspfads abhängen. Nicht sämtliche toleranten Statusleser auf eine neue Fehlerpolitik umstellen. Gegenwächter warm/kalt für ungültige Oberform, gültige leere Bibliothek sowie unveränderte gültige Metadaten.
+
+### MT-I37 · P2 · Ein Lesen kann den alten Nachweis an eine neue Controlleridentität hängen
+
+`gateway.py:9099–9128`: Nach dem Regel-R-Vergleich folgen weitere Thread-/Bibliothekslesungen, aber kein Abschlussabgleich des besitzenden Links. `_tool_table_identity()` liest dagegen die **jetzt** globale `_bound_instance`. Der Schutz in `_confirm_tool_write` ist richtig, deckt diesen anderen Eintrittsweg nicht ab. Die WS-Epoche der Seite ändert sich bei einem reinen Controller-Linkwechsel nicht zwangsläufig.
+
+**Gegenfälle:** Link während der anschließenden Bibliothekslesung widerrufen oder durch eine Verbindung mit ungelesener Tabelle ersetzen → weiterhin `complete` mit T1/T2/T3. Die stärkere Probe bildet die beiden Veröffentlichungen einer erlaubten Neubindung nach: Vergleich unter Instanz `111:111`, danach `_bound_instance=222:222` und neuer Link mit leerem STAT-Tupel. Der Reply behauptet `table.instance: 222:222` zusammen mit dem alten `complete`-Nachweis. Hier geht es nicht um die allgemein unvermeidliche Alterung eines Snapshots: Der Snapshot trägt die falsche Herkunft.
+
+**Korrektur:** Link, Tabellen-/Instanzidentität und Bibliothekszuordnung gehören zum Leseauftrag. Vor der Veröffentlichung deren Gültigkeit prüfen; bei Verlust/Wechsel das Ergebnis verwerfen oder ausdrücklich unbelegt liefern, niemals als aktuellen `seen`-Beleg. Die Fälle vor/nach STAT und während der Bibliothekslesung abdecken. Keine zusätzliche Sperre über Dateilesungen erforderlich.
+
+### Geschlossene Punkte und benannte Abweichungen
+
+**MT465-01: Agreement.** Der Nachlauf hält `_cmd_lock` nicht; die wiederholten Wächter benutzen den echten REST-Import neben WS und das unveränderte `_preempt_inflight` für Abort und E-Stop eines anderen Clients. Der fertig geschriebene Abschnitt bleibt erhalten. Sequenz-/Linkprüfung nach jedem Vergleich verhindert eine falsche Bestätigung des Nachlaufs. `ok` mit `reload: not awaited` nach dessen Abbruch ist die richtige Unterscheidung zwischen erfolgter Schreibung und nicht abgewartetem Nachweis. Die Grenze „kooperativ zwischen STAT-Lesungen“, das GIL-Risiko und die FIFO-Reihe desselben Clients sind zutreffend benannt.
+
+Regel R, die gemeinsame Byte-Lesung, die neutralen Teilzustände und das Leeren der Seite nach einem fehlgeschlagenen Lesen sind angenommen. `toolno != -1` statt `id > 0` folgt dem benannten gespeicherten Satz einschließlich T0. Der Cache-Schlüssel verbessert die Invalidierung, ist aber für sich kein Formnachweis (MT-I36). Nicht-UTF-8 als ungelesene Zeile und eine unlesbare Bibliothek als fehlgeschlagener Lesevorgang sind passend. Den Versions-Ping am Ende des Auftrags akzeptiere ich; er behauptet selbst keine erfolgreiche Bestätigung.
+
+**GW-6:** Der Laufzeit-Rekorder fehlt gegenüber dem Plan. Für diese Variante A akzeptiere ich die Abweichung: Es wird keine zusätzliche Sperre eingeführt; die vorhandenen Ablaufwächter zeigen Leser hinter dem ganzen Commit und Stopps außerhalb des Nachlaufs. Das ist kein Beleg für jede künftige Sperrverschachtelung. Bei einer späteren getrennten Dateisperre wäre deren Reihenfolge erneut zu prüfen.
+
+### Antworten auf TF-1a bis TF-1c
+
+**TF-1a: Nein zur stillen Freigabe allein aus „in Ruhe“ und passenden Werten.** Eine unveränderte Signatur oder ein Idle-Zustand unterscheidet die dauerhaft fehlende letzte Newline nicht von einem angehaltenen fremden Dateischreiber. Die Werte können dabei vollständig passen, während die letzte Bemerkung abgeschnitten ist. Regel R deshalb unverändert lassen. Eine ausdrücklich gewählte Normalisierung wäre ein eigener Reparaturvorgang: gelesenen Inhalt und letzte Zeile zeigen, mögliche unvollständige Bemerkung benennen, exakt diese Bytes gegen Änderung binden und nur das Zeilenende ergänzen. Bis dafür ein Vertrag gebaut ist, lautet der konkrete Ausweg „letztes Zeilenende im Editor ergänzen, erneut lesen“ — dafür ist kein automatischer Reload nötig, wenn der neue Vergleich bereits vollständig ist. Den allgemeinen Text „read again“ durch Ursache und diesen Ausweg ergänzen.
+
+**TF-1b: Für dieses Paket Editor/ausdrücklichen Ersatz benutzen, nicht `delete_tool(T)` freigeben.** Dieser Befehl identifiziert eine Nummer, nicht eine der zwei Zeilen; beide Zeilen im Dialog zu nennen macht sein Ziel noch nicht eindeutig. Eine spätere Reparatur muss die gewählte Zeile, den vollständigen neuen Inhalt und dessen Basisrevision besitzen, mit aktueller Schreibzulassung und einem ausdrücklich bestätigten Reload. Sie ist kein gewöhnliches Edit auf `partial`. Vorher Sicherung/Download anbieten und Duplikat sowie betroffene Zeilen nennen. Ein automatischer Reload der nur teilweise gelesenen Tabelle bleibt ausgeschlossen.
+
+**TF-1c: Ein gezielter, ausdrücklicher Reload des nachweislich eigenen Commits ist der sinnvolle Rückweg.** Dafür einen Beleg des jüngsten eigenen Commits behalten: vollständige Bytes/Hash, Tabellenpfad und Controllerinstanz. Der Wiederholungsweg prüft unter der Schreibserialisierung, dass genau dieser Inhalt noch dort liegt, keine neuere Schreibung ihn ersetzt hat und die aktuelle Verbindung/Arm/Idle/Toolchange-Zulassung gilt. Dann darf er **nur den Reload** senden und die Bestätigung wieder außerhalb der Sperre abwarten; er schreibt nicht erneut und benötigt keine falsche `complete`-Freigabe der noch abweichenden Datei. Bei verlorener Herkunft, verändertem Inhalt oder anderer Instanz kein solcher Shortcut: explizit geprüfter vollständiger Ersatz bzw. Reparatur mit bewusstem Reload. Das ist meine Empfehlung für einen kleinen Folgebauschritt; der aktuelle Code bietet diesen Rückweg noch nicht. Erfolg/Fehler der Dateischreibung und Erfolg/Ungewissheit des Reloads müssen sichtbar getrennt bleiben.
+
+**Q468-1 (Fortführung Q465-1, Operator):** Die Entscheidung über bisher mögliche Edits bei Zufallswechsler/Werkzeugdatenbank ist weiterhin offen. Empfehlung bleibt: ohne eigenen Basisnachweis sperren, Lesen mit Grund erlauben. Der vorläufige Schalter `True` ist keine bereits erteilte Operatorfreigabe. Keine Frage von mir gestellt und nicht darauf gewartet.
+
+Belege: [eigene Gegenwächter](maschinentag.r468.codex-probe.py), [erster Backendlauf](maschinentag.r468.codex-backend.txt), [ergänzter Backendlauf mit Thread-Gegenfall](maschinentag.r468.codex-backend-completion.txt), [Unit](maschinentag.r468.codex-frontend-unit.txt), [Build](maschinentag.r468.codex-build.txt), [Browser](maschinentag.r468.codex-browser.txt), [Manifest mit Befehlen, Köpfen und Hashes](maschinentag.r468.codex-manifest.json). Die anfängliche, kleinere Probe liegt zusätzlich als `maschinentag.r468.codex-probe-initial.py` bei.
+
+**Gesamt: `findings` wegen MT-I35 bis MT-I37; die Antworten TF-1 ändern Regel R nicht automatisch.**

@@ -1,0 +1,162 @@
+[VINIT] session bound to linuxcncsvr pid=1519609 start=251482200
+[VINIT] try_connect_lcnc OK, pid=1519609
+[VINIT] Loaded machine config: 3-Axis Mill
+test_a_loaded_table_without_its_final_newline_stays_partial (test_tool_proof.TestAPermanentPartial.test_a_loaded_table_without_its_final_newline_stays_partial) ... ok
+test_a_tool_number_twice_stays_partial_whatever_linuxcnc_holds (test_tool_proof.TestAPermanentPartial.test_a_tool_number_twice_stays_partial_whatever_linuxcnc_holds) ... ok
+test_more_tools_than_io_holds_stay_partial (test_tool_proof.TestAPermanentPartial.test_more_tools_than_io_holds_stay_partial) ... ok
+test_a_changed_read_proves_nothing (test_tool_proof.TestRevisions.test_a_changed_read_proves_nothing) ... ok
+test_compare_takes_one_scan (test_tool_proof.TestRevisions.test_compare_takes_one_scan) ... ok
+test_the_library_rev_is_canonical (test_tool_proof.TestRevisions.test_the_library_rev_is_canonical) ... ok
+test_the_same_bytes_the_same_rev_an_in_place_rewrite_a_new_one (test_tool_proof.TestRevisions.test_the_same_bytes_the_same_rev_an_in_place_rewrite_a_new_one) ... ok
+test_a_cut_at_a_line_end (test_tool_proof.TestTF1EveryCutIsNotComplete.test_a_cut_at_a_line_end) ... ok
+test_a_last_line_remark_cut (test_tool_proof.TestTF1EveryCutIsNotComplete.test_a_last_line_remark_cut) ... ok
+test_a_partial_read_named_the_same_whether_a_writer_runs_or_not (test_tool_proof.TestTF1EveryCutIsNotComplete.test_a_partial_read_named_the_same_whether_a_writer_runs_or_not) ... ok
+test_codex_r461_paused_writer (test_tool_proof.TestTF1EveryCutIsNotComplete.test_codex_r461_paused_writer) ... ok
+test_every_cut_of_150_tools (test_tool_proof.TestTF1EveryCutIsNotComplete.test_every_cut_of_150_tools) ... ok
+test_every_cut_of_50_tools (test_tool_proof.TestTF1EveryCutIsNotComplete.test_every_cut_of_50_tools) ... ok
+test_the_cut_last_digit_is_a_proven_row_of_a_partial_read (test_tool_proof.TestTF1EveryCutIsNotComplete.test_the_cut_last_digit_is_a_proven_row_of_a_partial_read) ... ok
+test_the_empty_file_with_tools_in_memory (test_tool_proof.TestTF1EveryCutIsNotComplete.test_the_empty_file_with_tools_in_memory) ... ok
+test_the_changed_tool_differs (test_tool_proof.TestTF2OldFileNewMemory.test_the_changed_tool_differs) ... ok
+test_q_is_exact (test_tool_proof.TestTF3Rounding.test_q_is_exact) ... ok
+test_the_printed_digits_are_proven_a_micron_is_not (test_tool_proof.TestTF3Rounding.test_the_printed_digits_are_proven_a_micron_is_not) ... ok
+test_tol_is_not_exact_comparison (test_tool_proof.TestTF3Rounding.test_tol_is_not_exact_comparison) ... ok
+test_a_line_without_a_whole_t_is_attached_to_nothing (test_tool_proof.TestTF4Unread.test_a_line_without_a_whole_t_is_attached_to_nothing) ... ok
+test_a_non_utf8_line_is_unread_with_its_t (test_tool_proof.TestTF4Unread.test_a_non_utf8_line_is_unread_with_its_t) ... ok
+test_a_whole_decimal_t_is_read (test_tool_proof.TestTF4Unread.test_a_whole_decimal_t_is_read) ... ok
+test_comments_and_blank_lines_are_no_tool (test_tool_proof.TestTF4Unread.test_comments_and_blank_lines_are_no_tool) ... ok
+test_a_duplicate_is_unproven_on_both_sides (test_tool_proof.TestTF5Scope.test_a_duplicate_is_unproven_on_both_sides) ... ok
+test_a_tool_only_in_the_file_is_extra (test_tool_proof.TestTF5Scope.test_a_tool_only_in_the_file_is_extra) ... ok
+test_an_empty_file_against_an_empty_initialised_table_is_complete (test_tool_proof.TestTF5Scope.test_an_empty_file_against_an_empty_initialised_table_is_complete) ... ok
+test_an_unread_or_empty_controller_table_is_not_read_never_no_tools (test_tool_proof.TestTF5Scope.test_an_unread_or_empty_controller_table_is_not_read_never_no_tools) ... ok
+test_index_0_is_the_spindle_copy_and_ignored (test_tool_proof.TestTF5Scope.test_index_0_is_the_spindle_copy_and_ignored) ... ok
+test_scopes_are_unchecked_with_their_reason (test_tool_proof.TestTF5Scope.test_scopes_are_unchecked_with_their_reason) ... ok
+test_t0_is_a_home_entry_like_io_saves_it (test_tool_proof.TestTF5Scope.test_t0_is_a_home_entry_like_io_saves_it) ... ok
+test_complete_admits_partial_refuses (test_tool_proof.TestTheEditAdmissionAndTheQ4651Switch.test_complete_admits_partial_refuses) ... ok
+test_the_switch_blocks_by_default_and_names_why (test_tool_proof.TestTheEditAdmissionAndTheQ4651Switch.test_the_switch_blocks_by_default_and_names_why) ... ok
+test_the_switch_off_admits_only_the_two_scopes (test_tool_proof.TestTheEditAdmissionAndTheQ4651Switch.test_the_switch_off_admits_only_the_two_scopes) ... ok
+test_every_checkpoint_is_complete (test_tool_proof.TestTheRealStatDumps.test_every_checkpoint_is_complete) ... ok
+test_the_read_waits_for_the_section (test_tool_proof_gateway.TestGW1TheReadSeesAWritersAfterState.test_the_read_waits_for_the_section) ... ok
+test_two_cancels_of_the_writer_too (test_tool_proof_gateway.TestGW1TheReadSeesAWritersAfterState.test_two_cancels_of_the_writer_too) ... ok
+test_a_clean_prefix_is_refused_at_the_basis_read (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_a_clean_prefix_is_refused_at_the_basis_read) ... ok
+test_a_complete_basis_edits (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_a_complete_basis_edits) ... ok
+test_a_paused_save_in_the_write_thread_writes_nothing (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_a_paused_save_in_the_write_thread_writes_nothing) ... ok
+test_an_add_or_delete_compares_its_base_in_the_write_thread (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_an_add_or_delete_compares_its_base_in_the_write_thread) ... ok
+test_an_early_check_alone_is_not_the_admission (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_an_early_check_alone_is_not_the_admission) ... ok
+test_an_unread_controller_refuses_with_its_reason (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_an_unread_controller_refuses_with_its_reason) ... ok
+test_the_basis_changed_in_the_write_thread_is_refused_there (test_tool_proof_gateway.TestMTTF1TheBasisMustBeComplete.test_the_basis_changed_in_the_write_thread_is_refused_there) ... ok
+test_blocked_by_default_reading_stays (test_tool_proof_gateway.TestQ4651TheSwitchPoint.test_blocked_by_default_reading_stays) ... ok
+test_switched_off_it_edits (test_tool_proof_gateway.TestQ4651TheSwitchPoint.test_switched_off_it_edits) ... ok
+test_a_controller_that_changes_during_the_comparison_confirms_nothing (test_tool_proof_gateway.TestThePostWriteWait.test_a_controller_that_changes_during_the_comparison_confirms_nothing) ... ok
+test_a_newer_write_during_the_comparison_supersedes (test_tool_proof_gateway.TestThePostWriteWait.test_a_newer_write_during_the_comparison_supersedes) ... ok
+test_a_newer_write_supersedes_an_old_wait_which_writes_nothing_back (test_tool_proof_gateway.TestThePostWriteWait.test_a_newer_write_supersedes_an_old_wait_which_writes_nothing_back) ... ok
+test_a_wait_that_fails_answers_no_error_for_a_committed_write (test_tool_proof_gateway.TestThePostWriteWait.test_a_wait_that_fails_answers_no_error_for_a_committed_write) ... ok
+test_another_controller_ends_the_wait (test_tool_proof_gateway.TestThePostWriteWait.test_another_controller_ends_the_wait) ... ok
+test_no_reload_sent_ends_the_job_at_once (test_tool_proof_gateway.TestThePostWriteWait.test_no_reload_sent_ends_the_job_at_once) ... ok
+test_the_bound_ends_it_unconfirmed_and_traced (test_tool_proof_gateway.TestThePostWriteWait.test_the_bound_ends_it_unconfirmed_and_traced) ... ok
+test_the_reply_follows_linuxcnc_showing_the_write (test_tool_proof_gateway.TestThePostWriteWait.test_the_reply_follows_linuxcnc_showing_the_write) ... ok
+test_a_complete_read (test_tool_proof_gateway.TestTheReadReply.test_a_complete_read) ... ok
+test_a_corrupt_library_is_no_read_never_cached_rows (test_tool_proof_gateway.TestTheReadReply.test_a_corrupt_library_is_no_read_never_cached_rows) ... ok
+test_a_file_changed_under_the_read_proves_nothing (test_tool_proof_gateway.TestTheReadReply.test_a_file_changed_under_the_read_proves_nothing) ... ok
+test_a_metadata_only_save_changes_only_the_library_rev (test_tool_proof_gateway.TestTheReadReply.test_a_metadata_only_save_changes_only_the_library_rev) ... ok
+test_a_random_changer_reads_unchecked_with_its_rows (test_tool_proof_gateway.TestTheReadReply.test_a_random_changer_reads_unchecked_with_its_rows) ... ok
+test_a_read_partial_at_first_complete_at_the_second_attempt (test_tool_proof_gateway.TestTheReadReply.test_a_read_partial_at_first_complete_at_the_second_attempt) ... ok
+test_an_empty_controller_table_is_not_read_never_no_tools (test_tool_proof_gateway.TestTheReadReply.test_an_empty_controller_table_is_not_read_never_no_tools) ... ok
+test_an_in_place_rewrite_of_the_same_size_is_a_new_table_rev (test_tool_proof_gateway.TestTheReadReply.test_an_in_place_rewrite_of_the_same_size_is_a_new_table_rev) ... ok
+test_partial_after_the_attempts_with_the_tools_named (test_tool_proof_gateway.TestTheReadReply.test_partial_after_the_attempts_with_the_tools_named) ... ok
+test_the_file_gone_is_no_read (test_tool_proof_gateway.TestTheReadReply.test_the_file_gone_is_no_read) ... ok
+test_unread_lines_carry_their_t_or_none (test_tool_proof_gateway.TestTheReadReply.test_unread_lines_carry_their_t_or_none) ... ok
+test_no_ini_is_unknown (test_tool_proof_gateway.TestTheScopeFromTheIni.test_no_ini_is_unknown) ... ok
+test_the_scopes (test_tool_proof_gateway.TestTheScopeFromTheIni.test_the_scopes) ... ok
+test_a_rest_import_abort_from_another_client (test_tool_proof_gateway.TestTheWaitIsNotInAStopsWay.test_a_rest_import_abort_from_another_client) ... ok
+test_a_rest_import_e_stop_from_another_client (test_tool_proof_gateway.TestTheWaitIsNotInAStopsWay.test_a_rest_import_e_stop_from_another_client) ... ok
+test_a_ws_edit_abort_from_another_client (test_tool_proof_gateway.TestTheWaitIsNotInAStopsWay.test_a_ws_edit_abort_from_another_client) ... ok
+test_a_ws_edit_e_stop_from_another_client (test_tool_proof_gateway.TestTheWaitIsNotInAStopsWay.test_a_ws_edit_e_stop_from_another_client) ... ok
+test_a_strict_load_raises_never_the_cache (test_tool_store.TestToolLibraryStore.test_a_strict_load_raises_never_the_cache) ... ok
+test_a_write_in_the_same_mtime_is_no_cache_hit (test_tool_store.TestToolLibraryStore.test_a_write_in_the_same_mtime_is_no_cache_hit) ... ok
+test_corrupt_file_degrades_and_reports (test_tool_store.TestToolLibraryStore.test_corrupt_file_degrades_and_reports) ... ok
+test_first_run_geometry_does_not_override_saved_or_empty_libraries (test_tool_store.TestToolLibraryStore.test_first_run_geometry_does_not_override_saved_or_empty_libraries) ... ok
+test_migration_wraps_old_flat_format (test_tool_store.TestToolLibraryStore.test_migration_wraps_old_flat_format) ... ok
+test_mtime_cache_populated (test_tool_store.TestToolLibraryStore.test_mtime_cache_populated) ... ok
+test_save_refuses_non_dict_top_level (test_tool_store.TestToolLibraryStore.test_save_refuses_non_dict_top_level) ... ok
+test_save_then_load (test_tool_store.TestToolLibraryStore.test_save_then_load) ... ok
+test_writes_preserve_other_inis (test_tool_store.TestToolLibraryStore.test_writes_preserve_other_inis) ... ok
+test_description_falls_back_to_remark (test_tool_table.TestMergeToolData.test_description_falls_back_to_remark) ... ok
+test_merges_library_metadata (test_tool_table.TestMergeToolData.test_merges_library_metadata) ... ok
+test_missing_meta_fields_default (test_tool_table.TestMergeToolData.test_missing_meta_fields_default) ... ok
+test_a_line_not_read_exactly_is_skipped_or_refused_by_its_number (test_tool_table.TestTheReaderReadsWhatLinuxCNCReads.test_a_line_not_read_exactly_is_skipped_or_refused_by_its_number) ... ok
+test_a_whole_decimal_in_an_integer_field_reads_as_the_number (test_tool_table.TestTheReaderReadsWhatLinuxCNCReads.test_a_whole_decimal_in_an_integer_field_reads_as_the_number)
+Codex R324 FI-I54: the earlier writer's Q+3.000000 is 3; a fraction is not. ... ok
+test_any_order_either_case_and_crlf_read_alike (test_tool_table.TestTheReaderReadsWhatLinuxCNCReads.test_any_order_either_case_and_crlf_read_alike) ... ok
+test_orientation_is_written_as_the_integer_linuxcnc_reads (test_tool_table.TestTheReaderReadsWhatLinuxCNCReads.test_orientation_is_written_as_the_integer_linuxcnc_reads) ... ok
+test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite (test_tool_table.TestToolTableRoundTrip.test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite) ... ok
+test_defaults_for_missing_fields (test_tool_table.TestToolTableRoundTrip.test_defaults_for_missing_fields) ... ok
+test_every_field_of_a_linuxcnc_line_survives_a_rewrite (test_tool_table.TestToolTableRoundTrip.test_every_field_of_a_linuxcnc_line_survives_a_rewrite)
+Codex R321 FI321-02: the writer dropped X/Y (and the parser never ... ok
+test_parse_skips_comments_and_blanks (test_tool_table.TestToolTableRoundTrip.test_parse_skips_comments_and_blanks) ... ok
+test_sorted_by_tool_number (test_tool_table.TestToolTableRoundTrip.test_sorted_by_tool_number) ... ok
+test_write_then_parse_preserves_core_fields (test_tool_table.TestToolTableRoundTrip.test_write_then_parse_preserves_core_fields) ... ok
+test_control_cold_strict_library_refuses_array (test_codex_r468.CodexR468.test_control_cold_strict_library_refuses_array) ... ok
+test_control_unchanged_connection_reads_complete (test_codex_r468.CodexR468.test_control_unchanged_connection_reads_complete) ... ok
+test_controller_replaced_after_table_proof (test_codex_r468.CodexR468.test_controller_replaced_after_table_proof) ... FAIL
+test_controller_revoked_after_table_proof (test_codex_r468.CodexR468.test_controller_revoked_after_table_proof) ... cold-array {"ok": false, "error": "Tool library top level is list, not an object \u2014 check tool_library.json"}
+replaced-after-proof {"ok": true, "tools": [{"T": 1, "P": 1, "Z": 50.0, "D": 6.0, "remark": "first", "is_example": null, "type": "flat", "description": "first", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}, {"T": 2, "P": 2, "Z": 47.690467, "D": 6.0, "remark": "second", "is_example": null, "type": "ball", "description": "second", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}, {"T": 3, "P": 3, "Z": 22.0, "D": 4.0, "remark": "third", "is_example": null, "type": "", "description": "third", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}], "current_tool": null, "table": {"path": "/tmp/tmp3rha4bkq/tool.tbl", "instance": "1519609:251482200"}, "proof": {"state": "complete", "proven": [1, 2, 3], "differs": [], "missing": [], "extra": [], "duplicates": [], "why": null, "ends_newline": true, "attempts": 1}, "unread": [], "rev": {"table": "652dad38035c50e6550b14b554ad9449dfca7ca414c0594e330602eb4a2c05ab", "library": "c95b1263052cdc8f9642f408717c45bb45f8dad321fa6d85c5545d529228427e"}, "version": 1795587227}
+revoked-after-proof {"ok": true, "tools": [{"T": 1, "P": 1, "Z": 50.0, "D": 6.0, "remark": "first", "is_example": null, "type": "flat", "description": "first", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}, {"T": 2, "P": 2, "Z": 47.690467, "D": 6.0, "remark": "second", "is_example": null, "type": "ball", "description": "second", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}, {"T": 3, "P": 3, "Z": 22.0, "D": 4.0, "remark": "third", "is_example": null, "type": "", "description": "third", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}], "current_tool": null, "table": {"path": "/tmp/tmpm8q7lb4o/tool.tbl", "instance": "1519609:251482200"}, "proof": {"state": "complete", "proven": [1, 2, 3], "differs": [], "missing": [], "extra": [], "duplicates": [], "why": null, "ends_newline": true, "attempts": 1}, "unread": [], "rev": {"table": "652dad38035c50e6550b14b554ad9449dfca7ca414c0594e330602eb4a2c05ab", "library": "c95b1263052cdc8f9642f408717c45bb45f8dad321fa6d85c5545d529228427e"}, "version": 1795587227}FAIL
+test_disarm_during_writer_table_check_prevents_write (test_codex_r468.CodexR468.test_disarm_during_writer_table_check_prevents_write) ... FAIL
+test_store_strict_cache_hit_checks_top_level (test_codex_r468.CodexR468.test_store_strict_cache_hit_checks_top_level) ... FAIL
+test_warm_strict_library_refuses_array (test_codex_r468.CodexR468.test_warm_strict_library_refuses_array) ... FAIL
+
+======================================================================
+FAIL: test_controller_replaced_after_table_proof (test_codex_r468.CodexR468.test_controller_replaced_after_table_proof)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r468/tree/lcnc-gateway/test_codex_r468.py", line 61, in test_controller_replaced_after_table_proof
+    self.assertFalse(r.get('ok') and r.get('proof', {}).get('state') == 'complete')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_controller_revoked_after_table_proof (test_codex_r468.CodexR468.test_controller_revoked_after_table_proof)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r468/tree/lcnc-gateway/test_codex_r468.py", line 44, in test_controller_revoked_after_table_proof
+    self.assertFalse(r.get('ok') and r.get('proof', {}).get('state') == 'complete',
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'proof must retain its controller binding through publication')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : proof must retain its controller binding through publication
+
+======================================================================
+FAIL: test_disarm_during_writer_table_check_prevents_write (test_codex_r468.CodexR468.test_disarm_during_writer_table_check_prevents_write)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r468/tree/lcnc-gateway/test_codex_r468.py", line 80, in test_disarm_during_writer_table_check_prevents_write
+    self.assertEqual(self.table.read_bytes(), before, 'the revoked writer must write nothing')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b';Tool  Pocket Z Offset     Diameter     R[169 chars]rd\n' != b'T1 P1 Z50 D6 ; first\nT2 P2 Z47.690467 D6[29 chars]rd\n' : the revoked writer must write nothing
+
+======================================================================
+FAIL: test_store_strict_cache_hit_checks_top_level (test_codex_r468.CodexR468.test_store_strict_cache_hit_checks_top_level)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r468/tree/lcnc-gateway/test_codex_r468.py", line 29, in test_store_strict_cache_hit_checks_top_level
+    with self.assertRaises(ToolLibraryUnreadable):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ToolLibraryUnreadable not raised
+
+======================================================================
+FAIL: test_warm_strict_library_refuses_array (test_codex_r468.CodexR468.test_warm_strict_library_refuses_array)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/r468/tree/lcnc-gateway/test_codex_r468.py", line 24, in test_warm_strict_library_refuses_array
+    self.assertFalse(r['ok'], 'strict read must not depend on status-cache history')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : strict read must not depend on status-cache history
+
+----------------------------------------------------------------------
+Ran 99 tests in 4.014s
+
+FAILED (failures=5)
+
+disarm-at-writer-check {"reply": {"type": "reply", "cmd": "save_tool", "ok": true, "reload": "confirmed"}, "loads": 1, "checks": 3, "bytes_changed": true}
+warm-array {"ok": true, "tools": [{"T": 1, "P": 1, "Z": 50.0, "D": 6.0, "remark": "first", "is_example": null, "type": "", "description": "first", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}, {"T": 2, "P": 2, "Z": 47.690467, "D": 6.0, "remark": "second", "is_example": null, "type": "", "description": "second", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}, {"T": 3, "P": 3, "Z": 22.0, "D": 4.0, "remark": "third", "is_example": null, "type": "", "description": "third", "flutes": null, "oal": null, "flute_length": null, "shoulder_length": null, "shoulder_diameter": null, "corner_radius": null, "body_length": null, "shaft_diameter": null, "maximum_cutting_diameter": null, "upper_radius": null, "chamfer_width": null, "chamfer_angle": null, "lower_radius": null, "profile_radius": null, "axial_distance": null, "taper_angle": null, "point_angle": null, "tip_diameter": null, "material": null, "holder": null, "holder_segments": null, "assembly_gauge_length": null, "holder_gauge_length": null, "profile": null, "shaft_segments": null, "fusion_type": null, "tapered_type": null, "thread_pitch": null, "thread_pitch_min": null, "thread_pitch_max": null, "number_of_teeth": null, "thread_profile_angle": null, "thread_tip_type": null, "thread_tip_width": null, "thread_tip_radius": null, "tip_offset": null, "tip_length": null, "fusion_guid": null, "source_format": null, "source_id": null, "source_metadata": null, "source_z_min": null, "native_profile": null, "native_mesh": null, "geometry_note": null, "geometry_tolerance": null}], "current_tool": 0, "table": {"path": "/tmp/tmp_x6nyosx/tool.tbl", "instance": "1519609:251482200"}, "proof": {"state": "complete", "proven": [1, 2, 3], "differs": [], "missing": [], "extra": [], "duplicates": [], "why": null, "ends_newline": true, "attempts": 1}, "unread": [], "rev": {"table": "652dad38035c50e6550b14b554ad9449dfca7ca414c0594e330602eb4a2c05ab", "library": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}, "version": 1795587228}
+[GC] +4100ms gen=2 duration=7.9ms collected=708 uncollectable=0
