@@ -41,6 +41,7 @@ another file — both `unchecked` with the reason, like an unread controller
 import hashlib
 import json
 import math
+import re
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -351,6 +352,10 @@ def _load_cut(r: LoadRead) -> Optional[str]:
     return EDIT_NO_LINE_END if only else EDIT_INCOMPLETE
 
 
+#: io splits a line's data at spaces only: a tab, a control or a non-ASCII byte is part of a field
+_NOT_PRINTABLE = re.compile(rb"[^ -~]")
+
+
 def _load_form(r: LoadRead) -> Optional[str]:
     """Would io's reader make of these bytes what this suite reads?"""
     rows, unread, _nl, _empty = r.scan
@@ -362,7 +367,7 @@ def _load_form(r: LoadRead) -> Optional[str]:
             return f"Line {n} too long for LinuxCNC — shorten it in an editor"
     for n, line in enumerate(lines, 1):
         part = line.partition(b";")[0] if _tool_text(line) else b""
-        if b"\0" in line or any(not 0x20 <= c <= 0x7E for c in part):
+        if b"\0" in line or _NOT_PRINTABLE.search(part):
             return f"Line {n} has a tab or control character — remove it"
     want = {i: (r_["T"], r_["P"]) for i, r_ in enumerate(rows[:IO_TOOLS_MAX], 1)}
     home, unmirrored = None, None

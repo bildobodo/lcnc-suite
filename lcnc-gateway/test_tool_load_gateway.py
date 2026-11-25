@@ -20,7 +20,8 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 import gateway  # noqa: E402
 import tool_proof  # noqa: E402
-from command_policy import NOT_ARMED, REASON_MAX_CHARS  # noqa: E402
+from command_policy import (COMMAND_GATES, COMMAND_SCHEMA, NOT_ARMED, READ_ONLY_COMMANDS, REASON_MAX_CHARS,  # noqa: E402
+                            command_effect)
 from link_fixture import current, swap_connection, use, using  # noqa: E402
 from test_tool_commit_gateway import _held_poll  # noqa: E402
 from test_tool_guard_gateway import MOVING, PREPARED, PREPARING, ROWS, UNKNOWN, _Guard  # noqa: E402
@@ -900,6 +901,14 @@ class TestTheOwnersLink(_Load):
         with patch.object(gateway._calc_gen, "began", lambda what: began.append(what) or real(what)):
             self.load()
         self.assertEqual(began, ["load_tool_table"])
+
+    def test_the_policy_of_the_two_commands(self):
+        # the request: an edit's own gate and effect; the comparison: a read without a gate, refused nothing
+        self.assertEqual((COMMAND_GATES["tool_table_load"], command_effect("tool_table_load")),
+                         (COMMAND_GATES["renumber_tool"], command_effect("renumber_tool")))
+        self.assertIn("tool_table_preview", READ_ONLY_COMMANDS)
+        self.assertNotIn("tool_table_preview", COMMAND_GATES)
+        self.assertEqual(COMMAND_SCHEMA["tool_table_preview"], {})
 
     def test_the_edits_own_job_is_untouched(self):
         # a load's job is no write's: an edit after it answers as before

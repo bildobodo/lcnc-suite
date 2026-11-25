@@ -296,13 +296,23 @@ test("stale by a lost connection; a refused new comparison keeps it closed", asy
 test("a refused request stays in the dialog with its reason; nothing is sent again by itself", async ({ page }) => {
   const t = await openTools(page);
   await replyFor("tool_table_load", { ok: false, error: "Machine moving — wait until it stands" });
+  await replyFor("tool_table_preview", { ...PREVIEW, removed: [one(8)] });
   const d = await compare(t);
+  await d.getByLabel("Remove 1 tool from LinuxCNC").check();
   await loadBtn(d).click();
   const note = d.locator("[data-load-check]");
   await expect(note).toHaveText("Not requested: Machine moving — wait until it stands.Check again");
   await expect(loadBtn(d)).toBeEnabled();
   expect((await sent("tool_table_load")).length).toBe(1);
   await expect(t.result).toHaveCount(0);
+  // a new comparison is acknowledged anew, the same tools too
+  await note.getByRole("button", { name: "Check again" }).click();
+  await expect(note).toHaveCount(0);
+  await expect(d.getByLabel("Remove 1 tool from LinuxCNC")).not.toBeChecked();
+  await expect(loadBtn(d)).toBeDisabled();
+  await d.getByLabel("Remove 1 tool from LinuxCNC").check();
+  await loadBtn(d).click();
+  await expect(note).toBeVisible();
   // the gateway's removal switch off (Q-TF2-1): said, and closed
   await replyFor("tool_table_preview", { ...PREVIEW, removed: [one(8)], removal_refusal: "Loading never removes tools — restore them in the file" });
   await note.getByRole("button", { name: "Check again" }).click();
