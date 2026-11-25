@@ -8696,3 +8696,7 @@ Plan: [maschinentag.r488.plan-stock-mute-v2.md](maschinentag.r488.plan-stock-mut
 - **Abtastkosten:** Grenze 4096 → 1024 (Median 48 µs, größte Frage 241 µs, keine Zwischenarrays); 8 ms je Workerscheibe sind **gerechnet**, nicht gemessen; 1289 → 6893 Proben bleiben benannte Mehrarbeit.
 
 **Fragen** Q1–Q5 in §7. Vor dem Merge geprüft (Bedingung): die ungeprüften Kontakt-, Vereinigungs-, Bereichs- und Workerwege.
+
+### Zum Merge-Gate der Werkzeugsperre (db765430, 25.11.)
+
+Alle Prüfungen PASS (Unit, Backend, Browser mit Replay, Firefox-Kern, Installationsprobe) **außer `coverage`**: zwei neue Nachweise im Funktionsinventar nannten den ganzen Titel statt des eingesetzten Werts und banden keinen Test. Korrigiert in `82301aa6`, der statische Wächter (`functions.py`) verweigert das jetzt vor dem Gate; die Abdeckung desselben Laufs ist mit der Korrektur PASS (0 Fehler). Kein Produktcode geändert. Nativ am Kopf `db765430`: 22/22. Das Gate läuft am endgültigen Kopf erneut, gemeinsam mit `feat/path-kinds`, falls du R487 vorziehst.
