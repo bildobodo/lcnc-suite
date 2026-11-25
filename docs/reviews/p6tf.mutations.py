@@ -587,7 +587,7 @@ MUTS = {
     "page_every_read_keeps_the_note": (PANEL, [(
         "  written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);\n",
         "  written.value = writtenAtNextRead ?? written.value; void toolWriteStands;\n")],
-        [pw("stays said over a socket reconnect", "toHaveCount")]),
+        [pw("stays said over a socket reconnect", "another LinuxCNC proves nothing")]),
     "store_another_linuxcnc_ends_it": (STORE, [(
         "  return { ...o, earlier: true };\n", "  return null;\n")],
         [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
