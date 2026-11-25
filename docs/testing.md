@@ -1059,10 +1059,13 @@ config); at f0a437be and e99b3df3: `docs/reviews/pathkinds.h1.red.txt`. On the V
 LinuxCNC: `docs/reviews/pathkinds.native.py` (four programs, the base worker as
 the control) and `pathkinds.corpora.native.py` (the TWP corpus through
 `live-twp`, the XYZAC corpus through `sim_parity gate`), each as the user unit
-`native-run`. The G33.1 and
-G76 cases of `native_start_probe.py` depend on the process environment's size
-(uninitialised memory in LinuxCNC's offline interpreter): run them in a small
-fixed environment (`env -i PATH HOME`) when one refuses or crashes.
+`native-run`. A G33 / G33.1 / G76 in a case of `native_start_probe.py` names its
+spindle (`$0`): LinuxCNC 2.9.4 never initialises the interpreter's
+`active_spindle` (only a `$` word, a G93/94/95 or a G96/97 sets it —
+interp_execute.cc:247/257, interp_convert.cc G_33 / G_33_1 / G_76), so one
+without refused ("Spindle not turning"), crashed or parsed by what the memory
+held — `tap_first_g55`, `tap_first_g55_rot`, `r94_g76_returns_x` until
+2026-11-25.
 
 ## The tool table read (P6 tool files read)
 
