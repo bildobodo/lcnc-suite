@@ -1,0 +1,49 @@
+{
+  "review": "R484",
+  "kind": "plan review with scratch observations",
+  "base": "24f3bd3a7969e0d8bb0d8969285f08866f96a6d7",
+  "plan_sha256": "74604ab7065e44fba78951ab2772038bc5cfaeec1186e65e215c5f2cd48be262",
+  "scratch_source": "/home/cnc/claude-work/p6/sm/probe",
+  "product_changed": false,
+  "live_touched": false,
+  "execution": "synthetic Node probes, common heavy lock, isolated archive /tmp/r484/tree; all product imports of the scratch variant bound to archived src",
+  "dependencies": {
+    "three": "0.182.0",
+    "three-mesh-bvh": "0.9.14",
+    "esbuild": "0.27.2"
+  },
+  "probe_cases": {
+    "parallel_axis": 5,
+    "open_stock_triangle_orders": 2,
+    "seed_67_depth_controls": 2
+  },
+  "limitations": [
+    "Scratch variant, not a product implementation acceptance.",
+    "Height-map corpus and 400-program hunt were inspected, not all repeated.",
+    "Pin seed is copied from author q14, reduced to seed 67 with full data output; this is a repetition, not an independent search.",
+    "Probe assertions verify existence of counterexamples; they do not assert compliance."
+  ],
+  "source_hashes": {
+    "coll_v.ts": "e1f37b438a3488e5b6afdd52bb4f808edfe892a085730ad5addc48ab0269f6c3",
+    "owncut.ts": "e06755978229358d4fdace72c640f115e6b52cb2aca7f331e59eaa6216c36f9d",
+    "lib.ts": "e1c5f1665160e99d4b4279cee9e069497405c6ebe7df4754ddedf1245c6a3801",
+    "q14.ts": "c8b7a9e8ed361d5a76d790470d3c5013060db5fa28d29e60eb264686a1bf687f"
+  },
+  "sha256": {
+    "docs/reviews/maschinentag.r484.codex-imports.json": "fb8890754fad658281c3b8accf0c0d837718de52f279924817e869875661a589",
+    "docs/reviews/maschinentag.r484.codex-variant.patch": "eb2024055d07f47d9cddebd0ef5371b376bbf83167bafc27c1533e59992cfb53",
+    "docs/reviews/maschinentag.r484.codex-probe.jsonl": "5db008c8f9a8a5eeef575dddfba8ba8b8f844538e3b9f9be3fd8d095031b074f",
+    "docs/reviews/maschinentag.r484.codex-reproduce.py": "40e2e794333c57fd81b1e5ce109564e56fe1383f97d22c9c804b50b1ed7a7301",
+    "docs/reviews/maschinentag.r484.codex-pin.ts": "d1cf0cfbe4a67ea592010e22e7627ee11eb8145ff47fa096fa85ae42e73bc18d",
+    "docs/reviews/maschinentag.r484.codex-probe.ts": "db0dc4c40367764d5295fd6df13b672a2cf970bb87bcdd0d50033f9d7a700f3a",
+    "docs/reviews/maschinentag.r484.codex-check.py": "9717b2ae5bb449d08fa73d341d4b0dd4bc8b86c99f3fb8f434d778ecab3f9c39",
+    "docs/reviews/maschinentag.r484.codex-reproduction.txt": "9f0abf95a3bab4c4f8148895c33c93ecb2564833649361cd541715e16500a04a",
+    "docs/reviews/maschinentag.r484.codex-owncut.ts": "e06755978229358d4fdace72c640f115e6b52cb2aca7f331e59eaa6216c36f9d",
+    "docs/reviews/maschinentag.r484.codex-lib.ts": "e1c5f1665160e99d4b4279cee9e069497405c6ebe7df4754ddedf1245c6a3801",
+    "docs/reviews/maschinentag.r484.codex-check.txt": "70aa010ec39af2edb5897860e35ee8513066c2d8e153e2008ee5544e6e413276",
+    "docs/reviews/maschinentag.r484.codex-pin.txt": "82a9fc674864153b015a97ff7b16eac985ec5e7f86e5c9470d1ecb04ead713b4"
+  },
+  "reproducer": "docs/reviews/maschinentag.r484.codex-reproduce.py",
+  "reproduced_at": "/tmp/r484-repro-bqpec90x",
+  "setup_note": "Initial esbuild attempt could not resolve vue from the archive; explicit vue alias added before any probe ran. Initial variant imports were byte-checked against the archived base (all equal), then rebound to @src and probes rerun."
+}

@@ -1,0 +1,7 @@
+{"case":"parallel-axis reentry","dx":0,"storedShift":0,"exempt":true,"newMaterialOverContactEps":false,"runs":[{"rule":"A","by":{"collision rapid":1}},{"rule":"C","by":{}}]}
+{"case":"parallel-axis reentry","dx":0.00005,"storedShift":0.000049591064453125,"exempt":true,"newMaterialOverContactEps":false,"runs":[{"rule":"A","by":{"collision rapid":1}},{"rule":"C","by":{}}]}
+{"case":"parallel-axis reentry","dx":0.0015,"storedShift":0.001499176025390625,"exempt":true,"newMaterialOverContactEps":true,"runs":[{"rule":"A","by":{"collision rapid":1}},{"rule":"C","by":{}}]}
+{"case":"parallel-axis reentry","dx":0.0021,"storedShift":0.002101898193359375,"exempt":false,"newMaterialOverContactEps":true,"runs":[{"rule":"A","by":{"collision rapid":1}},{"rule":"C","by":{"collision rapid":1}}]}
+{"case":"parallel-axis reentry","dx":0.02,"storedShift":0.020000457763671875,"exempt":false,"newMaterialOverContactEps":true,"runs":[{"rule":"A","by":{"collision rapid":1}},{"rule":"C","by":{"collision rapid":1}}]}
+{"case":"open stock representative","order":"top","closed":[false,true],"representatives":[-1,-1,55],"distance":9,"insideResult":"outside","apartByReps":true,"toolZ":[-5,55],"stockZ":[-30,0],"knownOverlapWithClosedBox":5}
+{"case":"open stock representative","order":"bottom","closed":[false,true],"representatives":[-1,-1,-5],"distance":9,"insideResult":"outside","apartByReps":false,"toolZ":[-5,55],"stockZ":[-30,0],"knownOverlapWithClosedBox":5}

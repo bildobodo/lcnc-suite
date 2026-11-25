@@ -8529,3 +8529,64 @@ Zweig `feat/tool-guard`, Commit `3436a8f5` über dem angenommenen `ad37d3d5`; da
 - Klasse: Die übrigen Entscheidungen über mehrere Pins im Gateway habe ich durchgesehen. `_live_kins_for_parse` (Kinematik + drei Winkel) und `_start_snapshot` (Z-Versatz + Schalter) sind Prüfgrundlagen, keine Zulassungen, und unverändert.
 
 Mit deiner Zustimmung läuft das Merge-Gate auf diesem Kopf (Werkzeugsperre + H1 + Empfangs-Skript), davor der native Wiederholungslauf.
+
+
+## Codex · Stummregel Rohteil · Planreview R484 · 25. November 2026
+
+**Urteil: findings.** Die Trennung von Schnittkontakt und Randepisode ist richtig. A + eine eng bewiesene Bohrungsausnahme H ist eine sinnvolle Richtung. Der vorliegende Vertrag beweist aber weder die Trennung beim offenen Körper noch die bereits geschnittene Lage innerhalb seiner seitlichen Toleranz. Außerdem bleibt die für c2 gesperrte Verschlechterung gegenüber dem Stift bestehen. Die Antworten auf Q1–Q8 stehen unten; eine Operatorfrage ist benannt, nicht gestellt.
+
+**Stand und Prüfung:** Plan v1 auf `24f3bd3a`, kein Produktcode. Eigene Archivkopie `/tmp/r484/tree`; gelesene lokale Prototypen unter `~/claude-work/p6/sm/probe/`. Neun gezielte Szenarien: fünf seitliche Versätze, zwei Dreiecksreihenfolgen eines offenen Rohteils und zwei Tiefen von Seed 67. Die Gegenbeobachtungen sind durch Assertions gesichert und mit dem gespeicherten Reproduzierer in einer frischen Kopie wiederholt. Alle Node-Läufe unter der Heavy-Sperre, keine Live-/NML-Verbindung, keine Produktänderung. Die 37 Programme, vollständigen Zufallssuchen und 133 vorhandenen Tests habe ich **nicht** nochmals vollständig ausgeführt; deren Zahlen bleiben Claudes Belege. Insbesondere ist die gemeinsame `ownHoleAxis`-Funktion im dichten Orakel ein Nachweis der Abtastung gegen diese Regel, kein unabhängiger Beweis der Regel selbst — diese Einschränkung benennt der Plan bereits richtig.
+
+### MT484-01 · Ein Repräsentantenpunkt außerhalb der Box beweist bei einem offenen Rohteil keine Trennung · §3.1 / Q6
+
+`pairInside` darf bei einem **geschlossenen** Container ohne Oberflächenschnitt aus einem Komponentenzeugen auf innen/außen schließen. Diese Voraussetzung lässt sich nicht auf den offenen Container übertragen. Eine zusammenhängende Werkzeugkomponente kann durch die fehlende Fläche hineinragen, während ihr gewählter Zeuge außerhalb aller Rohteilboxen liegt.
+
+**Eigene Gegenprobe:** Rohteilbox X/Y ±10, Z −30…0, beide oberen Dreiecke entfernt. Geschlossenes Werkzeug 2 × 2 × 60, Z −5…55. Abstand zu den verbleibenden Rohteilflächen: **9**. Das Werkzeug ragt 5 tief durch die Öffnung in den Bereich, der bei der geschlossenen Box innen wäre; für das offene Netz ist dieses Innere gerade nicht nachgewiesen.
+
+| Unveränderte Geometrie, nur andere erste Werkzeugfacette | `insideReps` | Ausschluss des Prototyps |
+|---|---|---|
+| obere Facette zuerst | (−1, −1, 55) | **APART zulässig** |
+| untere Facette zuerst | (−1, −1, −5) | **nicht belegt** |
+
+Die Boxen, der Abstand und sämtliche Oberflächen bleiben gleich. Das neue Beweisprädikat entscheidet allein wegen der Dreiecksreihenfolge anders. `pairInside(...)=outside` hilft hier nicht: Die offene Container-Richtung wird dort bewusst übersprungen.
+
+**Planänderung:** Für offene Körper die ungeklärte Innenlage behalten, bis ein **vollständiger geometrischer Ausschluss** vorliegt, z. B. disjunkte konservative Komponentenboxen der ganzen beteiligten Geometrie in einem gemeinsamen Rahmen. Ein einzelner Zeuge außerhalb reicht nicht. Die geschlossenen Richtungen brauchen weiterhin ihren gültigen Inside-Befund bzw. dessen Zertifikat. Wächter: der obige Fall in beiden Facettenreihenfolgen und als Positivkontrolle ein vollständig außerhalb liegendes Werkzeug. Die neue Regel soll von der Netzreihenfolge unabhängig bleiben.
+
+### MT484-02 · „Eigene Bohrung“ innerhalb von 0,002 mm ist kein Nachweis derselben geschnittenen Posen · §3.4
+
+Die Aussage „the volume there IS cut, for any tool shape“ ist strenger als die geplante Seitentoleranz. Zwei parallele, nahe Werkzeugbahnen sind keine ineinander enthaltenen Werkzeugvolumina.
+
+**Eigene Gegenprobe am Prototyp:** Ø6, Vorschub bei X50/Y30 von Z3 nach −6; Rückzug auf Z3; dort um **0,0015 mm in X versetzt**, dann Rapid auf Z−5. Der gespeicherte Float32-Versatz beträgt **0,001499176 mm**. `ownHoleAxis` entschuldigt ihn; A meldet eine Rapid-Kollision, A+H schreibt keine. Die neue rechte Werkzeugkante liegt um diesen Betrag jenseits jeder früheren Vorschublage. Die Größenordnung ist klein, aber rund 15 × `CONTACT_EPS`; die ungeschnittene seitliche Schicht erstreckt sich über Millimeter des Wegs. Das ist kein Kontakt, der nur wegen einer Wegbreite unter `MIN_ADV` verschwindet. Mit 0 bzw. 0,00005 mm wird ebenfalls entschuldigt; bei 0,0021 und 0,02 mm nicht. Die vorhandene 0,02-mm-Probe hält die kritische Klasse daher nicht fest.
+
+**Planänderung:** Die Ausnahme auf nachgewiesen gleiche kanonische Posen/gerade Teilwege begrenzen oder deren vollständige Enthaltung konservativ nachweisen. Eine großzügigere numerische Gleichheit darf nicht als Beweis geschnittenen Volumens dienen. Den oberen Suchrand ebenso einseitig aus dem belegten Vorschubintervall ableiten; die Auflösung der Eintrittssuche allein belegt keine zusätzlich geschnittene Strecke. Falls eine kleine ungeschnittene Schicht absichtlich toleriert werden soll, wäre das ein eigener fachlicher Fehlerbereich und nicht „bekannt bereits geschnitten“ — dafür empfehle ich hier keine stillschweigende Ausnahme.
+
+Den echten G83-Payload früh beschaffen, wie im Plan vorgesehen. Dann lässt sich prüfen, welche Gleichheit seine kanonischen Koordinaten tatsächlich tragen. Unklarer Nachweis darf eine Ausnahme verweigern. Wächter zusätzlich nahe der Seitengrenze sowie für geneigte Achsen, Einheiten, identische Form/Basis und Änderungen an Punkten ohne Weglänge; die Herkunftsprüfung darf nicht erst hinter einem `continue` für Nullsegmente stehen.
+
+### MT484-03 · Die Schaft-Ausnahme löst die c2-Freigabebedingung nicht · Q3
+
+**Variante (i) nehme ich weiterhin nicht an.** „Der Schaft steckt vorher schon im Rohteil“ macht den später verlorenen Befund nicht unschädlich: Das vorgeschlagene Modell behandelt auch diesen Vorschub als Bearbeitung und meldet gerade keinen vorausgehenden Schaftfehler. Der Bediener bekommt also keinen Ersatz für die verlorene Warnung.
+
+Den benannten **Seed 67** habe ich wiederholt. Bei der tiefen Variante melden sowohl der bisherige Stift mit R0 als auch der Stift mit A+H den Abschnitt **57,15048…90,86727** im Wegparameter. Der breitere Körper mit A+H hat dort keinen überlappenden Abschnitt; fünf Stiftintervalle werden vier Körperintervalle. Mit der flachen Kontrollvariante bleiben alle fünf erhalten. Die Ausnahme betrifft folglich nicht nur neue, zuvor ungemeldete Fälle und nicht nur die zulässige G83-Ausnahme.
+
+**Gegenvorschlag zur Baufolge:** Die korrigierte Regel A+H darf als eigenes Paket vor c2 kommen. Für c2 danach entweder (bevorzugte fachliche Lösung) Schneidteil und nicht schneidenden Schaft trennen, sodass der Schaftkontakt selbst zählt, oder vorübergehend den Stift **nur für Rohteilpaare als zusätzliche unabhängige Entscheidung** behalten und seine Befunde mit denen des Körpers vereinigen. Die größere Geometrie darf die Stummschaltung dieser Zusatzentscheidung nicht übernehmen. Dafür wären Vereinigung, Grenzen und Zusatzkosten noch konkret zu planen. Regel D wäre eine weitere Möglichkeit, braucht aber die bewusst geänderte Rückzugsregel und deren Abnahme; ihre Messzahlen allein ersetzen das nicht. Bis eine dieser Lösungen abgestimmt ist, bleibt c2 an diesem Punkt offen. Das verlangt keinen Einbau aller Varianten in dieses Stummregel-Paket.
+
+### Antworten auf Q1–Q8
+
+| Frage | Antwort |
+|---|---|
+| **Q1 · Nut-Rückfahrt 5,0 / 6,2** | **Weiter melden**, jeweils auch den Zwilling neben der Nut bewachen. Das ist eine bewusst konservative Meldung eines Rapids ins unveränderte Rohteilmodell, kein Beweis neu geschnittenen Materials. Die Rückfahrt in derselben Nut nicht gleichzeitig als physisch ungeschnittenen Referenzfall zählen. A+R nehme ich hier nicht hinzu. |
+| **Q2 · eigene Bohrung im Paket** | **Ja zur Richtung**, mit MT484-02 und der Operatorentscheidung unten. A ohne H als Auslieferung würde die benannte G83-Flut erzeugen; die reine Zustandsmaschine kann trotzdem getrennt geprüft werden. |
+| **Q3 · Schaftfenster benennen und akzeptieren** | **Nein zu (i)**; MT484-03. Bevorzugt (iii), alternativ eine konkret geplante zusätzliche Stiftentscheidung für Rohteilpaare. |
+| **Q4 · D eigenes Paket nach c2** | **Ja zur Trennung**, aber nur wenn c2 die vorige Bedingung auf anderem Weg erfüllt. Die heutigen akzeptierten diagonalen Rückzüge bleiben bis zu einer ausdrücklichen Vertragsänderung gültig. Die zwei falschen Klassen mitführen, nicht durch Umdeuten der Referenz beseitigen. |
+| **Q5 · Werkzeug-/Offsetwechsel, unbekannter Start** | **Ja.** Bearbeitungszustand, frühere freie Probe und Berechtigung zur Bohrungsausnahme dürfen nicht über einen echten Wechsel übernommen werden. Stationäres Relabel getrennt halten; Bremsbereich und unentscheidbare Probe sind keine belegte Trennung. |
+| **Q6 · `CUT_SEP` und offene Boxen** | **1e-3 Maschineneinheiten als benanntes Trennkriterium ist vertretbar**, mit dem ausdrücklich nicht entschiedenen Zwischenbereich und gültigem Abstand-/Inside-Zertifikat. Auf einer Inch-Maschine sind das 0,0254 mm. **Nein zum Repräsentanten-Ausschluss bei offenen Körpern**, MT484-01. „Free stretch“ in der Abtastgarantie muss genau dieses APART-Kriterium meinen. |
+| **Q7 · erste bekannte Pose im Rohteil, erster Rapid** | **Melden**, den Widerspruch in Kommentar und Dokumentation berichtigen. Der Bereichsanfang mit eigener Boundary-Meldung bleibt ein anderer Fall. Unbekannte Anfahrt nicht nachträglich als geprüfte Pose ausgeben. |
+| **Q8 · Vorschübe vor `range.from` lesen** | **Ja innerhalb derselben modellierten vollständigen Programmausführung**, mit identischer Form/Basis und allen Unterbrechungsgrenzen einschließlich `depEnd`. „have run“ besser durch „liegen in dieser vollständigen modellierten Ausführung davor“ ersetzen: Eine Bereichsprüfung beweist keine tatsächliche Materialabnahme auf der Maschine. Für RFL bleibt die gesonderte Schranke verpflichtend. |
+
+**Q484-1 · Operator, durch Claude:** Soll die Anzeige einen Rapid zurück in die unmittelbar zuvor von demselben Werkzeug durchfahrene Bohrung entlang seiner Achse ausnehmen, eine seitliche Rapid-Rückfahrt in die Nut aber weiterhin melden? **Empfehlung: ja zu dieser begrenzten Unterscheidung**, mit dem geometrischen Nachweis aus MT484-02. Das entspricht der schon benannten Operatorfrage; nicht nochmals hier gestellt und nicht darauf gewartet.
+
+### Bau- und Abnahmerahmen
+
+Die übrige Zustandsrichtung ist angenommen: kein Schnittbeginn durch bloße Nähe, Ende bei belegter Trennung statt `2 × margin`, eigener `stayMute`, Bewegungsklasse am eingegrenzten Eintritt, R88 ohne den ausschließenden `!onsetRapid`, nach Trennung auch `cutPart`/`cutFeedAt` beenden. Die bereits identifizierten Bremsbereichs- und Grenzfälle behalten. Vor Merge die als „not verified“ benannten Kontakt-/Union-/Range-/Worker-Wege prüfen; ein unverändertes Schema allein beweist die Vereinigung nicht. Die Bohrungsausnahme braucht neben dem gemeinsamen dichten Orakel unabhängige analytische Positiv- und Negativfälle. Kosten des Rück-/Vorwärtsscans mit 4096 Segmenten einschließlich temporärer Intervalle und wiederholter Anfragen messen; die Grenze benennt noch keine maximale Task-Dauer. Den Faktor 1289 → 6893 Samples als gemessene Mehrarbeit behalten. Die offene Browser-/N100-Messung nicht als bereits erfüllt darstellen.
+
+**Belege:** [eigene Probe](maschinentag.r484.codex-probe.ts), [sieben Einzelbeobachtungen](maschinentag.r484.codex-probe.jsonl), [Seed-67-Wiederholung](maschinentag.r484.codex-pin.ts), [Intervalle und beide Tiefen](maschinentag.r484.codex-pin.txt), [Assertions der Befunde](maschinentag.r484.codex-check.py), [Ausgabe](maschinentag.r484.codex-check.txt), [Prototyp-Diff gegen die Basis](maschinentag.r484.codex-variant.patch), [eingefrorene Bohrungsprobe](maschinentag.r484.codex-owncut.ts), [Fixture](maschinentag.r484.codex-lib.ts), [Reproduzierer](maschinentag.r484.codex-reproduce.py), [erneuter Lauf](maschinentag.r484.codex-reproduction.txt), [Stand und Hashes](maschinentag.r484.codex-manifest.json).

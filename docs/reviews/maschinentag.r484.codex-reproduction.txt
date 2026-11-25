@@ -1,0 +1,3 @@
+patching file coll_v.ts
+R484 observations verified: lateral tolerance counterexample; open-body representative permutation; existing pin interval absent from A+H body. These assert the findings, not compliance with the proposed contract.
+/tmp/r484-repro-bqpec90x
