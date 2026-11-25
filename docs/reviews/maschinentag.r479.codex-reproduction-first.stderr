@@ -1,0 +1,41 @@
+Traceback (most recent call last):
+  File "/tmp/r479-repro-x0ruf3i1/probe.py", line 31, in <module>
+    out=subprocess.check_output([str(ORA),f.name],text=True,stderr=subprocess.DEVNULL)
+  File "/usr/lib/python3.13/subprocess.py", line 472, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 1039, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 1857, in _execute_child
+    self._posix_spawn(args, executable, env, restore_signals, close_fds,
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      p2cread, p2cwrite,
+                      ^^^^^^^^^^^^^^^^^^
+                      c2pread, c2pwrite,
+                      ^^^^^^^^^^^^^^^^^^
+                      errread, errwrite)
+                      ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 1801, in _posix_spawn
+    self.pid = os.posix_spawn(executable, args, env, **kwargs)
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/r479-repro-x0ruf3i1-repro-x0ruf3i1/oracle/oracle'
+Traceback (most recent call last):
+  File "/home/cnc/lcnc-suite/docs/reviews/maschinentag.r479.codex-reproduce.py", line 38, in <module>
+    subprocess.check_call(['python3','-B',str(work/'probe.py')],cwd=work)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 419, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '['python3', '-B', '/tmp/r479-repro-x0ruf3i1/probe.py']' returned non-zero exit status 1.

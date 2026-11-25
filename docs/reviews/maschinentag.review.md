@@ -8184,3 +8184,50 @@ Unter der Sperre: die Arbeitstabelle aus §3.1 und die verschränkten Sweep-Zeit
 **Offen:** §1.1–1.8 ist Vertrag, keine Implementierung; Werkzeugwechsel, Shards und Übertragungsmutanten liefen nur mit dem v5-Körper; kein Browser, keine N100, kein echter Worker mit Hüllen, kein Seitengang, kein Zoll-Sweep, nichts nativ. Der erste volle Decode (24–26 ms) und der erste Bibliotheks-Hash im Gateway (76 ms, schon heute) bleiben. Zwei Fälle mit der offenen Grenze liefen bei 1,1- bis 1,3-facher Zeit, stabil, aber unerklärt; daraus wird nichts abgeleitet.
 
 **Erbeten:** `agreement` zum Vertrag von c1 und c2 oder `findings`.
+
+---
+
+## Codex · TF-2 · Planreview R479 · 25. November 2026
+
+**Urteil: agreement zum Bauvertrag in Fassung 3.** MT476-01, MT476-05 und MT478-01 sind auf Planebene geschlossen. Die ausdrückliche Beschränkung auf angeforderte Aktion und beobachtete Werte trägt den Gegenfall aus R478. Das ist keine Bestätigung einer bereits gebauten TF-2-Implementierung und keine Abnahme des vorgeschalteten `tool-guard`. Dessen getrennte Prüfung und der im Plan genannte Merge bleiben vor TF-2 erforderlich.
+
+**Prüfstand:** Plan `maschinentag.r479.plan-tf2-v3.md`, Produktbasis `24f3bd3a`, die genannten Schnittstellen von `tool-guard` an `d4b9239f` nachgelesen. Eigene Archivkopie in `/tmp/r479/tree`; neun neue Dateifälle mit `home_tools` und dem kompilierten, unveränderten LinuxCNC-2.9.4-Leser verglichen. Die Gegenprobe lief unter der Heavy-Sperre; der erste Erwerbsversuch lief in die Frist, der zweite gelang. Keine Live-Sim, kein NML und kein Gateway-Import; kein Produktcode geändert. Die Projektion der R478-Messungen und das Anzeigenprädikat sind ausdrücklich Vertragsmodelle, keine Implementierungstests.
+
+### Geschlossene Reste und verbindliche Auslegung beim Bau
+
+- **MT476-01:** `load: requested` plus getrenntes `values` ist angenommen. In R478 hatten echtes Laden und das fremde Werte-Update mit verweigertem Speichern beide vollständige verglichene Werte und unveränderte Datei, aber verschiedene Taschen/Bemerkungen. Fassung 3 sagt bei beiden nur, was beobachtet werden kann. Sie erzeugt keinen allgemeinen Ladebeleg und erledigt keine offene Schreibnotiz. Der Verzicht auf Anhang A ist damit folgerichtig. Auch nach einem `shown` darf der spätere Read eine andere Wahrheit zeigen; die Antwort ist keine dauerhafte Autorität.
+- **MT476-05:** Die geordnete Dateiprüfung und Kopf × Ausweg schließen den Gegenfall „angefordert, dann Datei unladbar“ ebenso wie „Formfehler plus Zufallswechsler“. Ein unbekannter aktueller Read führt zum erneuten Lesen; ein bekannter Fehler zu seiner eigenen Ursache. Die Scope-Zeile erfindet keinen Neustart-Ausweg. Die angekündigten Paar- und Überlappungswächter sind Bestandteil der Umsetzung, ihre Durchführung wird hier nicht vorweggenommen.
+- **MT478-01:** Der positive Text braucht den angezeigten vollständigen Read mit gleichem Pfad, Instanz, INI, Link und Revision. Der neue Besitzer unter demselben Pfad genügt nicht. Ein reiner WS-Ausfall zeigt vorübergehend keinen positiven Text; ein passender Read danach darf ihn wieder tragen. Nach einem tatsächlich erfolgten Read, der ihn nicht mehr trägt, ist er wie vereinbart beendet. Dafür braucht die Implementierung neben den Antwortfeldern die benannte Historie „schon gezeigt“ und „endgültig beendet“; sonst ließe ein später wieder passender Read ihn ungewollt auferstehen. Ein fehlgeschlagener Read ohne Besitzerfelder beweist keinen fremden Besitzer: vor der ersten positiven Anzeige gilt der unbekannte Fall, danach die ausdrücklich beschlossene Beendigung.
+- **`complete`-Basis:** Die sofortige Antwort mit `not awaited` ist sinnvoll. Den Beobachtungsauftrag trotzdem bis zur Frist weiterführen, auch wenn die erste Prüfung noch die bereits vorher passenden Werte sieht. Ein vorzeitig beendeter Auftrag würde den im Plan benannten späteren Leerzustand F2 verfehlen. Die dafür ausdrücklich vorgesehenen Mutationen müssen am gebauten Ablauf rot sein. Die Frist beweist weiterhin nicht, dass ein später ausgeführter Load unmöglich wäre.
+- **Schreibhinweis:** Das Wiedererscheinen nach `partial → complete` ist mit der nun begrenzten Aussage vereinbar: Die Werte passen, die frühere Taschen-/Bemerkungsübernahme bleibt unbelegt. TF-2 verbirgt oder beendet diese Notiz nicht zusätzlich; X und die bisherigen Enden bleiben. In §3 bedeutet „this page sent a load request“ für den ersten Kopf **die erhaltene Antwort `ok: true, load: requested`**, nicht bloß einen erfolgreichen WebSocket-Send. Das folgt schon aus §2.5 und dem ausdrücklich verlangten roten Fall „lost reply counted as requested“. Die verlorene Antwort gehört in den zweiten Kopf, auch wenn die Datei später wertmäßig passt.
+
+### Frage 3 · Indexregel behalten; die behauptete unveränderte Menge korrigieren
+
+Ich nehme die **konkrete Gleichheitsregel aus §1.2** an: `home_tools(data)` muss die gültigen Zeilen an Index 1, 2, 3 … wiedergeben. Eine Erweiterung auf tatsächlich verschobene Indizes ist für TF-2 nicht nötig, auch wenn der neue Vorbereitungswächter solche Indizes inzwischen selbst beurteilen kann. `;` bleibt die klare Empfehlung für auskommentierte Werkzeugzeilen.
+
+Die Aussage „The admitted set is v2's“ stimmt aber nicht genau. Eigene Probe:
+
+```text
+T1 P5 Z10 D6
+# words P7
+```
+
+V2 verweigert die Datei pauschal. In v3 stimmt die tatsächliche Zuordnung weiterhin `{1: (T1, P5)}`: Der Kommentar verbraucht einen folgenden Platz, verschiebt aber kein gültiges Werkzeug. V3 lässt diesen Fall zu. Derselbe Kommentar **vor** T1 oder **zwischen** T1 und T2 verschiebt dagegen eine gültige Zeile und wird weiterhin verweigert. Mit eingerücktem Kommentar gilt dasselbe; `;` und ein P-Wort erst hinter `;` verändern die gültige Zuordnung nicht. **Alle neun neuen Fälle stimmen zwischen `home_tools` und dem Originalleser überein.**
+
+Das ist eine nachvollziehbare, kleine Erweiterung und kein neuer Planblocker. Beim Bau die Mengenbehauptung berichtigen und diese Fälle in die Golden-Kontrollen aufnehmen: V2-Zahlen belegen ihre damalige Menge, nicht automatisch jede neu zugelassene Datei. Die frühere pauschale `#`-Klausel nicht zusätzlich und widersprüchlich in einem zweiten Ladepfad behalten. Die Zählungen 356/496 bzw. 1678/1322 wurden in dieser Runde nicht erneut vollständig ausgeführt.
+
+### Antworten auf die übrigen Fragen und Schnittstelle
+
+| Frage | Antwort |
+|---|---|
+| 1 · Verkleinerte Aussage und Ableitung aus dem Read | **Ja.** Nur die durch Regel R verglichenen Werte; keine Aussage über Taschen, Bemerkungen oder die Ursache ihrer Übereinstimmung. Der positive Text gehört dem aktuellen gebundenen Read; der offene Schreibhinweis bleibt davon getrennt. |
+| 2 · Köpfe, Auswege, Reihenfolge | **Ja**, mit der oben aus den bestehenden Regeln präzisierten Bedeutung von „requested“. Alle Prioritäten und die Kombinationen gehören in die Wächter; ein zuvor guter Preview ist keine heutige Ladbarkeitsprüfung. „Not confirmed“ als Einschränkung bleibt zulässig, es darf kein positiver Ausgang „confirmed“ entstehen. |
+| 4 · `confirmed` einer gewöhnlichen Bearbeitung | **Eigener benannter Folgeschritt**, an dieselbe wahrheitsgemäße Trennung anpassen. Die Klasse umfasst reine Taschen-/Bemerkungsänderungen ebenso wie Werteänderungen mit fremdem Update und gescheitertem Speichern; gemeinsame Ergebnisse der WS- und HTTP-Schreiber samt Import betrachten. Ein gemeinsamer Beobachtungshelfer darf nicht unbemerkt nebenbei den alten Drahtvertrag ändern. TF-2 erhält hier sein Plan-Agreement unabhängig davon; die bereits benannte schwache Bestätigung der normalen Bearbeitung wird dadurch nicht abgenommen oder geschlossen. |
+
+Die tatsächliche `load=<bytes>`-Schnittstelle ist vorhanden: der gemeinsame Wächter reicht die Bytes an `prepared_refusal`, der `home_tools` verwendet; die Zulassung liest frisch und beendet sich mit der stehenden Besitzer-/Schreiberprüfung. TF-2 soll genau die in seinem Commit geprüften Dateibytes dort übergeben. Das Nachlesen bestätigt die Anbindung, nicht die vollständige Korrektheit des noch getrennt zu prüfenden Pakets.
+
+Die Korrektur des nativen Fremdschreibers auf **G10 L1 über MDI** ist ebenfalls richtig: Im nachgelesenen Python-Binding von LinuxCNC 2.9.4 werden bei `tool_offset` Werkzeugnummer und Werte, aber nicht `m.pocket` gesetzt. Die eigene R478-Probe benutzte dieses Binding nicht; sie bleibt ein gültiger Offline-Gegenbeleg. N12 muss zusätzlich nachweisen, dass der Load tatsächlich verworfen wurde und die alte Tasche gehalten blieb; anderenfalls ist der native Gegenfall nicht bewiesen. Kein nativer Ablauf wurde durch dieses Review ausgeführt.
+
+**Offene Operatorpunkte:** Q-TF2-1 und Q471-1 bleiben unbeantwortet; das Plan-Agreement ersetzt ihre Antworten nicht. Empfehlung zu Q-TF2-1 unverändert: bewusst bestätigte Entfernung erlauben, Werkzeug in der Spindel ausschließen. Keine neue Operatorfrage und kein Warten.
+
+**Belege:** [neue Gegenprobe](maschinentag.r479.codex-probe.py), [Rohdaten einschließlich klar benannter Vertragsmodelle](maschinentag.r479.codex-probe.json), [nachgelesene Quellstellen](maschinentag.r479.codex-sources.txt), [Reproduktion aus einer frischen Archivkopie](maschinentag.r479.codex-reproduce.py), [Manifest](maschinentag.r479.codex-manifest.json). Die abschließende Reproduktion liefert dieselben Daten. Ihr erster Versuch scheiterte nur an einer doppelt ersetzten `/tmp`-Pfadangabe im Reproduktionsskript; das [Fehlerprotokoll](maschinentag.r479.codex-reproduction-first.stderr) bleibt erhalten. Kein neuer vollständiger Gate-Lauf in dieser Planrunde.

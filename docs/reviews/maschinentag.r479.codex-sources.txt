@@ -1,0 +1,194 @@
+
+--- d4b9239f:lcnc-gateway/tool_table.py:287 ---
+287: def home_tools(data: bytes) -> Dict[int, Tuple[int, int]]:
+288:     """{table index: (T, P)} of the home entries LinuxCNC holds after it
+289:     loaded a file of these bytes (a nonrandom changer, no tool database). A
+290:     line this does not mirror (a NUL byte; a number in a form the suite never
+291:     writes) raises ToolTableUnreadable naming it: unknown, never guessed."""
+292:     out: Dict[int, Tuple[int, int]] = {}
+293:     free = 1
+294:     for n, piece in _fgets_lines(data):
+295:         if free == _INDEX_END:
+296:             break                                   # every index is taken: no later line holds one
+297:         if b"\0" in piece:
+298:             raise ToolTableUnreadable(f"Line {n} not readable — fix it in an editor")
+299:         if piece.startswith(b";"):
+300:             continue
+301:         part = piece.lstrip(b";").split(b";", 1)[0]
+302:         if len(part) <= 1:
+303:             continue
+304:         tool, index, pocket, valid = -1, 0, 0, True
+305:         for token in part.split(b" "):
+306:             if not token:
+307:                 continue
+308:             letter, rest = token[:1].upper(), token[1:]
+309:             if letter in (b"T", b"P", b"Q"):
+310:                 v = _c_int(rest)
+311:                 if v is None:
+312:                     valid = False
+313:                 elif letter == b"T":
+314:                     tool = v
+315:                 elif letter == b"P":
+316:                     pocket = v
+317:                     if free < _INDEX_END:
+318:                         index, free = free, free + 1
+319:                     else:                           # "Out-of-range nonrandom_idx"
+320:                         valid = False
+321:             elif letter in b"DXYZABCUVWIJ":
+322:                 if _C_REAL_OTHER_RE.match(rest):
+323:                     raise ToolTableUnreadable(f"Line {n} not readable — fix it in an editor")
+324:                 if _C_REAL_RE.match(rest) is None:
+325:                     valid = False
+326:             elif not token.startswith(b"\n"):
+327:                 valid = False
+328:         if valid and index > 0 and tool != -1:      # (index 0 is the spindle's; T-1 is LinuxCNC's "no tool")
+329:             out[index] = (tool, pocket)
+330:     return out
+
+--- d4b9239f:lcnc-gateway/tool_proof.py:298 ---
+298: def prepared_refusal(data: bytes, scope: Optional[str], index: object, preparing: object,
+299:                      number: object, pocket: object) -> Optional[str]:
+300:     """May LinuxCNC load a tool table file of these bytes NOW, as far as a
+301:     prepared tool goes? None = yes, else why not and the way out. Pure; every
+302:     path that sends a load_tool_table asks it on the very bytes the load will
+303:     read. `index` STAT.pocket_prepped; `preparing`, `number`, `pocket` the
+304:     FRESH pins tool-prepare, tool-prep-number, tool-prep-pocket (None: not in
+305:     the snapshot — an older reader, a pin that did not read). `scope` as in
+306:     compare(): a random changer's index is the pocket and a tool database
+307:     reads no file — neither is judged, so neither loads while a tool is
+308:     prepared.
+309: 
+310:     Nothing prepared is index -1 or 0 AND no preparation under way — that one
+311:     is known from the pin, or (an older reader) from number 0: nothing asked
+312:     for. Prepared: the tool at the index after the load (LinuxCNC's own index
+313:     assignment, home_tools) must be the SAME number in the SAME pocket as the
+314:     pins say was prepared — never as a file says, which may have changed."""
+315:     if type(index) is not int or index < -1:
+316:         return PREPARED_UNREAD
+317:     if preparing is True:
+318:         return PREPARING
+319:     tool = number if type(number) is int else None
+320:     if index <= 0:
+321:         return None if preparing is False or tool == 0 else PREPARED_UNKNOWN
+322:     if scope is not None:
+323:         return f"Prepared tool not checked ({scope}) — send T0"
+324:     if tool is None or type(pocket) is not int:
+325:         return PREPARED_UNKNOWN
+326:     if tool == 0:
+327:         return PREPARED_CLEARED
+328:     try:
+329:         after = home_tools(data).get(index)
+330:     except ToolTableUnreadable as e:
+331:         return str(e)
+332:     return None if after == (tool, pocket) else PREPARED
+
+--- d4b9239f:lcnc-gateway/gateway.py:5912 ---
+5912: def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
+5913:                              owner: Optional[_ToolOwner] = None,
+5914:                              load: Optional[bytes] = None) -> Optional[str]:
+5915:     """May a program / macro / tool-table write publish NOW? None = yes, else
+5916:     the refusal — the commit-time half of sourceWrite / toolTableWrite
+5917:     (button gates BG-14). Called at the commit itself, inside the
+5918:     serialization a start registers under (_source_lock, or _cmd_lock for
+5919:     the tool table), on a CURRENT read: the writer's connection — an HTTP
+5920:     write's X-Conn-Key, a WS command's own connection — registered and armed
+5921:     NOW (Codex R211 BG-23: never the arm the dispatcher saw), no start claim
+5922:     open, no run from line and no load / unload in progress, a controller
+5923:     status (none is no known idle, BG-26), the interpreter idle by a poll
+5924:     that succeeded now, and for the tool table no tool change asking for a
+5925:     tool (a FRESH reader). E-Stop does not refuse: the files are not the
+5926:     machine. `owner` (a tool-table write): the Link, the instance and the
+5927:     configuration it was begun under are still the gateway's (Codex R468
+5928:     MT-I37). `load` (with its owner): the bytes of the file about to be
+5929:     written, whose reload the write then sends — _tool_load_refusal on this
+5930:     function's own poll (a write without a reload, the metadata refresh, has
+5931:     none).
+5932:     What the event loop changes — the writer, the owner, the claims — is
+5933:     asked FIRST (its own reasons, no reads for a writer already refused) and
+5934:     AGAIN after this function's controller and HAL reads, as its last word
+5935:     (Codex R471 MT-I35: a disarm during the poll still wrote): memory only,
+5936:     no read between it and the caller's file effect. A caller that reads
+5937:     files of its own in its commit asks the whole admission again after
+5938:     them."""
+5939:     def standing() -> Optional[str]:
+5940:         why = _writer_refusal(conn_key) or (owner.refusal() if owner is not None else None)
+5941:         if why:
+5942:             return why
+5943:         if _source_claims:
+5944:             return "A program or macro is starting or running — wait"
+5945:         why = _rfl_busy_reason()
+5946:         if why:
+5947:             return why
+5948:         return "A program is loading — wait" if _status_runtime.program_changing else None
+5949: 
+5950:     why = standing()
+5951:     if why:
+5952:         return why
+5953:     if _stat_now() is None:
+5954:         return STATE_UNKNOWN
+5955:     try:
+5956:         stat = link().stat
+5957:         stat.poll()
+5958:     except Exception as e:  # noqa: BLE001 - no fresh read, no write
+5959:         _trace.emit_exc("write.stat_poll_failed", e)
+5960:         return "Machine status not read — try again"
+5961:     interp = safe_get("interp_state", None)
+5962:     if interp is None:
+5963:         return STATE_UNKNOWN
+5964:     if interp != linuxcnc.INTERP_IDLE:
+5965:         return "A program or MDI runs — wait"
+5966:     if tool_table:
+5967:         pending = _reader_fresh_get("tool_change")
+5968:         if pending is None:
+5969:             return "Tool change request unknown — HAL reader stale"
+5970:         if pending:
+5971:             return "Tool change pending — finish it first"
+5972:     if load is not None:
+5973:         why = _tool_load_refusal(stat, load, owner.scope if owner is not None else _TOOL_SCOPE_UNKNOWN)
+5974:         if why:
+5975:             return why
+5976:     return standing()
+
+--- /home/cnc/claude-work/bg/upstream-2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc:1013 ---
+1013: static PyObject *tool_offset(pyCommandChannel *s, PyObject *o) {
+1014:     EMC_TOOL_SET_OFFSET m;
+1015:     if(!PyArg_ParseTuple(o, "idddddi", &m.toolno, &m.offset.tran.z, &m.offset.tran.x, &m.diameter,
+1016:                          &m.frontangle, &m.backangle, &m.orientation))
+1017:         return NULL;
+1018:     emcSendCommand(s, m);
+1019:     Py_INCREF(Py_None);
+1020:     return Py_None;
+1021: }
+1022: 
+1023: static PyObject *mist(pyCommandChannel *s, PyObject *o) {
+1024:     int dir;
+1025:     if(!PyArg_ParseTuple(o, "i", &dir)) return NULL;
+1026:     switch(dir) {
+1027:         case LOCAL_MIST_ON:
+1028:         {
+
+--- /usr/include/linuxcnc/emc_nml.hh:1609 ---
+1609: class EMC_TOOL_SET_OFFSET:public EMC_TOOL_CMD_MSG {
+1610:   public:
+1611:     EMC_TOOL_SET_OFFSET():EMC_TOOL_CMD_MSG(EMC_TOOL_SET_OFFSET_TYPE,
+1612: 					   sizeof(EMC_TOOL_SET_OFFSET)) {
+1613:     };
+1614: 
+1615:     // For internal NML/CMS use only.
+1616:     void update(CMS * cms);
+1617: 
+1618:     int pocket;
+1619:     int toolno;
+1620:     EmcPose offset;
+1621:     double diameter;
+1622:     double frontangle;
+1623:     double backangle;
+1624:     int    orientation;
+1625: };
+1626: 
+1627: class EMC_TOOL_SET_NUMBER:public EMC_TOOL_CMD_MSG {
+1628:   public:
+1629:     EMC_TOOL_SET_NUMBER():EMC_TOOL_CMD_MSG(EMC_TOOL_SET_NUMBER_TYPE,
+1630: 					   sizeof(EMC_TOOL_SET_NUMBER)) {
+1631:     };
+1632: 

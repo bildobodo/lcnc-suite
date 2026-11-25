@@ -1,0 +1,39 @@
+{
+  "round": "R479",
+  "kind": "plan review; no TF-2 implementation tested",
+  "base": "24f3bd3a",
+  "dependency_read": "d4b9239f",
+  "probe": "9 new original-reader/mirror checks; 4 prior measurements projected to the plan; 7 display predicate model checks",
+  "execution": "own /tmp copy; common heavy lock; first acquisition timed out, second succeeded; no NML/Sim/gateway import",
+  "input_sha256": {
+    "d4b9239f:lcnc-gateway/tool_table.py": "94ecdf6ddfdc0ff42b7b89db458e39ccb1e3becf2012b0c7a7c809d05f61d7c0",
+    "d4b9239f:lcnc-gateway/tool_proof.py": "8b9aec29eee18818f67111a1c2364cf0cd6549fe294361e25dd6842e7ff22ba5",
+    "d4b9239f:lcnc-gateway/gateway.py": "b64963c5316ad0fc312ff1675abbc22be7354f90d329260f2765aef2267eae24",
+    "/home/cnc/claude-work/bg/upstream-2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc": "ca6b677f75ec2cd999bec81e422220d2a2430c24d1d96e290b56c91cc5b3a413",
+    "/usr/include/linuxcnc/emc_nml.hh": "c3e970e5d0dd806152494fb8c864dc3b3ec087f236725bd3e0b2e4937f365036",
+    "docs/reviews/maschinentag.r479.plan-tf2-v3.md": "84a0345c1051b37b5b03199d12e606a36447f5f42041c1ac03232bf83b73069e",
+    "docs/reviews/maschinentag.r478.codex-probe.json": "4e0d402860f2ca9b5b83875a850c5d73fc2c16fe9256072638454bc9af31a9be",
+    "docs/reviews/maschinentag.r478.codex-oracle/emc_nml.hh": "5dfc0a78d53461f008ad01d18245c5133fc3550e69c069ccda3fe82170959d59",
+    "docs/reviews/maschinentag.r478.codex-oracle/main.cc": "92fba81c71e6ffbede18f27747fe73d8bc3b68a409e0ba9c1e7ba58cc1ad815c",
+    "docs/reviews/maschinentag.r478.codex-oracle/state.cc": "05805636c817c09b0a56c5b649651f510d41fc0b25404e1e54cd2706b9ec3756",
+    "docs/reviews/maschinentag.r478.codex-oracle/test_form_rule.py": "5f86f6ccd650ff32a0fb8fb0783bbe917215a1984449f73665952b0ff8aa61fa",
+    "docs/reviews/maschinentag.r478.codex-oracle/test_form_rule2.py": "b98956c826d86eaf8df5a3593ee5aa568a39e703850e97872d96610964027be5",
+    "docs/reviews/maschinentag.r478.codex-oracle/tooldata.hh": "85e938cc56d2da28501855d5becc03000eb8ecbf40a9890456296d15390b73c5",
+    "docs/reviews/maschinentag.r478.codex-oracle/tooldata_common.cc": "ae1e51206f4e15778802553daf0de9bb894e1ea4de1b83f4fa4b5af60d738b0e"
+  },
+  "reproduction": {
+    "result": "PASS; output JSON identical",
+    "initial_failure": "temporary path replaced twice; no product failure"
+  },
+  "output_sha256": {
+    "maschinentag.r479.codex-lock-first.stderr": "abc2d948adbf9c03dcd5eec71c14aebe96a19bf1ee8cb0d412b8a351f3542c46",
+    "maschinentag.r479.codex-lock-first.stdout": "c8674f671a2cf5186bb7d8b70d7810406298d54b5424dd0d2bb5814fc7548e9f",
+    "maschinentag.r479.codex-probe.json": "aff07c1af49b746c789323f61d9baa514add0dd2cf478f9218324821309a0221",
+    "maschinentag.r479.codex-probe.py": "c650e65f793d285117174572fc9bb9f308b59a4d9c7ae432be9f12540d7b72e0",
+    "maschinentag.r479.codex-probe.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "maschinentag.r479.codex-reproduce.py": "a4e9691901cf32ba9b0031ad1a1f57f63519038bbee28dbfc66a55591221d6bf",
+    "maschinentag.r479.codex-reproduced.json": "aff07c1af49b746c789323f61d9baa514add0dd2cf478f9218324821309a0221",
+    "maschinentag.r479.codex-reproduction-first.stderr": "01b0a834b02f83b9fb31ba9a49a38da388ba58007a343bb004e85d5494cd9211",
+    "maschinentag.r479.codex-sources.txt": "bb75d9042e52db804603d28f1831af4c030a27419c314391c37b90621de18b09"
+  }
+}

@@ -1,0 +1,285 @@
+{
+  "index_probe": [
+    {
+      "case": "plain",
+      "bytes": "T1 P5 Z10 D6\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": true,
+      "v3_index_condition_admits": true
+    },
+    {
+      "case": "hash text first",
+      "bytes": "# words\nT1 P5 Z10 D6\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": true,
+      "v3_index_condition_admits": true
+    },
+    {
+      "case": "hash pocket first",
+      "bytes": "# words P7\nT1 P5 Z10 D6\n",
+      "mirror": {
+        "2": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "2": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": false,
+      "v3_index_condition_admits": false
+    },
+    {
+      "case": "hash pocket between",
+      "bytes": "T1 P5 Z10 D6\n# words P7\nT2 P6 Z20 D3\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ],
+        "3": [
+          2,
+          6
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ],
+        "3": [
+          2,
+          6
+        ]
+      },
+      "v2_form_admits": false,
+      "v3_index_condition_admits": false
+    },
+    {
+      "case": "hash pocket last",
+      "bytes": "T1 P5 Z10 D6\n# words P7\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": false,
+      "v3_index_condition_admits": true
+    },
+    {
+      "case": "hash pocket after semicolon",
+      "bytes": "# words ; P7\nT1 P5 Z10 D6\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": true,
+      "v3_index_condition_admits": true
+    },
+    {
+      "case": "semicolon pocket first",
+      "bytes": ";T9 P9\nT1 P5 Z10 D6\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": true,
+      "v3_index_condition_admits": true
+    },
+    {
+      "case": "indented hash pocket first",
+      "bytes": "  # words P7\nT1 P5 Z10 D6\n",
+      "mirror": {
+        "2": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "2": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": false,
+      "v3_index_condition_admits": false
+    },
+    {
+      "case": "indented hash pocket last",
+      "bytes": "T1 P5 Z10 D6\n  # words P7\n",
+      "mirror": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "original_reader": {
+        "1": [
+          1,
+          5
+        ]
+      },
+      "v2_form_admits": false,
+      "v3_index_condition_admits": true
+    }
+  ],
+  "r478_evidence_projected_to_v3_plan_only": [
+    {
+      "case": "real load",
+      "load": "requested",
+      "values": "shown",
+      "proof_scope": "compared table values only; no pocket, remark or load-execution claim",
+      "observed_pocket": 9
+    },
+    {
+      "case": "foreign value update; save refused",
+      "load": "requested",
+      "values": "shown",
+      "proof_scope": "compared table values only; no pocket, remark or load-execution claim",
+      "observed_pocket": 5
+    },
+    {
+      "case": "foreign value update; save succeeds",
+      "load": "requested",
+      "values": "not shown",
+      "proof_scope": "compared table values only; no pocket, remark or load-execution claim",
+      "observed_pocket": 5
+    },
+    {
+      "case": "foreign value update; permission removed after baseline",
+      "load": "requested",
+      "values": "shown",
+      "proof_scope": "compared table values only; no pocket, remark or load-execution claim",
+      "observed_pocket": 5
+    }
+  ],
+  "display_predicate_plan_only": [
+    {
+      "case": "owner A, same bytes",
+      "read": {
+        "path": "/tool.tbl",
+        "instance": "A",
+        "ini": "/sim.ini",
+        "link": "e.1",
+        "rev": "r",
+        "proof": "complete"
+      },
+      "expected": true,
+      "shows_it": true
+    },
+    {
+      "case": "owner B, same path and complete",
+      "read": {
+        "path": "/tool.tbl",
+        "instance": "B",
+        "ini": "/sim.ini",
+        "link": "e.1",
+        "rev": "r",
+        "proof": "complete"
+      },
+      "expected": false,
+      "shows_it": false
+    },
+    {
+      "case": "new Link to same instance",
+      "read": {
+        "path": "/tool.tbl",
+        "instance": "A",
+        "ini": "/sim.ini",
+        "link": "e.2",
+        "rev": "r",
+        "proof": "complete"
+      },
+      "expected": false,
+      "shows_it": false
+    },
+    {
+      "case": "WS closed",
+      "read": null,
+      "expected": false,
+      "shows_it": false
+    },
+    {
+      "case": "same owner after WS reconnect",
+      "read": {
+        "path": "/tool.tbl",
+        "instance": "A",
+        "ini": "/sim.ini",
+        "link": "e.1",
+        "rev": "r",
+        "proof": "complete"
+      },
+      "expected": true,
+      "shows_it": true
+    },
+    {
+      "case": "another revision",
+      "read": {
+        "path": "/tool.tbl",
+        "instance": "A",
+        "ini": "/sim.ini",
+        "link": "e.1",
+        "rev": "r2",
+        "proof": "complete"
+      },
+      "expected": false,
+      "shows_it": false
+    },
+    {
+      "case": "failed read",
+      "read": {
+        "proof": "failed"
+      },
+      "expected": false,
+      "shows_it": false
+    }
+  ]
+}
