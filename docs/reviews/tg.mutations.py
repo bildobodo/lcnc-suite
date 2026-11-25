@@ -33,8 +33,9 @@ MUTS = {
     # ---- the line the writer emits (tool_table.py) -------------------------
     "a_byte_more": (TABLE, [("    if len(data) > LINE_BYTES_MAX:", "    if len(data) > LINE_BYTES_MAX + 1:")],
                     [W + "test_255_bytes_with_the_newline_is_one_line_one_more_is_not"]),
+    # (the 255-byte line refused: the guard fails with the refusal itself)
     "a_byte_less": (TABLE, [("    if len(data) > LINE_BYTES_MAX:", "    if len(data) >= LINE_BYTES_MAX:")],
-                    [W + "test_255_bytes_with_the_newline_is_one_line_one_more_is_not"]),
+                    [(W + "test_255_bytes_with_the_newline_is_one_line_one_more_is_not", "ToolTableUnwritable: T5: line too long")]),
     "without_its_newline": (TABLE, [("    if len(data) > LINE_BYTES_MAX:", "    if len(data) - 1 > LINE_BYTES_MAX:")],
                             [W + "test_255_bytes_with_the_newline_is_one_line_one_more_is_not"]),
     "characters_not_bytes": (TABLE, [("    if len(data) > LINE_BYTES_MAX:", "    if len(line) + 1 > LINE_BYTES_MAX:")],
@@ -185,7 +186,8 @@ MUTS = {
                        [STILL + "test_e_stop_and_machine_off_stand"]),
     "a_write_without_a_reload_asked": (GW, [("    if load is not None:\n        why = _tool_load_refusal(stat, load,",
                                              "    if tool_table:\n        load = load or b\"\"\n        why = _tool_load_refusal(stat, load,")],
-                                       ["test_tool_refresh.py::TestMetadataRefreshRoutes::test_it_sends_no_reload_so_nothing_of_one_is_asked"]),
+                                       [("test_tool_refresh.py::TestMetadataRefreshRoutes::test_it_sends_no_reload_so_nothing_of_one_is_asked",
+                                         "HTTPException: 409: Machine moving")]),
     "the_line_inside_the_effect": (GW, [(
         "    try:\n        data = tool_table_bytes(tools)\n    except ToolTableUnwritable as e:\n"
         "        _trace.emit(\"tools.line_refused\", level=\"warn\", reason=str(e))\n        raise PermissionError(str(e)) from None\n    why =",
@@ -194,7 +196,7 @@ MUTS = {
     "the_import_line_a_500": (GW, [(
         "            raise HTTPException(status_code=400, detail=str(e)) from None\n        # Admitted at the write itself",
         "            raise\n        # Admitted at the write itself")],
-        [LINE + "test_the_ghost_line_of_every_write"]),
+        [(LINE + "test_the_ghost_line_of_every_write", "ToolTableUnwritable: T2: line too long")]),
     # ---- the reader ----------------------------------------------------------
     "pocket_pin_not_read": (READER, [("    (\"iocontrol.0.tool-prep-pocket\", \"tool_prep_pocket\",  int),\n", "")],
                             [P + "TestTheReadersPins::test_the_preparation_on_the_snapshot_and_absent_when_unread"]),
@@ -209,16 +211,17 @@ MUTS = {
 }
 
 
-def run_guard(node):
+def run_guard(guard):
+    node, words = guard if isinstance(guard, tuple) else (guard, "AssertionError")
     r = subprocess.run([str(ROOT / "lcnc-gateway/.venv/bin/python3"), "-m", "pytest", "-q", "-p", "no:cacheprovider",
                         "-o", "addopts=", node], cwd=ROOT / "lcnc-gateway", capture_output=True, text=True,
                        timeout=900, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
     out = r.stdout + r.stderr
     name = node.split("::")[-1]
     # red AT the rule: that very test failed (or a subtest of it) on an
-    # assertion — not an import or a collection error
+    # assertion (or with the named refusal) — not an import or a collection error
     failed = any(ln.startswith(("FAILED", "SUBFAILED")) and name in ln for ln in out.splitlines())
-    asserted = any("AssertionError" in ln for ln in out.splitlines())
+    asserted = any(words in ln for ln in out.splitlines())
     first = next((ln.strip()[:200] for ln in out.splitlines() if ln.startswith("E ") and "Error" in ln), "")
     return r.returncode == 1 and failed and asserted, r.returncode, first
 
@@ -239,6 +242,7 @@ def main(names):
             results = [(g, *run_guard(g)) for g in guards]
         finally:
             f.write_bytes(orig)
+        results = [(g[0] if isinstance(g, tuple) else g, *rest) for g, *rest in results]
         out[name] = all(r[1] for r in results)
         print(json.dumps({"mutation": name, "red_at_rule": out[name],
                           "guards": [{"guard": g.split("::")[-1], "red": red, "rc": rc, "first": first}
