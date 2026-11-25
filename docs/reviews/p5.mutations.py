@@ -227,6 +227,13 @@ MUTS = {
     "a_frame_of_two_machines": (G + "gateway.py", [(
         "    elif state == \"active\" and unit != _declared_linear_unit(ini):", "    elif state == \"active\" and unit != _declared_linear_unit():")],
         [py("test_cal_gateway.py", "one_status_frame", "test_one_status_frame_speaks_of_one_machine")]),
+    "the_machine_write_without_its_origin": (G + "gateway.py", [(
+        "        return (_writer_refusal(conn_key) or _feature_refusal(\"probing\") or _cal_origin_refusal(origin)\n",
+        "        return (_writer_refusal(conn_key) or _feature_refusal(\"probing\")\n")],
+        [py("test_cal_gateway.py", "machine_write_belongs", "test_the_machine_write_belongs_to_the_record_s_ini")]),
+    "a_job_s_offset_judged_by_another_unit": (G + "gateway.py", [(
+        "    if unit != _declared_linear_unit(ini):\n        return None, \"Calibration offset in another unit", "    if unit != _declared_linear_unit():\n        return None, \"Calibration offset in another unit")],
+        [py("test_cal_gateway.py", "one_status_frame", "a job's offset too")]),
     "a_record_without_a_connection": (G + "gateway.py", [(
         "    if ini == _NO_INI:\n        return None\n    key = (_settings_store.version, ini)", "    key = (_settings_store.version, ini)")],
         [py("test_cal_gateway.py", "no_connection_is_no_record", "test_no_connection_is_no_record")]),
@@ -401,7 +408,10 @@ def run_guard(kind, args):
         out = r.stdout + r.stderr
         # (a failing subtest's line reads "SUBFAILED[name] file::", pytest 9)
         line = next((ln for ln in out.splitlines() if re.match(rf"(SUB)?FAILED[^ ]*.* ?{re.escape(args[0])}::", ln)), "\0")
-        return r.returncode == 1, out, line if args[2] in out else "\0"
+        # the rule's words only where the failure says them: pytest also prints
+        # the failing test's source, every subtest's label with it
+        said = any(args[2] in ln for ln in out.splitlines() if re.match(r"(SUB)?FAILED|E  ", ln))
+        return r.returncode == 1, out, line if said else "\0"
     if kind == "vi":
         r = subprocess.run([str(BIN / "vitest"), "run", args[0]], cwd=ROOT / "lcnc-webui", capture_output=True, text=True, timeout=600, env=ENV)
         return r.returncode != 0, r.stdout + r.stderr, at_failing(args[1], r.stdout + r.stderr)

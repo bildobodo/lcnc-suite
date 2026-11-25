@@ -961,7 +961,7 @@ class _TwoInis(_Base):
         super().setUp()
         self.other = self.dir / "other.ini"
         self.other.write_text("")
-        units = {str(self.ini): "mm", str(self.other): "inch"}
+        units = self.units = {str(self.ini): "mm", str(self.other): "inch"}
 
         class Ini:
             def __init__(self, path):
@@ -1148,6 +1148,28 @@ class TestAStorageJobBelongsToItsIni(_TwoInis):
             w = self.wire()["probe_calibration"]
         self.assertEqual((w["value"], w["unit"], w["state"]), (0.2, "mm", "active"),
                          "its record is judged by its own INI's unit")
+        self.relink()
+        gateway._cal_record_read = (None, None)
+        with self.at_the_commit("calibration", lambda: self.link_to(self.other)):
+            self.assertEqual(gateway._active_offset(), (0.2, None), "a job's offset too")
+
+    def test_the_machine_write_belongs_to_the_record_s_ini(self):
+        # between the record and its write the Link names another INI, whose
+        # record has the same revision and the same unit
+        self.units[str(self.other)] = "mm"
+        self.file({"probeCalibration": self.REC}, {"probeCalibration": {**self.REC, "value": 0.7, "rev": 1}})
+        real = gateway._cal_store
+
+        async def then(*a):
+            out = await real(*a)
+            self.stat.ini_filename = str(self.other)
+            return out
+        n = len(self.cmd.mdis())
+        with unittest.mock.patch.object(gateway, "_cal_store", then):
+            r = self.reset()
+        self.assertEqual((r["ok"], r["machine"]["outcome"], len(self.cmd.mdis())), (True, "saved_not_written", n))
+        self.assertIn("Connection to LinuxCNC changed", r["machine"]["why"])
+        self.assertEqual((self.stored()["probeCalibration"]["value"], self.stored(self.other)["probeCalibration"]["value"]), (0.0, 0.7))
 
     def test_no_connection_is_no_record(self):
         self.file({"probeCalibration": self.REC})
