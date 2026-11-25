@@ -7823,7 +7823,9 @@ async def _calibration_job(routine: str, vars_to_set: Dict[str, Any], armed: boo
         return {"ok": False, "error": f"Calibration run counter unreadable — {COUNTER_FILE}: no INI path"}
 
     def admit() -> Optional[str]:
-        return _writer_refusal(conn_key) or base_admit()
+        # the writer again AFTER the base's own poll: the event loop disarms
+        # or unregisters it while this thread reads (Codex R471 MT-I35)
+        return _writer_refusal(conn_key) or base_admit() or _writer_refusal(conn_key)
     async with _get_cal_lock():
         rec = _cal_record(ini_path)
         base_rev = _cal_rev_of(rec)
@@ -7933,9 +7935,12 @@ async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], jo
                              origin: _CalOrigin) -> Dict[str, Any]:
     """The second step of Apply and Reset: #3032 into the machine — only
     when it is ready and idle, admitted at the write again (arm NOW, the
-    switch, the origin, its record unchanged, the program unit). The machine's outcome is
-    the booking's (probe_book.machine_outcome): `write_pending` from here to
-    the end, whatever ends it."""
+    switch, the origin, its record unchanged, the program unit — and what the
+    event loop changes once more after the reads, the writer last). The
+    machine's outcome is the booking's (probe_book.machine_outcome):
+    `write_pending` from here to the end, whatever ends it. The record is
+    stored: a machine step that raises is an OUTCOME with its reason, never
+    an error for the whole (Codex R471 MT-I42's class)."""
     global _cal_writing
     value, rev = canonical_param(float(record["value"])), _cal_rev_of(record)
 
@@ -7943,7 +7948,8 @@ async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], jo
         return (_writer_refusal(conn_key) or _feature_refusal("probing") or _cal_origin_refusal(origin)
                 or _controller_gate_refusal("ready", True) or _probe_unit_refusal()
                 or (None if _cal_rev_of(_settings_store.calibration(origin.ini)) == rev
-                    else "The active offset changed meanwhile"))
+                    else "The active offset changed meanwhile")
+                or _feature_refusal("probing") or _cal_origin_refusal(origin) or _writer_refusal(conn_key))
     why: Optional[str]
     try:
         why = admit()
@@ -7954,11 +7960,16 @@ async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], jo
         _trace.emit("cal.machine_not_tried", why=why)
         return {"outcome": "saved_not_written", "why": why}
     progress: List[Dict[str, Any]] = []
+    failed: Optional[str] = None
     _cal_writing = True
     try:
         r = await _apply_probe_vars_detail({str(OFFSET_KEY): value}, True, admit=admit, job=job, progress=progress)
         if not r["mdi_set"]:
             _actions.stopped_short(_current_action.get())
+    except Exception as e:  # noqa: BLE001 - a cancel propagates; the rest is this step's outcome, named
+        _trace.emit_exc("cal.machine_write_failed", e)
+        _actions.stopped_short(_current_action.get())
+        failed = str(e) or type(e).__name__
     finally:
         # the write has ended (_cmd_blocking waits for it through a cancel):
         # what it did is in the chunk's state and in the booking
@@ -7966,7 +7977,7 @@ async def _cal_write_machine(record: Dict[str, Any], conn_key: Optional[str], jo
         owner = current_link()
         out = machine_outcome(value, _probe_book.entry(OFFSET_KEY, owner.seq if owner is not None else None), False)
         _trace.emit("cal.machine_write", value=value, chunks=progress, outcome=out["outcome"])
-    return out
+    return out if failed is None else {**out, "why": out.get("why") or failed}
 
 
 async def _cal_apply(msg: Dict[str, Any], conn_key: Optional[str]) -> Dict[str, Any]:

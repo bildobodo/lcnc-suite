@@ -329,6 +329,37 @@ class TestTheCall(_Base):
         self.assertIn("Not armed", r["error"])
         self.assertEqual(self.cmd.mdis(), [])
 
+    def test_what_falls_during_the_admissions_own_poll_starts_nothing(self):
+        real = gateway._interp_idle_refusal
+        for how, why in (("disarm", "Not armed"), ("gone", "Connection unknown")):
+            at = 0
+            while True:
+                at += 1
+                calls, sent, writer = [], [], gateway._clients[911]
+
+                def idle(how=how, at=at, calls=calls, sent=sent):
+                    r = real()
+                    calls.append(1)
+                    if len(calls) == at:
+                        sent.append(len(self.cmd.mdis()))
+                        if how == "disarm":
+                            gateway._clients[911].armed = False
+                        else:
+                            gateway._clients.pop(911)
+                    return r
+                with unittest.mock.patch.object(gateway, "_interp_idle_refusal", idle):
+                    r = self.start()
+                gateway._clients[911] = writer
+                writer.armed = True
+                gateway._cal.run = gateway._cal.candidate = None
+                if len(calls) < at:
+                    break
+                with self.subTest(how, call=at):
+                    self.assertFalse(r["ok"], r)
+                    self.assertIn(why, r["error"])
+                    self.assertEqual(len(self.cmd.mdis()), sent[0], "nothing more went out")
+            self.assertGreater(at, 2)
+
     def test_a_refused_chunk_opens_no_run_and_keeps_the_candidate(self):
         run = self.offered()
         self.cmd.rc = 3
@@ -483,6 +514,55 @@ class TestApply(_Base):
             self.assertEqual(r["machine"]["outcome"], "saved_not_written", how)
             self.assertEqual(len(self.cmd.mdis()), n, how)
             gateway._clients[911].armed = True
+            self.record(0.2)
+
+    def test_what_falls_during_the_admissions_own_poll_writes_nothing(self):
+        # the machine step's admission polls the controller in the write's
+        # thread: a disarm, a lost connection, another Link during that poll
+        # — at each of its calls — sends no parameter (Codex R471 MT-I35)
+        real = gateway._controller_gate_refusal
+        for how in ("disarm", "gone", "link"):
+            at = 0
+            while True:
+                at += 1
+                run, writer, calls = self.offered(), gateway._clients[911], []
+                # what the machine holds: another value (an earlier pass took 0.0712)
+                gateway._probe_book.book({3032: 0.2}, "applied", gateway.current_link().seq, "probe")
+
+                def gate(g, a, how=how, at=at, calls=calls):
+                    why = real(g, a)
+                    calls.append(1)
+                    if len(calls) == at:
+                        if how == "disarm":
+                            gateway._clients[911].armed = False
+                        elif how == "gone":
+                            gateway._clients.pop(911)
+                        else:
+                            swap_connection(FakeConnection(stat=self.stat, cmd=self.cmd, err=self.err))
+                    return why
+                n = len(self.cmd.mdis())
+                with unittest.mock.patch.object(gateway, "_controller_gate_refusal", gate):
+                    r = self.apply(run)
+                gateway._clients[911] = writer
+                writer.armed = True
+                self.record(0.2)
+                if len(calls) < at:
+                    break               # every call of the admission was met
+                with self.subTest(how, call=at):
+                    self.assertTrue(r["ok"], r)
+                    self.assertNotIn(r["machine"]["outcome"], ("taken", "taken_persist_unconfirmed"))
+                    self.assertEqual(len(self.cmd.mdis()), n, "no parameter went out")
+            self.assertGreater(at, 2, "the early admission and the write's")
+
+    def test_a_machine_step_that_raises_is_its_outcome_not_apply_s_error(self):
+        for exc in (linuxcnc.error("NML gone"), RuntimeError("boom")):
+            run = self.offered()
+            with unittest.mock.patch.object(gateway, "_apply_probe_vars_detail", side_effect=exc):
+                r = self.apply(run)
+            self.assertTrue(r["ok"], r)
+            self.assertEqual((r["machine"]["outcome"], r["machine"]["why"]), ("saved_not_written", str(exc)))
+            self.assertEqual((self.rec()["value"], gateway._cal.candidate.state, gateway._cal_writing),
+                             (0.0712, "applied", False))
             self.record(0.2)
 
     def test_the_commit_admits_arm_switch_revision_and_link_at_the_write(self):

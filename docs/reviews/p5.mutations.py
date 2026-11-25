@@ -258,6 +258,18 @@ MUTS = {
     "a_stale_answer_shows_the_source": (G + "settings_store.py", [(
         "                    now = _without_offset(now)      # as the view shows it\n", "                    pass\n")],
         [py("test_settings_store.py", "save_before_the_migration", "test_a_save_before_the_migration_keeps_the_stored_offset")]),
+    # ---- what falls during the admission's own poll, what raises after the record (Codex R471's classes)
+    "the_calibration_s_writer_only_before_the_poll": (G + "gateway.py", [(
+        "        return _writer_refusal(conn_key) or base_admit() or _writer_refusal(conn_key)\n",
+        "        return _writer_refusal(conn_key) or base_admit()\n")],
+        [py("test_cal_gateway.py", "own_poll_starts_nothing", "test_what_falls_during_the_admissions_own_poll_starts_nothing")]),
+    "the_machine_step_s_writer_only_before_the_poll": (G + "gateway.py", [(
+        "                or _feature_refusal(\"probing\") or _cal_origin_refusal(origin) or _writer_refusal(conn_key))\n",
+        "                or _feature_refusal(\"probing\") or _cal_origin_refusal(origin))\n")],
+        [py("test_cal_gateway.py", "own_poll_writes_nothing", "test_what_falls_during_the_admissions_own_poll_writes_nothing")]),
+    "a_machine_step_that_raises_fails_the_apply": (G + "gateway.py", [(
+        "        failed = str(e) or type(e).__name__\n    finally:\n", "        raise\n    finally:\n")],
+        [py("test_cal_gateway.py", "machine_step_that_raises", "test_a_machine_step_that_raises_is_its_outcome_not_apply_s_error")]),
     # ---- the booking (P5-2 b)
     "a_booking_survives_its_link": (G + "probe_book.py", [(
         "        if out[\"outcome\"] in (\"applied\", \"read\") and (link_seq is None or out[\"link\"] != link_seq):",
