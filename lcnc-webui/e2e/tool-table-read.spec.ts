@@ -205,14 +205,53 @@ test("a written table that LinuxCNC did not load, or without its metadata, is sa
   // the last one stands until dismissed — a later read does not take it
   await publishToolTable([TOOL]);
   await expect(note).toHaveText(NEITHER);
-  // a new connection (the restart it asks for): the load is the next read's
-  // word again, the metadata are still not saved
-  await ctl({ op: "shutdownClose" });
-  await expect(note).toHaveText(NO_METADATA, { timeout: 20_000 });
-  await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible({ timeout: 20_000 });
-  await expect(note).toHaveText(NO_METADATA);
   await note.getByRole("button", { name: "Dismiss save note" }).click();
   await expect(note).toHaveCount(0);
+});
+
+// Codex R472 MT-I43: a lost socket is no LinuxCNC restart, and a `complete`
+// read holds no pocket and no remark — the open load stands for its table
+// until a read names another LinuxCNC (it loaded the file when it started),
+// or the operator dismisses it.
+test("a table not loaded stays said over a socket reconnect and ends with another LinuxCNC", async ({ page }) => {
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  const table = { path: "/cfg/tool.tbl", instance: "111:1" };
+  const serve = (over: object = {}) => ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL], table, unread: [], ...HOLDS, ...over } });
+  let version = 1300;
+  const reread = () => ctl({ op: "raw", frame: { type: "tool_table_changed", version: ++version } });
+  await serve();
+  await reread();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const tab = page.locator(".toolsTab");
+  const note = tab.locator("[data-write-state]");
+  const row = tab.getByRole("button", { name: "Edit T5", exact: true });
+  const editor = page.getByRole("dialog", { name: "Edit Tool T5" });
+  await expect(row).toBeVisible();
+  for (const c of [{ meta: false, text: NOT_LOADED, after: null }, { meta: true, text: NEITHER, after: NO_METADATA }]) {
+    await serve();
+    await reread();
+    await ctl({ op: "replyFor", cmd: "save_tool", reply: { ok: true, reload: "reload failed", ...(c.meta ? { metadata: "not saved" } : {}) } });
+    await row.click();
+    await editor.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(editor).toHaveCount(0);
+    await expect(note).toHaveText(c.text);
+    // an ordinary read, then ONLY the WebSocket: same table, same LinuxCNC
+    await reread();
+    await expect(note, "an ordinary read").toHaveText(c.text);
+    await ctl({ op: "shutdownClose" });
+    await expect(row).toHaveCount(0);
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await expect(note, "a lost socket proves nothing").toHaveText(c.text);
+    // LinuxCNC restarted: it loaded the file; the metadata are still not saved
+    await serve({ table: { ...table, instance: c.meta ? "333:3" : "222:2" } });
+    await reread();
+    if (c.after) await expect(note).toHaveText(c.after); else await expect(note).toHaveCount(0);
+    // another table file: nothing of this one is said beside it
+    await serve({ table: { path: "/cfg/other.tbl", instance: "444:4" } });
+    await reread();
+    await expect(note).toHaveCount(0);
+  }
+  await ctl({ op: "replyFor", cmd: "save_tool", reply: null });
 });
 
 test("the note of a written table comes with the read that follows it, never before it", async ({ page }) => {

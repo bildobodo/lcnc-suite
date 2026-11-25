@@ -28,7 +28,7 @@ import DialogFrame from "./DialogFrame.vue";
 import { vStickyHead } from "./stickyHead";
 import { TOOL_EDIT_FIELDS, type ToolRowExpect, type ToolTableIdentity } from "./lcnc";
 import {
-  toolTableView, toolWriteNote, toolWriteOutcome, ToolTableReads, TOOL_TABLE_NOT_READ,
+  toolTableView, toolWriteNote, toolWriteOutcome, toolWriteStands, ToolTableReads, TOOL_TABLE_NOT_READ,
   type ToolTableView, type ToolWriteOutcome,
 } from "./toolTableRead";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
@@ -199,22 +199,25 @@ async function fetchTools() {
   loading.value = false;
   const view = toolTableView<Tool>(reply, connected.value ? "No reply from the gateway — retry" : NOT_CONNECTED);
   readView.value = view;
-  if (writtenAtNextRead) { written.value = writtenAtNextRead; writtenAtNextRead = null; }
   tools.value = view.rows;
   tableIdentity.value = view.kind !== "failed" && isTableIdentity(reply.table)
     ? { path: reply.table.path, instance: reply.table.instance } : null;
+  written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);
+  writtenAtNextRead = null;
   tableError.value = view.error;
 }
 
 /** What the last WRITTEN table left open (its load into LinuxCNC, its
  *  metadata): said beside the read that followed the write — with that read,
- *  not before it (the read may say it already: no note that comes and goes). */
+ *  not before it (the read may say it already: no note that comes and goes) —
+ *  and kept until dismissed, the next write, or a read that names another
+ *  LinuxCNC or table (toolWriteStands; a lost socket ends nothing). */
 const written = ref<ToolWriteOutcome | null>(null);
 let writtenAtNextRead: ToolWriteOutcome | null = null;
 const writeNote = computed(() => toolWriteNote(written.value, readView.value?.kind ?? null));
-function showWritten(reply: unknown) {
+function showWritten(reply: unknown, of: ToolTableIdentity | null) {
   written.value = null;
-  writtenAtNextRead = toolWriteOutcome(reply);
+  writtenAtNextRead = toolWriteOutcome(reply, of);
   void fetchTools();
 }
 
@@ -227,11 +230,6 @@ function connectionClosed() {
   readView.value = null;
   tableIdentity.value = null;
   tableError.value = NOT_CONNECTED;
-  // a load not taken may be taken now (a restart loads the file): the next
-  // read says what LinuxCNC holds; metadata that were not saved still are not
-  const kept = (o: ToolWriteOutcome | null) => (o?.noMetadata ? { ...o, notLoaded: false } : null);
-  written.value = kept(written.value);
-  writtenAtNextRead = kept(writtenAtNextRead);
 }
 onMounted(() => {
   if (!connected.value) { connectionClosed(); return; }
@@ -413,6 +411,7 @@ function saveEdit() {
     : isNewTool.value
       ? { cmd: "add_tool" as const, ...buildToolMsg(form) }
       : { cmd: "save_tool" as const, expected: expected!, ...buildToolMsg(form) };
+  const of = tableIdentity.value;                // the table this write goes to
   const id = fire(payload, "toolTableWrite");
   if (id === null) return;                       // nothing sent — fire() said why; no pending
   saveSession.value = { id, cmd: payload.cmd };
@@ -427,7 +426,7 @@ function saveEdit() {
     saving.value = false;
     if (reply?.ok) {
       editTool.value = null;
-      showWritten(reply);
+      showWritten(reply, of);
     } else {
       editError.value = reply ? (reply.error || `${s.cmd} failed`) : writeUnknown();
     }
@@ -489,6 +488,7 @@ function requestDelete(toolNum: number) {
 function confirmDelete() {
   if (deletingTool.value == null || deleteSession.value) return;
   deleteError.value = null;
+  const of = tableIdentity.value;
   const id = fire({ cmd: "delete_tool", tool_number: deletingTool.value }, "toolTableWrite");
   if (id === null) return;
   deleteSession.value = { id };
@@ -497,7 +497,7 @@ function confirmDelete() {
     deleteSession.value = null;
     if (reply?.ok) {
       deletingTool.value = null;
-      showWritten(reply);
+      showWritten(reply, of);
     } else {
       deleteError.value = reply ? (reply.error || "Delete failed") : writeUnknown();
     }
@@ -614,6 +614,7 @@ async function confirmImport() {
   replaceConfirm.value = false;
   importBusy.value = true;
   importError.value = null;
+  const of = tableIdentity.value;                // (the answer may come after a lost socket)
   try {
     const form = new FormData();
     form.append("file", importFile.value);
@@ -637,7 +638,7 @@ async function confirmImport() {
     importPreview.value = null;
     importSkipped.value = [];
     importFile.value = null;
-    setTimeout(() => { if (refresh) void fetchTools(); else showWritten(data); }, REFETCH_AFTER_DELETE_MS);
+    setTimeout(() => { if (refresh) void fetchTools(); else showWritten(data, of); }, REFETCH_AFTER_DELETE_MS);
   } catch (err: any) {
     importError.value = err.message || "Import failed";
   } finally {

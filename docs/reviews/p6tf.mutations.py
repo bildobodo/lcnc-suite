@@ -566,7 +566,8 @@ MUTS = {
         [py(TC + "TestMTI42TheRestOfAWrittenTable::test_a_baseline_that_is_not_read_drops_nothing",
             "test_a_baseline_that_is_not_read_drops_nothing")]),
     "store_a_load_is_said_twice": (STORE, [(
-        "  const notLoaded = !!o?.notLoaded && read !== \"partial\";\n", "  const notLoaded = !!o?.notLoaded && (read !== \"partial\" || true);\n")],
+        "  const notLoaded = !!o?.notLoaded && read !== null && read !== \"partial\";\n",
+        "  const notLoaded = !!o?.notLoaded && read !== null;\n")],
         [vt("and not beside a partial read", "beside partial"),
          pw("is said once", "beside")]),
     "store_every_reload_has_words": (STORE, [(
@@ -574,23 +575,43 @@ MUTS = {
         "  return { notLoaded: reply?.reload !== undefined && reply?.reload !== \"confirmed\",\n")],
         [vt("only a load that was not sent or failed", "only a load that was not sent or failed")]),
     "store_unsaved_metadata_have_none": (STORE, [(
-        "           noMetadata: typeof reply?.metadata === \"string\" };\n", "           noMetadata: false };\n")],
+        "           noMetadata: typeof reply?.metadata === \"string\", of };\n", "           noMetadata: false, of };\n")],
         [vt("metadata that were not saved", "metadata that were not saved")]),
     "page_the_note_before_its_read": (PANEL, [(
-        "  writtenAtNextRead = toolWriteOutcome(reply);\n", "  written.value = toolWriteOutcome(reply);\n")],
+        "  writtenAtNextRead = toolWriteOutcome(reply, of);\n", "  written.value = toolWriteOutcome(reply, of);\n")],
         [pw("comes with the read that follows it", "comes with the read that follows it")]),
-    "page_a_restart_keeps_the_load_note": (PANEL, [(
-        "  written.value = kept(written.value);\n", "  void kept;\n")],
-        [pw("is said once", "metadata not")]),
+    # ---- MT-I43: what ends the note (toolWriteStands) ---------------------------
+    "page_a_lost_socket_ends_the_note": (PANEL, [(
+        "  tableError.value = NOT_CONNECTED;\n}\n", "  tableError.value = NOT_CONNECTED;\n  written.value = null;\n}\n")],
+        [pw("stays said over a socket reconnect", "a lost socket proves nothing")]),
+    "page_every_read_keeps_the_note": (PANEL, [(
+        "  written.value = toolWriteStands(writtenAtNextRead ?? written.value, tableIdentity.value);\n",
+        "  written.value = writtenAtNextRead ?? written.value; void toolWriteStands;\n")],
+        [pw("stays said over a socket reconnect", "toHaveCount")]),
+    "store_another_linuxcnc_keeps_the_load": (STORE, [(
+        "  return o.noMetadata ? { ...o, notLoaded: false, of: now } : null;\n", "  return o;\n")],
+        [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
+    "store_a_restart_saves_the_metadata": (STORE, [(
+        "  return o.noMetadata ? { ...o, notLoaded: false, of: now } : null;\n", "  return null;\n")],
+        [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
+    "store_another_table_keeps_the_note": (STORE, [(
+        "  if (now.path !== o.of.path) return null;\n", "")],
+        [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
+    "store_no_linuxcnc_is_another_one": (STORE, [(
+        "now.instance === o.of.instance || now.instance === UNBOUND || o.of.instance === UNBOUND)", "now.instance === o.of.instance)")],
+        [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
+    "store_an_unread_table_ends_it": (STORE, [(
+        "  if (!o?.of || !now) return o;\n", "  if (!o?.of || !now) return null;\n")],
+        [vt("a lost socket ends nothing", "a lost socket ends nothing")]),
     "page_an_edit_says_nothing": (PANEL, [(
-        "      editTool.value = null;\n      showWritten(reply);\n", "      editTool.value = null;\n      void fetchTools();\n")],
+        "      editTool.value = null;\n      showWritten(reply, of);\n", "      editTool.value = null;\n      void of; void fetchTools();\n")],
         [pw("is said once", "save_tool: ")]),
     "page_a_delete_says_nothing": (PANEL, [(
-        "      deletingTool.value = null;\n      showWritten(reply);\n", "      deletingTool.value = null;\n      void fetchTools();\n")],
+        "      deletingTool.value = null;\n      showWritten(reply, of);\n", "      deletingTool.value = null;\n      void of; void fetchTools();\n")],
         [pw("is said once", "delete_tool: ")]),
     "page_an_import_says_nothing": (PANEL, [(
-        "    setTimeout(() => { if (refresh) void fetchTools(); else showWritten(data); }, REFETCH_AFTER_DELETE_MS);\n",
-        "    setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);\n")],
+        "    setTimeout(() => { if (refresh) void fetchTools(); else showWritten(data, of); }, REFETCH_AFTER_DELETE_MS);\n",
+        "    void of;\n    setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);\n")],
         [pw("says so beside its result", "data-write-state", IMPORT_SPEC)]),
 }
 
