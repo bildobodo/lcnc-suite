@@ -25,7 +25,7 @@ label, title or message follows this page. The CSS audit
 | The simulation's return to position 0 — the program's beginning (the timeline's ⏮) | **Back to start** | "Rewind", "Restart", "Go to start" |
 | A calibration's measured result before it is taken over | **Candidate**, **Apply** / **Discard** | "New offset", "Accept" |
 | The probe tip offset in use | **Calibration offset** (block), **Calibration Offset** (field label) | "cal offset", "tip offset" |
-| Where a saved value is | **On the machine · 05:12** / **Saved · the next probe writes it** / **machine value unknown** | "synced", "written" without its time |
+| Where a value is | **On the machine · 05:12** / **Saved · the next probe writes it** / **Saved · machine value unknown**; with an open edit the first half is **Not saved yet**, before the server ever held it **Defaults** | "synced", "written" without its time |
 | An act not carried out | **Not applied: … / Not discarded: … / Not reset: … / Not saved: …** | "failed" |
 | Spindle direction | **Rev · Stop · Fwd** in this order (a preset: Rev · Off · Fwd) | FWD / REV |
 | The HAL browser (Settings tab) | **HAL** | "Halshow" |
