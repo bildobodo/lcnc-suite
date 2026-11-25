@@ -36,8 +36,8 @@ MUTATIONS = {
                                    [("py", PY + "::TestTheAnchors", "test_execution_order_not_adjacency")]),
     # (a relabel vertex counted as no change of stream is no mutation of its own:
     # its neighbours are anchored by the line, event and predecessor rules)
-    "feeds_are_no_change_for_rapids_after_an_arc": (W, "_rapid_changes = list_change_indices(rapid_seq, feed_seq)",
-                                                    "_rapid_changes = list_change_indices(rapid_seq, feed_seq[:1])",
+    "feeds_are_no_change_for_rapids_after_an_arc": (W, "_rapid_changes = list_change_indices(_rapid_q, _feed_q)",
+                                                    "_rapid_changes = list_change_indices(_rapid_q, _feed_q[:1])",
                                                     [("py", PY + "::TestEveryCycleAndBasis", "run")]),
     "a_coarser_tolerance": (W, "_RDP_EPS_MM = 0.005", "_RDP_EPS_MM = 0.5",
                             [("py", PY + "::TestEveryCycleAndBasis", "not less than or equal to")]),

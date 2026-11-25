@@ -1207,8 +1207,9 @@ def parse(ctx: dict) -> dict:
             pts = np.hstack([pts, abc])
         return pts
 
-    _feed_changes = list_change_indices(feed_seq, rapid_seq)
-    _rapid_changes = list_change_indices(rapid_seq, feed_seq)
+    _feed_q, _rapid_q = np.asarray(feed_seq, dtype=np.int64), np.asarray(rapid_seq, dtype=np.int64)
+    _feed_changes = list_change_indices(_feed_q, _rapid_q)
+    _rapid_changes = list_change_indices(_rapid_q, _feed_q)
     if len(feed) > 2:
         # Anchor every index where the source line number changes — that
         # preserves at least one rendered point per source line so the
