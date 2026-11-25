@@ -121,7 +121,7 @@ for (const vp of [DESKTOP, FULLHD, NARROW]) {
       await pad.getByRole("button", { name: "Apply", exact: true }).click();
       await expect(pad).toHaveCount(0);
     };
-    const field = grid.locator(".formField", { has: slow });
+    const field = grid.locator(".formField", { has: page.getByLabel("Slow Feed", { exact: true }) });
     await ctl({ op: "replyFor", cmd: "save_settings", reply: "silent" });
     await enter("60");
     await expect(field).toHaveClass(/fs-draft/);
@@ -175,7 +175,7 @@ test("disarmed between the entry and the save: the change stays a draft, never a
   await ctl({ op: "status_delta", armed: false, data: {} });
   await expect(slow).toBeDisabled();
   await expect(side.locator(".fs-refused")).toHaveCount(0);
-  await expect(side.locator(".formField", { has: slow })).toHaveClass(/fs-draft/);
+  await expect(side.locator(".formField", { has: page.getByLabel("Slow Feed", { exact: true }) })).toHaveClass(/fs-draft/);
   await expect(side.locator("[data-section-line]")).not.toHaveClass(/refused/);
 });
 
@@ -289,7 +289,7 @@ test("the machine line follows the booking, value by value, and says no more tha
     await expect.poll(async () => (await sent()).filter(c => c.cmd === "set_params").length).toBe(1);
     return ((await sent()).find(c => c.cmd === "set_params")!.sets as { probe: Record<string, number> }).probe;
   })();
-  const t = new Date(2026, 10, 24, 5, 12).getTime();
+  const t = await page.evaluate(() => new Date(2026, 10, 24, 5, 12).getTime());   // the browser's own clock
   const book = (over: Record<string, object | null> = {}) => {
     const keys: Record<string, object> = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, { value: v, outcome: "applied", t, job: "set_params" }]));
     for (const [k, v] of Object.entries(over)) { if (v === null) delete keys[k]; else keys[k] = { ...keys[k], ...v }; }
