@@ -18,7 +18,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
 
-**Ohne formulierte Aussagen:** 17 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
+**Ohne formulierte Aussagen:** 16 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
 
 ## Sicherheit und Maschinenzustand
 
@@ -309,7 +309,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 17 | 3 | 3 | 0 |
+| **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 17 | 5 | 5 | 0 |
 | **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 32 | 9 | 9 | 0 |
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 5 | 5 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -326,6 +326,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_tool_proof.py` — test_an_unread_or_empty_controller_table_is_not_read_never_no_tools; gateway: `test_tool_proof_gateway.py` — test_a_random_changer_reads_unchecked_with_its_rows; gateway: `test_tool_proof_gateway.py` — test_a_corrupt_library_is_no_read_never_cached_rows; browser: `tool-table-read.spec.ts` — the read's proof: partial and unchecked name it, a failed read is not empty, 'No tools' only complete
 - **S3 (Abbruch):** Eine Lesung gehört zu der Verbindung, der Instanz und der Konfiguration, unter der sie begann: wechselt eine davon bis zur Antwort, wird sie verworfen („Connection to LinuxCNC changed — try again“) — nie der alte Nachweis unter dem Namen einer anderen Instanz. Die strenge Bibliothekslesung hängt nicht davon ab, was der Statuspfad vorher las. — gilt für: alle
   - Beleg: gateway: `test_tool_proof_gateway.py` — test_after_the_stat_read; gateway: `test_tool_proof_gateway.py` — test_during_the_library_read; gateway: `test_tool_proof_gateway.py` — test_another_configurations_library_is_none_of_this_read; gateway: `test_tool_store.py` — test_a_warm_cache_is_no_proof_of_the_form
+- **S4 (Daten):** Tab und Leiste lesen die Werkzeugtabelle EINMAL je Änderung. Nennt die Seite die Bibliotheksrevision, deren Formen sie hält, lässt das Gateway bei Gleichstand genau die Formdaten weg; die Zeilen kommen immer ganz. Ein „gleich“, das die Seite nicht ergänzen kann, wird verworfen und durch EINE volle Lesung ersetzt. — gilt für: alle
+  - Beleg: gateway: `test_tool_have_library.py` — test_same_leaves_out_exactly_the_payload; gateway: `test_tool_have_library.py` — test_another_revision_is_full; unit: `toolTableStore.test.ts` — same gives exactly what full gives: rows and records, the refused and the none included; browser: `tool-forms.spec.ts` — one read a ping for the tab and the strip; the next one names the library, and a same keeps its shapes; browser: `tool-forms.spec.ts` — a same the page cannot complete is replaced by one full read; nothing of it shows
+- **S5 (Ablehnung):** Eine Werkzeugform über der Punkt- oder Eckenzahl wird nicht gebaut: die Zeile und der Editor sagen es, gezeichnet wird die Tabellen-Zylinderform, die Felder bleiben; ein Halter wird für sich abgelehnt. — gilt für: alle
+  - Beleg: browser: `tool-forms.spec.ts` — a shape above the bounds says so in the row and the editor, its fields stay; a holder is refused on its own
 
 ### Werkzeug anlegen, bearbeiten, löschen, umnummerieren
 
@@ -504,10 +508,15 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab** `F-SIM` | 3D-Ansicht › Zeitleiste, Tab „Sim“ | 12 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab** `F-SIM` | 3D-Ansicht › Zeitleiste, Tab „Sim“ | 12 | 1 | 1 | 0 |
 | **3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise** `F-VIEW` | 3D-Ansicht, 3D-Ansicht › Würfel | 6 | 0 | 0 | Aussagen noch nicht formuliert |
 | **3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD** `F-VIEWSET` | Einstellungen | 31 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Kamerabild (Bild im Bild) und Überlagerung** `F-CAMERA` | 3D-Ansicht, 3D-Ansicht › Kamerabild, Einstellungen | 29 | 0 | 0 | Aussagen noch nicht formuliert |
+
+### Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab
+
+- **S1 (Daten):** Ein in dieser Sitzung nie geladenes Werkzeug zeigt die Simulation als Zylinder der Tabelle, und genau diesen Körper prüft die Kollisionsprüfung — keine Bibliotheksform wird gezeigt, bevor sie geprüft wird. — gilt für: alle
+  - Beleg: browser: `tool-shape-sim.viewer.spec.ts` — a tool never loaded: today's cylinder is drawn and is what the check poses
 
 ## Oberfläche, Einstellungen, Meldungen
 

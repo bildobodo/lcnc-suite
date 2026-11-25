@@ -164,12 +164,12 @@ UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-ico
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer", "simulation-off.viewer",
           "rapids.viewer", "reach.viewer", "scenes.viewer", "scrub-start.viewer", "sim-panel.viewer",
           "start-believed.viewer", "program-header.viewer",
-          "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
+          "tool-shape-sim.viewer", "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
            "sim-panel.viewer", "scrub-start.viewer", "strip-actions", "program-identity")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
-         "tool-import", "tool-table-read", "tool-preview", "tool-edit")
+         "tool-import", "tool-table-read", "tool-preview", "tool-edit", "tool-forms")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
 PROBING = ("probe-click", "probe-calibration", "probe-visual", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
@@ -300,8 +300,14 @@ RULES: tuple[Rule, ...] = (
     Rule(src("ToolStrip.vue", "toolTypes.ts"),
          "the strip's Tool section and the ONE tool type labels it shows: the tool table read, its fit at "
          "Full HD (plan leiste-tastatur) and the offset row the toolsetter viewer spec reads", browser=TOOLS + ("strip-fit", "toolsetter.viewer")),
-    Rule(src("toolGeometry.ts"), "tool geometry: the table's preview and the 3D tool",
+    Rule(src("toolGeometry.ts", "toolDrawing.ts"), "tool geometry: the table's preview and the 3D tool",
          browser=TOOLS + VIEWER),
+    Rule(src("toolTable.ts", "toolTableStore.ts", "toolTableRead.ts", "toolLibrary.ts", "toolForm.ts", "toolShapeRecord.ts"),
+         "the one tool table reader, the library's forms and the simulation's evidence of it (P6-c): the Tools tab, "
+         "the strip's Tool section, the simulation beside a held library",
+         browser=TOOLS + ("strip-fit", "toolsetter.viewer", "tool-shape-sim.viewer")),
+    Rule(src("toolShapeCache.ts"), "the simulation's shape drawings (P6-c): nothing shows them before bell 2",
+         browser=("tool-shape-sim.viewer",)),
     Rule(src("OffsetPanel.vue", "offsetRows.ts", "useTouchoffMath.ts", "SetupStrip.vue",
              "SetupActions.vue", "SetupIcon.vue", "setupLayout.ts"),
          "offsets, touch-off and the Setup section", browser=SETUP,
@@ -332,6 +338,7 @@ RULES: tuple[Rule, ...] = (
     Rule(src("codeGlide.ts", "trackHighlight.ts", "limitMarks.ts", "toolMarks.ts"),
          "the running line and the marks: the code panel and the Sim tab", browser=PROGRAM + VIEWER),
     Rule(src("download.ts"), "a file saved: programs, macros, tool tables", browser=PROGRAM + MACROS + TOOLS),
+    Rule(src("viewer/steps.ts"), "work in counted steps: the contact view and the tool drawings", browser=TOOLS + VIEWER),
     Rule(src("gcodeRefView.ts", "gcodeReference.ts"), "the reference opened from the code panel",
          browser=PROGRAM),
     Rule(src("g30Shared.ts", "toolHolder.ts", "toolUnits.ts", "viewer/toolOffsetState.ts"),

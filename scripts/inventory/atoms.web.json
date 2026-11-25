@@ -2760,7 +2760,9 @@
     },
     {
      "id": "cmd:get_tool_table",
-     "members": []
+     "members": [
+      "have_library"
+     ]
     },
     {
      "id": "cmd:get_wcs_table",
