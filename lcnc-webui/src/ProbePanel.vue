@@ -1068,7 +1068,7 @@ function fmtR(key: string): string {
               <span class="label-muted calCaption" aria-hidden="true">Rect boss<br />above centre</span>
             </div>
           </div>
-          <div class="calParamStacked">
+          <div class="calParamStacked calParamPair">
             <FormField v-for="f in CAL_RECT_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline :state="states[f.key]">
               <template #default="{ input }">
                 <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
@@ -1456,7 +1456,7 @@ html.touch-device .gridSection { height: 368px; }
    their ROW OF CELLS, not on the cells with their captions ("sonst
    zusammengewürfelt") — the Diameter field on the Round cells, X / Y Width as
    a group on the Rect cells: the field column takes the cell's height and
-   centres in it (two touch fields overhang it evenly). The box grows here
+   centres in it (.calParamPair: two touch fields overhang it). The box grows here
    only (min-height): the calibration offset sits inside it under Calibrate
    On (O-4); the cells keep their place at its top in every procedure. Where
    the pane cannot hold cells and sizes side by side (the narrow pane at
@@ -1489,12 +1489,21 @@ html.touch-device .gridSection.calSection { height: auto; min-height: 368px; }
   height: var(--cal-cell);
   align-content: center;
 }
+/* Two touch fields (44 px each) are higher than a cell: the pair's own box
+   holds them and overhangs the cells' row evenly, so its middle is the cells'. */
+.calParamPair {
+  --pair-h: max(var(--cal-cell), calc(2 * var(--control-h) + var(--gap-tight)));
+  height: var(--pair-h);
+  margin-block-start: calc((var(--cal-cell) - var(--pair-h)) / 2);
+}
 .calParamStacked > .formField.inline {
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   align-items: center;
 }
+/* the "?" keeps its one gap after the label, whichever label is the longest */
+.calParamStacked :deep(.formLabel) { justify-self: end; }
 .calParamStacked .inputField { margin-inline: 0; }
 @container (max-width: 380px) {
   .calGrid { grid-template-columns: max-content; }
@@ -1502,6 +1511,7 @@ html.touch-device .gridSection.calSection { height: auto; min-height: 368px; }
     grid-column: 1;
     grid-template-columns: repeat(4, max-content);
     height: auto;
+    margin-block-start: 0;
   }
   /* "Calibrate On" over its choices, not broken into two lines beside them */
   .calSection .row-controls { flex-direction: column; align-items: flex-start; }
